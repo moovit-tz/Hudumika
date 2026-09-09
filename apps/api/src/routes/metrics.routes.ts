@@ -4,6 +4,8 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import { listMetricDefinitions, computeMetricValue, METRICS_MGMT_ROLES } from '../services/metrics-registry.service.js';
 import { listAlertRules, listAlertEvents, createAlertRule, setAlertRuleEnabled, deleteAlertRule } from '../services/metric-alerts.service.js';
 
+import { listKpiTargets, createOrUpdateKpiTarget, deleteKpiTarget } from '../services/kpi-targets.service.js';
+
 const createAlertSchema = z.object({
   metricKey: z.string().trim().min(1),
   name: z.string().trim().min(1).max(200),
@@ -12,6 +14,15 @@ const createAlertSchema = z.object({
   windowDays: z.number().int().min(1).max(365).optional(),
   severity: z.enum(['info', 'warning', 'critical']).optional(),
   notifyRoles: z.array(z.string()).optional(),
+});
+
+const createKpiTargetSchema = z.object({
+  metricKey: z.string().trim().min(1),
+  targetValue: z.number(),
+  targetDirection: z.enum(['above', 'below']),
+  warningThreshold: z.number().nullable().optional(),
+  period: z.enum(['daily', 'weekly', 'monthly', 'quarterly']).optional(),
+  notes: z.string().nullable().optional(),
 });
 
 /**
@@ -106,6 +117,40 @@ export async function metricsRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'Only management roles can delete alert rules' });
     }
     await deleteAlertRule(user.tenant_id, request.params.id);
+    return reply.status(204).send();
+  });
+
+  // ── KPI Targets (Milestone M2) ───────────────────────────────────────
+  fastify.get('/kpi-targets', async (request) => {
+    const targets = await listKpiTargets(request.user.tenant_id);
+    return { data: targets };
+  });
+
+  fastify.post('/kpi-targets', async (request, reply) => {
+    const user = request.user;
+    if (!METRICS_MGMT_ROLES.includes(user.role)) {
+      return reply.status(403).send({ error: 'Only management roles can set KPI targets' });
+    }
+    const body = createKpiTargetSchema.parse(request.body);
+    const def = await listMetricDefinitions().then(all => all.find(d => d.metric_key === body.metricKey));
+    if (!def) return reply.status(404).send({ error: 'Unknown metric' });
+    if (def.visibility === 'restricted' && !METRICS_MGMT_ROLES.includes(user.role)) {
+      return reply.status(403).send({ error: 'This metric is restricted to management roles' });
+    }
+    try {
+      const target = await createOrUpdateKpiTarget(user.tenant_id, user.sub, body);
+      return reply.status(201).send(target);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message || 'Failed to save KPI target' });
+    }
+  });
+
+  fastify.delete<{ Params: { id: string } }>('/kpi-targets/:id', async (request, reply) => {
+    const user = request.user;
+    if (!METRICS_MGMT_ROLES.includes(user.role)) {
+      return reply.status(403).send({ error: 'Only management roles can delete KPI targets' });
+    }
+    await deleteKpiTarget(user.tenant_id, request.params.id);
     return reply.status(204).send();
   });
 }

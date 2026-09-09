@@ -17,7 +17,11 @@ const scanSchema = z.object({
 // Superadmin-configurable key (Platform Settings → OCR / Document Scanning) takes
 // priority over the env var, so it can be rotated from the UI without a redeploy.
 // GLOBAL_TENANT_ID is a platform sentinel row, not real tenant data — dbPlatform.
-async function getGeminiApiKey(): Promise<string | null> {
+// Exported for sign-seal-verify.service.ts's own Gemini-vision OCR pass
+// (reading a printed seal's serial/QR off a scanned/photographed document)
+// — the same "SuperAdmin-configured key, env var fallback" resolution,
+// not a second copy of it.
+export async function getGeminiApiKey(): Promise<string | null> {
   const row = await dbPlatform.selectFrom('tenant_settings')
     .select('settings')
     .where('tenant_id', '=', GLOBAL_TENANT_ID)

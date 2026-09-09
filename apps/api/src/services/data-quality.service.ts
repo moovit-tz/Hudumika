@@ -157,6 +157,65 @@ async function checkDomainEventsVolumeAnomaly(): Promise<Finding[]> {
   return findings;
 }
 
+async function checkSignRecipientSignedBeforeEnvelopeCreated(): Promise<Finding[]> {
+  const rows = await sql<{ tenant_id: string; n: number; sample: string[] }>`
+    SELECT e.tenant_id, count(*)::int AS n, (array_agg(r.id::text ORDER BY r.id))[1:5] AS sample
+    FROM sign_recipients r
+    JOIN sign_envelopes e ON e.id = r.envelope_id
+    WHERE r.signed_at IS NOT NULL AND r.signed_at < e.created_at
+    GROUP BY e.tenant_id
+  `.execute(dbPlatform);
+
+  return rows.rows.map(r => ({
+    checkKey: 'sign_recipient_signed_before_envelope_created',
+    severity: 'critical' as const,
+    tableName: 'sign_recipients',
+    tenantId: r.tenant_id,
+    count: Number(r.n),
+    sampleIds: r.sample,
+    description: `${r.n} recipient signature(s) timestamped earlier than envelope creation date — impossible sequence / clock corruption.`,
+  }));
+}
+
+async function checkOrphanMetricAlertRules(): Promise<Finding[]> {
+  const rows = await sql<{ tenant_id: string; n: number; sample: string[] }>`
+    SELECT r.tenant_id, count(*)::int AS n, (array_agg(r.id::text ORDER BY r.id))[1:5] AS sample
+    FROM metric_alert_rules r
+    LEFT JOIN metric_definitions d ON d.metric_key = r.metric_key AND d.status = 'active'
+    WHERE d.metric_key IS NULL
+    GROUP BY r.tenant_id
+  `.execute(dbPlatform);
+
+  return rows.rows.map(r => ({
+    checkKey: 'orphan_metric_alert_rules',
+    severity: 'warning' as const,
+    tableName: 'metric_alert_rules',
+    tenantId: r.tenant_id,
+    count: Number(r.n),
+    sampleIds: r.sample,
+    description: `${r.n} alert rule(s) monitor deprecated or non-existent metrics and will never fire or evaluate accurately.`,
+  }));
+}
+
+async function checkExpiredVerifiedCertifiers(): Promise<Finding[]> {
+  const rows = await sql<{ tenant_id: string; n: number; sample: string[] }>`
+    SELECT tenant_id, count(*)::int AS n, (array_agg(id::text ORDER BY id))[1:5] AS sample
+    FROM sign_certifiers
+    WHERE verification_status = 'verified' AND expiry_date < CURRENT_DATE
+    GROUP BY tenant_id
+  `.execute(dbPlatform);
+
+  return rows.rows.map(r => ({
+    checkKey: 'expired_verified_certifiers',
+    severity: 'warning' as const,
+    tableName: 'sign_certifiers',
+    tenantId: r.tenant_id,
+    count: Number(r.n),
+    sampleIds: r.sample,
+    description: `${r.n} certifier(s) marked verified but whose credentials have passed their expiry date.`,
+  }));
+}
+
 /** Runs every check, writes the batch under one run_id, and returns it.
  *  Each run is a fresh snapshot — the API always reads the latest run_id,
  *  so a resolved issue naturally stops appearing without needing a
@@ -171,6 +230,9 @@ export async function runDataQualityChecks(): Promise<{ runId: string; runAt: st
     checkStageHistoryInconsistencies(),
     checkTicketTimestampInconsistencies(),
     checkDomainEventsVolumeAnomaly(),
+    checkSignRecipientSignedBeforeEnvelopeCreated(),
+    checkOrphanMetricAlertRules(),
+    checkExpiredVerifiedCertifiers(),
   ]);
   const findings = results.flat();
 

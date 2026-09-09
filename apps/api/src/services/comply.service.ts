@@ -185,11 +185,12 @@ export class ComplyService {
       let q = trx
         .selectFrom('comply_applications as a')
         .leftJoin('customers as cu', 'cu.id', 'a.customer_id')
+        .leftJoin('sign_envelopes as se', 'se.id', 'a.sign_envelope_id')
         .select([
           'a.id', 'a.app_number', 'a.cert_type', 'a.agency_code', 'a.status', 'a.submitted_at',
           'a.created_at', 'a.updated_at', 'a.created_by', 'a.agency_ref', 'a.notes',
           'a.linked_cert_id', 'a.metadata', 'a.customer_id', 'cu.name as customer_name',
-          'a.license_catalog_id',
+          'a.license_catalog_id', 'a.sign_envelope_id', 'se.status as envelope_status',
         ])
         .where('a.tenant_id', '=', tenantId);
       if (status) q = q.where('a.status', '=', status);
@@ -212,6 +213,8 @@ export class ComplyService {
         customer_id:    r.customer_id,
         customer_name:  r.customer_name,
         license_catalog_id: r.license_catalog_id,
+        sign_envelope_id: r.sign_envelope_id,
+        envelope_status:  r.envelope_status,
       }));
     });
   }
@@ -256,6 +259,7 @@ export class ComplyService {
         created_by: row.created_by, agency_ref: null, notes: row.notes,
         linked_cert_id: null, metadata: row.metadata as Record<string, unknown>,
         customer_id: row.customer_id, customer_name: null, license_catalog_id: null,
+        sign_envelope_id: null, envelope_status: null,
       };
     });
   }
@@ -296,6 +300,7 @@ export class ComplyService {
         linked_cert_id: null, metadata: row.metadata as Record<string, unknown>,
         customer_id: row.customer_id, customer_name: null,
         license_catalog_id: row.license_catalog_id,
+        sign_envelope_id: null, envelope_status: null,
       };
     });
   }

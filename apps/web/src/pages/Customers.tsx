@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
-import { apiFetch, apiDownload } from '../lib/api.js';
+import { apiFetch, apiDownload, apiFetchBlob } from '../lib/api.js';
 import { StatusPill } from '@hudumika/ui';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -360,6 +360,18 @@ export const Customers: React.FC = () => {
   const [fileSearching, setFileSearching] = useState(false);
   const [fileLinking, setFileLinking] = useState<string | null>(null);
 
+  /* Signatures — Hudumika Sign envelopes linked to this customer
+     (sign_envelopes.client_id, migration 426). Sending one reuses whatever
+     is already linked in the Documents tab above, the same "pick from
+     Drive" pattern as "Link Existing File" rather than a new upload path. */
+  const [custSignEnvelopes, setCustSignEnvelopes] = useState<any[]>([]);
+  const [signLoading, setSignLoading] = useState(false);
+  const [showSendSignModal, setShowSendSignModal] = useState(false);
+  const [signFileSearch, setSignFileSearch] = useState('');
+  const [signFileSearchResults, setSignFileSearchResults] = useState<any[]>([]);
+  const [signFileSearching, setSignFileSearching] = useState(false);
+  const [sendingForSignature, setSendingForSignature] = useState<string | null>(null);
+
   /* Contacts */
   const [showAddContact, setShowAddContact] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', role: '' });
@@ -598,6 +610,82 @@ export const Customers: React.FC = () => {
       showAlert(`${files.length} file(s) uploaded to Drive`, { variant: 'success' });
       await loadLinkedFiles(selected.id);
     } catch (err: any) { showAlert(err.message || 'Upload failed'); } finally { setFileUploading(false); }
+  }
+
+  const loadSignEnvelopes = useCallback(async (customerId: string) => {
+    setSignLoading(true);
+    try {
+      const res = await apiFetch(`/v1/sign/envelopes?client_id=${customerId}`).catch(() => []);
+      setCustSignEnvelopes(Array.isArray(res) ? res : []);
+    } catch { /* empty */ } finally { setSignLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (selected && mainTab === 'signatures') loadSignEnvelopes(selected.id);
+  }, [selected, mainTab, loadSignEnvelopes]);
+
+  // Same debounced Drive search as "Link existing file" above, kept as its
+  // own state so the two modals can never bleed search results into each
+  // other if a user reopens one right after the other.
+  useEffect(() => {
+    if (!showSendSignModal) return;
+    const q = signFileSearch.trim();
+    if (!q) { setSignFileSearchResults([]); return; }
+    setSignFileSearching(true);
+    const t = setTimeout(() => {
+      apiFetch(`/v1/files?q=${encodeURIComponent(q)}`)
+        .then((res: any) => setSignFileSearchResults(Array.isArray(res) ? res : []))
+        .catch(() => setSignFileSearchResults([]))
+        .finally(() => setSignFileSearching(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [signFileSearch, showSendSignModal]);
+
+  async function sendFileForSignature(file: { id: string; name: string }) {
+    if (!selected) return;
+    if (!selected.email) { showAlert('This customer has no email on file — add one before sending a document for signature.'); return; }
+    setSendingForSignature(file.id);
+    try {
+      // A Drive-sourced envelope is normally created file_id-only
+      // (document_data left null — see SignEditor.tsx's own handleSave),
+      // relying on the internal editor's authenticated /v1/files/:id/preview
+      // fetch to render it. The public signing page (no auth, a token in an
+      // email link) has no equivalent lazy fetch and only ever reads
+      // document_data — so file_id-only would leave an external signer
+      // looking at a blank document. Resolving the real bytes once here,
+      // up front, sidesteps that gap entirely rather than depending on it.
+      const blob = await apiFetchBlob(`/v1/files/${file.id}/download`);
+      const documentData = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = ev => resolve((ev.target?.result as string) ?? '');
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(blob);
+      });
+
+      // Two calls, matching SignEditor's own compose-then-send shape: POST
+      // /envelopes only creates a draft (see that handler's own comment on
+      // why no status/notify happens there) — /send is what actually
+      // notifies the recipient and flips status to 'sent'.
+      const envelope: any = await apiFetch('/v1/sign/envelopes', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: file.name,
+          file_id: file.id,
+          file_name: file.name,
+          document_data: documentData,
+          client_id: selected.id,
+          order_mode: 'sequential',
+          recipients: [{ name: selected.name, email: selected.email, sign_order: 1 }],
+          fields: [{ recipient_index: 0, field_type: 'signature', page: 1, x: 0.55, y: 0.85, width: 0.35, height: 0.07, required: true }],
+        }),
+      });
+      await apiFetch(`/v1/sign/envelopes/${envelope.id}/send`, { method: 'POST' });
+      showAlert(`Sent "${file.name}" to ${selected.name} for signature`, { variant: 'success' });
+      setShowSendSignModal(false);
+      setSignFileSearch('');
+      setSignFileSearchResults([]);
+      await loadSignEnvelopes(selected.id);
+    } catch (err: any) { showAlert(err.message || 'Failed to send for signature'); } finally { setSendingForSignature(null); }
   }
 
   useEffect(() => {
@@ -1041,6 +1129,7 @@ export const Customers: React.FC = () => {
     { key: 'supply',     label: 'Supply Chain',   icon: 'layers'     as IconName },
     { key: 'seal',       label: 'Bonded Storage', icon: 'package'    as IconName },
     { key: 'documents',  label: 'Documents',      icon: 'folder'     as IconName },
+    { key: 'signatures', label: 'Signatures',     icon: 'stamp'      as IconName },
     { key: 'notes',      label: 'Notes',          icon: 'edit'       as IconName },
   ];
 
@@ -2103,6 +2192,112 @@ export const Customers: React.FC = () => {
                           : fileLinking === f.id
                             ? <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Linking…</span>
                             : <Icon name="link" size={13} color="var(--teal)" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    /* ── Signatures ── */
+    if (mainTab === 'signatures') {
+      const envelopeBadgeVariant = (status: string): 'brand' | 'gray' | 'success' | 'warning' | 'error' | 'info' => {
+        // Same semantic mapping SignInbox.tsx's own envelopeBadgeVariant
+        // uses (not exported from that file, so mirrored here rather than
+        // reached into) — keep the two in sync if the status set changes.
+        const map: Record<string, 'brand' | 'gray' | 'success' | 'warning' | 'error' | 'info'> = {
+          draft: 'gray', sent: 'info', completed: 'success', voided: 'error', declined: 'error', expired: 'gray',
+        };
+        return map[status] ?? 'gray';
+      };
+      return (
+        <div style={{ padding: '24px 28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Signatures</span>
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Documents sent to {sel.name} for signature via Hudumika Sign.</div>
+            </div>
+            <button type="button" onClick={() => setShowSendSignModal(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 }}>
+              <Icon name="stamp" size={13} strokeWidth={2} /> Send for Signature
+            </button>
+          </div>
+
+          {signLoading && <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading signatures…</div>}
+          {!signLoading && custSignEnvelopes.length === 0 && (
+            <EmptyState icon="stamp" title="No documents sent yet" sub="Send a file already linked in Documents for this customer to sign" />
+          )}
+          {!signLoading && custSignEnvelopes.length > 0 && (
+            <SectionCard padded={false}>
+              {custSignEnvelopes.map((e: any, i: number) => (
+                <Link key={e.id} to={`/sign/envelope/${e.id}`} style={{ textDecoration: 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < custSignEnvelopes.length - 1 ? '1px solid var(--bg)' : 'none', cursor: 'pointer' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon name="stamp" size={16} color="var(--teal)" strokeWidth={1.75} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                        {new Date(e.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {e.recipients?.[0]?.status === 'signed' && e.status === 'completed' ? ' · Signed' : ''}
+                      </div>
+                    </div>
+                    <Badge variant={envelopeBadgeVariant(e.status)}>{e.status}</Badge>
+                  </div>
+                </Link>
+              ))}
+            </SectionCard>
+          )}
+
+          {/* Send for signature modal — same "pick from Drive" shape as
+              "Link Existing File" on the Documents tab above, deliberately
+              mirrored rather than reinvented. */}
+          {showSendSignModal && (
+            <div className="modal-overlay" onClick={ev => { if (ev.target === ev.currentTarget) { setShowSendSignModal(false); setSignFileSearch(''); setSignFileSearchResults([]); } }}>
+              <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>Send a file for signature</h2>
+                  <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowSendSignModal(false); setSignFileSearch(''); setSignFileSearchResults([]); }}>×</button>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>
+                  {sel.email ? `Sent to ${sel.name} · ${sel.email}` : 'This customer has no email on file — add one before sending.'}
+                </div>
+                <div style={{ position: 'relative', marginBottom: 12 }}>
+                  <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
+                  <input type="text" className="input-field" placeholder="Search files by name…" autoFocus
+                    style={{ paddingLeft: 32 }}
+                    value={signFileSearch} onChange={ev => setSignFileSearch(ev.target.value)} />
+                </div>
+                <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                  {signFileSearching && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Searching…</div>}
+                  {!signFileSearching && signFileSearch.trim() && signFileSearchResults.length === 0 && (
+                    <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>No matching files in Drive</div>
+                  )}
+                  {!signFileSearching && !signFileSearch.trim() && (
+                    <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Type to search every file in your Drive</div>
+                  )}
+                  {signFileSearchResults.map(f => {
+                    const ft = fileTypeStyle(f.type);
+                    return (
+                      <button key={f.id} type="button" disabled={!sel.email || sendingForSignature === f.id}
+                        onClick={() => sendFileForSignature(f)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '9px 8px', border: 'none', borderRadius: 8, background: 'none', cursor: !sel.email ? 'default' : 'pointer', fontFamily: 'var(--font)' }}
+                        onMouseEnter={ev => { if (sel.email) ev.currentTarget.style.background = 'var(--bg)'; }}
+                        onMouseLeave={ev => (ev.currentTarget.style.background = 'none')}>
+                        <div style={{ width: 28, height: 28, borderRadius: 7, background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Icon name={ft.icon} size={14} color={ft.color} strokeWidth={1.75} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{f.size != null ? `${(f.size / 1024).toFixed(1)} KB` : ''}</div>
+                        </div>
+                        {sendingForSignature === f.id
+                          ? <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Sending…</span>
+                          : <Icon name="stamp" size={13} color="var(--teal)" />}
                       </button>
                     );
                   })}

@@ -62,6 +62,13 @@ function envelopeBadgeVariant(status: string): BadgeVariant {
   };
   return map[status] ?? 'gray';
 }
+// Migration 416 — only WITNESSED_SIGNATURE/AFFIDAVIT/NOTARIAL_CERTIFICATION
+// ever render; NORMAL_SIGN is the default and deliberately shows no badge.
+const EXECUTION_TYPE_LABEL: Record<string, string> = {
+  WITNESSED_SIGNATURE: 'Witnessed Signature',
+  AFFIDAVIT: 'Affidavit',
+  NOTARIAL_CERTIFICATION: 'Notarial Certification',
+};
 function recipientBadgeVariant(status: string): BadgeVariant {
   const map: Record<string, BadgeVariant> = {
     pending: 'warning', viewed: 'info', signed: 'success', declined: 'error',
@@ -79,8 +86,15 @@ function RecipientAvatarStack({ recipients, size, max }: { recipients: SignRecip
   return (
     <div style={{ display: 'flex' }}>
       {recipients.slice(0, max).map((r, i) => (
-        <PersonAvatar key={r.id} userId={r.user_id} name={r.name} size={size} title={`${r.name} (${r.status})`}
-          style={{ marginLeft: i === 0 ? 0 : -Math.round(size * 0.28), border: '2px solid var(--card-bg)' }} />
+        // Tip, not PersonAvatar's own native-title fallback — every other
+        // hover label on this page (view toggle, share buttons, amend/void
+        // actions) already renders through the platform's styled tooltip;
+        // this stack was the one place still popping the browser's plain,
+        // unstyled title after a full second's delay.
+        <Tip key={r.id} label={`${r.name} · ${r.status}`}>
+          <PersonAvatar userId={r.user_id ?? r.matched_user_id ?? undefined} name={r.name} size={size}
+            style={{ marginLeft: i === 0 ? 0 : -Math.round(size * 0.28), border: '2px solid var(--card-bg)' }} />
+        </Tip>
       ))}
     </div>
   );
@@ -464,6 +478,76 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
   );
 }
 
+// Phase S9 — a real DRAFT sales_invoices row (sign-billing.routes.ts),
+// not a fee schedule: the preparer types the real amount being charged,
+// since Sign has no existing notary/consultant rate card to compute one
+// from. Finalization (tax, GL posting) happens entirely in FinOps's own
+// invoice screen afterward — this only creates the draft it starts from.
+function BillEnvelopeModal({ env, onClose, onBilled }: { env: EnvelopeWithRecipients; onClose: () => void; onBilled: (invoiceId: string) => void }) {
+  const [description, setDescription] = useState(`${env.title} — professional service fee`);
+  const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState('TZS');
+  const [saving, setSaving] = useState(false);
+
+  async function submit() {
+    const parsed = Number(amount);
+    if (!description.trim()) { showAlert('A description is required'); return; }
+    if (!parsed || parsed <= 0) { showAlert('Enter an amount greater than zero'); return; }
+    setSaving(true);
+    try {
+      const res: any = await apiFetch(`/v1/sign/envelopes/${env.id}/bill`, {
+        method: 'POST',
+        body: JSON.stringify({ description: description.trim(), amount: parsed, currency }),
+      });
+      showAlert(`Draft invoice ${res.invoice_number} created`, { variant: 'success' });
+      onBilled(res.invoice_id);
+      onClose();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to create invoice');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={o => !o && onClose()}>
+      <DialogContent className="sm:max-w-110" style={{ padding: 24, borderRadius: 10 }}>
+        <DialogHeader>
+          <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
+            <Icon name="invoice" size={16} style={{ color: 'var(--teal)' }} />
+            Create Invoice — {env.title}
+          </DialogTitle>
+        </DialogHeader>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
+          <p style={{ fontSize: 12, color: 'var(--ink3)', margin: 0, lineHeight: 1.5 }}>
+            Creates a draft invoice on this document's customer. Review and finalize it in FinOps's own invoice screen — tax and posting happen there, not here.
+          </p>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', display: 'block', marginBottom: 6 }}>Description</label>
+            <input value={description} onChange={e => setDescription(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }} />
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', display: 'block', marginBottom: 6 }}>Amount</label>
+              <input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00"
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ width: 100 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', display: 'block', marginBottom: 6 }}>Currency</label>
+              <input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+          </div>
+          <Button variant="default" onClick={submit} disabled={saving} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700 }}>
+            {saving ? 'Creating…' : 'Create Draft Invoice'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function getAuditEventStyle(type: string) {
   const t = type.toLowerCase();
   if (t === 'created') return { icon: 'plus' as const, color: 'var(--teal)', bg: 'var(--teal-l)' };
@@ -490,6 +574,7 @@ export function SignEnvelopeDetail() {
   const [env, setEnv] = useState<EnvelopeWithRecipients | null>(null);
   const [loading, setLoading] = useState(true);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showBillModal, setShowBillModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
@@ -667,6 +752,49 @@ export function SignEnvelopeDetail() {
             <Badge variant={envelopeBadgeVariant(env.status)} style={{ textTransform: 'capitalize', padding: '5px 12px', fontSize: 12.5, fontWeight: 700 }}>
               {env.status}
             </Badge>
+            {/* Only shown for an advanced execution — an ordinary envelope's
+                header looks exactly as it did before migration 416. */}
+            {env.execution_type && env.execution_type !== 'NORMAL_SIGN' && (
+              <Badge variant="warning" style={{ padding: '5px 12px', fontSize: 12.5, fontWeight: 700 }}>
+                {EXECUTION_TYPE_LABEL[env.execution_type] ?? env.execution_type}
+              </Badge>
+            )}
+            {/* Phase S7 — a free-text case tag (migration 428), shown to
+                whoever can already see this envelope; the grouped /sign/
+                matters view itself stays admin-only (see that route's own
+                gate), so this reads as plain text, not a link. */}
+            {env.matter_reference && (
+              <Badge variant="gray" style={{ padding: '5px 12px', fontSize: 12.5, fontWeight: 700 }}>
+                <Icon name="briefcase" size={11} /> {env.matter_reference}
+              </Badge>
+            )}
+            {/* Phase S9 — a real draft invoice, not a claim of payment. Only
+                offered when there's a customer to bill (client_id, Phase
+                S6/S7's own column) and not already billed. */}
+            {env.invoice_id ? (
+              <a href={`/finance/invoices?id=${env.invoice_id}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                <Badge variant="success" style={{ padding: '5px 12px', fontSize: 12.5, fontWeight: 700 }}>
+                  <Icon name="invoice" size={11} /> Invoiced
+                </Badge>
+              </a>
+            ) : env.client_id && (
+              <Tip label="Create a draft invoice for this document's customer in FinOps">
+                <Button variant="outline" size="sm" onClick={() => setShowBillModal(true)} style={{ height: 32, fontSize: 12, padding: '0 10px' }}>
+                  <Icon name="invoice" size={13} /> Bill Client
+                </Button>
+              </Tip>
+            )}
+            {/* Phase S4 — a real Bliss (or Jitsi-fallback) meeting, set from
+                the editor's own MeetingLinkPanel. Shown to whoever can
+                already see this envelope; recipients get the same link on
+                the public signing page. */}
+            {env.meeting_url && (
+              <a href={env.meeting_url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                <Badge variant="info" style={{ padding: '5px 12px', fontSize: 12.5, fontWeight: 700 }}>
+                  <Icon name="video" size={11} /> Join Notary Session
+                </Badge>
+              </a>
+            )}
             {env.status === 'completed' ? (
               !env.next_version && (
                 <Tip label="This document has an issue — create an amended Version 2">
@@ -924,10 +1052,14 @@ export function SignEnvelopeDetail() {
                   // once it runs out of room, on any width, not just below
                   // a mobile breakpoint.
                   <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, rowGap: 8, padding: '10px 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', flexWrap: 'wrap' }}>
-                    <PersonAvatar userId={r.user_id} name={r.name} size={30} />
+                    <Tip label={`${r.name} — ${r.email}`}>
+                      <PersonAvatar userId={r.user_id ?? r.matched_user_id ?? undefined} name={r.name} size={30} />
+                    </Tip>
                     <Badge variant={recipientBadgeVariant(r.status)}>{r.status}</Badge>
                     <div style={{ flex: '1 1 140px', minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                      <Tip label={r.name}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                      </Tip>
                       <div style={{ fontSize: 11.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.email}</div>
                     </div>
                     {r.role_label && <Badge variant="gray">{r.role_label}</Badge>}
@@ -964,9 +1096,13 @@ export function SignEnvelopeDetail() {
               // pushes past the single-line-height the trailing badges
               // assumed and overlaps them the same way.
               <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, rowGap: 8, padding: '12px 14px', borderRadius: 10, background: r.is_certifier ? 'var(--blue-l)' : 'var(--bg)', border: `1px solid ${r.is_certifier ? 'var(--blue)' : 'var(--border)'}`, flexWrap: 'wrap' }}>
-                <PersonAvatar userId={r.user_id} name={r.name} size={38} />
+                <Tip label={`${r.name} — ${r.email}`}>
+                  <PersonAvatar userId={r.user_id ?? r.matched_user_id ?? undefined} name={r.name} size={38} />
+                </Tip>
                 <div style={{ flex: '1 1 160px', minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                  <Tip label={r.name}>
+                    <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                  </Tip>
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.email}{r.role_label ? ` · ${r.role_label}` : ''}</div>
                   {r.is_certifier && (
                     <div style={{ fontSize: 11.5, color: 'var(--blue)', fontWeight: 600, marginTop: 2 }}>
@@ -1044,6 +1180,10 @@ export function SignEnvelopeDetail() {
       </div>
 
       {showShareModal && <ShareEnvelopeModal env={env} onClose={() => setShowShareModal(false)} />}
+      {showBillModal && (
+        <BillEnvelopeModal env={env} onClose={() => setShowBillModal(false)}
+          onBilled={invoiceId => setEnv(prev => prev ? { ...prev, invoice_id: invoiceId } : prev)} />
+      )}
     </div>
   );
 }
@@ -1076,6 +1216,18 @@ export function SignAllDocuments() {
     (!search || e.title.toLowerCase().includes(search.toLowerCase()) || e.owner?.name.toLowerCase().includes(search.toLowerCase()))
   );
 
+  // Same tenant-wide stats shape SignInbox's MetricsRow already establishes
+  // for the personal Inbox/Sent/Drafts views — this admin oversight page
+  // had none of that, just the bare table below.
+  const stats = useMemo(() => {
+    const total = envelopes.length;
+    const sent = envelopes.filter(e => e.status === 'sent').length;
+    const completed = envelopes.filter(e => e.status === 'completed').length;
+    const needsAttention = envelopes.filter(e => e.status === 'voided' || e.status === 'declined' || e.status === 'expired').length;
+    const owners = new Set(envelopes.map(e => e.owner?.email).filter(Boolean)).size;
+    return { total, sent, completed, needsAttention, owners };
+  }, [envelopes]);
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <PageHeader
@@ -1085,15 +1237,36 @@ export function SignAllDocuments() {
         subtitle="Every envelope in this workspace, regardless of who created it — for oversight and audit, not day-to-day signing."
       />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: 4, background: 'var(--bg)', borderRadius: 'var(--r)', padding: 3 }}>
-          {(['all', 'draft', 'sent', 'completed', 'voided', 'declined', 'expired'] as const).map(s => (
-            <button key={s} type="button" onClick={() => setStatusFilter(s)}
-              style={{ padding: '6px 12px', border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer', fontWeight: 600, fontSize: 12, textTransform: 'capitalize', background: statusFilter === s ? 'var(--white)' : 'transparent', color: statusFilter === s ? 'var(--ink)' : 'var(--ink3)', boxShadow: statusFilter === s ? 'var(--elev-sm)' : 'none' }}>
-              {s}
-            </button>
-          ))}
+      {!loading && envelopes.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <MetricsRow cards={[
+            {
+              title: 'WORKSPACE TOTAL', value: String(stats.total),
+              sub1Label: 'SENT', sub1Value: String(stats.sent),
+              sub2Label: 'COMPLETED', sub2Value: String(stats.completed), barHighlight: 'var(--teal)',
+            },
+            {
+              title: 'NEEDS ATTENTION', value: String(stats.needsAttention),
+              sub1Label: 'VOIDED', sub1Value: String(envelopes.filter(e => e.status === 'voided').length),
+              sub2Label: 'DECLINED', sub2Value: String(envelopes.filter(e => e.status === 'declined').length), barHighlight: 'var(--red)',
+            },
+            {
+              title: 'ACTIVE SENDERS', value: String(stats.owners),
+              sub1Label: 'DRAFTS', sub1Value: String(envelopes.filter(e => e.status === 'draft').length),
+              sub2Label: 'EXPIRED', sub2Value: String(envelopes.filter(e => e.status === 'expired').length), barHighlight: 'var(--gold)',
+            },
+          ]} />
         </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 16, flexWrap: 'wrap' }}>
+        <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)} variant="segmented">
+          <TabsList>
+            {(['all', 'draft', 'sent', 'completed', 'voided', 'declined', 'expired'] as const).map(s => (
+              <TabsTrigger key={s} value={s} style={{ textTransform: 'capitalize' }}>{s}</TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
         <div style={{ position: 'relative', width: '100%', maxWidth: 320, marginLeft: 'auto' }}>
           <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
           <input
@@ -1150,13 +1323,15 @@ export function SignAllDocuments() {
                       </td>
                       <td>
                         {env.owner ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                            <PersonAvatar userId={env.created_by} name={env.owner.name} size={26} />
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.owner.name}</div>
-                              <div style={{ fontSize: 11, color: 'var(--ink3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.owner.email}</div>
+                          <Tip label={`${env.owner.name} — ${env.owner.email}`}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                              <PersonAvatar userId={env.created_by} name={env.owner.name} size={26} />
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.owner.name}</div>
+                                <div style={{ fontSize: 11, color: 'var(--ink3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.owner.email}</div>
+                              </div>
                             </div>
-                          </div>
+                          </Tip>
                         ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
                       </td>
                       <td><Badge variant={envelopeBadgeVariant(env.status)}>{env.status}</Badge></td>

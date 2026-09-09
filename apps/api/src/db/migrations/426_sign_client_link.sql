@@ -1,0 +1,21 @@
+-- Migration 426: CRM ⇄ Sign — link an envelope to the customer it's for.
+--
+-- Built for Phase S6's CRM integration (METRICS_AND_SIGN_PLAN.md §5): a
+-- customer's CRM record should show "documents sent to this customer" and
+-- let a user send an existing Drive file to them for signature, without a
+-- parallel document-tracking table.
+--
+-- Deliberately named client_id, not customer_id: Phase S7 (consultant/
+-- matter model) already calls for the exact same column — "client_id...
+-- should reference the existing customers or contacts table" — and adding
+-- it under a different name now would mean two competing nullable FKs
+-- pointing at the same relationship later. One column serves both: S6 uses
+-- it today to show a customer's signed-document history; S7 can add
+-- matter_id/reference-number alongside it without ever touching this one.
+--
+-- References customers, not contacts — every existing cross-app link this
+-- session touched (Contacts, ClearOS, FinOps invoices) already keys off
+-- customers as the canonical "who is this business relationship with"
+-- table; contacts are people *within* an account, not the account itself.
+ALTER TABLE sign_envelopes ADD COLUMN IF NOT EXISTS client_id UUID REFERENCES customers(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS sign_envelopes_client_id_idx ON sign_envelopes(client_id) WHERE client_id IS NOT NULL;

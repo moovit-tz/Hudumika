@@ -14,6 +14,7 @@ import { Checkbox } from '../../components/ui/checkbox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../../components/ui/popover.js';
 import { EntityPicker, type PickerItem } from '../../components/EntityPicker.js';
+import { MeetingLinkPanel, type MeetingLinkValue } from '../../components/MeetingLinkPanel.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { showPrompt } from '../../lib/prompt.js';
@@ -84,6 +85,13 @@ interface RecipientInput {
   certifier_title?: string;
   certifier_roll_number?: string;
   certifier_firm?: string;
+  // Which certifier-directory entry (migration 417) these fields were
+  // filled from, if any — freeform typing leaves this unset.
+  certifier_id?: string;
+  // Execution role (migration 416) — 'SIGNER' unless this recipient
+  // witnesses another signer or certifies (kept in sync with is_certifier
+  // above; the backend derives one from the other if only one is sent).
+  execution_role?: 'SIGNER' | 'WITNESS' | 'AFFIANT' | 'CERTIFIER';
 }
 
 const A4_ASPECT = 1.414; // height/width ratio of A4
@@ -96,6 +104,24 @@ export function SignEditor() {
   // ── State ────────────────────────────────────────────────────────────────
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
+  // Phase S7 — a free-text case/engagement reference (migration 428), not a
+  // structured entity. Optional; most tenants leave it blank.
+  const [matterReference, setMatterReference] = useState('');
+  // Phase S5 — jurisdiction engine. Fetched once; the advisory shown below
+  // is picked from these rows by whichever execution type the current
+  // recipients resolve to (mirrors sign.routes.ts's own inferExecutionType,
+  // client-side, so the advisory updates live as roles are toggled instead
+  // of waiting on a round trip).
+  const [jurisdiction, setJurisdiction] = useState<{ jurisdiction_code: string | null; rules: Array<{ execution_type: string; status: string; legal_basis: string | null; conditions: string | null; notes: string | null }> }>({ jurisdiction_code: null, rules: [] });
+  // Phase S4 — remote session. Reuses the exact same component Calendar/
+  // Tasks/Notes already share (MeetingLinkPanel.tsx) — real Bliss meeting
+  // when entitled, a real Jitsi fallback otherwise. Shown only for a
+  // NOTARIAL_CERTIFICATION envelope, matching the plan's own framing.
+  const [meetingLink, setMeetingLink] = useState<MeetingLinkValue>({ meetingUrl: null, blissMeetingId: null });
+  // Phase S8 — AI assistance. Suggestions only, never shown as a validity
+  // verdict (see sign-ai-assist.service.ts's own header).
+  const [aiAssist, setAiAssist] = useState<{ available: boolean; missingFields: Array<{ description: string; page: number | null }>; blocks: Array<{ type: string; description: string; page: number | null }>; reason?: string } | null>(null);
+  const [aiAssistLoading, setAiAssistLoading] = useState(false);
   const [orderMode, setOrderMode] = useState<'sequential' | 'parallel'>('sequential');
   const [requireOtp, setRequireOtp] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -151,6 +177,15 @@ export function SignEditor() {
   const [activeRecipient, setActiveRecipient] = useState(0);
   const [placingType, setPlacingType] = useState<SignFieldType | null>(null);
   const isMobile = useIsMobile();
+
+  // Certifier directory (migration 417) — fetched once; picking an entry
+  // here fills the freeform fields below from a real, reusable credential
+  // instead of retyping a roll number every time. Loaded lazily/silently —
+  // most envelopes never touch the certifier panel at all.
+  const [certifiers, setCertifiers] = useState<Array<{ id: string; name: string; title: string; roll_number: string | null; firm: string | null; expiry_date: string | null; verification_status: string }>>([]);
+  useEffect(() => {
+    apiFetch('/v1/sign/certifiers').then(setCertifiers).catch(() => {});
+  }, []);
   const [mobileTab, setMobileTab] = useState<'left' | 'center' | 'right'>('center');
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -199,12 +234,41 @@ export function SignEditor() {
   // making someone retype what they just searched for.
   const createExternalRecipient = useCallback(async (name: string): Promise<PickerItem> => ({ id: '', label: name }), []);
 
+  useEffect(() => {
+    apiFetch('/v1/sign/jurisdiction-rules/mine').then(setJurisdiction).catch(() => {});
+  }, []);
+
+  async function runAiAssist() {
+    setAiAssistLoading(true);
+    setAiAssist(null);
+    try {
+      const body = sourceFileId ? { file_id: sourceFileId } : { document_data: documentData };
+      const result = await apiFetch('/v1/sign/ai-assist/analyze', { method: 'POST', body: JSON.stringify(body) });
+      setAiAssist(result);
+    } catch (err: any) {
+      setAiAssist({ available: false, missingFields: [], blocks: [], reason: err.message || 'Analysis failed' });
+    } finally {
+      setAiAssistLoading(false);
+    }
+  }
+
+  // Same priority order as sign.routes.ts's own inferExecutionType — kept
+  // in sync deliberately, not imported, since that function lives
+  // server-side and this only needs to preview what the server will infer.
+  const inferredExecutionType = recipients.some(r => r.execution_role === 'CERTIFIER' || r.is_certifier) ? 'NOTARIAL_CERTIFICATION'
+    : recipients.some(r => r.execution_role === 'AFFIANT') ? 'AFFIDAVIT'
+    : recipients.some(r => r.execution_role === 'WITNESS') ? 'WITNESSED_SIGNATURE'
+    : 'NORMAL_SIGN';
+  const jurisdictionRule = jurisdiction.rules.find(r => r.execution_type === inferredExecutionType);
+
   // ── Load existing envelope ────────────────────────────────────────────────
   useEffect(() => {
     if (!envelopeId) return;
     apiFetch(`/v1/sign/envelopes/${envelopeId}`).then(async env => {
       setTitle(env.title ?? '');
       setMessage(env.message ?? '');
+      setMatterReference(env.matter_reference ?? '');
+      setMeetingLink({ meetingUrl: env.meeting_url ?? null, blissMeetingId: env.bliss_meeting_id ?? null });
       setOrderMode(env.order_mode ?? 'sequential');
       setRequireOtp(!!env.require_otp);
       setFileName(env.file_name ?? null);
@@ -473,7 +537,9 @@ export function SignEditor() {
       // backend's NOT NULL uuid column rejected outright on every save of
       // an already-created draft that had any fields placed.
       const body = {
-        title, message, order_mode: orderMode, require_otp: requireOtp, file_name: fileName,
+        title, message, matter_reference: matterReference.trim() || null,
+        meeting_url: meetingLink.meetingUrl, bliss_meeting_id: meetingLink.blissMeetingId,
+        order_mode: orderMode, require_otp: requireOtp, file_name: fileName,
         document_data: sourceFileId ? null : documentData, file_id: sourceFileId, recipients, fields,
         changeSummary: pendingChangeSummary?.summary, changeDetails: pendingChangeSummary?.details,
       };
@@ -504,7 +570,9 @@ export function SignEditor() {
     setSending(true);
     try {
       const body = {
-        title, message, order_mode: orderMode, require_otp: requireOtp, file_name: fileName,
+        title, message, matter_reference: matterReference.trim() || null,
+        meeting_url: meetingLink.meetingUrl, bliss_meeting_id: meetingLink.blissMeetingId,
+        order_mode: orderMode, require_otp: requireOtp, file_name: fileName,
         document_data: sourceFileId ? null : documentData, file_id: sourceFileId, recipients, fields,
         changeSummary: pendingChangeSummary?.summary, changeDetails: pendingChangeSummary?.details,
       };
@@ -617,6 +685,14 @@ export function SignEditor() {
             <Tip label="Rotate, watermark, redact, OCR, compress">
               <Button variant="outline" size="sm" onClick={() => { setShowPdfTools(true); if (isMobile) setMobileTab('right'); }} style={{ height: 32, fontSize: 12, padding: '0 10px' }}>
                 <Icon name="layers" size={13} /> PDF Tools
+              </Button>
+            </Tip>
+          )}
+
+          {isPdf && previewSrc && (sourceFileId || documentData) && (
+            <Tip label="Suggestions only — scans for blank fields and witness/notary blocks, never a validity check">
+              <Button variant="outline" size="sm" onClick={runAiAssist} disabled={aiAssistLoading} style={{ height: 32, fontSize: 12, padding: '0 10px' }}>
+                <Icon name="sparkle" size={13} /> {aiAssistLoading ? 'Scanning…' : 'AI Scan'}
               </Button>
             </Tip>
           )}
@@ -809,16 +885,67 @@ export function SignEditor() {
               />
             ))}
 
+            {/* Witness — the plainest advanced execution role: this
+                recipient's own signature is real (they still sign), but
+                their completion also records a distinct "witnessed" audit
+                event rather than being indistinguishable from an ordinary
+                signer's. Sits above certifier since witnessing is the far
+                more common of the two advanced roles. */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', marginTop: 10 }}>
+              <Checkbox checked={recipients[activeRecipient]?.execution_role === 'WITNESS'}
+                onCheckedChange={c => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, execution_role: c === true ? 'WITNESS' : 'SIGNER' } : r))} />
+              This recipient signs as a witness
+            </label>
+            {recipients[activeRecipient]?.execution_role === 'WITNESS' && (
+              <p style={{ fontSize: 11, color: 'var(--ink3)', margin: '4px 0 0', lineHeight: 1.4 }}>
+                Place them after the signer(s) they're witnessing in the signing order — a witness should see the document already signed.
+              </p>
+            )}
+
             {/* Certified True Copy — collapsed behind its own checkbox since
                 most documents never need it; a real legal attestation by a
                 named licensed advocate/notary, not the tenant's own stamp. */}
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', marginTop: 10 }}>
               <Checkbox checked={!!recipients[activeRecipient]?.is_certifier}
-                onCheckedChange={c => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, is_certifier: c === true } : r))} />
+                onCheckedChange={c => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, is_certifier: c === true, execution_role: c === true ? 'CERTIFIER' : 'SIGNER' } : r))} />
               This recipient certifies a true copy (advocate / notary)
             </label>
             {recipients[activeRecipient]?.is_certifier && (
               <div style={{ marginTop: 6, padding: 10, borderRadius: 'var(--r-sm)', border: '1px dashed var(--border)', background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {certifiers.length > 0 && (
+                  <Select
+                    value="__none__"
+                    onValueChange={id => {
+                      const c = certifiers.find(x => x.id === id);
+                      if (!c) return;
+                      setRecipients(prev => prev.map((r, i) => i === activeRecipient ? {
+                        ...r, certifier_id: c.id, certifier_title: c.title, certifier_roll_number: c.roll_number ?? '', certifier_firm: c.firm ?? '',
+                      } : r));
+                    }}
+                  >
+                    <SelectTrigger className="input-field" style={{ marginBottom: 2 }}><SelectValue placeholder="Pick from certifier directory (optional)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__" disabled>Pick from certifier directory (optional)</SelectItem>
+                      {certifiers.map(c => {
+                        const expired = c.expiry_date && new Date(c.expiry_date) < new Date();
+                        return (
+                          <SelectItem key={c.id} value={c.id} disabled={expired || c.verification_status === 'revoked'}>
+                            {c.name} — {c.title}{c.roll_number ? ` (${c.roll_number})` : ''}{expired ? ' — EXPIRED' : c.verification_status === 'revoked' ? ' — REVOKED' : ''}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                )}
+                {recipients[activeRecipient]?.certifier_id && (() => {
+                  const c = certifiers.find(x => x.id === recipients[activeRecipient]?.certifier_id);
+                  const expired = c?.expiry_date && new Date(c.expiry_date) < new Date();
+                  return expired ? (
+                    <p style={{ fontSize: 11, color: 'var(--red)', margin: 0, fontWeight: 600 }}>
+                      This credential expired on {c!.expiry_date} — signing will be rejected until it's renewed in the directory.
+                    </p>
+                  ) : null;
+                })()}
                 <input value={recipients[activeRecipient]?.certifier_title ?? ''}
                   onChange={e => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, certifier_title: e.target.value } : r))}
                   placeholder="Title (e.g. Advocate, Commissioner for Oaths)"
@@ -864,6 +991,88 @@ export function SignEditor() {
               rows={3}
               style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
+
+          {/* Matter / Reference — Phase S7, a free-text case tag, not a
+              structured entity (see migration 428's own header). Groups
+              onto /sign/matters once set; most tenants leave it blank. */}
+          <div className="sign-panel-title">Matter / Reference (optional)</div>
+          <div style={{ padding: '0 12px 16px' }}>
+            <input value={matterReference} onChange={e => setMatterReference(e.target.value)}
+              placeholder="e.g. CASE-2026-014"
+              style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, boxSizing: 'border-box' }} />
+          </div>
+
+          {/* Remote session — Phase S4. Reuses Bliss's own meeting system
+              (the same MeetingLinkPanel Calendar/Tasks/Notes already share)
+              rather than a second video system — see migration 432's own
+              header. Shown for a notarial execution, where the certifier
+              and affiant may need to meet live. */}
+          {inferredExecutionType === 'NOTARIAL_CERTIFICATION' && (
+            <>
+              <div className="sign-panel-title">Notary Session (optional)</div>
+              <div style={{ padding: '0 12px 16px' }}>
+                <MeetingLinkPanel title={title || 'Notary Session'} value={meetingLink} onChange={setMeetingLink} />
+              </div>
+            </>
+          )}
+
+          {/* Jurisdiction advisory — Phase S5. Informational only, never a
+              hard block: a real, reviewed legal-status note (migration
+              430's own header cites the actual source sections), shown
+              for whatever execution type the current recipients resolve
+              to. Never renders "legally valid" — only what the seeded row
+              actually says. */}
+          {jurisdiction.jurisdiction_code && jurisdictionRule && (
+            <>
+              <div className="sign-panel-title">Jurisdiction</div>
+              <div style={{ margin: '0 12px 16px', padding: '10px 12px', borderRadius: 'var(--r-sm)', fontSize: 11.5, lineHeight: 1.5, ...(
+                jurisdictionRule.status === 'SUPPORTED' ? { background: 'var(--green-l)', border: '1px solid var(--green)', color: 'var(--green)' } :
+                jurisdictionRule.status === 'SUPPORTED_WITH_CONDITIONS' || jurisdictionRule.status === 'REQUIRES_PROFESSIONAL_REVIEW' ? { background: 'var(--gold-l)', border: '1px solid var(--gold)', color: 'var(--gold)' } :
+                { background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)' }
+              ) }}>
+                <div style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em', fontSize: 10 }}>
+                  {jurisdiction.jurisdiction_code} · {jurisdictionRule.status.replace(/_/g, ' ')}
+                </div>
+                {jurisdictionRule.conditions && <div style={{ marginTop: 4, color: 'var(--ink2)' }}>{jurisdictionRule.conditions}</div>}
+                {jurisdictionRule.legal_basis && <div style={{ marginTop: 4, color: 'var(--ink3)', fontStyle: 'italic' }}>{jurisdictionRule.legal_basis}</div>}
+              </div>
+            </>
+          )}
+
+          {/* AI Scan results — Phase S8. Suggestions the preparer can act on
+              or ignore; never phrased as a completeness/validity verdict. */}
+          {aiAssist && (
+            <>
+              <div className="sign-panel-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>AI Scan</span>
+                <button type="button" onClick={() => setAiAssist(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 0 }}><Icon name="x" size={13} /></button>
+              </div>
+              <div style={{ margin: '0 12px 16px' }}>
+                {!aiAssist.available ? (
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r-sm)' }}>
+                    {aiAssist.reason || 'Analysis is not available right now.'}
+                  </div>
+                ) : aiAssist.missingFields.length === 0 && aiAssist.blocks.length === 0 ? (
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r-sm)' }}>
+                    Nothing flagged — no blank fields or witness/notary blocks detected. This isn't a completeness check; review the document yourself before sending.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {aiAssist.missingFields.map((f, i) => (
+                      <div key={`f${i}`} style={{ fontSize: 11.5, padding: '7px 10px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r-sm)', color: 'var(--ink2)' }}>
+                        <strong style={{ color: 'var(--gold)' }}>{f.page ? `Page ${f.page} — ` : ''}Blank field:</strong> {f.description}
+                      </div>
+                    ))}
+                    {aiAssist.blocks.map((b, i) => (
+                      <div key={`b${i}`} style={{ fontSize: 11.5, padding: '7px 10px', background: 'var(--blue-l)', border: '1px solid var(--blue)', borderRadius: 'var(--r-sm)', color: 'var(--ink2)' }}>
+                        <strong style={{ color: 'var(--blue)' }}>{b.page ? `Page ${b.page} — ` : ''}{b.type === 'witness' ? 'Witness block:' : 'Notary/oath block:'}</strong> {b.description}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {/* CENTER: A4 page preview */}

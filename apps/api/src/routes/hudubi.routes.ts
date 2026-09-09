@@ -7,6 +7,7 @@ import { callAI } from './ai.routes.js';
 import {
   HUDUBI_METRICS, runHuduBIMetric, listWidgets, createWidget, updateWidget, deleteWidget, getWidgetData,
 } from '../services/hudubi-widgets.service.js';
+import { resolveCustomerAcrossApps } from '../services/hudubi-entity.service.js';
 
 /**
  * HuduBI — the tenant's data layer surfaced as an executive snapshot.
@@ -263,5 +264,15 @@ export async function hudubiRoutes(fastify: FastifyInstance) {
     } catch (err: any) {
       return reply.status(404).send({ error: err.message });
     }
+  });
+
+  // ── Semantic entity resolution (Phase M5) — the one real cross-app join
+  // this phase builds: a CRM customer resolved across every app registered
+  // in semantic_entities, starting with Sign. ──────────────────────────────
+  fastify.get('/entities/customer/:id', async (req: any, reply) => {
+    const { id } = req.params as { id: string };
+    const result = await resolveCustomerAcrossApps(req.user.tenant_id, id);
+    if (!result) return reply.status(404).send({ error: 'Customer not found' });
+    return result;
   });
 }

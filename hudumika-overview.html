@@ -1,0 +1,504 @@
+<title>Hudumika Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,600;1,700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     TOKENS — lifted from Hudumika's own apps/web/src/index.css:
+     --bg/--ink/--ink2/--ink3/--border2 are the platform's real
+     light/dark values; --teal here uses the real "ocean" preset
+     teal (#0d9488) as the platform's neutral brand identity, since
+     this page isn't scoped to one tenant's per-app override.
+     ============================================================ */
+  :root{
+    --paper:   #F7F5F0;
+    --surface: #ffffff;
+    --surface2:#f0ede6;
+    --ink:     #0d1117;
+    --ink2:    #57606a;
+    --ink3:    #8b949e;
+    --border:  #c9cdd4;
+    --border-soft: #dcdfe3;
+    --teal:      #0d9488;
+    --teal-deep: #0a6d63;
+    --teal-l:    #e3f4f1;
+    --green:   #1a7f37;
+    --green-l: #e9f6ed;
+    --gold:    #9a6700;
+    --gold-l:  #fbf1d9;
+    --blue:    #0550ae;
+    --blue-l:  #e6f0fb;
+    --red:     #cf222e;
+    --shadow-sm: 0 1px 2px rgba(13,17,23,0.05);
+    --shadow:    0 6px 24px rgba(13,17,23,0.07);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:   #080b10;
+      --surface: #111218;
+      --surface2:#161920;
+      --ink:     #e2e8f0;
+      --ink2:    #94a3b8;
+      --ink3:    #64748b;
+      --border:  rgba(255,255,255,0.13);
+      --border-soft: rgba(255,255,255,0.08);
+      --teal:      #2dd4bf;
+      --teal-deep: #5eead4;
+      --teal-l:    rgba(45,212,191,0.12);
+      --green:   #2db858;
+      --green-l: rgba(45,184,88,0.13);
+      --gold:    #c8920a;
+      --gold-l:  rgba(200,146,10,0.14);
+      --blue:    #4a9ef5;
+      --blue-l:  rgba(74,158,245,0.14);
+      --red:     #e84040;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow:    0 6px 24px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:   #080b10;
+    --surface: #111218;
+    --surface2:#161920;
+    --ink:     #e2e8f0;
+    --ink2:    #94a3b8;
+    --ink3:    #64748b;
+    --border:  rgba(255,255,255,0.13);
+    --border-soft: rgba(255,255,255,0.08);
+    --teal:      #2dd4bf;
+    --teal-deep: #5eead4;
+    --teal-l:    rgba(45,212,191,0.12);
+    --green:   #2db858;
+    --green-l: rgba(45,184,88,0.13);
+    --gold:    #c8920a;
+    --gold-l:  rgba(200,146,10,0.14);
+    --blue:    #4a9ef5;
+    --blue-l:  rgba(74,158,245,0.14);
+    --red:     #e84040;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow:    0 6px 24px rgba(0,0,0,0.4);
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'DM Sans', system-ui, sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ text-wrap:balance; margin:0; }
+  em.acc{ font-family:'Cormorant Garamond', 'Georgia', serif; font-style:italic; font-weight:700; color:var(--teal); }
+  .mono{ font-family:'JetBrains Mono','Menlo',monospace; font-variant-numeric:tabular-nums; }
+  a{ color:var(--teal-deep); }
+
+  .wrap{ max-width:920px; margin:0 auto; padding:56px 28px 90px; }
+
+  /* ---- top bar ---- */
+  .topline{
+    display:flex; align-items:center; justify-content:space-between;
+    font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3);
+    padding-bottom:22px; margin-bottom:34px; border-bottom:1px solid var(--border-soft);
+    flex-wrap:wrap; gap:8px;
+  }
+  .topline b{ color:var(--ink2); font-weight:700; }
+
+  /* ---- hero ---- */
+  .hero h1{ font-size:clamp(34px,6vw,52px); font-weight:300; letter-spacing:-0.01em; }
+  .hero h1 em{ font-size:1em; }
+  .hero .lede{
+    margin-top:16px; max-width:62ch; font-size:16.5px; color:var(--ink2);
+  }
+  .hero .tags{ display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; }
+  .tag{
+    font-size:11.5px; font-weight:700; letter-spacing:.02em; color:var(--teal-deep);
+    background:var(--teal-l); border:1px solid color-mix(in srgb, var(--teal) 30%, transparent);
+    border-radius:999px; padding:5px 12px;
+  }
+
+  /* ---- section nav ---- */
+  .secnav{
+    display:flex; gap:22px; flex-wrap:wrap;
+    margin:34px 0 46px; padding:12px 0; border-top:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);
+  }
+  .secnav a{
+    font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--ink3); text-decoration:none; padding-bottom:3px; border-bottom:2px solid transparent;
+  }
+  .secnav a:hover{ color:var(--teal-deep); border-color:var(--teal); }
+
+  /* ---- stat strip ---- */
+  .stats{
+    display:grid; grid-template-columns:repeat(5,1fr); gap:1px;
+    background:var(--border-soft); border:1px solid var(--border-soft); border-radius:12px; overflow:hidden;
+    margin-bottom:56px;
+  }
+  .stat{ background:var(--surface); padding:18px 16px; }
+  .stat .n{ font-size:26px; font-weight:700; letter-spacing:-0.02em; }
+  .stat .l{ font-size:11px; color:var(--ink3); margin-top:4px; line-height:1.35; }
+  @media (max-width:700px){ .stats{ grid-template-columns:repeat(2,1fr); } }
+
+  /* ---- generic section ---- */
+  section{ margin-bottom:64px; scroll-margin-top:24px; }
+  .eyebrow{
+    font-size:11.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--teal-deep);
+    margin-bottom:8px; display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{ content:''; width:16px; height:1px; background:var(--teal); display:inline-block; }
+  section > h2{ font-size:26px; font-weight:500; margin-bottom:14px; }
+  section > p.intro{ color:var(--ink2); max-width:66ch; margin-bottom:26px; font-size:15px; }
+
+  /* ---- pillars grid ---- */
+  .pillars{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  @media (max-width:760px){ .pillars{ grid-template-columns:1fr; } }
+  .pillar{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; padding:18px;
+    box-shadow:var(--shadow-sm);
+  }
+  .pillar .ic{
+    width:34px; height:34px; border-radius:9px; background:var(--teal-l); color:var(--teal-deep);
+    display:flex; align-items:center; justify-content:center; font-size:16px; margin-bottom:12px;
+  }
+  .pillar h3{ font-size:14.5px; font-weight:700; margin-bottom:6px; }
+  .pillar p{ font-size:12.5px; color:var(--ink2); margin:0 0 10px; }
+  .pillar .apps{ font-size:11px; color:var(--ink3); }
+  .pillar .apps b{ color:var(--ink2); font-weight:600; }
+
+  /* ---- two-column capture/metric lists ---- */
+  .cols2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:700px){ .cols2{ grid-template-columns:1fr; } }
+  .capcard{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; padding:18px 20px;
+  }
+  .capcard h4{
+    font-size:12px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--ink2);
+    margin:0 0 12px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .capcard h4 span.dot{ width:7px; height:7px; border-radius:50%; background:var(--teal); display:inline-block; margin-right:8px; }
+  .capcard ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
+  .capcard li{ font-size:13px; color:var(--ink); padding-left:14px; position:relative; }
+  .capcard li::before{ content:'—'; position:absolute; left:0; color:var(--ink3); }
+  .capcard li b{ font-weight:600; }
+  .capcard li .ex{ display:block; font-size:11.5px; color:var(--ink3); margin-top:1px; }
+
+  /* ---- metric table ---- */
+  .mtable{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .mtable th{
+    text-align:left; font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink3);
+    padding:0 0 8px; font-weight:700; border-bottom:1px solid var(--border-soft);
+  }
+  .mtable td{ padding:9px 10px 9px 0; border-bottom:1px solid var(--border-soft); vertical-align:top; }
+  .mtable tr:last-child td{ border-bottom:none; }
+  .mtable td.metric{ font-weight:600; white-space:nowrap; }
+  .mtable td.source{ color:var(--ink3); }
+
+  /* ---- build status ---- */
+  .headline-pct{
+    display:flex; align-items:baseline; gap:16px; flex-wrap:wrap; margin-bottom:6px;
+  }
+  .headline-pct .big{ font-size:56px; font-weight:700; letter-spacing:-0.02em; }
+  .headline-pct .cap{ font-size:13px; color:var(--ink2); max-width:38ch; }
+  .methodnote{
+    font-size:11.5px; color:var(--ink3); border-left:2px solid var(--border); padding-left:12px; margin:16px 0 28px; max-width:62ch;
+  }
+
+  .distbar{ display:flex; height:34px; border-radius:8px; overflow:hidden; margin-bottom:10px; border:1px solid var(--border-soft); }
+  .distbar > div{ display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--ink); }
+  .distbar .prod{ background:var(--green-l); color:var(--green); }
+  .distbar .dev{ background:var(--gold-l); color:var(--gold); }
+  .distbar .found{ background:var(--blue-l); color:var(--blue); }
+  .distlegend{ display:flex; gap:20px; font-size:11.5px; color:var(--ink2); flex-wrap:wrap; margin-bottom:36px; }
+  .distlegend span{ display:flex; align-items:center; gap:6px; }
+  .distlegend i{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+
+  .tier{ margin-bottom:28px; }
+  .tier-hdr{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .tier-hdr .pill{
+    font-size:10.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+    padding:3px 10px; border-radius:999px;
+  }
+  .pill.prod{ background:var(--green-l); color:var(--green); }
+  .pill.dev{ background:var(--gold-l); color:var(--gold); }
+  .pill.found{ background:var(--blue-l); color:var(--blue); }
+  .tier-hdr .cnt{ font-size:11.5px; color:var(--ink3); }
+
+  .apptable-wrap{ overflow-x:auto; border:1px solid var(--border-soft); border-radius:12px; background:var(--surface); }
+  table.apptable{ width:100%; border-collapse:collapse; min-width:640px; }
+  table.apptable td{ padding:11px 14px; border-bottom:1px solid var(--border-soft); font-size:13px; }
+  table.apptable tr:last-child td{ border-bottom:none; }
+  table.apptable td.app{ font-weight:700; white-space:nowrap; width:150px; }
+  table.apptable td.slog{ color:var(--ink2); font-size:12.5px; }
+  table.apptable td.bar{ width:180px; }
+  table.apptable td.pct{ width:52px; text-align:right; font-weight:700; }
+  .barwrap{ width:100%; height:6px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+  .barwrap > i{ display:block; height:100%; border-radius:4px; }
+  .barwrap > i.prod{ background:var(--green); }
+  .barwrap > i.dev{ background:var(--gold); }
+  .barwrap > i.found{ background:var(--blue); }
+
+  /* ---- architecture note ---- */
+  .archnote{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; padding:20px 22px;
+    display:flex; gap:16px; align-items:flex-start;
+  }
+  .archnote .ic{ font-size:18px; color:var(--teal-deep); flex-shrink:0; margin-top:1px; }
+  .archnote p{ margin:0; font-size:13px; color:var(--ink2); }
+  .archnote code{ font-family:'JetBrains Mono',monospace; font-size:11.5px; background:var(--surface2); padding:1px 5px; border-radius:4px; color:var(--ink); }
+
+  footer{
+    margin-top:70px; padding-top:22px; border-top:1px solid var(--border-soft);
+    display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    font-size:11.5px; color:var(--ink3);
+  }
+</style>
+
+<div class="wrap">
+
+  <div class="topline">
+    <span><b>HUDUMIKA</b> · Product overview</span>
+    <span>Updated 9 September 2026</span>
+  </div>
+
+  <div class="hero">
+    <h1>Hudumika <em class="acc">platform</em>.</h1>
+    <p class="lede">One multi-tenant workspace covering customs clearance, freight, finance, HR, compliance and customer support for logistics and clearing businesses in East Africa — 30 integrated apps sharing one login, one org chart and one ledger, instead of stitching together separate SaaS tools per department.</p>
+    <div class="tags">
+      <span class="tag">Multi-tenant</span>
+      <span class="tag">Row-Level Security enforced</span>
+      <span class="tag">Fastify + Postgres/Kysely + React</span>
+      <span class="tag">30 apps, one workspace</span>
+    </div>
+  </div>
+
+  <nav class="secnav">
+    <a href="#does">What it does</a>
+    <a href="#captures">What it captures</a>
+    <a href="#metrics">Metrics recorded</a>
+    <a href="#status">Build status</a>
+    <a href="#architecture">Architecture</a>
+  </nav>
+
+  <div class="stats">
+    <div class="stat"><div class="n mono">30</div><div class="l">Integrated apps in one workspace</div></div>
+    <div class="stat"><div class="n mono">500+</div><div class="l">Database tables tracking real operational state</div></div>
+    <div class="stat"><div class="n mono">449</div><div class="l">Schema migrations shipped</div></div>
+    <div class="stat"><div class="n mono">187</div><div class="l">Backend API route modules</div></div>
+    <div class="stat"><div class="n mono">450</div><div class="l">Frontend screens</div></div>
+  </div>
+
+  <section id="does">
+    <div class="eyebrow">What it does</div>
+    <h2>A clearing agent's whole back office, in one login.</h2>
+    <p class="intro">Hudumika grew from a customs-clearance system (ClearOS) into a full operating layer for the businesses around it — the same tenant that lodges a TANSAD declaration also runs its payroll, its helpdesk and its sales pipeline through the same platform, with one identity provider and one set of books underneath every app.</p>
+
+    <div class="pillars">
+      <div class="pillar">
+        <div class="ic">🚢</div>
+        <h3>Customs &amp; freight</h3>
+        <p>Declarations, rules-of-origin, bonded stock, carrier rates and container tracking, from booking to release.</p>
+        <div class="apps"><b>ClearOS</b> · <b>SEAL</b> · <b>CargoTracker</b> · <b>Demurrage</b> · <b>Tracking</b></div>
+      </div>
+      <div class="pillar">
+        <div class="ic">💰</div>
+        <h3>Finance</h3>
+        <p>General ledger, invoicing, bills, fixed assets, budgets, bank reconciliation and a tenant petty-cash wallet.</p>
+        <div class="apps"><b>FinOps</b> · <b>Petti</b></div>
+      </div>
+      <div class="pillar">
+        <div class="ic">🧑‍🤝‍🧑</div>
+        <h3>People</h3>
+        <p>Biometric clock-in, shift rosters, leave, payroll and recruitment for the staff running everything above.</p>
+        <div class="apps"><b>NexusHR</b> · <b>Ondi</b></div>
+      </div>
+      <div class="pillar">
+        <div class="ic">💬</div>
+        <h3>Customer engagement</h3>
+        <p>Omnichannel support tickets, WhatsApp, calls and meetings, plus the CRM pipeline that feeds them.</p>
+        <div class="apps"><b>Bliss</b> · <b>CRM</b> · <b>Contacts</b> · <b>SMS</b></div>
+      </div>
+      <div class="pillar">
+        <div class="ic">🛡️</div>
+        <h3>Compliance &amp; identity</h3>
+        <p>BRELA searches, permit tracking, sanctions screening, SSO, passkeys and cross-app access grants.</p>
+        <div class="apps"><b>ComplyOS</b> · <b>Ondi</b></div>
+      </div>
+      <div class="pillar">
+        <div class="ic">🗂️</div>
+        <h3>Collaboration</h3>
+        <p>Documents, e-signature, notes, calendar, tasks and a project/billing layer for internal or client work.</p>
+        <div class="apps"><b>Drive</b> · <b>Sign</b> · <b>Notes</b> · <b>Calendar</b> · <b>Tasks</b> · <b>Projects</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="captures">
+    <div class="eyebrow">What it captures</div>
+    <h2>Real operational records, not form submissions.</h2>
+    <p class="intro">Every module writes into the same tenant-scoped Postgres schema. A sample of what actually gets stored, by domain:</p>
+
+    <div class="cols2">
+      <div class="capcard">
+        <h4><span><span class="dot"></span>Customs &amp; freight</span></h4>
+        <ul>
+          <li><b>Declarations</b><span class="ex">TANSAD numbers, HS codes, duty/VAT assessment, lane and release status</span></li>
+          <li><b>Origin &amp; risk</b><span class="ex">EAC/AfCFTA rules-of-origin certificates, dangerous-goods class, sanctions-screening hits</span></li>
+          <li><b>Shipments</b><span class="ex">AWB/BL number, container number, vessel/voyage, ETA/ETD, stage history</span></li>
+          <li><b>Depot &amp; release</b><span class="ex">Equipment interchange receipts, release orders, delivery notes</span></li>
+        </ul>
+      </div>
+      <div class="capcard">
+        <h4><span><span class="dot"></span>Finance</span></h4>
+        <ul>
+          <li><b>Ledger</b><span class="ex">Journal entries, trial balance, GL period close</span></li>
+          <li><b>AR / AP</b><span class="ex">Sales invoices, supplier bills, credit notes, recurring invoices</span></li>
+          <li><b>Assets &amp; budgets</b><span class="ex">Fixed-asset register with depreciation, department budgets vs. actuals</span></li>
+          <li><b>Cash</b><span class="ex">Bank reconciliation lines, FX rates, petty-cash deposit/disbursement approvals</span></li>
+        </ul>
+      </div>
+      <div class="capcard">
+        <h4><span><span class="dot"></span>People</span></h4>
+        <ul>
+          <li><b>Attendance</b><span class="ex">Biometric-device clock-in/out timestamps, live clocked-in status</span></li>
+          <li><b>Workforce</b><span class="ex">Shift rosters, leave requests and balances, payroll runs</span></li>
+          <li><b>Recruitment</b><span class="ex">Pipeline stage per candidate, interview notes</span></li>
+          <li><b>Identity</b><span class="ex">Passkey/2FA enrollment, government-ID verification level, session devices</span></li>
+        </ul>
+      </div>
+      <div class="capcard">
+        <h4><span><span class="dot"></span>Customer engagement</span></h4>
+        <ul>
+          <li><b>Support</b><span class="ex">Tickets and every message, across WhatsApp, email, SMS and in-app channels</span></li>
+          <li><b>Calls &amp; meetings</b><span class="ex">Duration, participants, host controls, AI meeting summaries</span></li>
+          <li><b>Sales</b><span class="ex">Leads, deals, quotations, per-customer agreed contract pricing</span></li>
+          <li><b>Comms</b><span class="ex">SMS sends and delivery receipts, opt-outs, calendar bookings</span></li>
+        </ul>
+      </div>
+      <div class="capcard">
+        <h4><span><span class="dot"></span>Documents &amp; e-signature</span></h4>
+        <ul>
+          <li><b>Execution records</b><span class="ex">Ordinary e-sign, witnessed signature, sworn affidavit or full notarial certification — on the same document, escalating as needed rather than a second app</span></li>
+          <li><b>Chain of custody</b><span class="ex">Every view/sign/decline/void as an append-only audit event; a tamper-evident hash anchored to Bitcoin via OpenTimestamps</span></li>
+          <li><b>Jurisdiction status</b><span class="ex">Which execution types are legally supported per country, cited to the actual statute — Tanzania populated from primary-source research, not invented</span></li>
+          <li><b>Verification</b><span class="ex">A scannable QR + short code that resolves to a public, real-time status/hash check — no login required</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="metrics">
+    <div class="eyebrow">Metrics recorded</div>
+    <h2>What the platform actually measures.</h2>
+    <p class="intro">Beyond raw records, each domain computes figures that operations, finance and support teams act on day to day:</p>
+
+    <table class="mtable">
+      <thead><tr><th>Metric</th><th>What it measures</th><th>Computed from</th></tr></thead>
+      <tbody>
+        <tr><td class="metric">SLA compliance</td><td>Time-to-first-response and time-to-resolution against each ticket's SLA clock</td><td class="source">Bliss support tickets</td></tr>
+        <tr><td class="metric">Landed cost</td><td>Duty, VAT, freight and insurance breakdown per shipment</td><td class="source">ClearOS calculators (FCL/LCL/Air/Transit)</td></tr>
+        <tr><td class="metric">Shipment turnaround</td><td>Time spent at each stage from booking to release</td><td class="source">CargoTracker stage history</td></tr>
+        <tr><td class="metric">GL trial balance &amp; AR/AP aging</td><td>Ledger position and how overdue each invoice/bill is</td><td class="source">FinOps journal entries</td></tr>
+        <tr><td class="metric">Budget variance</td><td>Actual spend against department budget, by period</td><td class="source">FinOps budgets module</td></tr>
+        <tr><td class="metric">Attendance &amp; punctuality</td><td>Hours worked, late clock-ins, leave balance consumption</td><td class="source">NexusHR biometric devices</td></tr>
+        <tr><td class="metric">Presence</td><td>Online / clocked-in / offline, live per staff member</td><td class="source">Session heartbeat + HR clock-in state</td></tr>
+        <tr><td class="metric">Rate comparison</td><td>Buy-rate cost across carriers for the same lane</td><td class="source">CargoTracker rate cards</td></tr>
+        <tr><td class="metric">Reliability signal</td><td>Cross-app trust signal from verified identity + access history — not a credit score</td><td class="source">Ondi</td></tr>
+        <tr><td class="metric">Wallet balance</td><td>Derived, not stored — recomputed from approved GL-linked transactions</td><td class="source">Petti + FinOps ledger</td></tr>
+        <tr><td class="metric">Envelope completion rate &amp; time</td><td>% of sent documents completed, and average hours from send to full completion</td><td class="source">Sign metrics registry</td></tr>
+        <tr><td class="metric">KPI target status</td><td>ON_TARGET / AT_RISK / OFF_TARGET, computed live against any metric a tenant sets a goal on</td><td class="source">HuduBI KPI Center</td></tr>
+        <tr><td class="metric">Data quality findings</td><td>8 automated integrity checks across the event/metric pipeline — e.g. duplicate events, orphaned alert rules, impossible timestamps</td><td class="source">HuduBI data-quality engine, nightly</td></tr>
+        <tr><td class="metric">Cross-app entity resolution</td><td>Every real record found for a customer across apps, labeled by how it was matched (a direct link vs. an email match)</td><td class="source">HuduBI semantic layer</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="status">
+    <div class="eyebrow">Build status</div>
+    <h2>How far along the platform actually is.</h2>
+
+    <div class="headline-pct">
+      <div class="big mono">71%</div>
+      <div class="cap">simple average across all 30 apps, toward the full platform vision described above</div>
+    </div>
+    <p class="methodnote">This is an internal engineering read of build/audit history — not a test-coverage report or a formally computed metric. Each app below is tiered from what has actually shipped, been RLS-audited and verified against live data during development, versus what still runs on partial data paths or an early feature set. Sign and HuduBI's figures below were re-verified against the live running system on 9 September (real HTTP calls, real data, real edge cases — not just a code read) as part of the Metrics &amp; Sign program closing out; the rest carry forward the 8 September assessment.</p>
+
+    <div class="distbar">
+      <div class="prod" style="flex:15 1 0%">15 · Production</div>
+      <div class="dev" style="flex:14 1 0%">14 · Active dev</div>
+      <div class="found" style="flex:1 1 0%">1</div>
+    </div>
+    <div class="distlegend">
+      <span><i style="background:var(--green)"></i>Production (80%+) — shipped, audited, verified live</span>
+      <span><i style="background:var(--gold)"></i>Active development (45–75%) — real data paths, growing feature set</span>
+      <span><i style="background:var(--blue)"></i>Foundational (below 45%) — early scaffolding, roadmap not yet started</span>
+    </div>
+
+    <div class="tier">
+      <div class="tier-hdr"><span class="pill prod">Production</span><span class="cnt">15 apps</span></div>
+      <div class="apptable-wrap">
+        <table class="apptable">
+          <tr><td class="app">ClearOS</td><td class="slog">Customs &amp; freight clearance platform</td><td class="bar"><div class="barwrap"><i class="prod" style="width:95%"></i></div></td><td class="pct mono">95%</td></tr>
+          <tr><td class="app">FinOps</td><td class="slog">Financial accounts and payroll ledger</td><td class="bar"><div class="barwrap"><i class="prod" style="width:93%"></i></div></td><td class="pct mono">93%</td></tr>
+          <tr><td class="app">Sign</td><td class="slog">Unified e-signature, witnessing, affidavit &amp; notarial execution</td><td class="bar"><div class="barwrap"><i class="prod" style="width:90%"></i></div></td><td class="pct mono">90%</td></tr>
+          <tr><td class="app">Ondi</td><td class="slog">SSO, identity verification &amp; biometrics</td><td class="bar"><div class="barwrap"><i class="prod" style="width:88%"></i></div></td><td class="pct mono">88%</td></tr>
+          <tr><td class="app">Calendar</td><td class="slog">Scheduling &amp; team calendar</td><td class="bar"><div class="barwrap"><i class="prod" style="width:88%"></i></div></td><td class="pct mono">88%</td></tr>
+          <tr><td class="app">SEAL</td><td class="slog">Bonded warehouse ledger &amp; customs stock account</td><td class="bar"><div class="barwrap"><i class="prod" style="width:85%"></i></div></td><td class="pct mono">85%</td></tr>
+          <tr><td class="app">Projects</td><td class="slog">Enterprise project management, billing &amp; retainers</td><td class="bar"><div class="barwrap"><i class="prod" style="width:85%"></i></div></td><td class="pct mono">85%</td></tr>
+          <tr><td class="app">Bliss</td><td class="slog">Omnichannel customer helpdesk &amp; ticketing</td><td class="bar"><div class="barwrap"><i class="prod" style="width:85%"></i></div></td><td class="pct mono">85%</td></tr>
+          <tr><td class="app">Tasks</td><td class="slog">To-dos &amp; team task tracking</td><td class="bar"><div class="barwrap"><i class="prod" style="width:86%"></i></div></td><td class="pct mono">86%</td></tr>
+          <tr><td class="app">CargoTracker</td><td class="slog">AWB and Bill of Lading shipment tracking</td><td class="bar"><div class="barwrap"><i class="prod" style="width:82%"></i></div></td><td class="pct mono">82%</td></tr>
+          <tr><td class="app">Notes</td><td class="slog">Shared notes, docs &amp; reminders</td><td class="bar"><div class="barwrap"><i class="prod" style="width:82%"></i></div></td><td class="pct mono">82%</td></tr>
+          <tr><td class="app">SMS</td><td class="slog">Bulk &amp; transactional SMS — send, groups, templates, campaigns</td><td class="bar"><div class="barwrap"><i class="prod" style="width:80%"></i></div></td><td class="pct mono">80%</td></tr>
+          <tr><td class="app">Admin</td><td class="slog">Platform governance, tenants &amp; query builder</td><td class="bar"><div class="barwrap"><i class="prod" style="width:78%"></i></div></td><td class="pct mono">78%</td></tr>
+          <tr><td class="app">Petti</td><td class="slog">Tenant petty-cash wallet, deposits &amp; approvals</td><td class="bar"><div class="barwrap"><i class="prod" style="width:78%"></i></div></td><td class="pct mono">78%</td></tr>
+          <tr><td class="app">Demurrage</td><td class="slog">Container demurrage tariffs and cost tracking</td><td class="bar"><div class="barwrap"><i class="prod" style="width:75%"></i></div></td><td class="pct mono">75%</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="tier-hdr"><span class="pill dev">Active development</span><span class="cnt">14 apps</span></div>
+      <div class="apptable-wrap">
+        <table class="apptable">
+          <tr><td class="app">Contacts</td><td class="slog">Stakeholder and client phone book</td><td class="bar"><div class="barwrap"><i class="dev" style="width:65%"></i></div></td><td class="pct mono">65%</td></tr>
+          <tr><td class="app">ComplyOS</td><td class="slog">Compliance tracking, BRELA search &amp; permits</td><td class="bar"><div class="barwrap"><i class="dev" style="width:68%"></i></div></td><td class="pct mono">68%</td></tr>
+          <tr><td class="app">HuduBI</td><td class="slog">Data layer, cross-app metrics &amp; executive AI analytics engine</td><td class="bar"><div class="barwrap"><i class="dev" style="width:60%"></i></div></td><td class="pct mono">60%</td></tr>
+          <tr><td class="app">CRM</td><td class="slog">Customer relationships and sales deals</td><td class="bar"><div class="barwrap"><i class="dev" style="width:63%"></i></div></td><td class="pct mono">63%</td></tr>
+          <tr><td class="app">Email</td><td class="slog">Internal corporate messaging center</td><td class="bar"><div class="barwrap"><i class="dev" style="width:60%"></i></div></td><td class="pct mono">60%</td></tr>
+          <tr><td class="app">Drive</td><td class="slog">Enterprise document storage &amp; cloud drive</td><td class="bar"><div class="barwrap"><i class="dev" style="width:62%"></i></div></td><td class="pct mono">62%</td></tr>
+          <tr><td class="app">Onsite</td><td class="slog">Domains, DNS, hosting, deployments &amp; infrastructure</td><td class="bar"><div class="barwrap"><i class="dev" style="width:60%"></i></div></td><td class="pct mono">60%</td></tr>
+          <tr><td class="app">NexusHR</td><td class="slog">People operations and shift rosters</td><td class="bar"><div class="barwrap"><i class="dev" style="width:58%"></i></div></td><td class="pct mono">58%</td></tr>
+          <tr><td class="app">Studio</td><td class="slog">Workflow builder and clearance automations</td><td class="bar"><div class="barwrap"><i class="dev" style="width:55%"></i></div></td><td class="pct mono">55%</td></tr>
+          <tr><td class="app">OneSite</td><td class="slog">Content management &amp; company intranet</td><td class="bar"><div class="barwrap"><i class="dev" style="width:55%"></i></div></td><td class="pct mono">55%</td></tr>
+          <tr><td class="app">Store</td><td class="slog">B2B procurement &amp; equipment marketplace</td><td class="bar"><div class="barwrap"><i class="dev" style="width:55%"></i></div></td><td class="pct mono">55%</td></tr>
+          <tr><td class="app">Inventory</td><td class="slog">Stock counts, warehouses and item control</td><td class="bar"><div class="barwrap"><i class="dev" style="width:55%"></i></div></td><td class="pct mono">55%</td></tr>
+          <tr><td class="app">Hudumika AI</td><td class="slog">Document OCR, copilot &amp; predictive analytics</td><td class="bar"><div class="barwrap"><i class="dev" style="width:55%"></i></div></td><td class="pct mono">55%</td></tr>
+          <tr><td class="app">Tracking</td><td class="slog">GPS fleet tracking, telemetry &amp; live map</td><td class="bar"><div class="barwrap"><i class="dev" style="width:50%"></i></div></td><td class="pct mono">50%</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="tier-hdr"><span class="pill found">Foundational</span><span class="cnt">1 app</span></div>
+      <div class="apptable-wrap">
+        <table class="apptable">
+          <tr><td class="app">Workspace</td><td class="slog">Organization settings and configuration</td><td class="bar"><div class="barwrap"><i class="found" style="width:45%"></i></div></td><td class="pct mono">45%</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="architecture">
+    <div class="eyebrow">Architecture</div>
+    <h2>One tenant, one wall.</h2>
+    <div class="archnote">
+      <div class="ic">🔒</div>
+      <p>Every tenant's data sits behind genuine Postgres Row-Level Security — the API connects as a restricted, non-superuser role (<code>hudumika_app</code>) with every RLS-enabled table under <code>FORCE ROW LEVEL SECURITY</code>, so a query missing its tenant scope is rejected by the database itself, not just filtered by application code. That's the floor; every route still scopes its own queries explicitly on top of it.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>Hudumika — internal product overview, not for external distribution.</span>
+    <span>Figures current as of 9 September 2026.</span>
+  </footer>
+
+</div>

@@ -33,7 +33,7 @@ export async function complyLegalRoutes(fastify: FastifyInstance) {
   fastify.post('/engagements', async (request: any, reply) => {
     try {
       return reply.status(201).send(
-        await LegalMarketplaceService.createEngagement(request.user.tenant_id, request.user.id, request.body),
+        await LegalMarketplaceService.createEngagement(request.user.tenant_id, request.user.sub, request.body),
       );
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -66,7 +66,7 @@ export async function complyLegalRoutes(fastify: FastifyInstance) {
     try {
       const { id } = request.params as { id: string };
       return reply.status(201).send(
-        await LegalMarketplaceService.addMessage(request.user.tenant_id, id, request.user.id, body),
+        await LegalMarketplaceService.addMessage(request.user.tenant_id, id, request.user.sub, body),
       );
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });

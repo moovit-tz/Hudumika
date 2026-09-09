@@ -36,6 +36,10 @@ interface PublicSigningEnvelope {
   // null for every external/untagged signer, even when the tenant has a
   // stamp configured. See GET /public/:token's own comment.
   tenant_stamp_image: string | null;
+  // Phase S4 — a real Bliss (or Jitsi-fallback) meeting link the sender
+  // attached via the editor's MeetingLinkPanel, for a notarial execution
+  // where the certifier and affiant may need to meet live before signing.
+  meeting_url: string | null;
 }
 
 // A discriminated union, not one interface with optional fields — the
@@ -74,6 +78,9 @@ interface StampPayload {
   title: string;
   signers: Array<{ name: string; email: string; signed_at: string | null }>;
   verify_url: string;
+  // null when the platform's public base URL isn't configured yet — see
+  // resolvePublicBaseUrl's own "withheld, not broken" reasoning.
+  qr_data_uri: string | null;
 }
 
 export function SignPublicPage() {
@@ -317,6 +324,16 @@ export function SignPublicPage() {
                   {s.signed_at && <span style={{ marginLeft: 'auto', color: '#6b7280' }}>{new Date(s.signed_at).toLocaleDateString()}</span>}
                 </div>
               ))}
+              {/* Points at the same public verification page as "Verify a
+                  document" below — never the private download link. Only
+                  renders when the platform's public URL is actually
+                  configured (see StampPayload.qr_data_uri's own comment). */}
+              {stamp.qr_data_uri && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(16,185,129,0.2)' }}>
+                  <img src={stamp.qr_data_uri} alt="Scan to verify this document" width={64} height={64} style={{ borderRadius: 4, flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4 }}>Scan to verify this document's status at any time, from anywhere.</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -511,6 +528,23 @@ export function SignPublicPage() {
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)', marginBottom: 2 }}>Note from sender</div>
                 <div style={{ fontStyle: 'italic' }}>"{data.envelope.message}"</div>
               </div>
+            </div>
+          )}
+
+          {/* Phase S4 — the real Bliss/Jitsi meeting link, if the sender
+              attached one, for a notarial execution the certifier/affiant
+              may need to meet live over before signing. */}
+          {data.envelope.meeting_url && (
+            <div style={{ width: '100%', maxWidth: docPaneW, background: 'var(--blue-l)', borderRadius: 10, padding: '12px 16px', border: '1px solid var(--blue)', fontSize: 13, color: 'var(--ink2)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+              <Icon name="video" size={16} color="var(--blue)" style={{ flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--blue)', marginBottom: 2 }}>Notary session</div>
+                <div>Join the sender for a live session before signing, if requested.</div>
+              </div>
+              <a href={data.envelope.meeting_url} target="_blank" rel="noreferrer"
+                style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 'var(--r-sm)', background: 'var(--blue)', color: '#fff', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
+                Join
+              </a>
             </div>
           )}
 

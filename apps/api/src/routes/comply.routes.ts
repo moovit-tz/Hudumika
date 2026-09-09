@@ -8,6 +8,8 @@ import { AGENCY_ADAPTERS } from '../integrations/comply-agencies.js';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 import type { UserRole } from '@hudumika/types';
+import { renderComplyDeclarationPdf } from '../services/comply-declaration-pdf.service.js';
+import { logEvent, notifyRecipients, recipientsToNotify } from '../services/sign-notify.service.js';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -219,7 +221,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
   fastify.post('/applications', async (request: any, reply) => {
     try {
       return reply.status(201).send(
-        await ComplyService.createApplication(request.user.tenant_id, request.user.id, request.body),
+        await ComplyService.createApplication(request.user.tenant_id, request.user.sub, request.body),
       );
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -236,11 +238,68 @@ export async function complyRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // ── Request signature (METRICS_AND_SIGN_PLAN.md §5 Phase S6 — ComplyOS) ──
+  // Generates a real declaration cover sheet from this application's own
+  // stored facts (see comply-declaration-pdf.service.ts's own header on
+  // why it's deliberately factual, not legal boilerplate) and sends it
+  // through the platform's one real Sign engine — same shape
+  // contracts.routes.ts's /:id/send-for-signature already uses for a
+  // customer contract, applicant-as-affiant here since a compliance
+  // declaration is self-attested by whoever is filing it. "Return the
+  // completed document to the compliance record" (the plan's own phrasing)
+  // needs no separate write-back: sign_envelope_id already links this
+  // application to its envelope, so ComplyApplications.tsx reads the live
+  // envelope status the same way ContractDetail.tsx already does.
+  fastify.post<{ Params: { id: string } }>('/applications/:id/request-signature', async (request: any, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const app = await trx.selectFrom('comply_applications')
+        .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id)
+        .selectAll().executeTakeFirst();
+      if (!app) return reply.status(404).send({ error: 'Application not found' });
+      if (app.sign_envelope_id) return reply.status(409).send({ error: 'A declaration has already been sent for this application.' });
+      if (!user.email) return reply.status(400).send({ error: 'Your account has no email on file — add one before requesting a signature.' });
+
+      const pdfBuffer = await renderComplyDeclarationPdf(user.tenant_id, app.id);
+      const documentData = `data:application/pdf;base64,${pdfBuffer.toString('base64')}`;
+
+      const envelope = await trx.insertInto('sign_envelopes').values({
+        tenant_id: user.tenant_id, created_by: user.sub,
+        title: `Compliance Declaration — ${app.app_number}`,
+        document_data: documentData, file_name: `${app.app_number}-declaration.pdf`,
+        order_mode: 'sequential', execution_type: 'AFFIDAVIT',
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const recipient = await trx.insertInto('sign_recipients').values({
+        envelope_id: envelope.id, tenant_id: user.tenant_id,
+        name: user.name || 'Applicant', email: user.email, sign_order: 1,
+        execution_role: 'AFFIANT',
+      }).returningAll().executeTakeFirstOrThrow();
+
+      await trx.insertInto('sign_fields').values({
+        envelope_id: envelope.id, tenant_id: user.tenant_id, recipient_id: recipient.id,
+        field_type: 'signature', page: 1, x: 0.55, y: 0.85, width: 0.35, height: 0.07, required: true,
+      }).execute();
+
+      await logEvent(trx, envelope.id, user.tenant_id, 'created', { actorName: user.name, actorEmail: user.email, note: `Created from compliance application ${app.app_number}` });
+      await trx.updateTable('sign_envelopes').set({ status: 'sent', sent_at: new Date() }).where('id', '=', envelope.id).execute();
+      await logEvent(trx, envelope.id, user.tenant_id, 'sent', { actorName: user.name, actorEmail: user.email });
+
+      await trx.updateTable('comply_applications').set({ sign_envelope_id: envelope.id, updated_at: new Date() })
+        .where('id', '=', app.id).execute();
+
+      await notifyRecipients(user.tenant_id, envelope, recipientsToNotify([recipient], 'sequential'), 'invite');
+
+      reply.status(201);
+      return { data: { sign_envelope_id: envelope.id, signing_url: `/sign/public/${recipient.token}` } };
+    });
+  });
+
   // Bliss → ComplyOS: raise a draft application from a support ticket's context
   fastify.post('/applications/from-ticket', async (request: any, reply) => {
     try {
       return reply.status(201).send(
-        await ComplyService.createApplicationFromTicket(request.user.tenant_id, request.user.id, request.body),
+        await ComplyService.createApplicationFromTicket(request.user.tenant_id, request.user.sub, request.body),
       );
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -319,7 +378,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
   fastify.post('/renewals/:id/approve', async (request: any, reply) => {
     try {
       const { id } = request.params as { id: string };
-      await ComplyService.approveRenewal(request.user.tenant_id, id, request.user.id);
+      await ComplyService.approveRenewal(request.user.tenant_id, id, request.user.sub);
       return { ok: true };
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -380,7 +439,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
   fastify.post('/reminders', async (request: any, reply) => {
     try {
       return reply.status(201).send(
-        await ComplyService.createReminder(request.user.tenant_id, request.user.id, request.body),
+        await ComplyService.createReminder(request.user.tenant_id, request.user.sub, request.body),
       );
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });

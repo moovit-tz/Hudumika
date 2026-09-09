@@ -53,6 +53,10 @@ export interface CompApplication {
   customer_id:    string | null;
   customer_name:  string | null;
   license_catalog_id: string | null;
+  // Migration 423 — the same real Sign engine hr_offers/contracts already
+  // use for a signable document, applied to a compliance declaration.
+  sign_envelope_id: string | null;
+  envelope_status:  string | null;
 }
 
 export interface CompObligation {

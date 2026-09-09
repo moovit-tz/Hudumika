@@ -29,10 +29,12 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFP
 import { pdflibAddPlaceholder } from '@signpdf/placeholder-pdf-lib';
 import { P12Signer } from '@signpdf/signer-p12';
 import { SUBFILTER_ETSI_CADES_DETACHED } from '@signpdf/utils';
+import QRCode from 'qrcode';
 import { dbPlatform } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { getSigningIdentity } from './pdf-signing-identity.service.js';
 import { canApplyTenantStamp } from '../routes/sign-stamps.routes.js';
+import { resolvePublicBaseUrl } from '../routes/landed-cost-share.routes.js';
 
 const PAGE_W = 595.28; // A4 in points
 const PAGE_H = 841.89;
@@ -45,6 +47,10 @@ interface SourceEnvelope {
   document_data: string | null;
   verification_code: string | null;
   completed_at: Date | null;
+  // Migration 416 — 'NORMAL_SIGN' | 'WITNESSED_SIGNATURE' | 'AFFIDAVIT' |
+  // 'NOTARIAL_CERTIFICATION'. Optional so older call sites/fixtures that
+  // predate this column still satisfy the interface.
+  execution_type?: string;
 }
 
 interface SourceRecipient {
@@ -145,6 +151,52 @@ export async function drawStampImage(
   }
 }
 
+/** Draws the bracket-and-serial specimen mark under a signature/initials
+ *  image — the general concept a signer's own reference screenshot showed
+ *  (a bracket tying a "Signed by" label and a short identifier to the
+ *  signature), reproduced as an original Hudumika mark: a square-cornered
+ *  bracket (not DocuSign's rounded one), Hudumika's own teal accent, and
+ *  "Digitally Signed by" rather than a reworded copy of their label text.
+ *  Two lines stacked in the same below-the-box zone drawStampImage's own
+ *  single-line caption already used safely (see drawFields's own long
+ *  comment on why nothing is drawn *above* a user-placed field box) — this
+ *  replaces that plain caption for signature/initials fields specifically,
+ *  not drawStampImage's shared caption path itself (still used elsewhere
+ *  with no bracket, e.g. QR captions).
+ *  The bracket and this caption are visual only — a signature image can be
+ *  copied like any picture. The cryptographic evidence a mark like this
+ *  can never forge lives in sign_events (this signer, this timestamp, this
+ *  IP) and the Digital Execution Seal (sign-seal.service.ts), not in pixels. */
+async function drawSignatureSpecimen(
+  doc: PDFDocument, page: PDFPage,
+  box: { x: number; y: number; width: number; height: number },
+  recipientName: string, shortId: string,
+): Promise<void> {
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const mono = await doc.embedFont(StandardFonts.Courier);
+  const teal = rgb(0.02, 0.45, 0.42);
+
+  const labelSize = 6.5;
+  const idSize = 5.5;
+  const lineGap = 1.5;
+  const idY = Math.max(2, box.y - idSize - 2);
+  const labelY = idY + idSize + lineGap;
+  const bracketX = box.x;
+  const textX = bracketX + 7;
+
+  // Square bracket ("[") rather than DocuSign's rounded one — spans just
+  // the two caption lines, not the signature image above them, so this
+  // never needs room this field's own box didn't already reserve.
+  const bracketTop = labelY + labelSize - 1;
+  const bracketBottom = idY - 1;
+  page.drawLine({ start: { x: bracketX, y: bracketTop }, end: { x: bracketX, y: bracketBottom }, thickness: 1, color: teal });
+  page.drawLine({ start: { x: bracketX, y: bracketTop }, end: { x: bracketX + 5, y: bracketTop }, thickness: 1, color: teal });
+  page.drawLine({ start: { x: bracketX, y: bracketBottom }, end: { x: bracketX + 5, y: bracketBottom }, thickness: 1, color: teal });
+
+  page.drawText('Digitally Signed by:', { x: textX, y: labelY, size: labelSize, font: bold, color: rgb(0.06, 0.09, 0.16) });
+  page.drawText(`${recipientName} · ${shortId}…`, { x: textX, y: idY, size: idSize, font: mono, color: rgb(0.45, 0.45, 0.45) });
+}
+
 /** Draws a "CERTIFIED TRUE COPY" legal block — real text (name, title, roll
  *  number, firm, date), not an image, since what makes a certified copy
  *  real is exactly those facts about a specific licensed person, the same
@@ -218,7 +270,7 @@ export async function buildSignedPdf(
   }
 
   await drawFields(doc, envelope, recipients, fields, await resolveTenantStamp(envelope, recipients, fields));
-  await drawAuditTrail(doc, envelope, events);
+  await drawAuditTrail(doc, envelope, events, recipients.some(r => r.is_certifier));
 
   const unsigned = Buffer.from(await doc.save());
   try {
@@ -350,17 +402,16 @@ async function resolveTenantStamp(
  *  field never renders blank just because nobody's cleared to apply the
  *  real seal.
  *
- *  Signature/initials fields also get a small "Signed by: {name} / {id}"
- *  caption drawn just below the image — the same visual convention
- *  DocuSign's own signature blocks use (see the reference screenshot:
- *  "DocuSigned by:" + a truncated envelope UUID under the signature). The
- *  envelope's own id (not the human-facing verification_code, which is
- *  already prominent elsewhere on the stamp/audit page) is what gets
- *  truncated, matching DocuSign's own choice of an internal document
- *  identifier rather than a display code. Drawn just outside the field's
- *  own box, not inside it — the box is user-sized to fit exactly the
- *  signature image, and DocuSign's real fields reserve extra room for this
- *  caption the same way; a fixed field size here has nowhere to add it. */
+ *  Signature/initials fields also get drawSignatureSpecimen's bracket +
+ *  "Digitally Signed by:" + name/id mark drawn just below the image — the
+ *  general concept behind DocuSign's own "DocuSigned by:" + truncated id
+ *  under the signature, reproduced as an original Hudumika mark (see that
+ *  function's own header for the specific differences: square bracket, own
+ *  wording, own color). The envelope's own id (not the human-facing
+ *  verification_code, which is already prominent elsewhere on the stamp/
+ *  audit page) is what gets truncated. Drawn just outside the field's own
+ *  box, not inside it — the box is user-sized to fit exactly the signature
+ *  image, and a fixed field size here has nowhere to add a caption inside it. */
 async function drawFields(
   doc: PDFDocument, envelope: SourceEnvelope, recipients: SourceRecipient[], fields: SourceField[],
   tenantStamp: { bytes: Buffer | null; authorizedRecipientIds: Set<string> },
@@ -400,8 +451,10 @@ async function drawFields(
       try {
         const parsed = parseDataUrl(recipient.signature_data);
         if (parsed) {
-          const caption = field.field_type === 'stamp' ? undefined : `Signed by: ${recipient.name} · ${shortId}`;
-          await drawStampImage(doc, page, parsed.bytes, { x: boxX, y: boxY, width: boxW, height: boxH }, caption);
+          await drawStampImage(doc, page, parsed.bytes, { x: boxX, y: boxY, width: boxW, height: boxH });
+          if (field.field_type !== 'stamp') {
+            await drawSignatureSpecimen(doc, page, { x: boxX, y: boxY, width: boxW, height: boxH }, recipient.name, shortId);
+          }
         }
       } catch (err) {
         console.error('[Sign PDF] Failed to embed a signature image:', (err as Error).message);
@@ -423,18 +476,95 @@ async function drawFields(
  *  now traveling with the file itself. Paginates rather than truncating:
  *  a real envelope's audit trail should never be silently dropped just
  *  because it outgrew a single page. */
-async function drawAuditTrail(doc: PDFDocument, envelope: SourceEnvelope, events: SourceEvent[]): Promise<void> {
+async function drawAuditTrail(doc: PDFDocument, envelope: SourceEnvelope, events: SourceEvent[], hasCertifier: boolean): Promise<void> {
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const regular = await doc.embedFont(StandardFonts.Helvetica);
+  const italic = await doc.embedFont(StandardFonts.HelveticaOblique);
+
+  // Points at the SAME public verification page the text code next to it
+  // also resolves to — never the private document download URL (original
+  // Sign spec §60). Same trusted-base-URL gate landed-cost-share.routes.ts
+  // already uses for its own QR — withheld, not broken, when the public
+  // URL isn't configured yet (see resolvePublicBaseUrl's own reasoning).
+  // Deliberately still the plain verify-page URL, not the seal's own signed
+  // token (sign-seal.service.ts) — that token depends on this PDF's own
+  // final hash, which doesn't exist until after this very page is drawn, a
+  // real circularity (see that file's header comment). The cryptographic
+  // signature is checked server-side, against the STORED payload, every
+  // time this link is opened — a real Ed25519 check, not a QR trick.
+  let qrPngBytes: Buffer | null = null;
+  if (envelope.verification_code) {
+    const { url: baseUrl, trusted } = resolvePublicBaseUrl();
+    if (trusted && baseUrl) {
+      try {
+        qrPngBytes = await QRCode.toBuffer(`${baseUrl}/sign/verify/${envelope.verification_code}`, {
+          errorCorrectionLevel: 'M', margin: 1, width: 240, color: { dark: '#0d1117', light: '#FFFFFF' },
+        });
+      } catch (err) {
+        console.error('[Sign PDF] QR generation failed, certificate proceeds without it:', (err as Error).message);
+      }
+    }
+  }
 
   let page = doc.addPage([PAGE_W, PAGE_H]);
   let y = PAGE_H - 60;
 
-  function header() {
+  const EXECUTION_TYPE_LABEL: Record<string, string> = {
+    WITNESSED_SIGNATURE: 'Witnessed Signature',
+    AFFIDAVIT: 'Affidavit',
+    NOTARIAL_CERTIFICATION: 'Notarial Certification',
+  };
+  // Mirrors sign-seal.service.ts's deriveSealType() exactly, but computed
+  // straight from execution_type/hasCertifier rather than the persisted
+  // seal_type column — that column isn't written until after this whole
+  // PDF (built from this very function) is hashed and the seal issued
+  // moments later in the same completion request. Both derivations read
+  // the same two inputs, so they can't drift.
+  const SEAL_TYPE_LABEL: Record<string, string> = {
+    NOTARIAL_CERTIFICATION: 'Notary Seal', AFFIDAVIT: 'Affidavit Seal', WITNESSED_SIGNATURE: 'Witness Seal',
+  };
+  const sealTypeLabel = (envelope.execution_type && SEAL_TYPE_LABEL[envelope.execution_type])
+    || (hasCertifier ? 'Certificate Seal' : 'Standard Sign Seal');
+
+  // ── Digital Execution Seal panel — an original Hudumika mark, not a bare
+  // QR floating in the corner: a bordered card with the wordmark, seal
+  // type, a bilingual "Digitally Executed" line, and the scan target,
+  // designed to stay legible after black-and-white printing, photocopying,
+  // and a phone-camera photograph (flat fills, no gradients, a heavy
+  // enough accent bar to survive contrast loss).
+  const SEAL_X = PAGE_W - 50 - 200;
+  const SEAL_Y = PAGE_H - 60 - 150;
+  const SEAL_W = 200;
+  const SEAL_H = 150;
+
+  function drawSeal() {
+    page.drawRectangle({ x: SEAL_X, y: SEAL_Y, width: SEAL_W, height: SEAL_H, borderColor: rgb(0.06, 0.09, 0.16), borderWidth: 1.2, color: rgb(1, 1, 1) });
+    page.drawRectangle({ x: SEAL_X, y: SEAL_Y + SEAL_H - 5, width: SEAL_W, height: 5, color: rgb(0.02, 0.45, 0.42) }); // teal accent bar
+    let sy = SEAL_Y + SEAL_H - 20;
+    page.drawText('HUDUMIKA', { x: SEAL_X + 12, y: sy, size: 11, font: bold, color: rgb(0.06, 0.09, 0.16) });
+    sy -= 13;
+    page.drawText('DIGITAL EXECUTION SEAL', { x: SEAL_X + 12, y: sy, size: 7, font: bold, color: rgb(0.02, 0.45, 0.42) });
+    sy -= 15;
+    page.drawText(sealTypeLabel, { x: SEAL_X + 12, y: sy, size: 8.5, font: bold, color: rgb(0.45, 0.25, 0.05) });
+    sy -= 12;
+    page.drawText('Digitally Executed', { x: SEAL_X + 12, y: sy, size: 7.5, font: italic, color: rgb(0.3, 0.32, 0.38) });
+    sy -= 10;
+    page.drawText('Imetekelezwa Kidijitali', { x: SEAL_X + 12, y: sy, size: 7.5, font: italic, color: rgb(0.3, 0.32, 0.38) });
+  }
+  drawSeal();
+
+  async function header() {
     page.drawText('Audit Trail', { x: 50, y, size: 20, font: bold, color: rgb(0.06, 0.09, 0.16) });
     y -= 24;
     page.drawText(envelope.title, { x: 50, y, size: 12, font: regular, color: rgb(0.35, 0.38, 0.45) });
     y -= 18;
+    // Only shown for an advanced execution — an ordinary signed document's
+    // certificate stays exactly as it read before this migration.
+    const executionLabel = envelope.execution_type ? EXECUTION_TYPE_LABEL[envelope.execution_type] : undefined;
+    if (executionLabel) {
+      page.drawText(`Execution type: ${executionLabel}`, { x: 50, y, size: 10.5, font: bold, color: rgb(0.45, 0.25, 0.05) });
+      y -= 16;
+    }
     if (envelope.verification_code) {
       page.drawText(`Verification code: ${envelope.verification_code}`, { x: 50, y, size: 11, font: bold, color: rgb(0.05, 0.5, 0.35) });
       y -= 16;
@@ -443,10 +573,18 @@ async function drawAuditTrail(doc: PDFDocument, envelope: SourceEnvelope, events
       page.drawText(`Completed: ${envelope.completed_at.toISOString()}`, { x: 50, y, size: 10, font: regular, color: rgb(0.35, 0.38, 0.45) });
       y -= 20;
     }
+    // Inside the seal panel drawn above, clear of the left-hand text block —
+    // the panel's own fixed dimensions (not drawStampImage's scale-to-fit
+    // box) already reserve this space regardless of header height.
+    if (qrPngBytes) {
+      await drawStampImage(doc, page, qrPngBytes, { x: SEAL_X + SEAL_W - 78, y: SEAL_Y + 12, width: 66, height: 66 });
+      page.drawText('Scan to verify', { x: SEAL_X + SEAL_W - 78, y: SEAL_Y + 4, size: 6, font: regular, color: rgb(0.45, 0.45, 0.45) });
+    }
+    y = Math.min(y, SEAL_Y - 14);
     page.drawLine({ start: { x: 50, y }, end: { x: PAGE_W - 50, y }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
     y -= 20;
   }
-  header();
+  await header();
 
   for (const ev of events) {
     if (y < 70) {

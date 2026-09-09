@@ -45,7 +45,7 @@ interface HudumikaApp {
 const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category'>> = {
   clearos:      { desc: 'Customs clearance platform & TANCIS integration', category: 'Logistics' },
   finops:       { desc: 'Financial accounts, TRA EFD integration & payroll ledger', category: 'Finance' },
-  nexushr:        { desc: 'People operations, payroll & shift rosters', category: 'HR' },
+  nexushr:      { desc: 'People operations, payroll & shift rosters', category: 'HR' },
   bliss:        { desc: 'Omnichannel customer helpdesk & ticketing system', category: 'Support' },
   complyos:     { desc: 'Compliance tracking, BRELA business search, permits & audit logs', category: 'Compliance' },
   crm:          { desc: 'Customer relationships, leads & sales pipeline', category: 'Sales' },
@@ -67,6 +67,11 @@ const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category'>> = {
   petti:        { desc: 'Tenant petty-cash wallets — deposits, request/approve/disburse withdrawals', category: 'Finance' },
   sign:         { desc: 'Secure electronic document signatures, approvals & audit-chained events', category: 'Productivity' },
   sms:          { desc: 'Bulk & transactional SMS — quick send, groups, templates, scheduled campaigns', category: 'Communication' },
+  projects:     { desc: 'Project boards, sprints, milestones & deliverables', category: 'Productivity' },
+  notes:        { desc: 'Quick notes, rich documentation & scratchpads', category: 'Productivity' },
+  onesite:      { desc: 'Content management system, web pages & media assets', category: 'Content' },
+  lens:         { desc: 'Platform observability, runtime introspection & diagnostics', category: 'System' },
+  demurrage:    { desc: 'Container demurrage calculation, free-period tracking & port invoices', category: 'Logistics' },
 };
 
 const apps: HudumikaApp[] = [
@@ -216,18 +221,36 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
               <div className="wh-section-header">
                 <h2 className="wh-section-title">{t('hub.recentlyViewed')}</h2>
               </div>
-              <div className="wh-cards-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
-                {recentlyViewedApps.map(app => (
-                  <Link key={app.id} to={app.path} className="wh-horizontal-card" onClick={() => handleAppClick(app)} style={{ '--card-color': app.color, minWidth: 0 } as React.CSSProperties}>
-                    <div className="wh-card-logo-wrap">
-                      <AppIcon id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={32} />
-                    </div>
-                    <div className="wh-card-content" style={{ minWidth: 0 }}>
-                      <div className="wh-card-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{branding.getAppName(app.id, app.name)}</div>
-                      <div className="wh-card-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{app.category}</div>
-                    </div>
-                  </Link>
-                ))}
+              <div className="wh-cards-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
+                {recentlyViewedApps.map(app => {
+                  const appColor = branding.getAppColor(app.id, app.color);
+                  const appName = branding.getAppName(app.id, app.name);
+                  const appSlogan = branding.getAppSlogan(app.id, app.desc);
+                  return (
+                    <Link
+                      key={app.id}
+                      to={app.path}
+                      className="wh-horizontal-card"
+                      onClick={() => handleAppClick(app)}
+                      style={{ '--card-color': appColor, minWidth: 0 } as React.CSSProperties}
+                    >
+                      <div className="wh-card-logo-wrap">
+                        <AppIcon id={app.id} color={appColor} logoUrl={branding.getAppLogo(app.id)} size={42} />
+                      </div>
+                      <div className="wh-card-content" style={{ minWidth: 0 }}>
+                        <div className="wh-card-title-row">
+                          <span className="wh-card-title">{appName}</span>
+                          <span className="wh-badge-cat">{app.category}</span>
+                        </div>
+                        {appSlogan && (
+                          <div className="wh-card-sub" title={appSlogan}>
+                            {appSlogan}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </section>
           )}
@@ -261,15 +284,7 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                   options={categories.map(cat => ({ value: cat, label: cat }))}
                 />
 
-                {/* Settings Link — explicit height on the same --ctl-h-sm
-                    token as the List/Grid toggle group and the filter pill
-                    beside it, so all three toolbar controls line up exactly
-                    (a raw padding value here, with no height floor at all,
-                    previously rendered a few px shorter than its neighbors —
-                    "wh-btn"/"wh-btn--ghost"/"wh-btn--sm" below are dead
-                    classes with no matching CSS rule anywhere, so this
-                    control's size has only ever come from its own inline
-                    style). */}
+                {/* Settings Link */}
                 <Link to="/admin/branding" className="wh-btn wh-btn--ghost wh-btn--sm" style={{ padding: '0 14px', height: 'var(--ctl-h-sm)', boxSizing: 'border-box', fontSize: 13, fontWeight: 700, borderRadius: 8, border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--ink)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <Icon name="sliders" size={14} />
                   <span>SETTINGS</span>
@@ -277,12 +292,14 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
               </div>
             </div>
 
-            {/* ── Render Mode: 5-Column Grid Cards Format ── */}
+            {/* ── Render Mode: Grid Cards Format ── */}
             {viewMode === 'grid' ? (
               <div className="wh-grid-container">
                 {filteredApps.map(app => {
                   const isStarred = starredIds.includes(app.id);
                   const appColor = branding.getAppColor(app.id, app.color);
+                  const appName = branding.getAppName(app.id, app.name);
+                  const appSlogan = branding.getAppSlogan(app.id, app.desc);
                   return (
                     <Link
                       key={app.id}
@@ -291,17 +308,22 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                       onClick={() => handleAppClick(app)}
                       style={{ '--card-color': appColor } as React.CSSProperties}
                     >
-                      <div className="wh-grid-card-header">
-                        <div className="wh-grid-card-client">
-                          <div className="wh-grid-icon-wrap">
-                            <AppIcon id={app.id} color={appColor} logoUrl={branding.getAppLogo(app.id)} size={22} />
+                      <div className="wh-grid-card-inner">
+                        <div className="wh-grid-icon-wrap">
+                          <AppIcon id={app.id} color={appColor} logoUrl={branding.getAppLogo(app.id)} size={44} />
+                        </div>
+                        <div className="wh-grid-card-info">
+                          <div className="wh-grid-name-row">
+                            <span className="wh-grid-workspace-name" title={appName}>
+                              {appName}
+                            </span>
+                            <span className="wh-badge-cat">{app.category}</span>
                           </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div className="wh-grid-workspace-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {branding.getAppName(app.id, app.name)}
-                            </div>
-                            <div className="wh-grid-client-lob">{app.category}</div>
-                          </div>
+                          {appSlogan && (
+                            <p className="wh-grid-workspace-desc" title={appSlogan}>
+                              {appSlogan}
+                            </p>
+                          )}
                         </div>
 
                         <button
@@ -310,8 +332,9 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                           data-starred={isStarred}
                           onClick={(e) => toggleStar(app.id, e)}
                           title={isStarred ? 'Unstar' : 'Star'}
+                          aria-label={isStarred ? `Unstar ${appName}` : `Star ${appName}`}
                         >
-                          <Icon name="star" size={16} duotone={isStarred} />
+                          <Icon name="star" size={17} duotone={isStarred} />
                         </button>
                       </div>
                     </Link>
@@ -324,15 +347,18 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                 <table className="wh-table">
                   <thead>
                     <tr>
-                      <th className="wh-th-center" style={{ width: 40 }}></th>
-                      <th>APP</th>
-                      <th>CATEGORY</th>
+                      <th className="wh-th-center" style={{ width: 44 }}></th>
+                      <th style={{ width: '28%' }}>APP</th>
+                      <th>DESCRIPTION</th>
+                      <th style={{ width: '16%', textAlign: 'right', paddingRight: 24 }}>CATEGORY</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredApps.map(app => {
                       const isStarred = starredIds.includes(app.id);
                       const appColor = branding.getAppColor(app.id, app.color);
+                      const appName = branding.getAppName(app.id, app.name);
+                      const appSlogan = branding.getAppSlogan(app.id, app.desc);
                       return (
                         <tr key={app.id} onClick={() => handleAppClick(app)} style={{ '--card-color': appColor } as React.CSSProperties}>
                           <td className="wh-td-center">
@@ -342,23 +368,26 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                               data-starred={isStarred}
                               onClick={(e) => toggleStar(app.id, e)}
                               title={isStarred ? 'Unstar' : 'Star'}
+                              aria-label={isStarred ? `Unstar ${appName}` : `Star ${appName}`}
                             >
-                              <Icon name="star" size={16} duotone={isStarred} />
+                              <Icon name="star" size={17} duotone={isStarred} />
                             </button>
                           </td>
                           <td>
-                            <Link to={app.path} onClick={() => handleAppClick(app)} style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-                              <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'color-mix(in srgb, var(--card-color) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <AppIcon id={app.id} color={appColor} logoUrl={branding.getAppLogo(app.id)} size={20} />
+                            <Link to={app.path} onClick={() => handleAppClick(app)} className="wh-td-app-link">
+                              <div className="wh-td-icon-wrap">
+                                <AppIcon id={app.id} color={appColor} logoUrl={branding.getAppLogo(app.id)} size={44} />
                               </div>
-                              <div style={{ minWidth: 0 }}>
-                                <div className="wh-td-workspace-name">{branding.getAppName(app.id, app.name)}</div>
-                                <div className="wh-td-workspace-sub">{branding.getAppSlogan(app.id, app.desc)}</div>
+                              <div className="wh-td-app-info">
+                                <div className="wh-td-workspace-name">{appName}</div>
                               </div>
                             </Link>
                           </td>
                           <td>
-                            <span className="wh-badge-lob">{app.category}</span>
+                            <div className="wh-td-workspace-desc">{appSlogan}</div>
+                          </td>
+                          <td style={{ textAlign: 'right', paddingRight: 24 }}>
+                            <span className="wh-badge-cat">{app.category}</span>
                           </td>
                         </tr>
                       );

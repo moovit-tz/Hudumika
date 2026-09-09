@@ -13,12 +13,14 @@
 // This mirrors the same non-negotiable this whole file's neighbours follow:
 // metric_definitions describes what a metric IS (for the Explorer/lineage
 // UI); it never becomes a second place that computes what a metric equals.
+import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { dbPlatform } from '../db/client.js';
 import { computeBlissKpis, type BlissKpis } from './support-metrics.service.js';
 import { runHuduBIMetric } from './hudubi-widgets.service.js';
 import { computeClearanceTurnaroundHours, computeLandedCostAvgTzs } from './clearos-metrics.service.js';
 import { GLService } from './gl.service.js';
+import { computeSignKpis, type SignKpis } from './sign-metrics.service.js';
 
 export interface MetricDefinitionRow {
   id: string;
@@ -167,6 +169,61 @@ const SPECIAL_METRIC_HANDLERS: Record<string, (tenantId: string, days: number) =
     computeClearanceTurnaroundHours(tenantId, days),
   'clearos.landed_cost_avg_tzs': async (tenantId: string, days: number) =>
     computeLandedCostAvgTzs(tenantId, days),
+
+  // ── NexusHR: headcount, leave, attendance ────────────────────────────
+  'nexushr.headcount': async (tenantId: string) => {
+    return withTenant(tenantId, async trx => {
+      const r = await sql<{ v: number }>`SELECT count(*)::int as v FROM users WHERE tenant_id = ${tenantId} AND active = true`.execute(trx);
+      return Number(r.rows[0]?.v ?? 0);
+    });
+  },
+  'nexushr.pending_leave_requests': async (tenantId: string) => {
+    return withTenant(tenantId, async trx => {
+      const r = await sql<{ v: number }>`SELECT count(*)::int as v FROM hr_leaves WHERE tenant_id = ${tenantId} AND status = 'PENDING'`.execute(trx);
+      return Number(r.rows[0]?.v ?? 0);
+    });
+  },
+  'nexushr.late_clockin_pct': async (tenantId: string, days: number) => {
+    return withTenant(tenantId, async trx => {
+      const r = await sql<{ total: number; late: number }>`
+        SELECT count(*)::int as total,
+               count(*) FILTER (WHERE status = 'LATE')::int as late
+        FROM hr_attendance
+        WHERE tenant_id = ${tenantId}
+          AND date >= CURRENT_DATE - (${days} * INTERVAL '1 day')
+      `.execute(trx);
+      const total = Number(r.rows[0]?.total ?? 0);
+      const late = Number(r.rows[0]?.late ?? 0);
+      return total > 0 ? Number(((late / total) * 100).toFixed(1)) : 0;
+    });
+  },
+
+  // ── CargoTracker: active fleet trips ─────────────────────────────────
+  'cargotracker.active_trips': async (tenantId: string) => {
+    return withTenant(tenantId, async trx => {
+      const r = await sql<{ v: number }>`SELECT count(*)::int as v FROM trips WHERE tenant_id = ${tenantId} AND status = 'IN_PROGRESS'`.execute(trx);
+      return Number(r.rows[0]?.v ?? 0);
+    });
+  },
+
+  // ── Sign: envelopes, execution, identity ─────────────────────────────
+  // One computeSignKpis() call, same "shared calculation" shape as Bliss's
+  // computeBlissKpis above — see sign-metrics.service.ts.
+  ...Object.fromEntries((Object.entries({
+    'sign.envelopes_created': 'created',
+    'sign.completion_rate_pct': 'completionRatePct',
+    'sign.avg_completion_hours': 'avgCompletionHours',
+    'sign.witnessed_count': 'witnessedCount',
+    'sign.certified_count': 'certifiedCount',
+    'sign.otp_verified_count': 'otpVerifiedCount',
+  }) as [string, keyof SignKpis][]).map(([key, field]) => [
+    key,
+    async (tenantId: string, days: number) => {
+      const kpis = await withTenant(tenantId, trx => computeSignKpis(trx, tenantId, days));
+      const v = kpis[field];
+      return typeof v === 'number' ? v : 0;
+    },
+  ])),
 };
 
 /** Computes one metric's current scalar value for a tenant, over the last
@@ -179,10 +236,10 @@ export async function computeMetricValue(metricKey: string, tenantId: string, da
   if (!def) throw new Error(`Unknown metric: ${metricKey}`);
 
   let value = 0;
-  if (def.kind === 'special') {
-    const handler = SPECIAL_METRIC_HANDLERS[metricKey];
-    if (!handler) throw new Error(`Metric "${metricKey}" is registered but has no special-kind handler wired`);
-    value = await handler(tenantId, days);
+  if (SPECIAL_METRIC_HANDLERS[metricKey]) {
+    value = await SPECIAL_METRIC_HANDLERS[metricKey](tenantId, days);
+  } else if (def.kind === 'special') {
+    throw new Error(`Metric "${metricKey}" is registered as special but has no special-kind handler wired`);
   } else {
     const from = new Date(Date.now() - days * 86400000).toISOString();
     const result = await runHuduBIMetric(tenantId, metricKey, { date_from: from });

@@ -196,6 +196,12 @@ import { isMeteredPath, incrementUsage, incrementAppUsage } from './lib/usage.js
 import { signRoutes, signPublicRoutes } from './routes/sign.routes.js';
 import { signStampsRoutes } from './routes/sign-stamps.routes.js';
 import { signVersionsRoutes } from './routes/sign-versions.routes.js';
+import { signSealAdminRoutes } from './routes/sign-seal-admin.routes.js';
+import { signForensicsRoutes } from './routes/sign-forensics.routes.js';
+import { signMattersRoutes } from './routes/sign-matters.routes.js';
+import { signJurisdictionRoutes } from './routes/sign-jurisdiction.routes.js';
+import { signAiAssistRoutes } from './routes/sign-ai-assist.routes.js';
+import { signBillingRoutes } from './routes/sign-billing.routes.js';
 import { signPdfToolsRoutes } from './routes/sign-pdf-tools.routes.js';
 import { bookingPublicRoutes } from './routes/booking.routes.js';
 import { calendarSyncRoutes } from './routes/calendar-sync.routes.js';
@@ -654,6 +660,12 @@ export async function registerApp() {
     await server.register(calendarSyncRoutes, { prefix: '/v1/tasks/calendar-sync' });
     await server.register(signStampsRoutes, { prefix: '/v1/sign' });
     await server.register(signVersionsRoutes, { prefix: '/v1/sign' });
+    await server.register(signSealAdminRoutes, { prefix: '/v1/sign' });
+    await server.register(signForensicsRoutes, { prefix: '/v1/sign' });
+    await server.register(signMattersRoutes, { prefix: '/v1/sign' });
+    await server.register(signJurisdictionRoutes, { prefix: '/v1/sign' });
+    await server.register(signAiAssistRoutes, { prefix: '/v1/sign' });
+    await server.register(signBillingRoutes, { prefix: '/v1/sign' });
     await server.register(signPdfToolsRoutes, { prefix: '/v1/sign/pdf-tools' });
     await server.register(smsRoutes, { prefix: '/v1/sms' });
     await server.register(smsWebhookRoutes, { prefix: '/v1/sms/webhook' });

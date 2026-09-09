@@ -113,7 +113,7 @@ export async function cmsRoutes(fastify: FastifyInstance) {
     const { slug } = request.params as { slug: string };
     const body = platformPageUpsertSchema.parse(request.body);
     try {
-      return await CMSService.upsertPlatformPage(request.user.id, { ...body, slug });
+      return await CMSService.upsertPlatformPage(request.user.sub, { ...body, slug });
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
@@ -146,7 +146,7 @@ export async function cmsRoutes(fastify: FastifyInstance) {
     const body = pageCreateSchema.parse(request.body);
     try {
       return reply.status(201).send(
-        await CMSService.createTenantPage(request.user.tenant_id, request.user.id, body),
+        await CMSService.createTenantPage(request.user.tenant_id, request.user.sub, body),
       );
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -186,7 +186,7 @@ export async function cmsRoutes(fastify: FastifyInstance) {
     const body = postCreateSchema.parse(request.body);
     try {
       return reply.status(201).send(
-        await CMSService.createTenantPost(request.user.tenant_id, request.user.id, body),
+        await CMSService.createTenantPost(request.user.tenant_id, request.user.sub, body),
       );
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });

@@ -5,6 +5,7 @@
 // one code path for "what does a signing invite/reminder email say" and
 // "how does an event get logged", not a second copy that could drift.
 
+import crypto from 'crypto';
 import type { Kysely, Transaction } from 'kysely';
 import { type Database } from '../db/client.js';
 import { MailService } from './mail.service.js';
@@ -12,11 +13,101 @@ import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { SmsIntegration } from '../integrations/sms.js';
 import { NotificationService } from './notification.service.js';
 import { resolvePublicBaseUrl } from '../routes/landed-cost-share.routes.js';
+import QRCode from 'qrcode';
 
 export type Db = Kysely<Database> | Transaction<Database>;
 
+/**
+ * Auto-creates a real task for an envelope's creator (METRICS_AND_SIGN_PLAN.md
+ * §5 Phase S6 — Tasks). Same "look up or create a dedicated auto-list, then
+ * insert" shape calls.routes.ts's own POST /meetings/:id/create-tasks
+ * already established for "Meeting Follow-ups" — "Sign Follow-ups" here —
+ * not a second task-creation code path. Links back to the envelope via
+ * tasks' own real subject_type/subject_id polymorphic column (migration
+ * 311), not just a free-text mention, though the note also carries a
+ * human-readable reference since no UI resolves subject_type into a link
+ * yet.
+ *
+ * Idempotent by construction at both real call sites — sign-expiry.job.ts
+ * only ever revisits an envelope while status='sent' (its own header
+ * explains why), and the decline handler is the one place a recipient's
+ * decline is recorded — so this never needs its own dedup check; it fires
+ * exactly once per real event.
+ */
+export async function createSignFollowUpTask(
+  db: Db,
+  tenantId: string,
+  userId: string,
+  envelopeId: string,
+  title: string,
+  note: string,
+): Promise<void> {
+  try {
+    let list = await db.selectFrom('task_lists').select('id')
+      .where('tenant_id', '=', tenantId).where('user_id', '=', userId).where('name', '=', 'Sign Follow-ups')
+      .executeTakeFirst();
+    let listId = list?.id;
+    if (!listId) {
+      const created = await db.insertInto('task_lists').values({
+        id: crypto.randomUUID(), tenant_id: tenantId, user_id: userId, name: 'Sign Follow-ups', color: '#0d9488',
+      }).returningAll().executeTakeFirstOrThrow();
+      listId = created.id;
+    }
+
+    const siblingCount = await db.selectFrom('tasks').select(({ fn }) => fn.countAll<number>().as('count'))
+      .where('list_id', '=', listId).where('deleted_at', 'is', null).executeTakeFirst();
+
+    await db.insertInto('tasks').values({
+      id: crypto.randomUUID(), tenant_id: tenantId, user_id: userId, list_id: listId,
+      title, notes: note, tags: JSON.stringify([]) as unknown as string[],
+      status: 'none', priority: 'medium', sort_order: Number(siblingCount?.count ?? 0),
+      subject_type: 'sign_envelope', subject_id: envelopeId,
+    } as any).execute();
+  } catch (err) {
+    // Best-effort — a task-creation failure must never break the real
+    // action (an envelope expiring, a recipient declining) it's reacting to.
+    console.error(`[Sign] Failed to create a follow-up task for envelope ${envelopeId}:`, (err as Error).message);
+  }
+}
+
 export function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c]);
+}
+
+/** Attaches `matched_user_id` to every recipient whose real `user_id` is
+ *  null but whose email matches a real platform account in this tenant —
+ *  display-only, never written back to sign_recipients. A recipient only
+ *  gets a genuine `user_id` when the sender explicitly picked them via
+ *  EntityPicker (SignEditor.tsx); most are typed in as plain name+email,
+ *  including the common case of someone sending an envelope to their own
+ *  team where the email happens to match a real colleague. Without this,
+ *  PersonAvatar had no id to look up for any of them and always fell back
+ *  to colored initials — correct behavior for a genuine external signer,
+ *  wrong for "this typed email is literally a staff account."
+ *  Deliberately separate from `user_id` itself: SignEditor.tsx reads
+ *  `user_id` to decide whether a recipient was an explicit EntityPicker
+ *  pick, and notification.service.ts's bell delivery keys off the same
+ *  real column — overwriting it here would silently turn a freeform
+ *  recipient into a "linked" one the moment their email happened to match,
+ *  changing both of those without anyone asking for it. */
+export async function attachMatchedUserIds<T extends { user_id: string | null; email: string }>(
+  db: Db, tid: string, recipients: T[]
+): Promise<(T & { matched_user_id: string | null })[]> {
+  const unmatchedEmails = [...new Set(
+    recipients.filter(r => !r.user_id && r.email).map(r => r.email.toLowerCase())
+  )];
+  if (unmatchedEmails.length === 0) {
+    return recipients.map(r => ({ ...r, matched_user_id: null }));
+  }
+  const matches = await db.selectFrom('users').select(['id', 'email'])
+    .where('tenant_id', '=', tid)
+    .where(({ eb, fn }) => eb(fn('lower', ['email']), 'in', unmatchedEmails))
+    .execute();
+  const byEmail = new Map(matches.map(u => [u.email.toLowerCase(), u.id]));
+  return recipients.map(r => ({
+    ...r,
+    matched_user_id: r.user_id ? null : (byEmail.get(r.email?.toLowerCase()) ?? null),
+  }));
 }
 
 export async function logEvent(
@@ -49,15 +140,31 @@ export async function logEvent(
 /** Generate stamp HTML overlay (SVG badge) injected client-side into the document preview.
  *  Server marks stamp_applied=true and records stamped_at; the actual visual is rendered
  *  in the browser's PDF canvas overlay. This returns the stamp metadata the client uses. */
-export function buildStampPayload(envelope: { verification_code: string | null; completed_at: Date | null; title: string }, signers: Array<{ name: string; email: string; signed_at: Date | null }>) {
-  const { url: baseUrl } = resolvePublicBaseUrl();
+export async function buildStampPayload(envelope: { verification_code: string | null; completed_at: Date | null; title: string }, signers: Array<{ name: string; email: string; signed_at: Date | null }>) {
+  const { url: baseUrl, trusted } = resolvePublicBaseUrl();
   const code = envelope.verification_code ?? '';
+  const verify_url = baseUrl ? `${baseUrl}/sign/verify/${code}` : `/sign/verify/${code}`;
+
+  // Same trusted-base-URL gate as landed-cost-share.routes.ts's own QR —
+  // withheld (not broken) when the public URL isn't configured yet.
+  let qr_data_uri: string | null = null;
+  if (trusted && baseUrl && code) {
+    try {
+      qr_data_uri = await QRCode.toDataURL(verify_url, {
+        errorCorrectionLevel: 'M', margin: 1, width: 240, color: { dark: '#0d1117', light: '#FFFFFF' },
+      });
+    } catch (err) {
+      console.error('[Sign] QR generation failed for stamp payload:', (err as Error).message);
+    }
+  }
+
   return {
     verification_code: envelope.verification_code ?? 'HSGN-UNKNOWN',
     completed_at: envelope.completed_at?.toISOString() ?? new Date().toISOString(),
     title: envelope.title,
     signers: signers.map(s => ({ name: s.name, email: s.email, signed_at: s.signed_at?.toISOString() ?? null })),
-    verify_url: baseUrl ? `${baseUrl}/sign/verify/${code}` : `/sign/verify/${code}`,
+    verify_url,
+    qr_data_uri,
   };
 }
 
@@ -73,12 +180,13 @@ export async function getEnvelopeWithRelations(db: Db, id: string, tid: string) 
 
   if (!envelope) return null;
 
-  const recipients = await db
+  const recipientRows = await db
     .selectFrom('sign_recipients')
     .selectAll()
     .where('envelope_id', '=', id)
     .orderBy('sign_order', 'asc')
     .execute();
+  const recipients = await attachMatchedUserIds(db, tid, recipientRows);
 
   const fields = await db
     .selectFrom('sign_fields')

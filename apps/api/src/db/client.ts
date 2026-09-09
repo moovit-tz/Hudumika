@@ -1048,6 +1048,37 @@ export interface DomainEventsTable {
 /** See migration 411_metric_registry.sql's header — the cross-app metric
  *  catalog. Not tenant-scoped: this holds definitions, never a computed
  *  value, so there is nothing here for RLS to isolate. */
+/** See migration 430_sign_jurisdiction_rules.sql. Platform-level reference
+ *  data, same shape as MetricDefinitionsTable — no tenant_id, no RLS. */
+export interface SignJurisdictionRulesTable {
+  id: Generated<string>;
+  jurisdiction_code: string;
+  execution_type: 'NORMAL_SIGN' | 'WITNESSED_SIGNATURE' | 'AFFIDAVIT' | 'NOTARIAL_CERTIFICATION';
+  status: 'SUPPORTED' | 'SUPPORTED_WITH_CONDITIONS' | 'REQUIRES_PROFESSIONAL_REVIEW' | 'PHYSICAL_EXECUTION_REQUIRED' | 'NOT_SUPPORTED';
+  legal_basis: string | null;
+  conditions: string | null;
+  notes: string | null;
+  source_url: string | null;
+  reviewed_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** See migration 433_semantic_entities.sql. Platform-level reference data,
+ *  same shape as SignJurisdictionRulesTable/MetricDefinitionsTable — no
+ *  tenant_id, no RLS. Real metadata read by hudubi-entity.service.ts, not
+ *  a decorative table beside separately-hardcoded logic. */
+export interface SemanticEntitiesTable {
+  id: Generated<string>;
+  entity_key: string;
+  app: string;
+  table_name: string;
+  id_column: string;
+  match_columns: unknown; // JSONB string[]
+  description: string | null;
+  created_at: Generated<Date>;
+}
+
 export interface MetricDefinitionsTable {
   id: Generated<string>;
   metric_key: string;
@@ -4480,6 +4511,48 @@ export interface SignEnvelopesTable {
   // POST /envelopes/:id/amend on a completed one that needed correcting.
   previous_version_id: string | null;
   version_number: Generated<number>;
+  // See migration 416_sign_execution_model.sql.
+  execution_type: Generated<'NORMAL_SIGN' | 'WITNESSED_SIGNATURE' | 'AFFIDAVIT' | 'NOTARIAL_CERTIFICATION'>;
+  // Migration 422 — the completed, stamped PDF written back into Cloud
+  // Drive as a real cloud_files row, when this envelope's source document
+  // came from Drive in the first place. Null for a raw upload with
+  // nothing to link back to.
+  drive_file_id: string | null;
+  // Digital Execution Seal (migration 424) — an Ed25519-signed, QR-embeddable
+  // payload distinct from the PDF-file-level PKCS#7 signature and the
+  // Bitcoin/OTS anchor: the one piece of cryptographic proof that survives
+  // printing. verification_id is this row's own id — see the migration's
+  // header comment for why no separate column exists for it.
+  seal_id: string | null;
+  seal_type: 'STANDARD_SIGN_SEAL' | 'ADVANCED_EXECUTION_SEAL' | 'WITNESS_SEAL' | 'NOTARY_SEAL' | 'AFFIDAVIT_SEAL' | 'CERTIFICATE_SEAL' | null;
+  seal_key_label: string | null;
+  seal_signature: string | null;
+  seal_payload: string | null;
+  seal_issued_at: Date | null;
+  seal_policy_version: string | null;
+  // Migration 425 — lazily-populated cache of the canonical stamped PDF's
+  // extracted text, so a scanned-copy comparison re-OCRs the *uploaded*
+  // side every time but not the canonical side, which never changes once
+  // completed. Null until the first hash-mismatch verification actually
+  // needs it.
+  canonical_text_extract: string | null;
+  canonical_text_extracted_at: Date | null;
+  // Migration 426 — which customer this envelope is for, shown on their CRM
+  // record. Named client_id (not customer_id) so Phase S7's matter model can
+  // reuse this same column rather than adding a second, competing FK.
+  client_id: string | null;
+  // Migration 428 — free-text case/engagement reference (Phase S7). Not a
+  // structured entity — see that migration's own header for why.
+  matter_reference: string | null;
+  // Migration 431 — the real DRAFT sales_invoices row this envelope was
+  // billed through (Phase S9). Null until a preparer actually bills it.
+  invoice_id: string | null;
+  // Migration 432 — same shape as calendar_events'/tasks'/notes' own
+  // meeting_url/bliss_meeting_id (Phase S4). meeting_url is the source of
+  // truth (covers the Jitsi fallback); bliss_meeting_id is set only for a
+  // real Bliss meeting.
+  meeting_url: string | null;
+  bliss_meeting_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -4512,7 +4585,36 @@ export interface SignRecipientsTable {
   certifier_title: string | null;
   certifier_roll_number: string | null;
   certifier_firm: string | null;
+  // See migration 416_sign_execution_model.sql — formalizes role_label
+  // into a value the sign flow actually branches on.
+  execution_role: Generated<'SIGNER' | 'WITNESS' | 'AFFIANT' | 'CERTIFIER'>;
+  // Migration 417 — which sign_certifiers directory entry (if any) this
+  // recipient's certifier_title/roll_number/firm were filled from, so
+  // eligibility can be re-checked against the CURRENT credential at the
+  // moment they actually certify, not just at assignment time.
+  certifier_id: string | null;
   created_at: Generated<Date>;
+}
+
+/** See migration 417_sign_certifiers.sql. */
+export interface SignCertifiersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  title: string;
+  roll_number: string | null;
+  firm: string | null;
+  jurisdiction: string | null;
+  email: string | null;
+  phone: string | null;
+  user_id: string | null;
+  issue_date: string | null; // DATE
+  expiry_date: string | null; // DATE
+  verification_status: Generated<'unverified' | 'verified' | 'revoked'>;
+  notes: string | null;
+  created_by: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface SignFieldsTable {
@@ -4569,6 +4671,130 @@ export interface SignVerificationsTable {
   ip_address: string | null;
   user_agent: string | null;
   result: string;
+  // Digital Execution Seal (migration 424) — which channel this attempt
+  // came through, and the forensic-lite comparison outcome for an
+  // 'upload' attempt. A fresh row per attempt, never updated in place.
+  method: Generated<'code' | 'qr' | 'ocr' | 'upload'>;
+  signature_valid: boolean | null;
+  uploaded_hash: string | null;
+  hash_match: boolean | null;
+  content_verdict: string | null;
+  findings: unknown | null; // JSONB
+  // Digital Execution Seal, Phase 4 (migration 434) — real local pdf-lib
+  // structural/metadata comparison, distinct shape from `findings` above
+  // (which holds OCR text diffs), so its own column.
+  structural_findings: unknown | null; // JSONB
+  // Digital Execution Seal, Phase 5 (migration 435) — trimmed
+  // pixel-diff summary (no embedded images — see the insert site in
+  // sign-seal-verify.service.ts for where those actually live).
+  visual_findings: unknown | null; // JSONB
+}
+
+/** Digital Execution Seal (migration 424) — the platform's Ed25519 keypair(s)
+ *  for QR-payload signing. Distinct from pdf-signing-identity.service.ts's
+ *  RSA/X.509 PDF-file certificate and from the OpenTimestamps Bitcoin
+ *  anchor — see the migration's own header comment for why all three exist
+ *  side by side. Never selected into any response the frontend sees. */
+export interface SignSigningKeysTable {
+  key_id: Generated<string>;
+  key_label: string;
+  algorithm: Generated<string>;
+  public_key_pem: string;
+  encrypted_private_key: string;
+  status: Generated<'active' | 'previous' | 'revoked'>;
+  created_at: Generated<Date>;
+  rotated_at: Date | null;
+  revoked_at: Date | null;
+}
+
+/** Digital Execution Seal, Phase 2 (migration 427) — the background
+ *  verification queue behind POST /v1/sign/verify/compare. See that
+ *  migration's own header for why this is separate from sign_verifications
+ *  (that table is the permanent per-attempt audit log; this one is the
+ *  transient work queue sign-forensic-verify.job.ts drains). */
+export interface SignForensicJobsTable {
+  id: Generated<string>;
+  tenant_id: string | null;
+  envelope_id: string | null;
+  verification_code: string;
+  storage_key: string;
+  media_type: string;
+  status: Generated<'queued' | 'processing' | 'completed' | 'failed'>;
+  result: unknown | null; // JSONB — same shape /verify/compare used to return synchronously
+  error: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: Generated<Date>;
+  started_at: Date | null;
+  completed_at: Date | null;
+}
+
+/** Digital Execution Seal, Phase 3 (migration 429) — a forensic case, NOT
+ *  opened for every verification attempt (sign_verifications already logs
+ *  every one of those). Opened automatically by sign-forensic-verify.job.ts
+ *  when a comparison comes back non-clean, or manually by an authorized
+ *  staff member. See that migration's own header for the full three-table
+ *  layering (jobs -> cases -> evidence/audit). */
+export interface SignForensicCasesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  envelope_id: string;
+  forensic_job_id: string | null;
+  verification_code: string;
+  content_verdict: string | null;
+  status: Generated<'open' | 'reviewing' | 'resolved' | 'dismissed'>;
+  opened_by: string | null;
+  opened_by_name: string | null;
+  opened_at: Generated<Date>;
+  resolved_by: string | null;
+  resolved_at: Date | null;
+  resolution_note: string | null;
+  manifest_hash: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Evidence manifest (§43/§44) — append-only; nothing in this codebase
+ *  ever updates a row here, only inserts. */
+export interface SignForensicEvidenceTable {
+  id: Generated<string>;
+  tenant_id: string;
+  case_id: string;
+  filename: string;
+  media_type: string;
+  size_bytes: number;
+  sha256: string;
+  storage_key: string;
+  source: 'canonical' | 'uploaded' | 'manifest' | 'report' | 'visual_diff';
+  created_at: Generated<Date>;
+}
+
+/** Chain of custody (§45) — append-only. */
+export interface SignForensicAuditTable {
+  id: Generated<string>;
+  tenant_id: string;
+  case_id: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: 'opened' | 'uploaded' | 'analysis_initiated' | 'viewed' | 'exported' | 'status_changed' | 're_analyzed' | 'report_generated';
+  detail: unknown | null; // JSONB
+  ip_address: string | null;
+  created_at: Generated<Date>;
+}
+
+/** Digital Execution Seal, Phase 6 (migration 436) — versioned re-analysis
+ *  history. The case's own content_verdict (above) never changes once set;
+ *  each re-run of the comparison appends a new row here instead. */
+export interface SignForensicAnalysisRunsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  case_id: string;
+  run_number: number;
+  content_verdict: string | null;
+  result: unknown; // JSONB — the full CompareOutcome for this pass
+  triggered_by: string | null;
+  triggered_by_name: string | null;
+  created_at: Generated<Date>;
 }
 
 export interface SignStampsTable {
@@ -4704,6 +4930,8 @@ export interface Database {
   seal_yard_slots: SealYardSlotsTable;
   seal_ledger_anchors: SealLedgerAnchorsTable;
   domain_events: DomainEventsTable;
+  sign_jurisdiction_rules: SignJurisdictionRulesTable;
+  semantic_entities: SemanticEntitiesTable;
   metric_definitions: MetricDefinitionsTable;
   metric_alert_rules: MetricAlertRulesTable;
   metric_alert_events: MetricAlertEventsTable;
@@ -4769,6 +4997,7 @@ export interface Database {
   hr_shifts: HrShiftsTable;
   hr_shift_assignments: HrShiftAssignmentsTable;
   hr_attendance: HrAttendanceTable;
+  hr_leaves: HrLeavesTable;
   hr_clock_sessions: HrClockSessionsTable;
   hr_clock_breaks: HrClockBreaksTable;
   attendance_devices: AttendanceDevicesTable;
@@ -4798,7 +5027,6 @@ export interface Database {
   bliss_meeting_breakout_rooms: BlissMeetingBreakoutRoomsTable;
   bliss_meeting_breakout_assignments: BlissMeetingBreakoutAssignmentsTable;
   bliss_meeting_summaries: BlissMeetingSummariesTable;
-  hr_leaves: HrLeavesTable;
   hr_payroll: HrPayrollTable;
   hr_announcements: HrAnnouncementsTable;
   hr_holidays: HrHolidaysTable;
@@ -5175,14 +5403,44 @@ export interface Database {
   // eSign — signature envelopes, recipients, fields, audit trail, templates
   sign_envelopes: SignEnvelopesTable;
   sign_recipients: SignRecipientsTable;
+  sign_certifiers: SignCertifiersTable;
   sign_fields: SignFieldsTable;
   sign_events: SignEventsTable;
   sign_templates: SignTemplatesTable;
   sign_verifications: SignVerificationsTable;
+  sign_signing_keys: SignSigningKeysTable;
+  sign_forensic_jobs: SignForensicJobsTable;
+  sign_forensic_cases: SignForensicCasesTable;
+  sign_forensic_evidence: SignForensicEvidenceTable;
+  sign_forensic_audit: SignForensicAuditTable;
+  sign_forensic_analysis_runs: SignForensicAnalysisRunsTable;
   sign_stamps: SignStampsTable;
   sign_stamp_requests: SignStampRequestsTable;
   sign_document_versions: SignDocumentVersionsTable;
   platform_signing_identities: PlatformSigningIdentitiesTable;
+  // Metric Registry, Alerts, Data Quality & KPI Targets — the real
+  // MetricDefinitionsTable/MetricAlertRulesTable/MetricAlertEventsTable/
+  // DataQualityFindingsTable interfaces (matching migrations 411/414/415
+  // exactly) live earlier in this file, next to domain_events; this block
+  // used to carry a second, stale set of the same four (different, wrong
+  // column names — 'condition'/'metric_value'/'threshold_value' — that
+  // were never actually migrated) plus a duplicate hr_leaves, both removed
+  // here rather than left to silently fight the real ones.
+  metric_kpi_targets: MetricKpiTargetsTable;
+}
+
+export interface MetricKpiTargetsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  metric_key: string;
+  target_value: number;
+  target_direction: 'above' | 'below';
+  warning_threshold: number | null;
+  period: Generated<string>;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 // ── TRA VFD Integration ──────────────────────────────────────────────────────
@@ -7706,6 +7964,8 @@ export interface ComplyApplicationsTable {
   metadata:       Generated<Record<string, any>>;
   customer_id:    string | null;
   license_catalog_id: string | null;
+  // Migration 423 — see that migration's own header.
+  sign_envelope_id: string | null;
 }
 
 export interface ComplyLicenseCatalogTable {

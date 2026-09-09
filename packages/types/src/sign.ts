@@ -9,7 +9,10 @@ export type SignOrderMode = 'sequential' | 'parallel';
 export type SignEventType =
   | 'created' | 'updated' | 'sent' | 'reminded' | 'viewed'
   | 'signed' | 'declined' | 'completed' | 'voided' | 'expired'
-  | 'stamped' | 'verified' | 'amended';
+  | 'stamped' | 'verified' | 'amended'
+  // Migration 416 — distinct from 'signed': a WITNESS/AFFIANT/CERTIFIER
+  // participant's completion is a real signature AND a separate act.
+  | 'witnessed' | 'certified' | 'declared';
 
 export interface SignRecipient {
   id: string;
@@ -23,6 +26,14 @@ export interface SignRecipient {
   // external signer — enables an in-app bell notification alongside
   // email/SMS/WhatsApp, since there's a real user_id to notify.
   user_id: string | null;
+  // Display-only best-effort match (attachMatchedUserIds, sign-notify.service.ts)
+  // — set when user_id is null but this recipient's typed email matches a
+  // real account in the tenant, so an avatar can still resolve a real photo.
+  // Never treat this as "explicitly linked": it's absent from every write
+  // path (SignEditor's save, the bell-notification recipient list) on
+  // purpose, so a freeform signer whose email happens to match a colleague
+  // doesn't silently start being treated as that colleague.
+  matched_user_id?: string | null;
   role_label: string | null;
   sign_order: number;
   status: SignRecipientStatus;
@@ -40,6 +51,10 @@ export interface SignRecipient {
   certifier_title: string | null;
   certifier_roll_number: string | null;
   certifier_firm: string | null;
+  // Migration 416 — formalizes role_label into a value the sign flow
+  // actually branches on (a WITNESS's completion logs a distinct
+  // 'witnessed' audit event; see sign.routes.ts's POST /public/:token/sign).
+  execution_role: 'SIGNER' | 'WITNESS' | 'AFFIANT' | 'CERTIFIER';
   created_at: string;
 }
 
@@ -108,6 +123,23 @@ export interface SignEnvelope {
   // an earlier completed one (POST /envelopes/:id/amend).
   previous_version_id: string | null;
   version_number: number;
+  // Migration 416 — the same envelope escalating from ordinary e-sign into
+  // an advanced execution, rather than a second document in a second app.
+  // Inferred server-side from participant execution_role unless set
+  // explicitly (see sign.routes.ts's inferExecutionType).
+  execution_type: 'NORMAL_SIGN' | 'WITNESSED_SIGNATURE' | 'AFFIDAVIT' | 'NOTARIAL_CERTIFICATION';
+  // Migration 426 — the CRM customer this envelope is for (also reused by
+  // the future Phase S7 matter model — see that migration's own header).
+  client_id: string | null;
+  // Migration 428 — free-text case/engagement reference (Phase S7).
+  matter_reference: string | null;
+  // Migration 431 — the real DRAFT sales_invoices row this envelope was
+  // billed through (Phase S9). Null until a preparer actually bills it.
+  invoice_id: string | null;
+  // Migration 432 — same shape as calendar_events'/tasks'/notes' own
+  // meeting_url/bliss_meeting_id (Phase S4).
+  meeting_url: string | null;
+  bliss_meeting_id: string | null;
   created_at: string;
   updated_at: string;
   // Joined on fetch

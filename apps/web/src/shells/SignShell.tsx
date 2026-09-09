@@ -14,6 +14,9 @@ import { useAuth } from '../hooks/useAuth.js';
 import { SignInbox, SignEnvelopeDetail, SignAllDocuments } from '../pages/sign/SignInbox.js';
 import { SignEditor } from '../pages/sign/SignEditor.js';
 import { SignTemplates } from '../pages/sign/SignTemplates.js';
+import { SignJournalPage } from '../pages/sign/SignJournalPage.js';
+import { SignMattersPage } from '../pages/sign/SignMattersPage.js';
+import { SignForensicCasesPage } from '../pages/sign/SignForensicCasesPage.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 
 // Same allow-list as the backend's DOCUMENT_ADMIN_ROLES (sign.routes.ts) —
@@ -45,9 +48,10 @@ function buildNav(isDocAdmin: boolean): SidebarSection[] {
       ],
     },
     {
-      title: 'Verify',
+      title: 'Verify & Journal',
       items: [
-        { label: 'Verify Document', path: '/sign/verify', icon: 'shield' },
+        { label: 'Verify Document',    path: '/sign/verify',  icon: 'shield' },
+        { label: 'Electronic Journal', path: '/sign/journal', icon: 'fileText' },
       ],
     },
     // Only rendered for a tenant admin — every other view above is already
@@ -57,6 +61,8 @@ function buildNav(isDocAdmin: boolean): SidebarSection[] {
       title: 'Admin',
       items: [
         { label: 'All Documents', path: '/sign/admin/all', icon: 'users' as const },
+        { label: 'Matters',       path: '/sign/matters',   icon: 'briefcase' as const },
+        { label: 'Forensic Cases', path: '/sign/forensics', icon: 'shield' as const },
       ],
     }] : []),
   ];
@@ -87,9 +93,14 @@ export function SignShell() {
                 <Route path="voided"          element={<SignInbox view="voided" />} />
                 <Route path="declined"        element={<SignInbox view="declined" />} />
                 <Route path="expired"         element={<SignInbox view="expired" />} />
+                <Route path="journal"         element={<SignJournalPage />} />
                 <Route path="envelope/:id"    element={<SignEnvelopeDetail />} />
                 <Route path="templates"       element={<SignTemplates />} />
                 <Route path="admin/all"       element={<RequireRoles roles={[...DOCUMENT_ADMIN_ROLES]}><SignAllDocuments /></RequireRoles>} />
+                <Route path="matters"            element={<RequireRoles roles={[...DOCUMENT_ADMIN_ROLES]}><SignMattersPage /></RequireRoles>} />
+                <Route path="matters/:reference"  element={<RequireRoles roles={[...DOCUMENT_ADMIN_ROLES]}><SignMattersPage /></RequireRoles>} />
+                <Route path="forensics"           element={<RequireRoles roles={[...DOCUMENT_ADMIN_ROLES]}><SignForensicCasesPage /></RequireRoles>} />
+                <Route path="forensics/:id"       element={<RequireRoles roles={[...DOCUMENT_ADMIN_ROLES]}><SignForensicCasesPage /></RequireRoles>} />
                 <Route path="*"               element={<Navigate to="/sign" replace />} />
               </Route>
             </Routes>

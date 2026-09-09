@@ -38,6 +38,7 @@ import { runFxRateSyncJob } from './fx-rate-sync.job.js';
 import { runMeetingDurationLimitJob } from './meeting-duration-limit.job.js';
 import { runMetricAlertsJob } from './metric-alerts.job.js';
 import { runDataQualityJob } from './data-quality.job.js';
+import { runSignForensicVerifyJob, runSignForensicJobCleanupJob } from './sign-forensic-verify.job.js';
 
 /**
  * Real registry of every background job this file actually schedules —
@@ -89,6 +90,8 @@ export const JOB_REGISTRY: { name: string; schedule: string; fallbackOnly?: bool
   { name: 'SMS Outbox Sweep', schedule: 'Every 1 minute' },
   { name: 'IMAP Ticket Ingest', schedule: 'Every 3 minutes' },
   { name: 'Meeting Duration Limit Sweep', schedule: 'Every 1 minute' },
+  { name: 'Digital Execution Seal — Forensic Verify Queue', schedule: 'Every 10 seconds' },
+  { name: 'Digital Execution Seal — Forensic Job Cleanup', schedule: 'Every hour' },
   { name: 'Onsite Deployment Sync', schedule: 'Every 1 minute', fallbackOnly: true },
   { name: 'Onsite Uptime Monitors', schedule: 'Every 1 minute', fallbackOnly: true },
   { name: 'Onsite Server Reachability', schedule: 'Every 1 minute', fallbackOnly: true },
@@ -106,6 +109,7 @@ let mailOutboxQueue: Queue | null = null;
 let imapTicketQueue: Queue | null = null;
 let smsOutboxQueue: Queue | null = null;
 let meetingDurationQueue: Queue | null = null;
+let signForensicVerifyQueue: Queue | null = null;
 
 /**
  * Initializes BullMQ or falls back to in-memory intervals if Redis is not running
@@ -218,6 +222,7 @@ function startBullMQ(): void {
     imapTicketQueue = track(new Queue('imap-ticket-ingest', { connection: redisConnection as any }));
     meetingDurationQueue = track(new Queue('meeting-duration-limit', { connection: redisConnection as any }));
     smsOutboxQueue = track(new Queue('sms-outbox', { connection: redisConnection as any }));
+    signForensicVerifyQueue = track(new Queue('sign-forensic-verify', { connection: redisConnection as any }));
 
     // Worker for risk scans
     track(new Worker(
@@ -370,6 +375,24 @@ function startBullMQ(): void {
       async (job) => {
         if (job.name === 'sweep') {
           await runSmsOutboxJob();
+        }
+      },
+      { connection: redisConnection as any }
+    ));
+
+    // Worker for the Digital Execution Seal forensic verify queue — 10s
+    // cadence, the fastest in this file on purpose: unlike outbound mail/
+    // SMS, someone is watching the Verify Document page waiting on this,
+    // not just expecting it to arrive "soon". 'cleanup' shares the same
+    // queue/worker since neither needs its own connection, just a much
+    // slower repeat.
+    track(new Worker(
+      'sign-forensic-verify',
+      async (job) => {
+        if (job.name === 'sweep') {
+          await runSignForensicVerifyJob();
+        } else if (job.name === 'cleanup') {
+          await runSignForensicJobCleanupJob();
         }
       },
       { connection: redisConnection as any }
@@ -567,6 +590,13 @@ function startBullMQ(): void {
       repeat: { every: 60 * 1000 } // Every 1 minute — same reasoning as mail-outbox above
     }).catch(console.error);
 
+    signForensicVerifyQueue.add('sweep', {}, {
+      repeat: { every: 10 * 1000 } // Every 10 seconds — an interactive wait, not a background delivery
+    }).catch(console.error);
+    signForensicVerifyQueue.add('cleanup', {}, {
+      repeat: { every: 60 * 60 * 1000 } // Every hour — sweep stale uploaded evidence off disk
+    }).catch(console.error);
+
     imapTicketQueue.add('sweep', {}, {
       repeat: { every: 3 * 60 * 1000 } // Every 3 minutes — inbound support replies via email
     }).catch(console.error);
@@ -602,6 +632,7 @@ function startIntervalFallback(): void {
   runMailOutboxJob().catch(console.error);
   runSmsOutboxJob().catch(console.error);
   runMeetingDurationLimitJob().catch(console.error);
+  runSignForensicVerifyJob().catch(console.error);
   runSignExpiryJob().catch(console.error);
   runSignReminderJob().catch(console.error);
   runSignAnchorStampJob().catch(console.error);
@@ -782,6 +813,19 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runSmsOutboxJob().catch(console.error);
   }, 60 * 1000);
+
+  // Digital Execution Seal forensic verify queue — 10s, the fastest sweep
+  // in this file: a verifier is actively watching the Verify Document page,
+  // not waiting on a background delivery. Each job is claimed via a guarded
+  // UPDATE (status='queued' -> 'processing', WHERE still 'queued') before
+  // any work starts, so re-running this on every tsx-watch restart is safe
+  // the same way the other sweeps here already are.
+  setInterval(() => {
+    runSignForensicVerifyJob().catch(console.error);
+  }, 10 * 1000);
+  setInterval(() => {
+    runSignForensicJobCleanupJob().catch(console.error);
+  }, 60 * 60 * 1000);
 
   // IMAP-to-ticket ingest — every 3 minutes. Safe on startup too: a message
   // only gets marked \Seen after it's been processed, so a quick tsx-watch

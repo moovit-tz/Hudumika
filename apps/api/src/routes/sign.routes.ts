@@ -32,7 +32,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { createHash } from 'node:crypto';
 import { withTenant, dbPlatform } from '../db/client.js';
-import type { SignTemplate } from '@hudumika/types';
+import type { SignTemplate, UserRole } from '@hudumika/types';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { SmsIntegration } from '../integrations/sms.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
@@ -40,9 +40,15 @@ import { MinioIntegration } from '../integrations/minio.js';
 import { buildSignedPdf } from '../services/sign-pdf.service.js';
 import { canApplyTenantStamp } from './sign-stamps.routes.js';
 import { recordDocumentVersion } from './sign-versions.routes.js';
+import { computeSignKpis } from '../services/sign-metrics.service.js';
+import { bumpCloudFolderCount } from '../lib/cloud-folder-count.js';
+import { emitDomainEventStandalone } from '../services/domain-events.service.js';
 import {
-  logEvent, buildStampPayload, getEnvelopeWithRelations, recipientsToNotify, notifyRecipients,
+  logEvent, buildStampPayload, getEnvelopeWithRelations, recipientsToNotify, notifyRecipients, attachMatchedUserIds,
+  createSignFollowUpTask,
 } from '../services/sign-notify.service.js';
+import { issueDigitalExecutionSeal, verifySealCryptography } from '../services/sign-seal.service.js';
+import { ocrRecoverVerificationCode } from '../services/sign-seal-verify.service.js';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -80,17 +86,37 @@ function userName(req: FastifyRequest): string {
   return (req.user as { name?: string }).name ?? 'Unknown';
 }
 
-function userRole(req: FastifyRequest): string {
-  return (req.user as { role: string }).role;
+function userRole(req: FastifyRequest): UserRole {
+  return (req.user as { role: UserRole }).role;
 }
 
 // Same allow-list shape as sign-stamps.routes.ts's STAMP_SETTINGS_ADMIN_ROLES —
 // whoever can already administer this tenant's eSign settings is who can
 // also see every user's documents, not a separately-configured role list.
-const DOCUMENT_ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'];
+// Exported for sign-forensics.routes.ts — a forensic case is sensitive
+// investigative material about a possible tampering/mismatch, the same
+// admin tier as "see every user's documents", not a separate role list.
+export const DOCUMENT_ADMIN_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'];
 
 function userEmail(req: FastifyRequest): string {
   return (req.user as { email?: string }).email ?? '';
+}
+
+/** The "smart workflow" inference §11 asks for: a preparer who adds a
+ *  CERTIFIER or WITNESS recipient doesn't also have to remember to flip a
+ *  separate "execution type" switch — it follows from who's actually on
+ *  the envelope. An explicit execution_type in the request always wins
+ *  (a preparer who deliberately picks AFFIDAVIT for a not-yet-added
+ *  affiant shouldn't have it silently reset to NORMAL_SIGN). */
+function inferExecutionType(
+  explicit: string | undefined,
+  recipients: Array<{ execution_role?: string; is_certifier?: boolean }>,
+): string {
+  if (explicit) return explicit;
+  if (recipients.some(r => r.execution_role === 'CERTIFIER' || r.is_certifier)) return 'NOTARIAL_CERTIFICATION';
+  if (recipients.some(r => r.execution_role === 'AFFIANT')) return 'AFFIDAVIT';
+  if (recipients.some(r => r.execution_role === 'WITNESS')) return 'WITNESSED_SIGNATURE';
+  return 'NORMAL_SIGN';
 }
 
 // ── authenticated routes ──────────────────────────────────────────────────────
@@ -99,6 +125,124 @@ export async function signRoutes(fastify: FastifyInstance) {
   // All authenticated routes require a valid JWT and a tenant plan that includes Sign.
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('sign'));
+
+  // ── Metrics (Milestone S3) ───────────────────────────────────────────────────
+  fastify.get('/metrics', async (req: FastifyRequest<{ Querystring: { days?: string } }>, reply: FastifyReply) => {
+    const tid = tenantId(req);
+    const days = Math.max(1, Math.min(365, parseInt(req.query.days ?? '30', 10) || 30));
+    const kpis = await withTenant(tid, trx => computeSignKpis(trx, tid, days));
+    return reply.send(kpis);
+  });
+
+  // ── Electronic Journal (Milestone S1) ─────────────────────────────────────────
+  fastify.get('/journal', async (req: FastifyRequest<{ Querystring: { search?: string; type?: string; limit?: string; offset?: string } }>, reply: FastifyReply) => {
+    const tid = tenantId(req);
+    const { search, type } = req.query;
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit ?? '50', 10) || 50));
+    const offset = Math.max(0, parseInt(req.query.offset ?? '0', 10) || 0);
+
+    return withTenant(tid, async (trx) => {
+      const journalEventTypes = ['certified', 'witnessed', 'declared', 'journal_correction'];
+
+      let q = trx.selectFrom('sign_events as ev')
+        .leftJoin('sign_envelopes as env', 'env.id', 'ev.envelope_id')
+        .leftJoin('sign_recipients as rec', 'rec.id', 'ev.recipient_id')
+        .select([
+          'ev.id as event_id',
+          'ev.envelope_id',
+          'ev.event_type',
+          'ev.created_at',
+          'ev.actor_name',
+          'ev.actor_email',
+          'ev.ip_address',
+          'ev.user_agent',
+          'ev.note',
+          'env.title as envelope_title',
+          'env.execution_type',
+          'env.verification_code',
+          'env.anchor_hash',
+          'env.status as envelope_status',
+          'rec.name as recipient_name',
+          'rec.email as recipient_email',
+          'rec.execution_role',
+          'rec.certifier_title',
+          'rec.certifier_roll_number',
+          'rec.certifier_firm',
+        ])
+        .where('ev.tenant_id', '=', tid)
+        .where('ev.event_type', 'in', journalEventTypes);
+
+      if (type && journalEventTypes.includes(type)) {
+        q = q.where('ev.event_type', '=', type);
+      }
+
+      if (search) {
+        const pattern = `%${search.trim().toLowerCase()}%`;
+        q = q.where((eb) =>
+          eb.or([
+            eb(eb.fn('lower', ['env.title']), 'like', pattern),
+            eb(eb.fn('lower', ['ev.actor_name']), 'like', pattern),
+            eb(eb.fn('lower', ['rec.name']), 'like', pattern),
+            eb(eb.fn('lower', ['rec.certifier_roll_number']), 'like', pattern),
+            eb(eb.fn('lower', ['env.verification_code']), 'like', pattern),
+            eb(eb.fn('lower', ['ev.note']), 'like', pattern),
+          ])
+        );
+      }
+
+      const entries = await q
+        .orderBy('ev.created_at', 'desc')
+        .limit(limit)
+        .offset(offset)
+        .execute();
+
+      return reply.send({ data: entries });
+    });
+  });
+
+  // Append-only journal correction (never UPDATE/DELETE an existing journal row)
+  fastify.post('/journal/:eventId/correction', async (req: FastifyRequest<{ Params: { eventId: string }; Body: { note: string } }>, reply: FastifyReply) => {
+    const tid = tenantId(req);
+    const { eventId } = req.params;
+    const { note } = req.body || {};
+
+    if (!note || !note.trim()) {
+      return reply.status(400).send({ error: 'A correction note explaining the adjustment is required.' });
+    }
+
+    return withTenant(tid, async (trx) => {
+      const originalEvent = await trx.selectFrom('sign_events')
+        .selectAll()
+        .where('tenant_id', '=', tid)
+        .where('id', '=', eventId)
+        .executeTakeFirst();
+
+      if (!originalEvent) {
+        return reply.status(404).send({ error: 'Journal event not found in this tenant.' });
+      }
+
+      const [correctionEvent] = await trx.insertInto('sign_events')
+        .values({
+          tenant_id: tid,
+          envelope_id: originalEvent.envelope_id,
+          event_type: 'journal_correction',
+          recipient_id: originalEvent.recipient_id,
+          actor_name: userName(req),
+          actor_email: userEmail(req),
+          ip_address: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip,
+          user_agent: req.headers['user-agent'] || null,
+          note: `Correction for event ${eventId}: ${note.trim()}`,
+        })
+        .returningAll()
+        .execute();
+
+      return reply.status(201).send({
+        success: true,
+        correction_event_id: correctionEvent.id,
+        event: correctionEvent,
+      });
+    });
+  });
 
   // ── List envelopes (inbox + sent) ──────────────────────────────────────────
   fastify.get('/envelopes', async (req: FastifyRequest, reply: FastifyReply) => {
@@ -145,15 +289,36 @@ export async function signRoutes(fastify: FastifyInstance) {
       }
       if (status) q = q.where('status', '=', status as any);
 
+      // A customer's CRM record showing "documents sent to them" — already
+      // scoped to one customer, a materially smaller disclosure than the
+      // admin-gated 'all' view above, so it doesn't need DOCUMENT_ADMIN_ROLES:
+      // it's the same tenant-wide-but-narrowly-filtered shape the Drive
+      // 'documents' tab on that same customer record already uses.
+      if (query.client_id) q = q.where('client_id', '=', query.client_id);
+
       const envelopes = await q.orderBy('updated_at', 'desc').limit(100).execute();
 
-      // Attach recipient counts
+      // Attach recipient counts. id/user_id/email are what the list/grid
+      // views' PersonAvatar calls need to resolve a real linked-user photo
+      // instead of always falling back to colored initials — this used to
+      // select only envelope_id/status/name, so no recipient in Inbox,
+      // Sent, Drafts, or the admin "All documents" view could ever show a
+      // real photo, and every row's key={r.id} was silently undefined.
+      // signature_data/token/signed_ip/signed_user_agent stay excluded —
+      // no list view needs them, and token is a bypass-auth signing link
+      // that a tenant admin's "view every user's documents" query in
+      // particular shouldn't be broadcasting for other people's envelopes.
       const ids = envelopes.map(e => e.id);
-      const recipients = ids.length ? await trx
+      const recipientRows = ids.length ? await trx
         .selectFrom('sign_recipients')
-        .select(['envelope_id', 'status', 'name'])
+        .select(['id', 'envelope_id', 'status', 'name', 'email', 'user_id', 'role_label', 'is_certifier'])
         .where('envelope_id', 'in', ids)
         .execute() : [];
+      // matched_user_id — see attachMatchedUserIds's own header comment;
+      // same email-to-account resolution the detail page's
+      // getEnvelopeWithRelations does, so a recipient whose typed email
+      // matches a real colleague shows their real photo here too.
+      const recipients = await attachMatchedUserIds(trx, tid, recipientRows);
 
       const byEnvelope = new Map<string, typeof recipients>();
       for (const r of recipients) {
@@ -195,7 +360,11 @@ export async function signRoutes(fastify: FastifyInstance) {
       order_mode?: string;
       expires_at?: string;
       require_otp?: boolean;
-      recipients: Array<{ name: string; email: string; phone?: string; user_id?: string; role_label?: string; sign_order?: number; is_certifier?: boolean; certifier_title?: string; certifier_roll_number?: string; certifier_firm?: string }>;
+      execution_type?: string; // sign_execution_type — see migration 416
+      client_id?: string; // sign_envelopes.client_id — see migration 426
+      matter_reference?: string; // sign_envelopes.matter_reference — see migration 428
+      meeting_url?: string; bliss_meeting_id?: string; // sign_envelopes.meeting_url/bliss_meeting_id — see migration 432
+      recipients: Array<{ name: string; email: string; phone?: string; user_id?: string; role_label?: string; sign_order?: number; is_certifier?: boolean; certifier_title?: string; certifier_roll_number?: string; certifier_firm?: string; execution_role?: string; certifier_id?: string }>;
       fields?: Array<{ recipient_index: number; field_type: string; page: number; x: number; y: number; width: number; height: number; required?: boolean; placeholder?: string }>;
     };
 
@@ -218,11 +387,29 @@ export async function signRoutes(fastify: FastifyInstance) {
         order_mode: body.order_mode ?? 'sequential',
         require_otp: body.require_otp ?? false,
         expires_at: body.expires_at ? new Date(body.expires_at) : null,
+        execution_type: inferExecutionType(body.execution_type, body.recipients) as any,
+        client_id: body.client_id ?? null,
+        matter_reference: body.matter_reference?.trim() || null,
+        meeting_url: body.meeting_url ?? null,
+        bliss_meeting_id: body.bliss_meeting_id ?? null,
       }).returningAll().execute();
+
+      // Pre-fetch any referenced certifier-directory entries once, so
+      // typing in a name/roll number is never required when a recipient
+      // was picked from the directory (certifier_id set) — the snapshot
+      // baked into this envelope's certifier_title/roll_number/firm below
+      // is real, current credential data, not blank fields the preparer
+      // forgot to fill in.
+      const certifierIds = [...new Set(body.recipients.map(r => r.certifier_id).filter((id): id is string => !!id))];
+      const certifierMap = certifierIds.length
+        ? new Map((await trx.selectFrom('sign_certifiers').selectAll().where('id', 'in', certifierIds).where('tenant_id', '=', tid).execute()).map(c => [c.id, c]))
+        : new Map();
 
       // Insert recipients
       const recipientRows = await trx.insertInto('sign_recipients').values(
-        body.recipients.map((r, i) => ({
+        body.recipients.map((r, i) => {
+          const cred = r.certifier_id ? certifierMap.get(r.certifier_id) : undefined;
+          return {
           envelope_id: envelope.id,
           tenant_id: tid,
           name: r.name,
@@ -231,11 +418,16 @@ export async function signRoutes(fastify: FastifyInstance) {
           user_id: r.user_id ?? null,
           role_label: r.role_label ?? null,
           sign_order: r.sign_order ?? i + 1,
-          is_certifier: r.is_certifier ?? false,
-          certifier_title: r.certifier_title?.trim() || null,
-          certifier_roll_number: r.certifier_roll_number?.trim() || null,
-          certifier_firm: r.certifier_firm?.trim() || null,
-        }))
+          // A CERTIFIER execution_role and the older is_certifier flag stay
+          // in sync either direction — whichever the caller actually sent.
+          execution_role: (r.execution_role as any) ?? (r.is_certifier ? 'CERTIFIER' : 'SIGNER'),
+          is_certifier: r.is_certifier ?? r.execution_role === 'CERTIFIER',
+          certifier_id: r.certifier_id ?? null,
+          certifier_title: r.certifier_title?.trim() || cred?.title || null,
+          certifier_roll_number: r.certifier_roll_number?.trim() || cred?.roll_number || null,
+          certifier_firm: r.certifier_firm?.trim() || cred?.firm || null,
+        };
+        })
       ).returningAll().execute();
 
       // Insert fields if provided
@@ -303,7 +495,11 @@ export async function signRoutes(fastify: FastifyInstance) {
     const body = req.body as Partial<{
       title: string; message: string; order_mode: string; expires_at: string;
       file_name: string; document_data: string; file_id: string; require_otp: boolean;
-      recipients: Array<{ id?: string; name: string; email: string; phone?: string; user_id?: string; role_label?: string; sign_order?: number; is_certifier?: boolean; certifier_title?: string; certifier_roll_number?: string; certifier_firm?: string }>;
+      execution_type: string; // sign_execution_type — see migration 416
+      client_id: string; // sign_envelopes.client_id — see migration 426
+      matter_reference: string; // sign_envelopes.matter_reference — see migration 428
+      meeting_url: string; bliss_meeting_id: string; // sign_envelopes.meeting_url/bliss_meeting_id — see migration 432
+      recipients: Array<{ id?: string; name: string; email: string; phone?: string; user_id?: string; role_label?: string; sign_order?: number; is_certifier?: boolean; certifier_title?: string; certifier_roll_number?: string; certifier_firm?: string; execution_role?: string; certifier_id?: string }>;
       fields: Array<{ recipient_index: number; field_type: string; page: number; x: number; y: number; width: number; height: number; required?: boolean; placeholder?: string }>;
       // What just changed the document, if anything — SignEditor.tsx tracks
       // which PDF Tool (or Organize Pages, with its own real moved/added/
@@ -328,6 +524,14 @@ export async function signRoutes(fastify: FastifyInstance) {
       const newDocumentData = body.document_data ?? envelope.document_data;
       const documentChanged = body.document_data !== undefined && body.document_data !== envelope.document_data;
 
+      // If recipients aren't part of this particular PATCH, infer from
+      // whoever is already on the envelope rather than from an empty list
+      // (which would wrongly reset execution_type to NORMAL_SIGN on, say,
+      // a title-only save of an existing witnessed envelope).
+      const recipientsForInference = body.recipients
+        ?? await trx.selectFrom('sign_recipients').select(['execution_role', 'is_certifier'])
+          .where('envelope_id', '=', req.params.id).execute();
+
       await trx.updateTable('sign_envelopes').set({
         title: body.title ?? envelope.title,
         message: body.message ?? envelope.message,
@@ -337,6 +541,11 @@ export async function signRoutes(fastify: FastifyInstance) {
         file_name: body.file_name ?? envelope.file_name,
         document_data: newDocumentData,
         file_id: body.file_id ?? envelope.file_id,
+        execution_type: inferExecutionType(body.execution_type, recipientsForInference) as any,
+        client_id: body.client_id !== undefined ? (body.client_id || null) : envelope.client_id,
+        matter_reference: body.matter_reference !== undefined ? (body.matter_reference?.trim() || null) : envelope.matter_reference,
+        meeting_url: body.meeting_url !== undefined ? (body.meeting_url || null) : envelope.meeting_url,
+        bliss_meeting_id: body.bliss_meeting_id !== undefined ? (body.bliss_meeting_id || null) : envelope.bliss_meeting_id,
       }).where('id', '=', req.params.id).execute();
 
       if (documentChanged && newDocumentData) {
@@ -363,8 +572,14 @@ export async function signRoutes(fastify: FastifyInstance) {
       // rejected outright on every save of an already-created draft.
       if (body.recipients) {
         await trx.deleteFrom('sign_recipients').where('envelope_id', '=', req.params.id).execute();
+        const certifierIds = [...new Set(body.recipients.map(r => r.certifier_id).filter((id): id is string => !!id))];
+        const certifierMap = certifierIds.length
+          ? new Map((await trx.selectFrom('sign_certifiers').selectAll().where('id', 'in', certifierIds).where('tenant_id', '=', tid).execute()).map(c => [c.id, c]))
+          : new Map();
         recipientRows = await trx.insertInto('sign_recipients').values(
-          body.recipients.map((r, i) => ({
+          body.recipients.map((r, i) => {
+            const cred = r.certifier_id ? certifierMap.get(r.certifier_id) : undefined;
+            return {
             envelope_id: req.params.id,
             tenant_id: tid,
             name: r.name,
@@ -373,11 +588,14 @@ export async function signRoutes(fastify: FastifyInstance) {
             user_id: r.user_id ?? null,
             role_label: r.role_label ?? null,
             sign_order: r.sign_order ?? i + 1,
-            is_certifier: r.is_certifier ?? false,
-            certifier_title: r.certifier_title?.trim() || null,
-            certifier_roll_number: r.certifier_roll_number?.trim() || null,
-            certifier_firm: r.certifier_firm?.trim() || null,
-          }))
+            execution_role: (r.execution_role as any) ?? (r.is_certifier ? 'CERTIFIER' : 'SIGNER'),
+            is_certifier: r.is_certifier ?? r.execution_role === 'CERTIFIER',
+            certifier_id: r.certifier_id ?? null,
+            certifier_title: r.certifier_title?.trim() || cred?.title || null,
+            certifier_roll_number: r.certifier_roll_number?.trim() || cred?.roll_number || null,
+            certifier_firm: r.certifier_firm?.trim() || cred?.firm || null,
+            };
+          })
         ).returningAll().execute();
       }
 
@@ -620,6 +838,102 @@ export async function signRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // ── Certifier directory (migration 417) ────────────────────────────────────
+  // A reusable list of advocates/commissioners/notaries this tenant works
+  // with, so a preparer can pick "Jane Advocate — TLS/1234" instead of
+  // retyping her roll number on every document, and so eligibility (is
+  // this credential still current?) can be checked against ONE record
+  // instead of drifting per-envelope free text. Managed by the same roles
+  // that already administer Sign's tenant stamp (DOCUMENT_ADMIN_ROLES);
+  // any authenticated Sign user can read the list to assign a certifier to
+  // an envelope, same read/write split as sign-stamps.routes.ts.
+  fastify.get('/certifiers', async (req: FastifyRequest, reply: FastifyReply) => {
+    const tid = tenantId(req);
+    return withTenant(tid, trx =>
+      trx.selectFrom('sign_certifiers').selectAll().where('tenant_id', '=', tid).orderBy('name', 'asc').execute()
+    );
+  });
+
+  fastify.post('/certifiers', async (req: FastifyRequest, reply: FastifyReply) => {
+    const tid = tenantId(req);
+    if (!DOCUMENT_ADMIN_ROLES.includes(userRole(req))) {
+      return reply.status(403).send({ error: 'Only an admin can manage the certifier directory' });
+    }
+    const body = req.body as {
+      name: string; title: string; roll_number?: string; firm?: string; jurisdiction?: string;
+      email?: string; phone?: string; user_id?: string; issue_date?: string; expiry_date?: string;
+      verification_status?: string; notes?: string;
+    };
+    if (!body.name?.trim() || !body.title?.trim()) {
+      return reply.status(400).send({ error: 'Name and title are required' });
+    }
+    return withTenant(tid, async trx => {
+      const row = await trx.insertInto('sign_certifiers').values({
+        tenant_id: tid,
+        name: body.name.trim(),
+        title: body.title.trim(),
+        roll_number: body.roll_number?.trim() || null,
+        firm: body.firm?.trim() || null,
+        jurisdiction: body.jurisdiction?.trim() || null,
+        email: body.email?.trim() || null,
+        phone: body.phone?.trim() || null,
+        user_id: body.user_id || null,
+        issue_date: body.issue_date || null,
+        expiry_date: body.expiry_date || null,
+        verification_status: (body.verification_status as any) ?? 'unverified',
+        notes: body.notes?.trim() || null,
+        created_by: userId(req),
+      }).returningAll().executeTakeFirstOrThrow();
+      return reply.status(201).send(row);
+    });
+  });
+
+  fastify.patch<{ Params: { id: string } }>('/certifiers/:id', async (req, reply) => {
+    const tid = tenantId(req);
+    if (!DOCUMENT_ADMIN_ROLES.includes(userRole(req))) {
+      return reply.status(403).send({ error: 'Only an admin can manage the certifier directory' });
+    }
+    const body = req.body as Partial<{
+      name: string; title: string; roll_number: string; firm: string; jurisdiction: string;
+      email: string; phone: string; issue_date: string; expiry_date: string;
+      verification_status: string; notes: string;
+    }>;
+    return withTenant(tid, async trx => {
+      const existing = await trx.selectFrom('sign_certifiers').selectAll()
+        .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Certifier not found' });
+      const row = await trx.updateTable('sign_certifiers').set({
+        name: body.name?.trim() ?? existing.name,
+        title: body.title?.trim() ?? existing.title,
+        roll_number: body.roll_number !== undefined ? (body.roll_number?.trim() || null) : existing.roll_number,
+        firm: body.firm !== undefined ? (body.firm?.trim() || null) : existing.firm,
+        jurisdiction: body.jurisdiction !== undefined ? (body.jurisdiction?.trim() || null) : existing.jurisdiction,
+        email: body.email !== undefined ? (body.email?.trim() || null) : existing.email,
+        phone: body.phone !== undefined ? (body.phone?.trim() || null) : existing.phone,
+        issue_date: body.issue_date !== undefined ? (body.issue_date || null) : existing.issue_date,
+        expiry_date: body.expiry_date !== undefined ? (body.expiry_date || null) : existing.expiry_date,
+        verification_status: (body.verification_status as any) ?? existing.verification_status,
+        notes: body.notes !== undefined ? (body.notes?.trim() || null) : existing.notes,
+      }).where('id', '=', req.params.id).returningAll().executeTakeFirstOrThrow();
+      return reply.send(row);
+    });
+  });
+
+  fastify.delete<{ Params: { id: string } }>('/certifiers/:id', async (req, reply) => {
+    const tid = tenantId(req);
+    if (!DOCUMENT_ADMIN_ROLES.includes(userRole(req))) {
+      return reply.status(403).send({ error: 'Only an admin can manage the certifier directory' });
+    }
+    return withTenant(tid, async trx => {
+      // A certifier already referenced by a past envelope (certifier_id)
+      // keeps that reference — ON DELETE SET NULL, so the historical
+      // certificate's own snapshotted certifier_title/roll_number/firm text
+      // is untouched; only the "which directory entry" pointer clears.
+      await trx.deleteFrom('sign_certifiers').where('id', '=', req.params.id).where('tenant_id', '=', tid).execute();
+      return reply.status(204).send();
+    });
+  });
+
   // ── Templates ──────────────────────────────────────────────────────────────
   fastify.get('/templates', async (req: FastifyRequest, reply: FastifyReply) => {
     const tid = tenantId(req);
@@ -840,6 +1154,9 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
         verification_code: envelope.verification_code,
         require_otp: envelope.require_otp,
         tenant_stamp_image: tenantStampImage,
+        // Phase S4 — not sensitive (no more than title/message), and its
+        // whole purpose is to be shown to exactly this recipient.
+        meeting_url: envelope.meeting_url,
       },
       recipient: {
         id: recipient.id, name: recipient.name, email: recipient.email,
@@ -953,6 +1270,24 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'SMS verification is required before signing this document' });
     }
 
+    // §16's real requirement: a credential that has lapsed stops being
+    // eligible. Checked against the CURRENT sign_certifiers row, not the
+    // certifier_title/roll_number snapshotted onto this recipient when
+    // they were added — a commission can expire in the days between
+    // being assigned to an envelope and actually acting on it.
+    if (recipient.execution_role === 'CERTIFIER' && recipient.certifier_id) {
+      const cred = await dbPlatform.selectFrom('sign_certifiers').selectAll()
+        .where('id', '=', recipient.certifier_id).executeTakeFirst();
+      if (cred) {
+        if (cred.verification_status === 'revoked') {
+          return reply.status(403).send({ error: `${cred.name}'s ${cred.title} credential has been revoked and can no longer certify documents.` });
+        }
+        if (cred.expiry_date && new Date(cred.expiry_date) < new Date()) {
+          return reply.status(403).send({ error: `${cred.name}'s ${cred.title} credential expired on ${cred.expiry_date} and can no longer certify documents. Update it in the Certifier Directory to continue.` });
+        }
+      }
+    }
+
     // Check sequential order — only the right-order recipient can sign now
     if (envelope.order_mode === 'sequential') {
       const prevUnsigned = await dbPlatform.selectFrom('sign_recipients').selectAll()
@@ -988,6 +1323,23 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       ipAddress: req.ip, userAgent: req.headers['user-agent'],
     });
 
+    // §21's "signature vs. notarial act" requirement: a WITNESS/AFFIANT/
+    // CERTIFIER recipient's completion is a real signature event (the
+    // 'signed' row above, and their name IS in the signature block) AND a
+    // distinct act — recorded as its own audit event rather than folded
+    // into "signed", so the certificate's audit-trail page reads "Signed —
+    // Jane Doe" *and* "Witnessed — Jane Doe" as two separate, real facts.
+    const ROLE_EVENT: Record<string, string> = { WITNESS: 'witnessed', AFFIANT: 'declared', CERTIFIER: 'certified' };
+    const roleEvent = ROLE_EVENT[recipient.execution_role];
+    if (roleEvent) {
+      await logEvent(dbPlatform, envelope.id, envelope.tenant_id, roleEvent, {
+        recipientId: recipient.id,
+        actorName: recipient.name, actorEmail: recipient.email,
+        ipAddress: req.ip, userAgent: req.headers['user-agent'],
+        note: recipient.certifier_title ? `As ${recipient.certifier_title}` : undefined,
+      });
+    }
+
     // Check if all recipients have now signed — if so, complete + stamp
     const allRecipients = await dbPlatform.selectFrom('sign_recipients').selectAll()
       .where('envelope_id', '=', envelope.id).orderBy('sign_order', 'asc').execute();
@@ -1009,7 +1361,7 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       let updatedEnvelope = await dbPlatform.selectFrom('sign_envelopes').selectAll()
         .where('id', '=', envelope.id).executeTakeFirst();
       if (updatedEnvelope) {
-        stampPayload = buildStampPayload(updatedEnvelope, allRecipients.map(r =>
+        stampPayload = await buildStampPayload(updatedEnvelope, allRecipients.map(r =>
           r.id === recipient.id ? { ...r, signed_at: now } : r
         ));
 
@@ -1040,7 +1392,71 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
           }).where('id', '=', envelope.id).execute();
           await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'verified', { note: 'Signed PDF generated — Bitcoin anchor submission queued' });
 
+          // Digital Execution Seal — the compact, Ed25519-signed, QR-
+          // embeddable proof that survives printing (see sign-seal.service.ts's
+          // own header comment for how this differs from the PDF-file PKCS#7
+          // signature and the Bitcoin/OTS anchor above). Best-effort, same
+          // reasoning as the anchor and Drive write-back around it: a failure
+          // here must never undo a completion the signer already saw
+          // confirmed, and stamp_applied above already reflects the (non-
+          // seal-QR) visual stamp regardless.
+          try {
+            const issuedSeal = await issueDigitalExecutionSeal(dbPlatform, {
+              id: envelope.id, tenant_id: envelope.tenant_id, anchor_hash: anchorHash,
+              execution_type: updatedEnvelope.execution_type, verification_code: updatedEnvelope.verification_code,
+            }, allRecipients.some(r => r.is_certifier));
+            await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'stamped', { note: `Digital Execution Seal issued — ${issuedSeal.sealType}` });
+          } catch (err) {
+            console.error(`[Sign] Failed to issue a Digital Execution Seal for envelope ${envelope.id}:`, (err as Error).message);
+          }
+
           updatedEnvelope = { ...updatedEnvelope, stamped_file_url: storageKey };
+
+          // Drive write-back (METRICS_AND_SIGN_PLAN.md §5 Phase S6) — only
+          // when this envelope's source document actually came from Cloud
+          // Drive (file_id set at creation); a raw upload has nothing to
+          // link back to. Its own try/catch: a failure here must never
+          // undo the completion + PDF + anchor work that already
+          // succeeded above, so it's logged, not thrown, the same
+          // best-effort shape as the anchor submission itself.
+          if (envelope.file_id) {
+            try {
+              const sourceFile = await dbPlatform.selectFrom('cloud_files')
+                .select(['drive_id', 'parent_id', 'entity_type', 'entity_id'])
+                .where('id', '=', envelope.file_id).where('tenant_id', '=', envelope.tenant_id).executeTakeFirst();
+              if (sourceFile) {
+                const fileName = `${envelope.title} — signed.pdf`;
+                const fileRow = await dbPlatform.insertInto('cloud_files').values({
+                  tenant_id: envelope.tenant_id,
+                  drive_id: sourceFile.drive_id,
+                  name: fileName,
+                  type: 'pdf',
+                  size: pdfBuffer.length,
+                  parent_id: sourceFile.parent_id,
+                  owner_name: 'Hudumika Sign',
+                  owner_id: null,
+                  mime_type: 'application/pdf',
+                  entity_type: sourceFile.entity_type,
+                  entity_id: sourceFile.entity_id,
+                }).returningAll().executeTakeFirstOrThrow();
+
+                const { storageKey: driveStorageKey } = await MinioIntegration.uploadCloudFile(envelope.tenant_id, fileRow.id, fileName, pdfBuffer);
+                await dbPlatform.updateTable('cloud_files').set({ storage_key: driveStorageKey, updated_at: new Date() })
+                  .where('id', '=', fileRow.id).execute();
+                if (sourceFile.parent_id) await bumpCloudFolderCount(dbPlatform, sourceFile.parent_id, envelope.tenant_id, 1, pdfBuffer.length);
+
+                await dbPlatform.updateTable('sign_envelopes').set({ drive_file_id: fileRow.id }).where('id', '=', envelope.id).execute();
+
+                emitDomainEventStandalone(envelope.tenant_id, {
+                  type: 'file.uploaded', sourceApp: 'sign', entityType: 'document', entityId: fileRow.id,
+                  payload: { name: fileName, size: pdfBuffer.length, type: 'pdf', envelope_id: envelope.id },
+                  actorId: null,
+                }).catch(err => console.error('[Sign] file.uploaded emit failed:', (err as Error).message));
+              }
+            } catch (err) {
+              console.error(`[Sign] Drive write-back failed for envelope ${envelope.id}:`, (err as Error).message);
+            }
+          }
         } catch (err) {
           console.error(`[Sign] Failed to build the signed PDF for envelope ${envelope.id}:`, (err as Error).message);
         }
@@ -1080,6 +1496,12 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       ipAddress: req.ip, note: body.reason ?? undefined,
     });
 
+    await createSignFollowUpTask(
+      dbPlatform, envelope.tenant_id, envelope.created_by, envelope.id,
+      `Signer declined: ${envelope.title}`,
+      `${recipient.name} (${recipient.email}) declined to sign — ${body.reason ?? 'no reason given'}.`,
+    );
+
     return reply.send({ ok: true });
   });
 
@@ -1103,11 +1525,20 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
   });
 
   // ── Verify by code (public — no auth) ─────────────────────────────────────
-  fastify.get('/public/verify/:code', async (req: FastifyRequest<{ Params: { code: string } }>, reply: FastifyReply) => {
+  fastify.get('/public/verify/:code', async (req: FastifyRequest<{ Params: { code: string }; Querystring: { t?: string } }>, reply: FastifyReply) => {
     const code = req.params.code.toUpperCase();
+    // `t` is the signed token a Digital Execution Seal QR carries alongside
+    // the plain verify-page link (see sign-seal.service.ts's qrPayloadUrl) —
+    // present only when this lookup came from scanning a seal, absent for a
+    // manually-typed code. Distinguishing the two (`method`) is what lets
+    // sign_verifications actually answer "how many scans vs. manual
+    // entries" rather than lumping every lookup together.
+    const method: 'qr' | 'code' = req.query.t ? 'qr' : 'code';
 
     const envelope = await dbPlatform.selectFrom('sign_envelopes').selectAll()
       .where('verification_code', '=', code).executeTakeFirst();
+
+    const sealVerdict = envelope ? await verifySealCryptography(envelope) : null;
 
     // Log every lookup regardless of result — envelope_id/tenant_id are
     // nullable specifically for this "not found" case (migration 270); the
@@ -1121,6 +1552,8 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       ip_address: req.ip,
       user_agent: req.headers['user-agent'] ?? null,
       result: envelope ? 'valid' : 'not_found',
+      method,
+      signature_valid: sealVerdict?.signatureValid ?? null,
     }).execute().catch(() => {}); // don't fail the request if logging fails
 
     if (!envelope) {
@@ -1141,6 +1574,13 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       anchor_status: envelope.anchor_status,
       anchor_block_height: envelope.anchor_block_height,
       anchor_block_time: envelope.anchor_block_time,
+      // Digital Execution Seal — the cryptographic layer only. Deliberately
+      // NOT "the document is authentic": a valid signature here just means
+      // Hudumika issued this exact claim. A copied/cloned QR still verifies
+      // "valid" at this layer (see verifySealCryptography's own comment) —
+      // it's /verify/upload's content comparison that would actually catch
+      // a legitimate seal pasted onto a different document.
+      seal: sealVerdict,
       signers: recipients.map(r => ({
         name: r.name,
         email: r.email,
@@ -1194,5 +1634,64 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     const safeFilename = envelope.title.replace(/[^a-zA-Z0-9.-]/g, '_');
     reply.header('Content-Disposition', `attachment; filename="${safeFilename}_signed.pdf"`);
     return reply.send(buf);
+  });
+
+  // ── Digital Execution Seal — OCR fallback ──────────────────────────────────
+  // Client-side jsQR (a real canvas pixel decode, see SignVerifyPage.tsx)
+  // is always tried first and handles the ordinary case — this only runs
+  // once that's failed (damaged/cropped/glare on the QR itself), to recover
+  // the printed human-readable serial instead.
+  fastify.post<{ Body: { image_base64: string; media_type?: string } }>('/verify/ocr', async (req, reply) => {
+    const { image_base64, media_type = 'image/jpeg' } = req.body || {};
+    if (!image_base64) return reply.status(400).send({ error: 'image_base64 is required' });
+    const result = await ocrRecoverVerificationCode(image_base64, media_type);
+    return reply.send(result);
+  });
+
+  // ── Digital Execution Seal — upload comparison (enqueue) ───────────────────
+  // Phase 2: this used to run hash + OCR + text-diff synchronously in the
+  // request (real Gemini-vision calls, several seconds each). Now it just
+  // stores the upload and queues a job — sign-forensic-verify.job.ts (a
+  // frequent sweep, same "insert pending, a worker drains it" shape every
+  // other async workflow here already uses) does the real work, and the
+  // frontend polls GET /verify/jobs/:id. The comparison logic itself
+  // (sign-seal-verify.service.ts's runContentComparison) is unchanged —
+  // only when it runs moved, not what it does or what it returns.
+  fastify.post<{ Body: { code: string; file_base64: string; media_type?: string } }>('/verify/compare', async (req, reply) => {
+    const { code, file_base64, media_type = 'application/pdf' } = req.body || {};
+    if (!code || !file_base64) return reply.status(400).send({ error: 'code and file_base64 are required' });
+
+    const envelope = await dbPlatform.selectFrom('sign_envelopes').select(['id', 'tenant_id'])
+      .where('verification_code', '=', code.toUpperCase()).executeTakeFirst();
+    if (!envelope) return reply.status(404).send({ error: 'Verification code not found', code });
+
+    const uploadedBuffer = Buffer.from(file_base64, 'base64');
+    const ext = media_type === 'application/pdf' ? 'pdf' : media_type.split('/')[1] || 'bin';
+    const job = await dbPlatform.insertInto('sign_forensic_jobs').values({
+      tenant_id: envelope.tenant_id,
+      envelope_id: envelope.id,
+      verification_code: code.toUpperCase(),
+      storage_key: '', // filled in immediately below — needs the row's own id first
+      media_type,
+      ip_address: req.ip,
+      user_agent: req.headers['user-agent'] ?? null,
+    }).returningAll().executeTakeFirstOrThrow();
+
+    const { storageKey } = await MinioIntegration.uploadForensicJobFile(envelope.tenant_id, job.id, `upload.${ext}`, uploadedBuffer);
+    await dbPlatform.updateTable('sign_forensic_jobs').set({ storage_key: storageKey }).where('id', '=', job.id).execute();
+
+    reply.status(202);
+    return { job_id: job.id, status: 'queued' };
+  });
+
+  // GET /verify/jobs/:id — polled by the frontend until status is
+  // 'completed'/'failed'. `result` is exactly what the old synchronous
+  // /verify/compare used to return in its body.
+  fastify.get<{ Params: { id: string } }>('/verify/jobs/:id', async (req, reply) => {
+    const job = await dbPlatform.selectFrom('sign_forensic_jobs')
+      .select(['id', 'status', 'result', 'error', 'created_at', 'completed_at'])
+      .where('id', '=', req.params.id).executeTakeFirst();
+    if (!job) return reply.status(404).send({ error: 'Job not found' });
+    return { job_id: job.id, status: job.status, result: job.result, error: job.error, created_at: job.created_at, completed_at: job.completed_at };
   });
 }

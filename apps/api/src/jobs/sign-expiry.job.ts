@@ -1,4 +1,5 @@
 import { dbPlatform, withTenant } from '../db/client.js';
+import { createSignFollowUpTask } from '../services/sign-notify.service.js';
 
 /**
  * Sweeps every tenant's 'sent' envelopes for ones past their own
@@ -19,7 +20,7 @@ export async function runSignExpiryJob(): Promise<void> {
   try {
     const overdue = await dbPlatform
       .selectFrom('sign_envelopes')
-      .select(['id', 'tenant_id', 'title'])
+      .select(['id', 'tenant_id', 'title', 'created_by'])
       .where('status', '=', 'sent')
       .where('expires_at', 'is not', null)
       .where('expires_at', '<', new Date())
@@ -41,6 +42,11 @@ export async function runSignExpiryJob(): Promise<void> {
           event_type: 'expired',
           note: 'Envelope reached its expiration date without all signatures',
         }).execute();
+        await createSignFollowUpTask(
+          trx, env.tenant_id, env.created_by, env.id,
+          `Document expired: ${env.title}`,
+          `"${env.title}" reached its expiration date before every signature was collected. Renew or resend it.`,
+        );
       });
       expired++;
     }

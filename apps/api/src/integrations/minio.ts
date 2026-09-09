@@ -244,6 +244,47 @@ export class MinioIntegration {
     return { storageKey, size: fileBuffer.length };
   }
 
+  /** Same per-purpose storage-key convention as uploadSignedDocument — a
+   *  verifier's uploaded scan/photo/PDF, held only long enough for
+   *  sign-forensic-verify.job.ts to process it (see that job and
+   *  migration 427's own header for the retention reasoning). Filename
+   *  keeps its original extension since media_type alone (image/jpeg vs.
+   *  application/pdf) decides how the job re-reads it, not the name. */
+  static async uploadForensicJobFile(
+    tenantId: string,
+    jobId: string,
+    filename: string,
+    fileBuffer: Buffer
+  ): Promise<{ storageKey: string; size: number }> {
+    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'sign-forensic-jobs', jobId);
+    fs.mkdirSync(localDir, { recursive: true });
+    const storageKey = `tenants/${tenantId}/sign-forensic-jobs/${jobId}/${cleanFilename}`;
+    fs.writeFileSync(path.join(localDir, cleanFilename), fileBuffer);
+    console.log(`🗄️ Storage: Forensic verification upload saved — ${storageKey}`);
+    return { storageKey, size: fileBuffer.length };
+  }
+
+  /** A forensic case's own durable evidence copy (migration 429) — distinct
+   *  from uploadForensicJobFile's ephemeral job storage, which the 24h
+   *  cleanup sweep (sign-forensic-verify.job.ts) deletes regardless of
+   *  whether a case was opened from it. Nothing in this codebase deletes
+   *  from this path — an evidence file lives as long as its case does. */
+  static async uploadForensicEvidence(
+    tenantId: string,
+    caseId: string,
+    filename: string,
+    fileBuffer: Buffer
+  ): Promise<{ storageKey: string; size: number }> {
+    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'sign-forensic-evidence', caseId);
+    fs.mkdirSync(localDir, { recursive: true });
+    const storageKey = `tenants/${tenantId}/sign-forensic-evidence/${caseId}/${cleanFilename}`;
+    fs.writeFileSync(path.join(localDir, cleanFilename), fileBuffer);
+    console.log(`🗄️ Storage: Forensic evidence saved — ${storageKey}`);
+    return { storageKey, size: fileBuffer.length };
+  }
+
   /**
    * Generates a signed URL for reading/downloading a document.
    */

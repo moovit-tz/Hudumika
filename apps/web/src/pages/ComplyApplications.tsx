@@ -125,6 +125,25 @@ export function ComplyApplications() {
     }
   }
 
+  // Real declaration cover sheet (real app fields, no invented legal text —
+  // see comply-declaration-pdf.service.ts) sent through Sign as an
+  // AFFIDAVIT execution — same "request-for-signature" shape
+  // ContractDetail.tsx already uses for a customer contract.
+  const [requestingSignature, setRequestingSignature] = useState(false);
+  async function handleRequestSignature(app: CompApplication) {
+    try {
+      setRequestingSignature(true);
+      await apiFetch(`/v1/comply/applications/${app.id}/request-signature`, { method: 'POST' });
+      await refresh();
+      setSelected(null);
+      showAlert('Declaration sent for signature — track it from the eSign inbox or reopen this application.', { variant: 'success' });
+    } catch (e: any) {
+      showAlert(e.message);
+    } finally {
+      setRequestingSignature(false);
+    }
+  }
+
   function handleDownloadPackage(app: CompApplication) {
     const linkedCert = app.linked_cert_id ? certs.find(c => c.id === app.linked_cert_id) : null;
     if (linkedCert?.document_url) {
@@ -267,6 +286,13 @@ export function ComplyApplications() {
                   { label: 'Submitted',       val: formatDate(selected.submitted_at), mono: false },
                   { label: 'Last Updated',    val: formatDate(selected.updated_at),  mono: false },
                   ...(selected.agency_ref ? [{ label: 'Agency Ref.', val: selected.agency_ref, mono: true }] : []),
+                  ...(selected.sign_envelope_id ? [{
+                    label: 'Declaration',
+                    val: <a href={`/sign/envelope/${selected.sign_envelope_id}`} target="_blank" rel="noreferrer" style={{ color: 'var(--comply)', textDecoration: 'none' }}>
+                      {(selected.envelope_status || 'sent').charAt(0).toUpperCase() + (selected.envelope_status || 'sent').slice(1)} — open in eSign
+                    </a>,
+                    mono: false,
+                  }] : []),
                 ].map(m => (
                   <div key={m.label}>
                     <div className="comply-meta-key">{m.label}</div>
@@ -335,6 +361,11 @@ export function ComplyApplications() {
                 <button type="button" className="comply-btn-secondary" onClick={() => handleEngageLegalFirm(selected)}>
                   <Icon name="briefcase" size={13} /> Engage Legal Firm
                 </button>
+                {!selected.sign_envelope_id && (
+                  <button type="button" className="comply-btn-secondary" disabled={requestingSignature} onClick={() => handleRequestSignature(selected)}>
+                    <Icon name="fileText" size={13} /> {requestingSignature ? 'Sending…' : 'Request Signature'}
+                  </button>
+                )}
                 {selected.status === 'draft' && (
                   <button type="button" className="comply-btn-secondary" style={{ color: 'var(--red)' }} disabled={deleting} onClick={() => handleDelete(selected)}>
                     <Icon name="trash" size={13} color="var(--red)" /> {deleting ? 'Deleting…' : 'Delete Draft'}

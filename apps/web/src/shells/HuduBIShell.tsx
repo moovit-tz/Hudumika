@@ -16,6 +16,7 @@ import { HuduBIDashboardBuilder } from '../pages/HuduBIDashboardBuilder.js';
 import { HuduBIAnalytics } from '../pages/HuduBIAnalytics.js';
 import { HuduBIDataSources } from '../pages/HuduBIDataSources.js';
 import { HuduBIMetricExplorer } from '../pages/HuduBIMetricExplorer.js';
+import { HuduBIKpiCenter } from '../pages/hudubi/HuduBIKpiCenter.js';
 import { HuduBIModels } from '../pages/HuduBIModels.js';
 import { SuperAdminReports } from '../pages/SuperAdminReports.js';
 import { SuperAdminTradeWizardAnalytics } from '../pages/SuperAdminTradeWizardAnalytics.js';
@@ -23,6 +24,7 @@ import { SuperAdminQueryBuilder } from '../pages/SuperAdminQueryBuilder.js';
 import { SuperAdminCalculations } from '../pages/SuperAdminCalculations.js';
 import { SuperAdminIntelligence } from '../pages/SuperAdminIntelligence.js';
 import { HuduBIDataQuality } from '../pages/HuduBIDataQuality.js';
+import { HuduBIEntityExplorer } from '../pages/hudubi/HuduBIEntityExplorer.js';
 
 // Paths whose data is cross-tenant (dbPlatform, SUPER_ADMIN-only) rather than
 // the viewer's own workspace — same set the "PLATFORM · SUPER ADMIN" nav
@@ -49,19 +51,21 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
     {
       title: 'ANALYTICS',
       items: [
-        { label: 'Reports & KPI Center', icon: 'barChart2', path: '/hudubi/analytics' },
+        { label: 'Reports & Analytics', icon: 'barChart2', path: '/hudubi/analytics' },
       ],
     },
     {
-      title: 'METRICS',
+      title: 'METRICS & GOALS',
       items: [
         { label: 'Metric Explorer', icon: 'search', path: '/hudubi/metrics' },
+        { label: 'KPI Center',      icon: 'target', path: '/hudubi/kpi-center' },
       ],
     },
     {
       title: 'DATA MANAGEMENT',
       items: [
         { label: 'Data Sources & Warehouses', icon: 'layers', path: '/hudubi/data-sources' },
+        { label: 'Entity Explorer', icon: 'search', path: '/hudubi/entities' },
       ],
     },
     {
@@ -119,7 +123,9 @@ export function HuduBIShell() {
                 <Route path="builder" element={<HuduBIDashboardBuilder />} />
                 <Route path="analytics" element={<HuduBIAnalytics />} />
                 <Route path="metrics" element={<HuduBIMetricExplorer />} />
+                <Route path="kpi-center" element={<HuduBIKpiCenter />} />
                 <Route path="data-sources" element={<HuduBIDataSources />} />
+                <Route path="entities" element={<HuduBIEntityExplorer />} />
                 <Route path="models" element={<HuduBIModels />} />
                 <Route path="reports" element={<RequireRoles roles={['SUPER_ADMIN']}><SuperAdminReports /></RequireRoles>} />
                 <Route path="trade-wizard-analytics" element={<RequireRoles roles={['SUPER_ADMIN']}><SuperAdminTradeWizardAnalytics /></RequireRoles>} />
