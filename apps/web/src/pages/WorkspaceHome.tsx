@@ -342,59 +342,134 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                 })}
               </div>
             ) : (
-              /* ── Render Mode: List Table Format ── */
-              <div className="wh-table-container">
-                <table className="wh-table">
-                  <thead>
-                    <tr>
-                      <th className="wh-th-center" style={{ width: 44 }}></th>
-                      <th style={{ width: '28%' }}>APP</th>
-                      <th>DESCRIPTION</th>
-                      <th style={{ width: '16%', textAlign: 'right', paddingRight: 24 }}>CATEGORY</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredApps.map(app => {
-                      const isStarred = starredIds.includes(app.id);
-                      const appColor = branding.getAppColor(app.id, app.color);
-                      const appName = branding.getAppName(app.id, app.name);
-                      const appSlogan = branding.getAppSlogan(app.id, app.desc);
-                      return (
-                        <tr key={app.id} onClick={() => handleAppClick(app)} style={{ '--card-color': appColor } as React.CSSProperties}>
-                          <td className="wh-td-center">
-                            <button
-                              type="button"
-                              className="wh-star-btn"
-                              data-starred={isStarred}
-                              onClick={(e) => toggleStar(app.id, e)}
-                              title={isStarred ? 'Unstar' : 'Star'}
-                              aria-label={isStarred ? `Unstar ${appName}` : `Star ${appName}`}
-                            >
-                              <Icon name="star" size={17} duotone={isStarred} />
-                            </button>
-                          </td>
-                          <td>
-                            <Link to={app.path} onClick={() => handleAppClick(app)} className="wh-td-app-link">
-                              <div className="wh-td-icon-wrap">
-                                <AppIcon id={app.id} color={appColor} logoUrl={branding.getAppLogo(app.id)} size={44} />
-                              </div>
-                              <div className="wh-td-app-info">
-                                <div className="wh-td-workspace-name">{appName}</div>
-                              </div>
-                            </Link>
-                          </td>
-                          <td>
-                            <div className="wh-td-workspace-desc">{appSlogan}</div>
-                          </td>
-                          <td style={{ textAlign: 'right', paddingRight: 24 }}>
-                            <span className="wh-badge-cat">{app.category}</span>
-                          </td>
+              /* ── Render Mode: List Table Format (Single Joined Two-Column Table) ── */
+              (() => {
+                if (filteredApps.length === 0) {
+                  return (
+                    <div className="wh-table-container">
+                      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--ink3)' }}>
+                        No apps found matching your filter.
+                      </div>
+                    </div>
+                  );
+                }
+
+                const mid = Math.ceil(filteredApps.length / 2);
+                const leftList = filteredApps.slice(0, mid);
+                const rightList = filteredApps.slice(mid);
+
+                return (
+                  <div className="wh-table-container">
+                    <table className="wh-table">
+                      <thead>
+                        <tr>
+                          {/* ── Left Column Headers ── */}
+                          <th className="wh-th-center" style={{ width: 40 }}></th>
+                          <th style={{ width: '24%' }}>APP</th>
+                          <th>DESCRIPTION</th>
+                          <th style={{ width: '13%', textAlign: 'right', paddingRight: 18, borderRight: '1px solid var(--border)' }}>CATEGORY</th>
+
+                          {/* ── Right Column Headers ── */}
+                          <th className="wh-th-center" style={{ width: 40, paddingLeft: 18 }}></th>
+                          <th style={{ width: '24%' }}>APP</th>
+                          <th>DESCRIPTION</th>
+                          <th style={{ width: '13%', textAlign: 'right', paddingRight: 18 }}>CATEGORY</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      </thead>
+                      <tbody>
+                        {leftList.map((appLeft, idx) => {
+                          const appRight = rightList[idx];
+
+                          const isStarredLeft = starredIds.includes(appLeft.id);
+                          const appColorLeft = branding.getAppColor(appLeft.id, appLeft.color);
+                          const appNameLeft = branding.getAppName(appLeft.id, appLeft.name);
+                          const appSloganLeft = branding.getAppSlogan(appLeft.id, appLeft.desc);
+
+                          const isStarredRight = appRight ? starredIds.includes(appRight.id) : false;
+                          const appColorRight = appRight ? branding.getAppColor(appRight.id, appRight.color) : '';
+                          const appNameRight = appRight ? branding.getAppName(appRight.id, appRight.name) : '';
+                          const appSloganRight = appRight ? branding.getAppSlogan(appRight.id, appRight.desc) : '';
+
+                          return (
+                            <tr key={appLeft.id} className="wh-joined-row" style={{ '--card-color-left': appColorLeft, '--card-color-right': appColorRight } as React.CSSProperties}>
+                              {/* ── Left Side App (Hover Group: Left) ── */}
+                              <td className="wh-td-cell wh-td-cell--left wh-td-center" onClick={() => handleAppClick(appLeft)}>
+                                <button
+                                  type="button"
+                                  className="wh-star-btn"
+                                  data-starred={isStarredLeft}
+                                  onClick={(e) => toggleStar(appLeft.id, e)}
+                                  title={isStarredLeft ? 'Unstar' : 'Star'}
+                                  aria-label={isStarredLeft ? `Unstar ${appNameLeft}` : `Star ${appNameLeft}`}
+                                >
+                                  <Icon name="star" size={17} duotone={isStarredLeft} />
+                                </button>
+                              </td>
+                              <td className="wh-td-cell wh-td-cell--left" onClick={() => handleAppClick(appLeft)}>
+                                <Link to={appLeft.path} onClick={() => handleAppClick(appLeft)} className="wh-td-app-link">
+                                  <div className="wh-td-icon-wrap">
+                                    <AppIcon id={appLeft.id} color={appColorLeft} logoUrl={branding.getAppLogo(appLeft.id)} size={44} />
+                                  </div>
+                                  <div className="wh-td-app-info">
+                                    <div className="wh-td-workspace-name">{appNameLeft}</div>
+                                  </div>
+                                </Link>
+                              </td>
+                              <td className="wh-td-cell wh-td-cell--left" onClick={() => handleAppClick(appLeft)}>
+                                <div className="wh-td-workspace-desc" title={appSloganLeft}>{appSloganLeft}</div>
+                              </td>
+                              <td className="wh-td-cell wh-td-cell--left" style={{ textAlign: 'right', paddingRight: 18, borderRight: '1px solid var(--border)' }} onClick={() => handleAppClick(appLeft)}>
+                                <span className="wh-badge-cat">{appLeft.category}</span>
+                              </td>
+
+                              {/* ── Right Side App (Hover Group: Right) ── */}
+                              {appRight ? (
+                                <>
+                                  <td className="wh-td-cell wh-td-cell--right wh-td-center" style={{ paddingLeft: 18 }} onClick={() => handleAppClick(appRight)}>
+                                    <button
+                                      type="button"
+                                      className="wh-star-btn"
+                                      data-starred={isStarredRight}
+                                      onClick={(e) => toggleStar(appRight.id, e)}
+                                      title={isStarredRight ? 'Unstar' : 'Star'}
+                                      aria-label={isStarredRight ? `Unstar ${appNameRight}` : `Star ${appNameRight}`}
+                                    >
+                                      <Icon name="star" size={17} duotone={isStarredRight} />
+                                    </button>
+                                  </td>
+                                  <td className="wh-td-cell wh-td-cell--right" onClick={() => handleAppClick(appRight)}>
+                                    <Link to={appRight.path} onClick={() => handleAppClick(appRight)} className="wh-td-app-link">
+                                      <div className="wh-td-icon-wrap">
+                                        <AppIcon id={appRight.id} color={appColorRight} logoUrl={branding.getAppLogo(appRight.id)} size={44} />
+                                      </div>
+                                      <div className="wh-td-app-info">
+                                        <div className="wh-td-workspace-name">{appNameRight}</div>
+                                      </div>
+                                    </Link>
+                                  </td>
+                                  <td className="wh-td-cell wh-td-cell--right" onClick={() => handleAppClick(appRight)}>
+                                    <div className="wh-td-workspace-desc" title={appSloganRight}>{appSloganRight}</div>
+                                  </td>
+                                  <td className="wh-td-cell wh-td-cell--right" style={{ textAlign: 'right', paddingRight: 18 }} onClick={() => handleAppClick(appRight)}>
+                                    <span className="wh-badge-cat">{appRight.category}</span>
+                                  </td>
+                                </>
+                              ) : (
+                                <>
+                                  <td className="wh-td-cell wh-td-center" style={{ paddingLeft: 18 }}></td>
+                                  <td className="wh-td-cell"></td>
+                                  <td className="wh-td-cell"></td>
+                                  <td className="wh-td-cell" style={{ textAlign: 'right', paddingRight: 18 }}></td>
+                                </>
+                              )}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()
             )}
           </section>
 

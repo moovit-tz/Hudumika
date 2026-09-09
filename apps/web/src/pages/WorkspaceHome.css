@@ -383,6 +383,19 @@
 }
 
 /* ── TABLE VIEW ── */
+.wh-table-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .wh-table-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
 .wh-table-container {
   border: 1px solid var(--border);
   border-radius: var(--r);
@@ -399,7 +412,7 @@
 
 .wh-table th {
   background: var(--bg);
-  padding: 14px 20px;
+  padding: 12px 16px;
   text-align: left;
   font-weight: 700;
   color: var(--ink3);
@@ -410,31 +423,55 @@
 }
 
 .wh-table td {
-  padding: 14px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   color: var(--ink);
   vertical-align: middle;
-}
-
-.wh-table tbody tr {
-  transition: background-color 0.18s ease;
-  cursor: pointer;
-}
-
-.wh-table tbody tr:hover {
-  background: var(--bg);
 }
 
 .wh-table tbody tr:last-child td {
   border-bottom: none;
 }
 
+/* Individual cell styling & hover isolation */
+.wh-td-cell {
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+/* Hover left side app only */
+.wh-joined-row:has(.wh-td-cell--left:hover) .wh-td-cell--left {
+  background-color: var(--bg);
+}
+
+.wh-joined-row:has(.wh-td-cell--left:hover) .wh-td-cell--left .wh-td-icon-wrap .app-lnch-svg-icon {
+  transform: scale(1.06);
+}
+
+.wh-joined-row:has(.wh-td-cell--left:hover) .wh-td-cell--left .wh-td-workspace-name {
+  color: var(--card-color-left, var(--teal));
+}
+
+/* Hover right side app only */
+.wh-joined-row:has(.wh-td-cell--right:hover) .wh-td-cell--right {
+  background-color: var(--bg);
+}
+
+.wh-joined-row:has(.wh-td-cell--right:hover) .wh-td-cell--right .wh-td-icon-wrap .app-lnch-svg-icon {
+  transform: scale(1.06);
+}
+
+.wh-joined-row:has(.wh-td-cell--right:hover) .wh-td-cell--right .wh-td-workspace-name {
+  color: var(--card-color-right, var(--teal));
+}
+
 .wh-td-app-link {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   text-decoration: none;
   color: inherit;
+  min-width: 0;
 }
 
 .wh-td-icon-wrap {
@@ -453,10 +490,6 @@
   transition: transform 0.2s ease;
 }
 
-.wh-table tbody tr:hover .wh-td-icon-wrap .app-lnch-svg-icon {
-  transform: scale(1.06);
-}
-
 .wh-td-app-info {
   display: flex;
   flex-direction: column;
@@ -469,17 +502,22 @@
   font-size: 15px;
   color: var(--ink);
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: color 0.15s ease;
 }
 
-.wh-table tbody tr:hover .wh-td-workspace-name {
-  color: var(--card-color, var(--teal));
-}
-
 .wh-td-workspace-desc {
-  font-size: 13px;
-  color: var(--ink2);
-  line-height: 1.45;
+  font-size: 12.5px;
+  color: var(--ink3);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 /* User avatar stacking */

@@ -161,6 +161,25 @@ export const ALLOWED_TABLES: AllowedTable[] = [
     ],
   },
   {
+    // Digital Execution Seal, Phase 7 (migration 429/437) — a case's own
+    // summary row. Deliberately excludes sign_forensic_evidence (file
+    // storage_key/sha256 pointing at real uploaded documents) and
+    // sign_forensic_audit (per-viewer IP addresses) from this allowlist —
+    // §50's own "forensic reports require authorization" already governs
+    // full access via sign-forensics.routes.ts's DOCUMENT_ADMIN_ROLES gate;
+    // this table's own columns (verdict/status/dates) are safe to expose
+    // to the broader Query Builder audience the same way sign_envelopes'
+    // status/dates would be, without also exposing evidence file locations
+    // or a per-view access log through a second, less-gated surface.
+    table: 'sign_forensic_cases', label: 'Forensic Cases', category: 'Sign',
+    columns: [
+      col('id', 'ID'), col('tenant_id', 'Tenant'), col('envelope_id', 'Envelope'),
+      col('verification_code', 'Verification Code'), col('content_verdict', 'Verdict'),
+      col('status', 'Status'), col('opened_by_name', 'Opened By'), col('opened_at', 'Opened At', 'date'),
+      col('resolved_at', 'Resolved At', 'date'), col('created_at', 'Created At', 'date'),
+    ],
+  },
+  {
     // The Metric Registry's catalog (migration 411_metric_registry.sql) —
     // definitions only, never a computed value, so every column here is
     // safe to expose: there is no per-tenant figure in this table.

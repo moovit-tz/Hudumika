@@ -245,6 +245,38 @@
   .archnote p{ margin:0; font-size:13px; color:var(--ink2); }
   .archnote code{ font-family:'JetBrains Mono',monospace; font-size:11.5px; background:var(--surface2); padding:1px 5px; border-radius:4px; color:var(--ink); }
 
+  /* ---- gap cards (reuse capcard's body language, own header row) ---- */
+  .gapcard{ background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; padding:18px 20px; }
+  .gapcard .gaphd{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .gapcard .gaphd h4{ font-size:13.5px; font-weight:700; color:var(--ink); margin:0; }
+  .gapcard .gaphd .delta{ font-size:11.5px; color:var(--ink3); font-family:'JetBrains Mono',monospace; white-space:nowrap; }
+  .gapcard ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
+  .gapcard li{ font-size:13px; color:var(--ink); padding-left:14px; position:relative; }
+  .gapcard li::before{ content:'—'; position:absolute; left:0; color:var(--ink3); }
+  .gapcard li.hardfloor{ color:var(--ink2); }
+  .gapcard li.hardfloor::before{ content:'⛔'; font-size:10px; }
+  .gapcard li b{ font-weight:600; }
+
+  /* ---- priority roadmap list ---- */
+  .roadmap{ display:flex; flex-direction:column; gap:10px; margin-top:22px; }
+  .rmrow{ display:flex; gap:14px; align-items:flex-start; background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; padding:14px 18px; }
+  .rmrow .pbadge{ flex-shrink:0; font-size:11px; font-weight:800; letter-spacing:.03em; padding:3px 9px; border-radius:6px; font-family:'JetBrains Mono',monospace; }
+  .rmrow .pbadge.p0{ background:var(--red); color:#fff; }
+  .rmrow .pbadge.p1{ background:var(--gold-l); color:var(--gold); }
+  .rmrow .pbadge.p2{ background:var(--blue-l); color:var(--blue); }
+  .rmrow .rmbody b{ font-size:13.5px; color:var(--ink); }
+  .rmrow .rmbody p{ margin:3px 0 0; font-size:12.5px; color:var(--ink2); }
+
+  /* ---- comparison table ---- */
+  .cmptable{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .cmptable th{ text-align:left; font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink3); padding:0 10px 8px 0; font-weight:700; border-bottom:1px solid var(--border-soft); }
+  .cmptable td{ padding:10px 10px 10px 0; border-bottom:1px solid var(--border-soft); vertical-align:top; }
+  .cmptable tr:last-child td{ border-bottom:none; }
+  .cmptable td.app{ font-weight:700; white-space:nowrap; }
+  .cmptable td.peer{ color:var(--ink2); font-style:italic; white-space:nowrap; }
+  .cmptable td.behind{ color:var(--ink2); }
+  .cmptable td.ahead{ color:var(--teal-deep); }
+
   footer{
     margin-top:70px; padding-top:22px; border-top:1px solid var(--border-soft);
     display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
@@ -275,6 +307,8 @@
     <a href="#captures">What it captures</a>
     <a href="#metrics">Metrics recorded</a>
     <a href="#status">Build status</a>
+    <a href="#gaps">Gaps &amp; roadmap</a>
+    <a href="#compare">Vs. top software</a>
     <a href="#architecture">Architecture</a>
   </nav>
 
@@ -485,6 +519,83 @@
         </table>
       </div>
     </div>
+  </section>
+
+  <section id="gaps">
+    <div class="eyebrow">Gaps &amp; roadmap</div>
+    <h2>What's actually missing, not a rounding error.</h2>
+    <p class="intro">The real, specific gaps behind each percentage above — not "more features," but named items with a reason they're not done. Two are hard floors that no amount of engineering effort closes on its own.</p>
+
+    <div class="cols2">
+      <div class="gapcard">
+        <div class="gaphd"><h4>Sign</h4><span class="delta mono">90% → 100%</span></div>
+        <ul>
+          <li class="hardfloor"><b>Ondi OTP bypass</b> — deliberately declined: would silently weaken a per-envelope security control a sender explicitly turned on. A permanent 10%, by design.</li>
+          <li><b>Jurisdiction coverage</b> — Tanzania alone has real, cited legal research; Kenya/Uganda/Rwanda are schema-ready but legally unreviewed. Same primary-source method, 3 more countries.</li>
+          <li><b>No independent security certification</b> — SOC 2 / eIDAS-equivalent is an audit process, not code.</li>
+          <li><b>No bulk-send / mail-merge</b> — one envelope, one document, at a time.</li>
+        </ul>
+      </div>
+      <div class="gapcard">
+        <div class="gaphd"><h4>HuduBI</h4><span class="delta mono">60% → 100%</span></div>
+        <ul>
+          <li class="hardfloor"><b>Cost &amp; unit economics (M4)</b> — not unbuilt, unbuildable: zero real infrastructure-cost data exists anywhere in the platform to compute it from. Needs a tenant entering real provider rates, or a real billing-API integration, before this is an engineering task at all.</li>
+          <li><b>No self-serve query builder</b> — the real one that exists is SUPER_ADMIN-only.</li>
+          <li><b>No natural-language insight, scheduled reports, or ad-hoc drill-down</b> — today's dashboards are curated, not explorable.</li>
+          <li><b>"AI Overview" / "AI Models &amp; Predictions" pages unverified</b> — the two files carrying HuduBI's actual "AI" promise weren't touched or confirmed this pass.</li>
+        </ul>
+      </div>
+      <div class="gapcard">
+        <div class="gaphd"><h4>FinOps</h4><span class="delta mono">93% → 100%</span></div>
+        <ul>
+          <li><b>Payroll → GL</b> — still not fully wired end-to-end; flagged in an earlier audit and not yet closed.</li>
+          <li><b>No consolidated multi-entity statements</b> at group scale.</li>
+          <li><b>No external audit-firm API</b>.</li>
+        </ul>
+      </div>
+      <div class="gapcard">
+        <div class="gaphd"><h4>ClearOS</h4><span class="delta mono">95% → 100%</span></div>
+        <ul>
+          <li class="hardfloor"><b>No live customs API anywhere in the region</b> — confirmed by direct research: Tanzania/Kenya/Uganda/Rwanda customs authorities are portal-only. External infrastructure gap, not a Hudumika one.</li>
+          <li><b>Limited global carrier/EDI network</b> — only Maersk has a real public API integrated.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="roadmap">
+      <div class="rmrow">
+        <span class="pbadge p0">P0</span>
+        <div class="rmbody"><b>Give HuduBI real self-serve exploration.</b><p>It's the furthest behind its category leader (Looker/Power BI) of any app in the platform, and because every other app's metrics flow through it, closing this gap compounds value everywhere else rather than adding one more feature in isolation. Verify "AI Overview"/"AI Models" first — confirm what's real before building on top of it.</p></div>
+      </div>
+      <div class="rmrow">
+        <span class="pbadge p1">P1</span>
+        <div class="rmbody"><b>Close the two flagged production-tier gaps.</b><p>FinOps payroll→GL and Sign's KE/UG/RW jurisdiction research are both bounded, well-understood tasks sitting inside already-production apps — higher leverage than adding depth to an active-development app.</p></div>
+      </div>
+      <div class="rmrow">
+        <span class="pbadge p2">P2</span>
+        <div class="rmbody"><b>Everything else, roughly in tier order.</b><p>Ondi SCIM/adaptive MFA, Bliss contact-center depth, CRM marketing automation — genuine gaps, but the apps are already functional for the core East Africa logistics/clearing use case. The regional customs-API gap belongs to government infrastructure, not an engineering backlog — track it, don't sprint on it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="compare">
+    <div class="eyebrow">Vs. top software</div>
+    <h2>No single competitor does what this does.</h2>
+    <p class="intro">Hudumika's bet is collapsing categories that are normally separate best-of-breed products into one tenant, one ledger, one identity graph — not out-featuring each category leader in isolation. Measured against the real product each app would otherwise be replaced by:</p>
+
+    <table class="cmptable">
+      <thead><tr><th>Hudumika app</th><th>Real competitor</th><th>Behind on</th><th>Ahead on</th></tr></thead>
+      <tbody>
+        <tr><td class="app">ClearOS</td><td class="peer">CargoWise One</td><td class="behind">Global carrier/EDI network, decades of country integrations</td><td class="ahead">Purpose-built for EAC — CargoWise doesn't localize this deep here</td></tr>
+        <tr><td class="app">FinOps</td><td class="peer">NetSuite</td><td class="behind">Multi-entity consolidation, third-party audit ecosystem</td><td class="ahead">One ledger shared live with ops — no ERP-to-TMS sync lag</td></tr>
+        <tr><td class="app">Sign</td><td class="peer">DocuSign</td><td class="behind">Bulk send, security certifications, global jurisdiction library</td><td class="ahead">One document escalates e-sign → witnessed → affidavit → notarial without ever becoming a second document — DocuSign has no equivalent</td></tr>
+        <tr><td class="app">HuduBI</td><td class="peer">Looker / Power BI</td><td class="behind">Self-serve exploration, a decade of BI maturity</td><td class="ahead">Nothing yet — furthest behind its category leader of any app here</td></tr>
+        <tr><td class="app">Bliss</td><td class="peer">Zendesk / Intercom</td><td class="behind">Contact-center telephony depth, public help-center SEO</td><td class="ahead">Already shares identity/CRM/finance context those tools integrate separately</td></tr>
+        <tr><td class="app">NexusHR</td><td class="peer">BambooHR / Workday</td><td class="behind">Performance cycles, benefits marketplace</td><td class="ahead">Same-platform payroll-to-attendance-to-GL, no HRIS integration tax</td></tr>
+        <tr><td class="app">Ondi</td><td class="peer">Okta / Auth0</td><td class="behind">Connector marketplace breadth</td><td class="ahead">Owns the whole identity graph natively, not bolted on</td></tr>
+        <tr><td class="app">ComplyOS</td><td class="peer">OneTrust / LogicGate <i>(generic peers only)</i></td><td class="behind">General-purpose GRC breadth</td><td class="ahead">BRELA/EAC-specific tracking no generic GRC tool has at all</td></tr>
+      </tbody>
+    </table>
   </section>
 
   <section id="architecture">

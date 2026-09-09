@@ -21,6 +21,7 @@ import { runHuduBIMetric } from './hudubi-widgets.service.js';
 import { computeClearanceTurnaroundHours, computeLandedCostAvgTzs } from './clearos-metrics.service.js';
 import { GLService } from './gl.service.js';
 import { computeSignKpis, type SignKpis } from './sign-metrics.service.js';
+import { computeForensicKpis, type ForensicKpis } from './sign-forensic-metrics.service.js';
 
 export interface MetricDefinitionRow {
   id: string;
@@ -220,6 +221,25 @@ const SPECIAL_METRIC_HANDLERS: Record<string, (tenantId: string, days: number) =
     key,
     async (tenantId: string, days: number) => {
       const kpis = await withTenant(tenantId, trx => computeSignKpis(trx, tenantId, days));
+      const v = kpis[field];
+      return typeof v === 'number' ? v : 0;
+    },
+  ])),
+
+  // ── Digital Execution Seal, Phase 7: forensics ───────────────────────
+  // One computeForensicKpis() call, same shared-calculation shape as every
+  // other domain above — see sign-forensic-metrics.service.ts.
+  ...Object.fromEntries((Object.entries({
+    'sign.forensics.cases_opened': 'casesOpened',
+    'sign.forensics.cases_resolved': 'casesResolved',
+    'sign.forensics.avg_resolution_hours': 'avgResolutionHours',
+    'sign.forensics.open_cases_count': 'openCasesCount',
+    'sign.forensics.verification_attempts': 'verificationAttempts',
+    'sign.forensics.non_clean_verdict_rate_pct': 'nonCleanVerdictRatePct',
+  }) as [string, keyof ForensicKpis][]).map(([key, field]) => [
+    key,
+    async (tenantId: string, days: number) => {
+      const kpis = await withTenant(tenantId, trx => computeForensicKpis(trx, tenantId, days));
       const v = kpis[field];
       return typeof v === 'number' ? v : 0;
     },
