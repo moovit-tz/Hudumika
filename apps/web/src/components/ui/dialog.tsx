@@ -29,62 +29,142 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
+/**
+ * Fixed footprints for a dialog. `size` pins BOTH width and height so a
+ * multi-step / tabbed dialog never resizes as the user moves between its
+ * steps — the {@link DialogBody} scrolls instead. Values are clamped to the
+ * viewport (`calc(100vw - 2rem)` / `90vh`). Omit `size` for the legacy
+ * grow-to-fit behaviour (unchanged for every existing call site).
+ */
+export const DIALOG_SIZES = {
+  sm: { width: 420, height: 420 },
+  md: { width: 560, height: 600 },
+  lg: { width: 720, height: 680 },
+  xl: { width: 940, height: 780 },
+} as const
+
+export type DialogSize = keyof typeof DIALOG_SIZES | "full"
+
+// Lets DialogHeader / DialogBody / DialogFooter know they're inside a
+// steady-size dialog (so they pin / scroll) without every call site having
+// to pass a prop down.
+const DialogSizedContext = React.createContext(false)
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  /** `hideClose` suppresses the built-in top-right ✕ so a dialog can place its
-   *  own close control inside its own layout — otherwise the primitive's
-   *  absolutely-positioned button floats over whatever the dialog draws. */
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { hideClose?: boolean }
->(({ className, children, hideClose, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed left-[50%] top-[50%] z-[9999] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white dark:bg-slate-900 text-foreground p-6 shadow-[0_24px_64px_rgba(0,0,0,0.18)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-2xl opacity-100",
-        className
-      )}
-      style={{ backgroundColor: 'var(--white, #ffffff)', opacity: 1, ...props.style }}
-      {...props}
-    >
-      {children}
-      {!hideClose && (
-        <DialogPrimitive.Close className="absolute right-5 top-5 rounded-full p-1 opacity-70 ring-offset-background transition-colors hover:bg-muted hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
-      )}
-    </DialogPrimitive.Content>
-  </DialogPortal>
-))
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+    /** Suppress the built-in top-right ✕ so a dialog can place its own. */
+    hideClose?: boolean
+    /**
+     * Pin the dialog to a fixed width + height that stays constant across
+     * every step/tab. Pair with DialogHeader / DialogBody / DialogFooter —
+     * the body is the only part that scrolls. See DIALOG_SIZES.
+     */
+    size?: DialogSize
+    /**
+     * Like `size` but without imposing a preset footprint: switch to the
+     * pinned header / scrolling body / pinned footer layout and let the
+     * caller set width and a *fixed* height via `className` / `style`. Use
+     * when a dialog needs a bespoke width — the outcome (constant size
+     * across steps) is the same.
+     */
+    steady?: boolean
+  }
+>(({ className, children, hideClose, size, steady, style, ...props }, ref) => {
+  const preset = size != null && size !== "full" ? DIALOG_SIZES[size as keyof typeof DIALOG_SIZES] : null
+  const sized = size != null || steady === true
+
+  const sizeStyle: React.CSSProperties =
+    size === "full"
+      ? { width: "calc(100vw - 2rem)", height: "calc(100vh - 2rem)" }
+      : preset
+        ? {
+            width: `min(${preset.width}px, calc(100vw - 2rem))`,
+            height: `min(${preset.height}px, 90vh)`,
+          }
+        : {}
+
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          // shared frame
+          "fixed left-[50%] top-[50%] z-[9999] translate-x-[-50%] translate-y-[-50%] border bg-white dark:bg-slate-900 text-foreground shadow-[0_24px_64px_rgba(0,0,0,0.18)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-2xl opacity-100",
+          sized
+            // steady-size: fixed box (via inline style below), only the body scrolls
+            ? "flex flex-col overflow-hidden p-0"
+            // legacy: grows to fit its content
+            : "grid w-full max-w-lg gap-4 p-6",
+          className
+        )}
+        style={{ backgroundColor: "var(--white, #ffffff)", opacity: 1, ...sizeStyle, ...style }}
+        {...props}
+      >
+        <DialogSizedContext.Provider value={sized}>
+          {children}
+        </DialogSizedContext.Provider>
+        {!hideClose && (
+          <DialogPrimitive.Close className="absolute right-5 top-5 z-10 rounded-full p-1 opacity-70 ring-offset-background transition-colors hover:bg-muted hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        )}
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  )
+})
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cn(
-      "flex flex-col space-y-1.5 text-center sm:text-left",
-      className
-    )}
-    {...props}
-  />
-)
+}: React.HTMLAttributes<HTMLDivElement>) => {
+  const sized = React.useContext(DialogSizedContext)
+  return (
+    <div
+      className={cn(
+        sized
+          ? "flex shrink-0 flex-col gap-3 border-b border-border px-6 pb-4 pt-6"
+          : "flex flex-col space-y-1.5 text-center sm:text-left",
+        className
+      )}
+      {...props}
+    />
+  )
+}
 DialogHeader.displayName = "DialogHeader"
+
+/**
+ * The scrolling region of a steady-size dialog. Everything that varies
+ * between steps/tabs goes here; the dialog itself never changes size.
+ */
+const DialogBody = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn("min-h-0 flex-1 overflow-y-auto px-6 py-5", className)} {...props} />
+)
+DialogBody.displayName = "DialogBody"
 
 const DialogFooter = ({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
-      className
-    )}
-    {...props}
-  />
-)
+}: React.HTMLAttributes<HTMLDivElement>) => {
+  const sized = React.useContext(DialogSizedContext)
+  return (
+    <div
+      className={cn(
+        sized
+          ? "flex shrink-0 flex-row items-center justify-end gap-2 border-t border-border px-6 py-4"
+          : "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+        className
+      )}
+      {...props}
+    />
+  )
+}
 DialogFooter.displayName = "DialogFooter"
 
 const DialogTitle = React.forwardRef<
@@ -122,6 +202,7 @@ export {
   DialogClose,
   DialogContent,
   DialogHeader,
+  DialogBody,
   DialogFooter,
   DialogTitle,
   DialogDescription,

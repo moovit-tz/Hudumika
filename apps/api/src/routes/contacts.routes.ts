@@ -8,7 +8,32 @@ const mergeSchema = z.object({
   primary_id: z.string().min(1),
   duplicate_ids: z.array(z.string()).min(1),
 });
-const labelCreateSchema = z.object({ name: z.string().trim().min(1).max(100) });
+const labelCreateSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  parent_id: z.string().uuid().nullish(),
+});
+const labelUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  // present-but-null = move to top level; absent = leave where it is
+  parent_id: z.string().uuid().nullable().optional(),
+}).refine(d => d.name !== undefined || d.parent_id !== undefined, { message: 'Nothing to update' });
+
+const smartRuleSchema = z.object({
+  field: z.string().min(1).max(40),
+  op: z.string().min(1).max(20),
+  value: z.union([z.string().max(200), z.number(), z.boolean(), z.null()]).optional(),
+});
+const smartGroupCreateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  match_type: z.enum(['all', 'any']).optional(),
+  rules: z.array(smartRuleSchema).max(25).optional(),
+});
+const smartGroupUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  match_type: z.enum(['all', 'any']).optional(),
+  rules: z.array(smartRuleSchema).max(25).optional(),
+}).refine(d => Object.keys(d).length > 0, { message: 'Nothing to update' });
+
 const bulkDeleteSchema = z.object({
   ids: z.array(z.string()).min(1),
   status: z.enum(['TRASHED', 'ACTIVE', 'DELETE']),
@@ -122,12 +147,24 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Create a label
+  // Create a label (optional parent_id nests it under another label)
   fastify.post('/labels', async (request: any, reply) => {
-    const { name } = labelCreateSchema.parse(request.body);
+    const { name, parent_id } = labelCreateSchema.parse(request.body);
     try {
       const tenantId = request.user.tenant_id;
-      return await ContactsService.createLabel(tenantId, name);
+      return await ContactsService.createLabel(tenantId, name, parent_id ?? null);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  // Rename and/or re-parent a label
+  fastify.patch('/labels/:id', async (request: any, reply) => {
+    const body = labelUpdateSchema.parse(request.body);
+    try {
+      const tenantId = request.user.tenant_id;
+      const { id } = request.params as { id: string };
+      return await ContactsService.updateLabel(tenantId, id, body);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
@@ -161,6 +198,54 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     try {
       const tenantId = request.user.tenant_id;
       return await ContactsService.bulkLabel(tenantId, contact_ids, label_id, action);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  // ─── Smart groups — saved filters with computed membership ───────────────
+
+  fastify.get('/smart-groups', async (request: any, reply) => {
+    try {
+      return await ContactsService.listSmartGroups(request.user.tenant_id);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/smart-groups', async (request: any, reply) => {
+    const body = smartGroupCreateSchema.parse(request.body);
+    try {
+      return await ContactsService.createSmartGroup(request.user.tenant_id, body, { id: request.user.sub });
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.patch('/smart-groups/:id', async (request: any, reply) => {
+    const body = smartGroupUpdateSchema.parse(request.body);
+    try {
+      const { id } = request.params as { id: string };
+      return await ContactsService.updateSmartGroup(request.user.tenant_id, id, body);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.delete('/smart-groups/:id', async (request: any, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      return await ContactsService.deleteSmartGroup(request.user.tenant_id, id);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  // The evaluated contact list for one group — same enriched shape as GET /
+  fastify.get('/smart-groups/:id/contacts', async (request: any, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      return await ContactsService.getSmartGroupContacts(request.user.tenant_id, id);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }

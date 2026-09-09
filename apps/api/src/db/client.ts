@@ -5297,6 +5297,7 @@ export interface Database {
   contact_label_mappings: ContactLabelMappingsTable;
   contact_activity_log: ContactActivityLogTable;
   contact_sync_connections: ContactSyncConnectionsTable;
+  contact_smart_groups: ContactSmartGroupsTable;
   // ComplyOS
   comply_certificates:   ComplyCertificatesTable;
   comply_applications:   ComplyApplicationsTable;
@@ -5429,6 +5430,327 @@ export interface Database {
   // were never actually migrated) plus a duplicate hr_leaves, both removed
   // here rather than left to silently fight the real ones.
   metric_kpi_targets: MetricKpiTargetsTable;
+  // ─── Hudumika Developer Platform (Migration 443) ───────────────
+  developer_accounts: DeveloperAccountsTable;
+  developer_organizations: DeveloperOrganizationsTable;
+  developer_org_members: DeveloperOrgMembersTable;
+  developer_billing_accounts: DeveloperBillingAccountsTable;
+  dev_projects: DevProjectsTable;
+  dev_project_members: DevProjectMembersTable;
+  dev_environments: DevEnvironmentsTable;
+  dev_credentials: DevCredentialsTable;
+  api_providers: ApiProvidersTable;
+  api_products: ApiProductsTable;
+  api_versions: ApiVersionsTable;
+  api_operations: ApiOperationsTable;
+  api_operation_providers: ApiOperationProvidersTable;
+  api_pricing_plans: ApiPricingPlansTable;
+  api_subscriptions: ApiSubscriptionsTable;
+  api_entitlements: ApiEntitlementsTable;
+  dev_gateway_requests: DevGatewayRequestsTable;
+  dev_usage_events: DevUsageEventsTable;
+  dev_billing_events: DevBillingEventsTable;
+  dev_provider_settlements: DevProviderSettlementsTable;
+}
+
+export interface DeveloperAccountsTable {
+  id: Generated<string>;
+  type: 'INDIVIDUAL' | 'ORGANIZATION';
+  name: string;
+  slug: string;
+  owner_user_id: string;
+  status: Generated<'active' | 'suspended' | 'pending_verification'>;
+  metadata: Generated<Record<string, unknown>>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DeveloperOrganizationsTable {
+  id: Generated<string>;
+  developer_account_id: string;
+  legal_name: string;
+  registration_number: string | null;
+  tin: string | null;
+  country: Generated<string>;
+  industry: string | null;
+  website: string | null;
+  verification_status: Generated<'unverified' | 'pending' | 'verified' | 'rejected'>;
+  verified_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DeveloperOrgMembersTable {
+  id: Generated<string>;
+  developer_account_id: string;
+  user_id: string;
+  role: 'OWNER' | 'ADMIN' | 'DEVELOPER' | 'BILLING_ADMIN' | 'SECURITY_ADMIN' | 'VIEWER';
+  invited_by: string | null;
+  status: Generated<'active' | 'invited' | 'suspended'>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DeveloperBillingAccountsTable {
+  id: Generated<string>;
+  developer_account_id: string;
+  name: Generated<string>;
+  billing_type: Generated<'PREPAID' | 'POSTPAID' | 'INVOICE' | 'INTERNAL'>;
+  currency: Generated<string>;
+  balance_credits: Generated<number>;
+  credit_limit: Generated<number>;
+  tax_id: string | null;
+  billing_email: string | null;
+  billing_address: Generated<Record<string, unknown>>;
+  is_active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DevProjectsTable {
+  id: Generated<string>;
+  developer_account_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  is_internal_hudumika: Generated<boolean>;
+  status: Generated<'active' | 'archived' | 'suspended'>;
+  created_by: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DevProjectMembersTable {
+  id: Generated<string>;
+  project_id: string;
+  user_id: string;
+  role: Generated<'ADMIN' | 'DEVELOPER' | 'VIEWER'>;
+  created_at: Generated<Date>;
+}
+
+export interface DevEnvironmentsTable {
+  id: Generated<string>;
+  project_id: string;
+  environment: 'DEVELOPMENT' | 'SANDBOX' | 'PRODUCTION';
+  is_enabled: Generated<boolean>;
+  settings: Generated<Record<string, unknown>>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DevCredentialsTable {
+  id: Generated<string>;
+  project_id: string;
+  environment: 'DEVELOPMENT' | 'SANDBOX' | 'PRODUCTION';
+  type: 'API_KEY' | 'OAUTH_CLIENT' | 'SERVICE_ACCOUNT';
+  name: string;
+  key_prefix: string;
+  key_hash: string;
+  client_id: string | null;
+  client_secret_hash: string | null;
+  allowed_ips: Generated<string[]>;
+  allowed_origins: Generated<string[]>;
+  scopes: Generated<string[]>;
+  rate_limit_override: number | null;
+  expires_at: Date | null;
+  revoked_at: Date | null;
+  revoked_reason: string | null;
+  last_used_at: Date | null;
+  created_by: string;
+  created_at: Generated<Date>;
+}
+
+export interface ApiProvidersTable {
+  id: Generated<string>;
+  code: string;
+  name: string;
+  adapter_type: 'HudumikaInternal' | 'ExternalREST' | 'GovernmentAPI' | 'PartnerAPI';
+  base_url: string | null;
+  auth_type: Generated<string>;
+  auth_config_encrypted: string | null;
+  health_status: Generated<'HEALTHY' | 'DEGRADED' | 'DOWN' | 'MAINTENANCE'>;
+  last_health_check: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ApiProductsTable {
+  id: Generated<string>;
+  code: string;
+  name: string;
+  short_description: string;
+  long_description: string | null;
+  category: Generated<string>;
+  execution_mode: 'NATIVE' | 'EXTERNAL' | 'HYBRID';
+  supported_environments: Generated<string[]>;
+  status: Generated<'DRAFT' | 'SANDBOX_ONLY' | 'BETA' | 'PUBLIC' | 'DEPRECATED' | 'RETIRED'>;
+  is_partner_product: Generated<boolean>;
+  partner_name: string | null;
+  icon_name: Generated<string>;
+  documentation_md: string | null;
+  openapi_spec: Record<string, unknown> | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ApiVersionsTable {
+  id: Generated<string>;
+  api_product_id: string;
+  version_str: string;
+  status: Generated<'DRAFT' | 'ACTIVE' | 'DEPRECATED' | 'RETIRED'>;
+  changelog: string | null;
+  openapi_spec: Record<string, unknown> | null;
+  is_default: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ApiOperationsTable {
+  id: Generated<string>;
+  api_product_id: string;
+  api_version_id: string;
+  operation_id: string;
+  http_method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  path_pattern: string;
+  name: string;
+  description: string | null;
+  execution_mode: 'NATIVE' | 'EXTERNAL';
+  billing_unit: Generated<string>;
+  default_rate_limit: Generated<number>;
+  default_quota_limit: number | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ApiOperationProvidersTable {
+  id: Generated<string>;
+  operation_id: string;
+  provider_id: string;
+  target_path: string | null;
+  timeout_ms: Generated<number>;
+  retry_count: Generated<number>;
+  provider_unit_cost: Generated<number>;
+  provider_currency: Generated<string>;
+  is_primary: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ApiPricingPlansTable {
+  id: Generated<string>;
+  api_product_id: string;
+  code: string;
+  name: string;
+  plan_type: 'FREE' | 'PAY_AS_YOU_GO' | 'TIERED' | 'GROWTH' | 'ENTERPRISE' | 'INTERNAL';
+  currency: Generated<string>;
+  monthly_base_fee: Generated<number>;
+  included_units: Generated<number>;
+  overage_unit_price: Generated<number>;
+  rate_limit_per_min: Generated<number>;
+  quota_limit_per_mo: number | null;
+  is_public: Generated<boolean>;
+  status: Generated<'ACTIVE' | 'ARCHIVED'>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ApiSubscriptionsTable {
+  id: Generated<string>;
+  developer_account_id: string;
+  billing_account_id: string;
+  api_product_id: string;
+  pricing_plan_id: string;
+  status: Generated<'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'EXPIRED'>;
+  current_period_start: Generated<Date>;
+  current_period_end: Date;
+  custom_pricing_override: Record<string, unknown> | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ApiEntitlementsTable {
+  id: Generated<string>;
+  project_id: string;
+  environment: 'DEVELOPMENT' | 'SANDBOX' | 'PRODUCTION';
+  api_product_id: string;
+  subscription_id: string | null;
+  status: Generated<'ACTIVE' | 'SUSPENDED' | 'EXPIRED'>;
+  rate_limit_per_min: Generated<number>;
+  monthly_quota: number | null;
+  allowed_operations: Generated<string[]>;
+  expires_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DevGatewayRequestsTable {
+  id: Generated<string>;
+  request_id: string;
+  project_id: string | null;
+  environment: string | null;
+  credential_id: string | null;
+  api_product_id: string | null;
+  operation_id: string | null;
+  http_method: string;
+  path: string;
+  status_code: number;
+  duration_ms: number;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface DevUsageEventsTable {
+  id: Generated<string>;
+  event_id: string;
+  request_id: string;
+  developer_account_id: string;
+  project_id: string;
+  environment: string;
+  api_product_id: string;
+  api_version_id: string;
+  operation_id: string;
+  credential_id: string | null;
+  provider_id: string | null;
+  billing_unit: string;
+  quantity: Generated<number>;
+  is_billable: Generated<boolean>;
+  provider_unit_cost: Generated<number>;
+  developer_unit_price: Generated<number>;
+  currency: Generated<string>;
+  status_code: number;
+  is_success: Generated<boolean>;
+  metadata: Generated<Record<string, unknown>>;
+  created_at: Generated<Date>;
+}
+
+export interface DevBillingEventsTable {
+  id: Generated<string>;
+  usage_event_id: string | null;
+  developer_account_id: string;
+  billing_account_id: string;
+  event_type: 'CHARGE' | 'INCLUDED_ALLOWANCE' | 'CREDIT_DEDUCTION' | 'OVERAGE' | 'REFUND' | 'ADJUSTMENT';
+  units_billed: Generated<number>;
+  amount: Generated<number>;
+  currency: Generated<string>;
+  description: string;
+  invoice_id: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface DevProviderSettlementsTable {
+  id: Generated<string>;
+  usage_event_id: string;
+  provider_id: string;
+  developer_account_id: string;
+  units: Generated<number>;
+  provider_cost: number;
+  developer_price: number;
+  gross_platform_revenue: number;
+  currency: Generated<string>;
+  is_settled: Generated<boolean>;
+  settled_at: Date | null;
+  created_at: Generated<Date>;
 }
 
 export interface MetricKpiTargetsTable {
@@ -7951,12 +8273,29 @@ export interface ContactLabelsTable {
   id: Generated<string>;
   tenant_id: string;
   name: string;
+  // Migration 441 — self-referential parent for nested labels. NULL = a
+  // top-level label. Cycle-guarded in contacts.service.ts, not by the DB.
+  parent_id: string | null;
   created_at: Generated<Date>;
 }
 
 export interface ContactLabelMappingsTable {
   contact_id: string;
   label_id: string;
+}
+
+/** Migration 442 — a saved filter with computed membership. `rules` is a
+ *  JSON array of { field, op, value }; the allowed shapes and the SQL they
+ *  compile to live in contacts.service.ts (SMART_FIELDS). */
+export interface ContactSmartGroupsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  match_type: Generated<'all' | 'any'>;
+  rules: Generated<unknown>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 // ── ComplyOS Tables ──────────────────────────────────────────────────────────

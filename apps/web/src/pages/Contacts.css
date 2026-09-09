@@ -240,6 +240,131 @@
   justify-content: flex-end;
   margin-top: 20px;
 }
+.csb-modal-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  margin: 16px 0 6px;
+}
+
+/* ── Label tree (migration 441) ──────────────────────────────────────────
+   Rows reuse the existing .csb-label-* chrome. The twist/spacer is a fixed
+   16px gutter so a top-level label's icon lands at the same 20px as every
+   .csb-nav-item / .csb-sys-item above it (16 gutter + 4 btn pad); each
+   nesting level then adds 14px of left padding on the row itself. */
+.csb-label-row .csb-label-btn {
+  /* symmetric vertical padding, matching .csb-nav-item's 9px rhythm; the
+     20px left pad is replaced by the twist gutter below */
+  padding: 9px 4px 9px 4px;
+  min-width: 0;               /* let the name ellipsis at any nesting depth */
+}
+.csb-label-row .csb-label-twist + .csb-label-btn { padding-left: 4px; }
+.csb-label-row .csb-label-name { flex: 1; max-width: none; }
+
+.csb-label-twist {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--ink3);
+  border-radius: var(--r-sm);
+}
+.csb-label-twist:hover { background: var(--bg); color: var(--ink); }
+.csb-label-twist--leaf { cursor: default; pointer-events: none; }
+
+/* keep the "..." trigger visible while its menu is open, not only on hover */
+.csb-label-row .csb-label-del[data-state="open"] { display: flex; }
+
+.csb-smart-empty {
+  font-size: 12px;
+  color: var(--ink3);
+  font-style: italic;
+  padding: 6px 12px 6px 20px;
+}
+
+/* ══════════════════════════════════════════════════
+   Smart group rule builder (cts-sg-*)
+   The view header is a real <PageHeader>; only the builder form is here.
+══════════════════════════════════════════════════ */
+
+.cts-sg-editor { display: flex; flex-direction: column; }
+.cts-sg-form {
+  max-width: 760px;
+  padding: 16px 0 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.cts-sg-field { display: flex; flex-direction: column; gap: 6px; }
+.cts-sg-field > span {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+.cts-sg-match {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink2);
+}
+.cts-sg-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px;
+  background: var(--bg);
+}
+.cts-sg-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cts-sg-rule-del {
+  flex-shrink: 0;
+  width: var(--ctl-h-xs);
+  min-height: var(--ctl-h-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--white);
+  color: var(--ink2);
+  cursor: pointer;
+}
+.cts-sg-rule-del:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
+.cts-sg-rule-del:disabled { opacity: .4; cursor: not-allowed; }
+.cts-sg-add-rule {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--ctl-h-sm);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--ink2);
+  font-size: 13px;
+  font-weight: 600;
+  padding: var(--ds-btn-py-sm) 12px;
+  cursor: pointer;
+}
+.cts-sg-add-rule:hover { color: var(--cts-accent); border-color: var(--cts-accent); }
+.cts-sg-editor-actions { display: flex; gap: 10px; align-items: center; }
 
 /* ══════════════════════════════════════════════════
    Expandable search bar (cts-*)

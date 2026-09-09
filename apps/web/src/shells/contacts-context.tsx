@@ -8,6 +8,26 @@ import { showConfirm } from '../lib/confirm.js';
 export interface ContactLabel {
   id: string;
   name: string;
+  // Migration 441 — self-referential parent. null = a top-level label.
+  parent_id: string | null;
+}
+
+// Smart groups (migration 442) — a saved filter with computed membership.
+// The field/op catalog the builder UI reads lives in
+// pages/contacts/smartGroupFields.ts; it mirrors the API's SMART_FIELDS,
+// which is the authoritative one.
+export interface SmartGroupRule {
+  field: string;
+  op: string;
+  value?: string | number | boolean | null;
+}
+
+export interface SmartGroup {
+  id: string;
+  name: string;
+  match_type: 'all' | 'any';
+  rules: SmartGroupRule[];
+  count?: number;
 }
 
 export interface RegisteredCompany {
@@ -79,7 +99,7 @@ export interface DuplicateGroup {
   contacts: Contact[];
 }
 
-export type ContactView = 'contacts' | 'favorites' | 'merge' | 'trash' | 'label';
+export type ContactView = 'contacts' | 'favorites' | 'merge' | 'trash' | 'label' | 'smartgroup';
 
 // ── Context value shape ────────────────────────────────────────────────────
 
@@ -88,6 +108,7 @@ export type SortBy = 'name-asc' | 'name-desc' | 'created-desc' | 'created-asc';
 export interface ContactsCtxValue {
   contacts: Contact[];
   labels: ContactLabel[];
+  smartGroups: SmartGroup[];
   duplicates: DuplicateGroup[];
   companies: RegisteredCompany[];
   loading: boolean;
@@ -95,12 +116,17 @@ export interface ContactsCtxValue {
   setCurrentView: (v: ContactView) => void;
   selectedLabelId: string | null;
   setSelectedLabelId: (v: string | null) => void;
+  selectedSmartGroupId: string | null;
+  setSelectedSmartGroupId: (v: string | null) => void;
   activeContact: Contact | null;
   setActiveContact: (c: Contact | null) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   loadData: () => Promise<void>;
   handleDeleteLabel: (id: string) => Promise<void>;
+  handleUpdateLabel: (id: string, patch: { name?: string; parent_id?: string | null }) => Promise<void>;
+  saveSmartGroup: (payload: { name: string; match_type: 'all' | 'any'; rules: SmartGroupRule[] }, id?: string) => Promise<SmartGroup | null>;
+  handleDeleteSmartGroup: (id: string) => Promise<void>;
   handleImportCSV: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleExportCSV: () => void;
   handleExportVCard: () => void;
@@ -109,6 +135,8 @@ export interface ContactsCtxValue {
   setShowNewLabelModal: (v: boolean) => void;
   newLabelName: string;
   setNewLabelName: (v: string) => void;
+  newLabelParentId: string | null;
+  setNewLabelParentId: (v: string | null) => void;
   handleCreateLabel: (e: React.FormEvent) => Promise<void>;
   openContactModalRef: React.MutableRefObject<(c: Contact | null) => void>;
   filterOpen: boolean;
@@ -127,6 +155,7 @@ const noopAsync = async () => {};
 export const ContactsCtx = createContext<ContactsCtxValue>({
   contacts: [],
   labels: [],
+  smartGroups: [],
   duplicates: [],
   companies: [],
   loading: false,
@@ -134,12 +163,17 @@ export const ContactsCtx = createContext<ContactsCtxValue>({
   setCurrentView: noop,
   selectedLabelId: null,
   setSelectedLabelId: noop,
+  selectedSmartGroupId: null,
+  setSelectedSmartGroupId: noop,
   activeContact: null,
   setActiveContact: noop,
   searchQuery: '',
   setSearchQuery: noop,
   loadData: noopAsync,
   handleDeleteLabel: noopAsync,
+  handleUpdateLabel: noopAsync,
+  saveSmartGroup: async () => null,
+  handleDeleteSmartGroup: noopAsync,
   handleImportCSV: noop,
   handleExportCSV: noop,
   handleExportVCard: noop,
@@ -148,6 +182,8 @@ export const ContactsCtx = createContext<ContactsCtxValue>({
   setShowNewLabelModal: noop,
   newLabelName: '',
   setNewLabelName: noop,
+  newLabelParentId: null,
+  setNewLabelParentId: noop,
   handleCreateLabel: noopAsync,
   openContactModalRef: { current: noop },
   filterOpen: false,
@@ -167,15 +203,18 @@ export function useContacts() {
 export function ContactsProvider({ children }: { children: React.ReactNode }) {
   const [contacts, setContacts]               = useState<Contact[]>([]);
   const [labels, setLabels]                   = useState<ContactLabel[]>([]);
+  const [smartGroups, setSmartGroups]         = useState<SmartGroup[]>([]);
   const [duplicates, setDuplicates]           = useState<DuplicateGroup[]>([]);
   const [companies, setCompanies]             = useState<RegisteredCompany[]>([]);
   const [loading, setLoading]                 = useState(true);
   const [currentView, setCurrentView]         = useState<ContactView>('contacts');
   const [selectedLabelId, setSelectedLabelId] = useState<string | null>(null);
+  const [selectedSmartGroupId, setSelectedSmartGroupId] = useState<string | null>(null);
   const [activeContact, setActiveContactRaw]  = useState<Contact | null>(null);
   const [searchQuery, setSearchQuery]         = useState('');
   const [showNewLabelModal, setShowNewLabelModal] = useState(false);
   const [newLabelName, setNewLabelName]       = useState('');
+  const [newLabelParentId, setNewLabelParentId] = useState<string | null>(null);
   const [filterOpen, setFilterOpen]           = useState(true);
   const [sortBy, setSortBy]                   = useState<SortBy>('name-asc');
   const [filterLabelIds, setFilterLabelIds]   = useState<string[]>([]);
@@ -190,10 +229,11 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [activeData, trashedData, labelsData, dupData, customersRes] = await Promise.all([
+      const [activeData, trashedData, labelsData, smartGroupsData, dupData, customersRes] = await Promise.all([
         apiFetch('/v1/contacts?status=ACTIVE').catch(() => []),
         apiFetch('/v1/contacts?status=TRASHED').catch(() => []),
         apiFetch('/v1/contacts/labels').catch(() => []),
+        apiFetch('/v1/contacts/smart-groups').catch(() => []),
         apiFetch('/v1/contacts/duplicates').catch(() => []),
         apiFetch('/v1/customers').catch(() => []),
       ]);
@@ -205,6 +245,7 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
 
       setContacts(allContacts);
       setLabels(Array.isArray(labelsData) ? labelsData : []);
+      setSmartGroups(Array.isArray(smartGroupsData) ? smartGroupsData : []);
       setDuplicates(Array.isArray(dupData) ? dupData : []);
       const customerList = (customersRes as any)?.data ?? customersRes ?? [];
       setCompanies(Array.isArray(customerList) ? customerList.map((c: any) => ({ id: c.id, name: c.name })) : []);
@@ -282,26 +323,70 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
     e.preventDefault();
     if (!newLabelName.trim()) return;
     try {
-      await apiFetch('/v1/contacts/labels', { method: 'POST', body: JSON.stringify({ name: newLabelName.trim() }) });
+      await apiFetch('/v1/contacts/labels', {
+        method: 'POST',
+        body: JSON.stringify({ name: newLabelName.trim(), parent_id: newLabelParentId }),
+      });
       setNewLabelName('');
+      setNewLabelParentId(null);
       setShowNewLabelModal(false);
       await loadData();
     } catch (err: any) {
       showAlert(err.message || 'Failed to create label');
     }
-  }, [newLabelName, loadData]);
+  }, [newLabelName, newLabelParentId, loadData]);
+
+  const handleUpdateLabel = useCallback(async (id: string, patch: { name?: string; parent_id?: string | null }) => {
+    try {
+      await apiFetch(`/v1/contacts/labels/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+      await loadData();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to update label');
+    }
+  }, [loadData]);
+
+  const saveSmartGroup = useCallback(async (
+    payload: { name: string; match_type: 'all' | 'any'; rules: SmartGroupRule[] },
+    id?: string,
+  ): Promise<SmartGroup | null> => {
+    try {
+      const res = await apiFetch(
+        id ? `/v1/contacts/smart-groups/${id}` : '/v1/contacts/smart-groups',
+        { method: id ? 'PATCH' : 'POST', body: JSON.stringify(payload) },
+      );
+      await loadData();
+      return res as SmartGroup;
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to save smart group');
+      return null;
+    }
+  }, [loadData]);
+
+  const handleDeleteSmartGroup = useCallback(async (id: string) => {
+    if (!(await showConfirm('Delete this smart group? The contacts it matched are not affected.', { confirmLabel: 'Delete' }))) return;
+    try {
+      await apiFetch(`/v1/contacts/smart-groups/${id}`, { method: 'DELETE' });
+      setSelectedSmartGroupId(prev => (prev === id ? null : prev));
+      setCurrentView(prev => (prev === 'smartgroup' ? 'contacts' : prev));
+      await loadData();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to delete smart group');
+    }
+  }, [loadData]);
 
   return (
     <ContactsCtx.Provider value={{
-      contacts, labels, duplicates, companies, loading,
+      contacts, labels, smartGroups, duplicates, companies, loading,
       currentView, setCurrentView,
       selectedLabelId, setSelectedLabelId,
+      selectedSmartGroupId, setSelectedSmartGroupId,
       activeContact, setActiveContact,
       searchQuery, setSearchQuery,
       loadData,
-      handleDeleteLabel, handleImportCSV, handleExportCSV, handleExportVCard, exportSelected,
+      handleDeleteLabel, handleUpdateLabel, saveSmartGroup, handleDeleteSmartGroup,
+      handleImportCSV, handleExportCSV, handleExportVCard, exportSelected,
       showNewLabelModal, setShowNewLabelModal,
-      newLabelName, setNewLabelName, handleCreateLabel,
+      newLabelName, setNewLabelName, newLabelParentId, setNewLabelParentId, handleCreateLabel,
       openContactModalRef,
       filterOpen, setFilterOpen,
       sortBy, setSortBy,

@@ -281,6 +281,7 @@ export const NAV_CONFIGS: Record<AppId, NavCategory[]> = {
   petti:         [],
   sign:          [],
   sms:           [],
+  developer:     [],
 };
 
 /** Filter a nav config to only categories and items the given role can see. */

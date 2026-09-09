@@ -1,21 +1,26 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useContacts } from '../shells/contacts-context.js';
-import type { Contact, ContactActivityEntry, ContactEmail, ContactPhone } from '../shells/contacts-context.js';
+import type { Contact, ContactActivityEntry, ContactEmail, ContactPhone, SortBy, SmartGroup } from '../shells/contacts-context.js';
+import { labelDescendantMap } from './contacts/labelTree.js';
+import { SmartGroupEditor } from './contacts/SmartGroupEditor.js';
+import { describeRule } from './contacts/smartGroupFields.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
-import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle } from '../components/ui/dialog.js';
 import { showAlert } from '../lib/alert.js';
 
 const MODAL_STEPS: { key: 'profile' | 'contact' | 'business' | 'extra'; label: string; icon: IconName }[] = [
@@ -38,22 +43,62 @@ type PhoneRow = { id?: string; label: 'work' | 'mobile' | 'home' | 'other'; phon
 const emptyEmailRow = (): EmailRow => ({ label: 'other', email: '' });
 const emptyPhoneRow = (): PhoneRow => ({ label: 'other', phone: '' });
 
+// Shared filter/sort predicates — used by both the main list and the
+// smart-group result list so the two behave identically.
+function contactMatchesQuery(c: Contact, query: string): boolean {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  const fullName = `${c.first_name} ${c.last_name || ''}`.toLowerCase();
+  return (
+    fullName.includes(q) ||
+    (c.email || '').toLowerCase().includes(q) ||
+    (c.phone || '').toLowerCase().includes(q) ||
+    (c.company || '').toLowerCase().includes(q) ||
+    (c.job_title || '').toLowerCase().includes(q) ||
+    (c.location || '').toLowerCase().includes(q) ||
+    (c.industry || '').toLowerCase().includes(q) ||
+    (c.sales_owner || '').toLowerCase().includes(q)
+  );
+}
+
+function sortContacts(list: Contact[], sortBy: SortBy): Contact[] {
+  return [...list].sort((a, b) => {
+    const nameA = `${a.first_name} ${a.last_name || ''}`.toLowerCase();
+    const nameB = `${b.first_name} ${b.last_name || ''}`.toLowerCase();
+    if (sortBy === 'name-asc')     return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+    if (sortBy === 'name-desc')    return nameA > nameB ? -1 : nameA < nameB ? 1 : 0;
+    if (sortBy === 'created-desc') return (b.created_at ?? '').localeCompare(a.created_at ?? '');
+    if (sortBy === 'created-asc')  return (a.created_at ?? '').localeCompare(b.created_at ?? '');
+    return 0;
+  });
+}
+
+function summarizeSmartGroup(group: SmartGroup, labelName: (id: string) => string): string {
+  if (!group.rules.length) return 'No rules yet — matches nobody.';
+  const sep = group.match_type === 'any' ? '   ·  or  ·   ' : '   ·  and  ·   ';
+  return group.rules.map(r => describeRule(r, labelName)).join(sep);
+}
+
 
 export function Contacts() {
   // Shared state + data from context (provided by ContactsProvider in ContactsShell)
   const {
-    contacts, labels, duplicates, companies, loading,
+    contacts, labels, smartGroups, duplicates, companies, loading,
     currentView, setCurrentView,
     selectedLabelId, setSelectedLabelId,
+    selectedSmartGroupId,
     activeContact, setActiveContact,
     searchQuery, setSearchQuery,
     loadData,
+    handleDeleteSmartGroup,
     openContactModalRef,
     filterOpen,
     sortBy, setSortBy,
     filterLabelIds, setFilterLabelIds,
     exportSelected,
   } = useContacts();
+
+  const navigate = useNavigate();
 
   // Local UI state
   const [activeTab, setActiveTab] = useState<'overview' | 'notes' | 'activity'>('overview');
@@ -413,43 +458,62 @@ export function Contacts() {
     }
   };
 
-  // Filter + Sort Contacts
+  // id -> self + every descendant, so "show me everyone under Clients"
+  // sweeps up VIP, Prospects, etc. (migration 441).
+  const labelDescendants = useMemo(() => labelDescendantMap(labels), [labels]);
+
+  // Filter + Sort Contacts (all views except smart groups, which pull their
+  // own server-evaluated list below).
   const filteredContacts = useMemo(() => {
-    let list = contacts.filter(c => {
+    const labelSet = currentView === 'label' && selectedLabelId
+      ? labelDescendants.get(selectedLabelId) ?? new Set([selectedLabelId])
+      : null;
+
+    const list = contacts.filter(c => {
       if (currentView === 'contacts' && c.status !== 'ACTIVE') return false;
       if (currentView === 'favorites' && (!c.is_favorite || c.status !== 'ACTIVE')) return false;
       if (currentView === 'trash' && c.status !== 'TRASHED') return false;
-      if (currentView === 'label' && (c.status !== 'ACTIVE' || !c.labels.some(l => l.id === selectedLabelId))) return false;
+      if (currentView === 'label' && (c.status !== 'ACTIVE' || !labelSet || !c.labels.some(l => labelSet.has(l.id)))) return false;
 
       if (filterLabelIds.length > 0 && !filterLabelIds.some(id => c.labels.some(l => l.id === id))) return false;
 
-      if (!searchQuery) return true;
-      const q = searchQuery.toLowerCase();
-      const fullName = `${c.first_name} ${c.last_name || ''}`.toLowerCase();
-      return (
-        fullName.includes(q) ||
-        (c.email || '').toLowerCase().includes(q) ||
-        (c.phone || '').toLowerCase().includes(q) ||
-        (c.company || '').toLowerCase().includes(q) ||
-        (c.job_title || '').toLowerCase().includes(q) ||
-        (c.location || '').toLowerCase().includes(q) ||
-        (c.industry || '').toLowerCase().includes(q) ||
-        (c.sales_owner || '').toLowerCase().includes(q)
-      );
+      return contactMatchesQuery(c, searchQuery);
     });
 
-    list = [...list].sort((a, b) => {
-      const nameA = `${a.first_name} ${a.last_name || ''}`.toLowerCase();
-      const nameB = `${b.first_name} ${b.last_name || ''}`.toLowerCase();
-      if (sortBy === 'name-asc')     return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
-      if (sortBy === 'name-desc')    return nameA > nameB ? -1 : nameA < nameB ? 1 : 0;
-      if (sortBy === 'created-desc') return (b.created_at ?? '').localeCompare(a.created_at ?? '');
-      if (sortBy === 'created-asc')  return (a.created_at ?? '').localeCompare(b.created_at ?? '');
-      return 0;
-    });
+    return sortContacts(list, sortBy);
+  }, [contacts, currentView, selectedLabelId, labelDescendants, searchQuery, sortBy, filterLabelIds]);
 
-    return list;
-  }, [contacts, currentView, selectedLabelId, searchQuery, sortBy, filterLabelIds]);
+  // ─── Smart-group view state ──────────────────────────────────────────────
+  // A smart group's membership is computed on the server, so we fetch its
+  // contact list rather than filtering the already-loaded `contacts`.
+  const smartGroup = currentView === 'smartgroup' && selectedSmartGroupId
+    ? smartGroups.find(g => g.id === selectedSmartGroupId) ?? null
+    : null;
+  const creatingSmartGroup = currentView === 'smartgroup' && !selectedSmartGroupId;
+  const [editingSmart, setEditingSmart] = useState(false);
+  const [smartGroupContacts, setSmartGroupContacts] = useState<Contact[] | null>(null);
+  const [smartGroupLoading, setSmartGroupLoading] = useState(false);
+
+  useEffect(() => {
+    setEditingSmart(false);
+    if (currentView === 'smartgroup' && selectedSmartGroupId) {
+      let alive = true;
+      setSmartGroupLoading(true);
+      apiFetch(`/v1/contacts/smart-groups/${selectedSmartGroupId}/contacts`)
+        .then((res: any) => { if (alive) setSmartGroupContacts(Array.isArray(res?.contacts) ? res.contacts : []); })
+        .catch(() => { if (alive) setSmartGroupContacts([]); })
+        .finally(() => { if (alive) setSmartGroupLoading(false); });
+      return () => { alive = false; };
+    }
+    setSmartGroupContacts(null);
+  }, [currentView, selectedSmartGroupId]);
+
+  // What the table actually renders.
+  const displayContacts = useMemo(() => {
+    if (currentView !== 'smartgroup') return filteredContacts;
+    const base = (smartGroupContacts ?? []).filter(c => contactMatchesQuery(c, searchQuery));
+    return sortContacts(base, sortBy);
+  }, [currentView, filteredContacts, smartGroupContacts, searchQuery, sortBy]);
 
   // Toggle Single Selection
   const toggleSelect = (id: string) => {
@@ -463,10 +527,10 @@ export function Contacts() {
 
   // Toggle Select All
   const toggleSelectAll = () => {
-    if (selectedIds.size === filteredContacts.length) {
+    if (selectedIds.size === displayContacts.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredContacts.map(c => c.id)));
+      setSelectedIds(new Set(displayContacts.map(c => c.id)));
     }
   };
 
@@ -478,7 +542,7 @@ export function Contacts() {
   return (
     <div className="cts-page">
       
-      {/* Conditional Rendering: Detail Page vs List View */}
+      {/* Conditional Rendering: Detail Page vs Smart-group editor vs List View */}
         {activeContact ? (
           /* ─── FULL PAGE CONTACT DETAIL VIEW ─── */
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -829,16 +893,54 @@ export function Contacts() {
             </div>
 
           </div>
+        ) : currentView === 'smartgroup' && (creatingSmartGroup || editingSmart) ? (
+          /* ─── SMART GROUP RULE BUILDER ─── */
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 0 0' }}>
+            <SmartGroupEditor
+              group={editingSmart ? smartGroup : null}
+              onDone={(savedId) => {
+                setEditingSmart(false);
+                navigate(savedId ? `/contacts/smart/${savedId}` : '/contacts');
+              }}
+            />
+          </div>
         ) : (
           /* ─── STANDARD CONTACTS LIST / SEARCH / TABLE VIEW ─── */
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-            <div style={{ padding: '20px 0 0' }}>
-              <PageHeader crumbs={['Contacts']} titlePlain="All" titleEm="contacts" subtitle="Everyone you've saved, synced, or tagged in one place." />
-            </div>
+            {currentView === 'smartgroup' ? (
+              <div style={{ padding: '20px 0 0' }}>
+                <PageHeader
+                  crumbs={['Contacts', 'Smart groups']}
+                  title={smartGroup?.name || 'Smart group'}
+                  subtitle={smartGroup ? summarizeSmartGroup(smartGroup, id => labels.find(l => l.id === id)?.name ?? 'label') : 'A saved filter that always shows whoever matches right now.'}
+                  actions={
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button size="sm" variant="secondary" onClick={() => setEditingSmart(true)}>Edit rules</Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        style={{ borderColor: 'var(--red)', color: 'var(--red)' }}
+                        onClick={async () => {
+                          if (!selectedSmartGroupId) return;
+                          await handleDeleteSmartGroup(selectedSmartGroupId);
+                          navigate('/contacts');
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  }
+                />
+              </div>
+            ) : (
+              <div style={{ padding: '20px 0 0' }}>
+                <PageHeader crumbs={['Contacts']} titlePlain="All" titleEm="contacts" subtitle="Everyone you've saved, synced, or tagged in one place." />
+              </div>
+            )}
 
             {/* Filter panel — header section (sort) + body section (labels) */}
-            {filterOpen && (
+            {filterOpen && currentView !== 'smartgroup' && (
               <div className="cts-filter-panel">
                 {/* Header section: Sort — single-select, so the shared
                     segmented ds-tabs (not the multi-select label chips below,
@@ -893,7 +995,7 @@ export function Contacts() {
             {/* Always-visible list bar — contact count + active filter summary */}
             <div className="cts-list-bar">
               <span className="cts-list-bar-count">
-                {loading ? 'Loading…' : `${filteredContacts.length} ${filteredContacts.length === 1 ? 'contact' : 'contacts'}`}
+                {(loading || smartGroupLoading) ? 'Loading…' : `${displayContacts.length} ${displayContacts.length === 1 ? 'contact' : 'contacts'}`}
               </span>
               <div className="cts-list-bar-meta">
                 <span className="cts-list-bar-sort">
@@ -979,7 +1081,7 @@ export function Contacts() {
                       <tr style={{ color: 'var(--ink2)', borderBottom: '1px solid var(--border)', height: 48 }}>
                         <th style={{ width: 48, paddingLeft: 12 }}>
                           <Checkbox
-                            checked={filteredContacts.length > 0 && selectedIds.size === filteredContacts.length}
+                            checked={displayContacts.length > 0 && selectedIds.size === displayContacts.length}
                             onCheckedChange={toggleSelectAll}
                           />
                         </th>
@@ -992,14 +1094,14 @@ export function Contacts() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredContacts.length === 0 ? (
+                      {displayContacts.length === 0 ? (
                         <tr>
                           <td colSpan={7} style={{ textAlign: 'center', padding: 48, color: 'var(--ink2)', fontSize: 14, fontStyle: 'italic' }}>
-                            No contacts found.
+                            {currentView === 'smartgroup' ? 'No contacts match this smart group right now.' : 'No contacts found.'}
                           </td>
                         </tr>
                       ) : (
-                        filteredContacts.map(contact => {
+                        displayContacts.map(contact => {
                           const isSelected = selectedIds.has(contact.id);
                           return (
                             <tr
@@ -1201,36 +1303,41 @@ export function Contacts() {
 
       {/* ── CREATE / EDIT CONTACT MODAL ── */}
       <Dialog open={showEditModal !== null} onOpenChange={o => { if (!o) setShowEditModal(null); }}>
-        <DialogContent className="max-w-140 gap-0" style={{ padding: 32, maxHeight: '90vh', overflowY: 'auto' }}>
+        <DialogContent size="md">
         {showEditModal !== null && (
-          <form onSubmit={handleSaveContact} style={{ position: 'relative' }}>
-            <DialogTitle style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', margin: '0 0 16px' }}>
-              {showEditModal.id ? 'Edit contact' : 'Create contact'}
-            </DialogTitle>
+          <form onSubmit={handleSaveContact} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            <DialogHeader className="border-b-0! pb-0!">
+              <DialogTitle style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>
+                {showEditModal.id ? 'Edit contact' : 'Create contact'}
+              </DialogTitle>
 
-            {/* Step tabs — click any section directly, no strict linear gating */}
-            <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
-              {MODAL_STEPS.map(step => {
-                const on = formStep === step.key;
-                return (
-                  <button
-                    key={step.key}
-                    type="button"
-                    onClick={() => setFormStep(step.key)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 12px',
-                      border: 'none', background: 'none', cursor: 'pointer',
-                      borderBottom: on ? '2.5px solid var(--cts-accent)' : '2.5px solid transparent',
-                      color: on ? 'var(--cts-accent)' : 'var(--ink2)',
-                      fontWeight: 600, fontSize: 13, marginBottom: -1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                  >
-                    <Icon name={step.icon} size={14} color={on ? 'var(--cts-accent)' : 'var(--ink2)'} />
-                    {step.label}
-                  </button>
-                );
-              })}
-            </div>
+              {/* Step tabs — click any section directly, no strict linear gating.
+                  Their own bottom border is the header divider (DialogHeader's
+                  own border is suppressed above, so there's just the one line). */}
+              <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginTop: 2 }}>
+                {MODAL_STEPS.map(step => {
+                  const on = formStep === step.key;
+                  return (
+                    <button
+                      key={step.key}
+                      type="button"
+                      onClick={() => setFormStep(step.key)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 12px',
+                        border: 'none', background: 'none', cursor: 'pointer',
+                        borderBottom: on ? '2.5px solid var(--cts-accent)' : '2.5px solid transparent',
+                        color: on ? 'var(--cts-accent)' : 'var(--ink2)',
+                        fontWeight: 600, fontSize: 13, marginBottom: -1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+                    >
+                      <Icon name={step.icon} size={14} color={on ? 'var(--cts-accent)' : 'var(--ink2)'} />
+                      {step.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </DialogHeader>
 
+            <DialogBody>
             {/* STEP: Profile — avatar + name + favorite */}
             {formStep === 'profile' && (<>
             {/* Profile Avatar Block — an existing contact (has an id) is
@@ -1647,9 +1754,10 @@ export function Contacts() {
               <textarea className="input-field" rows={3} value={formNotes} onChange={e => setFormNotes(e.target.value)} />
             </div>
             </>)}
+            </DialogBody>
 
             {/* Footer — Back / Continue walk through steps; Save works from any step */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between', marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+            <DialogFooter className="justify-between">
               <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(null)}>Cancel</button>
               <div style={{ display: 'flex', gap: 10 }}>
                 {MODAL_STEPS.findIndex(s => s.key === formStep) > 0 && (
@@ -1672,7 +1780,7 @@ export function Contacts() {
                 )}
                 <button type="submit" className="btn btn-primary">Save contact</button>
               </div>
-            </div>
+            </DialogFooter>
           </form>
         )}
         </DialogContent>

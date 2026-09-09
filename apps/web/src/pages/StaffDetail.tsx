@@ -7,7 +7,7 @@ import { apiFetch } from '../lib/api.js';
 import { BackButton } from '../components/ui/BackButton.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Checkbox } from '../components/ui/checkbox.js';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle } from '../components/ui/dialog.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import type { EmpStatus } from '../data/staffData.js';
@@ -1299,13 +1299,13 @@ export const StaffDetail: React.FC = () => {
       {/* Edit Profile Modal */}
       {isEditing && (
         <Dialog open onOpenChange={o => { if (!o) setIsEditing(false); }}>
-          <DialogContent hideClose className="w-full max-w-175 max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogContent hideClose steady className="w-full max-w-175 h-[min(760px,90vh)] flex flex-col p-0 gap-0">
             <DialogHeader style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
               <DialogTitle style={{ fontSize: 18 }}>Edit Employee Profile</DialogTitle>
               <button onClick={() => setIsEditing(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>
             </DialogHeader>
 
-            <div style={{ padding: 24, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <DialogBody style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
 
               <div>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Work Information</h3>
@@ -1556,14 +1556,14 @@ export const StaffDetail: React.FC = () => {
                 </div>
               )}
 
-            </div>
-            
-            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12, background: 'var(--bg)' }}>
+            </DialogBody>
+
+            <DialogFooter style={{ padding: '16px 24px', gap: 12, background: 'var(--bg)' }}>
               <button type="button" onClick={() => setIsEditing(false)} className="btn btn-secondary" style={{ padding: '10px 20px', borderRadius: 8 }}>Cancel</button>
               <button type="button" onClick={handleSave} disabled={saving} className="btn btn-primary">
                 {saving ? 'Saving...' : 'Save Profile'}
               </button>
-            </div>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

@@ -19,7 +19,6 @@ export class ContactsService {
     return withTenant(tenantId, async (trx) => {
       const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
 
-      // Fetch contacts
       const contacts = await trx
         .selectFrom('contacts')
         .selectAll()
@@ -28,38 +27,41 @@ export class ContactsService {
         .orderBy('first_name', 'asc')
         .execute();
 
-      if (contacts.length === 0) return [];
-
-      // Fetch all label mappings for this tenant's contacts
-      const mappings = await trx
-        .selectFrom('contact_label_mappings')
-        .innerJoin('contact_labels', 'contact_labels.id', 'contact_label_mappings.label_id')
-        .select([
-          'contact_label_mappings.contact_id',
-          'contact_labels.id as label_id',
-          'contact_labels.name as label_name'
-        ])
-        .where('contact_labels.tenant_id', '=', resolvedTenantId)
-        .execute();
-
-      // Bulk-fetch every additional email/phone for this tenant's contacts —
-      // one query each, same "fetch all, group in memory" shape the label
-      // mappings above already use, not N+1 per-contact queries.
-      const [allEmails, allPhones] = await Promise.all([
-        trx.selectFrom('contact_emails').selectAll().where('tenant_id', '=', resolvedTenantId).execute(),
-        trx.selectFrom('contact_phones').selectAll().where('tenant_id', '=', resolvedTenantId).execute(),
-      ]);
-
-      // Attach labels/emails/phones to contacts
-      return contacts.map(contact => ({
-        ...contact,
-        labels: mappings
-          .filter(m => m.contact_id === contact.id)
-          .map(m => ({ id: m.label_id, name: m.label_name })),
-        emails: allEmails.filter(e => e.contact_id === contact.id),
-        phones: allPhones.filter(p => p.contact_id === contact.id),
-      }));
+      return this.enrichContacts(trx, resolvedTenantId, contacts);
     });
+  }
+
+  // Attach labels/emails/phones to a set of already-fetched contact rows.
+  // One query per relation, grouped in memory — not N+1 per contact. Shared
+  // by getContacts and getSmartGroupContacts so both return the identical
+  // shape the frontend's Contact type expects.
+  private static async enrichContacts(trx: any, tenantId: string, contacts: any[]) {
+    if (contacts.length === 0) return [];
+
+    const mappings = await trx
+      .selectFrom('contact_label_mappings')
+      .innerJoin('contact_labels', 'contact_labels.id', 'contact_label_mappings.label_id')
+      .select([
+        'contact_label_mappings.contact_id',
+        'contact_labels.id as label_id',
+        'contact_labels.name as label_name',
+      ])
+      .where('contact_labels.tenant_id', '=', tenantId)
+      .execute();
+
+    const [allEmails, allPhones] = await Promise.all([
+      trx.selectFrom('contact_emails').selectAll().where('tenant_id', '=', tenantId).execute(),
+      trx.selectFrom('contact_phones').selectAll().where('tenant_id', '=', tenantId).execute(),
+    ]);
+
+    return contacts.map(contact => ({
+      ...contact,
+      labels: mappings
+        .filter((m: any) => m.contact_id === contact.id)
+        .map((m: any) => ({ id: m.label_id, name: m.label_name })),
+      emails: allEmails.filter((e: any) => e.contact_id === contact.id),
+      phones: allPhones.filter((p: any) => p.contact_id === contact.id),
+    }));
   }
 
   static async logActivity(trx: any, params: {
@@ -367,20 +369,105 @@ export class ContactsService {
     });
   }
 
-  static async createLabel(tenantId: string, name: string) {
+  static async createLabel(tenantId: string, name: string, parentId?: string | null) {
     return withTenant(tenantId, async (trx) => {
       const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
+
+      if (parentId) await this.assertLabelInTenant(trx, resolvedTenantId, parentId);
 
       const [label] = await trx
         .insertInto('contact_labels')
         .values({
           tenant_id: resolvedTenantId,
-          name: name
+          name: name,
+          parent_id: parentId || null,
         })
         .returningAll()
         .execute();
       return label;
     });
+  }
+
+  // Rename and/or re-parent a label. `parent_id` is only touched when the
+  // key is present in `data` (undefined = leave as-is, null = move to
+  // top-level). Re-parenting is rejected if the new parent is the label
+  // itself or one of its own descendants — that would create a cycle the
+  // tree renderer would loop on forever and ON DELETE SET NULL could never
+  // untangle.
+  static async updateLabel(
+    tenantId: string,
+    id: string,
+    data: { name?: string; parent_id?: string | null },
+  ) {
+    return withTenant(tenantId, async (trx) => {
+      const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
+
+      await this.assertLabelInTenant(trx, resolvedTenantId, id);
+
+      const patch: any = {};
+      if (typeof data.name === 'string') {
+        const trimmed = data.name.trim();
+        if (!trimmed) throw new Error('Label name cannot be empty');
+        patch.name = trimmed;
+      }
+
+      if ('parent_id' in data) {
+        const nextParent = data.parent_id || null;
+        if (nextParent) {
+          if (nextParent === id) throw new Error('A label cannot be its own parent');
+          await this.assertLabelInTenant(trx, resolvedTenantId, nextParent);
+          const descendants = await this.labelDescendantIds(trx, resolvedTenantId, id);
+          if (descendants.has(nextParent)) {
+            throw new Error('Cannot move a label underneath one of its own sub-labels');
+          }
+        }
+        patch.parent_id = nextParent;
+      }
+
+      if (Object.keys(patch).length === 0) {
+        return trx.selectFrom('contact_labels').selectAll()
+          .where('tenant_id', '=', resolvedTenantId).where('id', '=', id).executeTakeFirst();
+      }
+
+      const [label] = await trx
+        .updateTable('contact_labels')
+        .set(patch)
+        .where('tenant_id', '=', resolvedTenantId)
+        .where('id', '=', id)
+        .returningAll()
+        .execute();
+      return label;
+    });
+  }
+
+  private static async assertLabelInTenant(trx: any, tenantId: string, id: string) {
+    const row = await trx.selectFrom('contact_labels').select('id')
+      .where('tenant_id', '=', tenantId).where('id', '=', id).executeTakeFirst();
+    if (!row) throw new Error('Label not found');
+  }
+
+  // All ids strictly below `rootId` in the tree (not including rootId).
+  // Iterative breadth-first over one already-loaded flat list, so a
+  // pathological deep or wide tree is still one query.
+  private static async labelDescendantIds(trx: any, tenantId: string, rootId: string): Promise<Set<string>> {
+    const all = await trx.selectFrom('contact_labels').select(['id', 'parent_id'])
+      .where('tenant_id', '=', tenantId).execute();
+    const childrenOf = new Map<string, string[]>();
+    for (const l of all) {
+      if (!l.parent_id) continue;
+      const siblings = childrenOf.get(l.parent_id) ?? [];
+      siblings.push(l.id);
+      childrenOf.set(l.parent_id, siblings);
+    }
+    const out = new Set<string>();
+    const queue = [...(childrenOf.get(rootId) ?? [])];
+    while (queue.length) {
+      const cur = queue.shift()!;
+      if (out.has(cur)) continue;
+      out.add(cur);
+      for (const c of childrenOf.get(cur) ?? []) queue.push(c);
+    }
+    return out;
   }
 
   static async deleteLabel(tenantId: string, id: string) {
@@ -393,6 +480,235 @@ export class ContactsService {
         .where('id', '=', id)
         .execute();
       return { success: true };
+    });
+  }
+
+  // ─── SMART GROUPS ──────────────────────────────────────────────────────────
+  // A smart group is a stored filter with computed membership. Every field
+  // and operator a rule may use is declared here; nothing else compiles.
+  // The frontend rule builder mirrors this catalog (SMART_FIELD_CATALOG in
+  // pages/contacts/smartGroupFields.ts) for its dropdowns, but this is the
+  // one that's authoritative — a rule that isn't in this map is rejected on
+  // save and ignored on evaluation, whatever the client sent.
+
+  private static SMART_FIELDS: Record<string, { kind: 'text' | 'uuid' | 'bool' | 'date' | 'label'; col?: string; ops: string[] }> = {
+    company:        { kind: 'text',  col: 'company',            ops: ['eq', 'neq', 'contains', 'not_contains', 'is_set', 'is_empty'] },
+    job_title:      { kind: 'text',  col: 'job_title',          ops: ['eq', 'neq', 'contains', 'not_contains', 'is_set', 'is_empty'] },
+    industry:       { kind: 'text',  col: 'industry',           ops: ['eq', 'neq', 'contains', 'not_contains', 'is_set', 'is_empty'] },
+    city:           { kind: 'text',  col: 'address_city',       ops: ['eq', 'neq', 'contains', 'not_contains', 'is_set', 'is_empty'] },
+    country:        { kind: 'text',  col: 'address_country',     ops: ['eq', 'neq', 'contains', 'not_contains', 'is_set', 'is_empty'] },
+    source:         { kind: 'text',  col: 'source',             ops: ['eq', 'neq'] },
+    sales_owner_id: { kind: 'uuid',  col: 'sales_owner_id',     ops: ['eq', 'neq', 'is_set', 'is_empty'] },
+    label:          { kind: 'label',                            ops: ['has', 'not_has'] },
+    is_favorite:    { kind: 'bool',  col: 'is_favorite',        ops: ['is_true', 'is_false'] },
+    has_email:      { kind: 'bool',  col: 'email',              ops: ['is_true', 'is_false'] },
+    has_phone:      { kind: 'bool',  col: 'phone',              ops: ['is_true', 'is_false'] },
+    has_birthday:   { kind: 'bool',  col: 'birthday',           ops: ['is_true', 'is_false'] },
+    created:        { kind: 'date',  col: 'created_at',         ops: ['within_days', 'before_days'] },
+    last_contacted: { kind: 'date',  col: 'last_contacted_at',  ops: ['within_days', 'before_days', 'is_empty'] },
+  };
+
+  private static UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  // Compiles one rule to a boolean SQL fragment, or throws (strict, on
+  // save) / returns null (lenient, on evaluation of an already-stored group
+  // whose catalog may have since changed).
+  private static compileSmartRule(rule: any, strict: boolean): any {
+    const bail = (msg: string) => { if (strict) throw new Error(msg); return null; };
+
+    if (!rule || typeof rule !== 'object') return bail('Malformed rule');
+    const spec = this.SMART_FIELDS[rule.field];
+    if (!spec) return bail(`Unknown filter field "${rule.field}"`);
+    if (!spec.ops.includes(rule.op)) return bail(`Operator "${rule.op}" is not valid for "${rule.field}"`);
+
+    const col = spec.col ? sql.ref(`contacts.${spec.col}`) : null;
+    const op = rule.op;
+
+    if (spec.kind === 'text' && col) {
+      if (op === 'is_set')   return sql<boolean>`(${col} IS NOT NULL AND ${col} <> '')`;
+      if (op === 'is_empty') return sql<boolean>`(${col} IS NULL OR ${col} = '')`;
+      const v = typeof rule.value === 'string' ? rule.value.trim() : '';
+      if (!v) return bail(`"${rule.field}" needs a value`);
+      if (v.length > 200) return bail('Filter value is too long');
+      if (op === 'eq')  return sql<boolean>`${col} = ${v}`;
+      if (op === 'neq') return sql<boolean>`(${col} IS NULL OR ${col} <> ${v})`;
+      const like = `%${v.replace(/[\\%_]/g, (m: string) => '\\' + m)}%`;
+      if (op === 'contains')     return sql<boolean>`${col} ILIKE ${like}`;
+      if (op === 'not_contains') return sql<boolean>`(${col} IS NULL OR ${col} NOT ILIKE ${like})`;
+      return bail(`Unhandled operator "${op}"`);
+    }
+
+    if (spec.kind === 'uuid' && col) {
+      if (op === 'is_set')   return sql<boolean>`${col} IS NOT NULL`;
+      if (op === 'is_empty') return sql<boolean>`${col} IS NULL`;
+      const v = typeof rule.value === 'string' ? rule.value.trim() : '';
+      if (!this.UUID_RE.test(v)) return bail(`"${rule.field}" needs a valid selection`);
+      if (op === 'eq')  return sql<boolean>`${col} = ${v}::uuid`;
+      if (op === 'neq') return sql<boolean>`(${col} IS NULL OR ${col} <> ${v}::uuid)`;
+      return bail(`Unhandled operator "${op}"`);
+    }
+
+    if (spec.kind === 'label') {
+      const v = typeof rule.value === 'string' ? rule.value.trim() : '';
+      if (!this.UUID_RE.test(v)) return bail('Pick a label for this rule');
+      const exists = sql<boolean>`EXISTS (SELECT 1 FROM contact_label_mappings m WHERE m.contact_id = contacts.id AND m.label_id = ${v}::uuid)`;
+      return op === 'has' ? exists : sql<boolean>`NOT ${exists}`;
+    }
+
+    if (spec.kind === 'bool' && col) {
+      // is_favorite is a real boolean column; the has_* fields are
+      // "column is populated" checks over email/phone/birthday.
+      const populated = rule.field === 'is_favorite'
+        ? sql<boolean>`${col} IS TRUE`
+        : rule.field === 'has_birthday'
+          ? sql<boolean>`${col} IS NOT NULL`
+          : sql<boolean>`(${col} IS NOT NULL AND ${col} <> '')`;
+      return op === 'is_true' ? populated : sql<boolean>`NOT (${populated})`;
+    }
+
+    if (spec.kind === 'date' && col) {
+      if (op === 'is_empty') return sql<boolean>`${col} IS NULL`;
+      const n = Number(rule.value);
+      if (!Number.isInteger(n) || n < 0 || n > 3650) return bail(`"${rule.field}" needs a whole number of days (0–3650)`);
+      if (op === 'within_days') return sql<boolean>`${col} >= now() - (${n} || ' days')::interval`;
+      if (op === 'before_days') return sql<boolean>`${col} < now() - (${n} || ' days')::interval`;
+      return bail(`Unhandled operator "${op}"`);
+    }
+
+    return bail('Rule could not be compiled');
+  }
+
+  // Combines every rule into one predicate. `strict` throws on the first
+  // bad rule (save path); non-strict drops bad rules and, if nothing
+  // survives, matches nobody rather than everybody.
+  private static buildSmartPredicate(rules: any[], matchType: 'all' | 'any', strict: boolean): any {
+    const parts = (Array.isArray(rules) ? rules : [])
+      .map((r) => this.compileSmartRule(r, strict))
+      .filter((p): p is any => p != null);
+    if (parts.length === 0) return sql<boolean>`false`;
+    const joiner = matchType === 'any' ? sql`\nOR ` : sql`\nAND `;
+    return sql<boolean>`(${sql.join(parts, joiner)})`;
+  }
+
+  static async listSmartGroups(tenantId: string) {
+    return withTenant(tenantId, async (trx) => {
+      const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
+      const groups = await trx.selectFrom('contact_smart_groups').selectAll()
+        .where('tenant_id', '=', resolvedTenantId).orderBy('name', 'asc').execute();
+
+      // A live count per group — small N (groups per tenant), so a count
+      // query each is fine and keeps the sidebar badge honest.
+      const withCounts = [];
+      for (const g of groups) {
+        const rules = this.normalizeRules(g.rules);
+        let count = 0;
+        try {
+          const row = await trx.selectFrom('contacts')
+            .select(sql<string>`count(*)`.as('c'))
+            .where('tenant_id', '=', resolvedTenantId)
+            .where('status', '=', 'ACTIVE')
+            .where(this.buildSmartPredicate(rules, g.match_type as any, false))
+            .executeTakeFirst();
+          count = Number(row?.c ?? 0);
+        } catch { count = 0; }
+        withCounts.push({ ...g, rules, count });
+      }
+      return withCounts;
+    });
+  }
+
+  private static normalizeRules(raw: any): any[] {
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') { try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; } }
+    return [];
+  }
+
+  static async createSmartGroup(
+    tenantId: string,
+    data: { name: string; match_type?: 'all' | 'any'; rules?: any[] },
+    actor?: { id?: string },
+  ) {
+    return withTenant(tenantId, async (trx) => {
+      const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
+      const name = (data.name || '').trim();
+      if (!name) throw new Error('Smart group needs a name');
+      const matchType = data.match_type === 'any' ? 'any' : 'all';
+      const rules = this.normalizeRules(data.rules);
+      // Validate every rule now (strict) so a broken filter can't be saved.
+      this.buildSmartPredicate(rules, matchType, true);
+
+      const [group] = await trx.insertInto('contact_smart_groups').values({
+        tenant_id: resolvedTenantId,
+        name,
+        match_type: matchType,
+        rules: JSON.stringify(rules) as any,
+        created_by: actor?.id || null,
+      }).returningAll().execute();
+      return { ...group, rules, count: 0 };
+    });
+  }
+
+  static async updateSmartGroup(
+    tenantId: string,
+    id: string,
+    data: { name?: string; match_type?: 'all' | 'any'; rules?: any[] },
+  ) {
+    return withTenant(tenantId, async (trx) => {
+      const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
+      const existing = await trx.selectFrom('contact_smart_groups').selectAll()
+        .where('tenant_id', '=', resolvedTenantId).where('id', '=', id).executeTakeFirst();
+      if (!existing) throw new Error('Smart group not found');
+
+      const patch: any = { updated_at: new Date() };
+      if (typeof data.name === 'string') {
+        const n = data.name.trim();
+        if (!n) throw new Error('Smart group needs a name');
+        patch.name = n;
+      }
+      const matchType = (data.match_type ?? existing.match_type) === 'any' ? 'any' : 'all';
+      if (data.match_type !== undefined) patch.match_type = matchType;
+
+      const rules = data.rules !== undefined ? this.normalizeRules(data.rules) : this.normalizeRules(existing.rules);
+      if (data.rules !== undefined) patch.rules = JSON.stringify(rules) as any;
+      // Re-validate the resulting (match_type, rules) pair whenever either changed.
+      if (data.rules !== undefined || data.match_type !== undefined) {
+        this.buildSmartPredicate(rules, matchType, true);
+      }
+
+      const [group] = await trx.updateTable('contact_smart_groups').set(patch)
+        .where('tenant_id', '=', resolvedTenantId).where('id', '=', id).returningAll().execute();
+      return { ...group, rules: this.normalizeRules(group.rules) };
+    });
+  }
+
+  static async deleteSmartGroup(tenantId: string, id: string) {
+    return withTenant(tenantId, async (trx) => {
+      const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
+      await trx.deleteFrom('contact_smart_groups')
+        .where('tenant_id', '=', resolvedTenantId).where('id', '=', id).execute();
+      return { success: true };
+    });
+  }
+
+  static async getSmartGroupContacts(tenantId: string, id: string) {
+    return withTenant(tenantId, async (trx) => {
+      const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
+      const group = await trx.selectFrom('contact_smart_groups').selectAll()
+        .where('tenant_id', '=', resolvedTenantId).where('id', '=', id).executeTakeFirst();
+      if (!group) throw new Error('Smart group not found');
+
+      const rules = this.normalizeRules(group.rules);
+      const contacts = await trx.selectFrom('contacts').selectAll()
+        .where('tenant_id', '=', resolvedTenantId)
+        .where('status', '=', 'ACTIVE')
+        .where(this.buildSmartPredicate(rules, group.match_type as any, false))
+        .orderBy('first_name', 'asc')
+        .execute();
+
+      return {
+        group: { ...group, rules },
+        contacts: await this.enrichContacts(trx, resolvedTenantId, contacts),
+      };
     });
   }
 

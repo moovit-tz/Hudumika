@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { Fragment, useRef, useEffect, useState, type ReactNode } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import '../pages/Contacts.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
@@ -14,9 +14,15 @@ import { ContactsProvider, useContacts } from './contacts-context.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent,
+} from '../components/ui/dropdown-menu.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
+import { showPrompt } from '../lib/prompt.js';
+import { buildLabelForest, flattenForest, invalidParentIds, type LabelNode } from '../pages/contacts/labelTree.js';
 
 const GOOGLE_OAUTH_STATE_KEY = 'hudumika_google_contacts_oauth_state';
 const MICROSOFT_OAUTH_STATE_KEY = 'hudumika_outlook_contacts_oauth_state';
@@ -270,7 +276,7 @@ function OutlookSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced
 const VIEW_PATH: Record<string, string> = { contacts: '', favorites: 'favorites', merge: 'merge', trash: 'trash' };
 
 function useContactsUrlSync() {
-  const { setCurrentView, setSelectedLabelId } = useContacts();
+  const { setCurrentView, setSelectedLabelId, setSelectedSmartGroupId } = useContacts();
   const location = useLocation();
 
   useEffect(() => {
@@ -279,18 +285,28 @@ function useContactsUrlSync() {
     if (seg === 'label' && parts[1]) {
       setCurrentView('label');
       setSelectedLabelId(parts[1]);
+      setSelectedSmartGroupId(null);
+    } else if (seg === 'smart') {
+      // /contacts/smart/new  or  /contacts/smart/:id
+      setCurrentView('smartgroup');
+      setSelectedLabelId(null);
+      setSelectedSmartGroupId(parts[1] && parts[1] !== 'new' ? parts[1] : null);
     } else if (seg === 'favorites' || seg === 'starred') {
       setCurrentView('favorites');
       setSelectedLabelId(null);
+      setSelectedSmartGroupId(null);
     } else if (seg === 'merge') {
       setCurrentView('merge');
       setSelectedLabelId(null);
+      setSelectedSmartGroupId(null);
     } else if (seg === 'trash') {
       setCurrentView('trash');
       setSelectedLabelId(null);
+      setSelectedSmartGroupId(null);
     } else if (!seg) {
       setCurrentView('contacts');
       setSelectedLabelId(null);
+      setSelectedSmartGroupId(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
@@ -298,15 +314,26 @@ function useContactsUrlSync() {
 
 function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
   const {
-    contacts, labels, duplicates,
+    contacts, labels, smartGroups, duplicates,
     currentView, setCurrentView,
     selectedLabelId, setSelectedLabelId,
+    selectedSmartGroupId, setSelectedSmartGroupId,
     activeContact, setActiveContact,
-    handleDeleteLabel, handleImportCSV, handleExportCSV, handleExportVCard, loadData,
+    handleDeleteLabel, handleUpdateLabel, handleDeleteSmartGroup,
+    handleImportCSV, handleExportCSV, handleExportVCard, loadData,
     showNewLabelModal, setShowNewLabelModal,
-    newLabelName, setNewLabelName, handleCreateLabel,
+    newLabelName, setNewLabelName, newLabelParentId, setNewLabelParentId, handleCreateLabel,
     openContactModalRef,
   } = useContacts();
+
+  // Which parent labels are collapsed in the sidebar tree (persisted only
+  // for the session; a small convenience, not state worth storing).
+  const [collapsedLabels, setCollapsedLabels] = useState<Set<string>>(new Set());
+  const toggleCollapse = (id: string) => setCollapsedLabels(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   const navigate = useNavigate();
   useContactsUrlSync();
@@ -338,9 +365,101 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
   const nav = (view: string, labelId?: string) => {
     setCurrentView(view as any);
     setSelectedLabelId(labelId ?? null);
+    setSelectedSmartGroupId(null);
     setActiveContact(null);
     const path = view === 'label' ? `label/${labelId}` : (VIEW_PATH[view] ?? '');
     navigate(path ? `/contacts/${path}` : '/contacts');
+  };
+
+  const navSmart = (groupId: string | null) => {
+    setCurrentView('smartgroup');
+    setSelectedLabelId(null);
+    setSelectedSmartGroupId(groupId);
+    setActiveContact(null);
+    navigate(groupId ? `/contacts/smart/${groupId}` : '/contacts/smart/new');
+  };
+
+  const labelForest = buildLabelForest(labels);
+  const flatLabels = flattenForest(labelForest);
+
+  const renderLabelNode = (node: LabelNode): ReactNode => {
+    const { label, depth, children } = node;
+    const hasKids = children.length > 0;
+    const isCollapsed = collapsedLabels.has(label.id);
+    const active = currentView === 'label' && selectedLabelId === label.id && !activeContact;
+    const blocked = invalidParentIds(labels, label.id); // self + descendants — illegal as a new parent
+
+    return (
+      <Fragment key={label.id}>
+        <div className={`csb-label-row${active ? ' csb-label-row--on' : ''}`} style={{ paddingLeft: depth * 14 }}>
+          {hasKids ? (
+            <button
+              type="button"
+              className="csb-label-twist"
+              onClick={() => toggleCollapse(label.id)}
+              title={isCollapsed ? 'Expand' : 'Collapse'}
+            >
+              <Icon name={isCollapsed ? 'chevronRight' : 'chevronDown'} size={12} />
+            </button>
+          ) : (
+            <span className="csb-label-twist csb-label-twist--leaf" />
+          )}
+          <button type="button" className="csb-label-btn" onClick={() => nav('label', label.id)}>
+            <Icon name={hasKids ? (isCollapsed ? 'folder' : 'folderOpen') : 'tag'} size={14} />
+            <span className="csb-label-name">{label.name}</span>
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="csb-label-del" title="Label options">
+                <Icon name="moreVertical" size={13} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="right">
+              <DropdownMenuItem
+                onClick={async () => {
+                  const next = await showPrompt('Rename label', {
+                    title: 'Rename label', defaultValue: label.name, confirmLabel: 'Rename', required: true,
+                  });
+                  if (next && next !== label.name) handleUpdateLabel(label.id, { name: next });
+                }}
+              >
+                Rename…
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setNewLabelParentId(label.id); setShowNewLabelModal(true); }}>
+                Add sub-label…
+              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Move to…</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem
+                    disabled={!label.parent_id}
+                    onClick={() => handleUpdateLabel(label.id, { parent_id: null })}
+                  >
+                    Top level
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {flatLabels
+                    .filter(n => !blocked.has(n.label.id) && n.label.id !== label.parent_id)
+                    .map(n => (
+                      <DropdownMenuItem
+                        key={n.label.id}
+                        onClick={() => handleUpdateLabel(label.id, { parent_id: n.label.id })}
+                      >
+                        {' '.repeat(n.depth * 2)}{n.label.name}
+                      </DropdownMenuItem>
+                    ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-[var(--red)]" onClick={() => handleDeleteLabel(label.id)}>
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        {hasKids && !isCollapsed && children.map(c => renderLabelNode(c))}
+      </Fragment>
+    );
   };
 
   const mainItems: { key: string; label: string; icon: IconName; count: number; badge: boolean }[] = [
@@ -359,12 +478,7 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
           onClick={() => openContactModalRef.current(null)}
           title="Create contact"
         >
-          <svg width="22" height="22" viewBox="0 0 36 36" aria-hidden="true">
-            <path fill="#34A853" d="M16 16v14h4V20z"/>
-            <path fill="#4285F4" d="M30 16H20v4h14z"/>
-            <path fill="#FBBC05" d="M6 16v4h10v-4z"/>
-            <path fill="#EA4335" d="M20 16V6h-4v10z"/>
-          </svg>
+          <Icon name="plus" size={18} strokeWidth={2.5} color="var(--cts-accent)" />
           {!collapsed && <span>Create contact</span>}
         </button>
       </div>
@@ -399,7 +513,7 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
         })}
       </nav>
 
-      {/* Labels */}
+      {/* Labels — nested tree (migration 441) */}
       {!collapsed && (
         <div className="csb-labels">
           <div className="csb-labels-hdr">
@@ -407,36 +521,59 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
             <button
               type="button"
               className="csb-labels-add"
-              onClick={() => setShowNewLabelModal(true)}
+              onClick={() => { setNewLabelParentId(null); setShowNewLabelModal(true); }}
               title="Create label"
             >
               <Icon name="plus" size={13} />
             </button>
           </div>
           <div className="csb-labels-list">
-            {labels.map(label => {
-              const active = currentView === 'label' && selectedLabelId === label.id && !activeContact;
+            {labelForest.map(node => renderLabelNode(node))}
+            {labels.length === 0 && <div className="csb-smart-empty">No labels yet</div>}
+          </div>
+        </div>
+      )}
+
+      {/* Smart groups — saved filters with live membership (migration 442) */}
+      {!collapsed && (
+        <div className="csb-labels">
+          <div className="csb-labels-hdr">
+            <span className="csb-labels-title">Smart groups</span>
+            <button
+              type="button"
+              className="csb-labels-add"
+              onClick={() => navSmart(null)}
+              title="New smart group"
+            >
+              <Icon name="plus" size={13} />
+            </button>
+          </div>
+          <div className="csb-labels-list">
+            {smartGroups.map(g => {
+              const active = currentView === 'smartgroup' && selectedSmartGroupId === g.id && !activeContact;
               return (
-                <div key={label.id} className={`csb-label-row${active ? ' csb-label-row--on' : ''}`}>
-                  <button
-                    type="button"
-                    className="csb-label-btn"
-                    onClick={() => nav('label', label.id)}
-                  >
-                    <Icon name="tag" size={14} />
-                    <span className="csb-label-name">{label.name}</span>
+                <div key={g.id} className={`csb-label-row${active ? ' csb-label-row--on' : ''}`}>
+                  <span className="csb-label-twist csb-label-twist--leaf" />
+                  <button type="button" className="csb-label-btn" onClick={() => navSmart(g.id)}>
+                    <Icon name="wand" size={14} />
+                    <span className="csb-label-name">{g.name}</span>
+                    {typeof g.count === 'number' && <span className="csb-nav-count">{g.count}</span>}
                   </button>
                   <button
                     type="button"
                     className="csb-label-del"
-                    onClick={() => handleDeleteLabel(label.id)}
-                    title="Delete label"
+                    onClick={async () => {
+                      await handleDeleteSmartGroup(g.id);
+                      if (selectedSmartGroupId === g.id) navigate('/contacts');
+                    }}
+                    title="Delete smart group"
                   >
                     <Icon name="x" size={11} />
                   </button>
                 </div>
               );
             })}
+            {smartGroups.length === 0 && <div className="csb-smart-empty">No smart groups yet</div>}
           </div>
         </div>
       )}
@@ -499,11 +636,26 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
               placeholder="Label name"
               autoFocus
             />
+            <label className="csb-modal-label">Parent label</label>
+            <Select
+              value={newLabelParentId ?? '__root__'}
+              onValueChange={v => setNewLabelParentId(v === '__root__' ? null : v)}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__root__">No parent (top level)</SelectItem>
+                {flatLabels.map(n => (
+                  <SelectItem key={n.label.id} value={n.label.id}>
+                    {' '.repeat(n.depth * 2)}{n.label.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <div className="csb-modal-btns">
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                onClick={() => setShowNewLabelModal(false)}
+                onClick={() => { setShowNewLabelModal(false); setNewLabelParentId(null); }}
               >
                 Cancel
               </button>
@@ -556,6 +708,8 @@ export function ContactsShell() {
                   <Route path="merge"         element={<Contacts />} />
                   <Route path="trash"         element={<Contacts />} />
                   <Route path="label/:labelId" element={<Contacts />} />
+                  <Route path="smart/new"      element={<Contacts />} />
+                  <Route path="smart/:groupId" element={<Contacts />} />
                 </Route>
                 <Route path="google/callback" element={<ContactsGoogleCallback />} />
                 <Route path="outlook/callback" element={<ContactsOutlookCallback />} />

@@ -97,6 +97,7 @@ import { StudioShell } from './shells/StudioShell.js';
 import { OnsiteShell } from './shells/OnsiteShell.js';
 import { HuduBIShell } from './shells/HuduBIShell.js';
 import { SignShell } from './shells/SignShell.js';
+import { DeveloperShell } from './shells/DeveloperShell.js';
 import { SignPublicPage } from './pages/sign/SignPublicPage.js';
 import { SignVerifyPage } from './pages/sign/SignVerifyPage.js';
 import { BookingPublicPage } from './pages/BookingPublicPage.js';
@@ -464,6 +465,8 @@ const AppContentBody: React.FC = () => {
           <Route path="/hudubi/*"    element={<HuduBIShell />} />
           <Route path="/petti/*"     element={<PettiShell />} />
           <Route path="/sms/*"       element={<SmsShell />} />
+          <Route path="/developer/*" element={<DeveloperShell />} />
+          <Route path="/dev/*"       element={<Navigate to="/developer" replace />} />
 
           {/* Legacy redirects for old routes */}
           <Route path="/billing"         element={<Navigate to="/finance/invoices"        replace />} />

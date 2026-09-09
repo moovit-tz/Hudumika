@@ -13,7 +13,7 @@ import { Badge } from '../components/ui/badge.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { useEntitlements } from '../hooks/useEntitlements.js';
-import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle } from '../components/ui/dialog.js';
 
 // The three real Studio triggers OAuth/SSO events emit (studio/triggers.ts) —
 // a Studio automation bound to one of these actually fires when this exact
@@ -340,26 +340,29 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
 
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
-      <DialogContent hideClose className="max-w-140 gap-0" style={{ maxHeight: '88vh', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-          <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{existing ? `Finish setup — ${existing.name}` : 'Connect a SAML identity provider'}</DialogTitle>
-          <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
-        </div>
+      <DialogContent hideClose size="md">
+        <DialogHeader>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{existing ? `Finish setup — ${existing.name}` : 'Connect a SAML identity provider'}</DialogTitle>
+            <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
+          </div>
 
-        {/* Step rail */}
-        <div style={{ display: 'flex', gap: 6, margin: '14px 0 20px' }}>
-          {STEP_ORDER.map((s, i) => {
-            const active = s === step;
-            const done = STEP_ORDER.indexOf(step) > i;
-            return (
-              <div key={s} style={{ flex: 1, textAlign: 'center' }}>
-                <div style={{ height: 3, borderRadius: 2, background: active || done ? 'var(--teal)' : 'var(--border)', marginBottom: 6 }} />
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: active ? 'var(--teal)' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{STEP_LABELS[s]}</div>
-              </div>
-            );
-          })}
-        </div>
+          {/* Step rail */}
+          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+            {STEP_ORDER.map((s, i) => {
+              const active = s === step;
+              const done = STEP_ORDER.indexOf(step) > i;
+              return (
+                <div key={s} style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ height: 3, borderRadius: 2, background: active || done ? 'var(--teal)' : 'var(--border)', marginBottom: 6 }} />
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: active ? 'var(--teal)' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{STEP_LABELS[s]}</div>
+                </div>
+              );
+            })}
+          </div>
+        </DialogHeader>
 
+        <DialogBody>
         {error && <div style={{ background: 'var(--red-l, #fef2f2)', color: 'var(--red)', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, marginBottom: 14 }}>{error}</div>}
 
         {/* Step 1 — name it */}
@@ -381,12 +384,6 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 6 }}>Just picks which setup instructions to show you next — every provider here speaks the same SAML 2.0 underneath.</div>
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
-              <button type="button" onClick={onClose} style={btnGhost}>Cancel</button>
-              <button type="button" onClick={createAndContinue} disabled={saving || !name.trim()} style={{ ...btnPrimary, opacity: (saving || !name.trim()) ? 0.6 : 1 }}>
-                {saving ? 'Creating…' : 'Continue'}
-              </button>
-            </div>
           </div>
         )}
 
@@ -405,12 +402,6 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
                   <li key={i} style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.5 }}>{s}</li>
                 ))}
               </ol>
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
-              <button type="button" onClick={() => setStep('basics')} style={btnGhost}>Back</button>
-              <button type="button" onClick={() => setStep('their-side')} style={btnPrimary}>
-                I've done that — continue
-              </button>
             </div>
           </div>
         )}
@@ -433,13 +424,6 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
               <label style={labelStyle}>IdP signing certificate (X.509, PEM)</label>
               <textarea required value={idpCertificate} onChange={e => setIdpCertificate(e.target.value)} placeholder="-----BEGIN CERTIFICATE-----…" style={{ ...inputStyle, height: 90, resize: 'vertical', fontFamily: 'var(--mono)', fontSize: 11.5 }} />
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
-              <button type="button" onClick={() => setStep('your-side')} style={btnGhost}>Back</button>
-              <button type="button" onClick={saveIdpDetails} disabled={saving || !idpEntityId.trim() || !idpSsoUrl.trim() || !idpCertificate.trim()}
-                style={{ ...btnPrimary, opacity: (saving || !idpEntityId.trim() || !idpSsoUrl.trim() || !idpCertificate.trim()) ? 0.6 : 1 }}>
-                {saving ? 'Saving…' : 'Save & continue'}
-              </button>
-            </div>
           </div>
         )}
 
@@ -461,12 +445,40 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
             </label>
             <CopyRow label="ACS / Reply URL" value={acsUrl} />
             <CopyRow label="Entity ID / Audience URI" value={metadataUrl} />
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
-              <button type="button" onClick={() => setStep('their-side')} style={btnGhost}>Back</button>
-              <button type="button" onClick={() => { onSaved(); onClose(); }} style={btnPrimary}>Done</button>
-            </div>
           </div>
         )}
+        </DialogBody>
+
+        <DialogFooter className="justify-between">
+          <button
+            type="button"
+            onClick={step === 'basics' ? onClose : () => setStep(STEP_ORDER[STEP_ORDER.indexOf(step) - 1])}
+            style={btnGhost}
+          >
+            {step === 'basics' ? 'Cancel' : 'Back'}
+          </button>
+          {step === 'basics' && (
+            <button type="button" onClick={createAndContinue} disabled={saving || !name.trim()} style={{ ...btnPrimary, opacity: (saving || !name.trim()) ? 0.6 : 1 }}>
+              {saving ? 'Creating…' : 'Continue'}
+            </button>
+          )}
+          {step === 'your-side' && (
+            <button type="button" onClick={() => setStep('their-side')} style={btnPrimary}>I've done that — continue</button>
+          )}
+          {step === 'their-side' && (
+            <button
+              type="button"
+              onClick={saveIdpDetails}
+              disabled={saving || !idpEntityId.trim() || !idpSsoUrl.trim() || !idpCertificate.trim()}
+              style={{ ...btnPrimary, opacity: (saving || !idpEntityId.trim() || !idpSsoUrl.trim() || !idpCertificate.trim()) ? 0.6 : 1 }}
+            >
+              {saving ? 'Saving…' : 'Save & continue'}
+            </button>
+          )}
+          {step === 'test' && (
+            <button type="button" onClick={() => { onSaved(); onClose(); }} style={btnPrimary}>Done</button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

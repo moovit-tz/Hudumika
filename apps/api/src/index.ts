@@ -207,6 +207,7 @@ import { bookingPublicRoutes } from './routes/booking.routes.js';
 import { calendarSyncRoutes } from './routes/calendar-sync.routes.js';
 import { smsRoutes, smsWebhookRoutes } from './routes/sms.routes.js';
 import { setupGuideRoutes } from './routes/setup-guide.routes.js';
+import { developerRoutes } from './routes/developer.routes.js';
 
 const server = fastify({
   logger: {
@@ -670,6 +671,7 @@ export async function registerApp() {
     await server.register(smsRoutes, { prefix: '/v1/sms' });
     await server.register(smsWebhookRoutes, { prefix: '/v1/sms/webhook' });
     await server.register(setupGuideRoutes, { prefix: '/v1/setup-guide' });
+    await server.register(developerRoutes, { prefix: '/v1/developer' });
 
 
     // Health check
