@@ -7,10 +7,15 @@ import {
   buildGoogleAuthUrl, exchangeGoogleCode, refreshGoogleAccessToken,
   getGoogleAccountEmail, fetchAllGoogleContacts, type GoogleContact,
 } from '../integrations/google-contacts.js';
+import {
+  buildMicrosoftAuthUrl, exchangeMicrosoftCode, refreshMicrosoftAccessToken,
+  getMicrosoftAccountEmail, fetchAllMicrosoftContacts, type MicrosoftContact,
+} from '../integrations/microsoft-contacts.js';
 import { env } from '../config/env.js';
 import { decryptSecret } from '../services/onsite-secrets.service.js';
 
 const GOOGLE_REDIRECT_URI = `${env.OPS_BOARD_URL}/contacts/google/callback`;
+const MICROSOFT_REDIRECT_URI = `${env.OPS_BOARD_URL}/contacts/outlook/callback`;
 
 async function getGoogleCreds(tenantId: string): Promise<{ clientId: string; clientSecret: string } | null> {
   const row = await withTenant(tenantId, trx => trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst());
@@ -29,6 +34,20 @@ async function getGoogleCreds(tenantId: string): Promise<{ clientId: string; cli
   const clientId = String(g.oauthId).trim().replace(/^["']|["']$/g, '').trim();
   if (!clientId) return null;
   return { clientId, clientSecret: decryptSecret(g.oauthSecret) };
+}
+
+/** Same shape as getGoogleCreds — own `int-microsoft` settings key since
+ *  mail-oauth.routes.ts/calendar-sync.routes.ts each already register a
+ *  separate Azure app for their own scopes; this follows that convention
+ *  rather than trying to unify three OAuth registrations in one pass. */
+async function getMicrosoftCreds(tenantId: string): Promise<{ clientId: string; clientSecret: string } | null> {
+  const row = await withTenant(tenantId, trx => trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst());
+  const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+  const m = settings?.['int-microsoft'];
+  if (!m?.oauthId || !m?.oauthSecret) return null;
+  const clientId = String(m.oauthId).trim().replace(/^["']|["']$/g, '').trim();
+  if (!clientId) return null;
+  return { clientId, clientSecret: decryptSecret(m.oauthSecret) };
 }
 
 /** Ensures the connection's access token is valid, refreshing it first if it has expired. */
@@ -79,6 +98,66 @@ async function upsertGoogleContacts(trx: Transaction<Database>, tenantId: string
         tenant_id: tenantId,
         source: 'google_sync',
         external_id: gc.externalId,
+        status: 'ACTIVE',
+        is_favorite: false,
+        ...values,
+      } as any).execute();
+    }
+    count++;
+  }
+  return count;
+}
+
+/** Same shape as ensureFreshToken above, kept separate rather than made
+ *  generic — Google's own working refresh path stays untouched by this
+ *  addition rather than risking a shared-function regression. */
+async function ensureFreshMicrosoftToken(
+  trx: Transaction<Database>,
+  tenantId: string,
+  connection: { id: string; access_token: string; refresh_token: string | null; token_expires_at: Date | null },
+  creds: { clientId: string; clientSecret: string },
+): Promise<string> {
+  const expired = connection.token_expires_at && new Date(connection.token_expires_at).getTime() < Date.now() + 60_000;
+  if (!expired) return connection.access_token;
+  if (!connection.refresh_token) throw new Error('Microsoft connection expired and has no refresh token — please reconnect.');
+
+  const refreshed = await refreshMicrosoftAccessToken(creds.clientId, creds.clientSecret, connection.refresh_token);
+  await trx.updateTable('contact_sync_connections').set({
+    access_token: refreshed.access_token,
+    token_expires_at: new Date(Date.now() + refreshed.expires_in * 1000),
+    updated_at: new Date(),
+  }).where('id', '=', connection.id).execute();
+  return refreshed.access_token;
+}
+
+async function upsertMicrosoftContacts(trx: Transaction<Database>, tenantId: string, contacts: MicrosoftContact[]): Promise<number> {
+  let count = 0;
+  for (const mc of contacts) {
+    const existing = await trx.selectFrom('contacts').select('id')
+      .where('tenant_id', '=', tenantId).where('source', '=', 'outlook_sync').where('external_id', '=', mc.externalId)
+      .executeTakeFirst();
+
+    const values = {
+      first_name: mc.firstName,
+      last_name: mc.lastName,
+      email: mc.email,
+      phone: mc.phone,
+      company: mc.company,
+      job_title: mc.jobTitle,
+      avatar_url: mc.avatarUrl,
+      website: mc.website,
+      birthday: mc.birthday ? new Date(mc.birthday) : null,
+      synced_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    if (existing) {
+      await trx.updateTable('contacts').set(values).where('id', '=', existing.id).execute();
+    } else {
+      await trx.insertInto('contacts').values({
+        tenant_id: tenantId,
+        source: 'outlook_sync',
+        external_id: mc.externalId,
         status: 'ACTIVE',
         is_favorite: false,
         ...values,
@@ -215,6 +294,136 @@ export async function contactsSyncRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       await trx.deleteFrom('contact_sync_connections')
         .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).where('provider', '=', 'google').execute();
+      reply.status(204);
+      return null;
+    });
+  });
+
+  // ── Outlook (Microsoft 365) ──────────────────────────────────────
+  // Same 5-route shape as Google above, deliberately — status/auth-url/
+  // callback/sync/disconnect, contact_sync_connections' own provider column
+  // (VARCHAR(20), no CHECK constraint) already accepts 'outlook' with no
+  // schema change needed.
+
+  fastify.get('/outlook/status', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const conn = await trx.selectFrom('contact_sync_connections').selectAll()
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).where('provider', '=', 'outlook')
+        .executeTakeFirst();
+      const creds = await getMicrosoftCreds(user.tenant_id);
+      return {
+        configured: !!creds,
+        connected: !!conn,
+        email: conn?.external_account_email ?? null,
+        last_synced_at: conn?.last_synced_at ?? null,
+        last_sync_status: conn?.last_sync_status ?? null,
+        last_sync_error: conn?.last_sync_error ?? null,
+        contacts_synced_count: conn?.contacts_synced_count ?? 0,
+      };
+    });
+  });
+
+  fastify.get('/outlook/auth-url', async (request, reply) => {
+    const user = request.user;
+    const creds = await getMicrosoftCreds(user.tenant_id);
+    if (!creds) {
+      reply.status(400);
+      return { error: 'Microsoft OAuth Client ID/Secret aren\'t configured yet — set them in Settings ▸ Integrations ▸ Microsoft first.' };
+    }
+    const state = crypto.randomBytes(16).toString('hex');
+    return { url: buildMicrosoftAuthUrl(creds.clientId, MICROSOFT_REDIRECT_URI, state), state, redirect_uri: MICROSOFT_REDIRECT_URI };
+  });
+
+  fastify.post<{ Body: { code: string } }>('/outlook/callback', async (request, reply) => {
+    const user = request.user;
+    const creds = await getMicrosoftCreds(user.tenant_id);
+    if (!creds) {
+      reply.status(400);
+      return { error: 'Microsoft OAuth Client ID/Secret aren\'t configured.' };
+    }
+
+    try {
+      const tokens = await exchangeMicrosoftCode(creds.clientId, creds.clientSecret, MICROSOFT_REDIRECT_URI, request.body.code);
+      const email = await getMicrosoftAccountEmail(tokens.access_token);
+
+      return await withTenant(user.tenant_id, async (trx) => {
+        const existing = await trx.selectFrom('contact_sync_connections').select('id')
+          .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).where('provider', '=', 'outlook').executeTakeFirst();
+
+        const row = {
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+          token_expires_at: new Date(Date.now() + tokens.expires_in * 1000),
+          external_account_email: email,
+          updated_at: new Date(),
+        };
+
+        const connId = existing
+          ? (await trx.updateTable('contact_sync_connections').set(row).where('id', '=', existing.id).returning('id').executeTakeFirstOrThrow()).id
+          : (await trx.insertInto('contact_sync_connections').values({
+              tenant_id: user.tenant_id, user_id: user.sub, provider: 'outlook', ...row,
+            } as any).returning('id').executeTakeFirstOrThrow()).id;
+
+        try {
+          const msContacts = await fetchAllMicrosoftContacts(tokens.access_token);
+          const count = await upsertMicrosoftContacts(trx, user.tenant_id, msContacts);
+          await trx.updateTable('contact_sync_connections').set({
+            last_synced_at: new Date(), last_sync_status: 'success', last_sync_error: null, contacts_synced_count: count,
+          }).where('id', '=', connId).execute();
+          return { connected: true, email, synced: count };
+        } catch (syncErr: any) {
+          await trx.updateTable('contact_sync_connections').set({
+            last_synced_at: new Date(), last_sync_status: 'failed', last_sync_error: syncErr.message,
+          }).where('id', '=', connId).execute();
+          return { connected: true, email, synced: 0, sync_error: syncErr.message };
+        }
+      });
+    } catch (err: any) {
+      reply.status(400);
+      return { error: err.message || 'Failed to connect Microsoft account' };
+    }
+  });
+
+  fastify.post('/outlook/sync', async (request, reply) => {
+    const user = request.user;
+    const creds = await getMicrosoftCreds(user.tenant_id);
+    if (!creds) {
+      reply.status(400);
+      return { error: 'Microsoft OAuth Client ID/Secret aren\'t configured.' };
+    }
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const conn = await trx.selectFrom('contact_sync_connections').selectAll()
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).where('provider', '=', 'outlook').executeTakeFirst();
+      if (!conn) {
+        reply.status(404);
+        return { error: 'No Microsoft connection — connect your account first.' };
+      }
+
+      try {
+        const accessToken = await ensureFreshMicrosoftToken(trx, user.tenant_id, conn, creds);
+        const msContacts = await fetchAllMicrosoftContacts(accessToken);
+        const count = await upsertMicrosoftContacts(trx, user.tenant_id, msContacts);
+        await trx.updateTable('contact_sync_connections').set({
+          last_synced_at: new Date(), last_sync_status: 'success', last_sync_error: null, contacts_synced_count: count,
+        }).where('id', '=', conn.id).execute();
+        return { synced: count };
+      } catch (err: any) {
+        await trx.updateTable('contact_sync_connections').set({
+          last_synced_at: new Date(), last_sync_status: 'failed', last_sync_error: err.message,
+        }).where('id', '=', conn.id).execute();
+        reply.status(502);
+        return { error: err.message || 'Sync failed' };
+      }
+    });
+  });
+
+  fastify.delete('/outlook/connection', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('contact_sync_connections')
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).where('provider', '=', 'outlook').execute();
       reply.status(204);
       return null;
     });

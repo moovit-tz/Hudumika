@@ -27,6 +27,7 @@ import { runSignAnchorConfirmJob } from './sign-anchor-confirm.job.js';
 import { runSignAnchorStampJob } from './sign-anchor-stamp.job.js';
 import { runNotesReminderJob } from './notes-reminder.job.js';
 import { runTaskReminderJob } from './task-reminder.job.js';
+import { runContactBirthdayReminderJob } from './contact-birthday-reminder.job.js';
 import { runNotesPurgeJob } from './notes-purge.job.js';
 import { runCalendarReminderJob } from './calendar-reminder.job.js';
 import { runCalendarExternalSyncJob } from './calendar-external-sync.job.js';
@@ -80,6 +81,7 @@ export const JOB_REGISTRY: { name: string; schedule: string; fallbackOnly?: bool
   { name: 'Notes Trash Purge', schedule: 'Daily at 02:30' },
   { name: 'Calendar Reminders', schedule: 'Every 5 minutes' },
   { name: 'Calendar External Sync', schedule: 'Every 15 minutes' },
+  { name: 'Contact Birthday Reminders', schedule: 'Daily at 08:00' },
   { name: 'GPSWOX Fleet Sync', schedule: 'Every 2 minutes' },
   { name: 'Workflow Auto-Comms', schedule: 'Every 2 minutes' },
   { name: 'SEAL Ledger Anchor (Bitcoin)', schedule: 'Daily' },
@@ -296,6 +298,8 @@ function startBullMQ(): void {
           await runCalendarReminderJob();
         } else if (job.name === 'calendar-external-sync') {
           await runCalendarExternalSyncJob();
+        } else if (job.name === 'contact-birthday-reminder') {
+          await runContactBirthdayReminderJob();
         }
       },
       { connection: redisConnection as any }
@@ -558,6 +562,14 @@ function startBullMQ(): void {
       repeat: { every: 15 * 60 * 1000 } // Every 15 minutes
     }).catch(console.error);
 
+    // Contact birthday reminders — a birthday is day-granularity, not
+    // minute-granularity like the reminders above; daily is the real
+    // resolution this needs. birthday_notified_year (439) guards against
+    // re-firing the same day if this ever runs twice.
+    reminderQueue.add('contact-birthday-reminder', {}, {
+      repeat: { pattern: '0 8 * * *' } // Daily at 8:00 AM
+    }).catch(console.error);
+
     gpswoxQueue.add('sync', {}, {
       repeat: { every: 2 * 60 * 1000 } // Every 2 minutes — GPSWOX device position/alert sync
     }).catch(console.error);
@@ -639,6 +651,7 @@ function startIntervalFallback(): void {
   runNotesReminderJob().catch(console.error);
   runTaskReminderJob().catch(console.error);
   runCalendarReminderJob().catch(console.error);
+  runContactBirthdayReminderJob().catch(console.error);
   runCalendarExternalSyncJob().catch(console.error);
   runRecurringDocumentsJob().catch(console.error);
   runTaskRecurrenceJob().catch(console.error);
@@ -668,6 +681,13 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runCalendarReminderJob().catch(console.error);
   }, 5 * 60 * 1000);
+
+  // Contact birthday reminders — day-granularity, not minute-granularity;
+  // every 6 hours is plenty, and birthday_notified_year (439) makes a
+  // repeat call within the same day a safe no-op.
+  setInterval(() => {
+    runContactBirthdayReminderJob().catch(console.error);
+  }, 6 * 60 * 60 * 1000);
 
   // External Google/Outlook calendar pull — see the BullMQ registration
   // above for why 15 minutes.

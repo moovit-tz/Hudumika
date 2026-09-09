@@ -38,6 +38,12 @@ const SECRET_FIELDS_BY_KEY: Record<string, readonly string[]> = {
   email: ['pass', 'outlookClientSecret', 'gmailClientSecret'],
   ticketImap: ['pass'],
   'int-google': ['rcSecret', 'oauthSecret'],
+  // Contacts' own Outlook sync app registration (contacts-sync.routes.ts) —
+  // same shape as int-google directly above, its own top-level key rather
+  // than reusing calendarSync's (a different Azure app/scope: Contacts.Read,
+  // not Calendars.Read, and calendar-sync.routes.ts's own connections are
+  // keyed to that separate registration already).
+  'int-microsoft': ['oauthSecret'],
   // Google/Outlook Calendar sync app registration (calendar-sync.routes.ts)
   // — same split as settings.email above: the OAuth app's client_id/secret
   // are tenant-level config here; the per-user access/refresh tokens that

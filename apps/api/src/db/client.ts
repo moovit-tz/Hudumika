@@ -5291,6 +5291,8 @@ export interface Database {
   hr_wellness_programs: HrWellnessProgramsTable;
   // Contacts App
   contacts: ContactsTable;
+  contact_emails: ContactEmailsTable;
+  contact_phones: ContactPhonesTable;
   contact_labels: ContactLabelsTable;
   contact_label_mappings: ContactLabelMappingsTable;
   contact_activity_log: ContactActivityLogTable;
@@ -7879,6 +7881,42 @@ export interface ContactsTable {
   source: Generated<string>;
   external_id: string | null;
   synced_at: Date | null;
+  // Migration 438 — structured address, additive alongside the existing
+  // freeform `location`.
+  address_street: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_postal_code: string | null;
+  address_country: string | null;
+  // Migration 438 — a real user reference; `sales_owner` (above) stays as
+  // the fallback label for a name that doesn't resolve to a real account.
+  sales_owner_id: string | null;
+  // Migration 439 — which year this contact's birthday reminder last fired.
+  birthday_notified_year: number | null;
+}
+
+/** Migration 438. contacts.email stays the primary value — every existing
+ *  dedup/import/sync path keeps working unmodified; this holds every value
+ *  beyond the first. */
+export interface ContactEmailsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  contact_id: string;
+  label: Generated<'work' | 'personal' | 'other'>;
+  email: string;
+  is_primary: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+/** Migration 438 — same shape as ContactEmailsTable, for phone. */
+export interface ContactPhonesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  contact_id: string;
+  label: Generated<'work' | 'mobile' | 'home' | 'other'>;
+  phone: string;
+  is_primary: Generated<boolean>;
+  created_at: Generated<Date>;
 }
 
 export interface ContactSyncConnectionsTable {

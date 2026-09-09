@@ -5,7 +5,8 @@ import { apiFetch } from '../lib/api.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useContacts } from '../shells/contacts-context.js';
-import type { Contact, ContactActivityEntry } from '../shells/contacts-context.js';
+import type { Contact, ContactActivityEntry, ContactEmail, ContactPhone } from '../shells/contacts-context.js';
+import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
@@ -24,6 +25,19 @@ const MODAL_STEPS: { key: 'profile' | 'contact' | 'business' | 'extra'; label: s
   { key: 'extra',    label: 'Labels & Notes', icon: 'tag'      },
 ];
 
+// Real team-member search — same /v1/hr/staff endpoint TasksApp's assignee
+// picker already uses, so "Sales Owner" resolves to a real user account
+// (CLAUDE.md's PersonAvatar convention) instead of the old free-text input.
+async function searchStaff(q: string): Promise<PickerItem[]> {
+  const rows = await apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`).catch(() => []);
+  return (rows || []).map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
+}
+
+type EmailRow = { id?: string; label: 'work' | 'personal' | 'other'; email: string };
+type PhoneRow = { id?: string; label: 'work' | 'mobile' | 'home' | 'other'; phone: string };
+const emptyEmailRow = (): EmailRow => ({ label: 'other', email: '' });
+const emptyPhoneRow = (): PhoneRow => ({ label: 'other', phone: '' });
+
 
 export function Contacts() {
   // Shared state + data from context (provided by ContactsProvider in ContactsShell)
@@ -38,6 +52,7 @@ export function Contacts() {
     filterOpen,
     sortBy, setSortBy,
     filterLabelIds, setFilterLabelIds,
+    exportSelected,
   } = useContacts();
 
   // Local UI state
@@ -74,7 +89,22 @@ export function Contacts() {
   const [formIndustry, setFormIndustry] = useState('');
   const [formCompanySize, setFormCompanySize] = useState('');
   const [formSalesOwner, setFormSalesOwner] = useState('');
+  const [formSalesOwnerId, setFormSalesOwnerId] = useState<string | null>(null);
+  const [formSalesOwnerPicker, setFormSalesOwnerPicker] = useState<PickerItem | null>(null);
   const [formLastContactedAt, setFormLastContactedAt] = useState('');
+
+  // Multi-value emails/phones beyond the single primary field above — the
+  // real contact_emails/contact_phones tables (438_contacts_gap_closure.sql),
+  // additive to the scalar email/phone columns which stay authoritative.
+  const [formExtraEmails, setFormExtraEmails] = useState<EmailRow[]>([]);
+  const [formExtraPhones, setFormExtraPhones] = useState<PhoneRow[]>([]);
+
+  // Structured address — additive to the existing freeform `location` text.
+  const [formAddrStreet, setFormAddrStreet] = useState('');
+  const [formAddrCity, setFormAddrCity] = useState('');
+  const [formAddrState, setFormAddrState] = useState('');
+  const [formAddrPostalCode, setFormAddrPostalCode] = useState('');
+  const [formAddrCountry, setFormAddrCountry] = useState('');
 
   // Modal step (long form broken into sections; free navigation between them)
   const [formStep, setFormStep] = useState<'profile' | 'contact' | 'business' | 'extra'>('profile');
@@ -117,7 +147,21 @@ export function Contacts() {
       setFormIndustry(contact.industry || '');
       setFormCompanySize(contact.company_size || '');
       setFormSalesOwner(contact.sales_owner || '');
+      setFormSalesOwnerId(contact.sales_owner_id || null);
+      setFormSalesOwnerPicker(contact.sales_owner_id ? { id: contact.sales_owner_id, label: contact.sales_owner || 'Owner' } : null);
       setFormLastContactedAt(contact.last_contacted_at ? contact.last_contacted_at.split('T')[0] : '');
+
+      // Extra emails/phones — exclude whichever row happens to match the
+      // primary scalar value, so the same address doesn't show up twice
+      // (once as "Email" above, once again in "Additional emails").
+      setFormExtraEmails((contact.emails || []).filter(e => e.email !== contact.email).map(e => ({ id: e.id, label: e.label, email: e.email })));
+      setFormExtraPhones((contact.phones || []).filter(p => p.phone !== contact.phone).map(p => ({ id: p.id, label: p.label, phone: p.phone })));
+
+      setFormAddrStreet(contact.address_street || '');
+      setFormAddrCity(contact.address_city || '');
+      setFormAddrState(contact.address_state || '');
+      setFormAddrPostalCode(contact.address_postal_code || '');
+      setFormAddrCountry(contact.address_country || '');
     } else {
       // Create mode
       setShowEditModal({} as Contact);
@@ -140,7 +184,17 @@ export function Contacts() {
       setFormIndustry('');
       setFormCompanySize('');
       setFormSalesOwner('');
+      setFormSalesOwnerId(null);
+      setFormSalesOwnerPicker(null);
       setFormLastContactedAt('');
+
+      setFormExtraEmails([]);
+      setFormExtraPhones([]);
+      setFormAddrStreet('');
+      setFormAddrCity('');
+      setFormAddrState('');
+      setFormAddrPostalCode('');
+      setFormAddrCountry('');
     }
   };
 
@@ -152,6 +206,19 @@ export function Contacts() {
   const handleSaveContact = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showEditModal) return;
+
+    // Full replace, same convention as label_ids above — the primary row
+    // (if set) rides along so its is_primary flag stays correct (see
+    // ContactsService.syncEmailsAndPhones, which marks is_primary by
+    // comparing each row to this same scalar email/phone).
+    const emails = [
+      ...(formEmail.trim() ? [{ label: 'work' as const, email: formEmail.trim() }] : []),
+      ...formExtraEmails.filter(e => e.email.trim()).map(e => ({ label: e.label, email: e.email.trim() })),
+    ];
+    const phones = [
+      ...(formPhone.trim() ? [{ label: 'work' as const, phone: formPhone.trim() }] : []),
+      ...formExtraPhones.filter(p => p.phone.trim()).map(p => ({ label: p.label, phone: p.phone.trim() })),
+    ];
 
     const body: Record<string, unknown> = {
       first_name: formFirstName,
@@ -169,8 +236,16 @@ export function Contacts() {
       website: formWebsite,
       industry: formIndustry,
       company_size: formCompanySize,
-      sales_owner: formSalesOwner,
+      sales_owner: formSalesOwnerPicker?.label ?? formSalesOwner,
+      sales_owner_id: formSalesOwnerId,
       last_contacted_at: formLastContactedAt || null,
+      emails,
+      phones,
+      address_street: formAddrStreet || null,
+      address_city: formAddrCity || null,
+      address_state: formAddrState || null,
+      address_postal_code: formAddrPostalCode || null,
+      address_country: formAddrCountry || null,
     };
 
     try {
@@ -528,6 +603,32 @@ export function Contacts() {
                         {activeContact.location || 'No location'}
                       </span>
                     </div>
+
+                    {/* Additional emails/phones — real contact_emails/contact_phones
+                        rows beyond the primary shown above */}
+                    {(activeContact.emails || []).filter(e => e.email !== activeContact.email).map(e => (
+                      <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Icon name="mail" size={14} color="var(--ink3)" />
+                        <span style={{ fontSize: 12.5, color: 'var(--ink)' }}>{e.email}</span>
+                        <Badge variant="gray">{e.label}</Badge>
+                      </div>
+                    ))}
+                    {(activeContact.phones || []).filter(p => p.phone !== activeContact.phone).map(p => (
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Icon name="phone" size={14} color="var(--ink3)" />
+                        <span style={{ fontSize: 12.5, color: 'var(--ink)' }}>{p.phone}</span>
+                        <Badge variant="gray">{p.label}</Badge>
+                      </div>
+                    ))}
+
+                    {(activeContact.address_street || activeContact.address_city || activeContact.address_country) && (
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                        <Icon name="mapPin" size={14} color="var(--ink3)" />
+                        <span style={{ fontSize: 12.5, color: 'var(--ink)' }}>
+                          {[activeContact.address_street, activeContact.address_city, activeContact.address_state, activeContact.address_postal_code, activeContact.address_country].filter(Boolean).join(', ')}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                 </div>
@@ -613,7 +714,16 @@ export function Contacts() {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 24px' }}>
                           <div>
                             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Sales Owner</div>
-                            <div style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 500 }}>{activeContact.sales_owner || '—'}</div>
+                            {activeContact.sales_owner_id ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <PersonAvatar userId={activeContact.sales_owner_id} name={activeContact.sales_owner || ''} size={22} />
+                                <span style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 500 }}>{activeContact.sales_owner || '—'}</span>
+                              </div>
+                            ) : activeContact.sales_owner ? (
+                              <div style={{ fontSize: 14, color: 'var(--ink2)', fontStyle: 'italic' }}>{activeContact.sales_owner} (unlinked)</div>
+                            ) : (
+                              <div style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 500 }}>—</div>
+                            )}
                           </div>
                           <div>
                             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Last Contacted</div>
@@ -837,6 +947,19 @@ export function Contacts() {
                     </DropdownMenuContent>
                   </DropdownMenu>
 
+                  {/* Export selection */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, cursor: 'pointer', background: 'var(--white)', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                        Export…
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => exportSelected('csv', Array.from(selectedIds))}>Export as CSV</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => exportSelected('vcf', Array.from(selectedIds))}>Export as vCard</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -1034,7 +1157,10 @@ export function Contacts() {
                       {duplicates.map((group, index) => (
                         <div key={index} className="card" style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
                           <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 12, fontWeight: 600 }}>
-                            Duplicate {group.type === 'email' ? 'email' : 'phone'}: {group.value}
+                            {group.type === 'email' && `Duplicate email: ${group.value}`}
+                            {group.type === 'phone' && `Duplicate phone: ${group.value}`}
+                            {group.type === 'phone_normalized' && `Same phone number, different format (…${group.value})`}
+                            {group.type === 'name_similarity' && 'Similar name — possible duplicate'}
                           </div>
 
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16, marginBottom: 16 }}>
@@ -1241,7 +1367,7 @@ export function Contacts() {
 
             {/* STEP: Contact — email, phone, location, birthday */}
             {formStep === 'contact' && (<>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 8 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Email</label>
                 <input className="input-field" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
@@ -1251,6 +1377,54 @@ export function Contacts() {
                 <input className="input-field" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
               </div>
             </div>
+
+            {/* Additional emails/phones — extra rows beyond the primary above */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div>
+                {formExtraEmails.map((row, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                    <Select value={row.label} onValueChange={v => setFormExtraEmails(prev => prev.map((r, j) => j === i ? { ...r, label: v as EmailRow['label'] } : r))}>
+                      <SelectTrigger className="input-field" style={{ height: 36, padding: '0 8px', width: 92, flexShrink: 0 }}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="work">Work</SelectItem>
+                        <SelectItem value="personal">Personal</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <input className="input-field" type="email" placeholder="Additional email" value={row.email} onChange={e => setFormExtraEmails(prev => prev.map((r, j) => j === i ? { ...r, email: e.target.value } : r))} />
+                    <button type="button" onClick={() => setFormExtraEmails(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
+                      <Icon name="x" size={14} color="var(--ink3)" />
+                    </button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setFormExtraEmails(prev => [...prev, emptyEmailRow()])} style={{ border: 'none', background: 'none', color: 'var(--cts-accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+                  + Add another email
+                </button>
+              </div>
+              <div>
+                {formExtraPhones.map((row, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                    <Select value={row.label} onValueChange={v => setFormExtraPhones(prev => prev.map((r, j) => j === i ? { ...r, label: v as PhoneRow['label'] } : r))}>
+                      <SelectTrigger className="input-field" style={{ height: 36, padding: '0 8px', width: 92, flexShrink: 0 }}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="work">Work</SelectItem>
+                        <SelectItem value="mobile">Mobile</SelectItem>
+                        <SelectItem value="home">Home</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <input className="input-field" placeholder="Additional phone" value={row.phone} onChange={e => setFormExtraPhones(prev => prev.map((r, j) => j === i ? { ...r, phone: e.target.value } : r))} />
+                    <button type="button" onClick={() => setFormExtraPhones(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
+                      <Icon name="x" size={14} color="var(--ink3)" />
+                    </button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setFormExtraPhones(prev => [...prev, emptyPhoneRow()])} style={{ border: 'none', background: 'none', color: 'var(--cts-accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+                  + Add another phone
+                </button>
+              </div>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Location</label>
@@ -1259,6 +1433,35 @@ export function Contacts() {
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Birthday</label>
                 <DatePicker date={parseDateOnly(formBirthday)} onChange={d => setFormBirthday(toDateOnlyString(d))} />
+              </div>
+            </div>
+
+            {/* Structured address — additive to the freeform Location above */}
+            <h4 style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.5px', borderBottom: '1px solid var(--border)', paddingBottom: 6, marginBottom: 12 }}>
+              Address
+            </h4>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Street</label>
+              <input className="input-field" value={formAddrStreet} onChange={e => setFormAddrStreet(e.target.value)} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>City</label>
+                <input className="input-field" value={formAddrCity} onChange={e => setFormAddrCity(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>State / Region</label>
+                <input className="input-field" value={formAddrState} onChange={e => setFormAddrState(e.target.value)} />
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Postal Code</label>
+                <input className="input-field" value={formAddrPostalCode} onChange={e => setFormAddrPostalCode(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Country</label>
+                <input className="input-field" value={formAddrCountry} onChange={e => setFormAddrCountry(e.target.value)} />
               </div>
             </div>
             </>)}
@@ -1349,7 +1552,21 @@ export function Contacts() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Sales Owner</label>
-                <input className="input-field" value={formSalesOwner} onChange={e => setFormSalesOwner(e.target.value)} />
+                <EntityPicker
+                  value={formSalesOwnerPicker}
+                  onChange={item => {
+                    setFormSalesOwnerPicker(item);
+                    setFormSalesOwnerId(item?.id ?? null);
+                    if (item) setFormSalesOwner(item.label);
+                  }}
+                  search={searchStaff}
+                  placeholder="Search team members…"
+                />
+                {!formSalesOwnerPicker && formSalesOwner && (
+                  <div style={{ marginTop: 4, fontSize: 11, color: 'var(--ink3)' }}>
+                    Previously recorded as "{formSalesOwner}" — not linked to an account yet
+                  </div>
+                )}
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Last Contacted Date</label>

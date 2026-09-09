@@ -166,6 +166,49 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Export contacts — mirrors the CSV/vCard shapes /import already accepts,
+  // so a round-trip (export, edit, re-import) works. `?ids=` is an optional
+  // comma-separated list to export a selection; omitted means "all active".
+  fastify.get('/export.csv', async (request: any, reply) => {
+    try {
+      const tenantId = request.user.tenant_id;
+      const { ids } = request.query as { ids?: string };
+      const csv = await ContactsService.exportToCSV(tenantId, ids ? ids.split(',').filter(Boolean) : undefined);
+      reply.header('Content-Type', 'text/csv; charset=utf-8');
+      reply.header('Content-Disposition', `attachment; filename="contacts-${new Date().toISOString().slice(0, 10)}.csv"`);
+      return reply.send(csv);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/export.vcf', async (request: any, reply) => {
+    try {
+      const tenantId = request.user.tenant_id;
+      const { ids } = request.query as { ids?: string };
+      const vcf = await ContactsService.exportToVCard(tenantId, ids ? ids.split(',').filter(Boolean) : undefined);
+      reply.header('Content-Type', 'text/vcard; charset=utf-8');
+      reply.header('Content-Disposition', `attachment; filename="contacts-${new Date().toISOString().slice(0, 10)}.vcf"`);
+      return reply.send(vcf);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Upcoming birthdays — powers a "Birthdays" widget; the actual reminder
+  // notification is a separate daily job (contact-birthday-reminder.job.ts),
+  // this just lets the UI show what's coming without waiting for that job.
+  fastify.get('/birthdays', async (request: any, reply) => {
+    try {
+      const tenantId = request.user.tenant_id;
+      const { within } = request.query as { within?: string };
+      const withinDays = within ? Math.max(0, Math.min(365, parseInt(within, 10) || 30)) : 30;
+      return await ContactsService.getUpcomingBirthdays(tenantId, withinDays);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
   // Import contacts — real multipart file upload (CSV or vCard .vcf), not
   // the old client-parsed-JSON-array shape. Any contact manager that can
   // export CSV or .vcf (Outlook, Apple Contacts, phone contact apps, a

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiDownload } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 
@@ -23,6 +23,20 @@ export interface ContactActivityEntry {
   created_at: string;
 }
 
+export interface ContactEmail {
+  id: string;
+  label: 'work' | 'personal' | 'other';
+  email: string;
+  is_primary: boolean;
+}
+
+export interface ContactPhone {
+  id: string;
+  label: 'work' | 'mobile' | 'home' | 'other';
+  phone: string;
+  is_primary: boolean;
+}
+
 export interface Contact {
   id: string;
   first_name: string;
@@ -43,12 +57,24 @@ export interface Contact {
   industry: string | null;
   company_size: string | null;
   sales_owner: string | null;
+  sales_owner_id: string | null;
   last_contacted_at: string | null;
   created_at?: string;
+  emails?: ContactEmail[];
+  phones?: ContactPhone[];
+  address_street?: string | null;
+  address_city?: string | null;
+  address_state?: string | null;
+  address_postal_code?: string | null;
+  address_country?: string | null;
 }
 
 export interface DuplicateGroup {
-  type: 'email' | 'phone';
+  // 'phone_normalized' catches the same number in different formats
+  // (+255…/0…); 'name_similarity' is a real pg_trgm fuzzy match — see
+  // ContactsService.getDuplicates's own comments for why both exist
+  // alongside plain exact email/phone matching.
+  type: 'email' | 'phone' | 'phone_normalized' | 'name_similarity';
   value: string;
   contacts: Contact[];
 }
@@ -77,6 +103,8 @@ export interface ContactsCtxValue {
   handleDeleteLabel: (id: string) => Promise<void>;
   handleImportCSV: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleExportCSV: () => void;
+  handleExportVCard: () => void;
+  exportSelected: (format: 'csv' | 'vcf', ids: string[]) => void;
   showNewLabelModal: boolean;
   setShowNewLabelModal: (v: boolean) => void;
   newLabelName: string;
@@ -114,6 +142,8 @@ export const ContactsCtx = createContext<ContactsCtxValue>({
   handleDeleteLabel: noopAsync,
   handleImportCSV: noop,
   handleExportCSV: noop,
+  handleExportVCard: noop,
+  exportSelected: noop,
   showNewLabelModal: false,
   setShowNewLabelModal: noop,
   newLabelName: '',
@@ -226,23 +256,27 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [loadData]);
 
-  const handleExportCSV = useCallback(() => {
+  // Real server-side export (ContactsService.exportToCSV/exportToVCard) — a
+  // round-trip through the actual export format (including the multi-value
+  // emails/phones and structured address the old client-only CSV built here
+  // never had, since it only ever saw the summary fields already loaded into
+  // this context) rather than a second, weaker re-implementation in the
+  // browser. apiDownload already carries the session cookie + auth-refresh
+  // retry every other file download in the app uses (identity.ts, OndiKyc).
+  const downloadExport = useCallback(async (format: 'csv' | 'vcf', ids?: string[]) => {
     const active = contacts.filter(c => c.status === 'ACTIVE');
-    if (active.length === 0) { showAlert('No active contacts to export.'); return; }
-    const headers = ['First Name','Last Name','Email','Phone','Company','Job Title','Notes','Location','Website','Industry','Company Size','Sales Owner'];
-    const rows = active.map(c => [
-      c.first_name, c.last_name||'', c.email||'', c.phone||'', c.company||'',
-      c.job_title||'', c.notes||'', c.location||'', c.website||'',
-      c.industry||'', c.company_size||'', c.sales_owner||'',
-    ]);
-    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = 'contacts_export.csv';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    if (!ids && active.length === 0) { showAlert('No active contacts to export.'); return; }
+    try {
+      const qs = ids && ids.length > 0 ? `?ids=${ids.join(',')}` : '';
+      await apiDownload(`/v1/contacts/export.${format}${qs}`, `contacts-${new Date().toISOString().slice(0, 10)}.${format}`);
+    } catch (err: any) {
+      showAlert(err.message || 'Export failed');
+    }
   }, [contacts]);
+
+  const handleExportCSV = useCallback(() => { downloadExport('csv'); }, [downloadExport]);
+  const handleExportVCard = useCallback(() => { downloadExport('vcf'); }, [downloadExport]);
+  const exportSelected = useCallback((format: 'csv' | 'vcf', ids: string[]) => { downloadExport(format, ids); }, [downloadExport]);
 
   const handleCreateLabel = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -265,7 +299,7 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
       activeContact, setActiveContact,
       searchQuery, setSearchQuery,
       loadData,
-      handleDeleteLabel, handleImportCSV, handleExportCSV,
+      handleDeleteLabel, handleImportCSV, handleExportCSV, handleExportVCard, exportSelected,
       showNewLabelModal, setShowNewLabelModal,
       newLabelName, setNewLabelName, handleCreateLabel,
       openContactModalRef,

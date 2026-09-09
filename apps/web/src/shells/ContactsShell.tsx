@@ -9,14 +9,17 @@ import { PageLayout } from '../components/PageLayout.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Contacts } from '../pages/Contacts.js';
 import { ContactsGoogleCallback } from '../pages/ContactsGoogleCallback.js';
+import { ContactsOutlookCallback } from '../pages/ContactsOutlookCallback.js';
 import { ContactsProvider, useContacts } from './contacts-context.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 
 const GOOGLE_OAUTH_STATE_KEY = 'hudumika_google_contacts_oauth_state';
+const MICROSOFT_OAUTH_STATE_KEY = 'hudumika_outlook_contacts_oauth_state';
 
 interface GoogleStatus {
   configured: boolean;
@@ -136,6 +139,128 @@ function GoogleSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced:
   );
 }
 
+interface MicrosoftStatus {
+  configured: boolean;
+  connected: boolean;
+  email: string | null;
+  last_synced_at: string | null;
+  last_sync_status: string | null;
+  last_sync_error: string | null;
+  contacts_synced_count: number;
+}
+
+/** Same shape as GoogleSyncItem — real Microsoft 365/Outlook OAuth + Graph
+ * API connection, kept as its own component rather than a shared
+ * "ProviderSyncItem" for the same reason contacts-sync.routes.ts keeps
+ * ensureFreshMicrosoftToken separate from Google's: two providers'
+ * copy-pasted UI is safer to touch than one genericized version risking
+ * both. */
+function OutlookSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState<MicrosoftStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  function loadStatus() {
+    setLoading(true);
+    apiFetch('/v1/contacts/outlook/status').then(setStatus).catch(() => setStatus(null)).finally(() => setLoading(false));
+  }
+
+  useEffect(() => { if (open) loadStatus(); }, [open]);
+
+  async function handleConnect() {
+    setBusy(true);
+    try {
+      const res = await apiFetch('/v1/contacts/outlook/auth-url');
+      sessionStorage.setItem(MICROSOFT_OAUTH_STATE_KEY, res.state);
+      window.location.href = res.url;
+    } catch (err: any) {
+      showAlert(err.message || 'Could not start Outlook sign-in.');
+      setBusy(false);
+    }
+  }
+
+  async function handleSync() {
+    setBusy(true);
+    try {
+      const res = await apiFetch('/v1/contacts/outlook/sync', { method: 'POST' });
+      showAlert(`Synced ${res.synced} contact${res.synced === 1 ? '' : 's'} from Outlook.`);
+      loadStatus();
+      onSynced();
+    } catch (err: any) {
+      showAlert(err.message || 'Sync failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDisconnect() {
+    setBusy(true);
+    try {
+      await apiFetch('/v1/contacts/outlook/connection', { method: 'DELETE' });
+      loadStatus();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to disconnect.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`csb-sys-item${collapsed ? ' csb-sys-item--icon' : ''}`}
+          title={collapsed ? 'Outlook sync' : undefined}
+        >
+          <span className="csb-nav-icon"><Icon name="mail" size={15} /></span>
+          {!collapsed && <span>Outlook sync</span>}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" side="right" className="w-72 p-3">
+        <div className="text-sm font-semibold text-foreground mb-2">Outlook Contacts</div>
+        {loading || !status ? (
+          <SectionLoading />
+        ) : !status.configured ? (
+          <div className="text-xs text-muted-foreground leading-relaxed">
+            Not set up yet — add a Microsoft OAuth Client ID/Secret in
+            {' '}<a href="/workspace/settings?s=int-microsoft" className="text-primary font-semibold">Settings ▸ Integrations ▸ Microsoft</a>{' '}
+            first.
+          </div>
+        ) : !status.connected ? (
+          <>
+            <div className="text-xs text-muted-foreground mb-3">Import and keep your contacts in sync with your real Microsoft 365/Outlook account.</div>
+            <button type="button" className="btn btn-primary btn-sm w-full" disabled={busy} onClick={handleConnect}>
+              {busy ? 'Redirecting…' : 'Connect Outlook Account'}
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="text-xs text-foreground font-medium">{status.email}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {status.last_synced_at
+                ? `Last synced ${new Date(status.last_synced_at).toLocaleString()} · ${status.contacts_synced_count} contacts`
+                : 'Not synced yet'}
+            </div>
+            {status.last_sync_status === 'failed' && status.last_sync_error && (
+              <div className="text-xs text-destructive mt-1">{status.last_sync_error}</div>
+            )}
+            <div className="flex gap-2 mt-3">
+              <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={handleSync}>
+                {busy ? 'Syncing…' : 'Sync Now'}
+              </button>
+              <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={handleDisconnect}>
+                Disconnect
+              </button>
+            </div>
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 // ── Sidebar content rendered inside AppSidebar via fillNav ─────────────────
 
 // Keeps `currentView`/`selectedLabelId` in sync with the URL, both ways —
@@ -177,7 +302,7 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
     currentView, setCurrentView,
     selectedLabelId, setSelectedLabelId,
     activeContact, setActiveContact,
-    handleDeleteLabel, handleImportCSV, handleExportCSV, loadData,
+    handleDeleteLabel, handleImportCSV, handleExportCSV, handleExportVCard, loadData,
     showNewLabelModal, setShowNewLabelModal,
     newLabelName, setNewLabelName, handleCreateLabel,
     openContactModalRef,
@@ -195,6 +320,11 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
     const p = new URLSearchParams(location.search);
     if (p.get('googleConnected') === '1') {
       showAlert(`Google account connected — imported ${p.get('synced') ?? 0} contacts.`);
+      navigate('/contacts', { replace: true });
+      loadData();
+    }
+    if (p.get('outlookConnected') === '1') {
+      showAlert(`Outlook account connected — imported ${p.get('synced') ?? 0} contacts.`);
       navigate('/contacts', { replace: true });
       loadData();
     }
@@ -328,15 +458,23 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
           />
         </label>
         <GoogleSyncItem collapsed={collapsed} onSynced={loadData} />
-        <button
-          type="button"
-          className={`csb-sys-item${collapsed ? ' csb-sys-item--icon' : ''}`}
-          onClick={handleExportCSV}
-          title={collapsed ? 'Export' : undefined}
-        >
-          <span className="csb-nav-icon"><Icon name="download" size={15} /></span>
-          {!collapsed && <span>Export</span>}
-        </button>
+        <OutlookSyncItem collapsed={collapsed} onSynced={loadData} />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className={`csb-sys-item${collapsed ? ' csb-sys-item--icon' : ''}`}
+              title={collapsed ? 'Export' : undefined}
+            >
+              <span className="csb-nav-icon"><Icon name="download" size={15} /></span>
+              {!collapsed && <span>Export</span>}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="right">
+            <DropdownMenuItem onClick={handleExportCSV}>Export as CSV</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportVCard}>Export as vCard (.vcf)</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <button
           type="button"
           className={`csb-sys-item${currentView === 'trash' && !activeContact ? ' csb-sys-item--on' : ''}${collapsed ? ' csb-sys-item--icon' : ''}`}
@@ -420,6 +558,7 @@ export function ContactsShell() {
                   <Route path="label/:labelId" element={<Contacts />} />
                 </Route>
                 <Route path="google/callback" element={<ContactsGoogleCallback />} />
+                <Route path="outlook/callback" element={<ContactsOutlookCallback />} />
                 <Route path="*" element={<Navigate to="/contacts" replace />} />
               </Routes>
             </div>

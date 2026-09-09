@@ -99,6 +99,10 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
   ]},
   { group: 'Integrations', icon: 'globe', items: [
     { key: 'int-google',         label: 'Google',               icon: 'globe'         },
+    // Own OAuth app, same reasoning as mail-oauth.routes.ts/calendar-sync.routes.ts
+    // each registering their own — this one backs contacts-sync.routes.ts's
+    // real Outlook/Microsoft 365 contact sync (Contacts app ▸ Outlook sync).
+    { key: 'int-microsoft',      label: 'Microsoft',            icon: 'globe'         },
     // 'int-ai' and 'int-openai' were two NAV rows pointing at the exact same
     // component and the exact same settings key (OpenAISection / 'int-ai')
     // — not two settings, one form shown twice. Kept the one label that
@@ -1418,6 +1422,31 @@ const GoogleSection: React.FC = () => {
         <Field label="OAuth Client ID"><input className="input-field" value={f.oauthId} onChange={e => set('oauthId', e.target.value)} /></Field>
         <Field label="OAuth Client Secret"><input className="input-field" type="password" value={f.oauthSecret} onChange={e => set('oauthSecret', e.target.value)} /></Field>
       </Card>
+      <SaveRow saving={saving} saved={saved} onSave={handleSave} />
+    </>
+  );
+};
+
+// -- section: Microsoft -------------------------------------------------------
+/** Backs contacts-sync.routes.ts's Outlook/Microsoft 365 contact sync
+ * (getMicrosoftCreds reads oauthId/oauthSecret from this same 'int-microsoft'
+ * key). Deliberately its own settings section rather than folded into
+ * GoogleSection — mail-oauth.routes.ts and calendar-sync.routes.ts each
+ * already register their own separate Azure AD app under their own keys for
+ * the same reason (different scopes/consent screens per feature). */
+const MicrosoftSection: React.FC = () => {
+  const [f, set] = useSettingsFields('int-microsoft', { oauthId: '', oauthSecret: '' });
+  const { save } = useContext(SettingsCtx);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  async function handleSave() { setSaving(true); try { await save('int-microsoft', { ...f }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
+  return (
+    <>
+      <Card title="Microsoft OAuth (Outlook contact sync)" desc="A real Azure AD app registration — create one at portal.azure.com and grant it the Contacts.Read and User.Read delegated permissions.">
+        <Field label="Application (Client) ID"><input className="input-field" value={f.oauthId} onChange={e => set('oauthId', e.target.value)} /></Field>
+        <Field label="Client Secret"><input className="input-field" type="password" value={f.oauthSecret} onChange={e => set('oauthSecret', e.target.value)} /></Field>
+      </Card>
+      <p className="s-fld-hint" style={{ margin: '4px 2px 0' }}>Until both are saved here, "Connect Outlook Account" in Contacts ▸ Outlook sync stays disabled.</p>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
   );
@@ -3000,6 +3029,7 @@ function renderSection(key: string): React.ReactNode {
     // categories) — same underlying tenant_settings key, real page now.
     case 'expenses-categories': return <ElsewhereSection />;
     case 'int-google':          return <GoogleSection />;
+    case 'int-microsoft':       return <MicrosoftSection />;
     // No Pusher integration exists anywhere in the backend — never had a
     // real reader, removed from NAV, but the switch case kept rendering the
     // editable App ID/Key/Secret form to anyone who reached it by URL.
