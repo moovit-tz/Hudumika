@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { Transaction } from 'kysely';
 import { withTenant, type Database } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 
 const READ_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SALES', 'SENIOR', 'JUNIOR', 'OFFICER', 'FINANCE'] as const;
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
@@ -77,6 +78,7 @@ const patchSchema = createSchema.partial().extend({ active: z.boolean().optional
 
 export async function crmLeadScoringRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireEntitlement('crm'));
   fastify.addHook('preHandler', requireRole(...READ_ROLES));
 
   fastify.get('/fields', async () => SCORING_FIELDS);

@@ -3,9 +3,11 @@ import { z } from 'zod';
 import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import { dealSelect, mapDeal } from './deals.routes.js';
 import { logCrmActivity } from './crm-activity.routes.js';
 import { loadScoringRules, scoreLead } from './crm-lead-scoring.routes.js';
+import { ensurePipelineStages, defaultStageKey } from './crm-pipeline-stages.routes.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 
 // SENIOR/JUNIOR/OFFICER added alongside the original CRM-pipeline roles —
@@ -82,6 +84,7 @@ const leadSelect = (qb: any): any => qb
 
 export async function leadsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireEntitlement('crm'));
   fastify.addHook('preHandler', requireRole(...LEAD_ROLES));
 
   fastify.get('/', async (request: any, reply) => {
@@ -171,14 +174,19 @@ export async function leadsRoutes(fastify: FastifyInstance) {
       if (b.website !== undefined) patch.website = b.website || null;
 
       const tenantId = request.user.tenant_id;
-      await withTenant(tenantId, async trx => {
+      const notFound = await withTenant(tenantId, async trx => {
         let existing: { stage: string; company: string } | undefined;
         if (b.stage !== undefined) {
           existing = await trx.selectFrom('leads').select(['stage', 'company'])
             .where('id', '=', request.params.id).where('tenant_id', '=', tenantId).executeTakeFirst();
         }
-        await trx.updateTable('leads').set(patch).where('id', '=', request.params.id)
-          .where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
+        // executeTakeFirstOrThrow() used to sit here — a lead id from another
+        // tenant (RLS zeroes the match, same as one that never existed) threw
+        // a NoResultError the outer catch turned into a bare 500 instead of
+        // an honest 404. Checking numUpdatedRows lets both cases 404 cleanly.
+        const result = await trx.updateTable('leads').set(patch).where('id', '=', request.params.id)
+          .where('tenant_id', '=', tenantId).executeTakeFirst();
+        if (result.numUpdatedRows === 0n) return true;
         if (b.stage !== undefined && existing && existing.stage !== b.stage) {
           await logCrmActivity(trx, {
             tenantId, subjectType: 'lead', subjectId: request.params.id, type: 'stage_change',
@@ -192,7 +200,9 @@ export async function leadsRoutes(fastify: FastifyInstance) {
             actorId: request.user.sub,
           }).catch(e => console.error('[CRM] lead.stage_changed emit failed:', e.message));
         }
+        return false;
       });
+      if (notFound) return reply.status(404).send({ error: 'Lead not found' });
       const [row] = await withTenant<any[]>(tenantId, trx => leadSelect(trx).where('leads.id', '=', request.params.id).execute());
       return mapLead(row);
     } catch (err: any) {
@@ -237,11 +247,12 @@ export async function leadsRoutes(fastify: FastifyInstance) {
       if (!lead) return reply.status(404).send({ error: 'Lead not found' });
 
       const dealId = await withTenant(tenantId, async trx => {
+        const entryStage = defaultStageKey(await ensurePipelineStages(trx, tenantId));
         const [row] = await trx.insertInto('deals').values({
           tenant_id: tenantId,
           name: lead.company,
           lead_id: lead.id,
-          stage: 'QUALIFICATION',
+          stage: entryStage,
           value: lead.value,
           currency: 'TZS',
           probability: 50,

@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireRole } from '../middleware/rbac.js';
 import { encryptSecret, decryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 import { checkDnsPropagation, verifyTxtRecord } from '../services/onsite-dns-probe.service.js';
 import { resolveCIProvider, verifyProviderConnection, NO_CI_PROVIDER_MESSAGE } from '../services/onsite-ci.service.js';
@@ -134,9 +135,18 @@ function actorId(request: FastifyRequest): string | null {
 }
 
 export async function onsiteRoutes(fastify: FastifyInstance) {
-  // All routes in this module require valid auth + onsite entitlement
+  // All routes in this module require valid auth + onsite entitlement, and
+  // (production-readiness audit HUD-0023) a management-tier role: every
+  // mutating route here creates/deletes servers, domains and deployments,
+  // or reads/writes deploy secrets — infrastructure actions, not something
+  // a SALES/JUNIOR/OFFICER/CUSTOMER account should ever be able to reach.
+  // Before this fix the only gate was the entitlement (feature-flag) check,
+  // which says nothing about which user within the tenant may act — proven
+  // live: a CUSTOMER-role portal account could create and delete a real
+  // onsite_health_checks row through this exact route.
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('onsite'));
+  fastify.addHook('preHandler', requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'));
 
   // ─── Overview / Dashboard ────────────────────────────────────
   fastify.get('/overview', async (request: FastifyRequest, reply: FastifyReply) => {

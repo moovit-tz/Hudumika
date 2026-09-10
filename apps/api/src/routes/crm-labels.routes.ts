@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 
 const SUBJECT_TYPES = ['lead', 'deal', 'customer'] as const;
 type SubjectType = (typeof SUBJECT_TYPES)[number];
@@ -17,6 +18,7 @@ const assignSchema = z.object({ subject_type: z.enum(SUBJECT_TYPES), subject_id:
 
 export async function crmLabelsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireEntitlement('crm'));
   fastify.addHook('preHandler', requireRole(...LABEL_ROLES));
 
   // Every label + how many of each subject type it's on — the sidebar/

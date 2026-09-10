@@ -31,6 +31,7 @@ import { crmLabelsRoutes } from './routes/crm-labels.routes.js';
 import { crmSmartViewsRoutes } from './routes/crm-smart-views.routes.js';
 import { crmCustomFieldsRoutes } from './routes/crm-custom-fields.routes.js';
 import { crmLeadScoringRoutes } from './routes/crm-lead-scoring.routes.js';
+import { crmPipelineStagesRoutes } from './routes/crm-pipeline-stages.routes.js';
 import { crmSearchRoutes } from './routes/crm-search.routes.js';
 import { workflowRoutes } from './routes/workflows.routes.js';
 import { workflowTemplateRoutes } from './routes/workflow-templates.routes.js';
@@ -469,6 +470,7 @@ export async function registerApp() {
     await server.register(crmSmartViewsRoutes, { prefix: '/v1/crm/smart-views' });
     await server.register(crmCustomFieldsRoutes, { prefix: '/v1/crm/custom-fields' });
     await server.register(crmLeadScoringRoutes, { prefix: '/v1/crm/lead-scoring' });
+    await server.register(crmPipelineStagesRoutes, { prefix: '/v1/crm/pipeline-stages' });
     await server.register(crmSearchRoutes, { prefix: '/v1/crm' });
     await server.register(workflowRoutes, { prefix: '/v1/workflows' });
     await server.register(documentRoutes, { prefix: '/v1/documents' });

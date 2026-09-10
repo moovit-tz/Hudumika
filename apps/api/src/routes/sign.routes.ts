@@ -102,6 +102,22 @@ function userEmail(req: FastifyRequest): string {
   return (req.user as { email?: string }).email ?? '';
 }
 
+// Production-readiness audit HUD-0024/0027: every envelope/template mutation
+// below (edit, rename, send, remind, void, amend; delete a template; bulk-
+// send from one) checked only that the row belonged to this tenant — never
+// that the caller had anything to do with it. Any authenticated user with
+// the 'sign' entitlement could void, resend, retitle or edit *any other
+// user's* envelope, including a still-draft one — despite GET /envelopes'
+// own `view=all` already treating drafts as private to their creator and
+// gating the tenant-wide view behind DOCUMENT_ADMIN_ROLES. This is that same
+// creator-or-admin rule, applied at the single-record mutation sites it was
+// missing from.
+function assertCanActOnEnvelope(req: FastifyRequest, reply: FastifyReply, envelope: { created_by: string }): boolean {
+  if (envelope.created_by === userId(req) || DOCUMENT_ADMIN_ROLES.includes(userRole(req))) return true;
+  reply.status(403).send({ error: 'Only this document\'s owner or a tenant admin can do that.' });
+  return false;
+}
+
 /** The "smart workflow" inference §11 asks for: a preparer who adds a
  *  CERTIFIER or WITNESS recipient doesn't also have to remember to flip a
  *  separate "execution type" switch — it follows from who's actually on
@@ -202,6 +218,13 @@ export async function signRoutes(fastify: FastifyInstance) {
 
   // Append-only journal correction (never UPDATE/DELETE an existing journal row)
   fastify.post('/journal/:eventId/correction', async (req: FastifyRequest<{ Params: { eventId: string }; Body: { note: string } }>, reply: FastifyReply) => {
+    // Annotating the tamper-evident audit journal is an admin action on the
+    // record itself, not something scoped by who happened to create the
+    // envelope — same DOCUMENT_ADMIN_ROLES tier sign-forensics.routes.ts
+    // uses for equally sensitive investigative material (HUD-0024/0027).
+    if (!DOCUMENT_ADMIN_ROLES.includes(userRole(req))) {
+      return reply.status(403).send({ error: 'Only a tenant admin can add a journal correction.' });
+    }
     const tid = tenantId(req);
     const { eventId } = req.params;
     const { note } = req.body || {};
@@ -469,6 +492,11 @@ export async function signRoutes(fastify: FastifyInstance) {
     return withTenant(tid, async (trx) => {
       const data = await getEnvelopeWithRelations(trx, req.params.id, tid);
       if (!data) return reply.status(404).send({ error: 'Envelope not found' });
+      // Same rule GET /envelopes?view=all already enforces for the list:
+      // a draft is a personal work-in-progress, visible to its creator (or
+      // a tenant admin) only — not fetchable by id from anyone else just
+      // because they knew/guessed it (HUD-0024/0027).
+      if (data.status === 'draft' && !assertCanActOnEnvelope(req, reply, data as any)) return;
       return reply.send(data);
     });
   });
@@ -513,6 +541,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       const envelope = await trx.selectFrom('sign_envelopes').selectAll()
         .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
       if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
+      if (!assertCanActOnEnvelope(req, reply, envelope)) return;
       if (envelope.status !== 'draft') return reply.status(409).send({ error: 'Only draft envelopes can be edited' });
 
       const requireOtp = body.require_otp ?? envelope.require_otp;
@@ -636,9 +665,10 @@ export async function signRoutes(fastify: FastifyInstance) {
     const { title } = (req.body ?? {}) as { title?: string };
     if (!title?.trim()) return reply.status(400).send({ error: 'Title cannot be empty' });
     return withTenant(tid, async (trx) => {
-      const envelope = await trx.selectFrom('sign_envelopes').select('id')
+      const envelope = await trx.selectFrom('sign_envelopes').select(['id', 'created_by'])
         .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
       if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
+      if (!assertCanActOnEnvelope(req, reply, envelope)) return;
       await trx.updateTable('sign_envelopes').set({ title: title.trim() }).where('id', '=', req.params.id).execute();
       // 'renamed' isn't a real sign_event_type — the enum (migration 267) is
       // a closed, fixed list and doesn't have it; found live (a 500, caught
@@ -657,6 +687,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       const envelope = await trx.selectFrom('sign_envelopes').selectAll()
         .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
       if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
+      if (!assertCanActOnEnvelope(req, reply, envelope)) return;
       if (envelope.status !== 'draft') return reply.status(409).send({ error: 'Envelope has already been sent' });
 
       const recipients = await trx.selectFrom('sign_recipients').selectAll()
@@ -699,6 +730,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       const envelope = await trx.selectFrom('sign_envelopes').selectAll()
         .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
       if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
+      if (!assertCanActOnEnvelope(req, reply, envelope)) return;
       if (envelope.status !== 'sent') return reply.status(409).send({ error: 'Only sent envelopes can be reminded' });
 
       const recipients = await trx.selectFrom('sign_recipients').selectAll()
@@ -723,6 +755,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       const envelope = await trx.selectFrom('sign_envelopes').selectAll()
         .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
       if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
+      if (!assertCanActOnEnvelope(req, reply, envelope)) return;
 
       if (envelope.status === 'completed') {
         return reply.status(409).send({ error: 'Completed envelopes cannot be voided' });
@@ -754,6 +787,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       const original = await trx.selectFrom('sign_envelopes').selectAll()
         .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
       if (!original) return reply.status(404).send({ error: 'Envelope not found' });
+      if (!assertCanActOnEnvelope(req, reply, original)) return;
       if (original.status !== 'completed') {
         return reply.status(409).send({ error: 'Only a completed envelope can be amended — a document that hasn’t been signed yet can just be edited directly.' });
       }
@@ -977,6 +1011,10 @@ export async function signRoutes(fastify: FastifyInstance) {
   fastify.delete('/templates/:id', async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const tid = tenantId(req);
     return withTenant(tid, async (trx) => {
+      const tmpl = await trx.selectFrom('sign_templates').select(['id', 'created_by'])
+        .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
+      if (!tmpl) return reply.status(404).send({ error: 'Template not found' });
+      if (!assertCanActOnEnvelope(req, reply, tmpl)) return;
       await trx.deleteFrom('sign_templates')
         .where('id', '=', req.params.id)
         .where('tenant_id', '=', tid)
@@ -1003,6 +1041,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       const tmpl = await trx.selectFrom('sign_templates').selectAll()
         .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
       if (!tmpl) return reply.status(404).send({ error: 'Template not found' });
+      if (!assertCanActOnEnvelope(req, reply, tmpl)) return;
 
       const templateFields = (tmpl.fields ?? []) as Array<{ field_type: string; page: number; x: number; y: number; width: number; height: number; required?: boolean; placeholder?: string | null }>;
 

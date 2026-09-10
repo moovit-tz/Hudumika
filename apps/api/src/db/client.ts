@@ -287,6 +287,22 @@ export interface CrmLeadScoringRulesTable {
   created_at: Generated<Date>;
 }
 
+/** Migration 459 — per-tenant configurable deal pipeline stages, replacing
+ *  447_crm_deals.sql's fixed 5-value CHECK constraint on deals.stage. */
+export interface CrmPipelineStagesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  key: string;
+  label: string;
+  color: Generated<string>;
+  position: Generated<number>;
+  is_won: Generated<boolean>;
+  is_lost: Generated<boolean>;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 /** Every real customer/lead search — see 264_crm_search_history.sql. */
 export interface CrmSearchHistoryTable {
   id: Generated<string>;
@@ -5024,6 +5040,7 @@ export interface Database {
   crm_custom_field_defs: CrmCustomFieldDefsTable;
   crm_custom_field_values: CrmCustomFieldValuesTable;
   crm_lead_scoring_rules: CrmLeadScoringRulesTable;
+  crm_pipeline_stages: CrmPipelineStagesTable;
   crm_search_history: CrmSearchHistoryTable;
   notes: NotesTable;
   note_labels: NoteLabelsTable;
@@ -10231,6 +10248,19 @@ export type DateOnlyGenerated = ColumnType<string, Date | string | undefined, Da
 const pool = new pg.Pool({
   connectionString: env.DATABASE_URL_APP,
 });
+// node-postgres: an idle pooled client stays connected to its backend, so a
+// dropped connection (network blip, Postgres restart) emits 'error' on the
+// *pool*, not on any in-flight query. With no listener, Node treats that as
+// an unhandled error and crashes the entire process — every tenant, not just
+// whichever request happened to be using that client. Reproduced live during
+// the production-readiness audit (HUD-0021): "Connection terminated
+// unexpectedly" from `pg` took the whole API down with no request in flight
+// to catch it. Logging and letting the pool recycle the client is what
+// node-postgres's own docs recommend; the pool creates a fresh connection on
+// the next checkout.
+pool.on('error', (err) => {
+  console.error('[db pool] unexpected error on an idle client — pool will reconnect on next use:', err);
+});
 
 export const db = new Kysely<Database>({
   dialect: new PostgresDialect({
@@ -10245,6 +10275,10 @@ export const db = new Kysely<Database>({
 // bypassed, this connection cannot execute a write or DDL statement at all.
 const readonlyPool = new pg.Pool({
   connectionString: env.DATABASE_URL_READONLY,
+});
+// See the `pool.on('error', …)` comment above (HUD-0021) — same reason, same fix.
+readonlyPool.on('error', (err) => {
+  console.error('[db readonlyPool] unexpected error on an idle client — pool will reconnect on next use:', err);
 });
 
 export const dbReadonly = new Kysely<Database>({
@@ -10264,6 +10298,10 @@ export const dbReadonly = new Kysely<Database>({
 // withTenant() instead, so RLS (once enforced) actually applies.
 const platformPool = new pg.Pool({
   connectionString: env.DATABASE_URL_PLATFORM,
+});
+// See the `pool.on('error', …)` comment above (HUD-0021) — same reason, same fix.
+platformPool.on('error', (err) => {
+  console.error('[db platformPool] unexpected error on an idle client — pool will reconnect on next use:', err);
 });
 
 export const dbPlatform = new Kysely<Database>({

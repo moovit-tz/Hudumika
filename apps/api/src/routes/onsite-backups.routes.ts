@@ -17,6 +17,11 @@ function actorId(request: FastifyRequest): string | null {
 export async function onsiteBackupsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('onsite'));
+  // Same HUD-0023 gap as onsite.routes.ts (a separate file, so the fix
+  // there didn't cover this one): restoring a snapshot overwrites live
+  // config, and this had no role check at all — any authenticated tenant
+  // member, entitlement permitting, could restore or delete a backup.
+  fastify.addHook('preHandler', requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'));
 
   fastify.get('/', async (request: FastifyRequest) => {
     const tenantId = request.user.tenant_id;

@@ -47,6 +47,20 @@ const bulkLabelSchema = z.object({
 export async function contactsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('contacts'));
+  // Production-readiness audit HUD-0024/0027: Contacts has no per-route role
+  // check anywhere in this file (neither does the frontend — it's a flat,
+  // shared address book any internal staff role can manage, by design). But
+  // "any authenticated tenant member" also includes CUSTOMER — an external
+  // portal account — which had no route to this at all otherwise. Proven
+  // live: a CUSTOMER JWT could GET /v1/contacts (200, this tenant's contacts
+  // happened to be empty) and, by the same missing check, bulk-delete/
+  // import/merge them. This blocks only the external role; every internal
+  // role keeps exactly the flat access it already had.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // Get all contacts (optional status query: ACTIVE or TRASHED)
   fastify.get('/', async (request: any, reply) => {

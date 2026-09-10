@@ -10,6 +10,12 @@ const __dirname = path.dirname(__filename);
 async function runMigrations() {
   console.log('🔄 Connecting to database for migrations...');
   const pool = new pg.Pool({ connectionString: env.DATABASE_URL });
+  // See db/client.ts's pool.on('error', …) comment (HUD-0021) — an idle
+  // client's dropped connection emits 'error' on the pool itself, outside
+  // this function's try/catch; unhandled, it crashes the process mid-run.
+  pool.on('error', (err) => {
+    console.error('[migrate pool] unexpected error on an idle client:', err);
+  });
 
   try {
     const client = await pool.connect();

@@ -16,6 +16,7 @@ import { LabelChips } from '../components/crm/LabelChips.js';
 import { ComposeEmailButton } from '../components/crm/ComposeEmailButton.js';
 import { StartCallButton } from '../components/crm/StartCallButton.js';
 import { CustomFieldsPanel } from '../components/crm/CustomFieldsPanel.js';
+import { STAGE_COLORS, type PipelineStage } from './CrmPipelineStages.js';
 
 /* ── Types — mirror deals.routes.ts's mapDeal() shape ── */
 interface Deal {
@@ -25,7 +26,9 @@ interface Deal {
   customer_name?: string;
   lead_id?: string;
   lead_company?: string;
-  stage: 'QUALIFICATION' | 'PROPOSAL' | 'NEGOTIATION' | 'WON' | 'LOST';
+  // A per-tenant configurable key (crm_pipeline_stages.key), not a fixed
+  // literal set — see migration 459 / CrmPipelineStages.tsx.
+  stage: string;
   value: number;
   currency: string;
   probability: number;
@@ -49,14 +52,6 @@ interface Metrics {
   closed_30d: number;
   leaderboard: { owner_id: string; owner_name: string; won: number; value: number }[];
 }
-
-const STAGES: { key: Deal['stage']; label: string; color: string; bg: string }[] = [
-  { key: 'QUALIFICATION', label: 'Qualification', color: 'var(--gold)',   bg: 'var(--gold-l)' },
-  { key: 'PROPOSAL',      label: 'Proposal',       color: 'var(--blue)',  bg: 'var(--blue-l)' },
-  { key: 'NEGOTIATION',   label: 'Negotiation',    color: 'var(--teal)',  bg: 'var(--teal-l)' },
-  { key: 'WON',           label: 'Won',            color: 'var(--green)', bg: 'var(--green-l)' },
-  { key: 'LOST',          label: 'Lost',           color: 'var(--red)',   bg: 'var(--red-l)' },
-];
 
 function fmtMoney(v: number, currency: string): string {
   try {
@@ -82,10 +77,10 @@ function MetricTile({ icon, label, value, color, bg }: { icon: IconName; label: 
 }
 
 /* ── Deal card ── */
-function DealCard({ deal, onOpen, onDragStart, dragging }: {
-  deal: Deal; onOpen: () => void; onDragStart: (e: React.DragEvent) => void; dragging: boolean;
+function DealCard({ deal, closed, onOpen, onDragStart, dragging }: {
+  deal: Deal; closed: boolean; onOpen: () => void; onDragStart: (e: React.DragEvent) => void; dragging: boolean;
 }) {
-  const aging = deal.stage !== 'WON' && deal.stage !== 'LOST' && deal.days_in_stage >= 14;
+  const aging = !closed && deal.days_in_stage >= 14;
   return (
     <div
       draggable
@@ -260,13 +255,17 @@ export function Pipeline() {
   const [loading, setLoading] = useState(true);
   const [modalDeal, setModalDeal] = useState<Deal | null | undefined>(undefined); // undefined = closed
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  // The tenant's real, configurable stages (CrmPipelineStages.tsx manages
+  // these) — replaces the fixed 5-column board every prior version hardcoded.
+  const [stages, setStages] = useState<PipelineStage[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [d, m] = await Promise.all([apiFetch('/v1/deals'), apiFetch('/v1/deals/metrics')]);
+      const [d, m, s] = await Promise.all([apiFetch('/v1/deals'), apiFetch('/v1/deals/metrics'), apiFetch('/v1/crm/pipeline-stages')]);
       setDeals(Array.isArray(d) ? d : []);
       setMetrics(m);
+      setStages(Array.isArray(s) ? s.filter((x: PipelineStage) => x.active) : []);
     } catch (err: any) {
       showAlert(err.message || 'Failed to load pipeline');
     } finally {
@@ -276,17 +275,19 @@ export function Pipeline() {
 
   useEffect(() => { load(); }, [load]);
 
+  const stageByKey = useMemo(() => new Map(stages.map(s => [s.key, s])), [stages]);
+
   const byStage = useMemo(() => {
     const map: Record<string, Deal[]> = {};
-    for (const s of STAGES) map[s.key] = [];
+    for (const s of stages) map[s.key] = [];
     for (const d of deals) (map[d.stage] ??= []).push(d);
     return map;
-  }, [deals]);
+  }, [deals, stages]);
 
-  async function moveStage(dealId: string, stage: Deal['stage']) {
+  async function moveStage(dealId: string, stage: string) {
     try {
       let lost_reason: string | null = null;
-      if (stage === 'LOST') {
+      if (stageByKey.get(stage)?.is_lost) {
         lost_reason = await showPrompt('Why was this deal lost?', { title: 'Mark as lost', confirmLabel: 'Mark lost', placeholder: 'e.g. Went with a competitor on price' });
         if (lost_reason === null) return; // cancelled
       }
@@ -335,11 +336,15 @@ export function Pipeline() {
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink3)' }}>Loading pipeline…</div>
+      ) : stages.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink3)' }}>No pipeline stages configured yet.</div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${STAGES.length}, 1fr)`, gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
-          {STAGES.map(col => {
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stages.length}, 1fr)`, gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
+          {stages.map(col => {
             const list = byStage[col.key] || [];
             const total = list.reduce((s, d) => s + d.value, 0);
+            const tint = STAGE_COLORS[col.color] ?? STAGE_COLORS.blue;
+            const closed = col.is_won || col.is_lost;
             return (
               <div
                 key={col.key}
@@ -347,8 +352,8 @@ export function Pipeline() {
                 onDrop={e => { e.preventDefault(); if (draggingId) moveStage(draggingId, col.key); setDraggingId(null); }}
                 style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', display: 'flex', flexDirection: 'column', minHeight: 420, overflow: 'hidden' }}
               >
-                <div style={{ padding: '10px 12px', borderBottom: `2px solid ${col.color}`, background: col.bg }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: col.color }}>{col.label} <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>({list.length})</span></div>
+                <div style={{ padding: '10px 12px', borderBottom: `2px solid ${tint.fg}`, background: tint.bg }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: tint.fg }}>{col.label} <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>({list.length})</span></div>
                   <div className="mono" style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{fmtMoney(total, 'TZS')}</div>
                 </div>
                 <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, flex: 1, overflowY: 'auto' }}>
@@ -357,6 +362,7 @@ export function Pipeline() {
                     <DealCard
                       key={d.id}
                       deal={d}
+                      closed={closed}
                       dragging={draggingId === d.id}
                       onOpen={() => setModalDeal(d)}
                       onDragStart={e => { e.dataTransfer.setData('text/deal-id', d.id); setDraggingId(d.id); }}

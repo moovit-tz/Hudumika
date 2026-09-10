@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { withTenant, type Database } from '../db/client.js';
 import type { Transaction } from 'kysely';
 import { requireRole } from '../middleware/rbac.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import { MailService } from '../services/mail.service.js';
 
 const SUBJECT_TYPES = ['lead', 'deal', 'customer'] as const;
@@ -113,6 +114,7 @@ function mapActivity(row: any) {
 
 export async function crmActivityRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireEntitlement('crm'));
   fastify.addHook('preHandler', requireRole(...ACTIVITY_ROLES));
 
   fastify.get('/', async (request: any, reply) => {

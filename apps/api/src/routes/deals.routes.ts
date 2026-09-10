@@ -2,21 +2,26 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import { logCrmActivity } from './crm-activity.routes.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
+import { ensurePipelineStages, defaultStageKey, type PipelineStage } from './crm-pipeline-stages.routes.js';
+import type { Transaction } from 'kysely';
+import type { Database } from '../db/client.js';
 
 // Same roster as leads.routes.ts's LEAD_ROLES — a deal is what a lead
 // becomes, so whoever can touch one can touch the other.
 const DEAL_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SALES', 'SENIOR', 'JUNIOR', 'OFFICER'] as const;
-// Real values — 447_crm_deals.sql's CHECK constraint.
-const DEAL_STAGES = ['QUALIFICATION', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'] as const;
-const CLOSED_STAGES = new Set(['WON', 'LOST']);
 
+// `stage` used to be a fixed 5-value CHECK constraint (447_crm_deals.sql);
+// migration 459 made it a per-tenant configurable list
+// (crm_pipeline_stages) instead, so it's validated here against that
+// tenant's live rows rather than a compile-time zod enum.
 const dealCreateSchema = z.object({
   name: z.string().trim().min(1).max(300),
   customer_id: z.string().uuid().nullish(),
   lead_id: z.string().uuid().nullish(),
-  stage: z.enum(DEAL_STAGES).optional(),
+  stage: z.string().trim().min(1).max(60).optional(),
   value: z.number().min(0).optional(),
   currency: z.string().length(3).optional(),
   probability: z.number().int().min(0).max(100).optional(),
@@ -27,9 +32,19 @@ const dealCreateSchema = z.object({
 });
 const dealPatchSchema = dealCreateSchema.partial();
 const stageMoveSchema = z.object({
-  stage: z.enum(DEAL_STAGES),
+  stage: z.string().trim().min(1).max(60),
   lost_reason: z.string().max(500).nullish(),
 });
+
+/** Loads this tenant's live pipeline stages (seeding defaults if needed) and
+ *  hands back the lookups every stage-aware handler below needs: the valid
+ *  key set, a key→stage map for the is_won/is_lost flags, and the entry
+ *  stage a brand-new deal lands in. */
+async function loadStages(trx: Transaction<Database>, tenantId: string) {
+  const stages = await ensurePipelineStages(trx, tenantId);
+  const byKey = new Map(stages.map((s) => [s.key, s]));
+  return { stages, byKey, validKeys: new Set(stages.map((s) => s.key)), entryKey: defaultStageKey(stages) };
+}
 
 export function mapDeal(row: any) {
   return {
@@ -71,6 +86,7 @@ export const dealSelect = (qb: any): any => qb
 
 export async function dealsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireEntitlement('crm'));
   fastify.addHook('preHandler', requireRole(...DEAL_ROLES));
 
   fastify.get('/', async (request: any, reply) => {
@@ -91,33 +107,38 @@ export async function dealsRoutes(fastify: FastifyInstance) {
   fastify.get('/metrics', async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
-      const rows = await withTenant(tenantId, trx =>
-        trx.selectFrom('deals').leftJoin('users', 'users.id', 'deals.owner_id')
+      const [rows, { stages, byKey }] = await withTenant(tenantId, async (trx) => {
+        const dealRows = await trx.selectFrom('deals').leftJoin('users', 'users.id', 'deals.owner_id')
           .select([
             'deals.stage', 'deals.value', 'deals.owner_id', 'deals.closed_at',
             'users.name as owner_name',
           ])
-          .where('deals.tenant_id', '=', tenantId).execute()
-      );
+          .where('deals.tenant_id', '=', tenantId).execute();
+        return [dealRows, await loadStages(trx, tenantId)];
+      });
 
       const byStage: Record<string, { count: number; value: number }> = {};
-      for (const s of DEAL_STAGES) byStage[s] = { count: 0, value: 0 };
+      for (const s of stages) byStage[s.key] = { count: 0, value: 0 };
       for (const r of rows) {
+        (byStage[r.stage] ??= { count: 0, value: 0 });
         byStage[r.stage].count++;
         byStage[r.stage].value += Number(r.value);
       }
 
-      const open = rows.filter(r => !CLOSED_STAGES.has(r.stage));
+      const isClosed = (stageKey: string) => { const s = byKey.get(stageKey); return !!s && (s.is_won || s.is_lost); };
+      const isWon = (stageKey: string) => byKey.get(stageKey)?.is_won === true;
+
+      const open = rows.filter(r => !isClosed(r.stage));
       const openValue = open.reduce((sum, r) => sum + Number(r.value), 0);
 
       const thirtyDaysAgo = Date.now() - 30 * 86_400_000;
       const closedRecent = rows.filter(r => r.closed_at && new Date(r.closed_at).getTime() >= thirtyDaysAgo);
-      const wonRecent = closedRecent.filter(r => r.stage === 'WON');
+      const wonRecent = closedRecent.filter(r => isWon(r.stage));
       const winRate = closedRecent.length ? Math.round((wonRecent.length / closedRecent.length) * 100) : null;
 
       const leaderboardMap = new Map<string, { owner_id: string; owner_name: string; won: number; value: number }>();
       for (const r of rows) {
-        if (r.stage !== 'WON' || !r.owner_id) continue;
+        if (!isWon(r.stage) || !r.owner_id) continue;
         const cur = leaderboardMap.get(r.owner_id) ?? { owner_id: r.owner_id, owner_name: r.owner_name ?? 'Unassigned', won: 0, value: 0 };
         cur.won++;
         cur.value += Number(r.value);
@@ -142,13 +163,17 @@ export async function dealsRoutes(fastify: FastifyInstance) {
     const b = dealCreateSchema.parse(request.body);
     try {
       const tenantId = request.user.tenant_id;
+      const { validKeys, entryKey } = await withTenant(tenantId, trx => loadStages(trx, tenantId));
+      if (b.stage && !validKeys.has(b.stage)) {
+        return reply.status(400).send({ error: `"${b.stage}" is not one of this tenant's pipeline stages` });
+      }
       const id = await withTenant(tenantId, async trx => {
         const [row] = await trx.insertInto('deals').values({
           tenant_id: tenantId,
           name: b.name,
           customer_id: b.customer_id || null,
           lead_id: b.lead_id || null,
-          stage: b.stage || 'QUALIFICATION',
+          stage: b.stage || entryKey,
           value: String(b.value ?? 0),
           currency: b.currency || 'TZS',
           probability: b.probability ?? 50,
@@ -215,6 +240,10 @@ export async function dealsRoutes(fastify: FastifyInstance) {
     const b = stageMoveSchema.parse(request.body);
     try {
       const tenantId = request.user.tenant_id;
+      const { byKey } = await withTenant(tenantId, trx => loadStages(trx, tenantId));
+      const target = byKey.get(b.stage);
+      if (!target) return reply.status(400).send({ error: `"${b.stage}" is not one of this tenant's pipeline stages` });
+
       const row = await withTenant(tenantId, async trx => {
         const existing = await trx.selectFrom('deals').select(['id', 'stage', 'name', 'value', 'customer_id'])
           .where('id', '=', request.params.id).where('tenant_id', '=', tenantId).executeTakeFirst();
@@ -224,8 +253,8 @@ export async function dealsRoutes(fastify: FastifyInstance) {
           stage: b.stage,
           stage_changed_at: new Date(),
           updated_at: new Date(),
-          closed_at: CLOSED_STAGES.has(b.stage) ? new Date() : null,
-          lost_reason: b.stage === 'LOST' ? (b.lost_reason || null) : null,
+          closed_at: (target.is_won || target.is_lost) ? new Date() : null,
+          lost_reason: target.is_lost ? (b.lost_reason || null) : null,
         };
         await trx.updateTable('deals').set(patch).where('id', '=', request.params.id).execute();
 
@@ -235,7 +264,7 @@ export async function dealsRoutes(fastify: FastifyInstance) {
           const actorId: string = request.user.sub;
           await logCrmActivity(trx, {
             tenantId, subjectType: 'deal', subjectId: dealId, type: 'stage_change',
-            body: `Stage moved from ${existing.stage} to ${b.stage}${b.stage === 'LOST' && b.lost_reason ? ` — ${b.lost_reason}` : ''}`,
+            body: `Stage moved from ${existing.stage} to ${b.stage}${target.is_lost && b.lost_reason ? ` — ${b.lost_reason}` : ''}`,
             meta: { from: existing.stage, to: b.stage, lost_reason: b.lost_reason || undefined },
             actorId, actorName: request.user.name,
           });
@@ -243,13 +272,13 @@ export async function dealsRoutes(fastify: FastifyInstance) {
             type: 'deal.stage_changed', sourceApp: 'crm', entityType: 'deal', entityId: dealId,
             payload: { from: existing.stage, to: b.stage, name: existing.name, value: val }, actorId,
           }).catch(e => console.error('[CRM] deal.stage_changed emit failed:', e.message));
-          if (b.stage === 'WON') {
+          if (target.is_won) {
             await emitDomainEvent(trx, tenantId, {
               type: 'deal.won', sourceApp: 'crm', entityType: 'deal', entityId: dealId,
               payload: { name: existing.name, value: val, customerId: existing.customer_id }, actorId,
             }).catch(e => console.error('[CRM] deal.won emit failed:', e.message));
           }
-          if (b.stage === 'LOST') {
+          if (target.is_lost) {
             await emitDomainEvent(trx, tenantId, {
               type: 'deal.lost', sourceApp: 'crm', entityType: 'deal', entityId: dealId,
               payload: { name: existing.name, value: val, reason: b.lost_reason || null }, actorId,

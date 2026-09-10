@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 
 const ENTITY_TYPES = ['lead', 'deal', 'customer'] as const;
 type EntityType = (typeof ENTITY_TYPES)[number];
@@ -41,6 +42,7 @@ function normOptions(raw: any): string[] {
 
 export async function crmCustomFieldsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireEntitlement('crm'));
   fastify.addHook('preHandler', requireRole(...READ_ROLES));
 
   // ── Definitions ──────────────────────────────────────────────────────

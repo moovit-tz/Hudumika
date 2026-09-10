@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 
 const ENTITY_TYPES = ['lead', 'deal', 'customer'] as const;
 type EntityType = (typeof ENTITY_TYPES)[number];
@@ -153,6 +154,7 @@ const patchSchema = z.object({
 
 export async function crmSmartViewsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireEntitlement('crm'));
   fastify.addHook('preHandler', requireRole(...VIEW_ROLES));
 
   // The field catalog itself — the frontend rule builder's dropdowns.

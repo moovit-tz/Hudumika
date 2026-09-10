@@ -1,0 +1,101 @@
+name: CI
+
+# Production-readiness audit HUD-0006: dependency-audit.yml was the only
+# workflow in this repo, and it only runs `npm audit` (continue-on-error).
+# Nothing gated typecheck, tests, the build, or that a fresh database can
+# actually run every migration — "a green pipeline must mean something" was
+# not true here. This workflow is the real gate.
+#
+# The Postgres service below is provisioned exactly like a brand-new
+# environment: a bare superuser connection is all the migrations need —
+# 084_readonly_role.sql / 241_rls_restricted_roles.sql self-create the
+# hudumika_readonly / hudumika_app / hudumika_platform roles the app and its
+# tests actually connect as. This is the same proof used manually during the
+# HUD-0009 fix (a from-scratch database, 474/474 migrations applying clean).
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: clearos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Superuser connection — used only to run migrations (self-provisions
+      # the restricted roles below) and by dbPlatform-equivalent CI needs.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/clearos
+      # Dev-default passwords from 241_rls_restricted_roles.sql / 084_readonly_role.sql —
+      # fine for an ephemeral CI database, never used outside it.
+      DATABASE_URL_APP: postgresql://hudumika_app:hudumika_app_pass@localhost:5432/clearos
+      DATABASE_URL_PLATFORM: postgresql://hudumika_platform:hudumika_platform_pass@localhost:5432/clearos
+      DATABASE_URL_READONLY: postgresql://hudumika_readonly:hudumika_readonly_pass@localhost:5432/clearos
+      JWT_SECRET: ci-only-secret-never-used-outside-this-workflow-min32
+      APP_ENV: test
+      APP_PORT: 3001
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck (api + web) and trigger/emitter consistency
+        run: npm run typecheck
+
+      - name: Wait for Postgres
+        run: |
+          for i in $(seq 1 30); do
+            pg_isready -h localhost -p 5432 -U postgres && break
+            sleep 1
+          done
+
+      - name: Migrate a from-scratch database
+        # This is the HUD-0009 proof, automated: if any future migration
+        # breaks on a database that has never seen data (a fresh-install-unsafe
+        # seed, a table with no creating migration, a broken FK order), this
+        # step fails here instead of surfacing months later on a new environment.
+        run: npm run db:migrate
+
+      - name: API tests (vitest, against the migrated database)
+        run: npm test -w apps/api
+
+      # apps/web has no test files yet (HUD-0005) — `vitest run` with zero
+      # matching tests is not a meaningful gate, so it is intentionally not
+      # invoked here until real web tests exist. Do not add a placeholder
+      # test just to turn this step green.
+
+      - name: Build all workspaces
+        run: npm run build
+
+      # Linting is not wired here: apps/web/package.json's `npm run lint`
+      # invokes an eslint binary that is not installed and no eslint config
+      # exists anywhere in the repo (HUD-0020) — including it would either
+      # fail every run for a step nobody has fixed yet, or require silently
+      # skipping failures, which defeats the point of this workflow existing.
+      # Fix HUD-0020 first, then add a real lint step here.

@@ -131,6 +131,15 @@ export async function cmsRoutes(fastify: FastifyInstance) {
       await fastify.authenticate(request, reply);
       if (reply.sent) return;
       await requireEntitlement('onesite')(request, reply);
+      if (reply.sent) return;
+      // Production-readiness audit HUD-0024/0027: nothing below this point
+      // (including PUT /site-settings and DELETE /pages/:id) checked
+      // anything beyond "authenticated + entitled" — a CUSTOMER-role portal
+      // account could edit or delete the tenant's own public website.
+      // Proven live: GET /v1/cms/pages returned 200 for a CUSTOMER JWT.
+      if (request.user.role === 'CUSTOMER') {
+        return reply.status(403).send({ error: 'Not available for this account type.' });
+      }
     }
   });
 

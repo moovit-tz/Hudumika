@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { requireAnyEntitlement } from '../middleware/entitlement.js';
 
 // Whoever can run a landed-cost calculator (OPS_ROLES on the frontend) needs
 // to be able to search for who the estimate is for — same reasoning as the
@@ -10,6 +11,12 @@ const SEARCH_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SALES'
 
 export async function crmSearchRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // Backs CustomerLeadPicker.tsx, used by ClearOS's landed-cost calculators
+  // as well as CRM proper (see the file-header comment) — gating on 'crm'
+  // alone would break that picker for a ClearOS tenant with no CRM
+  // entitlement, same reasoning as seal-crm-link.routes.ts's own
+  // requireAnyEntitlement(['seal', 'crm']).
+  fastify.addHook('preHandler', requireAnyEntitlement(['crm', 'clearos']));
   fastify.addHook('preHandler', requireRole(...SEARCH_ROLES));
 
   /**

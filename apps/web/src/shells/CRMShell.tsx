@@ -21,6 +21,7 @@ import { CrmDuplicates }        from '../pages/CrmDuplicates.js';
 import { CrmSmartViews }         from '../pages/CrmSmartViews.js';
 import { CrmCustomFields }        from '../pages/CrmCustomFields.js';
 import { CrmLeadScoring }          from '../pages/CrmLeadScoring.js';
+import { CrmPipelineStages }        from '../pages/CrmPipelineStages.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -43,6 +44,7 @@ const NAV: SidebarSection[] = [
   {
     title: 'SETTINGS',
     items: [
+      { label: 'Pipeline Stages', icon: 'flag', path: '/crm/pipeline-stages' },
       { label: 'Custom Fields', icon: 'settings', path: '/crm/custom-fields' },
       { label: 'Lead Scoring',  icon: 'trendingUp', path: '/crm/lead-scoring' },
     ],
@@ -72,6 +74,7 @@ export function CRMShell() {
               <Route path="saved-views"   element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><CrmSmartViews /></RequireRoles>} />
               <Route path="custom-fields" element={<RequireRoles roles={MGMT_ROLES}><CrmCustomFields /></RequireRoles>} />
               <Route path="lead-scoring"  element={<RequireRoles roles={MGMT_ROLES}><CrmLeadScoring /></RequireRoles>} />
+              <Route path="pipeline-stages" element={<RequireRoles roles={MGMT_ROLES}><CrmPipelineStages /></RequireRoles>} />
               <Route path="duplicates"    element={<RequireRoles roles={MGMT_ROLES}><CrmDuplicates /></RequireRoles>} />
             </Route>
 

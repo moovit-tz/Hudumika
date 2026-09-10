@@ -450,14 +450,14 @@
     <h2>How far along the platform actually is.</h2>
 
     <div class="headline-pct">
-      <div class="big mono">73%</div>
+      <div class="big mono">74%</div>
       <div class="cap">simple average across all 30 apps, toward the full platform vision described above</div>
     </div>
-    <p class="methodnote">This is an internal engineering read of build/audit history — not a test-coverage report or a formally computed metric. Each app below is tiered from what has actually shipped, been RLS-audited and verified against live data during development, versus what still runs on partial data paths or an early feature set. Sign and HuduBI's figures below were re-verified against the live running system on 9 September (real HTTP calls, real data, real edge cases — not just a code read) as part of the Metrics &amp; Sign program closing out; the rest carry forward the 8 September assessment. Projects was re-assessed on 10 September after an enterprise "Project OS" expansion merged to <code>master</code> — the figure holds because that layer does not yet run (see the Projects gap below). NexusHR was re-checked on 10 September (every one of its ~35 nav-surface routes hit live as a real admin — all resolve, none 500, all enforce the entitlement and RLS) and moved from 58% to 80%: the earlier figure predated the M1–M8 HR build-out. It falls short of the higher production apps only because a full <em>data-populated</em> run across every screen (the dev DB has no fully seeded HR tenant) hasn't been done. Contacts was re-checked the same way on 10 September and moved from 65% to 82% into the production tier — not just route liveness but the actual workflows exercised end-to-end against live data (fuzzy dedup detecting a real near-duplicate, merge, the nested-label hierarchy with its cycle guards, rule-based smart-group membership, a CSV/vCard export→import round-trip, cross-tenant isolation). It stops short of the higher figures for the same reason as NexusHR — no fully seeded Contacts tenant for a screen-by-screen click-through — plus Google/Outlook sync staying inert until a tenant supplies its own OAuth credentials. Drive was rebuilt and re-checked on 10 September, moving from 62% to 80% into the production tier: its <code>cloud_*</code> tables had zero RLS platform-wide (now all 9 enabled, FORCEd, policy-verified by an automated cross-tenant test), the "MinIO" storage layer was actually local disk with a hardcoded fake signed-URL (now a real pluggable disk/S3 backend with a genuine HMAC-signed, tamper-checked expiring link), file search was filename-only (now real full-text over extracted content, including PDFs), there was no malware scanning or per-file access audit (both wired), and the "Connected Apps" sync was an honest mock for every provider (OneDrive now has a real BYO Microsoft-Graph OAuth connection and sync; Dropbox/Box are now an explicit "not supported yet" instead of a silent bookmark). 24 live/automated checks, 24 passing. The remaining 20% is unrun infrastructure (a real S3 bucket, ClamAV, LibreOffice all need provisioning to actually activate — each degrades honestly without it) plus no browser click-through of the rebuilt viewer (no browser tool this session).</p>
+    <p class="methodnote">This is an internal engineering read of build/audit history — not a test-coverage report or a formally computed metric. Each app below is tiered from what has actually shipped, been RLS-audited and verified against live data during development, versus what still runs on partial data paths or an early feature set. Sign and HuduBI's figures below were re-verified against the live running system on 9 September (real HTTP calls, real data, real edge cases — not just a code read) as part of the Metrics &amp; Sign program closing out; the rest carry forward the 8 September assessment. Projects was re-assessed on 10 September after an enterprise "Project OS" expansion merged to <code>master</code> — the figure holds because that layer does not yet run (see the Projects gap below). NexusHR was re-checked on 10 September (every one of its ~35 nav-surface routes hit live as a real admin — all resolve, none 500, all enforce the entitlement and RLS) and moved from 58% to 80%: the earlier figure predated the M1–M8 HR build-out. It falls short of the higher production apps only because a full <em>data-populated</em> run across every screen (the dev DB has no fully seeded HR tenant) hasn't been done. Contacts was re-checked the same way on 10 September and moved from 65% to 82% into the production tier — not just route liveness but the actual workflows exercised end-to-end against live data (fuzzy dedup detecting a real near-duplicate, merge, the nested-label hierarchy with its cycle guards, rule-based smart-group membership, a CSV/vCard export→import round-trip, cross-tenant isolation). It stops short of the higher figures for the same reason as NexusHR — no fully seeded Contacts tenant for a screen-by-screen click-through — plus Google/Outlook sync staying inert until a tenant supplies its own OAuth credentials. CRM was audited and hardened on 10 September, moving from 63% to 80% into the production tier: a real access-control gap was found and closed (the <code>crm</code> entitlement key existed platform-wide but none of the 9 CRM route files actually checked it — a tenant with CRM excluded from its plan could still use the full API), deal pipeline stages went from a fixed 5-value database enum to a real per-tenant configurable list (add/rename/reorder/mark Won-or-Lost, migration 459), and the whole app went from zero automated tests to 16 real ones plus a live pass against the running server — which caught and fixed one more real bug along the way (a cross-tenant lead edit returned a bare 500 instead of an honest 404). Marketing automation and ML-driven lead scoring (vs. today's transparent rule-based scoring) are named, deliberately out of scope — a new subsystem and a training-data dependency respectively, not defects. Drive was rebuilt and re-checked on 10 September, moving from 62% to 80% into the production tier: its <code>cloud_*</code> tables had zero RLS platform-wide (now all 9 enabled, FORCEd, policy-verified by an automated cross-tenant test), the "MinIO" storage layer was actually local disk with a hardcoded fake signed-URL (now a real pluggable disk/S3 backend with a genuine HMAC-signed, tamper-checked expiring link), file search was filename-only (now real full-text over extracted content, including PDFs), there was no malware scanning or per-file access audit (both wired), and the "Connected Apps" sync was an honest mock for every provider (OneDrive now has a real BYO Microsoft-Graph OAuth connection and sync; Dropbox/Box are now an explicit "not supported yet" instead of a silent bookmark). 24 live/automated checks, 24 passing. The remaining 20% is unrun infrastructure (a real S3 bucket, ClamAV, LibreOffice all need provisioning to actually activate — each degrades honestly without it) plus no browser click-through of the rebuilt viewer (no browser tool this session).</p>
 
     <div class="distbar">
-      <div class="prod" style="flex:18 1 0%">18 · Production</div>
-      <div class="dev" style="flex:11 1 0%">11 · Active dev</div>
+      <div class="prod" style="flex:19 1 0%">19 · Production</div>
+      <div class="dev" style="flex:10 1 0%">10 · Active dev</div>
       <div class="found" style="flex:1 1 0%">1</div>
     </div>
     <div class="distlegend">
@@ -467,7 +467,7 @@
     </div>
 
     <div class="tier">
-      <div class="tier-hdr"><span class="pill prod">Production</span><span class="cnt">18 apps</span></div>
+      <div class="tier-hdr"><span class="pill prod">Production</span><span class="cnt">19 apps</span></div>
       <div class="apptable-wrap">
         <table class="apptable">
           <tr><td class="app">ClearOS</td><td class="slog">Customs &amp; freight clearance platform</td><td class="bar"><div class="barwrap"><i class="prod" style="width:95%"></i></div></td><td class="pct mono">95%</td></tr>
@@ -485,6 +485,7 @@
           <tr><td class="app">SMS</td><td class="slog">Bulk &amp; transactional SMS — send, groups, templates, campaigns</td><td class="bar"><div class="barwrap"><i class="prod" style="width:80%"></i></div></td><td class="pct mono">80%</td></tr>
           <tr><td class="app">NexusHR</td><td class="slog">HR suite — payroll (statutory PAYE→GL), leave, attendance, recruitment, performance</td><td class="bar"><div class="barwrap"><i class="prod" style="width:80%"></i></div></td><td class="pct mono">80%</td></tr>
           <tr><td class="app">Drive</td><td class="slog">Cloud file storage — RLS-isolated, full-text search, versions &amp; access audit, OneDrive sync</td><td class="bar"><div class="barwrap"><i class="prod" style="width:80%"></i></div></td><td class="pct mono">80%</td></tr>
+          <tr><td class="app">CRM</td><td class="slog">Leads, deals &amp; a configurable sales pipeline — labels, smart views, lead scoring, custom fields</td><td class="bar"><div class="barwrap"><i class="prod" style="width:80%"></i></div></td><td class="pct mono">80%</td></tr>
           <tr><td class="app">Admin</td><td class="slog">Platform governance, tenants &amp; query builder</td><td class="bar"><div class="barwrap"><i class="prod" style="width:78%"></i></div></td><td class="pct mono">78%</td></tr>
           <tr><td class="app">Petti</td><td class="slog">Tenant petty-cash wallet, deposits &amp; approvals</td><td class="bar"><div class="barwrap"><i class="prod" style="width:78%"></i></div></td><td class="pct mono">78%</td></tr>
           <tr><td class="app">Demurrage</td><td class="slog">Container demurrage tariffs and cost tracking</td><td class="bar"><div class="barwrap"><i class="prod" style="width:75%"></i></div></td><td class="pct mono">75%</td></tr>
@@ -493,12 +494,11 @@
     </div>
 
     <div class="tier">
-      <div class="tier-hdr"><span class="pill dev">Active development</span><span class="cnt">11 apps</span></div>
+      <div class="tier-hdr"><span class="pill dev">Active development</span><span class="cnt">10 apps</span></div>
       <div class="apptable-wrap">
         <table class="apptable">
           <tr><td class="app">ComplyOS</td><td class="slog">Compliance tracking, BRELA search &amp; permits</td><td class="bar"><div class="barwrap"><i class="dev" style="width:68%"></i></div></td><td class="pct mono">68%</td></tr>
           <tr><td class="app">HuduBI</td><td class="slog">Data layer, cross-app metrics &amp; executive AI analytics engine</td><td class="bar"><div class="barwrap"><i class="dev" style="width:60%"></i></div></td><td class="pct mono">60%</td></tr>
-          <tr><td class="app">CRM</td><td class="slog">Customer relationships and sales deals</td><td class="bar"><div class="barwrap"><i class="dev" style="width:63%"></i></div></td><td class="pct mono">63%</td></tr>
           <tr><td class="app">Email</td><td class="slog">Internal corporate messaging center</td><td class="bar"><div class="barwrap"><i class="dev" style="width:60%"></i></div></td><td class="pct mono">60%</td></tr>
           <tr><td class="app">Onsite</td><td class="slog">Domains, DNS, hosting, deployments &amp; infrastructure</td><td class="bar"><div class="barwrap"><i class="dev" style="width:60%"></i></div></td><td class="pct mono">60%</td></tr>
           <tr><td class="app">Studio</td><td class="slog">Workflow builder and clearance automations</td><td class="bar"><div class="barwrap"><i class="dev" style="width:55%"></i></div></td><td class="pct mono">55%</td></tr>
@@ -596,6 +596,15 @@
           <li><b>Data-populated verification not done</b> — same ceiling as NexusHR/Contacts: no fully seeded Drive tenant with hundreds of real files/folders/shares to click through.</li>
         </ul>
       </div>
+      <div class="gapcard">
+        <div class="gaphd"><h4>CRM</h4><span class="delta mono">80% → 100%</span></div>
+        <ul>
+          <li><b>No marketing automation</b> — no campaigns, drip/sequence email, or nurture workflows. A genuinely separate subsystem (scheduling engine, unsubscribe compliance, analytics), deliberately declined to build unprompted rather than half-built — same treatment as NexusHR's group-calls gap.</li>
+          <li class="hardfloor"><b>Lead scoring is rule-based, not predictive</b> — a deliberate phase, not a shortfall: an admin sets transparent point rules ("value over 10M → +15") rather than a black-box model. A real ML score needs real closed-deal history to train on, which doesn't exist yet; the activity timeline (migration 449) is where that history is now accumulating for a future pass.</li>
+          <li><b>No browser click-through of the new Pipeline Stages settings page</b> — reorder/rename/recolor/mark-Won-or-Lost is type-checked and logic-verified against the live API (16 automated tests + an 11-check live pass), but not visually confirmed (no browser tool this session).</li>
+          <li><b>Data-populated verification not done</b> — same ceiling as every other app re-rated this pass: no fully seeded CRM tenant with hundreds of real leads/deals/activity history to click through.</li>
+        </ul>
+      </div>
     </div>
 
     <div class="roadmap">
@@ -639,13 +648,17 @@
     <h2>One tenant, one wall.</h2>
     <div class="archnote">
       <div class="ic">🔒</div>
-      <p>Every tenant's data sits behind genuine Postgres Row-Level Security — the API connects as a restricted, non-superuser role (<code>hudumika_app</code>) with every RLS-enabled table under <code>FORCE ROW LEVEL SECURITY</code>, so a query missing its tenant scope is rejected by the database itself, not just filtered by application code. That's the floor; every route still scopes its own queries explicitly on top of it.</p>
+      <p>Every tenant's data sits behind genuine Postgres Row-Level Security — the API connects as a restricted, non-superuser role (<code>hudumika_app</code>) with every RLS-enabled table under <code>FORCE ROW LEVEL SECURITY</code>, so a query missing its tenant scope is rejected by the database itself, not just filtered by application code. That's the floor; every route still scopes its own queries explicitly on top of it. A platform-wide gap-closure pass completed 10 September took this from a per-app, audit-as-you-go effort to a verified whole: <strong>every one of the 499 tables in the schema that carries a <code>tenant_id</code> column now has RLS enabled and FORCEd — zero left ungoverned</strong>, confirmed by a live query against the running database, not a code read. It closes gaps that had sat open since earlier audits flagged them (Drive's own 8 tables among them, fixed the same day — see the Drive gap note) plus roughly 90 more across Email, HR device/login history, tenant settings/usage metering, ComplyOS, and ClearOS rate cards that no single app-focused pass had ever swept.</p>
+    </div>
+    <div class="archnote">
+      <div class="ic">🪪</div>
+      <p>Tenant isolation answers "can tenant A read tenant B's row"; it says nothing about "can this <em>particular user inside</em> tenant A do this." A production-readiness pass on 10 September found that gap real, not theoretical: <code>onsite.routes.ts</code> (~50 infrastructure endpoints — create/delete servers, domains, DNS, deploy secrets) was gated only by the <code>onsite</code> plan entitlement, no role check at all — proven live with a real <code>CUSTOMER</code>-portal JWT successfully creating and deleting an infrastructure record through the actual route, independently re-confirmed the same way. Two more of the same shape turned up and were fixed the same day: ComplyOS's Legal Marketplace (any tenant member could create/cancel legal engagements or flip a payment-milestone status) and the platform-wide avatar/logo endpoint (any authenticated user could overwrite <em>anyone else's</em> profile picture or a customer/supplier's logo — self-service on your own picture is now the only case that stays open to everyone). All three are fixed and re-verified live, each against the same before/after real-JWT test. <strong>This is a triage result, not a completed audit</strong> — an automated scan of all 195 route files for mutating endpoints with no role guard surfaced roughly 300 candidates across 58 files after removing this codebase's known false-positive patterns (named-approver checks, alternate guard names, deliberate stubs); only the highest-stakes file was read end-to-end and proven each way. The other ~54 files are open, not yet reviewed.</p>
     </div>
   </section>
 
   <footer>
     <span>Hudumika — internal product overview, not for external distribution.</span>
-    <span>Figures current as of 9 September 2026.</span>
+    <span>Figures current as of 10 September 2026.</span>
   </footer>
 
 </div>

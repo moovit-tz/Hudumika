@@ -14,10 +14,10 @@ and the running API (`localhost:3001`), not just source reading.
 
 | Severity | Open | Fixed (verified) | Total |
 |----------|-----:|-----------------:|------:|
-| CRITICAL | 0 | 3 | 3 |
-| HIGH | 5 | 1 | 6 |
+| CRITICAL | 0 | 6 | 6 |
+| HIGH | 5 | 8 | 13 |
 | MEDIUM | 5 | 0 | 5 |
-| LOW | 5 | 0 | 5 |
+| LOW | 6 | 0 | 6 |
 
 Regression guard added: `apps/api/src/tests/tenant-rls-coverage.test.ts` — 7 tests,
 schema-level assertion that every `tenant_id` base table plus the HUD-0003 children
@@ -33,12 +33,14 @@ Mandatory quality gates:
 | No CRITICAL security issues | PASS | — |
 | No exposed production secrets (client) | PASS | grep of `apps/web/src` — none |
 | Authentication enforced server-side | PASS (spot-checked) | `middleware/auth.ts` — cookie+CSRF, refresh/guest/2fa-setup token rejection, device revocation |
-| Authorization enforced server-side | **UNVERIFIED** — needs per-route RBAC matrix (Phase 14) | — |
+| Authorization enforced server-side | **PARTIAL** — 8 gaps found+fixed live across 7 files (HUD-0023/0025/0026/0027/0028/0029/0030); 11 more candidates found, not yet fixed (HUD-0031); ~40 files still fully untriaged | HUD-0024/0031 |
 | Core workflows E2E | **UNVERIFIED** — Phase 5 not yet run platform-wide | — |
 | Production build | **UNVERIFIED** — `npm run build` not yet run | — |
-| CI meaningful | **FAIL** — CI runs only `npm audit` (non-blocking); no typecheck/lint/test/build gate | HUD-0006 |
-| Test coverage of critical workflows | **FAIL** — 8 API test files (now 9 incl. the RLS guard), 0 web test files for 195 routes / 153 services | HUD-0005 |
+| CI meaningful | **PASS** — `ci.yml` gates on typecheck, fresh-DB migrate, API tests against that fresh DB, and full build; proven locally end to end | HUD-0006 |
+| Test coverage of critical workflows | **FAIL** — 9 API test files, 0 web test files for 195 routes / 153 services | HUD-0005 |
 | Database migrations reproduce prod | **PASS** — fresh-DB proof: 474/474 migrations apply clean; full schema diff vs. live = 0 table/column/RLS mismatches | HUD-0009 |
+| Production build | **PASS** — `npm run build` (types/ui/api/web) now succeeds; was broken (HUD-0020) | HUD-0020 |
+| API survives a dropped DB connection | **PASS** — was FAIL, crashed the whole process on a live connection drop during this audit | HUD-0021 |
 
 ---
 
@@ -100,6 +102,219 @@ Mandatory quality gates:
 
 ---
 
+### HUD-0023 — Onsite (infrastructure/hosting) had zero role-based authorization · FIXED (VERIFIED)
+- **Category:** Authorization / privilege escalation (Phase 14 RBAC matrix)
+- **Evidence:** `apps/api/src/routes/onsite.routes.ts` (~50 mutating endpoints — create/delete
+  servers, create/delete domains, DNS records, deploy applications, clone apps, create/read/
+  delete deploy secrets) was gated only by `fastify.authenticate` + `requireEntitlement('onsite')`
+  — a **feature/plan** check, not a role check. Any authenticated member of a tenant whose plan
+  includes the `onsite` feature (confirmed: `growth`/`scale`/`enterprise`/`starter` all do) could
+  reach every one of these routes regardless of role.
+- **Proven live, not inferred:** signed real JWTs for a `JUNIOR` and — more seriously — a
+  `CUSTOMER`-role portal account in the dev tenant. Both successfully `POST`ed a new
+  `onsite_health_checks` row (201) and `DELETE`d it (200) through the actual HTTP route. A
+  customer-portal account creating and deleting infrastructure-monitoring records (and, by the
+  same code path with no additional guard, servers/domains/secrets) is a real privilege-escalation
+  vulnerability, not a theoretical one.
+- **Root cause:** the file's own header comment said "All routes in this module require valid
+  auth + onsite entitlement" — entitlement was conflated with authorization. Every other
+  admin/infra-adjacent route file in this codebase (`hr.routes.ts`'s department/designation/shift
+  mutations, `org-chart.routes.ts`, `settings.routes.ts`) pairs its entitlement check with a role
+  check; this file never got one.
+- **Fix:** one added file-level hook, matching the codebase's own convention exactly:
+  `fastify.addHook('preHandler', requireRole('SUPER_ADMIN','ADMIN','TENANT_ADMIN','MANAGER'))`.
+  Applied to the whole file (reads included) — nothing in the frontend (`OnsiteShell.tsx` has no
+  role gating of its own either) or the route semantics suggested any lower-privileged role has a
+  legitimate reason to view server/domain/secret-key inventories, so there was no reason to
+  split read vs. write exposure.
+- **Re-test:** same live probe, same two accounts — `GET /v1/onsite/overview` now returns
+  **403** for both `JUNIOR` and `CUSTOMER`. A `TENANT_ADMIN` JWT still gets **200** with real
+  data — legitimate access preserved. Full API suite still green (10 files / 103 tests).
+- **Methodology note:** found via an automated triage scan of all 195 route files for mutating
+  endpoints with no `requireRole`-family preHandler and no recognizable inline
+  ownership/role/approver check, refined twice after it flagged legitimate patterns this codebase
+  actually uses (named-approver checks in `bills.routes.ts`/`petti.routes.ts`, alternate guard
+  names like `requireRoleOrOrgPermission`, deliberate `410 Gone` stubs in `permissions.routes.ts`
+  and the old `hr.routes.ts`/`nexushr.routes.ts` payroll paths). After removing those false
+  positives the scan still had ~300 candidates across 58 files — too many to hand-verify in this
+  pass. Onsite was the one actually read end-to-end and proven live because it was the highest-
+  stakes candidate (infrastructure, not a calculator or AI-summary endpoint). **The remaining ~57
+  files are unreviewed — this is a triage result, not a completed Phase 14.** See HUD-0024.
+
+### HUD-0030 — `onsite-backups.routes.ts`: same Onsite gap, separate file, missed by HUD-0023 · FIXED (VERIFIED)
+- **Category:** Authorization / privilege escalation (Phase 14, HUD-0024 continuation)
+- **Evidence:** `POST /v1/onsite/backups/:id/restore` (overwrites live tenant config from a
+  snapshot) and `DELETE /v1/onsite/backups/:id` had the identical gap HUD-0023 fixed —
+  `requireEntitlement('onsite')` only, no role check — but live in a **separate route file**
+  (`onsite-backups.routes.ts`) that HUD-0023's fix to `onsite.routes.ts` never touched. Found by
+  systematically probing every remaining flagged file's base route with a real `CUSTOMER` JWT:
+  `GET /v1/onsite/backups` returned 200.
+- **Fix:** identical guard — `requireRole('SUPER_ADMIN','ADMIN','TENANT_ADMIN','MANAGER')`.
+- **Re-test, live:** `CUSTOMER` JWT → 403; `TENANT_ADMIN` JWT → 200 (`{data:[]}`).
+
+### HUD-0027 — Sign envelopes/templates: no mutation ever checked who owned them · FIXED (VERIFIED)
+- **Category:** Authorization (Phase 14, HUD-0024 continuation)
+- **Evidence:** `sign.routes.ts` — `PUT /envelopes/:id` (full edit), `PATCH /:id/title`,
+  `POST /:id/send`, `POST /:id/remind`, `DELETE /:id` (void), `POST /:id/amend`,
+  `DELETE /templates/:id`, `POST /templates/:id/bulk-send` all fetched the row scoped only to
+  `tenant_id` — never to `created_by`. Any authenticated tenant member with 'sign' entitlement
+  could void, resend, retitle or fully re-edit **any other user's** envelope, including one
+  still in draft. This directly contradicts a rule the file already enforces elsewhere:
+  `GET /envelopes?view=all` treats a draft as private to its creator and gates the tenant-wide
+  view behind `DOCUMENT_ADMIN_ROLES` — that rule just was never applied to the single-record
+  mutation endpoints, or to `GET /envelopes/:id` (fetchable by id regardless of draft/owner).
+  `POST /journal/:eventId/correction` (annotating the tamper-evident audit trail) had no check
+  of any kind.
+- **Fix:** a shared `assertCanActOnEnvelope()` helper — creator (`created_by === user.sub`) OR
+  `DOCUMENT_ADMIN_ROLES` (the same admin tier `sign-forensics.routes.ts` already uses for
+  comparably sensitive material) — applied to all 8 mutation sites plus the single-envelope
+  `GET` (only for `status === 'draft'`, matching the list endpoint's own rule exactly; sent/
+  completed/voided/declined envelopes stay tenant-wide readable, unchanged). The journal
+  correction endpoint got its own, stricter `DOCUMENT_ADMIN_ROLES`-only check — it's an
+  authoritative correction to someone else's audit record, not something ownership should grant.
+- **Re-test, live:** a `SALES`-role JWT (not the envelope's creator, not an admin) got **403**
+  attempting `PATCH /envelopes/:id/title` on an existing `sent` envelope it didn't create;
+  `GET` on that same non-draft envelope stayed **200** (reads unaffected for non-drafts, as
+  intended). Full suite still green.
+
+### HUD-0028 — Contacts: the tenant's internal address book was reachable by CUSTOMER accounts · FIXED (VERIFIED)
+- **Category:** Authorization (Phase 14, HUD-0024 continuation)
+- **Evidence:** `contacts.routes.ts` has no role check anywhere (by design — neither does the
+  frontend; it's a flat, shared address book any internal staff role can already manage). But
+  "any authenticated tenant member" also includes `CUSTOMER` — an external portal account with
+  no legitimate reason to browse, bulk-delete, import into, or merge the tenant's internal
+  contact book. Proven live: `GET /v1/contacts` returned 200 for a `CUSTOMER` JWT (empty in this
+  tenant, but the access itself is the bug — the same route also serves `POST /bulk-delete`,
+  `POST /import`, `POST /merge`).
+- **Fix:** one added file-level check rejecting `role === 'CUSTOMER'` specifically — every
+  internal role keeps exactly the flat access it already had; nothing else changed.
+- **Re-test, live:** `CUSTOMER` → 403 (`"Not available for this account type."`); `JUNIOR` → 200
+  (unaffected).
+
+### HUD-0029 — CMS/OneSite: a CUSTOMER account could edit or delete the tenant's public website · FIXED (VERIFIED)
+- **Category:** Authorization (Phase 14, HUD-0024 continuation)
+- **Evidence:** `cms.routes.ts`'s tenant-route hook (applied by URL prefix to `/pages`, `/posts`,
+  `/comments`, `/site-settings`) ran `fastify.authenticate` + `requireEntitlement('onesite')`
+  only. A `CUSTOMER`-role JWT could reach `PUT /site-settings` and `DELETE /pages/:id` — the
+  tenant's own public-facing marketing site. Proven live: `GET /v1/cms/pages` → 200 for a
+  `CUSTOMER` JWT.
+- **Fix:** same shape as HUD-0028 — reject `role === 'CUSTOMER'` in the existing prefix-scoped
+  hook, right after the entitlement check.
+- **Re-test, live:** `CUSTOMER` → 403; `JUNIOR` → 200 (unaffected).
+
+### HUD-0031 — More CUSTOMER-reachable internal endpoints found; not yet fixed · OPEN
+- **Category:** Authorization (Phase 14, HUD-0024 continuation)
+- **Evidence:** having established "can a CUSTOMER JWT even reach this app's base route" as a
+  fast, high-confidence signal (4 for 4 real bugs when checked: Contacts/CMS/Onsite/Onsite-
+  backups), the same probe was run against every other remaining flagged file's base GET. Real
+  data came back (200, not just an empty array — i.e. genuinely reachable, not merely
+  "authenticated but nothing to show") for: **`/v1/petti/wallets`** (wallet/financial data),
+  **`/v1/sanctions/screenings`** (compliance screening results), **`/v1/notes`** (returned a
+  real note row, though title/content were blank for this one), **`/v1/org/tickets`**,
+  **`/v1/seal/compartments`**, **`/v1/reference/icd-operators`** (likely fine — looks like
+  public reference data, needs confirming not assuming), **`/v1/hr/departments`**,
+  **`/v1/depot/equipment`**, **`/v1/inventory/warehouses`**, **`/v1/dangerous-goods/declarations`**
+  and **`/v1/declarations`** (both returned real declaration rows).
+  `/v1/drives` was checked and is **already correctly blocked** (`"Not available for customer
+  accounts"` — a concurrent session's own fix, not this audit's). `/v1/project-os/portfolios`
+  returned a **500** for a `CUSTOMER` JWT — an unhandled exception, not yet triaged (Project OS
+  is under active concurrent development — check with the owning session before touching it).
+  `/v1/shipments` was checked and is **correctly scoped already** (real `customer_id`-based
+  row filtering, with a safe non-matching fallback when unresolved) — not a bug, left as
+  reference for what the fix should look like.
+- **Proposed fix:** for each, read the actual handler (not just the base route) to confirm
+  whether it's a genuine unintended-CUSTOMER-access gap (most likely) or, like `shipments`,
+  already-correct scoping my probe couldn't see from one GET call. Prioritize `petti/wallets`
+  (financial) and `sanctions/screenings` (compliance) first — same severity class as HUD-0025.
+  This list is itself not exhaustive — only the files already flagged by the original HUD-0024
+  scan were probed; the ~40 files still fully untriaged (calculators, AI, PDF tools, seal-*
+  family beyond the base route, warehouse, tracker, etc.) have not been checked at all yet,
+  including for this specific CUSTOMER-reachability angle.
+
+### HUD-0025 — ComplyOS Legal Marketplace had no role gate · FIXED (VERIFIED)
+- **Category:** Authorization (Phase 14 RBAC matrix, HUD-0024 follow-up)
+- **Evidence:** `comply-legal.routes.ts` — create/cancel a legal engagement, message a law
+  firm on the tenant's behalf, and flip a milestone's payment status
+  (`pending`/`paid`/`released`) — gated only by `requireEntitlement('complyos')`, no role
+  check, no service-layer check either (`LegalMarketplaceService.*` takes no actor/role
+  parameter at all). Its sibling `comply.routes.ts` already carries
+  `requireRoleOrOrgPermission(ORG_PERMISSIONS.COMPLY_MANAGE, ...MGMT_ROLES)` from an earlier
+  audit pass (the fix's own code comment documents that prior finding) — this file was missed.
+- **Fix:** same guard, same permission key, mirroring the sibling file exactly.
+- **Re-test, live:** `GET /v1/comply/legal/engagements` — `JUNIOR` and `CUSTOMER` JWTs now 403,
+  `TENANT_ADMIN` unaffected (200). Full suite still green (10 files / 103 tests).
+- **Note:** `setMilestoneStatus` only flips a status column — no GL posting, no fund transfer,
+  no Petti wallet interaction — so this was a business-process-integrity gap (any tenant member,
+  including an external customer-portal account, could misrepresent legal engagement state or
+  message a firm as the tenant), not a direct financial-loss one. Fixed regardless.
+
+### HUD-0026 — Any user could overwrite or delete anyone else's avatar/logo · FIXED (VERIFIED)
+- **Category:** Authorization (Phase 14 RBAC matrix, HUD-0024 follow-up)
+- **Evidence:** `identity.routes.ts` `PUT`/`DELETE /:kind/:id/avatar` (the shared avatar/logo
+  endpoint documented in CLAUDE.md, backing `PersonAvatar`/`CompanyAvatar`/`AvatarPicker`
+  platform-wide across 6 subject kinds — people/customers/leads/contacts/drivers/suppliers) had
+  no ownership or role check at all: any authenticated tenant member could set or clear the
+  picture on ANY `id`, including another person's own profile photo or a customer/lead/driver/
+  supplier's logo.
+- **Fix:** `(kind === 'people' && id === user.sub) || MGMT_ROLES.includes(user.role)` — self-
+  service on your own picture (the actual product feature) stays open to everyone; every other
+  case (a colleague's photo, any non-person subject's logo) now needs a management role.
+- **Re-test, live:** a `JUNIOR` and a `CUSTOMER` JWT both get **403** attempting to `PUT` another
+  user's avatar; the same `JUNIOR` JWT successfully sets (200) and then deletes (200) **their own**
+  avatar — self-service unaffected. Full suite still green.
+
+### HUD-0024 — RBAC matrix (Phase 14) triaged, not completed · OPEN
+- **Category:** Authorization (process/coverage gap)
+- **Evidence:** the scan behind HUD-0023 flagged ~300 mutating routes across 58 files with no
+  `requireRole`-family guard and no recognizable inline check. Manually reading each one's
+  actual authorization story (some are legitimately open self-service actions — e.g. a user
+  consenting to their own activity monitoring, a PDF tool operating only on a file the caller
+  uploaded; some delegate to a service-layer check my route-level scan can't see; at least one,
+  Onsite, was a real gap) was only done for the single highest-stakes file.
+- **Proposed fix:** work through the remaining files in domain-sensitivity order, reading the
+  actual handler (and any service it calls) rather than trusting the route file alone, and where
+  a real gap is found, fix + prove live exactly as HUD-0023/0025/0026 did.
+- **Reviewed this pass:**
+  - `onsite.routes.ts` — real gap, fixed (HUD-0023).
+  - `onsite-backups.routes.ts` — same gap, separate file, fixed (HUD-0030).
+  - `comply-legal.routes.ts` — real gap, fixed (HUD-0025).
+  - `identity.routes.ts` — real gap, fixed (HUD-0026).
+  - `sign.routes.ts` — real gap (ownership, not role), fixed (HUD-0027).
+  - `contacts.routes.ts` — real gap (CUSTOMER-reachable), fixed (HUD-0028).
+  - `cms.routes.ts` — real gap (CUSTOMER-reachable), fixed (HUD-0029).
+  - `billing.routes.ts` — already correctly gated (`requireRoleOrOrgPermission(...MGMT)`);
+    original scan hit was a false positive from before the guard-detection regex was broadened.
+  - `seal-billing.routes.ts` (`POST /lots/:id/generate-storage-invoice`) — reviewed and left
+    as-is: the code comment documents a deliberate design — this creates a **Draft**
+    `sales_invoices` row only (no GL posting), specifically so a SEAL-only warehouse manager
+    doesn't need FinOps provisioning to generate it; the real gate (finalize/send) is enforced by
+    `invoices.routes.ts`'s own FINANCE/MANAGER/ADMIN+ role check. Not a gap.
+  - `org.routes.ts POST /claim` — reviewed and left as-is: a one-time-code redemption flow
+    (capability-token model, same shape as password reset) — possession of a valid, unexpired,
+    unused code is the authorization; a role check would be meaningless here. Not a gap.
+  - `hr.routes.ts PATCH /profile/avatar` — reviewed and left as-is: already correctly
+    self-scoped (`.where('id', '=', user.sub)`) — genuinely a false-positive scan hit; the
+    file's separate `PATCH /staff/:id/avatar` (editing someone else's) is already
+    `requireRole`-gated. `/time/:id/{stop,ack,extend}` were reviewed but **not** fixed — no
+    ownership check either, but plausibly a manager routinely closes out a colleague's forgotten
+    clock-out; left as a judgment call pending clearer evidence, not waved through as fine.
+  - `shipments.routes.ts` — checked specifically because it looked CUSTOMER-relevant by nature;
+    already correctly scoped (`customer_id`-based filter with a safe non-matching fallback). Not
+    a gap — kept as the reference example of what "done right" looks like here.
+  - `drives.routes.ts` — checked; already correctly blocks `CUSTOMER` (a concurrent session's
+    own fix, not this audit's).
+- **New candidates found this pass, not yet fixed:** see HUD-0031 — a CUSTOMER-JWT reachability
+  probe run against the remaining flagged files' base routes found real, non-empty data
+  reachable at `/v1/petti/wallets`, `/v1/sanctions/screenings`, `/v1/notes`, `/v1/org/tickets`,
+  `/v1/seal/compartments`, `/v1/reference/icd-operators`, `/v1/hr/departments`,
+  `/v1/depot/equipment`, `/v1/inventory/warehouses`, `/v1/dangerous-goods/declarations`,
+  `/v1/declarations` — and a 500 at `/v1/project-os/portfolios`. None of these fixed yet.
+- **Still fully untriaged:** ~40 files not touched by either the file-read pass or the
+  CUSTOMER-reachability probe — the `seal-*` sub-files beyond the base route, `warehouse.routes.ts`,
+  `tracker.routes.ts`, `inventory-*` beyond the base route, and the large lower-risk tail
+  (calculators, AI assist, PDF tools, calendar/notes/chat self-service actions — plausibly fine
+  to stay open to any authenticated user, but not yet confirmed either way).
+
 ## HIGH
 
 ### HUD-0004 — ~40 non-tenant tables unclassified for isolation · OPEN
@@ -137,14 +352,81 @@ Mandatory quality gates:
   tenant-isolation assertions (a permanent guard for HUD-0001/2/3), auth/session, RBAC per role,
   invoice/GL posting, declaration lifecycle. Then web E2E for the top journeys.
 
-### HUD-0006 — CI does not gate on build / typecheck / tests · OPEN
+### HUD-0006 — CI does not gate on build / typecheck / tests · FIXED (VERIFIED)
 - **Category:** DevOps / CI-CD
-- **Evidence:** `.github/workflows/` contains only `dependency-audit.yml`, and that is
-  `continue-on-error: true`. No workflow runs `tsc`, `eslint`, `vitest`, `npm run build`, or
-  migration validation. "A green pipeline must mean something" — here it means only that
-  `npm ci` succeeded.
-- **Proposed fix:** add a `ci.yml` running (per workspace) typecheck + lint + `vitest run` +
-  `npm run build` + `check:triggers` + a migration dry-run against an ephemeral Postgres.
+- **Evidence:** `.github/workflows/` contained only `dependency-audit.yml`, `continue-on-error:
+  true`. No workflow ran `tsc`, `vitest`, `npm run build`, or migration validation.
+- **Fix:** added `.github/workflows/ci.yml` — Postgres 13 service container, `npm run typecheck`
+  (api + web + `check:triggers`), `npm run db:migrate` against the fresh service-container
+  database (the HUD-0009 proof, now automatic on every push/PR), `npm test -w apps/api` against
+  that same freshly-migrated database, `npm run build` (all 4 workspaces). Deliberately does
+  **not** invoke `npm run lint` (see HUD-0020) or `apps/web` tests (see HUD-0005) — including a
+  step that always fails for reasons unrelated to the change under review isn't a real gate.
+- **Re-test, done locally against the exact recipe (not just written and assumed correct):**
+  created a from-scratch database, ran migrate → 474/474 applied; ran the full API suite against
+  it with `DATABASE_URL_APP`/`DATABASE_URL_PLATFORM`/`DATABASE_URL_READONLY` pointed at the fresh
+  DB (not the long-lived dev database) → **9 files / 87 tests passed**; ran `npm run build` → all
+  4 workspaces (`types`, `ui`, `api`, `web`) built clean. This also caught two more real bugs
+  before they could ever reach CI — see HUD-0020 and the `compliance_marketplace_requests` note
+  under HUD-0009.
+
+### HUD-0020 — `npm run build` was broken; `packages/ui` cannot compile · FIXED (VERIFIED)
+- **Category:** Build / dependency
+- **Evidence:** `packages/ui/tsconfig.json` extends `tsconfig.base.json` (`lib: ["ES2022"]`,
+  correct for the Node-only `apps/api`) with no DOM override, but `Drawer.tsx`/`Modal.tsx` use
+  `document` and `KeyboardEvent`. `npm run build` therefore failed at step 2 of 4
+  (`packages/types` → **`packages/ui` fails** → `apps/api` / `apps/web` never even attempted).
+  Given the file dates (`Drawer.tsx`/`Modal.tsx` untouched since Jul 22), the root `build` script
+  had likely never succeeded.
+- **Fix:** added `"lib": ["DOM", "DOM.Iterable", "ES2022"]` to `packages/ui/tsconfig.json`,
+  matching `apps/web/tsconfig.json`'s own lib list exactly.
+- **Re-test:** `npm run build` — all 4 workspaces build clean, exit 0.
+- **Related architecture note:** only one file in the whole app (`ShipmentRow.tsx`) imports from
+  `@hudumika/ui`; the real, actively-developed design system is `apps/web/src/components/ui/`
+  per CLAUDE.md. `packages/ui` is a small, mostly-abandoned earlier package (Phase 31 — duplicate
+  implementation from earlier development). Not removed here (one real caller); worth a decision
+  later on whether to port that one usage and retire the package.
+
+### HUD-0021 — Any dropped DB connection crashed the entire API process · FIXED (VERIFIED)
+- **Category:** Reliability / error handling (CRITICAL in production; found live, not theorized)
+- **Evidence:** the API dev server crashed mid-audit with `Error: Connection terminated
+  unexpectedly` from `pg`, `Unhandled 'error' event`, taking the whole Node process down —
+  confirmed in `recheck_dev.log`. Root cause: `apps/api/src/db/client.ts` creates three
+  `pg.Pool`s (`pool`/`hudumika_app`, `readonlyPool`/`hudumika_readonly`,
+  `platformPool`/`hudumika_platform`) and `db/migrate.ts` a fourth, **none with an `.on('error',
+  …)` listener**. node-postgres's own documented behavior: an idle pooled client stays connected
+  to its backend, so a dropped connection (network blip, Postgres restart, a killed idle
+  session) emits `'error'` on the *pool* itself, not on any in-flight query — with no listener,
+  Node treats it as an unhandled error and kills the process. In production this means **any
+  transient database hiccup takes down the API for every tenant simultaneously**, with no
+  graceful reconnect, regardless of how solid the RLS/RBAC/etc. work above it is.
+- **Fix:** added a `pool.on('error', …)` handler (logs and lets the pool recycle the client — the
+  standard node-postgres-recommended fix) to all 4 pools (`pool`, `readonlyPool`, `platformPool`
+  in `db/client.ts`; the migration pool in `db/migrate.ts`).
+- **Re-test:** restarted the API, `tsc --noEmit` clean, full suite still 9 files / 87 tests
+  passing, `tsx watch`'s hot-reload of the edited file itself didn't crash the process.
+  (Reproducing the original network-drop condition on demand wasn't attempted — the fix is the
+  library-documented one for exactly this error shape.)
+- **Note on cause:** this session ran many short-lived, ad-hoc `pg.Client`/`pg.Pool` connections
+  and repeated `CREATE DATABASE`/`DROP DATABASE` while proving HUD-0009 and HUD-0006. Postgres's
+  connection count was checked immediately after (6 of 100 `max_connections`, nowhere near the
+  limit) so exhaustion wasn't the trigger, but a `DROP DATABASE` or similar exclusive operation
+  can still transiently disrupt unrelated sessions on the same server. Whatever the exact
+  trigger, the underlying gap — zero resilience to a dropped connection — was real and
+  pre-existing; this audit is what surfaced it.
+
+### HUD-0022 — `npm run lint` is completely non-functional · OPEN
+- **Category:** DevOps / code quality
+- **Evidence:** root `package.json`'s `lint` script is `eslint . --ext .ts,.tsx`; `eslint` is not
+  installed (not in any `devDependencies`) and no `.eslintrc*` / `eslint.config.*` exists
+  anywhere in the repo. Running it fails immediately with "'eslint' is not recognized."
+- **Impact:** there has never been automated linting on this codebase. Not wired into HUD-0006's
+  new CI on purpose — a step that fails on every single run regardless of the change under
+  review is worse than no step, and papering over it with `continue-on-error` repeats
+  `dependency-audit.yml`'s existing mistake.
+- **Proposed fix:** install `eslint` + `typescript-eslint` (flat config, matches the TS/ESM
+  setup), pick a starting ruleset lenient enough not to fail on 468 pre-existing pages/195 routes
+  on day one, add it as a real (non-`continue-on-error`) CI step once it passes clean.
 
 ### HUD-0007 — `tenant_id` column type inconsistent (uuid vs text) · OPEN
 - **Category:** Database / schema consistency
@@ -256,7 +538,14 @@ keys. Confirm `.env.example` lists every key a fresh clone needs.
     **does not exist on the live database** — someone dropped it outside the migration system
     after 093 ran, with no corresponding migration recording the drop. A fresh install recreates
     it (093 is still on disk); live does not have it. Confirmed via a full schema diff between a
-    from-scratch migrated database and the live one — this table is the only difference.
+    from-scratch migrated database and the live one — this table was the only difference.
+    **Update:** 093 never gave it RLS at all, so on any fresh install (or if live ever gets it
+    back) it would have shipped as another unprotected tenant table — a second HUD-0001-shaped
+    gap the live-DB scan literally could not see, since the table isn't there to scan. Found only
+    because HUD-0006's CI dry-run runs the full suite against a fresh database. Fixed in
+    `101_compliance_marketplace_requests_rls.sql` (`ALTER TABLE IF EXISTS` / a guarded `DO`
+    block, safe no-op on live where the table is absent). Re-verified: the tenant-RLS regression
+    test now passes against both the live database and a from-scratch one.
 - **Impact:** low (zero rows either way, zero code paths). Real cost is architectural noise —
   exactly the "different agents solved the same problem twice" pattern Phase 31 asks to find.
 - **Proposed fix:** confirm with the team that both are dead, then in one migration:

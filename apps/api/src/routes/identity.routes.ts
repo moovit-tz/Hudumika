@@ -19,9 +19,13 @@
  * would be the worst possible thing to get wrong here.
  */
 import type { FastifyInstance } from 'fastify';
+import type { UserRole } from '@hudumika/types';
 import crypto from 'crypto';
 import { withTenant } from '../db/client.js';
 import { getUserOrgPermissions } from '../lib/org-rbac.js';
+
+// Same role set as comply.routes.ts / hr.routes.ts's own local MGMT_ROLES.
+const MGMT_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'];
 
 /** Stable colour for a name, so initials look the same in every app. */
 const AVATAR_COLORS = ['#e8461a', '#0891b2', '#7c3aed', '#059669', '#d97706', '#9333ea', '#db2777', '#0284c7'];
@@ -287,6 +291,17 @@ export async function identityRoutes(fastify: FastifyInstance) {
     const { kind, id } = req.params as { kind: string; id: string };
     const subject = subjectFor(kind);
     if (!subject) return reply.status(404).send({ error: `There is no picture for "${kind}"` });
+    // Production-readiness audit HUD-0024: this had no check at all — any
+    // authenticated tenant member could overwrite any OTHER person's photo,
+    // or a customer's/lead's/driver's/supplier's logo. Self-service on your
+    // own "people" picture is the actual product feature (AvatarPicker on
+    // your own profile); everything else — a colleague's photo, any
+    // non-person subject's logo — needs a management role, the same as
+    // every other cross-record write in this platform.
+    const isOwnPeoplePhoto = kind === 'people' && id === user.sub;
+    if (!isOwnPeoplePhoto && !MGMT_ROLES.includes(user.role)) {
+      return reply.status(403).send({ error: 'You can only change your own picture.' });
+    }
 
     const { data_url } = (req.body ?? {}) as { data_url?: string };
     if (!data_url || typeof data_url !== 'string') {
@@ -322,6 +337,11 @@ export async function identityRoutes(fastify: FastifyInstance) {
     const { kind, id } = req.params as { kind: string; id: string };
     const subject = subjectFor(kind);
     if (!subject) return reply.status(404).send({ error: `There is no picture for "${kind}"` });
+    // See PUT's HUD-0024 comment above — same rule, same reason.
+    const isOwnPeoplePhoto = kind === 'people' && id === user.sub;
+    if (!isOwnPeoplePhoto && !MGMT_ROLES.includes(user.role)) {
+      return reply.status(403).send({ error: 'You can only remove your own picture.' });
+    }
 
     return withTenant(user.tenant_id, async (trx) => {
       const updated = await (trx.updateTable(subject.table as any) as any)
