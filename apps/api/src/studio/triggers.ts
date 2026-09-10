@@ -455,7 +455,7 @@ export const TRIGGERS: TriggerDef[] = [
     id: 'file.uploaded', kind: 'DOMAIN_EVENT', app: 'cloud',
     label: 'File uploaded', description: 'A new file was uploaded into Cloud.',
     entityType: 'document',
-    payloadSchema: z.object({ name: z.string(), size: z.number(), type: z.string() }).passthrough(),
+    payloadSchema: z.object({ name: z.string(), size: z.number(), type: z.string(), envelope_id: z.string().optional() }).passthrough(),
     samplePayload: { name: 'BL-8841.pdf', size: 204800, type: 'pdf' },
   },
   {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -9,6 +10,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Combobox } from '../components/ui/combobox.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
@@ -16,6 +18,8 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { ActivityTimeline } from '../components/crm/ActivityTimeline.js';
+import { LabelChips } from '../components/crm/LabelChips.js';
 
 /* ── Types ── */
 export interface Lead {
@@ -29,6 +33,8 @@ export interface Lead {
   value: number;
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
   assigned_to?: string;
+  assigned_to_id?: string;
+  assigned_to_name?: string;
   expected_close?: string;
   created_at: string;
   notes?: string;
@@ -65,7 +71,6 @@ const SOURCE_CFG: Record<string, { color: string; bg: string }> = {
   'Partner':    { color: 'var(--ink2)',   bg: 'var(--bg)'       },
 };
 
-const OFFICERS = ['Amina Hassan', 'John Mwangi', 'Fatuma Ally', 'Peter Kimani', 'Grace Osei'];
 const SOURCES   = Object.keys(SOURCE_CFG);
 
 /* ── Helpers ── */
@@ -267,6 +272,7 @@ function StagePipeline({ current, onSelect, interactive }: { current: string; on
 ══════════════════════════════════════════ */
 export const Leads: React.FC = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [view, setView]       = useState<'list' | 'profile'>('list');
   const [leads, setLeads]     = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -277,6 +283,16 @@ export const Leads: React.FC = () => {
   const [saving, setSaving]           = useState(false);
   const [notes, setNotes]             = useState('');
   const [noteSaving, setNoteSaving]   = useState(false);
+
+  /* Real staff list for "Assigned To" — replaces the old hardcoded OFFICERS
+     names with an actual account, same /v1/hr/staff endpoint Contacts' own
+     owner picker uses. */
+  const [staff, setStaff] = useState<{ value: string; label: string }[]>([]);
+  useEffect(() => {
+    let alive = true;
+    apiFetch('/v1/hr/staff?search=').then((rows: any[]) => { if (alive) setStaff((rows || []).map(u => ({ value: u.id, label: u.name }))); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   /* List filters */
   const [search,         setSearch]         = useState('');
@@ -415,6 +431,18 @@ export const Leads: React.FC = () => {
     } catch (err: any) { showAlert(err.message || 'Failed'); }
   }
 
+  // Creates a real Deal from this lead (deals.routes.ts, migration 447) and
+  // takes the rep straight to it on the new Pipeline board — the lead
+  // itself is untouched, so its own stage still records how it was
+  // qualified in the first place.
+  async function convertToDeal() {
+    if (!selected) return;
+    try {
+      await apiFetch(`/v1/leads/${selected.id}/convert`, { method: 'POST' });
+      navigate('/crm/pipeline');
+    } catch (err: any) { showAlert(err.message || 'Failed to convert lead to a deal'); }
+  }
+
   const loadLinkedFiles = useCallback(async (leadId: string) => {
     setFilesLoading(true);
     try {
@@ -494,6 +522,7 @@ export const Leads: React.FC = () => {
     const PROF_TABS = [
       { key: 'overview',  label: 'Overview',  icon: 'grid'      as IconName },
       { key: 'contact',   label: 'Contact',   icon: 'user'      as IconName },
+      { key: 'activity',  label: 'Activity',  icon: 'activity'  as IconName },
       { key: 'notes',     label: 'Notes',     icon: 'edit'      as IconName },
       { key: 'documents', label: 'Documents', icon: 'folder'    as IconName },
     ];
@@ -522,6 +551,9 @@ export const Leads: React.FC = () => {
                   <PriBadge priority={sel.priority} />
                   {sel.industry && <span style={{ padding: '2px 9px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 600, background: 'var(--bg)', color: 'var(--ink2)', border: '1px solid var(--border)' }}>{sel.industry}</span>}
                 </div>
+                <div style={{ marginBottom: 8 }}>
+                  <LabelChips subjectType="lead" subjectId={sel.id} />
+                </div>
                 <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 16 }}>
                   {sel.contact_name}
                   {sel.location && ` · ${sel.location}`}
@@ -534,7 +566,7 @@ export const Leads: React.FC = () => {
                     { label: 'Pipeline Value', value: fmtValue(sel.value) },
                     { label: 'Days in Pipeline', value: `${days}d` },
                     { label: 'Source', value: sel.source },
-                    { label: 'Assigned To', value: sel.assigned_to || '—' },
+                    { label: 'Assigned To', value: sel.assigned_to_name || sel.assigned_to || '—' },
                     { label: 'Expected Close', value: sel.expected_close ? fmtShort(sel.expected_close) : '—' },
                   ].map((s, i, arr) => (
                     <React.Fragment key={s.label}>
@@ -653,7 +685,7 @@ export const Leads: React.FC = () => {
                         { label: 'Industry', value: sel.industry },
                         { label: 'Location', value: sel.location },
                         { label: 'Website', value: sel.website },
-                        { label: 'Assigned To', value: sel.assigned_to },
+                        { label: 'Assigned To', value: sel.assigned_to_name || sel.assigned_to },
                         { label: 'Expected Close', value: sel.expected_close ? fmtDate(sel.expected_close) : undefined },
                       ].map(({ label, value }) => (
                         <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
@@ -670,6 +702,7 @@ export const Leads: React.FC = () => {
                       {([
                         { label: 'Send Email',         icon: 'mail'       as IconName, action: () => sel.contact_email && window.open(`mailto:${sel.contact_email}`) },
                         { label: 'Send WhatsApp',      icon: 'send'       as IconName, action: () => { const p = sel.contact_phone?.replace(/\D/g,''); if(p) window.open(`https://wa.me/${p}`,'_blank'); } },
+                        { label: 'Convert to Deal',    icon: 'briefcase'  as IconName, action: convertToDeal },
                         { label: 'Edit Lead Details',  icon: 'edit'       as IconName, action: () => openEdit(sel) },
                         { label: 'Add Notes',          icon: 'fileText'   as IconName, action: () => setProfileTab('notes') },
                         { label: 'Mark as Won',        icon: 'check'      as IconName, action: () => updateStage('WON') },
@@ -715,7 +748,7 @@ export const Leads: React.FC = () => {
                         { label: 'Location', value: sel.location },
                         { label: 'Website', value: sel.website },
                         { label: 'Lead Source', value: sel.source },
-                        { label: 'Assigned To', value: sel.assigned_to },
+                        { label: 'Assigned To', value: sel.assigned_to_name || sel.assigned_to },
                       ].map(({ label, value }) => (
                         <div key={label}>
                           <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 4 }}>{label}</div>
@@ -748,13 +781,13 @@ export const Leads: React.FC = () => {
                       ))}
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Assigned To</label>
-                        <Select value={profileForm.assigned_to || '__none__'} onValueChange={v => setProfileForm(p => ({ ...p, assigned_to: v === '__none__' ? '' : v }))}>
-                          <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Unassigned</SelectItem>
-                            {OFFICERS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                        <Combobox
+                          options={staff}
+                          value={profileForm.assigned_to_id || ''}
+                          onChange={v => setProfileForm(p => ({ ...p, assigned_to_id: v, assigned_to_name: staff.find(s => s.value === v)?.label }))}
+                          placeholder={staff.length ? 'Unassigned' : 'Loading people…'}
+                          searchPlaceholder="Search people…"
+                        />
                       </div>
                     </div>
                   </SectionCard>
@@ -765,6 +798,15 @@ export const Leads: React.FC = () => {
                   </div>
                 </form>
               )}
+            </div>
+          )}
+
+          {/* Activity — real chronological history (calls, emails, meetings,
+              stage changes), not a static notes field. Shared component,
+              backed by crm_activities (migration 449). */}
+          {profileTab === 'activity' && (
+            <div style={{ padding: '24px 28px' }}>
+              <ActivityTimeline subjectType="lead" subjectId={sel.id} />
             </div>
           )}
 
@@ -908,13 +950,13 @@ export const Leads: React.FC = () => {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Assign To</label>
-                    <Select value={addForm.assigned_to || '__none__'} onValueChange={v => setF('assigned_to', v === '__none__' ? '' : v)}>
-                      <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">Unassigned</SelectItem>
-                        {OFFICERS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      options={staff}
+                      value={addForm.assigned_to_id || ''}
+                      onChange={v => { setF('assigned_to_id', v); setF('assigned_to_name', staff.find(s => s.value === v)?.label || ''); }}
+                      placeholder={staff.length ? 'Unassigned' : 'Loading people…'}
+                      searchPlaceholder="Search people…"
+                    />
                   </div>
                   <div style={{ gridColumn: '1/-1' }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Notes</label>
@@ -1067,10 +1109,12 @@ export const Leads: React.FC = () => {
                     <td style={{ padding: '12px 14px', textAlign: 'right', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 12.5, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{fmtValue(lead.value)}</td>
                     <td style={{ padding: '12px 14px' }}><PriBadge priority={lead.priority} /></td>
                     <td style={{ padding: '12px 14px' }}>
-                      {lead.assigned_to ? (
+                      {lead.assigned_to_id || lead.assigned_to ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                          <LeadAv name={lead.assigned_to} size={22} />
-                          <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{lead.assigned_to}</span>
+                          {lead.assigned_to_id
+                            ? <PersonAvatar userId={lead.assigned_to_id} name={lead.assigned_to_name || ''} size={22} />
+                            : <LeadAv name={lead.assigned_to!} size={22} />}
+                          <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{lead.assigned_to_name || lead.assigned_to}</span>
                         </div>
                       ) : <span style={{ color: 'var(--ink3)', fontSize: 12 }}>—</span>}
                     </td>
@@ -1185,13 +1229,13 @@ export const Leads: React.FC = () => {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Assign To</label>
-                  <Select value={addForm.assigned_to || '__none__'} onValueChange={v => setF('assigned_to', v === '__none__' ? '' : v)}>
-                    <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Unassigned</SelectItem>
-                      {OFFICERS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Combobox
+                    options={staff}
+                    value={addForm.assigned_to_id || ''}
+                    onChange={v => { setF('assigned_to_id', v); setF('assigned_to_name', staff.find(s => s.value === v)?.label || ''); }}
+                    placeholder={staff.length ? 'Unassigned' : 'Loading people…'}
+                    searchPlaceholder="Search people…"
+                  />
                 </div>
                 <div style={{ gridColumn: '1/-1' }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Notes</label>

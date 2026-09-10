@@ -851,6 +851,15 @@ export function AppHeader({
                     </Link>
                   </DropdownMenuItem>
 
+                  <DropdownMenuItem asChild>
+                    <Link to="/developer" style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name="terminal" size={13} style={{ color: 'var(--teal)' } as React.CSSProperties} />
+                      </div>
+                      <span>Developer Console</span>
+                    </Link>
+                  </DropdownMenuItem>
+
                   {user?.role === 'SUPER_ADMIN' && (
                     <DropdownMenuItem asChild>
                       <Link to="/admin" style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>

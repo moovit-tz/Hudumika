@@ -515,7 +515,9 @@ export class DeveloperService {
         name: params.name,
         key_prefix: keyPrefix,
         key_hash: keyHash,
-        scopes: params.scopes || ['*'],
+        allowed_ips: JSON.stringify([]) as any,
+        allowed_origins: JSON.stringify([]) as any,
+        scopes: JSON.stringify(params.scopes || ['*']) as any,
         rate_limit_override: params.rate_limit_override || null,
         expires_at: expiresAt,
         created_by: userId,
@@ -804,7 +806,7 @@ export class DeveloperService {
         status: 'ACTIVE',
         rate_limit_per_min: plan.rate_limit_per_min,
         monthly_quota: plan.quota_limit_per_mo,
-        allowed_operations: ['*'],
+        allowed_operations: JSON.stringify(['*']) as any,
       })
       .onConflict(oc =>
         oc.columns(['project_id', 'environment', 'api_product_id']).doUpdateSet({

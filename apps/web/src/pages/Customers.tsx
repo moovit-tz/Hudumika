@@ -1,19 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiDownload, apiFetchBlob } from '../lib/api.js';
-import { StatusPill } from '@hudumika/ui';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
-import { PersonAvatar } from '../components/PersonAvatar.js';
+import { PersonAvatar, CompanyAvatar } from '../components/PersonAvatar.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
 import { EntityPicker } from '../components/EntityPicker.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { mapApiInvoice, invoiceTotals } from './Billing.js';
 import type { ExpenseListItem } from './Expenses.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -22,6 +23,9 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuCheckboxItem,
 } from '../components/ui/dropdown-menu.js';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter
+} from '../components/ui/dialog.js';
 import { showConfirm } from '../lib/confirm.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 import { SwitchRow } from '../components/ui/list-item-row.js';
@@ -149,9 +153,15 @@ interface Customer {
    so has no picture to fetch. */
 function Avatar({ name, size = 36, customerId }: { name: string; size?: number; customerId?: string }) {
   return (
-    <PersonAvatar
-      userId={customerId} kind="customers" name={name} size={size}
-      style={{ borderRadius: size > 48 ? 16 : '50%' }}
+    <CompanyAvatar
+      name={name}
+      size={size}
+      shape="square"
+      style={{
+        borderRadius: 8,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        border: '1px solid var(--border)',
+      }}
     />
   );
 }
@@ -216,12 +226,41 @@ function StatusBadge({ status }: { status: string }) {
 
 /* ── TIN chip ── */
 function TinChip({ tin }: { tin?: string }) {
+  const [copied, setCopied] = useState(false);
   const masked = maskTin(tin);
   if (!masked) return <span style={{ color: 'var(--ink3)', fontSize: 12 }}>—</span>;
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!tin) return;
+    navigator.clipboard.writeText(tin);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'var(--bg)', borderRadius: 6, padding: '3px 8px' }}>
-      <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--blue)', letterSpacing: '0.04em', background: 'var(--blue-l)', borderRadius: 3, padding: '1px 4px' }}>TIN</span>
-      <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, color: 'var(--ink2)' }}>{masked}</span>
+    <div
+      onClick={handleCopy}
+      title={tin ? `TIN: ${tin} (Click to copy)` : undefined}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        background: 'var(--bg)',
+        border: '1px solid var(--border)',
+        borderRadius: 6,
+        padding: '3px 8px',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+      }}
+    >
+      <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--blue)', letterSpacing: '0.04em', background: 'var(--blue-l)', borderRadius: 3, padding: '1px 4px' }}>TIN</span>
+      <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink)' }}>{masked}</span>
+      {copied ? (
+        <span style={{ fontSize: 10, color: 'var(--green)', fontWeight: 700 }}>✓</span>
+      ) : (
+        <Icon name="copy" size={11} style={{ color: 'var(--ink3)', opacity: 0.65 }} />
+      )}
     </div>
   );
 }
@@ -305,7 +344,6 @@ export const Customers: React.FC = () => {
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [visibleCols, setVisibleCols] = useState({ email: true, phone: true, contact: true, tin: true, joined: true });
   const [selected, setSelected]   = useState<Customer | null>(null);
 
   /* Profile navigation */
@@ -378,18 +416,39 @@ export const Customers: React.FC = () => {
   const [contactSaving, setContactSaving] = useState(false);
 
   /* Create modal */
+  /* Create modal */
   const [showCreate, setShowCreate] = useState(false);
-  // Keys match the real POST /v1/customers body fields exactly (tax_id/
-  // contact_name, not tax_id/contact_name) — this form used to send
-  // the wrong key names, so the TIN and contact person were silently
-  // dropped server-side on every "Add Customer" ever submitted here.
-  const [createForm, setCreateForm] = useState({ name: '', email: '', phone_wa: '', tax_id: '', contact_name: '', address: '' });
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    client_type: 'Corporate',
+    email: '',
+    phone_wa: '',
+    tax_id: '',
+    vat_number: '',
+    contact_name: '',
+    address: '',
+    city: 'Dar es Salaam',
+    country: 'Tanzania',
+    preferred_port: 'Dar es Salaam Port',
+    credit_days: '30',
+  });
   const [createSaving, setCreateSaving] = useState(false);
 
   /* List-view state */
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [page, setPage]           = useState(1);
-  const [bulkAction, setBulkAction] = useState('');
+  const [selectedIds, setSelectedIds]           = useState<string[]>([]);
+  const [page, setPage]                         = useState(1);
+  const [bulkAction, setBulkAction]             = useState('');
+  const [listTab, setListTab]                   = useState<'all' | 'active' | 'corporate' | 'shipments' | 'inactive'>('all');
+  const [clientTypeFilter, setClientTypeFilter] = useState('all');
+  const [viewMode, setViewMode]                 = useState<'table' | 'grid'>('table');
+  const [visibleCols, setVisibleCols]           = useState({
+    email: true,
+    phone: true,
+    contact: true,
+    tin: true,
+    trade: true,
+    joined: true,
+  });
 
   const loadCustomers = useCallback(async () => {
     setLoading(true);
@@ -772,30 +831,86 @@ export const Customers: React.FC = () => {
     try {
       await apiFetch('/v1/customers', { method: 'POST', body: JSON.stringify(createForm) });
       setShowCreate(false);
-      setCreateForm({ name: '', email: '', phone_wa: '', tax_id: '', contact_name: '', address: '' });
+      setCreateForm({
+        name: '',
+        client_type: 'Corporate',
+        email: '',
+        phone_wa: '',
+        tax_id: '',
+        vat_number: '',
+        contact_name: '',
+        address: '',
+        city: 'Dar es Salaam',
+        country: 'Tanzania',
+        preferred_port: 'Dar es Salaam Port',
+        credit_days: '30',
+      });
       loadCustomers();
-    } catch (err: any) { showAlert(err.message); } finally { setCreateSaving(false); }
+      showAlert('Customer created successfully', { variant: 'success' });
+    } catch (err: any) { showAlert(err.message || 'Failed to create customer', { variant: 'error' }); } finally { setCreateSaving(false); }
   };
 
-  const filtered = customers.filter(c => {
-    const q = search.toLowerCase();
-    const matchSearch = !search ||
-      c.name.toLowerCase().includes(q) ||
-      c.email?.toLowerCase().includes(q) ||
-      c.phone_wa?.includes(search) ||
-      c.contact_name?.toLowerCase().includes(q);
-    const matchStatus = statusFilter === 'all' || (c.account_status || 'Active') === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  /* Metrics counts */
+  const totalCount = customers.length;
+  const activeCount = customers.filter(c => (c.account_status || 'Active') === 'Active').length;
+  const inactiveCount = customers.filter(c => (c.account_status || 'Active') !== 'Active').length;
+  const corporateCount = customers.filter(c => {
+    const t = (c.client_type || '').toLowerCase();
+    const n = c.name.toLowerCase();
+    return t === 'corporate' || n.includes('ltd') || n.includes('limited') || n.includes('corp') || n.includes('industries') || n.includes('holdings') || n.includes('enterprises') || n.includes('group');
+  }).length;
+  const withShipmentsCount = customers.filter(c => (c.shipment_count ?? 0) > 0).length;
+  const totalShipments = customers.reduce((s, c) => s + (c.shipment_count ?? 0), 0);
+  const verifiedTinCount = customers.filter(c => !!c.tax_id).length;
+  const tinRate = totalCount > 0 ? Math.round((verifiedTinCount / totalCount) * 100) : 0;
+
+  const filtered = useMemo(() => {
+    return customers.filter(c => {
+      const q = search.trim().toLowerCase();
+      const matchSearch = !q ||
+        c.name.toLowerCase().includes(q) ||
+        (c.email || '').toLowerCase().includes(q) ||
+        (c.phone_wa || '').toLowerCase().includes(q) ||
+        (c.contact_name || '').toLowerCase().includes(q) ||
+        (c.tax_id || '').toLowerCase().includes(q) ||
+        (c.city || '').toLowerCase().includes(q) ||
+        (c.preferred_port || '').toLowerCase().includes(q);
+
+      const status = c.account_status || 'Active';
+      const matchStatus = statusFilter === 'all' || status === statusFilter;
+
+      const isCorporate = (c.client_type || '').toLowerCase() === 'corporate' ||
+        c.name.toLowerCase().includes('ltd') ||
+        c.name.toLowerCase().includes('limited') ||
+        c.name.toLowerCase().includes('corp') ||
+        c.name.toLowerCase().includes('industries') ||
+        c.name.toLowerCase().includes('holdings');
+
+      const clientType = c.client_type || (isCorporate ? 'Corporate' : 'SME');
+      const matchClientType = clientTypeFilter === 'all' || clientType === clientTypeFilter;
+
+      let matchListTab = true;
+      if (listTab === 'active') matchListTab = status === 'Active';
+      else if (listTab === 'inactive') matchListTab = status !== 'Active';
+      else if (listTab === 'corporate') matchListTab = isCorporate;
+      else if (listTab === 'shipments') matchListTab = (c.shipment_count ?? 0) > 0;
+
+      return matchSearch && matchStatus && matchClientType && matchListTab;
+    });
+  }, [customers, search, statusFilter, clientTypeFilter, listTab]);
 
   function exportCSV(rows: Customer[]) {
-    const hdr = ['Name','Email','Phone','Contact Person','TIN Number','Status','Joined'].join(',');
+    const hdr = ['Name','Client Type','Email','Phone','Contact Person','TIN Number','City','Preferred Port','Shipments','Status','Joined'].join(',');
     const body = rows.map(c => [
       `"${c.name.replace(/"/g,'""')}"`,
+      `"${c.client_type || 'Corporate'}"`,
       `"${(c.email||'').replace(/"/g,'""')}"`,
       `"${(c.phone_wa||'').replace(/"/g,'""')}"`,
       `"${(c.contact_name||'').replace(/"/g,'""')}"`,
       `"${(c.tax_id||'').replace(/"/g,'""')}"`,
+      `"${(c.city||'').replace(/"/g,'""')}"`,
+      `"${(c.preferred_port||'').replace(/"/g,'""')}"`,
+      c.shipment_count ?? 0,
       c.account_status||'Active',
       c.created_at ? new Date(c.created_at).toLocaleDateString('en-GB') : '',
     ].join(',')).join('\n');
@@ -849,265 +964,842 @@ export const Customers: React.FC = () => {
     }
 
     return (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 24px', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 32px', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
 
+        {/* House Page Header */}
         <PageHeader
           crumbs={['CRM', 'Customers']}
           titlePlain="Customer"
-          titleEm="list"
-          subtitle={`${customers.length.toLocaleString()} customers registered in this workspace.`}
+          titleEm="directory"
+          subtitle={`${totalCount.toLocaleString()} client accounts, commercial terms, billing statements, and trade history.`}
           actions={
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => exportCSV(filtered)} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportCSV(filtered)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
                 <Icon name="download" size={14} strokeWidth={2} /> Export CSV
-              </button>
-              {/* Previously had no onClick at all — a dead button that looked
-                  identical to every other one on this row. CustomerBulkUpload.tsx
-                  (linked from Customer Overview's own "Bulk Upload" button) is
-                  the real CSV-import flow this page never wired itself to. */}
-              <button type="button" onClick={() => navigate('/crm/customers/bulk-upload')} className="btn btn-secondary btn-sm" style={{ fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
-                Import
-              </button>
-              <button type="button" onClick={() => setShowCreate(true)} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/crm/customers/bulk-upload')}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <Icon name="upload" size={14} strokeWidth={2} /> Import
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setShowCreate(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
                 <Icon name="plus" size={15} strokeWidth={2.5} color="hsl(var(--primary-foreground))" /> Add Customer
-              </button>
+              </Button>
             </div>
           }
         />
 
-        {/* Main card */}
-        <div className="crm-card">
+        {/* Main Content Layout */}
+        <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* Toolbar */}
-          <div className="crm-toolbar">
-            {/* Bulk actions */}
-            <Select value={bulkAction || '__none__'} onValueChange={v => setBulkAction(v === '__none__' ? '' : v)}>
-              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Bulk Action</SelectItem>
-                <SelectItem value="delete">Delete Selected</SelectItem>
-                <SelectItem value="export">Export Selected</SelectItem>
-                <SelectItem value="active">Mark as Active</SelectItem>
-                <SelectItem value="inactive">Mark as Inactive</SelectItem>
-                <SelectItem value="suspend">Suspend</SelectItem>
-              </SelectContent>
-            </Select>
-            <button type="button" onClick={handleBulkApply} disabled={!bulkAction || selectedIds.length === 0}
-              style={{ padding: 'var(--ds-btn-py-sm) 14px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: bulkAction && selectedIds.length > 0 ? 'hsl(var(--primary))' : 'var(--white)', cursor: bulkAction && selectedIds.length > 0 ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: bulkAction && selectedIds.length > 0 ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', transition: 'all .15s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              Apply
-            </button>
-            {selectedIds.length > 0 && (
-              <span style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600 }}>{selectedIds.length} selected</span>
+          {/* Top KPI Metrics Ribbon */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 14 }}>
+            {/* KPI 1 */}
+            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>
+                  Total Customers
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--navy)', marginTop: 4, lineHeight: 1.1 }}>
+                  {totalCount}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>
+                  <span style={{ color: 'var(--green)', fontWeight: 600 }}>{activeCount} active</span> · {inactiveCount} inactive
+                </div>
+              </div>
+              <FeaturedIcon variant="brand" size="md" shape="square">
+                <Icon name="users" size={18} />
+              </FeaturedIcon>
+            </div>
+
+            {/* KPI 2 */}
+            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>
+                  Corporate Accounts
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--navy)', marginTop: 4, lineHeight: 1.1 }}>
+                  {corporateCount}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>
+                  {Math.round((corporateCount / Math.max(1, totalCount)) * 100)}% of client portfolio
+                </div>
+              </div>
+              <FeaturedIcon variant="success" size="md" shape="square">
+                <Icon name="briefcase" size={18} />
+              </FeaturedIcon>
+            </div>
+
+            {/* KPI 3 */}
+            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>
+                  Trade Shipments
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--navy)', marginTop: 4, lineHeight: 1.1 }}>
+                  {totalShipments}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>
+                  Across {withShipmentsCount} active trading clients
+                </div>
+              </div>
+              <FeaturedIcon variant="info" size="md" shape="square">
+                <Icon name="ship" size={18} />
+              </FeaturedIcon>
+            </div>
+
+            {/* KPI 4 */}
+            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>
+                  Tax Compliance Rate
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--navy)', marginTop: 4, lineHeight: 1.1 }}>
+                  {tinRate}%
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>
+                  <span style={{ color: 'var(--teal)', fontWeight: 600 }}>{verifiedTinCount}</span> verified TIN records
+                </div>
+              </div>
+              <FeaturedIcon variant="warning" size="md" shape="square">
+                <Icon name="shield" size={18} />
+              </FeaturedIcon>
+            </div>
+          </div>
+
+          {/* Quick Segmented Tabs */}
+          <Tabs value={listTab} onValueChange={v => { setListTab(v as typeof listTab); setPage(1); }} variant="segmented">
+            <TabsList style={{ overflowX: 'auto' }}>
+              <TabsTrigger value="all">All Accounts ({totalCount})</TabsTrigger>
+              <TabsTrigger value="active">Active ({activeCount})</TabsTrigger>
+              <TabsTrigger value="corporate">Corporate & Key ({corporateCount})</TabsTrigger>
+              <TabsTrigger value="shipments">With Shipments ({withShipmentsCount})</TabsTrigger>
+              <TabsTrigger value="inactive">Inactive / Suspended ({inactiveCount})</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {/* Main Card */}
+          <div className="crm-card" style={{ borderRadius: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)' }}>
+
+            {/* Unified Toolbar */}
+            <div className="crm-toolbar" style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
+              
+              {/* Bulk Actions */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Select value={bulkAction || '__none__'} onValueChange={v => setBulkAction(v === '__none__' ? '' : v)}>
+                  <SelectTrigger className="w-40 h-8.5 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Bulk Action</SelectItem>
+                    <SelectItem value="active">Mark as Active</SelectItem>
+                    <SelectItem value="inactive">Mark as Inactive</SelectItem>
+                    <SelectItem value="suspend">Suspend Selected</SelectItem>
+                    <SelectItem value="export">Export Selected</SelectItem>
+                    <SelectItem value="delete">Delete Selected</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  variant={bulkAction && selectedIds.length > 0 ? 'default' : 'outline'}
+                  onClick={handleBulkApply}
+                  disabled={!bulkAction || selectedIds.length === 0}
+                  style={{ height: 34 }}
+                >
+                  Apply
+                </Button>
+              </div>
+
+              {selectedIds.length > 0 && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--border))', borderRadius: 6, padding: '3px 8px', fontSize: 12, fontWeight: 600, color: 'var(--teal)' }}>
+                  <span>{selectedIds.length} selected</span>
+                  <button type="button" onClick={() => setSelectedIds([])} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, lineHeight: 1, fontSize: 14 }}>×</button>
+                </div>
+              )}
+
+              {/* Client Type Filter */}
+              <Select value={clientTypeFilter} onValueChange={v => { setClientTypeFilter(v); setPage(1); }}>
+                <SelectTrigger className="w-36 h-8.5 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Client Types</SelectItem>
+                  <SelectItem value="Corporate">Corporate</SelectItem>
+                  <SelectItem value="SME">SME / Trading</SelectItem>
+                  <SelectItem value="Government">Government</SelectItem>
+                  <SelectItem value="Individual">Individual</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
+                <SelectTrigger className="w-34 h-8.5 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                  <SelectItem value="Suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div style={{ flex: 1 }} />
+
+              {/* Search input with clean icon */}
+              <div style={{ position: 'relative', minWidth: 240 }}>
+                <Icon name="search" size={14} strokeWidth={1.75} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
+                <input
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setPage(1); }}
+                  placeholder="Search customer, contact, TIN, port…"
+                  style={{
+                    padding: '7px 28px 7px 32px',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--r-sm, 6px)',
+                    fontSize: 13,
+                    fontFamily: 'var(--font)',
+                    outline: 'none',
+                    width: '100%',
+                    color: 'var(--ink)',
+                    background: 'var(--card-bg, var(--white))',
+                    transition: 'border-color 0.15s',
+                  }}
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearch(''); setPage(1); }}
+                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 14, padding: 0 }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              {/* View Mode Toggle: Table vs Cards */}
+              <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r-sm, 6px)', overflow: 'hidden', background: 'var(--bg)' }}>
+                <button
+                  type="button"
+                  title="Table View"
+                  onClick={() => setViewMode('table')}
+                  style={{
+                    padding: '6px 10px',
+                    border: 'none',
+                    background: viewMode === 'table' ? 'var(--card-bg, var(--white))' : 'transparent',
+                    color: viewMode === 'table' ? 'var(--teal)' : 'var(--ink3)',
+                    cursor: 'pointer',
+                    boxShadow: viewMode === 'table' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Icon name="list" size={15} />
+                </button>
+                <button
+                  type="button"
+                  title="Cards Grid View"
+                  onClick={() => setViewMode('grid')}
+                  style={{
+                    padding: '6px 10px',
+                    border: 'none',
+                    background: viewMode === 'grid' ? 'var(--card-bg, var(--white))' : 'transparent',
+                    color: viewMode === 'grid' ? 'var(--teal)' : 'var(--ink3)',
+                    cursor: 'pointer',
+                    boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Icon name="grid" size={15} />
+                </button>
+              </div>
+
+              {/* Column Settings */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" style={{ padding: '0 8px', height: 34 }}>
+                    <Icon name="settings" size={14} style={{ color: 'var(--ink3)' }} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <div style={{ padding: '6px 10px 4px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Visible Columns</div>
+                  {([
+                    { key: 'email',   label: 'Email' },
+                    { key: 'phone',   label: 'Phone / WhatsApp' },
+                    { key: 'contact', label: 'Primary Contact' },
+                    { key: 'tin',     label: 'TIN Number' },
+                    { key: 'trade',   label: 'Trade Volume' },
+                    { key: 'joined',  label: 'Joined Date' },
+                  ] as { key: keyof typeof visibleCols; label: string }[]).map(col => (
+                    <DropdownMenuCheckboxItem
+                      key={col.key}
+                      checked={visibleCols[col.key]}
+                      onSelect={e => e.preventDefault()}
+                      onCheckedChange={() => setVisibleCols(v => ({ ...v, [col.key]: !v[col.key] }))}
+                    >
+                      {col.label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+            </div>
+
+            {/* View Mode 1: Table View */}
+            {viewMode === 'table' && (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="crm-table">
+                  <thead>
+                    <tr>
+                      <Th width={42}>
+                        <Checkbox checked={allChecked ? true : someChecked ? 'indeterminate' : false} onCheckedChange={toggleAll} />
+                      </Th>
+                      <Th>Customer / Company</Th>
+                      {visibleCols.contact && <Th>Primary Contact</Th>}
+                      {visibleCols.email   && <Th>Email Address</Th>}
+                      {visibleCols.phone   && <Th>Phone / WhatsApp</Th>}
+                      {visibleCols.tin     && <Th>TIN & Compliance</Th>}
+                      {visibleCols.trade   && <Th>Trade Volume</Th>}
+                      {visibleCols.joined  && <Th>Joined</Th>}
+                      <Th>Status</Th>
+                      <Th align="right" width={80}>Actions</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const colCount = 4 + Object.values(visibleCols).filter(Boolean).length;
+                      if (loading) {
+                        return <tr><td colSpan={colCount} style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading customers…</td></tr>;
+                      }
+                      if (paginated.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={colCount} style={{ padding: '64px 20px', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: 'var(--ink3)' }}>
+                                <FeaturedIcon variant="brand" size="lg" shape="circle">
+                                  <Icon name="users" size={24} />
+                                </FeaturedIcon>
+                                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>No customers found</div>
+                                <div style={{ fontSize: 13, maxWidth: 360 }}>No client accounts match your current filters. Try changing your search query or add a new customer.</div>
+                                <Button size="sm" onClick={() => setShowCreate(true)} style={{ marginTop: 6 }}>
+                                  <Icon name="plus" size={14} /> Add Customer
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }
+                      return paginated.map(c => {
+                        const isChecked = selectedIds.includes(c.id);
+                        const status = c.account_status || 'Active';
+                        const isCorporate = (c.client_type || '').toLowerCase() === 'corporate' ||
+                          c.name.toLowerCase().includes('ltd') ||
+                          c.name.toLowerCase().includes('limited') ||
+                          c.name.toLowerCase().includes('corp');
+                        const clientTag = c.client_type || (isCorporate ? 'Corporate' : 'SME');
+
+                        return (
+                          <tr
+                            key={c.id}
+                            style={{
+                              background: isChecked ? 'var(--teal-l, var(--bg))' : 'var(--card-bg, var(--white))',
+                              cursor: 'pointer',
+                              transition: 'background 0.1s ease',
+                            }}
+                            onClick={() => openProfile(c)}
+                          >
+                            <td style={{ width: 42 }} onClick={e => e.stopPropagation()}>
+                              <Checkbox aria-label={`Select ${c.name}`} checked={isChecked} onCheckedChange={() => toggleRow(c.id)} />
+                            </td>
+
+                            {/* Customer Identity */}
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <Avatar name={c.name} size={38} customerId={c.id} />
+                                <div>
+                                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy)', lineHeight: 1.2 }}>
+                                    {c.name}
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                                    <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 500 }}>
+                                      {clientTag}
+                                    </span>
+                                    {c.city && (
+                                      <>
+                                        <span style={{ color: 'var(--border)' }}>·</span>
+                                        <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{c.city}</span>
+                                      </>
+                                    )}
+                                    {c.preferred_port && (
+                                      <>
+                                        <span style={{ color: 'var(--border)' }}>·</span>
+                                        <span style={{ fontSize: 10.5, color: 'var(--teal)', fontWeight: 600 }}>{c.preferred_port}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Contact Person */}
+                            {visibleCols.contact && (
+                              <td>
+                                {c.contact_name ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <PersonAvatar name={c.contact_name} size={24} />
+                                    <span style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}>{c.contact_name}</span>
+                                  </div>
+                                ) : (
+                                  <span style={{ color: 'var(--ink3)', fontSize: 12.5 }}>—</span>
+                                )}
+                              </td>
+                            )}
+
+                            {/* Email Address */}
+                            {visibleCols.email && (
+                              <td>
+                                {c.email ? (
+                                  <a
+                                    href={`mailto:${c.email}`}
+                                    onClick={e => e.stopPropagation()}
+                                    style={{ fontSize: 13, color: 'var(--ink)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                                    className="hover:underline"
+                                  >
+                                    <Icon name="mail" size={13} style={{ color: 'var(--ink3)' }} />
+                                    {c.email}
+                                  </a>
+                                ) : (
+                                  <span style={{ color: 'var(--ink3)', fontSize: 12.5 }}>—</span>
+                                )}
+                              </td>
+                            )}
+
+                            {/* Phone / WhatsApp */}
+                            {visibleCols.phone && (
+                              <td>
+                                {c.phone_wa ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <a
+                                      href={`https://wa.me/${c.phone_wa.replace(/\D/g, '')}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      onClick={e => e.stopPropagation()}
+                                      title="Open WhatsApp chat"
+                                      style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                                        fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink)',
+                                        textDecoration: 'none', background: 'var(--bg)', padding: '2px 7px',
+                                        borderRadius: 5, border: '1px solid var(--border)',
+                                      }}
+                                    >
+                                      <Icon name="phone" size={12} style={{ color: 'var(--green)' }} />
+                                      {c.phone_wa}
+                                    </a>
+                                  </div>
+                                ) : (
+                                  <span style={{ color: 'var(--ink3)', fontSize: 12.5 }}>—</span>
+                                )}
+                              </td>
+                            )}
+
+                            {/* TIN Number */}
+                            {visibleCols.tin && (
+                              <td>
+                                <TinChip tin={c.tax_id} />
+                              </td>
+                            )}
+
+                            {/* Trade Volume */}
+                            {visibleCols.trade && (
+                              <td>
+                                {(c.shipment_count ?? 0) > 0 ? (
+                                  <Badge variant="info" className="gap-1 font-semibold">
+                                    <Icon name="ship" size={11} />
+                                    {c.shipment_count} shipments
+                                  </Badge>
+                                ) : (
+                                  <span style={{ color: 'var(--ink3)', fontSize: 12 }}>None</span>
+                                )}
+                              </td>
+                            )}
+
+                            {/* Joined Date */}
+                            {visibleCols.joined && (
+                              <td style={{ fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
+                                {fmtDate(c.created_at)}
+                              </td>
+                            )}
+
+                            {/* Status */}
+                            <td>
+                              <StatusBadge status={status} />
+                            </td>
+
+                            {/* Row Action Menu */}
+                            <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                              <ActionsMenu
+                                onView={() => openProfile(c)}
+                                onEdit={() => { openProfile(c); setTimeout(() => setEditMode(true), 0); }}
+                                onSuspend={() => {
+                                  const next = c.account_status === 'Suspended' ? 'Active' : 'Suspended';
+                                  apiFetch(`/v1/customers/${c.id}`, { method: 'PATCH', body: JSON.stringify({ account_status: next }) })
+                                    .then(() => setCustomers(cs => cs.map(x => x.id === c.id ? { ...x, account_status: next } : x)))
+                                    .catch(err => showAlert(err.message || 'Failed'));
+                                }}
+                                onDelete={async () => {
+                                  if (!(await showConfirm(`Delete ${c.name}? This cannot be undone.`, { confirmLabel: 'Delete' }))) return;
+                                  apiFetch(`/v1/customers/${c.id}`, { method: 'DELETE' })
+                                    .then(() => setCustomers(cs => cs.filter(x => x.id !== c.id)))
+                                    .catch(err => showAlert(err.message || 'Delete failed'));
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
             )}
 
-            <div style={{ flex: 1 }} />
-
-            {/* Search — always visible */}
-            <div style={{ position: 'relative' }}>
-              <Icon name="search" size={14} strokeWidth={1.75} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' } as React.CSSProperties} />
-              <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-                placeholder="Search name, email, phone…"
-                style={{ padding: '6px 28px 6px 30px', border: '1.5px solid var(--border)', borderRadius: 7, fontSize: 13, fontFamily: 'var(--font)', outline: 'none', width: 220, color: 'var(--ink)', background: 'var(--white)' }} />
-              {search && (
-                <button type="button" onClick={() => { setSearch(''); setPage(1); }}
-                  style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, lineHeight: 1, padding: 0 }}>×</button>
-              )}
-            </div>
-
-            {/* Filter */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button type="button"
-                  style={{ width: 34, height: 34, border: `1.5px solid ${statusFilter !== 'all' ? 'var(--teal)' : 'var(--border)'}`, background: statusFilter !== 'all' ? 'var(--teal-l)' : 'none', borderRadius: 'var(--r)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: statusFilter !== 'all' ? 'var(--teal)' : 'var(--ink3)', position: 'relative' }}>
-                  <Icon name="filter" size={15} strokeWidth={1.75} />
-                  {statusFilter !== 'all' && <span style={{ position: 'absolute', top: 5, right: 5, width: 6, height: 6, borderRadius: '50%', background: 'var(--teal)', border: '1.5px solid var(--white)' }} />}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <div style={{ padding: '4px 10px 6px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Status</div>
-                {[
-                  { value: 'all',       label: 'All Statuses' },
-                  { value: 'Active',    label: 'Active' },
-                  { value: 'Inactive',  label: 'Inactive' },
-                  { value: 'Suspended', label: 'Suspended' },
-                ].map(opt => (
-                  <DropdownMenuItem key={opt.value} onClick={() => { setStatusFilter(opt.value); setPage(1); }}
-                    className={statusFilter === opt.value ? 'bg-accent text-accent-foreground font-semibold' : ''}>
-                    {statusFilter === opt.value && <Icon name="check" size={12} strokeWidth={2.5} />}
-                    {opt.label}
-                  </DropdownMenuItem>
-                ))}
-                {statusFilter !== 'all' && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => { setStatusFilter('all'); setPage(1); }} className="text-destructive focus:text-destructive">
-                      Clear filter
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Column settings */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button type="button" aria-label="Column settings"
-                  style={{ width: 34, height: 34, border: '1.5px solid var(--border)', background: 'none', borderRadius: 'var(--r)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}>
-                  <Icon name="settings" size={15} strokeWidth={1.75} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <div style={{ padding: '4px 10px 6px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Columns</div>
-                {([
-                  { key: 'email',   label: 'Email' },
-                  { key: 'phone',   label: 'Phone' },
-                  { key: 'contact', label: 'Contact Person' },
-                  { key: 'tin',     label: 'TIN Number' },
-                  { key: 'joined',  label: 'Joined' },
-                ] as { key: keyof typeof visibleCols; label: string }[]).map(col => (
-                  <DropdownMenuCheckboxItem key={col.key} checked={visibleCols[col.key]}
-                    onSelect={e => e.preventDefault()}
-                    onCheckedChange={() => setVisibleCols(v => ({ ...v, [col.key]: !v[col.key] }))}>
-                    {col.label}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {/* Table */}
-          <div style={{ overflowX: 'auto' }}>
-            <table className="crm-table">
-              <thead>
-                <tr>
-                  <Th width={40}>
-                    {/* Real tri-state via Radix's own 'indeterminate' checked
-                        value, replacing the imperative el.indeterminate ref
-                        hack the native input needed (HTML has no
-                        indeterminate attribute, only a DOM property). */}
-                    <Checkbox checked={allChecked ? true : someChecked ? 'indeterminate' : false} onCheckedChange={toggleAll} />
-                  </Th>
-                  <Th>Customer</Th>
-                  {visibleCols.email   && <Th>Email</Th>}
-                  {visibleCols.phone   && <Th>Phone</Th>}
-                  {visibleCols.contact && <Th>Contact Person</Th>}
-                  {visibleCols.tin     && <Th>TIN Number</Th>}
-                  {visibleCols.joined  && <Th>Joined</Th>}
-                  <Th>Status</Th>
-                  <Th align="right">Actions</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  const colCount = 4 + Object.values(visibleCols).filter(Boolean).length;
-                  return (<>
-                    {loading && <tr><td colSpan={colCount} style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading customers…</td></tr>}
-                    {!loading && paginated.length === 0 && (
-                      <tr><td colSpan={colCount} style={{ padding: '48px 20px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: 'var(--ink3)' }}>
-                          <Icon name="users" size={32} strokeWidth={1.25} />
-                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink2)' }}>No customers found</div>
-                          <div style={{ fontSize: 12.5 }}>Try adjusting your search or add a new customer</div>
-                        </div>
-                      </td></tr>
-                    )}
-                    {!loading && paginated.map(c => {
-                      const isChecked = selectedIds.includes(c.id);
-                      const status = c.account_status || 'Active';
-                      return (
-                        <tr key={c.id} style={{ background: isChecked ? 'var(--bg)' : 'var(--white)' }}
-                          onClick={() => openProfile(c)}>
-                          <td style={{ width: 40 }} onClick={e => e.stopPropagation()}>
-                            <Checkbox aria-label={`Select ${c.name}`} checked={isChecked} onCheckedChange={() => toggleRow(c.id)} />
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <Avatar name={c.name} size={36} customerId={c.id} />
-                              <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--navy)' }}>{c.name}</span>
+            {/* View Mode 2: Cards Grid View */}
+            {viewMode === 'grid' && (
+              <div style={{ padding: 18, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+                {paginated.map(c => {
+                  const status = c.account_status || 'Active';
+                  const isChecked = selectedIds.includes(c.id);
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => openProfile(c)}
+                      style={{
+                        background: isChecked ? 'var(--teal-l)' : 'var(--card-bg, var(--white))',
+                        border: `1px solid ${isChecked ? 'var(--teal)' : 'var(--border)'}`,
+                        borderRadius: 12,
+                        padding: 16,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: 14,
+                        cursor: 'pointer',
+                        boxShadow: 'var(--elev-sm)',
+                        transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
+                      }}
+                      className="hover:shadow-md hover:border-primary/40"
+                    >
+                      {/* Card Header */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <Avatar name={c.name} size={42} customerId={c.id} />
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', lineHeight: 1.2 }}>
+                              {c.name}
                             </div>
-                          </td>
-                          {visibleCols.email   && <td style={{ fontSize: 13, color: 'var(--ink2)' }}>{c.email || <span style={{ color: 'var(--ink3)' }}>—</span>}</td>}
-                          {visibleCols.phone   && <td style={{ fontSize: 13, color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{c.phone_wa || <span style={{ color: 'var(--ink3)', fontFamily: 'var(--font)' }}>—</span>}</td>}
-                          {visibleCols.contact && <td style={{ fontSize: 13, color: 'var(--ink2)' }}>{c.contact_name || <span style={{ color: 'var(--ink3)' }}>—</span>}</td>}
-                          {visibleCols.tin     && <td><TinChip tin={c.tax_id} /></td>}
-                          {visibleCols.joined  && <td style={{ fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fmtDate(c.created_at)}</td>}
-                          <td><StatusBadge status={status} /></td>
-                          <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
-                            <ActionsMenu
-                              onView={() => openProfile(c)}
-                              onEdit={() => { openProfile(c); setTimeout(() => setEditMode(true), 0); }}
-                              onSuspend={() => {
-                                const next = c.account_status === 'Suspended' ? 'Active' : 'Suspended';
-                                apiFetch(`/v1/customers/${c.id}`, { method: 'PATCH', body: JSON.stringify({ account_status: next }) })
-                                  .then(() => setCustomers(cs => cs.map(x => x.id === c.id ? { ...x, account_status: next } : x)))
-                                  .catch(err => showAlert(err.message || 'Failed'));
-                              }}
-                              onDelete={async () => {
-                                if (!(await showConfirm(`Delete ${c.name}? This cannot be undone.`, { confirmLabel: 'Delete' }))) return;
-                                apiFetch(`/v1/customers/${c.id}`, { method: 'DELETE' })
-                                  .then(() => setCustomers(cs => cs.filter(x => x.id !== c.id)))
-                                  .catch(err => showAlert(err.message || 'Delete failed'));
-                              }} />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </>);
-                })()}
-              </tbody>
-            </table>
-          </div>
+                            <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
+                              {c.client_type || 'Corporate'} {c.city ? `· ${c.city}` : ''}
+                            </div>
+                          </div>
+                        </div>
+                        <StatusBadge status={status} />
+                      </div>
 
-          {/* Pagination */}
-          {!loading && filtered.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                <PagBtn label="Prev" disabled={safePage === 1} onClick={() => setPage(p => p - 1)} />
-                {getPageNums(safePage, totalPages).map((p, i) =>
-                  p === '…' ? <span key={`e-${i}`} style={{ padding: '0 4px', color: 'var(--ink3)', fontSize: 13 }}>···</span>
-                    : <PagBtn key={p} label={String(p)} active={p === safePage} onClick={() => setPage(p as number)} />
-                )}
-                <PagBtn label="Next" disabled={safePage === totalPages} onClick={() => setPage(p => p + 1)} />
+                      {/* Contact & Commercial Info */}
+                      <div style={{ background: 'var(--bg)', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
+                        {c.contact_name && (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--ink3)' }}>Contact:</span>
+                            <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{c.contact_name}</span>
+                          </div>
+                        )}
+                        {c.tax_id && (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--ink3)' }}>TIN:</span>
+                            <span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{maskTin(c.tax_id)}</span>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--ink3)' }}>Trade Shipments:</span>
+                          <span style={{ fontWeight: 700, color: (c.shipment_count ?? 0) > 0 ? 'var(--blue)' : 'var(--ink3)' }}>
+                            {c.shipment_count ?? 0}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card Actions Footer */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 }}>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {c.email && (
+                            <a
+                              href={`mailto:${c.email}`}
+                              onClick={e => e.stopPropagation()}
+                              title={c.email}
+                              style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)', background: 'var(--card-bg, var(--white))' }}
+                            >
+                              <Icon name="mail" size={13} />
+                            </a>
+                          )}
+                          {c.phone_wa && (
+                            <a
+                              href={`https://wa.me/${c.phone_wa.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              title={c.phone_wa}
+                              style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)', background: 'var(--card-bg, var(--white))' }}
+                            >
+                              <Icon name="phone" size={13} />
+                            </a>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={e => {
+                              e.stopPropagation();
+                              openProfile(c);
+                            }}
+                            style={{ height: 30, fontSize: 12 }}
+                          >
+                            Profile
+                          </Button>
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--ink3)' }}>
-                <span style={{ fontWeight: 600, letterSpacing: '0.05em' }}>PAGE</span>
-                <input type="number" value={safePage} min={1} max={totalPages} onChange={e => { const v = parseInt(e.target.value); if (v >= 1 && v <= totalPages) setPage(v); }} style={{ width: 42, padding: '4px 6px', border: '1.5px solid var(--border)', borderRadius: 6, fontSize: 13, textAlign: 'center', fontFamily: 'var(--font)', color: 'var(--ink)' }} />
-                <span>OF {totalPages}</span>
+            )}
+
+            {/* Pagination Bar */}
+            {!loading && filtered.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', gap: 10 }}>
+                <div style={{ fontSize: 13, color: 'var(--ink3)' }}>
+                  Showing <strong style={{ color: 'var(--ink)' }}>{Math.min(filtered.length, (safePage - 1) * PAGE_SIZE + 1)}</strong>–<strong style={{ color: 'var(--ink)' }}>{Math.min(filtered.length, safePage * PAGE_SIZE)}</strong> of <strong style={{ color: 'var(--ink)' }}>{filtered.length}</strong> customers
+                </div>
+
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <PagBtn label="Prev" disabled={safePage === 1} onClick={() => setPage(p => p - 1)} />
+                  {getPageNums(safePage, totalPages).map((p, i) =>
+                    p === '…' ? (
+                      <span key={`e-${i}`} style={{ padding: '0 4px', color: 'var(--ink3)', fontSize: 13 }}>···</span>
+                    ) : (
+                      <PagBtn key={p} label={String(p)} active={p === safePage} onClick={() => setPage(p as number)} />
+                    )
+                  )}
+                  <PagBtn label="Next" disabled={safePage === totalPages} onClick={() => setPage(p => p + 1)} />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink3)' }}>
+                  <span style={{ fontWeight: 600, letterSpacing: '0.04em' }}>PAGE</span>
+                  <input
+                    type="number"
+                    value={safePage}
+                    min={1}
+                    max={totalPages}
+                    onChange={e => {
+                      const v = parseInt(e.target.value);
+                      if (v >= 1 && v <= totalPages) setPage(v);
+                    }}
+                    style={{ width: 44, padding: '3px 6px', border: '1px solid var(--border)', borderRadius: 5, fontSize: 12.5, textAlign: 'center', fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--card-bg, var(--white))' }}
+                  />
+                  <span>OF {totalPages}</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Create modal */}
-        {showCreate && (
-          <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowCreate(false)}>
-            <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-                <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>New Customer</h2>
-                <button type="button" className="dp-close" onClick={() => setShowCreate(false)}>×</button>
-              </div>
-              <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {[
-                  { label: 'Company Name *', key: 'name',           placeholder: 'Acme Imports Ltd',             required: true },
-                  { label: 'Email',          key: 'email',          placeholder: 'info@acme.co.tz'               },
-                  { label: 'WhatsApp Number',key: 'phone_wa',       placeholder: '+255712345678'                 },
-                  { label: 'TIN Number',     key: 'tax_id',         placeholder: '123-456-789'                   },
-                  { label: 'Contact Person', key: 'contact_name',   placeholder: 'John Doe'                      },
-                  { label: 'Address',        key: 'address',        placeholder: '14 Harbor Road, Dar es Salaam' },
-                ].map(({ label, key, placeholder, required }) => (
-                  <div key={key}>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>{label}</label>
-                    <input type="text" className="input-field" placeholder={placeholder} required={required} value={(createForm as any)[key]} onChange={e => setCreateForm(p => ({ ...p, [key]: e.target.value }))} />
+        {/* Enterprise Create Customer Dialog */}
+        <Dialog open={showCreate} onOpenChange={setShowCreate}>
+          <DialogContent size="lg">
+            <DialogHeader>
+              <DialogTitle>Add New Customer</DialogTitle>
+              <DialogDescription>
+                Register an enterprise client account with commercial credit terms, tax identification, and preferred customs ports.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <DialogBody>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
+                  
+                  {/* Company Name */}
+                  <div style={{ gridColumn: isMobile ? 'span 1' : 'span 2' }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                      Company / Legal Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={createForm.name}
+                      onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))}
+                      placeholder="e.g. Acme Industrial Supplies Ltd"
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                    />
                   </div>
-                ))}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreate(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary btn-sm" disabled={createSaving}>{createSaving ? 'Saving…' : 'Create Customer'}</button>
+
+                  {/* Client Type */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                      Client Classification
+                    </label>
+                    <Select value={createForm.client_type} onValueChange={v => setCreateForm(p => ({ ...p, client_type: v }))}>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Corporate">Corporate / Enterprise</SelectItem>
+                        <SelectItem value="SME">SME / Trading Firm</SelectItem>
+                        <SelectItem value="Government">Government / Public Agency</SelectItem>
+                        <SelectItem value="Individual">Individual Trader</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Contact Person */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                      Primary Contact Person
+                    </label>
+                    <input
+                      type="text"
+                      value={createForm.contact_name}
+                      onChange={e => setCreateForm(p => ({ ...p, contact_name: e.target.value }))}
+                      placeholder="e.g. John Doe (Director)"
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                    />
+                  </div>
+
+                  {/* Email Address */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                      Official Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={createForm.email}
+                      onChange={e => setCreateForm(p => ({ ...p, email: e.target.value }))}
+                      placeholder="accounts@company.co.tz"
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                    />
+                  </div>
+
+                  {/* WhatsApp / Phone */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                      WhatsApp / Phone Number
+                    </label>
+                    <input
+                      type="text"
+                      value={createForm.phone_wa}
+                      onChange={e => setCreateForm(p => ({ ...p, phone_wa: e.target.value }))}
+                      placeholder="+255 712 345 678"
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                    />
+                  </div>
+
+                  {/* TIN Number */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                      Taxpayer ID (TIN Number)
+                    </label>
+                    <input
+                      type="text"
+                      value={createForm.tax_id}
+                      onChange={e => setCreateForm(p => ({ ...p, tax_id: e.target.value }))}
+                      placeholder="e.g. 123-456-789"
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                    />
+                  </div>
+
+                  {/* VAT Number */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                      VAT Registration Number
+                    </label>
+                    <input
+                      type="text"
+                      value={createForm.vat_number}
+                      onChange={e => setCreateForm(p => ({ ...p, vat_number: e.target.value }))}
+                      placeholder="e.g. 40-001234-V"
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                    />
+                  </div>
+
+                  {/* Preferred Port */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                      Preferred Port / ICD
+                    </label>
+                    <Select value={createForm.preferred_port} onValueChange={v => setCreateForm(p => ({ ...p, preferred_port: v }))}>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Dar es Salaam Port">Dar es Salaam Port (TZ)</SelectItem>
+                        <SelectItem value="Mombasa Port">Mombasa Port (KE)</SelectItem>
+                        <SelectItem value="Tanga Port">Tanga Port (TZ)</SelectItem>
+                        <SelectItem value="Zanzibar Malindi">Zanzibar Malindi Port</SelectItem>
+                        <SelectItem value="Mtwara Port">Mtwara Port</SelectItem>
+                        <SelectItem value="Kurasini ICD">Kurasini ICD</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Credit Days */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                      Commercial Payment Terms
+                    </label>
+                    <Select value={createForm.credit_days} onValueChange={v => setCreateForm(p => ({ ...p, credit_days: v }))}>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">Cash on Delivery (COD)</SelectItem>
+                        <SelectItem value="15">15 Days Net</SelectItem>
+                        <SelectItem value="30">30 Days Net (Standard)</SelectItem>
+                        <SelectItem value="60">60 Days Net</SelectItem>
+                        <SelectItem value="90">90 Days Net (Special)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Physical Address */}
+                  <div style={{ gridColumn: isMobile ? 'span 1' : 'span 2' }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                      Physical Address & Location
+                    </label>
+                    <input
+                      type="text"
+                      value={createForm.address}
+                      onChange={e => setCreateForm(p => ({ ...p, address: e.target.value }))}
+                      placeholder="e.g. Plot 45, Nyerere Road, Industrial Area, Dar es Salaam"
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                    />
+                  </div>
+
                 </div>
-              </form>
-            </div>
-          </div>
-        )}
+              </DialogBody>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createSaving || !createForm.name.trim()}>
+                  {createSaving ? 'Creating Account…' : 'Create Customer'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
       </div>
     );
   }
@@ -1237,7 +1929,9 @@ export const Customers: React.FC = () => {
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.ref_number || 'CLR-???'}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{s.goods_desc || 'No description'}</div>
                   </div>
-                  <StatusPill stage={s.stage} />
+                  <Badge variant={s.stage === 'RELEASED' || s.stage === 'CLOSED' ? 'success' : s.stage === 'CUSTOMS' ? 'warning' : 'info'} className="text-[11px] font-semibold">
+                    {s.stage || 'DRAFT'}
+                  </Badge>
                   <span style={{ fontSize: 11.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
                 </Link>
               ))}
@@ -1892,7 +2586,9 @@ export const Customers: React.FC = () => {
                     <div className="csr-desc">{s.goods_desc || 'No description'}</div>
                     {s.bl_number && <div style={{ fontSize: 10.5, color: 'var(--ink3)', fontFamily: 'var(--mono)', marginTop: 1 }}>B/L: {s.bl_number}</div>}
                   </div>
-                  <StatusPill stage={s.stage} />
+                  <Badge variant={s.stage === 'RELEASED' || s.stage === 'CLOSED' ? 'success' : s.stage === 'CUSTOMS' ? 'warning' : 'info'} className="text-[11px] font-semibold">
+                    {s.stage || 'DRAFT'}
+                  </Badge>
                   <span className="csr-date">{new Date(s.created_at).toLocaleDateString()}</span>
                 </div>
               ))}
@@ -1913,7 +2609,9 @@ export const Customers: React.FC = () => {
                 <div key={s.id} className="decl-block">
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700 }}>{s.tansad_number}</span>
-                    <StatusPill stage={s.stage} />
+                    <Badge variant={s.stage === 'RELEASED' || s.stage === 'CLOSED' ? 'success' : s.stage === 'CUSTOMS' ? 'warning' : 'info'} className="text-[11px] font-semibold">
+                      {s.stage || 'DRAFT'}
+                    </Badge>
                   </div>
                   <div className="decl-grid">
                     <div className="decl-kv"><span className="decl-k">Reference</span><span className="decl-v">{s.ref_number}</span></div>

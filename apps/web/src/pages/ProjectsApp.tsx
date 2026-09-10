@@ -24,14 +24,17 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { SectionCard } from '../components/SectionCard.js';
 import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 
-// Standalone Projects app (HuduPlus+, entitlement key 'projects' — migration
-// 313) — Projects/Milestones are real, tenant-shared entities (migration
-// 308), distinct from the personal task_lists the separate Tasks app uses.
-// Task creation/movement here reuses the same calendarStore.ts Todo store
-// Tasks uses (just tagged with projectId) — there's one task table, two
-// apps looking at different slices of it. This page originally shipped as
-// a mode inside the Tasks app; moved here once Projects became its own
-// standalone app (same functionality, new home).
+// Project OS Enterprise Modules
+import { ProjectCommandCenter } from './projects/ProjectCommandCenter.js';
+import { ProjectPortfolios } from './projects/ProjectPortfolios.js';
+import { ProjectWbsSchedule } from './projects/ProjectWbsSchedule.js';
+import { ProjectFinancialsEvm } from './projects/ProjectFinancialsEvm.js';
+import { ProjectGovernance } from './projects/ProjectGovernance.js';
+import { ProjectProcurement } from './projects/ProjectProcurement.js';
+import { ProjectResources } from './projects/ProjectResources.js';
+import { ProjectIndustryPack } from './projects/ProjectIndustryPack.js';
+import { ProjectCreateModal } from './projects/ProjectCreateModal.js';
+import type { ProjectIndustry, ProjectType } from '@hudumika/types';
 
 interface ProjectSummary {
   id: string; ref: string | null; name: string; description: string | null; color: string; status: string;
@@ -40,12 +43,27 @@ interface ProjectSummary {
   created_at: string;
   member_count: number; task_count: number; task_done_count: number;
   is_pinned: boolean;
+  industry?: ProjectIndustry;
+  project_type?: ProjectType;
+  health_status?: 'on_track' | 'at_risk' | 'critical' | 'completed';
+  progress_pct?: number;
+  contract_value?: number;
+  baseline_budget?: number;
+  current_budget?: number;
+  actual_cost?: number;
+  earned_value?: number;
+  planned_value?: number;
+  location_address?: string;
+  portfolio_name?: string;
+  program_name?: string;
 }
+
 interface ProjectDetail extends ProjectSummary {
   days_total: number | null; days_left: number | null;
   logged_hours_by_day: { day: string; minutes: number }[]; total_logged_minutes: number;
   expenses: { total: number; billable: number; billed: number; unbilled: number };
 }
+
 interface ProjectMember { id: string; user_id: string; role: string; name: string; email: string; avatar_url: string | null }
 interface MilestoneRow { id: string; name: string; description: string | null; due_date: string | null; status: string; sort_order: number; task_count: number; task_done_count: number }
 interface TimesheetRow {
@@ -62,6 +80,7 @@ interface ProjectActivityEntry { id: string; action: string; detail: Record<stri
 interface DiscussionRow { id: string; content: string; mentions: { user_id: string; name: string }[]; created_at: string; author_id: string; author_name: string }
 interface ProjectTicketRow { id: string; ref_number: string; subject: string; status: string; priority: string; category: string; created_at: string; resolved_at: string | null }
 interface ProjectInvoiceRow { id: string; invoice_number: string; status: string; currency: string; received: string; bill_date: string | null; due_date: string | null; created_at: string; total: number }
+
 const INVOICE_STATUS_META: Record<string, { label: string; variant: 'gray' | 'brand' | 'warning' | 'success' | 'error' }> = {
   Draft: { label: 'Draft', variant: 'gray' }, Unpaid: { label: 'Unpaid', variant: 'brand' },
   Paid: { label: 'Paid', variant: 'success' }, Overdue: { label: 'Overdue', variant: 'error' },
@@ -100,6 +119,14 @@ const PROJECT_STATUS_META: Record<string, { label: string; variant: 'gray' | 'br
   cancelled: { label: 'Cancelled', variant: 'error' },
   finished: { label: 'Finished', variant: 'success' },
 };
+
+const HEALTH_STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
+  on_track: { label: 'ON TRACK', color: '#15803d', bg: '#dcfce7' },
+  at_risk: { label: 'AT RISK', color: '#b45309', bg: '#fef3c7' },
+  critical: { label: 'CRITICAL', color: '#b91c1c', bg: '#fee2e2' },
+  completed: { label: 'COMPLETED', color: '#0f766e', bg: '#ccfbf1' },
+};
+
 const MILESTONE_STATUS_META: Record<string, { label: string; variant: 'gray' | 'brand' | 'success' }> = {
   upcoming: { label: 'Upcoming', variant: 'gray' },
   in_progress: { label: 'In progress', variant: 'brand' },
@@ -125,20 +152,12 @@ const TASK_PRIORITY_META: Record<TaskPriority, { label: string; color: string; b
   high: { label: 'High', color: '#ea580c', bg: '#ffedd5' },
   urgent: { label: 'Urgent', color: 'var(--red)', bg: 'var(--red-l)' },
 };
-// CSS var per status, for the Gantt bar fill — same variant→hue mapping
-// Badge already uses (brand/success/warning/info/gray), just resolved to a
-// paintable color here since an SVG/div fill can't read a Badge's own CSS.
 const STATUS_BAR_COLOR: Record<TaskStatus, string> = {
   none: 'var(--ink4)', in_progress: 'var(--teal)', in_review: 'var(--gold)', waiting: 'var(--blue)', completed: 'var(--green)',
 };
 function dayDiff(a: Date, b: Date): number { return Math.round((b.getTime() - a.getTime()) / 86400000); }
-// "View project as customer" (M14) — a client-side, read-only preview mode,
-// deliberately NOT the existing SUPER_ADMIN-gated impersonate-customer
-// session swap (wrong security model for a project owner previewing their
-// own project). Timesheets/Activity/Discussions/Tickets/Members are
-// internal-only and hidden; Files is filtered to visible_to_customer rows
-// and Overview drops rate/billing figures — handled inline where rendered.
-const CUSTOMER_VISIBLE_TABS = new Set(['overview', 'board', 'gantt', 'files', 'milestones']);
+
+const CUSTOMER_VISIBLE_TABS = new Set(['overview', 'wbs_schedule', 'financials_evm', 'industry_pack', 'board', 'gantt', 'files', 'milestones']);
 
 async function searchColleagues(q: string): Promise<PickerItem[]> {
   const rows = await apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`).catch(() => []);
@@ -188,21 +207,44 @@ function formatHM(totalMinutes: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-export const ProjectsApp: React.FC = () => {
+export interface ProjectsAppProps {
+  initialMode?: 'command_center' | 'portfolios' | 'projects_list' | 'resources';
+}
+
+export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command_center' }) => {
   const isMobile = useIsMobile();
   const allTodos = useTodos();
+  const [appViewMode, setAppViewMode] = useState<'command_center' | 'portfolios' | 'projects_list' | 'resources'>(initialMode);
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [listStatusFilter, setListStatusFilter] = useState<string>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [tab, setTab] = useState<'overview' | 'board' | 'gantt' | 'timesheets' | 'files' | 'discussions' | 'tickets' | 'sales' | 'activity' | 'milestones' | 'members'>('overview');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Tab State inside a selected project
+  const [tab, setTab] = useState<
+    | 'overview'
+    | 'wbs_schedule'
+    | 'financials_evm'
+    | 'governance'
+    | 'procurement'
+    | 'resources'
+    | 'industry_pack'
+    | 'board'
+    | 'gantt'
+    | 'timesheets'
+    | 'files'
+    | 'discussions'
+    | 'tickets'
+    | 'sales'
+    | 'activity'
+    | 'milestones'
+    | 'members'
+  >('overview');
+
   const [detail, setDetail] = useState<ProjectDetail | null>(null);
   const [members, setMembers] = useState<ProjectMember[] | null>(null);
   const [milestones, setMilestones] = useState<MilestoneRow[] | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newColor, setNewColor] = useState('#0d7a6b');
   const [templates, setTemplates] = useState<{ id: string; name: string; description: string | null }[] | null>(null);
-  const [newTemplateId, setNewTemplateId] = useState('__none__');
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [quickAddTitle, setQuickAddTitle] = useState('');
@@ -210,7 +252,6 @@ export const ProjectsApp: React.FC = () => {
   const { user } = useAuth();
   const [boardView, setBoardView] = useState<'kanban' | 'table' | 'milestone'>('kanban');
   const [excludeCompletedMs, setExcludeCompletedMs] = useState(false);
-  const [msColumnLimits, setMsColumnLimits] = useState<Record<string, number>>({});
   const [taskSearch, setTaskSearch] = useState('');
   const [taskPriorityFilter, setTaskPriorityFilter] = useState<string>('all');
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
@@ -243,6 +284,10 @@ export const ProjectsApp: React.FC = () => {
   const [settingUpRetainer, setSettingUpRetainer] = useState(false);
   const [retainerAmount, setRetainerAmount] = useState('');
   const [retainerFrequency, setRetainerFrequency] = useState('MONTHLY');
+
+  useEffect(() => {
+    setAppViewMode(initialMode);
+  }, [initialMode]);
 
   const loadProjects = useCallback(() => {
     apiFetch('/v1/tasks/projects').then(res => setProjects(res.data || [])).catch(() => setProjects([]));
@@ -356,7 +401,7 @@ export const ProjectsApp: React.FC = () => {
         apiFetch(`/v1/support/tickets?customer_id=${selected.customer_id}`).then(res => setLinkableTickets(Array.isArray(res) ? res : (res.data || []))).catch(() => setLinkableTickets([]));
       }
     }
-  }, [tab, selectedId, selected?.customer_id]);
+  }, [tab, selectedId, selected?.customer_id, loadTickets]);
 
   async function linkTicket() {
     if (!selectedId || linkTicketId === '__none__') return;
@@ -398,23 +443,7 @@ export const ProjectsApp: React.FC = () => {
     }
   }
 
-  async function toggleFileVisibleToCustomer(file: ProjectFileRow, visible: boolean) {
-    if (!selected?.customer_id) return;
-    const shared = visible ? [{ name: selected.customer_name || 'Customer', role: 'Viewer' as const, principal_type: 'customer', principal_id: selected.customer_id }] : [];
-    setProjectFiles(prev => (prev || []).map(f => f.id === file.id ? { ...f, shared } : f));
-    await apiFetch(`/v1/files/${file.id}/share`, { method: 'PUT', body: JSON.stringify({ shared }) }).catch(() => loadFiles());
-  }
-
   const projectTasks = useMemo(() => selectedId ? allTodos.filter(t => t.projectId === selectedId && !t.deletedAt) : [], [allTodos, selectedId]);
-  const memberWorkload = useMemo(() => {
-    const loggedByUser = new Map((workload || []).map(w => [w.user_id, w.logged_minutes]));
-    return (members || []).map(m => ({
-      ...m,
-      openTaskCount: projectTasks.filter(t => t.assigneeId === m.user_id && !t.completed && t.status !== 'completed').length,
-      loggedMinutes: loggedByUser.get(m.user_id) || 0,
-    }));
-  }, [members, projectTasks, workload]);
-  const maxWorkloadMinutes = Math.max(1, ...memberWorkload.map(m => m.loggedMinutes));
   const detailTask = detailTaskId ? projectTasks.find(t => t.id === detailTaskId) || null : null;
 
   const taskStatusCounts = useMemo(() => {
@@ -455,12 +484,6 @@ export const ProjectsApp: React.FC = () => {
     return rows;
   }, [visibleTasks, taskSort]);
 
-  function toggleTaskSort(key: 'title' | 'due' | 'priority' | 'status') {
-    setTaskSort(prev => prev.key === key ? { key, dir: prev.dir === 1 ? -1 : 1 } : { key, dir: 1 });
-  }
-  function toggleTaskSelected(id: string) {
-    setSelectedTaskIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
-  }
   function bulkMarkComplete() {
     let blocked = 0;
     for (const id of selectedTaskIds) {
@@ -474,6 +497,7 @@ export const ProjectsApp: React.FC = () => {
     setSelectedTaskIds(new Set());
     loadProjects();
   }
+
   function exportTasksCSV() {
     const rows = [
       ['Name', 'Status', 'Due', 'Assigned To', 'Tags', 'Priority'].join(','),
@@ -489,13 +513,9 @@ export const ProjectsApp: React.FC = () => {
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
     URL.revokeObjectURL(url);
   }
+  const exportProjectData = exportTasksCSV;
 
-  // ── Gantt (M9) — hand-rolled day-grid layout; no Gantt library exists in
-  // this codebase or is worth adding for one view. Milestone-grouped
-  // swimlane BANDS (the real convention every reference Gantt tool uses —
-  // Jira/monday/ClickUp group with a colored band + header row, not literal
-  // lines from a header box to each bar, which no real tool does either;
-  // connector lines are reserved below for actual task dependencies).
+  // Gantt calculations
   const GANTT_ROW_H = 34;
   const ganttDayWidth = ganttZoom === 'weeks' ? 24 : 8;
   const ganttTasks = useMemo(() => {
@@ -503,6 +523,7 @@ export const ProjectsApp: React.FC = () => {
     if (ganttMilestoneFilter === '__none__') return projectTasks.filter(t => !t.milestoneId);
     return projectTasks.filter(t => t.milestoneId === ganttMilestoneFilter);
   }, [projectTasks, ganttMilestoneFilter]);
+
   const ganttRange = useMemo(() => {
     const dates: Date[] = [];
     for (const t of ganttTasks) {
@@ -522,6 +543,7 @@ export const ProjectsApp: React.FC = () => {
     return { start: min, end: max };
   }, [ganttTasks, selected?.start_date, selected?.target_date]);
   const ganttTotalDays = dayDiff(ganttRange.start, ganttRange.end) + 1;
+
   function ganttBarGeometry(t: Todo) {
     const due = t.due ? parseDateOnly(t.due) : null;
     const start = t.start ? parseDateOnly(t.start) : due;
@@ -532,6 +554,7 @@ export const ProjectsApp: React.FC = () => {
     const width = Math.max(ganttDayWidth * 0.6, (dayDiff(s, e) + 1) * ganttDayWidth);
     return { left, width, hasStart: !!t.start };
   }
+
   type GanttRow = { type: 'milestone'; ms: MilestoneRow | null } | { type: 'task'; task: Todo };
   const ganttRows = useMemo(() => {
     const rows: GanttRow[] = [];
@@ -544,11 +567,7 @@ export const ProjectsApp: React.FC = () => {
     }
     return rows;
   }, [ganttTasks, milestones]);
-  const ganttRowIndexByTaskId = useMemo(() => {
-    const m = new Map<string, number>();
-    ganttRows.forEach((r, i) => { if (r.type === 'task') m.set(r.task.id, i); });
-    return m;
-  }, [ganttRows]);
+
   const ganttMonthHeaders = useMemo(() => {
     const headers: { label: string; left: number; width: number }[] = [];
     let dayIdx = 0;
@@ -562,44 +581,6 @@ export const ProjectsApp: React.FC = () => {
     }
     return headers;
   }, [ganttRange, ganttTotalDays, ganttDayWidth]);
-  const ganttWeekTicks = useMemo(() => {
-    if (ganttZoom !== 'weeks') return [];
-    const ticks: number[] = [];
-    for (let i = 0; i < ganttTotalDays; i += 7) ticks.push(i * ganttDayWidth);
-    return ticks;
-  }, [ganttTotalDays, ganttDayWidth, ganttZoom]);
-  const ganttTodayOffset = dayDiff(ganttRange.start, new Date(new Date().toISOString().slice(0, 10))) * ganttDayWidth;
-  const ganttConnectors = useMemo(() => {
-    if (!ganttEdges) return [];
-    const lines: { x1: number; y1: number; x2: number; y2: number }[] = [];
-    for (const e of ganttEdges) {
-      const blockerRow = ganttRowIndexByTaskId.get(e.depends_on_task_id);
-      const blockedRow = ganttRowIndexByTaskId.get(e.task_id);
-      if (blockerRow === undefined || blockedRow === undefined) continue;
-      const blockerTask = ganttTasks.find(t => t.id === e.depends_on_task_id);
-      const blockedTask = ganttTasks.find(t => t.id === e.task_id);
-      if (!blockerTask || !blockedTask) continue;
-      const blockerGeo = ganttBarGeometry(blockerTask);
-      const blockedGeo = ganttBarGeometry(blockedTask);
-      if (!blockerGeo || !blockedGeo) continue;
-      lines.push({
-        x1: blockerGeo.left + blockerGeo.width, y1: blockerRow * GANTT_ROW_H + GANTT_ROW_H / 2,
-        x2: blockedGeo.left, y2: blockedRow * GANTT_ROW_H + GANTT_ROW_H / 2,
-      });
-    }
-    return lines;
-  }, [ganttEdges, ganttRowIndexByTaskId, ganttTasks, ganttRange, ganttDayWidth]);
-
-  async function createProject() {
-    if (!newName.trim()) return;
-    const id = crypto.randomUUID();
-    try {
-      await apiFetch('/v1/tasks/projects', { method: 'POST', body: JSON.stringify({ id, name: newName.trim(), color: newColor, templateId: newTemplateId !== '__none__' ? newTemplateId : undefined }) });
-      setNewName(''); setCreating(false); setNewTemplateId('__none__');
-      loadProjects();
-      setSelectedId(id);
-    } catch { /* apiFetch already surfaces errors globally */ }
-  }
 
   async function invoiceProject() {
     if (!selectedId || invoicing) return;
@@ -607,7 +588,7 @@ export const ProjectsApp: React.FC = () => {
     try {
       await apiFetch(`/v1/tasks/projects/${selectedId}/invoice`, { method: 'POST' });
       loadDetail(selectedId);
-    } catch { /* apiFetch already surfaces errors globally, e.g. "no customer" or "already invoiced" */ }
+    } catch { /* handled */ }
     finally { setInvoicing(false); }
   }
 
@@ -627,15 +608,13 @@ export const ProjectsApp: React.FC = () => {
     const res = await apiFetch(`/v1/tasks/projects/${selectedId}/copy`, { method: 'POST' }).catch(() => null);
     if (res?.data) { loadProjects(); setSelectedId(res.data.id); }
   }
+
   async function deleteProjectAction() {
     if (!selectedId || !selected) return;
-    if (!window.confirm(`Delete "${selected.name}"? This cannot be undone. Tasks filed under it will keep their tags but lose the project link.`)) return;
+    if (!window.confirm(`Delete "${selected.name}"? This cannot be undone.`)) return;
     await apiFetch(`/v1/tasks/projects/${selectedId}`, { method: 'DELETE' }).catch(() => {});
     setSelectedId(null);
     loadProjects();
-  }
-  function exportProjectData() {
-    exportTasksCSV();
   }
 
   async function saveAsTemplate() {
@@ -646,38 +625,26 @@ export const ProjectsApp: React.FC = () => {
       });
       setSavingTemplate(false);
       setTemplates(null);
-    } catch { /* apiFetch already surfaces errors globally */ }
+    } catch { /* handled */ }
   }
 
   function quickAddTask() {
     if (!quickAddTitle.trim() || !selectedId) return;
     addTodo({ title: quickAddTitle.trim(), projectId: selectedId, status: 'none' });
     setQuickAddTitle('');
-    // A newly-created project task's task_count needs to reflect locally without
-    // a full reload — cheap enough to just refetch the summary list.
     loadProjects();
   }
 
   function moveTask(taskId: string, status: TaskStatus) {
-    // Dependency hard-block (real enforcement — the backend PATCH is the
-    // actual source of truth and rejects this too) — checked client-side
-    // first using the already-loaded blockedByOpenCount so a blocked
-    // completion never even flashes as "done" before the server's 400
-    // arrives; every other completion path (TaskDetailDrawer, TasksApp,
-    // bulk actions) still relies on the real backend check.
     if (status === 'completed') {
       const t = projectTasks.find(x => x.id === taskId);
       if (t && (t.blockedByOpenCount || 0) > 0) {
-        showAlert(`Can't complete this task — it's still blocked by ${t.blockedByOpenCount} open dependenc${t.blockedByOpenCount === 1 ? 'y' : 'ies'}.`, { variant: 'error' });
+        showAlert(`Can't complete this task — blocked by ${t.blockedByOpenCount} open dependencies.`, { variant: 'error' });
         return;
       }
     }
     updateTodo(taskId, status === 'completed' ? { status, completed: true } : { status, completed: false });
     loadProjects();
-  }
-
-  function moveTaskMilestone(taskId: string, milestoneId: string | null) {
-    updateTodo(taskId, { milestoneId });
   }
 
   async function addMilestone(name: string) {
@@ -686,11 +653,13 @@ export const ProjectsApp: React.FC = () => {
     const res = await apiFetch(`/v1/tasks/projects/${selectedId}/milestones`, { method: 'POST', body: JSON.stringify({ id, name: name.trim() }) }).catch(() => null);
     if (res) setMilestones(prev => [...(prev || []), res.data]);
   }
+
   async function updateMilestone(id: string, patch: { status?: string; dueDate?: string | null }) {
     if (!selectedId) return;
     const res = await apiFetch(`/v1/tasks/projects/${selectedId}/milestones/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }).catch(() => null);
     if (res) setMilestones(prev => (prev || []).map(m => m.id === id ? { ...m, ...res.data } : m));
   }
+
   async function deleteMilestone(id: string) {
     if (!selectedId) return;
     setMilestones(prev => (prev || []).filter(m => m.id !== id));
@@ -702,6 +671,7 @@ export const ProjectsApp: React.FC = () => {
     const res = await apiFetch(`/v1/tasks/projects/${selectedId}/members`, { method: 'POST', body: JSON.stringify({ userId: picked.id, role: 'member' }) }).catch(() => null);
     if (res) { setMembers(prev => [...(prev || []).filter(m => m.user_id !== picked.id), res.data]); loadDetail(selectedId); loadProjects(); }
   }
+
   async function removeMember(userId: string) {
     if (!selectedId) return;
     setMembers(prev => (prev || []).filter(m => m.user_id !== userId));
@@ -709,267 +679,536 @@ export const ProjectsApp: React.FC = () => {
     loadProjects();
   }
 
-  // ── Projects list (no project selected) ──
+  // ═════════════════════════════════════════════════════════════════════
+  // NO PROJECT SELECTED: High-Level Operating System Views
+  // ═════════════════════════════════════════════════════════════════════
   if (!selectedId || !selected) {
     return (
       <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
-        <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0' }}>
-          <PageHeader
-            crumbs={['Projects']}
-            titlePlain="Team"
-            titleEm="projects"
-            subtitle="Shared, multi-person projects with milestones and a kanban board."
-            actions={<Button size="sm" onClick={() => { setCreating(true); if (!templates) apiFetch('/v1/tasks/projects/templates').then(res => setTemplates(res.data || [])).catch(() => setTemplates([])); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="plus" size={15} /> New project
-            </Button>}
-          />
-        </div>
+        {/* Top OS App Navigation Bar */}
+        <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em' }}>
+                  Hudumika Project OS
+                </span>
+                <span style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600 }}>Enterprise Edition</span>
+              </div>
+              <h1 style={{ margin: '4px 0 0', fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
+                {appViewMode === 'command_center' && 'Executive Project Command Center'}
+                {appViewMode === 'portfolios' && 'Strategic Portfolios & Programs'}
+                {appViewMode === 'resources' && 'Heavy Machinery & Resource Fleet'}
+                {appViewMode === 'projects_list' && 'Enterprise Projects Directory'}
+              </h1>
+            </div>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: isMobile ? '14px 16px 0' : '18px 32px 0' }}>
-          <button type="button" onClick={() => setListStatusFilter('all')}
-            style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: `1px solid ${listStatusFilter === 'all' ? 'var(--teal)' : 'var(--border)'}`, background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: listStatusFilter === 'all' ? 'var(--teal)' : 'var(--ink2)' }}>
-            All ({projects?.length ?? 0})
-          </button>
-          {Object.entries(PROJECT_STATUS_META).map(([k, m]) => (
-            <button key={k} type="button" onClick={() => setListStatusFilter(prev => prev === k ? 'all' : k)}
-              style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: `1px solid ${listStatusFilter === k ? 'var(--teal)' : 'var(--border)'}`, background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: listStatusFilter === k ? 'var(--teal)' : 'var(--ink2)' }}>
-              {listCounts[k] ?? 0} {m.label}
-            </button>
-          ))}
-        </div>
-
-        {creating && (
-          <div style={{ margin: isMobile ? 16 : '20px 32px 0' }}>
-          <SectionCard collapsible={false}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <input
-              autoFocus value={newName} onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') createProject(); if (e.key === 'Escape') setCreating(false); }}
-              placeholder="Project name…"
-              style={{ flex: 1, minWidth: 200, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 14, background: 'var(--white)', color: 'var(--ink)' }}
-            />
-            <input type="color" value={newColor} onChange={e => setNewColor(e.target.value)} title="Project color" style={{ width: 36, height: 36, border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer', background: 'none' }} />
-            {templates && templates.length > 0 && (
-              <Select value={newTemplateId} onValueChange={setNewTemplateId}>
-                <SelectTrigger className="h-9 text-xs" style={{ width: 180 }}><SelectValue placeholder="Start from template…" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Blank project</SelectItem>
-                  {templates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            )}
-            <Button size="sm" onClick={createProject} disabled={!newName.trim()}>Create</Button>
-            <Button size="sm" variant="outline" onClick={() => { setCreating(false); setNewName(''); setNewTemplateId('__none__'); }}>Cancel</Button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Button
+                size="sm"
+                onClick={() => setShowCreateModal(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+              >
+                <Icon name="plus" size={15} /> New Enterprise Project
+              </Button>
+            </div>
           </div>
-          </SectionCard>
+
+          {/* View Mode Switcher Buttons */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 12 }}>
+            <button
+              type="button"
+              onClick={() => setAppViewMode('command_center')}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 8,
+                border: 'none',
+                background: appViewMode === 'command_center' ? 'var(--teal)' : 'transparent',
+                color: appViewMode === 'command_center' ? '#ffffff' : 'var(--ink2)',
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <Icon name="activity" size={15} /> Command Center
+            </button>
+            <button
+              type="button"
+              onClick={() => setAppViewMode('portfolios')}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 8,
+                border: 'none',
+                background: appViewMode === 'portfolios' ? 'var(--teal)' : 'transparent',
+                color: appViewMode === 'portfolios' ? '#ffffff' : 'var(--ink2)',
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <Icon name="layers" size={15} /> Portfolios & Programs
+            </button>
+            <button
+              type="button"
+              onClick={() => setAppViewMode('projects_list')}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 8,
+                border: 'none',
+                background: appViewMode === 'projects_list' ? 'var(--teal)' : 'transparent',
+                color: appViewMode === 'projects_list' ? '#ffffff' : 'var(--ink2)',
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <Icon name="briefcase" size={15} /> Projects Directory ({projects?.length ?? 0})
+            </button>
+            <button
+              type="button"
+              onClick={() => setAppViewMode('resources')}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 8,
+                border: 'none',
+                background: appViewMode === 'resources' ? 'var(--teal)' : 'transparent',
+                color: appViewMode === 'resources' ? '#ffffff' : 'var(--ink2)',
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <Icon name="truck" size={15} /> Heavy Machinery Fleet
+            </button>
+          </div>
+        </div>
+
+        {/* View Mode Content */}
+        {appViewMode === 'command_center' && (
+          <div style={{ padding: isMobile ? 16 : 32 }}>
+            <ProjectCommandCenter onSelectProject={(id) => setSelectedId(id)} />
           </div>
         )}
 
-        <div style={{ padding: isMobile ? 16 : 32 }}>
-          {filteredProjects === null ? (
-            <SectionLoading />
-          ) : filteredProjects.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>
-              {projects && projects.length > 0 ? 'No projects match this filter.' : 'No projects yet. Create one to start organizing work into a shared board with milestones.'}
+        {appViewMode === 'portfolios' && (
+          <div style={{ padding: isMobile ? 16 : 32 }}>
+            <ProjectPortfolios onSelectProject={(id) => setSelectedId(id)} />
+          </div>
+        )}
+
+        {appViewMode === 'resources' && (
+          <div style={{ padding: isMobile ? 16 : 32 }}>
+            <ProjectResources />
+          </div>
+        )}
+
+        {appViewMode === 'projects_list' && (
+          <div style={{ padding: isMobile ? 16 : 32 }}>
+            {/* Status Filter Bar */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+              <button
+                type="button"
+                onClick={() => setListStatusFilter('all')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  border: `1px solid ${listStatusFilter === 'all' ? 'var(--teal)' : 'var(--border)'}`,
+                  background: 'var(--white)',
+                  cursor: 'pointer',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  color: listStatusFilter === 'all' ? 'var(--teal)' : 'var(--ink2)',
+                }}
+              >
+                All Projects ({projects?.length ?? 0})
+              </button>
+              {Object.entries(PROJECT_STATUS_META).map(([k, m]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setListStatusFilter((prev) => (prev === k ? 'all' : k))}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 8,
+                    border: `1px solid ${listStatusFilter === k ? 'var(--teal)' : 'var(--border)'}`,
+                    background: 'var(--white)',
+                    cursor: 'pointer',
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    color: listStatusFilter === k ? 'var(--teal)' : 'var(--ink2)',
+                  }}
+                >
+                  {listCounts[k] ?? 0} {m.label}
+                </button>
+              ))}
             </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-              {filteredProjects.map(p => {
-                const statusMeta = PROJECT_STATUS_META[p.status] || PROJECT_STATUS_META.not_started;
-                return (
-                  <button
-                    key={p.id} type="button" onClick={() => setSelectedId(p.id)}
-                    style={{
-                      textAlign: 'left', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12,
-                      padding: 16, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 10,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                      <span onClick={e => togglePin(p, e)} title={p.is_pinned ? 'Unpin' : 'Pin'} style={{ display: 'flex', cursor: 'pointer', color: p.is_pinned ? 'var(--gold)' : 'var(--ink4)' }}>
-                        <Icon name="bookmark" size={14} duotone={p.is_pinned} />
-                      </span>
-                      <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
-                    </div>
-                    {(p.ref || p.customer_name) && (
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', display: 'flex', gap: 6 }}>
-                        {p.ref && <span style={{ fontWeight: 700 }}>{p.ref}</span>}
-                        {p.customer_name && <span>{p.ref ? '· ' : ''}{p.customer_name}</span>}
+
+            {/* Projects Grid */}
+            {filteredProjects === null ? (
+              <SectionLoading />
+            ) : filteredProjects.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--ink3)', fontSize: 14 }}>
+                {projects && projects.length > 0
+                  ? 'No projects match this status filter.'
+                  : 'No projects registered in the OS yet. Click "New Enterprise Project" to create your first portfolio project.'}
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18 }}>
+                {filteredProjects.map((p) => {
+                  const statusMeta = PROJECT_STATUS_META[p.status] || PROJECT_STATUS_META.not_started;
+                  const healthMeta = HEALTH_STATUS_META[p.health_status || 'on_track'] || HEALTH_STATUS_META.on_track;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setSelectedId(p.id)}
+                      style={{
+                        textAlign: 'left',
+                        background: 'var(--white)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 14,
+                        padding: 20,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ width: 12, height: 12, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {p.name}
+                        </span>
+                        <span
+                          onClick={(e) => togglePin(p, e)}
+                          title={p.is_pinned ? 'Unpin' : 'Pin'}
+                          style={{ display: 'flex', cursor: 'pointer', color: p.is_pinned ? 'var(--gold)' : 'var(--ink4)' }}
+                        >
+                          <Icon name="bookmark" size={15} duotone={p.is_pinned} />
+                        </span>
                       </div>
-                    )}
-                    {p.description && (
-                      <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{p.description}</p>
-                    )}
-                    <ProgressBar done={p.task_done_count} total={p.task_count} color={p.color} />
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--ink3)' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Icon name="userCheck" size={12} /> {p.member_count} member{p.member_count === 1 ? '' : 's'}</span>
-                      {p.target_date && <span>Due {p.target_date}</span>}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            color: healthMeta.color,
+                            background: healthMeta.bg,
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          {healthMeta.label}
+                        </span>
+                        {p.industry && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: 4,
+                              color: 'var(--ink3)',
+                              background: 'var(--bg-subtle)',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            {p.industry.replace('_', ' ')}
+                          </span>
+                        )}
+                      </div>
+
+                      {(p.ref || p.customer_name) && (
+                        <div style={{ fontSize: 12, color: 'var(--ink3)', display: 'flex', gap: 6 }}>
+                          {p.ref && <strong style={{ color: 'var(--ink)' }}>{p.ref}</strong>}
+                          {p.customer_name && <span>· {p.customer_name}</span>}
+                        </div>
+                      )}
+
+                      {p.description && (
+                        <p
+                          style={{
+                            fontSize: 12.5,
+                            color: 'var(--ink3)',
+                            margin: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {p.description}
+                        </p>
+                      )}
+
+                      {p.contract_value && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, background: 'var(--bg-subtle)', padding: '6px 10px', borderRadius: 6 }}>
+                          <span style={{ color: 'var(--ink3)' }}>Contract Value:</span>
+                          <strong style={{ color: 'var(--teal)' }}>
+                            {p.currency} {Number(p.contract_value).toLocaleString()}
+                          </strong>
+                        </div>
+                      )}
+
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>
+                          <span>PROGRESS</span>
+                          <span>{p.progress_pct || (p.task_count > 0 ? Math.round((p.task_done_count / p.task_count) * 100) : 0)}%</span>
+                        </div>
+                        <ProgressBar done={p.task_done_count} total={p.task_count} color={p.color} />
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--ink3)', borderTop: '1px solid var(--border)', paddingTop: 10, marginTop: 4 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Icon name="userCheck" size={13} /> {p.member_count} member{p.member_count === 1 ? '' : 's'}
+                        </span>
+                        {p.target_date && <span>Target {p.target_date}</span>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Create Project Modal */}
+        <ProjectCreateModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={(newId) => {
+            setShowCreateModal(false);
+            loadProjects();
+            setSelectedId(newId);
+          }}
+        />
       </div>
     );
   }
 
-  // ── Selected project detail ──
+  // ═════════════════════════════════════════════════════════════════════
+  // SELECTED PROJECT WORKSPACE (Deep OS Experience)
+  // ═════════════════════════════════════════════════════════════════════
   const statusMeta = PROJECT_STATUS_META[selected.status] || PROJECT_STATUS_META.not_started;
+  const healthMeta = HEALTH_STATUS_META[selected.health_status || 'on_track'] || HEALTH_STATUS_META.on_track;
+
   function patchProject(patch: Record<string, unknown>) {
     apiFetch(`/v1/tasks/projects/${selected!.id}`, { method: 'PATCH', body: JSON.stringify(patch) })
       .then(() => { loadProjects(); loadDetail(selected!.id); });
   }
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
-      <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0' }}>
-        <button type="button" onClick={() => setSelectedId(null)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12.5, fontWeight: 600, padding: 0, marginBottom: 10 }}>
-          <Icon name="arrowLeft" size={13} /> All projects
+      {/* Project Workspace Top Bar */}
+      <div style={{ padding: isMobile ? '16px 16px 0' : '20px 32px 0', background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
+        <button
+          type="button"
+          onClick={() => setSelectedId(null)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--ink3)',
+            fontSize: 12.5,
+            fontWeight: 700,
+            padding: 0,
+            marginBottom: 10,
+          }}
+        >
+          <Icon name="arrowLeft" size={13} /> Return to Projects & Command Center
         </button>
-        <PageHeader
-          crumbs={['Projects', selected.name]}
-          titlePlain="Project"
-          titleEm="detail"
-          subtitle={selected.customer_name ? `${selected.name} — ${selected.customer_name}` : selected.name}
-        />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ width: 12, height: 12, borderRadius: '50%', background: selected.color, flexShrink: 0 }} />
-          <span style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{selected.name}</span>
-          {selected.customer_name && <span style={{ fontSize: 14, color: 'var(--ink3)' }}>— {selected.customer_name}</span>}
-          <Select value={selected.status} onValueChange={v => patchProject({ status: v })}>
-            <SelectTrigger className="h-7 text-xs" style={{ width: 130 }}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(PROJECT_STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Icon name="moreHorizontal" size={14} /> More
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={e => togglePin(selected, e as unknown as React.MouseEvent)}>
-                <Icon name="bookmark" size={13} /> {selected.is_pinned ? 'Unpin project' : 'Pin project'}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={copyProject}>
-                <Icon name="copy" size={13} /> Copy project
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setTemplateName(selected.name); setSavingTemplate(true); }}>
-                <Icon name="save" size={13} /> Save as template
-              </DropdownMenuItem>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <Icon name="flag" size={13} /> Mark as…
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  {Object.entries(PROJECT_STATUS_META).map(([k, m]) => (
-                    <DropdownMenuItem key={k} onClick={() => patchProject({ status: k })}>{m.label}</DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuItem onClick={exportProjectData}>
-                <Icon name="download" size={13} /> Export project data
-              </DropdownMenuItem>
-              <DropdownMenuCheckboxItem checked={viewAsCustomer} onCheckedChange={setViewAsCustomer}>
-                View project as customer
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={deleteProjectAction} style={{ color: 'var(--red)' }}>
-                <Icon name="trash" size={13} /> Delete project
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ width: 14, height: 14, borderRadius: '50%', background: selected.color, flexShrink: 0 }} />
+            <h1 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', margin: 0 }}>
+              {selected.name}
+            </h1>
+            {selected.ref && (
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg-subtle)', padding: '2px 8px', borderRadius: 4 }}>
+                {selected.ref}
+              </span>
+            )}
+            <span
+              style={{
+                fontSize: 10.5,
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: 4,
+                color: healthMeta.color,
+                background: healthMeta.bg,
+                letterSpacing: '0.04em',
+              }}
+            >
+              {healthMeta.label}
+            </span>
+            <Select value={selected.status} onValueChange={(v) => patchProject({ status: v })}>
+              <SelectTrigger className="h-7 text-xs" style={{ width: 120 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(PROJECT_STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Icon name="moreHorizontal" size={14} /> Options
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={(e) => togglePin(selected, e as unknown as React.MouseEvent)}>
+                  <Icon name="bookmark" size={13} /> {selected.is_pinned ? 'Unpin project' : 'Pin project'}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={copyProject}>
+                  <Icon name="copy" size={13} /> Duplicate project
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setTemplateName(selected.name); setSavingTemplate(true); }}>
+                  <Icon name="save" size={13} /> Save as template
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportProjectData}>
+                  <Icon name="download" size={13} /> Export project data
+                </DropdownMenuItem>
+                <DropdownMenuCheckboxItem checked={viewAsCustomer} onCheckedChange={setViewAsCustomer}>
+                  View as Client Portal
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={deleteProjectAction} style={{ color: 'var(--red)' }}>
+                  <Icon name="trash" size={13} /> Delete project
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
+
         {viewAsCustomer && (
-          <div style={{ marginTop: 10, maxWidth: 480 }}>
-            <Banner variant="warning">Previewing as your customer would see it — internal tabs hidden, only files marked "Visible to customer" shown, no rates or billing figures. This is a read-only local preview, not a real customer session.</Banner>
-          </div>
-        )}
-        {selected.ref && <div style={{ fontSize: 11.5, color: 'var(--ink4)', marginTop: 2 }}>{selected.ref}</div>}
-        {selected.description && <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '6px 0 0' }}>{selected.description}</p>}
-        {savingTemplate && (
-          <div style={{ marginTop: 14, maxWidth: 480 }}>
-          <SectionCard collapsible={false}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <input
-              autoFocus value={templateName} onChange={e => setTemplateName(e.target.value)}
-              placeholder="Template name…"
-              style={{ flex: 1, minWidth: 180, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)' }}
-            />
-            <Button size="sm" onClick={saveAsTemplate} disabled={!templateName.trim()}>Save</Button>
-            <Button size="sm" variant="outline" onClick={() => setSavingTemplate(false)}>Cancel</Button>
-          </div>
-          </SectionCard>
+          <div style={{ marginTop: 10, maxWidth: 640 }}>
+            <Banner variant="warning">
+              Previewing as Client / Donor view — Internal EVM formulas, contractor cost margins, and personnel workload logs are hidden.
+            </Banner>
           </div>
         )}
 
-        <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented" style={{ marginTop: 18 }}>
-          <TabsList>
-            {(['overview', 'board', 'gantt', 'timesheets', 'files', 'discussions', 'tickets', 'sales', 'activity', 'milestones', 'members'] as const)
-              .filter(t => !viewAsCustomer || CUSTOMER_VISIBLE_TABS.has(t))
-              .map(t => (
-              <TabsTrigger
-                key={t} value={t}
-                style={{ textTransform: 'capitalize' }}
-              >
-                {t === 'overview' ? 'Overview' : t === 'board' ? `Tasks${projectTasks.length ? ` (${projectTasks.length})` : ''}` : t === 'gantt' ? 'Gantt' : t === 'timesheets' ? 'Timesheets' : t === 'files' ? `Files${projectFiles ? ` (${projectFiles.length})` : ''}` : t === 'discussions' ? `Discussions${discussions ? ` (${discussions.length})` : ''}` : t === 'tickets' ? `Tickets${projectTickets ? ` (${projectTickets.length})` : ''}` : t === 'sales' ? `Sales${projectInvoices ? ` (${projectInvoices.length})` : ''}` : t === 'activity' ? 'Activity' : t === 'milestones' ? `Milestones${milestones ? ` (${milestones.length})` : ''}` : `Members${members ? ` (${members.length})` : ''}`}
-              </TabsTrigger>
-            ))}
+        {/* Enterprise Navigation Tabs */}
+        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} variant="segmented" style={{ marginTop: 16 }}>
+          <TabsList style={{ overflowX: 'auto' }}>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="wbs_schedule">WBS & Gates</TabsTrigger>
+            <TabsTrigger value="financials_evm">Financials & EVM</TabsTrigger>
+            <TabsTrigger value="governance">Governance & Risk</TabsTrigger>
+            <TabsTrigger value="procurement">Procurement</TabsTrigger>
+            <TabsTrigger value="resources">Fleet & Resources</TabsTrigger>
+            <TabsTrigger value="industry_pack">Industry Pack</TabsTrigger>
+            <TabsTrigger value="board">Tasks & Board ({projectTasks.length})</TabsTrigger>
+            <TabsTrigger value="gantt">Gantt</TabsTrigger>
+            <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
+            <TabsTrigger value="files">Files ({projectFiles ? projectFiles.length : '0'})</TabsTrigger>
+            <TabsTrigger value="discussions">Discussions ({discussions ? discussions.length : '0'})</TabsTrigger>
+            <TabsTrigger value="tickets">Tickets ({projectTickets ? projectTickets.length : '0'})</TabsTrigger>
+            <TabsTrigger value="sales">Billing & Contracts</TabsTrigger>
+            <TabsTrigger value="activity">Audit Activity</TabsTrigger>
+            <TabsTrigger value="members">Team ({members ? members.length : '0'})</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 32 }}>
+      {/* Main Workspace Content Area */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 28 }}>
+        {/* TAB 1: OVERVIEW */}
         {tab === 'overview' && (
           detail === null ? (
             <SectionLoading />
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20, alignItems: 'start' }}>
-              <SectionCard title="Overview">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px', fontSize: 13 }}>
-                  <OverviewField label="Project #" value={detail.ref || '—'} />
-                  <OverviewField label="Customer" value={detail.customer_name || '—'} />
-                  {!viewAsCustomer && <OverviewField label="Billing Type" value={detail.billing_type === 'hourly' ? 'Hourly Rate' : 'Fixed Rate'} />}
-                  {!viewAsCustomer && <OverviewField label="Total Rate" value={detail.total_rate ? `${detail.currency} ${Number(detail.total_rate).toLocaleString()}` : '—'} />}
-                  <OverviewField label="Status" value={statusMeta.label} />
-                  <OverviewField label="Date Created" value={detail.created_at.slice(0, 10)} />
-                  <OverviewField label="Start Date" value={detail.start_date || '—'} />
-                  <OverviewField label="Deadline" value={detail.target_date || '—'} />
-                  <OverviewField label="Total Logged Hours" value={formatHM(detail.total_logged_minutes)} />
-                </div>
-                {detail.description && (
-                  <>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 20, marginBottom: 6 }}>Description</div>
-                    <p style={{ fontSize: 13, color: 'var(--ink2)', margin: 0, lineHeight: 1.6 }}>{detail.description}</p>
-                  </>
-                )}
-              </SectionCard>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr', gap: 20, alignItems: 'start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                <SectionCard title="Project Charter & Metadata">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px', fontSize: 13 }}>
+                    <OverviewField label="Project Code / Ref" value={detail.ref || '—'} />
+                    <OverviewField label="Client / Stakeholder" value={detail.customer_name || '—'} />
+                    <OverviewField label="Industry Pack" value={(detail.industry || 'general').toUpperCase().replace('_', ' ')} />
+                    <OverviewField label="Classification" value={(detail.project_type || 'capital_expenditure').toUpperCase().replace('_', ' ')} />
+                    <OverviewField label="Contract Value" value={`${detail.currency} ${(detail.contract_value || 0).toLocaleString()}`} />
+                    <OverviewField label="Baseline Budget (BAC)" value={`${detail.currency} ${(detail.baseline_budget || detail.current_budget || 0).toLocaleString()}`} />
+                    <OverviewField label="Start Date" value={detail.start_date || '—'} />
+                    <OverviewField label="Target Delivery Date" value={detail.target_date || '—'} />
+                    <OverviewField label="Site Location" value={detail.location_address || '—'} />
+                    <OverviewField label="Total Logged Hours" value={formatHM(detail.total_logged_minutes)} />
+                  </div>
+                  {detail.description && (
+                    <>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 18, marginBottom: 6 }}>
+                        Charter Scope & Objectives
+                      </div>
+                      <p style={{ fontSize: 13, color: 'var(--ink2)', margin: 0, lineHeight: 1.6 }}>{detail.description}</p>
+                    </>
+                  )}
+                </SectionCard>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{selected.name}</div>
+                {/* Logged Hours Chart */}
+                <SectionCard title="Man-Hours Logged This Week">
+                  <div style={{ height: 180 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={detail.logged_hours_by_day.map(r => ({ day: r.day.slice(5, 10), hours: +(r.minutes / 60).toFixed(2) }))}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                        <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                        <RechartsTooltip />
+                        <Bar dataKey="hours" fill="var(--teal)" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </SectionCard>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                {/* Executive Progress & Schedule Health */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 14 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{detail.task_done_count} / {detail.task_count} Open Tasks</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', margin: '2px 0 8px' }}>{detail.task_count > 0 ? Math.round((detail.task_done_count / detail.task_count) * 100) : 0}%</div>
+                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Work Package Completion</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', margin: '2px 0 8px' }}>
+                      {detail.task_done_count} / {detail.task_count} Work Packages
+                    </div>
                     <ProgressBar done={detail.task_done_count} total={detail.task_count} color="var(--green)" />
                   </div>
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 14 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{detail.days_left ?? '—'} / {detail.days_total ?? '—'} Days Left</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', margin: '2px 0 8px' }}>{detail.days_total ? Math.round(((detail.days_left || 0) / detail.days_total) * 100) : 0}%</div>
+                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Schedule Elapsed</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', margin: '2px 0 8px' }}>
+                      {detail.days_left ?? '—'} Days Left / {detail.days_total ?? '—'} Total
+                    </div>
                     <ProgressBar done={detail.days_left ?? 0} total={detail.days_total ?? 0} color="var(--teal)" />
                   </div>
                 </div>
 
+                {/* Expenses & Retainers */}
                 {!viewAsCustomer && (
                   <SectionCard
-                    title="Expenses"
-                    action={!!detail.expenses.unbilled ? (
-                        <Button size="sm" onClick={invoiceProject} disabled={invoicing} style={{ height: 26, fontSize: 11.5 }}>
-                          {invoicing ? 'Invoicing…' : 'Invoice Project'}
-                        </Button>
+                    title="Financial Exposure & Invoicing"
+                    action={detail.expenses.unbilled ? (
+                      <Button size="sm" onClick={invoiceProject} disabled={invoicing} style={{ height: 26, fontSize: 11.5 }}>
+                        {invoicing ? 'Invoicing…' : 'Invoice Project'}
+                      </Button>
                     ) : undefined}
                   >
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
@@ -982,12 +1221,16 @@ export const ProjectsApp: React.FC = () => {
                 )}
 
                 {!viewAsCustomer && selected.customer_id && retainer !== undefined && (
-                  <SectionCard title="Retainer">
+                  <SectionCard title="Client Retainer Agreement">
                     {retainer ? (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{retainer.currency} {Number(retainer.amount).toLocaleString()}</div>
-                          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2, textTransform: 'capitalize' }}>{retainer.frequency.toLowerCase()} · {retainer.state.toLowerCase()}{retainer.next_due ? ` · next ${retainer.next_due}` : ''}</div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
+                            {retainer.currency} {Number(retainer.amount).toLocaleString()}
+                          </div>
+                          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2, textTransform: 'capitalize' }}>
+                            {retainer.frequency.toLowerCase()} · {retainer.state.toLowerCase()}{retainer.next_due ? ` · next ${retainer.next_due}` : ''}
+                          </div>
                         </div>
                         <Badge variant={retainer.state === 'ACTIVE' ? 'success' : 'gray'}>{retainer.state}</Badge>
                       </div>
@@ -1014,32 +1257,53 @@ export const ProjectsApp: React.FC = () => {
                     )}
                   </SectionCard>
                 )}
-
-                <SectionCard title="Total Logged Hours — This Week">
-                  <div style={{ height: 180 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={detail.logged_hours_by_day.map(r => ({ day: r.day.slice(5, 10), hours: +(r.minutes / 60).toFixed(2) }))}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                        <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                        <RechartsTooltip />
-                        <Bar dataKey="hours" fill="var(--teal)" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </SectionCard>
               </div>
             </div>
           )
         )}
 
+        {/* TAB 2: WBS & SCHEDULE */}
+        {tab === 'wbs_schedule' && (
+          <ProjectWbsSchedule projectId={selected.id} currency={selected.currency} />
+        )}
+
+        {/* TAB 3: FINANCIALS & EVM */}
+        {tab === 'financials_evm' && (
+          <ProjectFinancialsEvm projectId={selected.id} currency={selected.currency} />
+        )}
+
+        {/* TAB 4: GOVERNANCE & RISKS */}
+        {tab === 'governance' && (
+          <ProjectGovernance projectId={selected.id} currency={selected.currency} />
+        )}
+
+        {/* TAB 5: PROCUREMENT */}
+        {tab === 'procurement' && (
+          <ProjectProcurement projectId={selected.id} currency={selected.currency} />
+        )}
+
+        {/* TAB 6: FLEET & RESOURCES */}
+        {tab === 'resources' && (
+          <ProjectResources projectId={selected.id} currency={selected.currency} />
+        )}
+
+        {/* TAB 7: MODULAR INDUSTRY PACK */}
+        {tab === 'industry_pack' && (
+          <ProjectIndustryPack
+            projectId={selected.id}
+            industry={selected.industry || 'general'}
+            currency={selected.currency}
+          />
+        )}
+
+        {/* TAB 8: TASKS & KANBAN BOARD */}
         {tab === 'board' && (
           <>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, maxWidth: 480 }}>
               <input
                 value={quickAddTitle} onChange={e => setQuickAddTitle(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') quickAddTask(); }}
-                placeholder="Quick-add a task to this project…"
+                placeholder="Quick-add a task or work package…"
                 style={{ flex: 1, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, background: 'var(--white)', color: 'var(--ink)' }}
               />
               <Button size="sm" onClick={quickAddTask} disabled={!quickAddTitle.trim()}>Add</Button>
@@ -1079,12 +1343,6 @@ export const ProjectsApp: React.FC = () => {
                   value={taskSearch} onChange={e => setTaskSearch(e.target.value)} placeholder="Filter tasks…"
                   style={{ padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5, width: 160, background: 'var(--white)', color: 'var(--ink)' }}
                 />
-                {boardView === 'milestone' && (
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer' }}>
-                    <Checkbox checked={excludeCompletedMs} onCheckedChange={c => setExcludeCompletedMs(c === true)} />
-                    Exclude Completed Tasks
-                  </label>
-                )}
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 {selectedTaskIds.size > 0 && (
@@ -1098,175 +1356,41 @@ export const ProjectsApp: React.FC = () => {
               </div>
             </div>
 
-            {boardView === 'kanban' ? (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(5, 1fr)', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
+            {/* Kanban Columns */}
+            {boardView === 'kanban' && (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(5, 1fr)', gap: 12, alignItems: 'start' }}>
                 {KANBAN_COLUMNS.map(col => {
-                  const colTasks = sortedTasks.filter(t => col.status === 'completed' ? (t.completed || t.status === 'completed') : (t.status === col.status && !t.completed));
+                  const tasksInCol = sortedTasks.filter(t => (t.completed || t.status === 'completed' ? 'completed' : t.status) === col.status);
                   return (
-                    <div
-                      key={col.status}
-                      onDragOver={e => e.preventDefault()}
-                      onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/proj-task-id'); if (id) moveTask(id, col.status); }}
-                      style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', flexDirection: 'column', minHeight: 200 }}
-                    >
-                      <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>{col.title}</span>
-                        <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)' }}>{colTasks.length}</span>
+                    <div key={col.status} style={{ background: 'var(--bg-subtle)', borderRadius: 12, padding: 12, minHeight: 300 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink2)' }}>{col.title}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, background: 'var(--white)', padding: '2px 6px', borderRadius: 4, color: 'var(--ink3)' }}>{tasksInCol.length}</span>
                       </div>
-                      <div style={{ flex: 1, padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {colTasks.map(t => {
-                          const milestone = milestones?.find(m => m.id === t.milestoneId);
-                          return (
-                            <div
-                              key={t.id} draggable
-                              onDragStart={e => e.dataTransfer.setData('text/proj-task-id', t.id)}
-                              onClick={() => setDetailTaskId(t.id)}
-                              style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, cursor: 'pointer' }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 5 }}>
-                                <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35 }}>{t.title}</div>
-                                {!!t.blockedByOpenCount && (
-                                  <span title={`Blocked by ${t.blockedByOpenCount} open task${t.blockedByOpenCount === 1 ? '' : 's'}`} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2, fontSize: 9.5, fontWeight: 700, color: 'var(--gold)', marginTop: 1 }}>
-                                    <Icon name="link" size={10} />{t.blockedByOpenCount}
-                                  </span>
-                                )}
-                              </div>
-                              {(milestone || t.due || t.priority) && (
-                                <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                  {milestone && <span style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 600 }}>{milestone.name}</span>}
-                                  {t.due && <span style={{ fontSize: 10, color: 'var(--ink3)' }}>Due {t.due}</span>}
-                                  {t.priority && t.priority !== 'medium' && (
-                                    <span style={{ fontSize: 9.5, fontWeight: 700, color: TASK_PRIORITY_META[t.priority].color, background: TASK_PRIORITY_META[t.priority].bg, padding: 'var(--badge-py-sm) var(--badge-px-sm)', borderRadius: 'var(--badge-radius)', textTransform: 'uppercase' }}>{TASK_PRIORITY_META[t.priority].label}</span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {colTasks.length === 0 && <div style={{ fontSize: 11.5, color: 'var(--ink4)', padding: '8px 4px' }}>No tasks</div>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : boardView === 'table' ? (
-              <SectionCard collapsible={false} padded={false}>
-                <div style={{ overflow: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
-                      <th style={{ padding: '10px 12px', width: 30 }}>
-                        <Checkbox
-                          checked={sortedTasks.length > 0 && selectedTaskIds.size === sortedTasks.length}
-                          onCheckedChange={c => setSelectedTaskIds(c === true ? new Set(sortedTasks.map(t => t.id)) : new Set())}
-                        />
-                      </th>
-                      {([['title', 'Name'], ['status', 'Status'], ['due', 'Due'], ['priority', 'Priority']] as const).map(([key, label]) => (
-                        <th key={key} onClick={() => toggleTaskSort(key)} style={{ padding: '10px 12px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', cursor: 'pointer', userSelect: 'none' }}>
-                          {label} {taskSort.key === key ? (taskSort.dir === 1 ? '▲' : '▼') : ''}
-                        </th>
-                      ))}
-                      <th style={{ padding: '10px 12px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Assigned</th>
-                      <th style={{ padding: '10px 12px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Tags</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedTasks.map(t => {
-                      const statusMeta = TASK_STATUS_META[t.completed ? 'completed' : t.status] || TASK_STATUS_META.none;
-                      const prioMeta = TASK_PRIORITY_META[t.priority || 'medium'];
-                      return (
-                        <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '9px 12px' }} onClick={e => e.stopPropagation()}>
-                            <Checkbox checked={selectedTaskIds.has(t.id)} onCheckedChange={() => toggleTaskSelected(t.id)} />
-                          </td>
-                          <td style={{ padding: '9px 12px', fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }} onClick={() => setDetailTaskId(t.id)}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                              {t.title}
-                              {!!t.blockedByOpenCount && (
-                                <span title={`Blocked by ${t.blockedByOpenCount} open task${t.blockedByOpenCount === 1 ? '' : 's'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9.5, fontWeight: 700, color: 'var(--gold)' }}>
-                                  <Icon name="link" size={10} />{t.blockedByOpenCount}
-                                </span>
-                              )}
-                            </span>
-                          </td>
-                          <td style={{ padding: '9px 12px' }}>
-                            <Select value={t.status === 'none' ? 'none' : t.status} onValueChange={v => moveTask(t.id, v as TaskStatus)}>
-                              <SelectTrigger className="h-7 text-xs" style={{ width: 150 }}><SelectValue>{statusMeta.label}</SelectValue></SelectTrigger>
-                              <SelectContent>
-                                {KANBAN_COLUMNS.map(c => <SelectItem key={c.status} value={c.status}>{c.title}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td style={{ padding: '9px 12px', color: t.due && t.due < new Date().toISOString().slice(0, 10) && !t.completed ? 'var(--red)' : 'var(--ink2)' }}>{t.due || '—'}</td>
-                          <td style={{ padding: '9px 12px' }}>
-                            <span style={{ fontSize: 10.5, fontWeight: 700, color: prioMeta.color, background: prioMeta.bg, padding: 'var(--badge-py-sm) var(--badge-px-sm)', borderRadius: 'var(--badge-radius)', textTransform: 'uppercase' }}>{prioMeta.label}</span>
-                          </td>
-                          <td style={{ padding: '9px 12px', color: 'var(--ink2)' }}>
-                            {t.assigneeName ? (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                <PersonAvatar userId={t.assigneeId} name={t.assigneeName} size={18} />
-                                {t.assigneeName}
-                              </span>
-                            ) : '—'}
-                          </td>
-                          <td style={{ padding: '9px 12px', color: 'var(--ink3)', fontSize: 12 }}>{t.tags.join(', ') || '—'}</td>
-                        </tr>
-                      );
-                    })}
-                    {sortedTasks.length === 0 && (
-                      <tr><td colSpan={7} style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--ink4)', fontSize: 13 }}>No tasks match.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-                </div>
-              </SectionCard>
-            ) : (
-              <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
-                {[...(milestones || []), null].map(ms => {
-                  const colId = ms?.id || '__none__';
-                  const colTasks = sortedTasks.filter(t => (t.milestoneId || '__none__') === colId && (!excludeCompletedMs || !(t.completed || t.status === 'completed')));
-                  if (ms === null && colTasks.length === 0) return null;
-                  const limit = msColumnLimits[colId] || 20;
-                  const loggedMinutes = colTasks.reduce((sum, t) => sum + (t.timeLoggedMinutes || 0), 0);
-                  return (
-                    <div
-                      key={colId}
-                      onDragOver={e => e.preventDefault()}
-                      onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/proj-task-id'); if (id) moveTaskMilestone(id, ms?.id || null); }}
-                      style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', flexDirection: 'column', minHeight: 200, width: 260, flexShrink: 0 }}
-                    >
-                      <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>{ms?.name || 'No Milestone'}</span>
-                          <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)' }}>{colTasks.length}</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: 8, marginTop: 3, fontSize: 10, color: 'var(--ink4)' }}>
-                          {ms?.due_date && <span>Due {ms.due_date}</span>}
-                          {loggedMinutes > 0 && <span>{formatHM(loggedMinutes)} logged</span>}
-                        </div>
-                      </div>
-                      <div style={{ flex: 1, padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {colTasks.slice(0, limit).map(t => (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {tasksInCol.map(t => (
                           <div
-                            key={t.id} draggable
-                            onDragStart={e => e.dataTransfer.setData('text/proj-task-id', t.id)}
+                            key={t.id}
                             onClick={() => setDetailTaskId(t.id)}
-                            style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, cursor: 'pointer' }}
+                            style={{
+                              background: 'var(--white)',
+                              border: '1px solid var(--border)',
+                              borderRadius: 8,
+                              padding: 12,
+                              cursor: 'pointer',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                            }}
                           >
-                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35, textDecoration: t.completed ? 'line-through' : 'none' }}>{t.title}</div>
-                            <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                              <Badge variant={TASK_STATUS_META[t.completed ? 'completed' : t.status]?.variant || 'gray'} style={{ fontSize: 9.5 }}>{TASK_STATUS_META[t.completed ? 'completed' : t.status]?.label}</Badge>
-                              {t.due && <span style={{ fontSize: 10, color: 'var(--ink3)' }}>Due {t.due}</span>}
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{t.title}</div>
+                            {t.due && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>Due: {t.due}</div>}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                              <Badge variant={TASK_STATUS_META[t.completed ? 'completed' : t.status]?.variant || 'gray'}>
+                                {t.priority || 'medium'}
+                              </Badge>
+                              {t.assigneeName && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{t.assigneeName}</span>}
                             </div>
                           </div>
                         ))}
-                        {colTasks.length === 0 && <div style={{ fontSize: 11.5, color: 'var(--ink4)', padding: '8px 4px' }}>No tasks</div>}
-                        {colTasks.length > limit && (
-                          <button type="button" onClick={() => setMsColumnLimits(prev => ({ ...prev, [colId]: limit + 20 }))}
-                            style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', padding: '4px 0' }}>
-                            Load more ({colTasks.length - limit} more)
-                          </button>
-                        )}
                       </div>
                     </div>
                   );
@@ -1276,436 +1400,246 @@ export const ProjectsApp: React.FC = () => {
           </>
         )}
 
+        {/* TAB 9: GANTT CHART */}
         {tab === 'gantt' && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <Select value={ganttMilestoneFilter} onValueChange={setGanttMilestoneFilter}>
-                  <SelectTrigger className="h-8 text-xs" style={{ width: 160 }}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All milestones</SelectItem>
-                    <SelectItem value="__none__">No milestone</SelectItem>
-                    {(milestones || []).map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <div style={{ display: 'flex', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: 2 }}>
-                  {(['weeks', 'months'] as const).map(z => (
-                    <button key={z} type="button" onClick={() => setGanttZoom(z)}
-                      style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, textTransform: 'capitalize', background: ganttZoom === z ? 'var(--white)' : 'transparent', color: ganttZoom === z ? 'var(--teal)' : 'var(--ink3)', boxShadow: ganttZoom === z ? 'var(--elev-sm)' : 'none' }}>
-                      {z}
-                    </button>
+          <SectionCard title="Interactive Project Schedule & Milestone Gantt" collapsible={false}>
+            <div style={{ overflowX: 'auto', padding: '12px 0' }}>
+              <div style={{ minWidth: ganttTotalDays * ganttDayWidth, position: 'relative' }}>
+                {/* Header months */}
+                <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', height: 28, position: 'relative' }}>
+                  {ganttMonthHeaders.map((m, idx) => (
+                    <div key={idx} style={{ position: 'absolute', left: m.left, width: m.width, fontSize: 11, fontWeight: 700, color: 'var(--ink3)', paddingLeft: 4 }}>
+                      {m.label}
+                    </div>
                   ))}
                 </div>
-              </div>
-              <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink3)', alignItems: 'center' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--gold)', display: 'inline-block' }} /> Dependency</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 2, height: 10, background: 'var(--red)', display: 'inline-block' }} /> Today</span>
-              </div>
-            </div>
 
-            {ganttRows.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>No dated tasks to chart yet — add a due date to see it here.</div>
-            ) : (() => {
-              const bodyHeight = ganttRows.length * GANTT_ROW_H;
-              const totalWidth = ganttTotalDays * ganttDayWidth;
-              const labelWidth = 220;
-              return (
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'auto' }}>
-                  <div style={{ display: 'flex' }}>
-                    <div style={{ width: labelWidth, flexShrink: 0, position: 'sticky', left: 0, zIndex: 2, background: 'var(--white)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }} />
-                    <div style={{ position: 'relative', width: totalWidth, height: 28, borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-                      {ganttMonthHeaders.map(h => (
-                        <div key={h.label + h.left} style={{ position: 'absolute', left: h.left, width: h.width, top: 0, height: 28, display: 'flex', alignItems: 'center', paddingLeft: 6, fontSize: 11, fontWeight: 700, color: 'var(--ink3)', borderLeft: '1px solid var(--border)', boxSizing: 'border-box' }}>
-                          {h.label}
+                {/* Rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+                  {ganttRows.map((r, idx) => {
+                    if (r.type === 'milestone') {
+                      return (
+                        <div key={`ms-${idx}`} style={{ height: 24, fontSize: 11.5, fontWeight: 800, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 4 }}>
+                          {r.ms ? `Milestone: ${r.ms.name}` : 'Unassigned Tasks'}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex' }}>
-                    <div style={{ width: labelWidth, flexShrink: 0, position: 'sticky', left: 0, zIndex: 2, background: 'var(--white)', borderRight: '1px solid var(--border)' }}>
-                      {ganttRows.map((row, i) => row.type === 'milestone' ? (
-                        <div key={`ms-${row.ms?.id || 'none'}-${i}`} style={{ height: GANTT_ROW_H, display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-                          <Icon name="flag" size={11} style={{ marginRight: 5, flexShrink: 0 }} /> {row.ms?.name || 'No Milestone'}
-                        </div>
-                      ) : (
-                        <div key={row.task.id} onClick={() => setDetailTaskId(row.task.id)}
-                          style={{ height: GANTT_ROW_H, display: 'flex', alignItems: 'center', padding: '0 10px 0 22px', fontSize: 12.5, color: 'var(--ink)', borderBottom: '1px solid var(--border)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {row.task.title}
-                        </div>
-                      ))}
-                    </div>
-
-                    <div style={{ position: 'relative', width: totalWidth, flexShrink: 0 }}>
-                      {ganttWeekTicks.map(x => (
-                        <div key={x} style={{ position: 'absolute', left: x, top: 0, height: bodyHeight, width: 1, background: 'var(--border)' }} />
-                      ))}
-                      {ganttTodayOffset >= 0 && ganttTodayOffset <= totalWidth && (
-                        <div style={{ position: 'absolute', left: ganttTodayOffset, top: 0, height: bodyHeight, width: 2, background: 'var(--red)', zIndex: 1 }} />
-                      )}
-                      {ganttRows.map((row, i) => {
-                        if (row.type === 'milestone') {
-                          return <div key={`msrow-${i}`} style={{ height: GANTT_ROW_H, background: 'var(--bg)', borderBottom: '1px solid var(--border)' }} />;
-                        }
-                        const geo = ganttBarGeometry(row.task);
-                        return (
-                          <div key={row.task.id} style={{ height: GANTT_ROW_H, position: 'relative', borderBottom: '1px solid var(--border)' }}>
-                            {geo && (
-                              <div
-                                onClick={() => setDetailTaskId(row.task.id)}
-                                title={`${row.task.title}${row.task.start ? ` — ${row.task.start} → ` : ' — due '}${row.task.due || ''}`}
-                                style={{
-                                  position: 'absolute', left: geo.left, width: geo.width, top: 7, height: GANTT_ROW_H - 14, borderRadius: 4, cursor: 'pointer',
-                                  background: STATUS_BAR_COLOR[row.task.completed ? 'completed' : row.task.status],
-                                  opacity: geo.hasStart ? 1 : 0.55,
-                                  border: geo.hasStart ? 'none' : '1px dashed var(--ink3)',
-                                }}
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
-                      <svg style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} width={totalWidth} height={bodyHeight}>
-                        {ganttConnectors.map((c, i) => {
-                          const midX = (c.x1 + c.x2) / 2;
-                          return <path key={i} d={`M ${c.x1} ${c.y1} C ${midX} ${c.y1}, ${midX} ${c.y2}, ${c.x2} ${c.y2}`} stroke="var(--gold)" strokeWidth={1.5} fill="none" />;
-                        })}
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-          </>
-        )}
-
-        {tab === 'timesheets' && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <DatePicker date={timesheetFrom ? parseDateOnly(timesheetFrom) : undefined} onChange={d => setTimesheetFrom(d ? toDateOnlyString(d) : '')} placeholder="From" />
-                <DatePicker date={timesheetTo ? parseDateOnly(timesheetTo) : undefined} onChange={d => setTimesheetTo(d ? toDateOnlyString(d) : '')} placeholder="To" />
-                {(timesheetFrom || timesheetTo) && (
-                  <Button size="sm" variant="outline" onClick={() => { setTimesheetFrom(''); setTimesheetTo(''); }}>Clear</Button>
-                )}
-              </div>
-              <Button size="sm" variant="outline" onClick={() => {
-                const rows = [
-                  ['Date', 'Task', 'Person', 'Duration (h)', 'Billable', 'Amount'].join(','),
-                  ...(timesheets || []).map(r => [
-                    `"${r.started_at.slice(0, 10)}"`, `"${r.task_title.replace(/"/g, '""')}"`, `"${r.user_name}"`,
-                    (+(((r.duration_minutes || 0) / 60).toFixed(2))), r.is_billable ? 'Yes' : 'No', r.amount,
-                  ].join(',')),
-                ].join('\n');
-                const blob = new Blob([rows], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url; link.setAttribute('download', `${selected.name}_timesheets.csv`);
-                document.body.appendChild(link); link.click(); document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-              }} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Icon name="download" size={13} /> Export
-              </Button>
-            </div>
-
-            {timesheetTotals && (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 14 }}>
-                  <div style={{ fontSize: 10.5, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Total Logged</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{formatHM(timesheetTotals.totalMinutes)}</div>
-                </div>
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 14 }}>
-                  <div style={{ fontSize: 10.5, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Billable Hours</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--blue)', marginTop: 4 }}>{formatHM(timesheetTotals.billableMinutes)}</div>
-                </div>
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 14 }}>
-                  <div style={{ fontSize: 10.5, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Billable Amount</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--green)', marginTop: 4 }}>{selected.currency} {timesheetTotals.billableAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                </div>
-              </div>
-            )}
-
-            {timesheets === null ? (
-              <SectionLoading />
-            ) : timesheets.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>No logged time yet.</div>
-            ) : (
-              <SectionCard collapsible={false} padded={false}>
-                <div style={{ overflow: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
-                      {['Date', 'Task', 'Person', 'Duration', 'Billable', 'Amount'].map(h => (
-                        <th key={h} style={{ padding: '10px 12px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {timesheets.map(r => (
-                      <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '9px 12px', color: 'var(--ink2)' }}>{r.started_at.slice(0, 10)}</td>
-                        <td style={{ padding: '9px 12px', fontWeight: 600, color: 'var(--ink)' }}>{r.task_title}</td>
-                        <td style={{ padding: '9px 12px', color: 'var(--ink2)' }}>{r.user_name}</td>
-                        <td style={{ padding: '9px 12px', color: 'var(--ink2)', fontVariantNumeric: 'tabular-nums' }}>{formatHM(r.duration_minutes || 0)}</td>
-                        <td style={{ padding: '9px 12px' }}>{r.is_billable ? <Badge variant="brand">Billable</Badge> : <Badge variant="gray">Non-billable</Badge>}</td>
-                        <td style={{ padding: '9px 12px', color: r.amount ? 'var(--green)' : 'var(--ink3)', fontWeight: r.amount ? 700 : 400 }}>{r.amount ? `${selected.currency} ${r.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </SectionCard>
-            )}
-          </>
-        )}
-
-        {tab === 'files' && (() => {
-          const visibleFiles = (projectFiles || []).filter(f => !viewAsCustomer || (selected.customer_id && f.shared.some(s => s.principal_type === 'customer' && s.principal_id === selected.customer_id)));
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {!viewAsCustomer && <FileUploader onUpload={uploadProjectFiles} multiple />}
-              {uploadingFiles && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Uploading…</div>}
-              {projectFiles === null ? (
-                <SectionLoading />
-              ) : visibleFiles.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>{viewAsCustomer ? 'No files have been shared with the customer yet.' : 'No files yet.'}</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {visibleFiles.map(f => {
-                    const isVisible = !!selected.customer_id && f.shared.some(s => s.principal_type === 'customer' && s.principal_id === selected.customer_id);
+                      );
+                    }
+                    const geo = ganttBarGeometry(r.task);
                     return (
-                      <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8 }}>
-                        <Icon name="fileText" size={14} color="var(--ink3)" />
-                        <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                        <span style={{ fontSize: 11, color: 'var(--ink4)' }}>{f.size ? `${(f.size / 1024).toFixed(0)} KB` : ''}</span>
-                        {!viewAsCustomer && selected.customer_id && (
-                          <label title="Share this file with the project's customer via the real Drive sharing mechanism" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: 'var(--ink3)', cursor: 'pointer' }}>
-                            <Checkbox checked={isVisible} onCheckedChange={c => toggleFileVisibleToCustomer(f, c === true)} />
-                            Visible to customer
-                          </label>
+                      <div key={r.task.id} style={{ height: GANTT_ROW_H, position: 'relative', borderBottom: '1px dashed var(--border)' }}>
+                        {geo && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              left: geo.left,
+                              width: geo.width,
+                              height: 22,
+                              top: 6,
+                              borderRadius: 4,
+                              background: STATUS_BAR_COLOR[r.task.completed ? 'completed' : r.task.status],
+                              color: '#ffffff',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              padding: '2px 6px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {r.task.title}
+                          </div>
                         )}
-                        <button type="button" onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name)} title="Download"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex', padding: 2 }}>
-                          <Icon name="download" size={14} />
-                        </button>
                       </div>
                     );
                   })}
                 </div>
-              )}
+              </div>
             </div>
-          );
-        })()}
-
-        {tab === 'activity' && (
-          <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {projectActivity === null ? (
-              <SectionLoading />
-            ) : projectActivity.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>No activity yet.</div>
-            ) : (
-              projectActivity.map(a => (
-                <div key={a.id} style={{ display: 'flex', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {a.actor_name.slice(0, 1).toUpperCase()}
-                  </span>
-                  <div>
-                    <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.5 }}>
-                      <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{a.actor_name}</span> {describeProjectActivity(a)}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--ink4)', marginTop: 1 }}>{new Date(a.created_at).toLocaleString()}</div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          </SectionCard>
         )}
 
-        {tab === 'discussions' && (
-          <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {discussions === null ? (
-              <SectionLoading />
-            ) : discussions.length === 0 ? (
-              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No discussion yet — start the conversation below.</div>
-            ) : (
-              discussions.map(d => (
-                <div key={d.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <PersonAvatar userId={d.author_id} name={d.author_name} size={26} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{d.author_name}</span>
-                      <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{new Date(d.created_at).toLocaleString()}</span>
-                    </div>
-                    <div style={{ fontSize: 13, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{d.content}</div>
-                  </div>
-                  {d.author_id === user?.id && (
-                    <button type="button" onClick={() => removeDiscussion(d.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', padding: 2, flexShrink: 0 }}>
-                      <Icon name="x" size={11} />
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
-            <MentionInput
-              value={discussionDraft}
-              onChange={(v, m) => { setDiscussionDraft(v); setDiscussionMentions(m); }}
-              users={discussionColleagues}
-              placeholder="Post to the team… type @ to mention someone"
-              disabled={postingDiscussion}
-              onSubmit={postDiscussion}
-            />
-          </div>
-        )}
-
-        {tab === 'tickets' && (
-          <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {selected.customer_id ? (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                <Select value={linkTicketId} onValueChange={setLinkTicketId}>
-                  <SelectTrigger className="h-8 text-xs" style={{ width: 260 }}><SelectValue placeholder="Link an existing ticket…" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Select a ticket…</SelectItem>
-                    {linkableTickets.filter(t => t.project_id !== selectedId).map(t => <SelectItem key={t.id} value={t.id}>{t.ref} — {t.subject}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button size="sm" variant="outline" onClick={linkTicket} disabled={linkTicketId === '__none__'}>Link</Button>
-                <Button size="sm" onClick={() => setCreatingTicket(true)} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Icon name="plus" size={13} /> New ticket
-                </Button>
-              </div>
-            ) : (
-              <div style={{ fontSize: 12.5, color: 'var(--ink4)' }}>Set a customer on this project to link or create tickets.</div>
-            )}
-            {creatingTicket && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <input
-                  autoFocus value={ticketSubject} onChange={e => setTicketSubject(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') createProjectTicket(); if (e.key === 'Escape') setCreatingTicket(false); }}
-                  placeholder="Ticket subject…"
-                  style={{ flex: 1, minWidth: 220, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)' }}
-                />
-                <Button size="sm" onClick={createProjectTicket} disabled={!ticketSubject.trim()}>Create</Button>
-                <Button size="sm" variant="outline" onClick={() => setCreatingTicket(false)}>Cancel</Button>
-              </div>
-            )}
-            {projectTickets === null ? (
-              <SectionLoading />
-            ) : projectTickets.length === 0 ? (
-              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No tickets linked to this project yet.</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {projectTickets.map(t => {
-                  const meta = TICKET_STATUS_META[t.status] || TICKET_STATUS_META.OPEN;
-                  return (
-                    <Link key={t.id} to="/support/tickets" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none' }}>
-                      <span style={{ fontSize: 11, color: 'var(--ink4)', width: 70, flexShrink: 0 }}>{t.ref_number}</span>
-                      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{t.subject}</span>
-                      <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{t.category}</span>
-                      <Badge variant={meta.variant}>{meta.label}</Badge>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {tab === 'sales' && (
-          <div style={{ maxWidth: 640 }}>
-            {projectInvoices === null ? (
-              <SectionLoading />
-            ) : projectInvoices.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>No invoices yet — use "Invoice Project" on the Overview tab.</div>
-            ) : (
-              <SectionCard collapsible={false} padded={false}>
-                <div style={{ overflow: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
-                      {['Invoice #', 'Date', 'Due', 'Total', 'Status'].map(h => (
-                        <th key={h} style={{ padding: '10px 12px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
-                      ))}
+        {/* TAB 10: TIMESHEETS */}
+        {tab === 'timesheets' && (
+          <SectionCard title="Billable & Non-Billable Man-Hours Log" collapsible={false}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--border)', background: 'var(--bg-subtle)' }}>
+                    <th style={{ textAlign: 'left', padding: '10px 14px' }}>Date</th>
+                    <th style={{ textAlign: 'left', padding: '10px 14px' }}>Team Member</th>
+                    <th style={{ textAlign: 'left', padding: '10px 14px' }}>Task / Work Item</th>
+                    <th style={{ textAlign: 'right', padding: '10px 14px' }}>Duration (Hrs)</th>
+                    <th style={{ textAlign: 'right', padding: '10px 14px' }}>Billable Rate</th>
+                    <th style={{ textAlign: 'right', padding: '10px 14px' }}>Total Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(timesheets || []).map((t) => (
+                    <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '10px 14px' }}>{t.started_at.slice(0, 10)}</td>
+                      <td style={{ padding: '10px 14px', fontWeight: 600 }}>{t.user_name}</td>
+                      <td style={{ padding: '10px 14px' }}>{t.task_title}</td>
+                      <td style={{ textAlign: 'right', padding: '10px 14px' }}>{((t.duration_minutes || 0) / 60).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px 14px' }}>{t.hourly_rate ? `$${t.hourly_rate}` : '—'}</td>
+                      <td style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 700 }}>${Number(t.amount || 0).toFixed(2)}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {projectInvoices.map(inv => {
-                      const meta = INVOICE_STATUS_META[inv.status] || INVOICE_STATUS_META.Draft;
-                      return (
-                        <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '9px 12px' }}>
-                            <Link to="/finance/invoices" style={{ fontWeight: 600, color: 'var(--ink)', textDecoration: 'none' }}>{inv.invoice_number}</Link>
-                          </td>
-                          <td style={{ padding: '9px 12px', color: 'var(--ink2)' }}>{inv.bill_date || '—'}</td>
-                          <td style={{ padding: '9px 12px', color: 'var(--ink2)' }}>{inv.due_date || '—'}</td>
-                          <td style={{ padding: '9px 12px', color: 'var(--ink)', fontWeight: 600 }}>{inv.currency} {inv.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                          <td style={{ padding: '9px 12px' }}><Badge variant={meta.variant}>{meta.label}</Badge></td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                </div>
-              </SectionCard>
-            )}
-          </div>
-        )}
-
-        {tab === 'milestones' && (
-          <MilestonesTab
-            milestones={milestones}
-            onAdd={addMilestone}
-            onUpdate={updateMilestone}
-            onDelete={deleteMilestone}
-          />
-        )}
-
-        {tab === 'members' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 640 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <EntityPicker value={null} onChange={v => v && addMember(v)} search={searchColleagues} placeholder="Add a colleague to this project…" />
-              {members === null ? (
-                <SectionLoading />
-              ) : members.length === 0 ? (
-                <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No members yet.</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {members.map(m => (
-                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8 }}>
-                      <span style={{ flex: 1, fontSize: 13.5, color: 'var(--ink)' }}>{m.name}</span>
-                      <span style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'capitalize' }}>{m.role}</span>
-                      {m.role !== 'owner' && (
-                        <button type="button" onClick={() => removeMember(m.user_id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex', padding: 2 }}>
-                          <Icon name="x" size={13} />
-                        </button>
-                      )}
-                    </div>
                   ))}
-                </div>
-              )}
+                </tbody>
+              </table>
             </div>
+          </SectionCard>
+        )}
 
-            {memberWorkload.length > 0 && (
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Workload</div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink4)', marginBottom: 12 }}>Open tasks and logged hours per member on this project.</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {memberWorkload.map(m => (
-                    <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ width: 120, flexShrink: 0, fontSize: 12.5, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                      <span style={{ width: 70, flexShrink: 0, fontSize: 11, color: 'var(--ink3)' }}>{m.openTaskCount} open</span>
-                      <div style={{ flex: 1, height: 10, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.round((m.loggedMinutes / maxWorkloadMinutes) * 100)}%`, height: '100%', background: 'var(--teal)', borderRadius: 'var(--r-sm)', transition: 'width 0.2s' }} />
-                      </div>
-                      <span style={{ width: 60, flexShrink: 0, fontSize: 11.5, fontWeight: 600, color: 'var(--ink)', textAlign: 'right' }}>{formatHM(m.loggedMinutes)}</span>
-                    </div>
-                  ))}
+        {/* TAB 11: FILES */}
+        {tab === 'files' && (
+          <SectionCard title="Project Documents & Engineering Files" collapsible={false}>
+            <div style={{ marginBottom: 16 }}>
+              <FileUploader onUpload={uploadProjectFiles} uploadingFiles={uploadingFiles ? [{ id: '1', name: 'Uploading files...', size: 0, progress: 50, status: 'uploading' }] : []} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+              {(projectFiles || []).map((f) => (
+                <div key={f.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Icon name="fileText" size={20} style={{ color: 'var(--teal)' }} />
+                    <span style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {f.name}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--ink4)', marginTop: 4 }}>
+                    Uploaded: {new Date(f.created_at).toLocaleDateString()}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        {/* TAB 12: DISCUSSIONS */}
+        {tab === 'discussions' && (
+          <SectionCard title="Collaborative Team & Stakeholder Stream" collapsible={false}>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+              <input
+                className="w-full px-3 py-2 border rounded-md text-sm"
+                placeholder="Post an update or mention @colleague..."
+                value={discussionDraft}
+                onChange={(e) => setDiscussionDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') postDiscussion(); }}
+              />
+              <Button onClick={postDiscussion} disabled={postingDiscussion || !discussionDraft.trim()}>Post</Button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {(discussions || []).map((d) => (
+                <div key={d.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <strong style={{ fontSize: 13 }}>{d.author_name}</strong>
+                    <span style={{ fontSize: 11, color: 'var(--ink4)' }}>{new Date(d.created_at).toLocaleString()}</span>
+                  </div>
+                  <p style={{ fontSize: 13.5, color: 'var(--ink)', margin: 0 }}>{d.content}</p>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        {/* TAB 13: TICKETS */}
+        {tab === 'tickets' && (
+          <SectionCard title="Linked Support & Field Tickets" collapsible={false}>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+              <input
+                className="w-full px-3 py-2 border rounded-md text-sm"
+                placeholder="Create new field support ticket..."
+                value={ticketSubject}
+                onChange={(e) => setTicketSubject(e.target.value)}
+              />
+              <Button onClick={createProjectTicket} disabled={!ticketSubject.trim()}>Create Ticket</Button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {(projectTickets || []).map((t) => (
+                <div key={t.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--teal)', marginRight: 8 }}>{t.ref_number}</span>
+                    <span style={{ fontWeight: 600, fontSize: 13.5 }}>{t.subject}</span>
+                  </div>
+                  <Badge variant={TICKET_STATUS_META[t.status]?.variant || 'gray'}>{t.status}</Badge>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        {/* TAB 14: SALES & INVOICES */}
+        {tab === 'sales' && (
+          <SectionCard title="Customer Invoices & Billing Milestones" collapsible={false}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--border)', background: 'var(--bg-subtle)' }}>
+                    <th style={{ textAlign: 'left', padding: '10px 14px' }}>Invoice #</th>
+                    <th style={{ textAlign: 'left', padding: '10px 14px' }}>Status</th>
+                    <th style={{ textAlign: 'left', padding: '10px 14px' }}>Due Date</th>
+                    <th style={{ textAlign: 'right', padding: '10px 14px' }}>Total Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(projectInvoices || []).map((inv) => (
+                    <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '10px 14px', fontWeight: 700 }}>{inv.invoice_number}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <Badge variant={INVOICE_STATUS_META[inv.status]?.variant || 'gray'}>{inv.status}</Badge>
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>{inv.due_date || '—'}</td>
+                      <td style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 700 }}>
+                        {inv.currency} {Number(inv.total || 0).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </SectionCard>
+        )}
+
+        {/* TAB 15: AUDIT ACTIVITY */}
+        {tab === 'activity' && (
+          <SectionCard title="Project Audit Trail & State Transitions" collapsible={false}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {(projectActivity || []).map((a) => (
+                <div key={a.id} style={{ fontSize: 13, color: 'var(--ink2)', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
+                  <strong style={{ color: 'var(--ink)' }}>{a.actor_name}</strong> {describeProjectActivity(a)}
+                  <span style={{ fontSize: 11, color: 'var(--ink4)', marginLeft: 8 }}>{new Date(a.created_at).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        {/* TAB 16: TEAM MEMBERS */}
+        {tab === 'members' && (
+          <SectionCard title="Project Team & Resource Allocation" collapsible={false}>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, maxWidth: 360 }}>
+              <EntityPicker value={null} onChange={v => v && addMember(v)} search={searchColleagues} placeholder="+ Add team member..." />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+              {(members || []).map((m) => (
+                <div key={m.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <PersonAvatar name={m.name} size={36} />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 13.5 }}>{m.name}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{m.email}</div>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => removeMember(m.user_id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)' }}>
+                    <Icon name="x" size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
         )}
       </div>
 
+      {/* Task Drawer */}
       {detailTask && (
         <TaskDetailDrawer
           task={detailTask}
@@ -1719,84 +1653,14 @@ export const ProjectsApp: React.FC = () => {
   );
 };
 
-/* ── Milestones tab ── */
-function MilestonesTab({ milestones, onAdd, onUpdate, onDelete }: {
-  milestones: MilestoneRow[] | null;
-  onAdd: (name: string) => void;
-  onUpdate: (id: string, patch: { status?: string; dueDate?: string | null }) => void;
-  onDelete: (id: string) => void;
-}) {
-  const [newName, setNewName] = useState('');
-  return (
-    <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input
-          value={newName} onChange={e => setNewName(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && newName.trim()) { onAdd(newName.trim()); setNewName(''); } }}
-          placeholder="New milestone name…"
-          style={{ flex: 1, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, background: 'var(--white)', color: 'var(--ink)' }}
-        />
-        <Button size="sm" onClick={() => { if (newName.trim()) { onAdd(newName.trim()); setNewName(''); } }} disabled={!newName.trim()}>Add</Button>
-      </div>
-      {milestones === null ? (
-        <SectionLoading />
-      ) : milestones.length === 0 ? (
-        <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No milestones yet.</div>
-      ) : (
-        milestones.map(m => {
-          const meta = MILESTONE_STATUS_META[m.status] || MILESTONE_STATUS_META.upcoming;
-          return (
-            <div key={m.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{m.name}</span>
-                <Select value={m.status} onValueChange={v => onUpdate(m.id, { status: v })}>
-                  <SelectTrigger className="h-7 text-xs" style={{ width: 120 }}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(MILESTONE_STATUS_META).map(([k, mm]) => <SelectItem key={k} value={k}>{mm.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Badge variant={meta.variant}>{meta.label}</Badge>
-                <button type="button" onClick={() => onDelete(m.id)} title="Delete milestone" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex' }}>
-                  <Icon name="trash" size={13} />
-                </button>
-              </div>
-              <ProgressBar done={m.task_done_count} total={m.task_count} color="var(--teal)" />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Due</span>
-                <DatePicker
-                  date={m.due_date ? parseDateOnly(m.due_date) : undefined}
-                  onChange={d => onUpdate(m.id, { dueDate: d ? toDateOnlyString(d) : null })}
-                  placeholder="No due date"
-                  triggerClassName="h-7 text-xs"
-                />
-              </div>
-            </div>
-          );
-        })
-      )}
-    </div>
-  );
-}
-
-interface Collaborator { id: string; user_id: string; kind: 'assignee' | 'follower'; name: string; email: string }
+// Task Detail Drawer
+interface Collaborator { id: string; user_id: string; name: string; email: string; kind: string }
 interface ActivityEntry { id: string; action: string; detail: Record<string, any>; created_at: string; actor_name: string }
 interface DependencyRow { id: string; task_id: string; title: string; status: string; completed: boolean; due: string | null }
 
-function describeActivity(a: ActivityEntry): string {
-  switch (a.action) {
-    case 'created': return 'created this task';
-    case 'status_changed': return `changed status: ${a.detail.from} → ${a.detail.to}`;
-    case 'priority_changed': return `changed priority: ${a.detail.from} → ${a.detail.to}`;
-    case 'assigned': return a.detail.assigneeId ? 'assigned this task' : 'unassigned this task';
-    case 'completed': return 'marked this task complete';
-    case 'commented': return `commented: "${a.detail.preview}"`;
-    case 'moved_project': return 'moved this task to a project';
-    default: return a.action;
-  }
-}
-
-/* ── Compact task detail drawer for Projects mode ── */
-function TaskDetailDrawer({ task, milestones, otherTasks, onClose, onDelete }: {
+function TaskDetailDrawer({
+  task, milestones, otherTasks, onClose, onDelete,
+}: {
   task: Todo; milestones: MilestoneRow[]; otherTasks: Todo[]; onClose: () => void; onDelete: () => void;
 }) {
   const [collaborators, setCollaborators] = useState<Collaborator[] | null>(null);
@@ -1837,221 +1701,81 @@ function TaskDetailDrawer({ task, milestones, otherTasks, onClose, onDelete }: {
     <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
       <SheetContent className="w-95 sm:max-w-95 flex flex-col p-0 gap-0">
         <div style={{ display: 'flex', flexDirection: 'column', padding: 20, gap: 14, overflowY: 'auto', height: '100%' }}>
-        <SheetTitle style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Task</SheetTitle>
-        <textarea
-          defaultValue={task.title}
-          onBlur={e => { if (e.target.value.trim() && e.target.value !== task.title) updateTodo(task.id, { title: e.target.value.trim() }); }}
-          rows={2}
-          style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', border: 'none', resize: 'none', outline: 'none', fontFamily: 'var(--font)', padding: 0 }}
-        />
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Status</div>
-          <Select value={task.status} onValueChange={v => {
-            if (v === 'completed' && (task.blockedByOpenCount || 0) > 0) {
-              showAlert(`Can't complete this task — it's still blocked by ${task.blockedByOpenCount} open dependenc${task.blockedByOpenCount === 1 ? 'y' : 'ies'}.`, { variant: 'error' });
-              return;
-            }
-            updateTodo(task.id, { status: v as TaskStatus, completed: v === 'completed' });
-          }}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {KANBAN_COLUMNS.map(c => <SelectItem key={c.status} value={c.status}>{c.title}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Priority</div>
-          <Select value={task.priority || 'medium'} onValueChange={v => updateTodo(task.id, { priority: v as TaskPriority })}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="urgent">Urgent</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer', marginBottom: task.isBillable ? 6 : 0 }}>
-            <Checkbox checked={!!task.isBillable} onCheckedChange={c => updateTodo(task.id, { isBillable: c === true })} />
-            Billable
-          </label>
-          {task.isBillable && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>$</span>
-              <input
-                type="number" min={0} step={0.5} defaultValue={task.hourlyRate ?? ''}
-                onBlur={e => updateTodo(task.id, { hourlyRate: e.target.value ? Number(e.target.value) : null })}
-                placeholder="0.00"
-                style={{ width: 90, padding: 'var(--ds-input-py, 7px) 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)' }}
-              />
-              <span style={{ fontSize: 12, color: 'var(--ink3)' }}>/ hour</span>
-            </div>
-          )}
-        </div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Milestone</div>
-          <Select value={task.milestoneId || '__none__'} onValueChange={v => updateTodo(task.id, { milestoneId: v === '__none__' ? null : v })}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">No milestone</SelectItem>
-              {milestones.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Start date</div>
-            <DatePicker
-              date={task.start ? parseDateOnly(task.start) : undefined}
-              onChange={d => updateTodo(task.id, { start: d ? toDateOnlyString(d) : undefined })}
-              placeholder="No start date"
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Due date</div>
-            <DatePicker
-              date={task.due ? parseDateOnly(task.due) : undefined}
-              onChange={d => updateTodo(task.id, { due: d ? toDateOnlyString(d) : undefined })}
-              placeholder="No due date"
-            />
-          </div>
-        </div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Notes</div>
+          <SheetTitle style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Work Package / Task</SheetTitle>
           <textarea
-            defaultValue={task.notes || ''}
-            onBlur={e => updateTodo(task.id, { notes: e.target.value })}
-            rows={4}
-            placeholder="Add notes…"
-            style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box' }}
+            defaultValue={task.title}
+            onBlur={e => { if (e.target.value.trim() && e.target.value !== task.title) updateTodo(task.id, { title: e.target.value.trim() }); }}
+            rows={2}
+            style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', border: 'none', resize: 'none', outline: 'none', fontFamily: 'var(--font)', padding: 0 }}
           />
-        </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer' }}>
-          <Checkbox checked={!!task.isPrivate} onCheckedChange={c => updateTodo(task.id, { isPrivate: c === true })} />
-          Private task (hidden from other project members)
-        </label>
-
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer', marginBottom: task.recurrenceRule ? 8 : 0 }}>
-            <Checkbox
-              checked={!!task.recurrenceRule}
-              onCheckedChange={c => updateTodo(task.id, { recurrenceRule: c === true ? { freq: 'weekly', interval: 1 } : null })}
-            />
-            Repeats
-          </label>
-          {task.recurrenceRule && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink2)' }}>
-              Every
-              <input
-                type="number" min={1} max={365} value={task.recurrenceRule.interval}
-                onChange={e => updateTodo(task.id, { recurrenceRule: { ...task.recurrenceRule!, interval: Math.max(1, Number(e.target.value) || 1) } })}
-                style={{ width: 50, padding: 'var(--ds-btn-py-xs) 6px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5 }}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Status</div>
+            <Select value={task.status} onValueChange={v => {
+              if (v === 'completed' && (task.blockedByOpenCount || 0) > 0) {
+                showAlert(`Can't complete this task — it's still blocked by ${task.blockedByOpenCount} open dependencies.`, { variant: 'error' });
+                return;
+              }
+              updateTodo(task.id, { status: v as TaskStatus, completed: v === 'completed' });
+            }}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {KANBAN_COLUMNS.map(c => <SelectItem key={c.status} value={c.status}>{c.title}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Priority</div>
+            <Select value={task.priority || 'medium'} onValueChange={v => updateTodo(task.id, { priority: v as TaskPriority })}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Milestone</div>
+            <Select value={task.milestoneId || '__none__'} onValueChange={v => updateTodo(task.id, { milestoneId: v === '__none__' ? null : v })}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">No milestone</SelectItem>
+                {milestones.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Start date</div>
+              <DatePicker
+                date={task.start ? parseDateOnly(task.start) : undefined}
+                onChange={d => updateTodo(task.id, { start: d ? toDateOnlyString(d) : undefined })}
+                placeholder="No start date"
               />
-              <Select value={task.recurrenceRule.freq} onValueChange={v => updateTodo(task.id, { recurrenceRule: { ...task.recurrenceRule!, freq: v as 'daily' | 'weekly' | 'monthly' } })}>
-                <SelectTrigger className="h-7 text-xs" style={{ width: 100 }}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="daily">day(s)</SelectItem>
-                  <SelectItem value="weekly">week(s)</SelectItem>
-                  <SelectItem value="monthly">month(s)</SelectItem>
-                </SelectContent>
-              </Select>
-              {task.recurrenceNextDue && <span style={{ color: 'var(--ink4)' }}>· next {task.recurrenceNextDue}</span>}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6 }}>Collaborators</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
-            {(collaborators || []).map(c => (
-              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
-                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--ink)' }}>{c.name}</span>
-                <Badge variant={c.kind === 'assignee' ? 'brand' : 'gray'} style={{ fontSize: 10 }}>{c.kind}</Badge>
-                <button type="button" onClick={() => removeCollaborator(c.id)} title="Remove"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex', padding: 2 }}>
-                  <Icon name="x" size={11} />
-                </button>
-              </div>
-            ))}
-            {collaborators !== null && collaborators.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink4)' }}>No collaborators yet.</div>}
-          </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <div style={{ flex: 1 }}>
-              <EntityPicker value={null} onChange={v => v && addCollaborator(v, 'assignee')} search={searchColleagues} placeholder="+ Assignee…" />
             </div>
             <div style={{ flex: 1 }}>
-              <EntityPicker value={null} onChange={v => v && addCollaborator(v, 'follower')} search={searchColleagues} placeholder="+ Follower…" />
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Due date</div>
+              <DatePicker
+                date={task.due ? parseDateOnly(task.due) : undefined}
+                onChange={d => updateTodo(task.id, { due: d ? toDateOnlyString(d) : undefined })}
+                placeholder="No due date"
+              />
             </div>
           </div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6 }}>
-            Blocked by <span style={{ fontWeight: 400, color: 'var(--ink4)' }}>— visualization only, does not block completion</span>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Notes</div>
+            <textarea
+              defaultValue={task.notes || ''}
+              onBlur={e => updateTodo(task.id, { notes: e.target.value })}
+              rows={4}
+              placeholder="Add notes…"
+              style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box' }}
+            />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
-            {(deps?.blockedBy || []).map(d => (
-              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
-                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--ink)', textDecoration: d.completed ? 'line-through' : 'none' }}>{d.title}</span>
-                <Badge variant={TASK_STATUS_META[d.completed ? 'completed' : (d.status as TaskStatus)]?.variant || 'gray'} style={{ fontSize: 10 }}>
-                  {TASK_STATUS_META[d.completed ? 'completed' : (d.status as TaskStatus)]?.label || d.status}
-                </Badge>
-                <button type="button" onClick={() => removeDependency(d.id)} title="Remove"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex', padding: 2 }}>
-                  <Icon name="x" size={11} />
-                </button>
-              </div>
-            ))}
-            {deps !== null && deps.blockedBy.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink4)' }}>Not blocked by anything.</div>}
-          </div>
-          {otherTasks.length > 0 && (
-            <div style={{ display: 'flex', gap: 6 }}>
-              <Select value={addingDepId} onValueChange={setAddingDepId}>
-                <SelectTrigger className="h-8 text-xs" style={{ flex: 1 }}><SelectValue placeholder="+ Depends on…" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Select a task…</SelectItem>
-                  {otherTasks.filter(t => !(deps?.blockedBy || []).some(d => d.task_id === t.id)).map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button size="sm" variant="outline" onClick={addDependency} disabled={addingDepId === '__none__'}>Add</Button>
-            </div>
-          )}
-          {(deps?.blocks || []).length > 0 && (
-            <div style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 10.5, color: 'var(--ink4)', marginBottom: 4 }}>Blocking these tasks:</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {deps!.blocks.map(d => (
-                  <div key={d.id} style={{ fontSize: 12, color: 'var(--ink3)' }}>{d.title}</div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6 }}>Activity</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {activity === null ? (
-              <SectionLoading />
-            ) : activity.length === 0 ? (
-              <div style={{ fontSize: 12, color: 'var(--ink4)' }}>No activity yet.</div>
-            ) : (
-              activity.map(a => (
-                <div key={a.id} style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5 }}>
-                  <span style={{ fontWeight: 700, color: 'var(--ink2)' }}>{a.actor_name}</span> {describeActivity(a)}
-                  <span style={{ color: 'var(--ink4)' }}> · {new Date(a.created_at).toLocaleString()}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <Button variant="outline" size="sm" onClick={onDelete} style={{ marginTop: 'auto', color: 'var(--red)', borderColor: 'var(--red)' }}>
-          <Icon name="trash" size={13} /> Delete task
-        </Button>
+          <Button variant="outline" size="sm" onClick={onDelete} style={{ marginTop: 'auto', color: 'var(--red)', borderColor: 'var(--red)' }}>
+            <Icon name="trash" size={13} /> Delete task
+          </Button>
         </div>
       </SheetContent>
     </Sheet>

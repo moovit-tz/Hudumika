@@ -14,8 +14,10 @@ import { Customers }          from '../pages/Customers.js';
 import { CustomerBulkUpload } from '../pages/CustomerBulkUpload.js';
 import { CustomerOnboarding } from '../pages/CustomerOnboarding.js';
 import { Leads }              from '../pages/Leads.js';
+import { Pipeline }           from '../pages/Pipeline.js';
 import { Sales }              from '../pages/Sales.js';
 import { CrmChainPartners }     from '../pages/CrmChainPartners.js';
+import { CrmDuplicates }        from '../pages/CrmDuplicates.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -29,7 +31,9 @@ const NAV: SidebarSection[] = [
       { label: 'Customers',      icon: 'users',      path: '/crm/customers' },
       { label: 'Chain Partners', icon: 'link',     path: '/crm/chain-partners' },
       { label: 'Leads',          icon: 'userPlus',   path: '/crm/leads'     },
+      { label: 'Pipeline',       icon: 'briefcase',  path: '/crm/pipeline'  },
       { label: 'Sales',          icon: 'trendingUp', path: '/crm/sales'     },
+      { label: 'Duplicates',     icon: 'copy',       path: '/crm/duplicates' },
     ],
   },
 ];
@@ -52,7 +56,9 @@ export function CRMShell() {
               <Route path="customers/bulk-upload" element={<RequireRoles roles={CRM_ROLES}><CustomerBulkUpload /></RequireRoles>} />
               <Route path="customers/new" element={<RequireRoles roles={CRM_ROLES}><CustomerOnboarding /></RequireRoles>} />
               <Route path="leads"         element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><Leads /></RequireRoles>} />
+              <Route path="pipeline"      element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><Pipeline /></RequireRoles>} />
               <Route path="sales"         element={<RequireRoles roles={CRM_ROLES}><Sales /></RequireRoles>} />
+              <Route path="duplicates"    element={<RequireRoles roles={MGMT_ROLES}><CrmDuplicates /></RequireRoles>} />
             </Route>
 
             <Route path="*" element={<Navigate to="/crm/customers" replace />} />

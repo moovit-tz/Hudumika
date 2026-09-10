@@ -4,18 +4,27 @@ import { AppSidebar } from '../components/AppSidebar.js';
 import type { SidebarSection } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
+import { PageLayout } from '../components/PageLayout.js';
 import { ProjectsApp } from '../pages/ProjectsApp.js';
 import { Contracts } from '../pages/Contracts.js';
 import { ContractDetail } from '../pages/ContractDetail.js';
 
-// Standalone Projects app (migration 313) — enterprise project management,
-// gated behind the 'projects' (HuduPlus+) entitlement. Nav grows as the
-// program's later milestones ship.
+// Hudumika Project OS — Enterprise project operations, EVM, governance,
+// procurement, heavy machinery fleet, and industry packs.
 const NAV: SidebarSection[] = [
   {
+    title: 'Executive & Strategy',
     items: [
-      { label: 'Projects', icon: 'briefcase', path: '/projects', exact: true },
-      { label: 'Contracts', icon: 'fileText', path: '/projects/contracts' },
+      { label: 'Command Center', icon: 'activity', path: '/projects', exact: true },
+      { label: 'Portfolios & Programs', icon: 'layers', path: '/projects/portfolios' },
+      { label: 'Heavy Machinery & Fleet', icon: 'truck', path: '/projects/resources' },
+    ],
+  },
+  {
+    title: 'Operations & Commercial',
+    items: [
+      { label: 'Projects Directory', icon: 'briefcase', path: '/projects/all' },
+      { label: 'Contracts & Tenders', icon: 'fileText', path: '/projects/contracts' },
     ],
   },
 ];
@@ -29,10 +38,15 @@ export function ProjectsShell() {
           <AppHeader />
           <div className="app-shell-content">
             <Routes>
-              <Route index element={<ProjectsApp />} />
-              <Route path="contracts" element={<Contracts />} />
-              <Route path="contracts/:id" element={<ContractDetail />} />
-              <Route path="*" element={<Navigate to="/projects" replace />} />
+              <Route element={<PageLayout />}>
+                <Route index element={<ProjectsApp initialMode="command_center" />} />
+                <Route path="all" element={<ProjectsApp initialMode="projects_list" />} />
+                <Route path="portfolios" element={<ProjectsApp initialMode="portfolios" />} />
+                <Route path="resources" element={<ProjectsApp initialMode="resources" />} />
+                <Route path="contracts" element={<Contracts />} />
+                <Route path="contracts/:id" element={<ContractDetail />} />
+                <Route path="*" element={<Navigate to="/projects" replace />} />
+              </Route>
             </Routes>
           </div>
         </div>

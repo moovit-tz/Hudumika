@@ -72,6 +72,7 @@ const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category'>> = {
   onesite:      { desc: 'Content management system, web pages & media assets', category: 'Content' },
   lens:         { desc: 'Platform observability, runtime introspection & diagnostics', category: 'System' },
   demurrage:    { desc: 'Container demurrage calculation, free-period tracking & port invoices', category: 'Logistics' },
+  developer:    { desc: 'API Gateway, developer credentials, metering, telemetry & API marketplace', category: 'Infrastructure' },
 };
 
 const apps: HudumikaApp[] = [

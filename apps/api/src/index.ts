@@ -25,6 +25,9 @@ import { tenantRoutes } from './routes/tenant.routes.js';
 import { shipmentRoutes } from './routes/shipments.routes.js';
 import { customerRoutes } from './routes/customers.routes.js';
 import { leadsRoutes } from './routes/leads.routes.js';
+import { dealsRoutes } from './routes/deals.routes.js';
+import { crmActivityRoutes } from './routes/crm-activity.routes.js';
+import { crmLabelsRoutes } from './routes/crm-labels.routes.js';
 import { crmSearchRoutes } from './routes/crm-search.routes.js';
 import { workflowRoutes } from './routes/workflows.routes.js';
 import { workflowTemplateRoutes } from './routes/workflow-templates.routes.js';
@@ -208,6 +211,7 @@ import { calendarSyncRoutes } from './routes/calendar-sync.routes.js';
 import { smsRoutes, smsWebhookRoutes } from './routes/sms.routes.js';
 import { setupGuideRoutes } from './routes/setup-guide.routes.js';
 import { developerRoutes } from './routes/developer.routes.js';
+import { projectOsRoutes } from './routes/project-os.routes.js';
 
 const server = fastify({
   logger: {
@@ -456,6 +460,9 @@ export async function registerApp() {
     await server.register(shipmentReportPublicRoutes, { prefix: '/v1/shipments' });
     await server.register(customerRoutes, { prefix: '/v1/customers' });
     await server.register(leadsRoutes, { prefix: '/v1/leads' });
+    await server.register(dealsRoutes, { prefix: '/v1/deals' });
+    await server.register(crmActivityRoutes, { prefix: '/v1/crm/activity' });
+    await server.register(crmLabelsRoutes, { prefix: '/v1/crm/labels' });
     await server.register(crmSearchRoutes, { prefix: '/v1/crm' });
     await server.register(workflowRoutes, { prefix: '/v1/workflows' });
     await server.register(documentRoutes, { prefix: '/v1/documents' });
@@ -672,6 +679,7 @@ export async function registerApp() {
     await server.register(smsWebhookRoutes, { prefix: '/v1/sms/webhook' });
     await server.register(setupGuideRoutes, { prefix: '/v1/setup-guide' });
     await server.register(developerRoutes, { prefix: '/v1/developer' });
+    await server.register(projectOsRoutes, { prefix: '/v1/project-os' });
 
 
     // Health check

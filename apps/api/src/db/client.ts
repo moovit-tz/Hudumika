@@ -168,6 +168,8 @@ export interface LeadsTable {
   value: Generated<string>;
   priority: Generated<string>;
   assigned_to: string | null;
+  // Migration 446 — real user reference alongside the legacy text label.
+  assigned_to_id: string | null;
   expected_close: DateOnlyNull;
   notes: string | null;
   industry: string | null;
@@ -175,6 +177,65 @@ export interface LeadsTable {
   website: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+}
+
+/** Migration 447 — the CRM's Deal/Opportunity object, distinct from a Lead
+ *  (top-of-funnel, unqualified) so a pipeline can be reported on, boarded
+ *  and automated against as its own thing. */
+export interface DealsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  customer_id: string | null;
+  lead_id: string | null;
+  stage: Generated<string>;
+  value: Generated<string>;
+  currency: Generated<string>;
+  probability: Generated<number>;
+  owner_id: string | null;
+  source: string | null;
+  expected_close: DateOnlyNull;
+  closed_at: Date | null;
+  lost_reason: string | null;
+  notes: string | null;
+  stage_changed_at: Generated<Date>;
+  created_by: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 449 — one shared activity timeline across leads/deals/customers.
+ *  subject_type/subject_id is a plain polymorphic pair (no FK — see the
+ *  migration's own comment on why); every route writing here validates the
+ *  subject itself before inserting. */
+export interface CrmActivitiesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  subject_type: 'lead' | 'deal' | 'customer';
+  subject_id: string;
+  type: 'call' | 'email' | 'meeting' | 'note' | 'stage_change' | 'created';
+  body: string;
+  meta: unknown;
+  actor_id: string | null;
+  actor_name: string | null;
+  created_at: Generated<Date>;
+}
+
+/** Migration 450 — CRM-scoped tags, distinct from Contacts' own
+ *  contact_labels (separate app, no shared ownership). */
+export interface CrmLabelsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  color: Generated<string>;
+  created_at: Generated<Date>;
+}
+
+export interface CrmLabelMappingsTable {
+  label_id: string;
+  subject_type: 'lead' | 'deal' | 'customer';
+  subject_id: string;
+  created_at: Generated<Date>;
 }
 
 /** Every real customer/lead search — see 264_crm_search_history.sql. */
@@ -3606,6 +3667,22 @@ export interface ProjectsTable {
   // project has no per-row source to stamp like the hourly path's
   // task_time_entries.invoice_id, so this timestamp is the guard instead.
   invoiced_at: ColumnType<Date | null, string | null, string | null>;
+  // Project OS Core & Governance (migration 448)
+  portfolio_id: string | null;
+  program_id: string | null;
+  industry: Generated<string>;
+  project_type: string | null;
+  health_status: Generated<string>;
+  progress_pct: Generated<number>;
+  contract_value: Generated<number>;
+  baseline_budget: Generated<number>;
+  current_budget: Generated<number>;
+  actual_cost: Generated<number>;
+  earned_value: Generated<number>;
+  planned_value: Generated<number>;
+  location_address: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface ProjectMembersTable {
@@ -4890,6 +4967,10 @@ export interface Database {
   organization_users: OrganizationUsersTable;
   customer_claim_codes: CustomerClaimCodesTable;
   leads: LeadsTable;
+  deals: DealsTable;
+  crm_activities: CrmActivitiesTable;
+  crm_labels: CrmLabelsTable;
+  crm_label_mappings: CrmLabelMappingsTable;
   crm_search_history: CrmSearchHistoryTable;
   notes: NotesTable;
   note_labels: NoteLabelsTable;
@@ -5451,6 +5532,29 @@ export interface Database {
   dev_usage_events: DevUsageEventsTable;
   dev_billing_events: DevBillingEventsTable;
   dev_provider_settlements: DevProviderSettlementsTable;
+  // ─── Hudumika Project OS Core & Governance (Migration 448) ────
+  project_portfolios: ProjectPortfoliosTable;
+  project_programs: ProjectProgramsTable;
+  project_phases: ProjectPhasesTable;
+  project_work_packages: ProjectWorkPackagesTable;
+  project_deliverables: ProjectDeliverablesTable;
+  project_cost_codes: ProjectCostCodesTable;
+  project_budgets: ProjectBudgetsTable;
+  project_budget_lines: ProjectBudgetLinesTable;
+  project_evm_snapshots: ProjectEvmSnapshotsTable;
+  project_risks: ProjectRisksTable;
+  project_issues: ProjectIssuesTable;
+  project_change_requests: ProjectChangeRequestsTable;
+  project_approvals: ProjectApprovalsTable;
+  project_approval_steps: ProjectApprovalStepsTable;
+  project_purchase_requests: ProjectPurchaseRequestsTable;
+  project_rfqs: ProjectRfqsTable;
+  project_rfq_suppliers: ProjectRfqSuppliersTable;
+  project_purchase_orders: ProjectPurchaseOrdersTable;
+  project_goods_receipts: ProjectGoodsReceiptsTable;
+  project_resources: ProjectResourcesTable;
+  project_resource_allocations: ProjectResourceAllocationsTable;
+  project_industry_data: ProjectIndustryDataTable;
 }
 
 export interface DeveloperAccountsTable {
@@ -5751,6 +5855,419 @@ export interface DevProviderSettlementsTable {
   is_settled: Generated<boolean>;
   settled_at: Date | null;
   created_at: Generated<Date>;
+}
+
+// ─── Hudumika Project OS Core & Governance Table Interfaces ──
+
+export interface ProjectPortfoliosTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  owner_id: string | null;
+  target_roi: number | null;
+  allocated_budget: Generated<number>;
+  spent_budget: Generated<number>;
+  status: Generated<string>;
+  strategic_alignment: Generated<Record<string, any>>;
+  metadata: Generated<Record<string, any>>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectProgramsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  portfolio_id: string | null;
+  name: string;
+  code: string;
+  description: string | null;
+  program_manager_id: string | null;
+  budget: Generated<number>;
+  target_benefits: string[] | null;
+  status: Generated<string>;
+  start_date: string | null;
+  end_date: string | null;
+  metadata: Generated<Record<string, any>>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectPhasesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  name: string;
+  code: string | null;
+  sequence_order: Generated<number>;
+  start_date: string | null;
+  end_date: string | null;
+  gate_review_date: string | null;
+  status: Generated<string>;
+  gate_approver_role: string | null;
+  gate_criteria: Generated<Record<string, any>>;
+  gate_passed: Generated<boolean>;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectWorkPackagesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  phase_id: string | null;
+  parent_id: string | null;
+  wbs_code: string;
+  name: string;
+  description: string | null;
+  lead_id: string | null;
+  planned_start: string | null;
+  planned_end: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  planned_cost: Generated<number>;
+  actual_cost: Generated<number>;
+  earned_value: Generated<number>;
+  progress_pct: Generated<number>;
+  status: Generated<string>;
+  deliverables_summary: Generated<Record<string, any>>;
+  metadata: Generated<Record<string, any>>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectDeliverablesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  phase_id: string | null;
+  work_package_id: string | null;
+  title: string;
+  code: string | null;
+  description: string | null;
+  owner_id: string | null;
+  due_date: string | null;
+  acceptance_criteria: string | null;
+  status: Generated<string>;
+  approved_by: string | null;
+  approved_at: Date | null;
+  rejection_reason: string | null;
+  sign_document_id: string | null;
+  sign_package_id: string | null;
+  contract_id: string | null;
+  attachments: Generated<Record<string, any>>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectCostCodesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  code: string;
+  name: string;
+  category: Generated<string>;
+  description: string | null;
+  is_active: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export interface ProjectBudgetsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  name: string;
+  version: Generated<number>;
+  baseline_budget: Generated<number>;
+  revised_budget: Generated<number>;
+  contingency_reserve: Generated<number>;
+  management_reserve: Generated<number>;
+  currency: Generated<string>;
+  status: Generated<string>;
+  approved_by: string | null;
+  approved_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectBudgetLinesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  budget_id: string;
+  project_id: string;
+  work_package_id: string | null;
+  cost_code_id: string | null;
+  description: string;
+  unit_of_measure: string | null;
+  planned_qty: Generated<number>;
+  planned_unit_rate: Generated<number>;
+  planned_amount: Generated<number>;
+  actual_qty: Generated<number>;
+  actual_amount: Generated<number>;
+  committed_amount: Generated<number>;
+  forecast_at_completion: Generated<number>;
+  variance: Generated<number>;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectEvmSnapshotsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  snapshot_date: DateOnly;
+  pv: Generated<number>;
+  ev: Generated<number>;
+  ac: Generated<number>;
+  bac: Generated<number>;
+  cpi: Generated<number>;
+  spi: Generated<number>;
+  cv: Generated<number>;
+  sv: Generated<number>;
+  eac: Generated<number>;
+  etc: Generated<number>;
+  vac: Generated<number>;
+  tcpi: Generated<number>;
+  notes: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ProjectRisksTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  category: Generated<string>;
+  probability: Generated<string>;
+  impact: Generated<string>;
+  score: Generated<number>;
+  financial_exposure: Generated<number>;
+  strategy: Generated<string>;
+  mitigation_plan: string | null;
+  contingency_plan: string | null;
+  owner_id: string | null;
+  status: Generated<string>;
+  review_date: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectIssuesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  severity: Generated<string>;
+  status: Generated<string>;
+  assigned_to: string | null;
+  impact_schedule_days: Generated<number>;
+  impact_cost: Generated<number>;
+  root_cause: string | null;
+  resolution: string | null;
+  resolved_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectChangeRequestsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  cr_number: string;
+  title: string;
+  reason: string;
+  scope_impact: string | null;
+  cost_impact: Generated<number>;
+  schedule_impact_days: Generated<number>;
+  risk_impact: string | null;
+  status: Generated<string>;
+  requested_by: string | null;
+  evaluated_by: string | null;
+  approved_by: string | null;
+  approved_at: Date | null;
+  client_approval_required: Generated<boolean>;
+  client_approved_at: Date | null;
+  attachments: Generated<Record<string, any>>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectApprovalsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  entity_type: string;
+  entity_id: string;
+  title: string;
+  current_step: Generated<number>;
+  total_steps: Generated<number>;
+  status: Generated<string>;
+  requester_id: string;
+  metadata: Generated<Record<string, any>>;
+  completed_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectApprovalStepsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  approval_id: string;
+  step_order: number;
+  step_name: string;
+  required_role: string | null;
+  assigned_user_id: string | null;
+  status: Generated<string>;
+  action_by: string | null;
+  action_at: Date | null;
+  comments: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ProjectPurchaseRequestsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  work_package_id: string | null;
+  pr_number: string;
+  title: string;
+  justification: string | null;
+  estimated_cost: Generated<number>;
+  required_date: string | null;
+  status: Generated<string>;
+  requested_by: string;
+  approved_by: string | null;
+  items: Generated<Record<string, any>>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectRfqsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  purchase_request_id: string | null;
+  rfq_number: string;
+  title: string;
+  scope_description: string | null;
+  issue_date: string | null;
+  closing_date: string | null;
+  status: Generated<string>;
+  created_by: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectRfqSuppliersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  rfq_id: string;
+  supplier_name: string;
+  contact_email: string | null;
+  quoted_amount: number | null;
+  delivery_lead_time_days: number | null;
+  technical_compliance_score: number | null;
+  commercial_score: number | null;
+  bid_currency: Generated<string>;
+  is_selected: Generated<boolean>;
+  notes: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ProjectPurchaseOrdersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  rfq_id: string | null;
+  purchase_request_id: string | null;
+  po_number: string;
+  supplier_name: string;
+  supplier_id: string | null;
+  total_amount: Generated<number>;
+  currency: Generated<string>;
+  issue_date: string;
+  expected_delivery_date: string | null;
+  status: Generated<string>;
+  payment_terms: string | null;
+  incoterms: string | null;
+  delivery_location: string | null;
+  created_by: string;
+  approved_by: string | null;
+  items: Generated<Record<string, any>>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectGoodsReceiptsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  po_id: string;
+  project_id: string;
+  grn_number: string;
+  received_date: string;
+  received_by: string;
+  carrier_delivery_note_ref: string | null;
+  status: Generated<string>;
+  items_received: Generated<Record<string, any>>;
+  inspector_notes: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ProjectResourcesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  resource_type: string;
+  name: string;
+  code: string | null;
+  make_model: string | null;
+  serial_number: string | null;
+  license_plate: string | null;
+  capacity_rating: string | null;
+  user_id: string | null;
+  cost_rate_hourly: Generated<number>;
+  cost_rate_daily: Generated<number>;
+  currency: Generated<string>;
+  telemetry_id: string | null;
+  last_maintenance_date: string | null;
+  next_maintenance_date: string | null;
+  status: Generated<string>;
+  location: string | null;
+  metadata: Generated<Record<string, any>>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectResourceAllocationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  work_package_id: string | null;
+  resource_id: string;
+  start_date: string;
+  end_date: string;
+  allocated_pct: Generated<number>;
+  hours_planned: Generated<number>;
+  hours_actual: Generated<number>;
+  operator_id: string | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectIndustryDataTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  industry: string;
+  data_type: string;
+  record_data: Generated<Record<string, any>>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface MetricKpiTargetsTable {

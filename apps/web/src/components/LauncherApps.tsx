@@ -45,6 +45,7 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'sign',      name: 'eSign',    color: '#2563eb', path: '/sign'      },
   { id: 'sms',       name: 'SMS',      color: '#dc2626', path: '/sms'       },
   { id: 'projects',  name: 'Projects', color: '#f59e0b', path: '/projects'  },
+  { id: 'developer', name: 'Developer', color: '#0f766e', path: '/developer' },
 ];
 
 // ── App SVG icons for launcher ─────────────────────────────────
@@ -92,6 +93,7 @@ export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
   // Tasks' single checkmark-circle (a to-do list) and Workspace's uniform
   // 3x3 grid (an app launcher).
   projects: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="8" width="9" height="24" rx="2"/><rect x="16.5" y="8" width="9" height="16" rx="2" opacity="0.8"/><rect x="27" y="8" width="7" height="20" rx="2" opacity="0.6"/></g>),
+  developer: (<g stroke="white" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round"><polyline points="13 14 7 20 13 26" /><polyline points="27 14 33 20 27 26" /><line x1="22" y1="12" x2="18" y2="28" /></g>),
   // Not part of LAUNCHER_APPS (that list is shared with the header/AppLauncher
   // switcher, which every tenant user sees, unfiltered by role) — this icon is
   // only referenced directly, by id, from WorkspaceHome's own SUPER_ADMIN-only

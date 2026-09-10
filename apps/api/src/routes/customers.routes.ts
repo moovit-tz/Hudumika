@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
 import { z } from 'zod';
+import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { MinioIntegration } from '../integrations/minio.js';
@@ -705,6 +706,83 @@ export async function customerRoutes(fastify: FastifyInstance) {
       return reply.send(pdf);
     } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
+    }
+  });
+
+  // Fuzzy-duplicate detection on company name — same shape as
+  // leads.routes.ts's own /duplicates (see that file's comment for why
+  // this is a lighter single-method version of Contacts' three-method
+  // pass). CRM gap-analysis item: Customers never had this either.
+  fastify.get('/duplicates', {
+    preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER', 'FINANCE', 'SALES'),
+  }, async (request: any, reply) => {
+    try {
+      const tenantId = request.user.tenant_id;
+      const rows = await withTenant(tenantId, async trx => {
+        const fuzzy = await sql<{ id: string; other_id: string }>`
+          SELECT a.id, b.id AS other_id
+          FROM customers a
+          JOIN customers b ON b.tenant_id = a.tenant_id AND b.id > a.id AND b.deleted_at IS NULL
+          WHERE a.tenant_id = ${tenantId} AND a.deleted_at IS NULL
+            AND similarity(a.name, b.name) >= 0.5
+        `.execute(trx);
+        if (fuzzy.rows.length === 0) return [];
+        const ids = [...new Set(fuzzy.rows.flatMap(r => [r.id, r.other_id]))];
+        const customers = await trx.selectFrom('customers').selectAll().where('id', 'in', ids).execute();
+        const byId = new Map(customers.map((c: any) => [c.id, c]));
+        return fuzzy.rows.map(r => ({ customers: [byId.get(r.id), byId.get(r.other_id)].filter(Boolean) }));
+      });
+      return rows;
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Merges duplicate_ids into primary_id — same repoint-then-delete shape
+  // as leads.routes.ts's /merge (deals, crm_activities, crm_label_mappings).
+  const customerMergeSchema = z.object({ primary_id: z.string().uuid(), duplicate_ids: z.array(z.string().uuid()).min(1) });
+  fastify.post('/merge', {
+    preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'),
+  }, async (request: any, reply) => {
+    const b = customerMergeSchema.parse(request.body);
+    try {
+      const tenantId = request.user.tenant_id;
+      await withTenant(tenantId, async trx => {
+        const primary = await trx.selectFrom('customers').select('id')
+          .where('id', '=', b.primary_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+        if (!primary) throw new Error('Primary customer not found');
+
+        for (const dupId of b.duplicate_ids) {
+          if (dupId === b.primary_id) continue;
+          await trx.updateTable('deals').set({ customer_id: b.primary_id })
+            .where('customer_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+          await trx.updateTable('crm_activities').set({ subject_id: b.primary_id })
+            .where('subject_type', '=', 'customer').where('subject_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+
+          const dupLabels = await trx.selectFrom('crm_label_mappings').select('label_id')
+            .where('subject_type', '=', 'customer').where('subject_id', '=', dupId).execute();
+          if (dupLabels.length) {
+            await trx.insertInto('crm_label_mappings')
+              .values(dupLabels.map(l => ({ label_id: l.label_id, subject_type: 'customer' as const, subject_id: b.primary_id })))
+              .onConflict(oc => oc.columns(['label_id', 'subject_type', 'subject_id']).doNothing())
+              .execute();
+          }
+          await trx.deleteFrom('crm_label_mappings')
+            .where('subject_type', '=', 'customer').where('subject_id', '=', dupId).execute();
+
+          // Customers soft-delete (338_customer_soft_delete.sql) — a real
+          // record with invoices/shipments attached can't be hard-deleted
+          // without breaking that history, unlike a lead or a duplicate
+          // label mapping. Marking deleted_at is the same "gone from every
+          // list, but not actually destroyed" contract every other
+          // soft-delete in this app already uses.
+          await trx.updateTable('customers').set({ deleted_at: new Date() })
+            .where('id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        }
+      });
+      return { success: true };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
     }
   });
 }
