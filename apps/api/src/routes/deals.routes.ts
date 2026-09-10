@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { logCrmActivity } from './crm-activity.routes.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 
 // Same roster as leads.routes.ts's LEAD_ROLES — a deal is what a lead
 // becomes, so whoever can touch one can touch the other.
@@ -162,6 +163,11 @@ export async function dealsRoutes(fastify: FastifyInstance) {
           body: `Deal created${b.lead_id ? ' from a converted lead' : ''}`,
           actorId: request.user.sub, actorName: request.user.name,
         });
+        await emitDomainEvent(trx, tenantId, {
+          type: 'deal.created', sourceApp: 'crm', entityType: 'deal', entityId: row.id,
+          payload: { name: b.name, value: Number(b.value ?? 0), fromLead: !!b.lead_id },
+          actorId: request.user.sub,
+        }).catch(e => console.error('[CRM] deal.created emit failed:', e.message));
         return row.id;
       });
       const [row] = await withTenant<any[]>(tenantId, trx => dealSelect(trx).where('deals.id', '=', id).execute());
@@ -210,7 +216,7 @@ export async function dealsRoutes(fastify: FastifyInstance) {
     try {
       const tenantId = request.user.tenant_id;
       const row = await withTenant(tenantId, async trx => {
-        const existing = await trx.selectFrom('deals').select(['id', 'stage'])
+        const existing = await trx.selectFrom('deals').select(['id', 'stage', 'name', 'value', 'customer_id'])
           .where('id', '=', request.params.id).where('tenant_id', '=', tenantId).executeTakeFirst();
         if (!existing) return null;
 
@@ -224,12 +230,31 @@ export async function dealsRoutes(fastify: FastifyInstance) {
         await trx.updateTable('deals').set(patch).where('id', '=', request.params.id).execute();
 
         if (existing.stage !== b.stage) {
+          const val = Number(existing.value);
+          const dealId: string = request.params.id;
+          const actorId: string = request.user.sub;
           await logCrmActivity(trx, {
-            tenantId, subjectType: 'deal', subjectId: request.params.id, type: 'stage_change',
+            tenantId, subjectType: 'deal', subjectId: dealId, type: 'stage_change',
             body: `Stage moved from ${existing.stage} to ${b.stage}${b.stage === 'LOST' && b.lost_reason ? ` — ${b.lost_reason}` : ''}`,
             meta: { from: existing.stage, to: b.stage, lost_reason: b.lost_reason || undefined },
-            actorId: request.user.sub, actorName: request.user.name,
+            actorId, actorName: request.user.name,
           });
+          await emitDomainEvent(trx, tenantId, {
+            type: 'deal.stage_changed', sourceApp: 'crm', entityType: 'deal', entityId: dealId,
+            payload: { from: existing.stage, to: b.stage, name: existing.name, value: val }, actorId,
+          }).catch(e => console.error('[CRM] deal.stage_changed emit failed:', e.message));
+          if (b.stage === 'WON') {
+            await emitDomainEvent(trx, tenantId, {
+              type: 'deal.won', sourceApp: 'crm', entityType: 'deal', entityId: dealId,
+              payload: { name: existing.name, value: val, customerId: existing.customer_id }, actorId,
+            }).catch(e => console.error('[CRM] deal.won emit failed:', e.message));
+          }
+          if (b.stage === 'LOST') {
+            await emitDomainEvent(trx, tenantId, {
+              type: 'deal.lost', sourceApp: 'crm', entityType: 'deal', entityId: dealId,
+              payload: { name: existing.name, value: val, reason: b.lost_reason || null }, actorId,
+            }).catch(e => console.error('[CRM] deal.lost emit failed:', e.message));
+          }
         }
         return dealSelect(trx).where('deals.id', '=', request.params.id).execute();
       });

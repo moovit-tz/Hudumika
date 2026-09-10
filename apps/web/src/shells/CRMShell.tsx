@@ -18,6 +18,9 @@ import { Pipeline }           from '../pages/Pipeline.js';
 import { Sales }              from '../pages/Sales.js';
 import { CrmChainPartners }     from '../pages/CrmChainPartners.js';
 import { CrmDuplicates }        from '../pages/CrmDuplicates.js';
+import { CrmSmartViews }         from '../pages/CrmSmartViews.js';
+import { CrmCustomFields }        from '../pages/CrmCustomFields.js';
+import { CrmLeadScoring }          from '../pages/CrmLeadScoring.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -33,7 +36,15 @@ const NAV: SidebarSection[] = [
       { label: 'Leads',          icon: 'userPlus',   path: '/crm/leads'     },
       { label: 'Pipeline',       icon: 'briefcase',  path: '/crm/pipeline'  },
       { label: 'Sales',          icon: 'trendingUp', path: '/crm/sales'     },
+      { label: 'Saved Views',    icon: 'filter',     path: '/crm/saved-views' },
       { label: 'Duplicates',     icon: 'copy',       path: '/crm/duplicates' },
+    ],
+  },
+  {
+    title: 'SETTINGS',
+    items: [
+      { label: 'Custom Fields', icon: 'settings', path: '/crm/custom-fields' },
+      { label: 'Lead Scoring',  icon: 'trendingUp', path: '/crm/lead-scoring' },
     ],
   },
 ];
@@ -58,6 +69,9 @@ export function CRMShell() {
               <Route path="leads"         element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><Leads /></RequireRoles>} />
               <Route path="pipeline"      element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><Pipeline /></RequireRoles>} />
               <Route path="sales"         element={<RequireRoles roles={CRM_ROLES}><Sales /></RequireRoles>} />
+              <Route path="saved-views"   element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><CrmSmartViews /></RequireRoles>} />
+              <Route path="custom-fields" element={<RequireRoles roles={MGMT_ROLES}><CrmCustomFields /></RequireRoles>} />
+              <Route path="lead-scoring"  element={<RequireRoles roles={MGMT_ROLES}><CrmLeadScoring /></RequireRoles>} />
               <Route path="duplicates"    element={<RequireRoles roles={MGMT_ROLES}><CrmDuplicates /></RequireRoles>} />
             </Route>
 

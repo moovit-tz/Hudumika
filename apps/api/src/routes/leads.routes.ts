@@ -5,6 +5,8 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { dealSelect, mapDeal } from './deals.routes.js';
 import { logCrmActivity } from './crm-activity.routes.js';
+import { loadScoringRules, scoreLead } from './crm-lead-scoring.routes.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 
 // SENIOR/JUNIOR/OFFICER added alongside the original CRM-pipeline roles —
 // the landed-cost calculators (OPS_ROLES-gated) let clearing staff create a
@@ -84,10 +86,23 @@ export async function leadsRoutes(fastify: FastifyInstance) {
 
   fastify.get('/', async (request: any, reply) => {
     try {
-      const rows = await withTenant<any[]>(request.user.tenant_id, trx =>
-        leadSelect(trx).where('leads.tenant_id', '=', request.user.tenant_id).orderBy('leads.created_at', 'desc').execute()
-      );
-      return rows.map(mapLead);
+      const tenantId = request.user.tenant_id;
+      const { rows, rules, activityCounts } = await withTenant(tenantId, async trx => {
+        const rows = await leadSelect(trx).where('leads.tenant_id', '=', tenantId).orderBy('leads.created_at', 'desc').execute();
+        const rules = await loadScoringRules(trx, tenantId);
+        // One grouped query for every lead's activity count rather than N.
+        const counts = rules.some(r => r.field === 'activity_count')
+          ? await trx.selectFrom('crm_activities')
+              .select(['subject_id', trx.fn.countAll<string>().as('n')])
+              .where('tenant_id', '=', tenantId).where('subject_type', '=', 'lead')
+              .groupBy('subject_id').execute()
+          : [];
+        return { rows, rules, activityCounts: new Map(counts.map(c => [c.subject_id, Number(c.n)])) };
+      });
+      return rows.map((r: any) => {
+        const mapped = mapLead(r);
+        return rules.length ? { ...mapped, score: scoreLead(rules, mapped, activityCounts.get(r.id) ?? 0) } : mapped;
+      });
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
@@ -121,6 +136,11 @@ export async function leadsRoutes(fastify: FastifyInstance) {
           body: `Lead captured from ${b.source || 'Web Form'}`,
           actorId: request.user.sub, actorName: request.user.name,
         });
+        await emitDomainEvent(trx, tenantId, {
+          type: 'lead.created', sourceApp: 'crm', entityType: 'lead', entityId: row.id,
+          payload: { company: b.company, source: b.source || 'Web Form', value: Number(b.value) || 0 },
+          actorId: request.user.sub,
+        }).catch(e => console.error('[CRM] lead.created emit failed:', e.message));
         return row.id;
       });
       const [row] = await withTenant<any[]>(tenantId, trx => leadSelect(trx).where('leads.id', '=', id).execute());
@@ -152,20 +172,25 @@ export async function leadsRoutes(fastify: FastifyInstance) {
 
       const tenantId = request.user.tenant_id;
       await withTenant(tenantId, async trx => {
-        let existingStage: string | undefined;
+        let existing: { stage: string; company: string } | undefined;
         if (b.stage !== undefined) {
-          existingStage = (await trx.selectFrom('leads').select('stage')
-            .where('id', '=', request.params.id).where('tenant_id', '=', tenantId).executeTakeFirst())?.stage;
+          existing = await trx.selectFrom('leads').select(['stage', 'company'])
+            .where('id', '=', request.params.id).where('tenant_id', '=', tenantId).executeTakeFirst();
         }
         await trx.updateTable('leads').set(patch).where('id', '=', request.params.id)
           .where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
-        if (b.stage !== undefined && existingStage && existingStage !== b.stage) {
+        if (b.stage !== undefined && existing && existing.stage !== b.stage) {
           await logCrmActivity(trx, {
             tenantId, subjectType: 'lead', subjectId: request.params.id, type: 'stage_change',
-            body: `Stage moved from ${existingStage} to ${b.stage}`,
-            meta: { from: existingStage, to: b.stage },
+            body: `Stage moved from ${existing.stage} to ${b.stage}`,
+            meta: { from: existing.stage, to: b.stage },
             actorId: request.user.sub, actorName: request.user.name,
           });
+          await emitDomainEvent(trx, tenantId, {
+            type: 'lead.stage_changed', sourceApp: 'crm', entityType: 'lead', entityId: request.params.id,
+            payload: { from: existing.stage, to: b.stage, company: existing.company },
+            actorId: request.user.sub,
+          }).catch(e => console.error('[CRM] lead.stage_changed emit failed:', e.message));
         }
       });
       const [row] = await withTenant<any[]>(tenantId, trx => leadSelect(trx).where('leads.id', '=', request.params.id).execute());
@@ -236,6 +261,11 @@ export async function leadsRoutes(fastify: FastifyInstance) {
           body: 'Converted to a deal',
           actorId: request.user.sub, actorName: request.user.name,
         });
+        await emitDomainEvent(trx, tenantId, {
+          type: 'deal.created', sourceApp: 'crm', entityType: 'deal', entityId: row.id,
+          payload: { name: lead.company, value: Number(lead.value) || 0, fromLead: true },
+          actorId: request.user.sub,
+        }).catch(e => console.error('[CRM] deal.created emit failed:', e.message));
         return row.id;
       });
 

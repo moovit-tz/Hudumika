@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { withTenant, type Database } from '../db/client.js';
 import type { Transaction } from 'kysely';
 import { requireRole } from '../middleware/rbac.js';
+import { MailService } from '../services/mail.service.js';
 
 const SUBJECT_TYPES = ['lead', 'deal', 'customer'] as const;
 type SubjectType = (typeof SUBJECT_TYPES)[number];
@@ -37,6 +38,38 @@ async function assertSubjectInTenant(trx: Transaction<Database>, tenantId: strin
   return !!row;
 }
 
+// A deal has no contact of its own — it resolves through whichever of its
+// customer_id/lead_id actually has an email, customer first (a live
+// account is a better address than a lead's original inquiry contact once
+// one exists). Returns null rather than throwing so the route can give a
+// real "there's no email on file" error instead of a stack trace.
+async function resolveRecipientEmail(trx: Transaction<Database>, tenantId: string, subjectType: SubjectType, subjectId: string): Promise<{ email: string; name: string } | null> {
+  if (subjectType === 'lead') {
+    const row = await trx.selectFrom('leads').select(['contact_email', 'contact_name'])
+      .where('id', '=', subjectId).where('tenant_id', '=', tenantId).executeTakeFirst();
+    return row?.contact_email ? { email: row.contact_email, name: row.contact_name } : null;
+  }
+  if (subjectType === 'customer') {
+    const row = await trx.selectFrom('customers').select(['email', 'name'])
+      .where('id', '=', subjectId).where('tenant_id', '=', tenantId).executeTakeFirst();
+    return row?.email ? { email: row.email, name: row.name } : null;
+  }
+  const deal = await trx.selectFrom('deals').select(['customer_id', 'lead_id'])
+    .where('id', '=', subjectId).where('tenant_id', '=', tenantId).executeTakeFirst();
+  if (!deal) return null;
+  if (deal.customer_id) {
+    const c = await trx.selectFrom('customers').select(['email', 'name'])
+      .where('id', '=', deal.customer_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (c?.email) return { email: c.email, name: c.name };
+  }
+  if (deal.lead_id) {
+    const l = await trx.selectFrom('leads').select(['contact_email', 'contact_name'])
+      .where('id', '=', deal.lead_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (l?.contact_email) return { email: l.contact_email, name: l.contact_name };
+  }
+  return null;
+}
+
 /** Shared by every CRM route that wants to drop a system event onto a
  *  subject's timeline (deal stage moves, lead conversion, record creation)
  *  — callers pass an already-open transaction so the log write commits
@@ -45,7 +78,10 @@ export async function logCrmActivity(
   trx: Transaction<Database>,
   params: {
     tenantId: string; subjectType: SubjectType; subjectId: string;
-    type: 'stage_change' | 'created' | 'note'; body: string; meta?: unknown;
+    // 'email'/'call' are here too, alongside the manual-entry types — the
+    // send-email route below and (eventually) Bliss's own call-completed
+    // hook both log a real system-recorded action, not a user's own note.
+    type: 'stage_change' | 'created' | 'note' | 'email' | 'call' | 'meeting'; body: string; meta?: unknown;
     actorId?: string | null; actorName?: string | null;
   },
 ): Promise<void> {
@@ -139,6 +175,50 @@ export async function crmActivityRoutes(fastify: FastifyInstance) {
       });
       reply.status(204);
       return null;
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Sends a real email through the platform's own mail service instead of
+  // a bare mailto: link (CRM gap-analysis's native-email item) and logs it
+  // to the same timeline every other activity uses. subject/body come from
+  // the caller; the recipient is always resolved server-side from the
+  // subject's own contact record — never trusted from the request — so
+  // this can't be used to relay mail to an arbitrary address.
+  const sendEmailSchema = z.object({
+    subject_type: z.enum(SUBJECT_TYPES),
+    subject_id: z.string().uuid(),
+    subject: z.string().trim().min(1).max(300),
+    body: z.string().trim().min(1).max(20000),
+  });
+  fastify.post('/send-email', async (request: any, reply) => {
+    const b = sendEmailSchema.parse(request.body);
+    try {
+      const tenantId = request.user.tenant_id;
+      const result = await withTenant(tenantId, async trx => {
+        const recipient = await resolveRecipientEmail(trx, tenantId, b.subject_type, b.subject_id);
+        if (!recipient) return { error: 'no-email' as const };
+
+        const bodyHtml = `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.6; white-space: pre-wrap;">${b.body}</div>`;
+        const sendResult = await MailService.sendNow(tenantId, {
+          to: recipient.email, subject: b.subject, bodyHtml, sourceApp: 'crm',
+        });
+        if (!sendResult.success) return { error: 'send-failed' as const, detail: sendResult.error };
+
+        await logCrmActivity(trx, {
+          tenantId, subjectType: b.subject_type, subjectId: b.subject_id, type: 'email',
+          body: `Emailed ${recipient.name} <${recipient.email}>: "${b.subject}"`,
+          meta: { to: recipient.email, subject: b.subject },
+          actorId: request.user.sub, actorName: request.user.name,
+        });
+        return { success: true, to: recipient.email, simulated: sendResult.simulated };
+      });
+      if ('error' in result) {
+        if (result.error === 'no-email') return reply.status(400).send({ error: 'This record has no email address on file' });
+        return reply.status(500).send({ error: result.detail || 'Failed to send email' });
+      }
+      return result;
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }

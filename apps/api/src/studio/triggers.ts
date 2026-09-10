@@ -194,6 +194,94 @@ export const TRIGGERS: TriggerDef[] = [
     samplePayload: { renewalId: '…', expiryDate: '2026-09-30' },
   },
 
+  // ── CRM ──────────────────────────────────────────────────────────────
+  // Emitted at real mutation points in leads.routes.ts / deals.routes.ts.
+  {
+    id: 'lead.created',
+    kind: 'DOMAIN_EVENT',
+    app: 'crm',
+    label: 'Lead captured',
+    description: 'A new lead was added to the CRM.',
+    entityType: 'lead',
+    payloadSchema: z.object({
+      company: z.string(),
+      source: z.string(),
+      value: z.number(),
+    }).passthrough(),
+    samplePayload: { company: 'Msomi Logistics', source: 'Web Form', value: 0 },
+  },
+  {
+    id: 'lead.stage_changed',
+    kind: 'DOMAIN_EVENT',
+    app: 'crm',
+    label: 'Lead stage changed',
+    description: 'A lead moved to a different funnel stage.',
+    entityType: 'lead',
+    payloadSchema: z.object({
+      from: z.string(),
+      to: z.string(),
+      company: z.string(),
+    }).passthrough(),
+    samplePayload: { from: 'NEW', to: 'QUALIFIED', company: 'Msomi Logistics' },
+  },
+  {
+    id: 'deal.created',
+    kind: 'DOMAIN_EVENT',
+    app: 'crm',
+    label: 'Deal created',
+    description: 'A new deal was added to the pipeline (directly or by converting a lead).',
+    entityType: 'deal',
+    payloadSchema: z.object({
+      name: z.string(),
+      value: z.number(),
+      fromLead: z.boolean(),
+    }).passthrough(),
+    samplePayload: { name: 'Msomi annual clearing contract', value: 5000000, fromLead: true },
+  },
+  {
+    id: 'deal.stage_changed',
+    kind: 'DOMAIN_EVENT',
+    app: 'crm',
+    label: 'Deal stage changed',
+    description: 'A deal moved to a different pipeline stage — including won/lost.',
+    entityType: 'deal',
+    payloadSchema: z.object({
+      from: z.string(),
+      to: z.string(),
+      name: z.string(),
+      value: z.number(),
+    }).passthrough(),
+    samplePayload: { from: 'PROPOSAL', to: 'NEGOTIATION', name: 'Msomi annual clearing contract', value: 5000000 },
+  },
+  {
+    id: 'deal.won',
+    kind: 'DOMAIN_EVENT',
+    app: 'crm',
+    label: 'Deal won',
+    description: 'A deal was marked won — the obvious hook for "raise an invoice", "notify finance", "start onboarding".',
+    entityType: 'deal',
+    payloadSchema: z.object({
+      name: z.string(),
+      value: z.number(),
+      customerId: z.string().nullable(),
+    }).passthrough(),
+    samplePayload: { name: 'Msomi annual clearing contract', value: 5000000, customerId: null },
+  },
+  {
+    id: 'deal.lost',
+    kind: 'DOMAIN_EVENT',
+    app: 'crm',
+    label: 'Deal lost',
+    description: 'A deal was marked lost, with a reason.',
+    entityType: 'deal',
+    payloadSchema: z.object({
+      name: z.string(),
+      value: z.number(),
+      reason: z.string().nullable(),
+    }).passthrough(),
+    samplePayload: { name: 'Msomi annual clearing contract', value: 5000000, reason: 'Went with a competitor on price' },
+  },
+
   // Non-event triggers. These need no emitter, so they are exempt from the
   // check above — the scheduler and the Run button are their emitters.
   {

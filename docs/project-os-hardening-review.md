@@ -6,6 +6,45 @@
 
 ---
 
+# Round 4 — the working Projects app was rewritten and shipped broken to `master`
+
+**Status change:** commit `756ff13f` ("feat: implement CRM deals, multi-entity labeling system, and project governance modules…") landed everything — migration 448, the `/v1/project-os` API, the 9 new frontend pages, `client.ts`, **and a rewrite of the existing Projects app shell/UI** — onto `master`. Round-1 P0-2 (untracked migration) is resolved by the commit, but none of the P0/P1 findings from Rounds 1–3 were addressed first, so the Project OS layer is now in the mainline history in its non-functional state. It also got merged into one commit with unrelated CRM work.
+
+`git diff 460a13b2 756ff13f` on the Projects app: `ProjectsApp.tsx` 2094 lines changed (net −276), `ProjectsShell.tsx` rewritten.
+
+### RG-1 · The Projects app now opens on a permanent loading spinner (P0 — shipped regression)
+
+`ProjectsShell.tsx` new default route:
+```
+<Route index element={<ProjectsApp initialMode="command_center" />} />
+```
+`ProjectsApp` renders `<ProjectCommandCenter>` for `command_center` mode → it calls `GET /v1/project-os/command-center` → 500 (`.sum('projects.current_budget')`, column doesn't exist — Round 2) → `catch { setData(null) }` → the render branch shows `"Loading Project OS Command Center…"` forever (Round-3 F8: failed and loading are indistinguishable). **Every user opening `/projects` now sees an indefinite spinner instead of their project list.** The working project list still exists but was demoted to `/projects/all` ("Projects Directory" in the new nav).
+
+### RG-2 · New top-level nav destinations are dead
+
+`ProjectsShell.tsx` nav: **Command Center** (RG-1), **Portfolios & Programs** (`/projects/portfolios` → `ProjectPortfolios`, all `/v1/project-os/portfolios|programs` calls 500), **Heavy Machinery & Fleet** (`/projects/resources` → `ProjectResources`, `/v1/project-os/resources` 500). 2 of the 3 "Executive & Strategy" nav items lead nowhere. "Contracts & Tenders" (`<Contracts/>`) is unchanged and fine.
+
+### RG-3 · Five new project-detail tabs are dead, but the working ones survived
+
+`ProjectsApp.tsx`'s `tab` union kept all 11 original tabs (`overview`, `board`, `gantt`, `timesheets`, `files`, `discussions`, `tickets`, `sales`, `activity`, `milestones`, `members`) — those still hit `/v1/tasks/projects/*` and work. It **added** `wbs_schedule`, `financials_evm`, `governance`, `procurement`, `industry_pack` (lines 1266–1292) rendering the Round-3 components against `/v1/project-os/*` → all 500. So opening a project is fine; clicking any of the 5 new tabs is broken. The `2094`-line diff is mostly this reorg (extracting `ProjectCreateModal`, adding the `appViewMode` switch), not deletion of working features — verified the detail-tab code paths survived.
+
+### RG-4 · `ProjectCreateModal` — portfolio/program pickers silently always empty
+
+`ProjectCreateModal.tsx:59-60` fetches `/v1/project-os/portfolios` + `/programs` on open (both 500 → `.catch(() => setPortfolios([]))`), so the "assign to portfolio / program" dropdowns never populate — no error shown, they just look like there are no portfolios. The actual create call (`:96`) is `POST /v1/tasks/projects` (the real, working endpoint), so **creating a project still works**, minus the portfolio linkage. (Also `:61` fetches `/v1/crm/customers` — confirm that's a real route; the platform's customer endpoint is `/v1/customers`.)
+
+### Net effect for a real tenant on `master` today
+
+- `/projects` → infinite spinner.
+- 2 of 3 strategy nav items → broken pages.
+- Project list, board, gantt, timesheets, milestones, files, discussions, invoicing (`sales` tab), members → **still work** (unchanged backend), reachable via `/projects/all`.
+- Create project → works, portfolio/program linkage dead.
+
+Recommend the reconciliation (Rounds 1–2) be treated as a `master` hotfix priority.
+
+**Mitigation applied** (this session, `ProjectsShell.tsx` only): `/projects` index now renders `initialMode="projects_list"` (the working list); the Command Center / Portfolios / Resources views are kept routed (`/projects/command-center`, `/projects/portfolios`, `/projects/resources` — so the reconciliation work can test them) but removed from the nav. `npx tsc --noEmit` clean. To revert once `/v1/project-os` runs: restore the two-group `NAV` and `initialMode="command_center"` on the index route (a comment in the file spells this out). This addresses RG-1/RG-2 only — the API, RG-3/RG-4, and Rounds 1–3 are unchanged.
+
+---
+
 # Round 3 — frontend (`apps/web/src/pages/projects/`, 9 files, ~5,100 lines)
 
 Static review only (no browser tool this session). Findings independent of Round 2's dead API — these are real regardless of backend status, and several will still be wrong once the schema is reconciled.
@@ -110,6 +149,14 @@ Portfolio SPI is hardcoded to **1.02**. It is displayed as a real KPI. The brief
 ### R2-4 · Free-text supplier bypass (P1, undermines the platform)
 
 `createRfq` / `createPurchaseOrder` accept `supplier_name: string` and write it to columns that don't exist; `supplier_id` is optional in the zod schema but `NOT NULL REFERENCES suppliers(id)` in the DB. This bypasses the real `suppliers` table, the PO-Suppliers app, and supplier-performance tracking (brief Part 18). 448 modelled it correctly (FK to `suppliers`). Keep the FK; the create endpoints should take `supplier_id` (required) with an inline "create supplier" affordance that writes a real `suppliers` row, exactly as `EntityPicker` does elsewhere.
+
+### R2-4b · Full read of all 5 service files (coverage note)
+
+All of `project-os.service.ts`, `project-governance.service.ts`, `project-procurement.service.ts`, `project-resources.service.ts`, `project-industry.service.ts` have now been read in full. The drift is uniform — every insert/select in every method targets the `project-os.ts` design, not the applied 448 schema, so **every endpoint 500s** (matches the live proof in R2-1). Two additional bugs that are *independent of the drift* and will still be wrong after reconciliation:
+
+- **`project-procurement.service.ts:createGoodsReceipt`** sets the parent PO to `status: 'received'` — not a member of any PO status enum (drifted *or* real DB); and there's no check the PO belongs to the project.
+- **`project-resources.service.ts:createAllocation`** sets the resource to `status: 'allocated'` on every allocation, with **no release/de-allocation path anywhere in the service** and **no overlap check** — so a resource is `ALLOCATED` forever after its first allocation, and unlimited conflicting allocations of the same machine/person are allowed. This directly defeats brief Part 19's "which machine is overallocated / which employee is on conflicting projects", and makes `getCommandCenterMetrics`' machinery-utilisation % a number that only ever rises.
+- **`project-industry.service.ts:createRecord`** never provides `entity_type` / `entity_code` / `title` — all three `NOT NULL` in the real table — so it cannot succeed even once the column names are fixed; the EAV table's own required shape isn't satisfied (see round-1 P1-1).
 
 ### R2-5 · Smaller issues
 

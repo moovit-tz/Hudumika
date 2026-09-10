@@ -20,6 +20,9 @@ import { showConfirm } from '../lib/confirm.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { ActivityTimeline } from '../components/crm/ActivityTimeline.js';
 import { LabelChips } from '../components/crm/LabelChips.js';
+import { ComposeEmailButton } from '../components/crm/ComposeEmailButton.js';
+import { StartCallButton } from '../components/crm/StartCallButton.js';
+import { CustomFieldsPanel } from '../components/crm/CustomFieldsPanel.js';
 
 /* ── Types ── */
 export interface Lead {
@@ -35,6 +38,7 @@ export interface Lead {
   assigned_to?: string;
   assigned_to_id?: string;
   assigned_to_name?: string;
+  score?: number;
   expected_close?: string;
   created_at: string;
   notes?: string;
@@ -135,6 +139,19 @@ function SourceBadge({ source }: { source: string }) {
 function PriBadge({ priority }: { priority: string }) {
   const c = PRIORITY_CFG[priority] || PRIORITY_CFG.LOW;
   return <span style={{ padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 600, background: c.bg, color: c.color }}>{c.label}</span>;
+}
+
+/** Rule-based lead score (migration 454). Only rendered when scoring rules
+ *  exist — an undefined score means the tenant hasn't set any up. */
+export function ScoreBadge({ score }: { score?: number }) {
+  if (score === undefined) return null;
+  const color = score >= 70 ? 'var(--green)' : score >= 40 ? 'var(--gold)' : 'var(--ink3)';
+  const bg = score >= 70 ? 'var(--green-l)' : score >= 40 ? 'var(--gold-l)' : 'var(--bg)';
+  return (
+    <span title="Lead score" className="mono" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: bg, color }}>
+      {score}
+    </span>
+  );
 }
 
 function Th({ children, align = 'left', width }: { children?: React.ReactNode; align?: 'left' | 'right' | 'center'; width?: number | string }) {
@@ -549,6 +566,7 @@ export const Leads: React.FC = () => {
                   <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', margin: 0, letterSpacing: '-0.3px' }}>{sel.company}</h1>
                   <StageBadge stage={sel.stage} />
                   <PriBadge priority={sel.priority} />
+                  <ScoreBadge score={sel.score} />
                   {sel.industry && <span style={{ padding: '2px 9px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 600, background: 'var(--bg)', color: 'var(--ink2)', border: '1px solid var(--border)' }}>{sel.industry}</span>}
                 </div>
                 <div style={{ marginBottom: 8 }}>
@@ -582,10 +600,12 @@ export const Leads: React.FC = () => {
 
               {/* Action buttons */}
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                <button type="button" style={btnS} onClick={() => sel.contact_email && window.open(`mailto:${sel.contact_email}`, '_blank')}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
-                  <Icon name="mail" size={13} strokeWidth={1.75} /> Email
-                </button>
+                <ComposeEmailButton subjectType="lead" subjectId={sel.id} onSent={() => setProfileTab('activity')}>
+                  <button type="button" style={btnS}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
+                    <Icon name="mail" size={13} strokeWidth={1.75} /> Email
+                  </button>
+                </ComposeEmailButton>
                 <button type="button" style={btnS} onClick={() => { const p = sel.contact_phone?.replace(/\D/g, ''); if (p) window.open(`https://wa.me/${p}`, '_blank'); }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
                   <Icon name="send" size={13} strokeWidth={1.75} /> WhatsApp
@@ -696,25 +716,41 @@ export const Leads: React.FC = () => {
                     </div>
                   </SectionCard>
 
+                  <CustomFieldsPanel entityType="lead" subjectId={sel.id} heading="Custom Fields" />
+
                   {/* Quick actions */}
                   <SectionCard title="Quick Actions">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {([
-                        { label: 'Send Email',         icon: 'mail'       as IconName, action: () => sel.contact_email && window.open(`mailto:${sel.contact_email}`) },
-                        { label: 'Send WhatsApp',      icon: 'send'       as IconName, action: () => { const p = sel.contact_phone?.replace(/\D/g,''); if(p) window.open(`https://wa.me/${p}`,'_blank'); } },
-                        { label: 'Convert to Deal',    icon: 'briefcase'  as IconName, action: convertToDeal },
-                        { label: 'Edit Lead Details',  icon: 'edit'       as IconName, action: () => openEdit(sel) },
-                        { label: 'Add Notes',          icon: 'fileText'   as IconName, action: () => setProfileTab('notes') },
-                        { label: 'Mark as Won',        icon: 'check'      as IconName, action: () => updateStage('WON') },
-                        { label: 'Mark as Lost',       icon: 'x'         as IconName, action: () => updateStage('LOST') },
-                      ]).map(action => (
-                        <button key={action.label} type="button" onClick={action.action}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--white)')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}>
-                          <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
-                        </button>
-                      ))}
+                      {(() => {
+                        const qaStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, width: '100%' };
+                        const hover = { onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = 'var(--white)'), onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = 'var(--bg)') };
+                        return (
+                          <>
+                            <ComposeEmailButton subjectType="lead" subjectId={sel.id} onSent={() => setProfileTab('activity')}>
+                              <button type="button" style={qaStyle} {...hover}>
+                                <Icon name="mail" size={13} color="var(--teal)" strokeWidth={1.75} /> Send Email
+                              </button>
+                            </ComposeEmailButton>
+                            <StartCallButton subjectType="lead" subjectId={sel.id} phone={sel.contact_phone} onLogged={() => setProfileTab('activity')}>
+                              <button type="button" style={qaStyle} {...hover}>
+                                <Icon name="phone" size={13} color="var(--teal)" strokeWidth={1.75} /> Start Call
+                              </button>
+                            </StartCallButton>
+                            {([
+                              { label: 'Send WhatsApp',      icon: 'send'       as IconName, action: () => { const p = sel.contact_phone?.replace(/\D/g,''); if(p) window.open(`https://wa.me/${p}`,'_blank'); } },
+                              { label: 'Convert to Deal',    icon: 'briefcase'  as IconName, action: convertToDeal },
+                              { label: 'Edit Lead Details',  icon: 'edit'       as IconName, action: () => openEdit(sel) },
+                              { label: 'Add Notes',          icon: 'fileText'   as IconName, action: () => setProfileTab('notes') },
+                              { label: 'Mark as Won',        icon: 'check'      as IconName, action: () => updateStage('WON') },
+                              { label: 'Mark as Lost',       icon: 'x'         as IconName, action: () => updateStage('LOST') },
+                            ]).map(action => (
+                              <button key={action.label} type="button" onClick={action.action} style={qaStyle} {...hover}>
+                                <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
+                              </button>
+                            ))}
+                          </>
+                        );
+                      })()}
                     </div>
                   </SectionCard>
                 </div>
@@ -1107,7 +1143,12 @@ export const Leads: React.FC = () => {
                     <td style={{ padding: '12px 14px' }}><SourceBadge source={lead.source} /></td>
                     <td style={{ padding: '12px 14px' }}><StageBadge stage={lead.stage} /></td>
                     <td style={{ padding: '12px 14px', textAlign: 'right', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 12.5, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{fmtValue(lead.value)}</td>
-                    <td style={{ padding: '12px 14px' }}><PriBadge priority={lead.priority} /></td>
+                    <td style={{ padding: '12px 14px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <PriBadge priority={lead.priority} />
+                        <ScoreBadge score={lead.score} />
+                      </span>
+                    </td>
                     <td style={{ padding: '12px 14px' }}>
                       {lead.assigned_to_id || lead.assigned_to ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>

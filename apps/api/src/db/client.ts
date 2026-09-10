@@ -238,6 +238,55 @@ export interface CrmLabelMappingsTable {
   created_at: Generated<Date>;
 }
 
+/** Migration 452 — a saved filter with live-computed membership, pinned to
+ *  one entity type (its filterable columns differ per table). Direct port
+ *  of contact_smart_groups. */
+export interface CrmSmartViewsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  entity_type: 'lead' | 'deal' | 'customer';
+  name: string;
+  match_type: Generated<'all' | 'any'>;
+  rules: Generated<unknown>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 453 — admin-defined custom fields per CRM entity type. */
+export interface CrmCustomFieldDefsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  entity_type: 'lead' | 'deal' | 'customer';
+  field_key: string;
+  label: string;
+  type: 'text' | 'number' | 'date' | 'select' | 'checkbox';
+  options: Generated<unknown>;
+  position: Generated<number>;
+  created_at: Generated<Date>;
+}
+
+export interface CrmCustomFieldValuesTable {
+  def_id: string;
+  subject_id: string;
+  value: string | null;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 454 — one row per rule an admin adds to the lead score. */
+export interface CrmLeadScoringRulesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  label: string;
+  field: string;
+  op: string;
+  value: string | null;
+  points: Generated<number>;
+  active: Generated<boolean>;
+  position: Generated<number>;
+  created_at: Generated<Date>;
+}
+
 /** Every real customer/lead search — see 264_crm_search_history.sql. */
 export interface CrmSearchHistoryTable {
   id: Generated<string>;
@@ -4971,6 +5020,10 @@ export interface Database {
   crm_activities: CrmActivitiesTable;
   crm_labels: CrmLabelsTable;
   crm_label_mappings: CrmLabelMappingsTable;
+  crm_smart_views: CrmSmartViewsTable;
+  crm_custom_field_defs: CrmCustomFieldDefsTable;
+  crm_custom_field_values: CrmCustomFieldValuesTable;
+  crm_lead_scoring_rules: CrmLeadScoringRulesTable;
   crm_search_history: CrmSearchHistoryTable;
   notes: NotesTable;
   note_labels: NoteLabelsTable;

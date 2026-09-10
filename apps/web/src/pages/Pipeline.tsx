@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle } from '../components/ui/dialog.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -12,6 +13,9 @@ import { showAlert } from '../lib/alert.js';
 import { showPrompt } from '../lib/prompt.js';
 import { ActivityTimeline } from '../components/crm/ActivityTimeline.js';
 import { LabelChips } from '../components/crm/LabelChips.js';
+import { ComposeEmailButton } from '../components/crm/ComposeEmailButton.js';
+import { StartCallButton } from '../components/crm/StartCallButton.js';
+import { CustomFieldsPanel } from '../components/crm/CustomFieldsPanel.js';
 
 /* ── Types — mirror deals.routes.ts's mapDeal() shape ── */
 interface Deal {
@@ -119,6 +123,7 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
   const [staff, setStaff] = useState<{ value: string; label: string }[]>([]);
   const [expectedClose, setExpectedClose] = useState<string | undefined>(deal?.expected_close);
   const [saving, setSaving] = useState(false);
+  const [activityRefresh, setActivityRefresh] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -162,69 +167,89 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={onClose}>
-      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 24, width: 440, maxWidth: '92vw', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{deal ? 'Edit deal' : 'New deal'}</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent size="md">
+        <DialogHeader>
+          <DialogTitle>{deal ? 'Edit deal' : 'New deal'}</DialogTitle>
+        </DialogHeader>
 
-        {deal && <LabelChips subjectType="deal" subjectId={deal.id} />}
+        <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {deal && <LabelChips subjectType="deal" subjectId={deal.id} />}
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Deal name</span>
-          <input className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Msomi Logistics — annual clearing contract" autoFocus />
-        </label>
-
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Customer (optional)</span>
-          <EntityPicker value={customer} onChange={setCustomer} search={searchCustomers} placeholder="Search customers…" />
-        </label>
-
-        <div style={{ display: 'flex', gap: 10 }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 2 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Value</span>
-            <input className="input-field" type="number" min={0} value={value} onChange={e => setValue(e.target.value)} />
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Deal name</span>
+            <input className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Msomi Logistics — annual clearing contract" autoFocus />
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Currency</span>
-            <Select value={currency} onValueChange={setCurrency}>
-              <SelectTrigger className="input-field" style={{ height: 36, padding: '0 8px' }}><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {['TZS', 'USD', 'KES', 'UGX'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
+
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Customer (optional)</span>
+            <EntityPicker value={customer} onChange={setCustomer} search={searchCustomers} placeholder="Search customers…" />
           </label>
-        </div>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Owner</span>
-          <Combobox
-            options={staff}
-            value={ownerId}
-            onChange={setOwnerId}
-            placeholder={staff.length ? 'Assign to…' : 'Loading people…'}
-            searchPlaceholder="Search people…"
-          />
-        </label>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 2 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Value</span>
+              <input className="input-field" type="number" min={0} value={value} onChange={e => setValue(e.target.value)} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Currency</span>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger className="input-field" style={{ height: 36, padding: '0 8px' }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['TZS', 'USD', 'KES', 'UGX'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </label>
+          </div>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Expected close</span>
-          <DatePicker date={parseDateOnly(expectedClose)} onChange={d => setExpectedClose(d ? toDateOnlyString(d) : undefined)} />
-        </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Owner</span>
+            <Combobox
+              options={staff}
+              value={ownerId}
+              onChange={setOwnerId}
+              placeholder={staff.length ? 'Assign to…' : 'Loading people…'}
+              searchPlaceholder="Search people…"
+            />
+          </label>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Expected close</span>
+            <DatePicker date={parseDateOnly(expectedClose)} onChange={d => setExpectedClose(d ? toDateOnlyString(d) : undefined)} />
+          </label>
+
+          {deal && <CustomFieldsPanel entityType="deal" subjectId={deal.id} heading="Custom Fields" />}
+
+          {deal && (
+            <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 14, marginTop: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Activity</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <ComposeEmailButton subjectType="deal" subjectId={deal.id} onSent={() => setActivityRefresh(n => n + 1)}>
+                    <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '4px 10px', height: 26, fontSize: 11.5 }}>
+                      <Icon name="mail" size={11} /> Email
+                    </button>
+                  </ComposeEmailButton>
+                  <StartCallButton subjectType="deal" subjectId={deal.id} onLogged={() => setActivityRefresh(n => n + 1)}>
+                    <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '4px 10px', height: 26, fontSize: 11.5 }}>
+                      <Icon name="phone" size={11} /> Call
+                    </button>
+                  </StartCallButton>
+                </div>
+              </div>
+              <ActivityTimeline key={activityRefresh} subjectType="deal" subjectId={deal.id} />
+            </div>
+          )}
+        </DialogBody>
+
+        <DialogFooter>
           <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
           <button type="button" className="btn btn-primary btn-sm" disabled={saving || !name.trim()} onClick={save}>
             {saving ? 'Saving…' : deal ? 'Save changes' : 'Create deal'}
           </button>
-        </div>
-
-        {deal && (
-          <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 14, marginTop: 4 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 10 }}>Activity</div>
-            <ActivityTimeline subjectType="deal" subjectId={deal.id} />
-          </div>
-        )}
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
