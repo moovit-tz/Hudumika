@@ -126,6 +126,56 @@ const envSchema = z.object({
    *  my own address" setting to reuse for that. */
   API_BASE_URL: z.string().url().default('http://localhost:3001'),
 
+  /**
+   * Drive ("cloud") object storage. Unset → files are stored on the local
+   * disk under apps/api/uploads/ (the historical behaviour, fine for a
+   * single-node dev box, not for a multi-node or ephemeral-filesystem
+   * deployment). Set all of S3_ENDPOINT + S3_BUCKET + S3_ACCESS_KEY_ID +
+   * S3_SECRET_ACCESS_KEY → every read/write/delete/signed-URL goes to that
+   * S3-compatible bucket instead (AWS S3, MinIO, Cloudflare R2, Backblaze
+   * B2, ...). integrations/storage.ts picks the driver from these at boot.
+   */
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_REGION: z.string().default('us-east-1'),
+  S3_BUCKET: z.string().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
+  // MinIO / most self-hosted S3 need path-style (bucket in the path, not the
+  // host); real AWS S3 wants virtual-hosted-style. Defaults to path-style
+  // since that's the self-hosted case this is most likely to be pointed at.
+  S3_FORCE_PATH_STYLE: z.coerce.boolean().default(true),
+  // Public base for presigned GET URLs, if the bucket is fronted by a CDN
+  // whose host differs from S3_ENDPOINT. Falls back to S3_ENDPOINT.
+  S3_PUBLIC_URL: z.string().url().optional(),
+
+  /**
+   * Signs the short-lived download URLs the disk storage driver hands out
+   * (GET /v1/files/signed/:key). Falls back to JWT_SECRET when unset — fine,
+   * since both are server-only HMAC keys of the same trust level.
+   */
+  FILE_SIGNING_SECRET: z.string().optional(),
+
+  /**
+   * ClamAV daemon for upload malware scanning. Unset → uploads are not
+   * scanned (logged once at boot), same "the feature is real once you point
+   * it at a real service" convention as SMTP/Meta/etc. Set CLAMAV_HOST
+   * (+ optionally CLAMAV_PORT, default 3310) → every Drive upload and new
+   * file version is streamed to clamd (INSTREAM) before it is stored, and a
+   * positive hit is rejected with 422 and the signature name.
+   */
+  CLAMAV_HOST: z.string().optional(),
+  CLAMAV_PORT: z.coerce.number().default(3310),
+  CLAMAV_TIMEOUT_MS: z.coerce.number().default(15000),
+
+  /**
+   * Path to a LibreOffice/soffice binary for server-side Office→PDF preview
+   * conversion (docx/xlsx/pptx/odt/...). Unset → those types have no inline
+   * preview and GET /v1/files/:id/preview returns 415 with a "download to
+   * view" hint (the frontend renders that honestly). Set e.g.
+   * /usr/bin/soffice → the route converts on demand and caches the PDF.
+   */
+  SOFFICE_BIN: z.string().optional(),
+
   AIS_API_KEY: z.string().optional(),
 
   /**

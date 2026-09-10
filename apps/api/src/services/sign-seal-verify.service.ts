@@ -237,7 +237,7 @@ export async function runContentComparison(
     //      down — see the comparisonNote fallback below.
     //   2. OCR text comparison (Phase 1) — scan-variation vs. genuine
     //      content difference.
-    const fetchCanonicalBytes = async () => (envelope.stamped_file_url ? MinioIntegration.readFile(envelope.stamped_file_url) : null);
+    const fetchCanonicalBytes = async () => (envelope.stamped_file_url ? await MinioIntegration.readFile(envelope.stamped_file_url) : null);
 
     let canonicalBytesForPdfChecks: Buffer | null = null;
     if (mediaType === 'application/pdf') {

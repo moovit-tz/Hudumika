@@ -5527,6 +5527,7 @@ export interface Database {
   cloud_file_shares: CloudFileSharesTable;
   cloud_file_comments: CloudFileCommentsTable;
   cloud_file_versions: CloudFileVersionsTable;
+  cloud_file_access_log: CloudFileAccessLogTable;
   cloud_storage_connections: CloudStorageConnectionsTable;
   cloud_external_files: CloudExternalFilesTable;
   cloud_drives: CloudDrivesTable;
@@ -9156,12 +9157,19 @@ export interface CloudFilesTable {
   share_token: string | null;
   entity_type: string | null;
   entity_id:   string | null;
+  // Extracted text content for full-text search (migration 455) — populated
+  // by the upload path for text/csv/md/json + PDF; null for everything else.
+  // search_tsv is a stored generated column (name+description+search_text);
+  // never written directly, and typed `unknown` since Kysely can't map tsvector.
+  search_text: string | null;
+  search_tsv:  Generated<unknown>;
   created_at:  Generated<Date>;
   updated_at:  Generated<Date>;
 }
 
 export interface CloudFileSharesTable {
   id:          Generated<string>;
+  tenant_id:   string; // migration 455 — was absent; backfilled from cloud_files
   file_id:     string;
   person_name: string;
   role:        Generated<string>; // 'Viewer' | 'Editor'
@@ -9172,6 +9180,20 @@ export interface CloudFileSharesTable {
   // no principal (including any principal_type='user') stays informational.
   principal_type: string | null;
   principal_id:   string | null;
+}
+
+export interface CloudFileAccessLogTable {
+  id:         Generated<string>;
+  tenant_id:  string;
+  file_id:    string;
+  version_id: string | null;
+  user_id:    string | null; // null = anonymous public share-link fetch
+  actor_name: Generated<string>;
+  action:     'download' | 'preview' | 'version_download' | 'link_download';
+  via:        Generated<'app' | 'public_link'>;
+  ip:         string | null;
+  user_agent: string | null;
+  created_at: Generated<Date>;
 }
 
 export interface CloudFileCommentsTable {
@@ -9210,6 +9232,7 @@ export interface CloudDrivesTable {
 
 export interface CloudDriveMembersTable {
   id:          Generated<string>;
+  tenant_id:   string; // migration 455 — was absent; backfilled from cloud_drives
   drive_id:    string;
   person_name: string;
   role:        Generated<string>; // 'manager' | 'content_manager' | 'contributor' | 'commenter' | 'viewer'
@@ -9217,26 +9240,38 @@ export interface CloudDriveMembersTable {
 }
 
 export interface CloudExternalFilesTable {
-  id:         Generated<string>;
-  tenant_id:  string;
-  provider:   string; // 'box' | 'dropbox' | 'mega' | 'onedrive'
-  name:       string;
-  type:       string; // 'folder' or a file extension
-  size:       number | null;
-  parent_id:  string | null;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
+  id:          Generated<string>;
+  tenant_id:   string;
+  provider:    string; // 'box' | 'dropbox' | 'mega' | 'onedrive'
+  name:        string;
+  type:        string; // 'folder' or a file extension
+  size:        number | null;
+  parent_id:   string | null;
+  external_id: string | null; // provider's own file id (migration 455)
+  web_url:     string | null;
+  path:        string | null;
+  created_at:  Generated<Date>;
+  updated_at:  Generated<Date>;
 }
 
 export interface CloudStorageConnectionsTable {
   id:             Generated<string>;
   tenant_id:      string;
-  provider:       string; // 'box' | 'dropbox' | 'mega'
+  provider:       string; // 'box' | 'dropbox' | 'mega' | 'onedrive'
   status:         Generated<string>; // 'connected' | 'disconnected'
   account_label:  string | null;
   auto_sync:      Generated<boolean>;
   connected_at:   Date | null;
   last_synced_at: Date | null;
+  // BYO-OAuth credentials + tokens (migration 455) — client secret and both
+  // tokens are AES-256-GCM ciphertext (onsite-secrets.service.ts), never plaintext.
+  oauth_client_id:         string | null;
+  oauth_client_secret_enc: string | null;
+  access_token_enc:        string | null;
+  refresh_token_enc:       string | null;
+  token_expires_at:        Date | null;
+  account_email:           string | null;
+  last_sync_error:         string | null;
   created_at:     Generated<Date>;
   updated_at:     Generated<Date>;
 }

@@ -141,7 +141,7 @@ export async function documentRoutes(fastify: FastifyInstance) {
       if (!doc || !doc.storage_key) return reply.status(404).send({ error: 'Document not found' });
 
       // Try to serve file directly (dev mode)
-      const fileBuffer = MinioIntegration.readFile(doc.storage_key);
+      const fileBuffer = await MinioIntegration.readFile(doc.storage_key);
       if (fileBuffer) {
         const ext = (doc.filename || '').split('.').pop()?.toLowerCase() || '';
         const mimeTypes: Record<string, string> = {

@@ -2175,7 +2175,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
       trx.selectFrom('hr_candidates').select(['resume_storage_key', 'resume_filename'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst());
     if (!candidate?.resume_storage_key) return reply.status(404).send({ error: 'No résumé on file for this candidate.' });
-    const fileBuffer = MinioIntegration.readFile(candidate.resume_storage_key);
+    const fileBuffer = await MinioIntegration.readFile(candidate.resume_storage_key);
     if (!fileBuffer) return reply.status(404).send({ error: 'File missing from storage' });
     reply.header('Content-Type', 'application/octet-stream');
     reply.header('Content-Disposition', `attachment; filename="${(candidate.resume_filename || 'resume').replace(/"/g, '')}"`);

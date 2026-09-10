@@ -533,7 +533,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     if (!submission) return reply.status(404).send({ error: 'Not found' });
     if (submission.user_id !== user.sub && !isReviewer) return reply.status(403).send({ error: 'Forbidden' });
 
-    const bytes = MinioIntegration.readFile(submission.document_storage_key);
+    const bytes = await MinioIntegration.readFile(submission.document_storage_key);
     if (!bytes) return reply.status(404).send({ error: 'Document not found' });
     reply.header('Content-Type', 'application/octet-stream');
     return reply.send(bytes);

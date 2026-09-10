@@ -33,7 +33,7 @@ export async function signAiAssistRoutes(fastify: FastifyInstance) {
         trx.selectFrom('cloud_files').select(['storage_key', 'mime_type'])
           .where('id', '=', body.file_id!).where('tenant_id', '=', tid).executeTakeFirst());
       if (!file?.storage_key) return reply.status(404).send({ error: 'File not found' });
-      const buf = MinioIntegration.readFile(file.storage_key);
+      const buf = await MinioIntegration.readFile(file.storage_key);
       if (!buf) return reply.status(404).send({ error: 'File content not found in storage' });
       mediaType = file.mime_type || 'application/pdf';
       base64 = buf.toString('base64');

@@ -96,7 +96,7 @@ export async function sealDocumentRoutes(fastify: FastifyInstance) {
       );
       if (!doc) return reply.status(404).send({ error: 'Document not found' });
 
-      const fileBuffer = MinioIntegration.readFile(doc.storage_key);
+      const fileBuffer = await MinioIntegration.readFile(doc.storage_key);
       if (!fileBuffer) return reply.status(404).send({ error: 'File missing from storage' });
 
       const ext = (doc.filename || '').split('.').pop()?.toLowerCase() || '';

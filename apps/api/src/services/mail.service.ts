@@ -74,7 +74,7 @@ export const MailService = {
   /** Sends already-built subject/bodyHtml synchronously — see class doc for when to reach for this over enqueue(). */
   async sendNow(tenantId: string, input: EnqueueInput): Promise<SendResult> {
     const attachments = input.attachmentStorageKey
-      ? (() => { const content = MinioIntegration.readFile(input.attachmentStorageKey!); return content ? [{ filename: input.attachmentFilename || 'attachment', content }] : undefined; })()
+      ? await (async () => { const content = await MinioIntegration.readFile(input.attachmentStorageKey!); return content ? [{ filename: input.attachmentFilename || 'attachment', content }] : undefined; })()
       : undefined;
     const result = await EmailIntegration.sendEmail({ to: input.to, subject: input.subject, bodyHtml: input.bodyHtml, cc: input.cc, tenantId, attachments });
     const outboxId = await withTenant(tenantId, async (trx) => {

@@ -46,7 +46,7 @@ export async function runMailOutboxJob(): Promise<void> {
       // Read lazily, at send time rather than enqueue time, so a report
       // generated moments before this poll runs is already on disk.
       const attachments = item.attachment_storage_key
-        ? (() => { const content = MinioIntegration.readFile(item.attachment_storage_key!); return content ? [{ filename: item.attachment_filename || 'attachment', content }] : undefined; })()
+        ? await (async () => { const content = await MinioIntegration.readFile(item.attachment_storage_key!); return content ? [{ filename: item.attachment_filename || 'attachment', content }] : undefined; })()
         : undefined;
 
       const result = await EmailIntegration.sendEmail({

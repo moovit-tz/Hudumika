@@ -34,7 +34,8 @@ SELECT
     '["Access and manage your calendar events", "View your CRM contacts and user directory", "Send notifications on your behalf"]'::JSONB,
     NULL,
     'approved',
-    4.7, 1420, '10M+';
+    4.7, 1420, '10M+'
+WHERE EXISTS (SELECT 1 FROM users);
 
 INSERT INTO marketplace_apps (id, name, developer_id, developer_name, category, short_desc, long_desc, features, permissions, icon_url, status, rating, reviews_count, installs)
 SELECT
@@ -49,7 +50,8 @@ SELECT
     '["Read and write to your Cloud storage files", "Access customer contact details for envelope delivery", "Update shipment status upon signature completion"]'::JSONB,
     NULL,
     'approved',
-    4.8, 980, '5M+';
+    4.8, 980, '5M+'
+WHERE EXISTS (SELECT 1 FROM users);
 
 INSERT INTO marketplace_apps (id, name, developer_id, developer_name, category, short_desc, long_desc, features, permissions, icon_url, status, rating, reviews_count, installs)
 SELECT
@@ -64,7 +66,8 @@ SELECT
     '["Post messages and alerts to your Slack channels", "Read status updates from ClearOS shipments", "Link Slack user profiles with Hudumika accounts"]'::JSONB,
     NULL,
     'approved',
-    4.6, 2150, '8M+';
+    4.6, 2150, '8M+'
+WHERE EXISTS (SELECT 1 FROM users);
 
 -- Down Migration
 -- DROP TABLE marketplace_apps;

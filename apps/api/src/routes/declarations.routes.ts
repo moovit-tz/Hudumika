@@ -671,7 +671,7 @@ export async function declarationRoutes(fastify: FastifyInstance) {
         .where('declaration_id', '=', id).where('id', '=', attId).executeTakeFirst();
       if (!att || !att.storage_key) return reply.status(404).send({ error: 'Attachment not found' });
 
-      const fileBuffer = MinioIntegration.readFile(att.storage_key);
+      const fileBuffer = await MinioIntegration.readFile(att.storage_key);
       if (fileBuffer) {
         const ext = (att.filename || '').split('.').pop()?.toLowerCase() || '';
         reply.header('Content-Type', ATTACHMENT_MIME_TYPES[ext] || 'application/octet-stream');

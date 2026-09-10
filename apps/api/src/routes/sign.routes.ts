@@ -481,7 +481,7 @@ export async function signRoutes(fastify: FastifyInstance) {
         .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
       if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
       if (!envelope.stamped_file_url) return reply.status(404).send({ error: 'This document has not been signed yet' });
-      const buf = MinioIntegration.readFile(envelope.stamped_file_url);
+      const buf = await MinioIntegration.readFile(envelope.stamped_file_url);
       if (!buf) return reply.status(404).send({ error: 'Signed document file not found' });
       reply.header('Content-Type', 'application/pdf');
       reply.header('Content-Disposition', safeContentDisposition('attachment', `${envelope.title} - signed.pdf`));
@@ -1517,7 +1517,7 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     if (envelope.status !== 'completed' || !envelope.stamped_file_url) {
       return reply.status(404).send({ error: 'This document has not been completed yet' });
     }
-    const buf = MinioIntegration.readFile(envelope.stamped_file_url);
+    const buf = await MinioIntegration.readFile(envelope.stamped_file_url);
     if (!buf) return reply.status(404).send({ error: 'Signed document file not found' });
     reply.header('Content-Type', 'application/pdf');
     reply.header('Content-Disposition', safeContentDisposition('attachment', `${envelope.title} - signed.pdf`));
@@ -1613,7 +1613,7 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     const envelope = await dbPlatform.selectFrom('sign_envelopes').selectAll()
       .where('verification_code', '=', req.params.code.toUpperCase()).executeTakeFirst();
     if (!envelope || !envelope.stamped_file_url) return reply.status(404).send({ error: 'Signed document not available' });
-    let buf = MinioIntegration.readFile(envelope.stamped_file_url);
+    let buf = await MinioIntegration.readFile(envelope.stamped_file_url);
     if (!buf) {
       try {
         const recipients = await dbPlatform.selectFrom('sign_recipients').selectAll()

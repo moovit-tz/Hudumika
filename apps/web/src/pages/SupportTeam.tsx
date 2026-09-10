@@ -152,7 +152,7 @@ export const SupportTeam: React.FC = () => {
 
         {/* Top KPI Metrics Ribbon */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-          <div style={{ background: 'var(--white)', padding: 16, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ background: 'var(--card-bg, var(--white))', padding: 16, borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
               <Icon name="users" size={22} />
             </div>
@@ -164,7 +164,7 @@ export const SupportTeam: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ background: 'var(--white)', padding: 16, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ background: 'var(--card-bg, var(--white))', padding: 16, borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)' }}>
               <Icon name="checkCircle" size={22} />
             </div>
@@ -174,7 +174,7 @@ export const SupportTeam: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ background: 'var(--white)', padding: 16, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ background: 'var(--card-bg, var(--white))', padding: 16, borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)' }}>
               <Icon name="star" size={22} />
             </div>
@@ -184,7 +184,7 @@ export const SupportTeam: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ background: 'var(--white)', padding: 16, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ background: 'var(--card-bg, var(--white))', padding: 16, borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--blue)' }}>
               <Icon name="clock" size={22} />
             </div>
@@ -194,7 +194,7 @@ export const SupportTeam: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ background: 'var(--white)', padding: 16, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ background: 'var(--card-bg, var(--white))', padding: 16, borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)' }}>
               <Icon name="checkCircle" size={22} />
             </div>
@@ -207,11 +207,11 @@ export const SupportTeam: React.FC = () => {
 
         {/* Top Champion & Workload Banner */}
         {topChampion && (
-          <div style={{ background: 'linear-gradient(135deg, var(--teal-l) 0%, var(--blue-l) 100%)', borderRadius: 'var(--r-lg)', border: '1px solid var(--teal)', padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
+          <div style={{ background: 'var(--teal-l)', borderRadius: 12, border: '1px solid var(--border)', padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ position: 'relative' }}>
                 <PersonAvatar name={topChampion.name} userId={topChampion.id} size={48} />
-                <div style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--gold)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--elev)' }}>
+                <div style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--gold)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="award" size={12} />
                 </div>
               </div>
@@ -423,7 +423,7 @@ export const SupportTeam: React.FC = () => {
               {processedAgents.map(a => {
                 const isHighLoad = a.open > 3;
                 return (
-                  <div key={a.id} style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', padding: 16, boxShadow: 'var(--elev)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div key={a.id} style={{ background: 'var(--card-bg, var(--white))', borderRadius: 12, border: '1px solid var(--border)', padding: 16, boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ position: 'relative' }}>

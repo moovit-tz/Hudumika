@@ -113,9 +113,9 @@ export async function signForensicsRoutes(fastify: FastifyInstance) {
         .where('id', '=', job.envelope_id ?? '').executeTakeFirst();
       if (!envelope) return reply.status(404).send({ error: 'The envelope this job belongs to no longer exists.' });
 
-      const uploadedBytes = MinioIntegration.readFile(job.storage_key);
+      const uploadedBytes = await MinioIntegration.readFile(job.storage_key);
       if (!uploadedBytes) return reply.status(410).send({ error: 'This job\'s uploaded evidence has already been cleaned up — a case can no longer be opened from it.' });
-      const canonicalBytes = envelope.stamped_file_url ? MinioIntegration.readFile(envelope.stamped_file_url) : null;
+      const canonicalBytes = envelope.stamped_file_url ? await MinioIntegration.readFile(envelope.stamped_file_url) : null;
 
       const outcome = job.result as unknown as CompareOutcome;
       const caseId = await openForensicCase(trx, {
@@ -186,7 +186,7 @@ export async function signForensicsRoutes(fastify: FastifyInstance) {
         .where('case_id', '=', kase.id).where('source', '=', 'uploaded')
         .orderBy('created_at', 'desc').executeTakeFirst();
       if (!uploadedEvidence) return reply.status(400).send({ error: 'This case has no uploaded evidence file to re-analyze.' });
-      const uploadedBytes = MinioIntegration.readFile(uploadedEvidence.storage_key);
+      const uploadedBytes = await MinioIntegration.readFile(uploadedEvidence.storage_key);
       if (!uploadedBytes) return reply.status(410).send({ error: 'The uploaded evidence file is no longer available on disk.' });
 
       const envelope = await trx.selectFrom('sign_envelopes')
@@ -263,7 +263,7 @@ export async function signForensicsRoutes(fastify: FastifyInstance) {
         .executeTakeFirst();
       if (!evidence) return reply.status(404).send({ error: 'Evidence not found' });
 
-      const bytes = MinioIntegration.readFile(evidence.storage_key);
+      const bytes = await MinioIntegration.readFile(evidence.storage_key);
       if (!bytes) return reply.status(404).send({ error: 'Evidence file is no longer available' });
 
       await recordCustodyEvent(trx, tid, req.params.id, 'exported',

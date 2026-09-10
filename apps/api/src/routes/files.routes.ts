@@ -1,10 +1,21 @@
 import crypto from 'crypto';
 import { requireEntitlement } from '../middleware/entitlement.js';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Transaction } from 'kysely';
+import { sql } from 'kysely';
 import type { Database } from '../db/client.js';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { objectStore, verifyDiskSignedUrl } from '../integrations/object-storage.js';
+import { scanBuffer } from '../integrations/antivirus.js';
+import { extractText } from '../lib/file-text-extract.js';
+import { canConvert, convertToPdf, officeConfigured, OfficeConvertUnavailable, previewCacheKey } from '../integrations/office-convert.js';
+import { decryptSecret, encryptSecret } from '../services/onsite-secrets.service.js';
+import { env } from '../config/env.js';
+import {
+  buildOneDriveAuthUrl, exchangeOneDriveCode, refreshOneDriveToken,
+  getOneDriveAccountEmail, listOneDriveFiles,
+} from '../integrations/onedrive-files.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
 import { isPlatformSuperAdmin } from '../middleware/rbac.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
@@ -12,6 +23,38 @@ import { getStorageQuota, wouldExceedStorageQuota } from '../lib/storage-quota.j
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { resolveServedContentType } from '../lib/safe-file-serving.js';
 import { bumpCloudFolderCount } from '../lib/cloud-folder-count.js';
+
+/** Records one read of a file's bytes (download / preview / version /
+ *  public-link) into cloud_file_access_log — the domain-event stream only
+ *  ever recorded writes. Best-effort: a logging failure never blocks the
+ *  actual download. */
+async function logFileAccess(
+  trx: Transaction<Database>,
+  args: {
+    tenantId: string; fileId: string; versionId?: string | null;
+    userId: string | null; actorName: string;
+    action: 'download' | 'preview' | 'version_download' | 'link_download';
+    via?: 'app' | 'public_link'; req: FastifyRequest;
+  },
+): Promise<void> {
+  try {
+    await trx.insertInto('cloud_file_access_log').values({
+      tenant_id: args.tenantId,
+      file_id: args.fileId,
+      version_id: args.versionId ?? null,
+      user_id: args.userId,
+      actor_name: args.actorName,
+      action: args.action,
+      via: args.via ?? 'app',
+      ip: (args.req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || args.req.ip || null,
+      user_agent: (args.req.headers['user-agent'] as string || '').slice(0, 500) || null,
+    }).execute();
+  } catch (err: any) {
+    console.error('[Cloud] access-log write failed:', err.message);
+  }
+}
+
+const OFFICE_PREVIEW_EXTS = new Set(['doc', 'docx', 'odt', 'rtf', 'xls', 'xlsx', 'ods', 'ppt', 'pptx', 'odp']);
 
 function fmtGB(bytes: number): string {
   return `${(bytes / 1_073_741_824).toFixed(1)} GB`;
@@ -59,8 +102,10 @@ type StorageProvider = typeof STORAGE_PROVIDERS[number];
 
 /** Rows come back from pg with BIGINT columns as strings — normalize for the frontend. */
 function serialize(row: any, shared: { name: string; role: string; principal_type?: string | null; principal_id?: string | null }[] = []) {
+  // search_text / search_tsv are server-side search internals — never shipped to the client.
+  const { search_text, search_tsv, ...rest } = row;
   return {
-    ...row,
+    ...rest,
     size: row.size != null ? Number(row.size) : null,
     file_count: row.file_count != null ? Number(row.file_count) : 0,
     shared,
@@ -344,8 +389,8 @@ export async function filesRoutes(fastify: FastifyInstance) {
       }
     }
 
-    const { drive_id, entity_type, entity_id, q } = req.query as
-      { drive_id?: string; entity_type?: string; entity_id?: string; q?: string };
+    const { drive_id, entity_type, entity_id, q, type: typeFilter, owner: ownerFilter } = req.query as
+      { drive_id?: string; entity_type?: string; entity_id?: string; q?: string; type?: string; owner?: string };
 
     if (entity_type && entity_id) {
       try {
@@ -384,14 +429,43 @@ export async function filesRoutes(fastify: FastifyInstance) {
       }
     }
 
-    if (q && q.trim()) {
+    if ((q && q.trim()) || typeFilter || ownerFilter) {
       try {
         return await withTenant(user.tenant_id, async (trx) => {
-          const rows = await trx.selectFrom('cloud_files').selectAll()
+          const term = (q ?? '').trim();
+          let query = trx.selectFrom('cloud_files').selectAll()
             .where('tenant_id', '=', user.tenant_id)
-            .where('type', '!=', 'folder').where('is_trash', '=', false)
-            .where('name', 'ilike', `%${q.trim()}%`)
-            .orderBy('created_at', 'desc').limit(30).execute();
+            .where('type', '!=', 'folder').where('is_trash', '=', false);
+
+          if (term) {
+            // Full-text over name + description + extracted content (migration
+            // 455's search_tsv), OR a trigram/substring hit on the name so a
+            // partial word or a short query ("inv", "q3") still matches.
+            query = query.where(eb => eb.or([
+              sql<boolean>`search_tsv @@ websearch_to_tsquery('simple', ${term})` as any,
+              eb('name', 'ilike', `%${term}%`),
+            ]));
+          }
+          if (typeFilter) {
+            // "images" | "pdf" | "docs" | "sheets" | "video" | "audio" | a bare extension
+            const groups: Record<string, string[]> = {
+              images: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'heic', 'bmp'],
+              pdf: ['pdf'],
+              docs: ['doc', 'docx', 'odt', 'rtf', 'txt', 'md', 'pages'],
+              sheets: ['xls', 'xlsx', 'ods', 'csv', 'numbers'],
+              slides: ['ppt', 'pptx', 'odp', 'key'],
+              video: ['mp4', 'mov', 'avi', 'mkv', 'webm'],
+              audio: ['mp3', 'wav', 'm4a', 'aac', 'flac', 'ogg'],
+              archives: ['zip', 'rar', '7z', 'tar', 'gz'],
+            };
+            const exts = groups[typeFilter.toLowerCase()] ?? [typeFilter.toLowerCase()];
+            query = query.where('type', 'in', exts);
+          }
+          if (ownerFilter) query = query.where('owner_id', '=', ownerFilter);
+
+          const rows = await query
+            .orderBy(term ? sql`ts_rank(search_tsv, websearch_to_tsquery('simple', ${term})) desc` : sql`created_at desc`)
+            .limit(term ? 60 : 200).execute();
           return attachShares(trx, rows);
         });
       } catch (err: any) {
@@ -502,6 +576,20 @@ export async function filesRoutes(fastify: FastifyInstance) {
         });
       }
 
+      // Malware scan before a single byte is persisted (no-op unless
+      // CLAMAV_HOST is configured — see integrations/antivirus.ts).
+      const scan = await scanBuffer(buffer);
+      if (!scan.clean) {
+        return reply.status(422).send({
+          error: 'MALWARE_DETECTED',
+          message: `This file was rejected by the malware scanner${scan.signature ? ` (${scan.signature})` : ''}.`,
+          signature: scan.signature ?? null,
+        });
+      }
+
+      // Extracted text for full-text search — text families + PDF; null otherwise.
+      const searchText = await extractText(buffer, extOf(data.filename), data.mimetype).catch(() => null);
+
       return await withTenant(user.tenant_id, async (trx) => {
         if (isCustomer) driveId = await ensureDefaultDrive(trx, user.tenant_id);
 
@@ -540,7 +628,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
 
         const { storageKey } = await MinioIntegration.uploadCloudFile(user.tenant_id, row.id, data.filename, buffer);
         const updated = await trx.updateTable('cloud_files')
-          .set({ storage_key: storageKey, updated_at: new Date() })
+          .set({ storage_key: storageKey, search_text: searchText, updated_at: new Date() })
           .where('id', '=', row.id).returningAll().executeTakeFirstOrThrow();
 
         if (parentId) await bumpParentCount(trx, parentId, user.tenant_id, 1, buffer.length);
@@ -571,12 +659,33 @@ export async function filesRoutes(fastify: FastifyInstance) {
         const cid = await resolveCustomerId(user);
         if (!(await canCustomerAccessFile(trx, user.tenant_id, cid, file))) return reply.status(403).send({ error: 'Not found' });
       }
-      const buf = MinioIntegration.readFile(file.storage_key);
+      const buf = await MinioIntegration.readFile(file.storage_key);
       if (!buf) return reply.status(404).send({ error: 'File content not found' });
+      await logFileAccess(trx, {
+        tenantId: user.tenant_id, fileId: file.id, userId: user.role === 'CUSTOMER' ? null : user.sub,
+        actorName: user.name ?? 'Someone', action: 'download', req,
+      });
       const { contentType } = resolveServedContentType(file.type);
       reply.header('Content-Disposition', `attachment; filename="${file.name.replace(/["\r\n]/g, '')}"`);
       reply.header('Content-Type', contentType);
       return reply.send(buf);
+    });
+  });
+
+  // GET /:id/signed-url — a short-lived direct URL a browser can GET without
+  // re-authenticating (S3 presigned GET, or an HMAC-signed passthrough link
+  // on the disk backend). Owner/staff only; not for CUSTOMER logins.
+  fastify.get('/:id/signed-url', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { id } = req.params as { id: string };
+    const ttl = Math.min(Math.max(Number((req.query as any).ttl) || 900, 60), 3600);
+    return withTenant(user.tenant_id, async (trx) => {
+      const file = await trx.selectFrom('cloud_files').select(['id', 'name', 'storage_key'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!file || !file.storage_key) return reply.status(404).send({ error: 'File content not available' });
+      const url = await MinioIntegration.getSignedUrl(user.tenant_id, file.storage_key, ttl);
+      return { url, expires_in: ttl };
     });
   });
 
@@ -596,8 +705,42 @@ export async function filesRoutes(fastify: FastifyInstance) {
         const cid = await resolveCustomerId(user);
         if (!(await canCustomerAccessFile(trx, user.tenant_id, cid, file))) return reply.status(403).send({ error: 'Not found' });
       }
-      const buf = MinioIntegration.readFile(file.storage_key);
+      const buf = await MinioIntegration.readFile(file.storage_key);
       if (!buf) return reply.status(404).send({ error: 'File content not found' });
+
+      await logFileAccess(trx, {
+        tenantId: user.tenant_id, fileId: file.id, userId: user.role === 'CUSTOMER' ? null : user.sub,
+        actorName: user.name ?? 'Someone', action: 'preview', req,
+      });
+
+      // Office documents (docx/xlsx/pptx/odt/...) have no browser-native
+      // inline renderer. If a LibreOffice binary is configured (SOFFICE_BIN),
+      // convert on demand and cache the resulting PDF in storage keyed by the
+      // source bytes' hash (so a new version reconverts). Otherwise, 415 with
+      // a hint the frontend renders as "download to view".
+      if (OFFICE_PREVIEW_EXTS.has((file.type || '').toLowerCase()) && canConvert(file.type)) {
+        if (!officeConfigured()) {
+          return reply.status(415).send({ error: 'PREVIEW_UNAVAILABLE', hint: 'download', type: file.type });
+        }
+        const cacheKey = `tenants/${user.tenant_id}/cloud/${previewCacheKey(file.id, buf)}`;
+        try {
+          let pdf = await objectStore.get(cacheKey);
+          if (!pdf) {
+            pdf = await convertToPdf(buf, file.type);
+            await objectStore.put(cacheKey, pdf, 'application/pdf');
+          }
+          reply.header('Content-Disposition', `inline; filename="${file.name.replace(/\.[^.]+$/, '').replace(/["\r\n]/g, '')}.pdf"`);
+          reply.header('Content-Type', 'application/pdf');
+          return reply.send(pdf);
+        } catch (err) {
+          if (err instanceof OfficeConvertUnavailable) {
+            return reply.status(415).send({ error: 'PREVIEW_UNAVAILABLE', hint: 'download', type: file.type });
+          }
+          console.error('[Cloud] office preview conversion failed:', (err as any)?.message);
+          return reply.status(422).send({ error: 'PREVIEW_CONVERSION_FAILED', hint: 'download' });
+        }
+      }
+
       // Never trust the stored mime_type for what the browser is told to
       // execute — it's whatever the uploader's request claimed. Only a fixed
       // image/pdf/video/audio allowlist may render inline; everything else
@@ -606,6 +749,28 @@ export async function filesRoutes(fastify: FastifyInstance) {
       reply.header('Content-Disposition', `${inlineAllowed ? 'inline' : 'attachment'}; filename="${file.name.replace(/["\r\n]/g, '')}"`);
       reply.header('Content-Type', contentType);
       return reply.send(buf);
+    });
+  });
+
+  // GET /:id/access-log — who has opened this file and when. Owner or a
+  // MANAGER+/ADMIN; not exposed to CUSTOMER logins.
+  fastify.get('/:id/access-log', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { id } = req.params as { id: string };
+    const limit = Math.min(Math.max(Number((req.query as any).limit) || 50, 1), 200);
+    return withTenant(user.tenant_id, async (trx) => {
+      const file = await trx.selectFrom('cloud_files').select(['id', 'owner_id'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!file) return reply.status(404).send({ error: 'Not found' });
+      const privileged = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'OWNER'].includes(user.role as string);
+      if (!privileged && file.owner_id !== user.sub) {
+        return reply.status(403).send({ error: 'Only the file owner or an admin can see the access log.' });
+      }
+      const rows = await trx.selectFrom('cloud_file_access_log').selectAll()
+        .where('file_id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .orderBy('created_at', 'desc').limit(limit).execute();
+      return { data: rows };
     });
   });
 
@@ -843,7 +1008,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
         if (shared?.length) {
           await trx.insertInto('cloud_file_shares').values(
             shared.map(s => ({
-              file_id: id, person_name: s.name, role: s.role,
+              tenant_id: user.tenant_id, file_id: id, person_name: s.name, role: s.role,
               principal_type: s.principal_type ?? null, principal_id: s.principal_id ?? null,
             }))
           ).execute();
@@ -987,14 +1152,24 @@ export async function filesRoutes(fastify: FastifyInstance) {
         });
       }
 
+      const scan = await scanBuffer(buffer);
+      if (!scan.clean) {
+        return reply.status(422).send({
+          error: 'MALWARE_DETECTED',
+          message: `This file was rejected by the malware scanner${scan.signature ? ` (${scan.signature})` : ''}.`,
+          signature: scan.signature ?? null,
+        });
+      }
+
       return await withTenant(user.tenant_id, async (trx) => {
         const file = await trx.selectFrom('cloud_files').selectAll()
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         if (!file) return reply.status(404).send({ error: 'Not found' });
         if (file.type === 'folder') return reply.status(400).send({ error: 'Folders have no version history' });
+        const searchText = await extractText(buffer, file.type, data.mimetype).catch(() => null);
 
         if (file.storage_key) {
-          const oldBytes = MinioIntegration.readFile(file.storage_key);
+          const oldBytes = await MinioIntegration.readFile(file.storage_key);
           if (oldBytes) {
             const archiveId = crypto.randomUUID();
             const { storageKey: archivedKey } = await MinioIntegration.uploadCloudFile(user.tenant_id, `${id}/versions/${archiveId}`, file.name, oldBytes);
@@ -1011,7 +1186,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
         const { storageKey } = await MinioIntegration.uploadCloudFile(user.tenant_id, id, file.name, buffer);
         const sizeDelta = buffer.length - (Number(file.size) || 0);
         const updated = await trx.updateTable('cloud_files').set({
-          storage_key: storageKey, size: buffer.length, mime_type: data.mimetype, updated_at: new Date(),
+          storage_key: storageKey, size: buffer.length, mime_type: data.mimetype, search_text: searchText, updated_at: new Date(),
         }).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
 
         if (file.parent_id) await bumpParentCount(trx, file.parent_id, user.tenant_id, 0, sizeDelta);
@@ -1051,8 +1226,12 @@ export async function filesRoutes(fastify: FastifyInstance) {
       const version = await trx.selectFrom('cloud_file_versions').selectAll()
         .where('id', '=', versionId).where('file_id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!version) return reply.status(404).send({ error: 'Version not found' });
-      const buf = MinioIntegration.readFile(version.storage_key);
+      const buf = await MinioIntegration.readFile(version.storage_key);
       if (!buf) return reply.status(404).send({ error: 'File content not found' });
+      await logFileAccess(trx, {
+        tenantId: user.tenant_id, fileId: id, versionId, userId: user.sub,
+        actorName: user.name ?? 'Someone', action: 'version_download', req,
+      });
       const file = await trx.selectFrom('cloud_files').select(['name', 'type']).where('id', '=', id).executeTakeFirst();
       const { contentType } = resolveServedContentType(file?.type ?? '');
       reply.header('Content-Disposition', `attachment; filename="${(file?.name ?? 'file').replace(/["\r\n]/g, '')}"`);
@@ -1077,7 +1256,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
         // The about-to-be-replaced current content is archived too — restoring
         // is non-destructive, and never costs you the version you restored from.
         if (file.storage_key) {
-          const currentBytes = MinioIntegration.readFile(file.storage_key);
+          const currentBytes = await MinioIntegration.readFile(file.storage_key);
           if (currentBytes) {
             const archiveId = crypto.randomUUID();
             const { storageKey: archivedKey } = await MinioIntegration.uploadCloudFile(user.tenant_id, `${id}/versions/${archiveId}`, file.name, currentBytes);
@@ -1092,7 +1271,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
 
         // Copy the target version's bytes onto the canonical live path
         // (cloud_files.name is unchanged by a restore, only its content is).
-        const versionBytes = MinioIntegration.readFile(version.storage_key);
+        const versionBytes = await MinioIntegration.readFile(version.storage_key);
         if (!versionBytes) return reply.status(404).send({ error: 'This version\'s content is no longer available' });
         const { storageKey } = await MinioIntegration.uploadCloudFile(user.tenant_id, id, file.name, versionBytes);
 
@@ -1118,10 +1297,72 @@ export async function filesRoutes(fastify: FastifyInstance) {
   // (filesPublicRoutes, registered separately with no auth hook, serves the
   // actual "Copy link" download below.)
 
-  // ── Connected Apps: Box / Dropbox / Mega (framework only — connect/disconnect
-  // and "sync now" are real, persisted, per-tenant state; the actual file
-  // transfer against each provider's API is mocked until real OAuth credentials
-  // are wired up for that provider). ──
+  // ── Connected Apps ─────────────────────────────────────────────────────
+  //
+  // OneDrive is a real integration: a per-tenant BYO Microsoft Graph OAuth
+  // app (client id + secret set here, encrypted at rest), a real consent
+  // handshake, token refresh, and a real recursive file-listing sync into
+  // cloud_external_files. Same BYO-credential shape as the Outlook contact
+  // sync (contacts-sync.routes.ts).
+  //
+  // Dropbox / Box / Mega keep the label-only "bookmark" connect they always
+  // had — connect/disconnect persist real per-tenant state — but /sync is an
+  // explicit 501, not a fake stamp: no real transfer exists for them yet.
+
+  const OAUTH_REDIRECT = (provider: string) => `${env.OPS_BOARD_URL}/cloud/connections/${provider}/callback`;
+  const REAL_PROVIDERS = new Set(['onedrive']);
+  const isProvider = (p: string): p is StorageProvider => STORAGE_PROVIDERS.includes(p as StorageProvider);
+
+  async function getConnectorCreds(
+    trx: Transaction<Database>, tenantId: string, provider: string,
+  ): Promise<{ clientId: string; clientSecret: string } | null> {
+    const row = await trx.selectFrom('cloud_storage_connections')
+      .select(['oauth_client_id', 'oauth_client_secret_enc'])
+      .where('tenant_id', '=', tenantId).where('provider', '=', provider).executeTakeFirst();
+    if (!row?.oauth_client_id || !row?.oauth_client_secret_enc) return null;
+    const clientId = String(row.oauth_client_id).trim().replace(/^["']|["']$/g, '').trim();
+    if (!clientId) return null;
+    return { clientId, clientSecret: decryptSecret(row.oauth_client_secret_enc) };
+  }
+
+  async function freshConnectorToken(
+    trx: Transaction<Database>, tenantId: string, provider: string,
+    conn: { id: string; access_token_enc: string | null; refresh_token_enc: string | null; token_expires_at: Date | null },
+    creds: { clientId: string; clientSecret: string },
+  ): Promise<string> {
+    const notExpired = conn.token_expires_at && new Date(conn.token_expires_at).getTime() > Date.now() + 60_000;
+    if (notExpired && conn.access_token_enc) return decryptSecret(conn.access_token_enc);
+    if (!conn.refresh_token_enc) throw new Error(`${provider} connection expired — reconnect the account.`);
+    const refreshed = await refreshOneDriveToken(creds.clientId, creds.clientSecret, decryptSecret(conn.refresh_token_enc));
+    await trx.updateTable('cloud_storage_connections').set({
+      access_token_enc: encryptSecret(refreshed.access_token),
+      refresh_token_enc: refreshed.refresh_token ? encryptSecret(refreshed.refresh_token) : conn.refresh_token_enc,
+      token_expires_at: new Date(Date.now() + refreshed.expires_in * 1000),
+      updated_at: new Date(),
+    }).where('id', '=', conn.id).execute();
+    return refreshed.access_token;
+  }
+
+  async function syncOneDrive(trx: Transaction<Database>, tenantId: string, connId: string): Promise<number> {
+    const conn = await trx.selectFrom('cloud_storage_connections').selectAll()
+      .where('id', '=', connId).where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
+    const creds = await getConnectorCreds(trx, tenantId, 'onedrive');
+    if (!creds) throw new Error('OneDrive OAuth app is not configured.');
+    const token = await freshConnectorToken(trx, tenantId, 'onedrive', conn, creds);
+    const files = await listOneDriveFiles(token);
+    // Full replace — a sync is a snapshot, not an append.
+    await trx.deleteFrom('cloud_external_files').where('tenant_id', '=', tenantId).where('provider', '=', 'onedrive').execute();
+    for (const f of files) {
+      await trx.insertInto('cloud_external_files').values({
+        tenant_id: tenantId, provider: 'onedrive', name: f.name, type: f.type,
+        size: f.size, external_id: f.externalId, web_url: f.webUrl, path: f.path, parent_id: null,
+      } as any).execute();
+    }
+    await trx.updateTable('cloud_storage_connections').set({
+      last_synced_at: new Date(), last_sync_error: null, updated_at: new Date(),
+    }).where('id', '=', connId).execute();
+    return files.length;
+  }
 
   // GET /connections — one row per provider, auto-created on first read
   fastify.get('/connections', async (req, reply) => {
@@ -1146,8 +1387,12 @@ export async function filesRoutes(fastify: FastifyInstance) {
         return STORAGE_PROVIDERS.map(p => {
           const row = rows.find(r => r.provider === p)!;
           const providerFiles = extFiles.filter(f => f.provider === p && f.type !== 'folder');
+          // Never leak the encrypted secret / tokens to the client.
+          const { oauth_client_secret_enc, access_token_enc, refresh_token_enc, ...safe } = row as any;
           return {
-            ...row,
+            ...safe,
+            supported: REAL_PROVIDERS.has(p),
+            oauth_configured: !!(row.oauth_client_id && oauth_client_secret_enc),
             file_count: providerFiles.length,
             total_size: providerFiles.reduce((sum, f) => sum + Number(f.size ?? 0), 0),
           };
@@ -1158,23 +1403,112 @@ export async function filesRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // POST /connections/:provider/connect — mock OAuth: records the label the user typed in
+  // PUT /connections/:provider/oauth-config — store the tenant's BYO OAuth
+  // app credentials (client id + secret). Secret is encrypted at rest.
+  fastify.put('/connections/:provider/oauth-config', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    if (!['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'OWNER'].includes(user.role as string)) {
+      return reply.status(403).send({ error: 'Only an admin can configure a storage connector.' });
+    }
+    const { provider } = req.params as { provider: string };
+    if (!isProvider(provider) || !REAL_PROVIDERS.has(provider)) {
+      return reply.status(400).send({ error: `${provider} does not support a real OAuth connection yet.` });
+    }
+    const { client_id, client_secret } = req.body as { client_id?: string; client_secret?: string };
+    if (!client_id?.trim()) return reply.status(400).send({ error: 'client_id is required' });
+    try {
+      return await withTenant(user.tenant_id, async (trx) => {
+        const set: Record<string, any> = { oauth_client_id: client_id.trim(), updated_at: new Date() };
+        // Only overwrite the secret if a new one was actually supplied (the UI
+        // sends the field blank when it's just editing the id).
+        if (client_secret?.trim()) set.oauth_client_secret_enc = encryptSecret(client_secret.trim());
+        await trx.updateTable('cloud_storage_connections').set(set)
+          .where('tenant_id', '=', user.tenant_id).where('provider', '=', provider).execute();
+        return { ok: true, oauth_configured: true };
+      });
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  // GET /connections/:provider/auth-url — the provider consent URL to redirect to.
+  fastify.get('/connections/:provider/auth-url', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { provider } = req.params as { provider: string };
+    if (!isProvider(provider) || !REAL_PROVIDERS.has(provider)) {
+      reply.status(400); return { error: `${provider} does not support a real OAuth connection yet.` };
+    }
+    return withTenant(user.tenant_id, async (trx) => {
+      const creds = await getConnectorCreds(trx, user.tenant_id, provider);
+      if (!creds) {
+        reply.status(400);
+        return { error: 'This connector\'s OAuth app isn\'t configured yet — set its Client ID and Secret first.' };
+      }
+      const state = crypto.randomBytes(16).toString('hex');
+      return { url: buildOneDriveAuthUrl(creds.clientId, OAUTH_REDIRECT(provider), state), state, redirect_uri: OAUTH_REDIRECT(provider) };
+    });
+  });
+
+  // POST /connections/:provider/callback — { code } from the consent redirect.
+  fastify.post<{ Body: { code: string } }>('/connections/:provider/callback', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { provider } = req.params as { provider: string };
+    if (!isProvider(provider) || !REAL_PROVIDERS.has(provider)) {
+      reply.status(400); return { error: `${provider} does not support a real OAuth connection yet.` };
+    }
+    try {
+      return await withTenant(user.tenant_id, async (trx) => {
+        const creds = await getConnectorCreds(trx, user.tenant_id, provider);
+        if (!creds) { reply.status(400); return { error: 'OAuth app not configured.' }; }
+        const tokens = await exchangeOneDriveCode(creds.clientId, creds.clientSecret, OAUTH_REDIRECT(provider), req.body.code);
+        const email = await getOneDriveAccountEmail(tokens.access_token);
+        const now = new Date();
+        const row = await trx.updateTable('cloud_storage_connections').set({
+          status: 'connected',
+          account_label: email,
+          account_email: email,
+          access_token_enc: encryptSecret(tokens.access_token),
+          refresh_token_enc: tokens.refresh_token ? encryptSecret(tokens.refresh_token) : null,
+          token_expires_at: new Date(Date.now() + tokens.expires_in * 1000),
+          connected_at: now, updated_at: now,
+        }).where('tenant_id', '=', user.tenant_id).where('provider', '=', provider)
+          .returning(['id']).executeTakeFirstOrThrow();
+        try {
+          const count = await syncOneDrive(trx, user.tenant_id, row.id);
+          return { connected: true, email, synced: count };
+        } catch (syncErr: any) {
+          await trx.updateTable('cloud_storage_connections')
+            .set({ last_sync_error: syncErr.message, updated_at: new Date() })
+            .where('id', '=', row.id).execute();
+          return { connected: true, email, synced: 0, sync_error: syncErr.message };
+        }
+      });
+    } catch (err: any) {
+      reply.status(400);
+      return { error: err.message || 'Failed to connect the account' };
+    }
+  });
+
+  // POST /connections/:provider/connect — Dropbox/Box/Mega label "bookmark".
   fastify.post('/connections/:provider/connect', async (req, reply) => {
     const user = req.user;
     if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     const { provider } = req.params as { provider: string };
-    if (!STORAGE_PROVIDERS.includes(provider as StorageProvider)) return reply.status(400).send({ error: 'Unknown provider' });
+    if (!isProvider(provider)) return reply.status(400).send({ error: 'Unknown provider' });
+    if (REAL_PROVIDERS.has(provider)) {
+      return reply.status(400).send({ error: `Use the OAuth flow (GET /connections/${provider}/auth-url) to connect ${provider}.` });
+    }
     const { account_label } = req.body as { account_label?: string };
     try {
       return await withTenant(user.tenant_id, async (trx) => {
         const now = new Date();
-        await trx.insertInto('cloud_storage_connections').values({
-          tenant_id: user.tenant_id, provider, status: 'connected',
-          account_label: account_label?.trim() || null, connected_at: now, last_synced_at: now,
-        }).onConflict(oc => oc.columns(['tenant_id', 'provider']).doUpdateSet({
+        await trx.updateTable('cloud_storage_connections').set({
           status: 'connected', account_label: account_label?.trim() || null,
           connected_at: now, last_synced_at: now, updated_at: now,
-        })).execute();
+        }).where('tenant_id', '=', user.tenant_id).where('provider', '=', provider).execute();
         return trx.selectFrom('cloud_storage_connections').selectAll()
           .where('tenant_id', '=', user.tenant_id).where('provider', '=', provider).executeTakeFirstOrThrow();
       });
@@ -1183,24 +1517,19 @@ export async function filesRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // GET /connections/:provider/files — whatever cloud_external_files
-  // genuinely holds for this provider. Nothing writes to that table today
-  // (no real Box/Dropbox/Mega/OneDrive sync exists) — this used to fall back
-  // to fabricating an entire fake synced tree the first time it came back
-  // empty; it no longer does, so this is honestly empty until a real sync
-  // is built.
+  // GET /connections/:provider/files — real synced listing from cloud_external_files.
   fastify.get('/connections/:provider/files', async (req, reply) => {
     const user = req.user;
     if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     const { provider } = req.params as { provider: string };
-    if (!STORAGE_PROVIDERS.includes(provider as StorageProvider)) return reply.status(400).send({ error: 'Unknown provider' });
+    if (!isProvider(provider)) return reply.status(400).send({ error: 'Unknown provider' });
     try {
       return await withTenant(user.tenant_id, async (trx) => {
         const conn = await trx.selectFrom('cloud_storage_connections').select(['status'])
           .where('tenant_id', '=', user.tenant_id).where('provider', '=', provider).executeTakeFirst();
         if (!conn || conn.status !== 'connected') return reply.status(400).send({ error: 'Not connected' });
         const rows = await trx.selectFrom('cloud_external_files').selectAll()
-          .where('tenant_id', '=', user.tenant_id).where('provider', '=', provider).orderBy('created_at').execute();
+          .where('tenant_id', '=', user.tenant_id).where('provider', '=', provider).orderBy('name').execute();
         return rows.map(r => ({ ...r, size: r.size != null ? Number(r.size) : null }));
       });
     } catch (err: any) {
@@ -1213,12 +1542,18 @@ export async function filesRoutes(fastify: FastifyInstance) {
     const user = req.user;
     if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     const { provider } = req.params as { provider: string };
-    if (!STORAGE_PROVIDERS.includes(provider as StorageProvider)) return reply.status(400).send({ error: 'Unknown provider' });
+    if (!isProvider(provider)) return reply.status(400).send({ error: 'Unknown provider' });
     try {
       return await withTenant(user.tenant_id, async (trx) => {
         await trx.updateTable('cloud_storage_connections').set({
-          status: 'disconnected', account_label: null, connected_at: null, last_synced_at: null, updated_at: new Date(),
+          status: 'disconnected', account_label: null, account_email: null,
+          access_token_enc: null, refresh_token_enc: null, token_expires_at: null,
+          connected_at: null, last_synced_at: null, last_sync_error: null, updated_at: new Date(),
+          // oauth_client_id / secret are kept — disconnecting an account
+          // shouldn't force re-entering the app registration to reconnect.
         }).where('tenant_id', '=', user.tenant_id).where('provider', '=', provider).execute();
+        await trx.deleteFrom('cloud_external_files')
+          .where('tenant_id', '=', user.tenant_id).where('provider', '=', provider).execute();
         return trx.selectFrom('cloud_storage_connections').selectAll()
           .where('tenant_id', '=', user.tenant_id).where('provider', '=', provider).executeTakeFirstOrThrow();
       });
@@ -1227,22 +1562,33 @@ export async function filesRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // POST /connections/:provider/sync — mock sync: just stamps last_synced_at
+  // POST /connections/:provider/sync
   fastify.post('/connections/:provider/sync', async (req, reply) => {
     const user = req.user;
     if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     const { provider } = req.params as { provider: string };
-    if (!STORAGE_PROVIDERS.includes(provider as StorageProvider)) return reply.status(400).send({ error: 'Unknown provider' });
+    if (!isProvider(provider)) return reply.status(400).send({ error: 'Unknown provider' });
+    if (!REAL_PROVIDERS.has(provider)) {
+      return reply.status(501).send({
+        error: 'NOT_SUPPORTED',
+        message: `${provider} file sync isn't available yet — only OneDrive has a working integration. Connect/disconnect is a bookmark for now.`,
+      });
+    }
     try {
       return await withTenant(user.tenant_id, async (trx) => {
-        const conn = await trx.selectFrom('cloud_storage_connections').selectAll()
+        const conn = await trx.selectFrom('cloud_storage_connections').select(['id', 'status'])
           .where('tenant_id', '=', user.tenant_id).where('provider', '=', provider).executeTakeFirst();
         if (!conn || conn.status !== 'connected') return reply.status(400).send({ error: 'Not connected' });
-        const row = await trx.updateTable('cloud_storage_connections')
-          .set({ last_synced_at: new Date(), updated_at: new Date() })
-          .where('tenant_id', '=', user.tenant_id).where('provider', '=', provider)
-          .returningAll().executeTakeFirstOrThrow();
-        return row;
+        try {
+          const count = await syncOneDrive(trx, user.tenant_id, conn.id);
+          return { synced: count };
+        } catch (err: any) {
+          await trx.updateTable('cloud_storage_connections')
+            .set({ last_sync_error: err.message, updated_at: new Date() })
+            .where('id', '=', conn.id).execute();
+          reply.status(502);
+          return { error: err.message || 'Sync failed' };
+        }
       });
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -1275,13 +1621,40 @@ export async function filesPublicRoutes(fastify: FastifyInstance) {
     if (!file) return reply.status(404).send({ error: 'This link is invalid or has been revoked.' });
     if (file.type === 'folder') return reply.status(400).send({ error: "Folders can't be shared via a public link yet." });
     if (!file.storage_key) return reply.status(404).send({ error: 'File content not available' });
-    const buf = MinioIntegration.readFile(file.storage_key);
+    const buf = await MinioIntegration.readFile(file.storage_key);
     if (!buf) return reply.status(404).send({ error: 'File content not found' });
+    // Log the anonymous open against the file's own tenant (dbPlatform is
+    // BYPASSRLS, so the insert's tenant_id is set explicitly from the file).
+    dbPlatform.insertInto('cloud_file_access_log').values({
+      tenant_id: file.tenant_id, file_id: file.id, user_id: null,
+      actor_name: 'Public link', action: 'link_download', via: 'public_link',
+      ip: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || null,
+      user_agent: (req.headers['user-agent'] as string || '').slice(0, 500) || null,
+    }).execute().catch((err) => console.error('[Cloud] public access-log write failed:', err.message));
     // Highest-stakes spot for this check: unauthenticated, so anyone who
     // opens a shared link is exposed — never the stored (client-claimed)
     // mime_type here, same reasoning as GET /:id/preview above.
     const { contentType, inlineAllowed } = resolveServedContentType(file.type);
     reply.header('Content-Disposition', `${inlineAllowed ? 'inline' : 'attachment'}; filename="${file.name.replace(/["\r\n]/g, '')}"`);
+    reply.header('Content-Type', contentType);
+    return reply.send(buf);
+  });
+
+  // GET /v1/files/blob?key=&exp=&sig=&name= — the disk storage backend's
+  // presigned-GET passthrough (object-storage.ts DiskBackend.presignGet).
+  // The HMAC over key+exp is the only credential; an S3 backend never routes
+  // here (it hands out the object store's own presigned URL directly).
+  fastify.get('/blob', async (req, reply) => {
+    const { key, exp, sig, name } = req.query as { key?: string; exp?: string; sig?: string; name?: string };
+    if (!key || !exp || !sig || !verifyDiskSignedUrl(key, exp, sig)) {
+      return reply.status(403).send({ error: 'This link is invalid or has expired.' });
+    }
+    const buf = await objectStore.get(key);
+    if (!buf) return reply.status(404).send({ error: 'File content not found' });
+    const ext = key.split('.').pop() || '';
+    const { contentType, inlineAllowed } = resolveServedContentType(ext);
+    const fname = (name || key.split('/').pop() || 'file').replace(/["\r\n]/g, '');
+    reply.header('Content-Disposition', `${inlineAllowed ? 'inline' : 'attachment'}; filename="${fname}"`);
     reply.header('Content-Type', contentType);
     return reply.send(buf);
   });

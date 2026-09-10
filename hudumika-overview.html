@@ -450,14 +450,14 @@
     <h2>How far along the platform actually is.</h2>
 
     <div class="headline-pct">
-      <div class="big mono">71%</div>
+      <div class="big mono">73%</div>
       <div class="cap">simple average across all 30 apps, toward the full platform vision described above</div>
     </div>
-    <p class="methodnote">This is an internal engineering read of build/audit history — not a test-coverage report or a formally computed metric. Each app below is tiered from what has actually shipped, been RLS-audited and verified against live data during development, versus what still runs on partial data paths or an early feature set. Sign and HuduBI's figures below were re-verified against the live running system on 9 September (real HTTP calls, real data, real edge cases — not just a code read) as part of the Metrics &amp; Sign program closing out; the rest carry forward the 8 September assessment.</p>
+    <p class="methodnote">This is an internal engineering read of build/audit history — not a test-coverage report or a formally computed metric. Each app below is tiered from what has actually shipped, been RLS-audited and verified against live data during development, versus what still runs on partial data paths or an early feature set. Sign and HuduBI's figures below were re-verified against the live running system on 9 September (real HTTP calls, real data, real edge cases — not just a code read) as part of the Metrics &amp; Sign program closing out; the rest carry forward the 8 September assessment. Projects was re-assessed on 10 September after an enterprise "Project OS" expansion merged to <code>master</code> — the figure holds because that layer does not yet run (see the Projects gap below). NexusHR was re-checked on 10 September (every one of its ~35 nav-surface routes hit live as a real admin — all resolve, none 500, all enforce the entitlement and RLS) and moved from 58% to 80%: the earlier figure predated the M1–M8 HR build-out. It falls short of the higher production apps only because a full <em>data-populated</em> run across every screen (the dev DB has no fully seeded HR tenant) hasn't been done. Contacts was re-checked the same way on 10 September and moved from 65% to 82% into the production tier — not just route liveness but the actual workflows exercised end-to-end against live data (fuzzy dedup detecting a real near-duplicate, merge, the nested-label hierarchy with its cycle guards, rule-based smart-group membership, a CSV/vCard export→import round-trip, cross-tenant isolation). It stops short of the higher figures for the same reason as NexusHR — no fully seeded Contacts tenant for a screen-by-screen click-through — plus Google/Outlook sync staying inert until a tenant supplies its own OAuth credentials. Drive was rebuilt and re-checked on 10 September, moving from 62% to 80% into the production tier: its <code>cloud_*</code> tables had zero RLS platform-wide (now all 9 enabled, FORCEd, policy-verified by an automated cross-tenant test), the "MinIO" storage layer was actually local disk with a hardcoded fake signed-URL (now a real pluggable disk/S3 backend with a genuine HMAC-signed, tamper-checked expiring link), file search was filename-only (now real full-text over extracted content, including PDFs), there was no malware scanning or per-file access audit (both wired), and the "Connected Apps" sync was an honest mock for every provider (OneDrive now has a real BYO Microsoft-Graph OAuth connection and sync; Dropbox/Box are now an explicit "not supported yet" instead of a silent bookmark). 24 live/automated checks, 24 passing. The remaining 20% is unrun infrastructure (a real S3 bucket, ClamAV, LibreOffice all need provisioning to actually activate — each degrades honestly without it) plus no browser click-through of the rebuilt viewer (no browser tool this session).</p>
 
     <div class="distbar">
-      <div class="prod" style="flex:15 1 0%">15 · Production</div>
-      <div class="dev" style="flex:14 1 0%">14 · Active dev</div>
+      <div class="prod" style="flex:18 1 0%">18 · Production</div>
+      <div class="dev" style="flex:11 1 0%">11 · Active dev</div>
       <div class="found" style="flex:1 1 0%">1</div>
     </div>
     <div class="distlegend">
@@ -467,21 +467,24 @@
     </div>
 
     <div class="tier">
-      <div class="tier-hdr"><span class="pill prod">Production</span><span class="cnt">15 apps</span></div>
+      <div class="tier-hdr"><span class="pill prod">Production</span><span class="cnt">18 apps</span></div>
       <div class="apptable-wrap">
         <table class="apptable">
           <tr><td class="app">ClearOS</td><td class="slog">Customs &amp; freight clearance platform</td><td class="bar"><div class="barwrap"><i class="prod" style="width:95%"></i></div></td><td class="pct mono">95%</td></tr>
-          <tr><td class="app">FinOps</td><td class="slog">Financial accounts and payroll ledger</td><td class="bar"><div class="barwrap"><i class="prod" style="width:93%"></i></div></td><td class="pct mono">93%</td></tr>
+          <tr><td class="app">FinOps</td><td class="slog">Financial accounts and payroll ledger</td><td class="bar"><div class="barwrap"><i class="prod" style="width:95%"></i></div></td><td class="pct mono">95%</td></tr>
           <tr><td class="app">Sign</td><td class="slog">Unified e-signature, witnessing, affidavit &amp; notarial execution</td><td class="bar"><div class="barwrap"><i class="prod" style="width:90%"></i></div></td><td class="pct mono">90%</td></tr>
           <tr><td class="app">Ondi</td><td class="slog">SSO, identity verification &amp; biometrics</td><td class="bar"><div class="barwrap"><i class="prod" style="width:88%"></i></div></td><td class="pct mono">88%</td></tr>
           <tr><td class="app">Calendar</td><td class="slog">Scheduling &amp; team calendar</td><td class="bar"><div class="barwrap"><i class="prod" style="width:88%"></i></div></td><td class="pct mono">88%</td></tr>
           <tr><td class="app">SEAL</td><td class="slog">Bonded warehouse ledger &amp; customs stock account</td><td class="bar"><div class="barwrap"><i class="prod" style="width:85%"></i></div></td><td class="pct mono">85%</td></tr>
-          <tr><td class="app">Projects</td><td class="slog">Enterprise project management, billing &amp; retainers</td><td class="bar"><div class="barwrap"><i class="prod" style="width:85%"></i></div></td><td class="pct mono">85%</td></tr>
+          <tr><td class="app">Projects</td><td class="slog">Project management, billing &amp; retainers <span style="color:var(--gold)">· enterprise layer merged, not yet functional</span></td><td class="bar"><div class="barwrap"><i class="prod" style="width:85%"></i></div></td><td class="pct mono">85%</td></tr>
           <tr><td class="app">Bliss</td><td class="slog">Omnichannel customer helpdesk &amp; ticketing</td><td class="bar"><div class="barwrap"><i class="prod" style="width:85%"></i></div></td><td class="pct mono">85%</td></tr>
           <tr><td class="app">Tasks</td><td class="slog">To-dos &amp; team task tracking</td><td class="bar"><div class="barwrap"><i class="prod" style="width:86%"></i></div></td><td class="pct mono">86%</td></tr>
           <tr><td class="app">CargoTracker</td><td class="slog">AWB and Bill of Lading shipment tracking</td><td class="bar"><div class="barwrap"><i class="prod" style="width:82%"></i></div></td><td class="pct mono">82%</td></tr>
           <tr><td class="app">Notes</td><td class="slog">Shared notes, docs &amp; reminders</td><td class="bar"><div class="barwrap"><i class="prod" style="width:82%"></i></div></td><td class="pct mono">82%</td></tr>
+          <tr><td class="app">Contacts</td><td class="slog">Contact book — fuzzy dedup &amp; merge, nested labels, rule-based smart groups, CSV/vCard &amp; Google/Outlook sync</td><td class="bar"><div class="barwrap"><i class="prod" style="width:82%"></i></div></td><td class="pct mono">82%</td></tr>
           <tr><td class="app">SMS</td><td class="slog">Bulk &amp; transactional SMS — send, groups, templates, campaigns</td><td class="bar"><div class="barwrap"><i class="prod" style="width:80%"></i></div></td><td class="pct mono">80%</td></tr>
+          <tr><td class="app">NexusHR</td><td class="slog">HR suite — payroll (statutory PAYE→GL), leave, attendance, recruitment, performance</td><td class="bar"><div class="barwrap"><i class="prod" style="width:80%"></i></div></td><td class="pct mono">80%</td></tr>
+          <tr><td class="app">Drive</td><td class="slog">Cloud file storage — RLS-isolated, full-text search, versions &amp; access audit, OneDrive sync</td><td class="bar"><div class="barwrap"><i class="prod" style="width:80%"></i></div></td><td class="pct mono">80%</td></tr>
           <tr><td class="app">Admin</td><td class="slog">Platform governance, tenants &amp; query builder</td><td class="bar"><div class="barwrap"><i class="prod" style="width:78%"></i></div></td><td class="pct mono">78%</td></tr>
           <tr><td class="app">Petti</td><td class="slog">Tenant petty-cash wallet, deposits &amp; approvals</td><td class="bar"><div class="barwrap"><i class="prod" style="width:78%"></i></div></td><td class="pct mono">78%</td></tr>
           <tr><td class="app">Demurrage</td><td class="slog">Container demurrage tariffs and cost tracking</td><td class="bar"><div class="barwrap"><i class="prod" style="width:75%"></i></div></td><td class="pct mono">75%</td></tr>
@@ -490,17 +493,14 @@
     </div>
 
     <div class="tier">
-      <div class="tier-hdr"><span class="pill dev">Active development</span><span class="cnt">14 apps</span></div>
+      <div class="tier-hdr"><span class="pill dev">Active development</span><span class="cnt">11 apps</span></div>
       <div class="apptable-wrap">
         <table class="apptable">
-          <tr><td class="app">Contacts</td><td class="slog">Stakeholder and client phone book</td><td class="bar"><div class="barwrap"><i class="dev" style="width:65%"></i></div></td><td class="pct mono">65%</td></tr>
           <tr><td class="app">ComplyOS</td><td class="slog">Compliance tracking, BRELA search &amp; permits</td><td class="bar"><div class="barwrap"><i class="dev" style="width:68%"></i></div></td><td class="pct mono">68%</td></tr>
           <tr><td class="app">HuduBI</td><td class="slog">Data layer, cross-app metrics &amp; executive AI analytics engine</td><td class="bar"><div class="barwrap"><i class="dev" style="width:60%"></i></div></td><td class="pct mono">60%</td></tr>
           <tr><td class="app">CRM</td><td class="slog">Customer relationships and sales deals</td><td class="bar"><div class="barwrap"><i class="dev" style="width:63%"></i></div></td><td class="pct mono">63%</td></tr>
           <tr><td class="app">Email</td><td class="slog">Internal corporate messaging center</td><td class="bar"><div class="barwrap"><i class="dev" style="width:60%"></i></div></td><td class="pct mono">60%</td></tr>
-          <tr><td class="app">Drive</td><td class="slog">Enterprise document storage &amp; cloud drive</td><td class="bar"><div class="barwrap"><i class="dev" style="width:62%"></i></div></td><td class="pct mono">62%</td></tr>
           <tr><td class="app">Onsite</td><td class="slog">Domains, DNS, hosting, deployments &amp; infrastructure</td><td class="bar"><div class="barwrap"><i class="dev" style="width:60%"></i></div></td><td class="pct mono">60%</td></tr>
-          <tr><td class="app">NexusHR</td><td class="slog">People operations and shift rosters</td><td class="bar"><div class="barwrap"><i class="dev" style="width:58%"></i></div></td><td class="pct mono">58%</td></tr>
           <tr><td class="app">Studio</td><td class="slog">Workflow builder and clearance automations</td><td class="bar"><div class="barwrap"><i class="dev" style="width:55%"></i></div></td><td class="pct mono">55%</td></tr>
           <tr><td class="app">OneSite</td><td class="slog">Content management &amp; company intranet</td><td class="bar"><div class="barwrap"><i class="dev" style="width:55%"></i></div></td><td class="pct mono">55%</td></tr>
           <tr><td class="app">Store</td><td class="slog">B2B procurement &amp; equipment marketplace</td><td class="bar"><div class="barwrap"><i class="dev" style="width:55%"></i></div></td><td class="pct mono">55%</td></tr>
@@ -546,9 +546,9 @@
         </ul>
       </div>
       <div class="gapcard">
-        <div class="gaphd"><h4>FinOps</h4><span class="delta mono">93% → 100%</span></div>
+        <div class="gaphd"><h4>FinOps</h4><span class="delta mono">95% → 100%</span></div>
         <ul>
-          <li><b>Payroll → GL</b> — still not fully wired end-to-end; flagged in an earlier audit and not yet closed.</li>
+          <li><b>Payroll → GL — now wired</b> (verified 10 Sep): <code>POST /v1/payroll/runs/:id/mark-paid</code> posts a real journal entry — gross pay, PAYE payable, statutory contributions payable and matched employer cost as separate lines (migration 294). The earlier "not closed" flag is resolved.</li>
           <li><b>No consolidated multi-entity statements</b> at group scale.</li>
           <li><b>No external audit-firm API</b>.</li>
         </ul>
@@ -560,6 +560,42 @@
           <li><b>Limited global carrier/EDI network</b> — only Maersk has a real public API integrated.</li>
         </ul>
       </div>
+      <div class="gapcard">
+        <div class="gaphd"><h4>Projects</h4><span class="delta mono">85% → 100%</span></div>
+        <ul>
+          <li><b>Working today, unchanged</b> — project list, kanban/table board, Gantt with dependencies, milestones, timesheets, per-project invoicing &amp; retainers, discussions, activity log. This is the 85%.</li>
+          <li><b>"Project OS" enterprise layer merged but not wired</b> — portfolios/programs, WBS &amp; phases, earned-value cost control, risk/issue/change registers, an approval engine, procurement and 14 industry packs landed on <code>master</code>, but every <code>/v1/project-os</code> endpoint returns a 500: the routes, services and generated DB types were written against a schema that was never migrated. Fix is bounded — one corrective migration, regenerate the DB types from the live schema, add member-scoped authorization — but until then none of it runs. Full breakdown in <code>docs/project-os-hardening-review.md</code>.</li>
+          <li><b>No portfolio/program access model</b> — the new hierarchy is tenant-wide only; any project member can read every portfolio's budgets and every other project's risk register.</li>
+          <li><b>One fabricated metric to remove</b> — the enterprise Command Center hardcodes portfolio SPI to 1.02 and shows three placeholder DORA numbers in the DevOps pack.</li>
+        </ul>
+      </div>
+      <div class="gapcard">
+        <div class="gaphd"><h4>NexusHR</h4><span class="delta mono">80% → 100%</span></div>
+        <ul>
+          <li><b>Data-populated live verification not done</b> — every route was hit live and all resolve, enforce the entitlement and pass RLS, but the dev DB has no fully seeded HR tenant, so a click-through of every screen against real staff/payroll/attendance rows (the thing that took Sign to 90%) is still outstanding. This is the bulk of the remaining 20%.</li>
+          <li><b>AI insights need a key</b> — the HR-digest endpoint and card are built; a tenant must supply its own Anthropic API key (Settings ▸ Integrations ▸ AI) before it returns anything.</li>
+          <li><b>Voice/video is provisioning, not code</b> — 1:1 and group meetings (mesh WebRTC, breakout rooms, host controls) already run through Bliss; production needs a TURN server for strict-NAT clients and Redis-backed presence for multi-node.</li>
+          <li><b>Minor</b> — a dead <code>/v1/hr/org-chart</code> deprecation shim (the page correctly uses <code>/v1/org-chart</code>); payroll page still on hardcoded hex rather than design tokens.</li>
+        </ul>
+      </div>
+      <div class="gapcard">
+        <div class="gaphd"><h4>Contacts</h4><span class="delta mono">82% → 100%</span></div>
+        <ul>
+          <li><b>Data-populated live verification not done</b> — every route was exercised end-to-end on 10 September (CRUD, fuzzy dedup + merge, nested labels with cycle guards, smart-group membership, CSV/vCard round-trip, cross-tenant isolation — all pass), but against test data the run created itself; there is no fully seeded Contacts tenant for a screen-by-screen click-through against hundreds of real contacts, labels and merge history. Same ceiling as NexusHR.</li>
+          <li><b>Google / Outlook contact sync is inert until configured</b> — the OAuth code path is complete and fails honestly ("set them in Settings ▸ Integrations"); each tenant must supply its own Google/Microsoft Client ID &amp; Secret before a sync runs. Same class as the BYO AI key.</li>
+          <li><b>No interactive import field-mapping</b> — CSV/vCard import auto-maps a fixed set of column aliases (Google, Outlook and generic headers); an unusual column header is silently dropped rather than offered for mapping.</li>
+          <li><b>Frontend not re-checked visually this pass</b> — the API and workflow layer is proven; the React screens were not re-verified against it (no browser in this environment).</li>
+        </ul>
+      </div>
+      <div class="gapcard">
+        <div class="gaphd"><h4>Drive</h4><span class="delta mono">80% → 100%</span></div>
+        <ul>
+          <li><b>Object storage, malware scanning and Office preview are code-complete but not provisioned</b> — the S3-compatible backend (real Signature V4 signing, no SDK dependency), ClamAV upload scanning and LibreOffice document-preview conversion all degrade honestly to their previous/disk behaviour when unconfigured; none has been run against a live external service in this environment. Same "real once configured" shape as SMTP/Meta/QuickBooks elsewhere on this page.</li>
+          <li><b>Only OneDrive has a real third-party sync</b> — a genuine per-tenant BYO Microsoft Graph OAuth connection (consent, token refresh, recursive file listing verified live). Dropbox and Box are now an honest "not supported yet" instead of a silent mock connect; Mega has no standard OAuth2 to build against at all.</li>
+          <li><b>No browser click-through of the rebuilt viewer</b> — the new inline CSV/text rendering, the office-preview fallback panel, and the connector-setup dialog are type-checked and logic-verified against the live API, but not visually confirmed (no browser tool this session).</li>
+          <li><b>Data-populated verification not done</b> — same ceiling as NexusHR/Contacts: no fully seeded Drive tenant with hundreds of real files/folders/shares to click through.</li>
+        </ul>
+      </div>
     </div>
 
     <div class="roadmap">
@@ -569,7 +605,7 @@
       </div>
       <div class="rmrow">
         <span class="pbadge p1">P1</span>
-        <div class="rmbody"><b>Close the two flagged production-tier gaps.</b><p>FinOps payroll→GL and Sign's KE/UG/RW jurisdiction research are both bounded, well-understood tasks sitting inside already-production apps — higher leverage than adding depth to an active-development app.</p></div>
+        <div class="rmbody"><b>Close the flagged production-tier gaps.</b><p>Sign's KE/UG/RW jurisdiction research and reconciling the merged Projects "Project OS" layer against a real schema are both bounded, well-understood tasks sitting inside already-production apps — higher leverage than adding depth to an active-development app. The Projects one is also the only item on this page that regressed a working app on merge, so it carries the most urgency. (FinOps payroll→GL, previously listed here, is done.)</p></div>
       </div>
       <div class="rmrow">
         <span class="pbadge p2">P2</span>
@@ -591,7 +627,7 @@
         <tr><td class="app">Sign</td><td class="peer">DocuSign</td><td class="behind">Bulk send, security certifications, global jurisdiction library</td><td class="ahead">One document escalates e-sign → witnessed → affidavit → notarial without ever becoming a second document — DocuSign has no equivalent</td></tr>
         <tr><td class="app">HuduBI</td><td class="peer">Looker / Power BI</td><td class="behind">Self-serve exploration, a decade of BI maturity</td><td class="ahead">Nothing yet — furthest behind its category leader of any app here</td></tr>
         <tr><td class="app">Bliss</td><td class="peer">Zendesk / Intercom</td><td class="behind">Contact-center telephony depth, public help-center SEO</td><td class="ahead">Already shares identity/CRM/finance context those tools integrate separately</td></tr>
-        <tr><td class="app">NexusHR</td><td class="peer">BambooHR / Workday</td><td class="behind">Performance cycles, benefits marketplace</td><td class="ahead">Same-platform payroll-to-attendance-to-GL, no HRIS integration tax</td></tr>
+        <tr><td class="app">NexusHR</td><td class="peer">BambooHR / Workday</td><td class="behind">Benefits marketplace, deep ATS/interview tooling</td><td class="ahead">Same-platform payroll→attendance→GL and statutory PAYE built in, no HRIS integration tax</td></tr>
         <tr><td class="app">Ondi</td><td class="peer">Okta / Auth0</td><td class="behind">Connector marketplace breadth</td><td class="ahead">Owns the whole identity graph natively, not bolted on</td></tr>
         <tr><td class="app">ComplyOS</td><td class="peer">OneTrust / LogicGate <i>(generic peers only)</i></td><td class="behind">General-purpose GRC breadth</td><td class="ahead">BRELA/EAC-specific tracking no generic GRC tool has at all</td></tr>
       </tbody>

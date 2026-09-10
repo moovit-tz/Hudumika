@@ -100,7 +100,7 @@ async function resolveSourceBytes(envelope: SourceEnvelope): Promise<{ bytes: Bu
     const file = await dbPlatform.selectFrom('cloud_files').select(['storage_key', 'type', 'mime_type'])
       .where('id', '=', envelope.file_id).executeTakeFirst();
     if (file?.storage_key) {
-      const buf = MinioIntegration.readFile(file.storage_key);
+      const buf = await MinioIntegration.readFile(file.storage_key);
       if (buf && buf.length) {
         const isPdf = file.type === 'pdf' || file.mime_type === 'application/pdf';
         return { bytes: buf, kind: isPdf ? 'pdf' : 'image' };

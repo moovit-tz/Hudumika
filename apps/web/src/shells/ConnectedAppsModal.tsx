@@ -26,10 +26,16 @@ function fmtRelative(iso: string | null) {
 }
 
 export function ConnectedAppsModal({ onClose }: { onClose: () => void }) {
-  const { connections, connectionsLoading, loadConnections, connectProvider, disconnectProvider, syncProvider } = useCloud();
+  const {
+    connections, connectionsLoading, loadConnections, connectProvider, disconnectProvider, syncProvider,
+    configureConnectorOAuth, startConnectorOAuth,
+  } = useCloud();
   const [connectingProvider, setConnectingProvider] = useState<StorageProvider | null>(null);
   const [emailInput, setEmailInput] = useState('');
   const [busyProvider, setBusyProvider] = useState<StorageProvider | null>(null);
+  const [oauthFormProvider, setOauthFormProvider] = useState<StorageProvider | null>(null);
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
 
   useEffect(() => { loadConnections(); }, [loadConnections]);
 
@@ -40,6 +46,28 @@ export function ConnectedAppsModal({ onClose }: { onClose: () => void }) {
       await connectProvider(provider, emailInput.trim());
       setConnectingProvider(null);
       setEmailInput('');
+    } finally {
+      setBusyProvider(null);
+    }
+  }
+
+  async function handleSaveOAuthConfig(provider: StorageProvider) {
+    if (!clientId.trim()) return;
+    setBusyProvider(provider);
+    try {
+      await configureConnectorOAuth(provider, clientId.trim(), clientSecret.trim());
+      setOauthFormProvider(null);
+      setClientId(''); setClientSecret('');
+    } finally {
+      setBusyProvider(null);
+    }
+  }
+
+  async function handleOAuthConnect(provider: StorageProvider) {
+    setBusyProvider(provider);
+    try {
+      const { url } = await startConnectorOAuth(provider);
+      if (url) window.location.href = url;
     } finally {
       setBusyProvider(null);
     }
@@ -87,6 +115,9 @@ export function ConnectedAppsModal({ onClose }: { onClose: () => void }) {
                 const isConnected = conn?.status === 'connected';
                 const isBusy = busyProvider === p.id;
                 const isConnecting = connectingProvider === p.id;
+                const isReal = conn?.supported === true;
+                const oauthReady = conn?.oauth_configured === true;
+                const showOAuthForm = oauthFormProvider === p.id;
 
                 return (
                   <div
@@ -109,21 +140,28 @@ export function ConnectedAppsModal({ onClose }: { onClose: () => void }) {
                           </div>
                           <div className="mt-0.5 truncate" style={{ fontSize: 'var(--text-xs)', color: 'var(--ink3)' }}>
                             {isConnected
-                              ? `${conn?.account_label ?? 'Account'} · synced ${fmtRelative(conn?.last_synced_at ?? null) ?? 'never'}`
-                              : p.blurb}
+                              ? `${conn?.account_email ?? conn?.account_label ?? 'Account'} · synced ${fmtRelative(conn?.last_synced_at ?? null) ?? 'never'}`
+                              : isReal
+                              ? (oauthReady ? 'OAuth app configured — connect your account.' : 'Needs a Microsoft Graph OAuth app (Client ID + Secret).')
+                              : `${p.blurb} Bookmark only — no file sync yet.`}
                           </div>
+                          {isConnected && conn?.file_count != null && (
+                            <div className="mt-0.5" style={{ fontSize: 'var(--text-xs)', color: 'var(--ink3)' }}>{conn.file_count} files synced</div>
+                          )}
                         </div>
                       </div>
 
                       {/* Actions get their own full-width row on mobile instead of
                           squeezing beside the icon/name — that's the layout the
                           original never had a fallback for. */}
-                      {!isConnecting && (
+                      {!isConnecting && !showOAuthForm && (
                         isConnected ? (
                           <div className="flex shrink-0 gap-2 sm:gap-1.5">
-                            <Button variant="outline" size="sm" className="flex-1 sm:flex-none" disabled={isBusy} onClick={() => handleSync(p.id)}>
-                              <Icon name="refresh" size={12} /> Sync
-                            </Button>
+                            {isReal && (
+                              <Button variant="outline" size="sm" className="flex-1 sm:flex-none" disabled={isBusy} onClick={() => handleSync(p.id)}>
+                                <Icon name="refresh" size={12} /> Sync
+                              </Button>
+                            )}
                             <Button
                               variant="outline" size="sm" className="flex-1 sm:flex-none"
                               disabled={isBusy} onClick={() => handleDisconnect(p.id)}
@@ -131,6 +169,18 @@ export function ConnectedAppsModal({ onClose }: { onClose: () => void }) {
                             >
                               Disconnect
                             </Button>
+                          </div>
+                        ) : isReal ? (
+                          <div className="flex shrink-0 gap-2 sm:gap-1.5">
+                            <Button variant="outline" size="sm" className="flex-1 sm:flex-none"
+                              onClick={() => { setOauthFormProvider(p.id); setClientId(conn?.oauth_client_id ?? ''); setClientSecret(''); }}>
+                              {oauthReady ? 'Edit app' : 'Set up app'}
+                            </Button>
+                            {oauthReady && (
+                              <Button size="sm" className="flex-1 sm:flex-none" disabled={isBusy} onClick={() => handleOAuthConnect(p.id)}>
+                                {isBusy ? 'Redirecting…' : 'Connect'}
+                              </Button>
+                            )}
                           </div>
                         ) : (
                           <Button size="sm" className="w-full sm:w-auto" onClick={() => { setConnectingProvider(p.id); setEmailInput(''); }}>
@@ -155,6 +205,27 @@ export function ConnectedAppsModal({ onClose }: { onClose: () => void }) {
                           <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setConnectingProvider(null)}>Cancel</Button>
                           <Button size="sm" className="flex-1 sm:flex-none" disabled={!emailInput.trim() || isBusy} onClick={() => handleConnect(p.id)}>
                             {isBusy ? 'Connecting…' : 'Connect'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {showOAuthForm && (
+                      <div className="mt-3 flex flex-col gap-2">
+                        <p className="text-xs leading-snug" style={{ color: 'var(--ink3)' }}>
+                          Register an app in the Microsoft Entra (Azure AD) portal with a redirect URI of
+                          {' '}<code>{window.location.origin}/cloud/connections/{p.id}/callback</code> and the
+                          {' '}<code>Files.Read offline_access</code> scopes, then paste its Client ID and Secret.
+                        </p>
+                        <input autoFocus value={clientId} onChange={e => setClientId(e.target.value)}
+                          placeholder="Client ID" className="input-field" style={{ fontSize: 'var(--text-base)' }} />
+                        <input type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)}
+                          placeholder={oauthReady ? 'Client Secret (leave blank to keep)' : 'Client Secret'}
+                          className="input-field" style={{ fontSize: 'var(--text-base)' }} />
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setOauthFormProvider(null)}>Cancel</Button>
+                          <Button size="sm" className="flex-1 sm:flex-none" disabled={!clientId.trim() || isBusy} onClick={() => handleSaveOAuthConfig(p.id)}>
+                            {isBusy ? 'Saving…' : 'Save'}
                           </Button>
                         </div>
                       </div>

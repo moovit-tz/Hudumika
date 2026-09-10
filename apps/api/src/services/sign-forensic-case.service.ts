@@ -171,12 +171,12 @@ export async function autoOpenCaseFromJob(
   job: { id: string; envelope_id: string | null; verification_code: string; storage_key: string; media_type: string },
   envelope: { id: string; tenant_id: string; title: string; stamped_file_url: string | null },
   outcome: CompareOutcome,
-  readFile: (storageKey: string) => Buffer | null,
+  readFile: (storageKey: string) => Promise<Buffer | null>,
 ): Promise<string | null> {
   if (!job.envelope_id) return null;
-  const uploadedBytes = readFile(job.storage_key);
+  const uploadedBytes = await readFile(job.storage_key);
   if (!uploadedBytes) return null;
-  const canonicalBytes = envelope.stamped_file_url ? readFile(envelope.stamped_file_url) : null;
+  const canonicalBytes = envelope.stamped_file_url ? await readFile(envelope.stamped_file_url) : null;
 
   return openForensicCase(db, {
     tenantId: envelope.tenant_id, envelopeId: envelope.id, verificationCode: job.verification_code,

@@ -685,7 +685,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       const inv = await trx.selectFrom('sales_invoices').select(['stamped_file_url'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!inv?.stamped_file_url) return reply.status(404).send({ error: 'No stamped copy exists for this invoice yet' });
-      const buf = MinioIntegration.readFile(inv.stamped_file_url);
+      const buf = await MinioIntegration.readFile(inv.stamped_file_url);
       if (!buf) return reply.status(404).send({ error: 'Stamped file is missing from storage' });
       reply.header('Content-Type', 'application/pdf');
       reply.header('Content-Disposition', `attachment; filename="invoice-stamped.pdf"`);

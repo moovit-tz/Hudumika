@@ -50,7 +50,7 @@ export async function runSignForensicVerifyJob(): Promise<void> {
         ]).where('id', '=', job.envelope_id).executeTakeFirst();
         if (!envelope) throw new Error('Envelope no longer exists');
 
-        const uploadedBuffer = MinioIntegration.readFile(job.storage_key);
+        const uploadedBuffer = await MinioIntegration.readFile(job.storage_key);
         if (!uploadedBuffer) throw new Error('Uploaded file could not be read — it may have already been cleaned up');
 
         const result = await runContentComparison(
@@ -71,6 +71,7 @@ export async function runSignForensicVerifyJob(): Promise<void> {
         if (verdictNeedsCase(result.content_verdict)) {
           try {
             const caseId = await autoOpenCaseFromJob(dbPlatform, job, envelope, result, (key) => MinioIntegration.readFile(key));
+            // NB: readFile is async now — autoOpenCaseFromJob's readFile param awaits it.
             if (caseId) console.log(`🔎 Forensic case ${caseId} auto-opened for job ${job.id} (${result.content_verdict}).`);
           } catch (caseErr) {
             // A case-opening failure must never undo the comparison result

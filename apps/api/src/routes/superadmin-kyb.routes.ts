@@ -33,7 +33,7 @@ export async function superAdminKybRoutes(fastify: FastifyInstance) {
     const submission = await dbPlatform.selectFrom('ondi_org_kyb').select('document_storage_key').where('id', '=', id).executeTakeFirst();
     if (!submission) return reply.status(404).send({ error: 'Not found' });
     const { MinioIntegration } = await import('../integrations/minio.js');
-    const bytes = MinioIntegration.readFile(submission.document_storage_key);
+    const bytes = await MinioIntegration.readFile(submission.document_storage_key);
     if (!bytes) return reply.status(404).send({ error: 'Document not found' });
     reply.header('Content-Type', 'application/octet-stream');
     return reply.send(bytes);

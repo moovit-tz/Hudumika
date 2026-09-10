@@ -8,7 +8,7 @@ import { Badge } from '../../components/ui/badge.js';
 import { apiFetch, apiDownload } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useCloud } from '../../shells/cloud-context.js';
-import type { CloudFile } from '../../shells/cloud-context.js';
+import type { CloudFile, FileAccessLogEntry } from '../../shells/cloud-context.js';
 import { fmtSize, fmtDate } from './lib/format.js';
 import { fileTypeStyle, previewKind } from './lib/fileTypeStyle.js';
 import { usePreviewBlob } from './lib/usePreviewBlob.js';
@@ -58,6 +58,13 @@ const EVENT_META: Record<string, { icon: IconName; label: (p: Record<string, any
   'file.version_restored':    { icon: 'refresh',   label: () => 'Restored a previous version' },
 };
 
+const ACCESS_ACTION_LABEL: Record<string, string> = {
+  download: 'Downloaded',
+  preview: 'Previewed',
+  version_download: 'Downloaded a previous version',
+  link_download: 'Opened via public link',
+};
+
 const CAN_MODERATE_COMMENTS = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN']);
 
 /** One shared shape for every action-row button — View/Download used to be
@@ -81,7 +88,7 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
   onExpand: (item: CloudFile) => void;
 }) {
   const { user } = useAuth();
-  const { loadData, loadStorageQuota } = useCloud();
+  const { loadData, loadStorageQuota, fetchAccessLog } = useCloud();
   const [tab, setTab] = useState<'details' | 'activity' | 'comments'>('details');
   const cfg = fileTypeStyle(item.type);
   const folderColor = item.color ?? '#f59e0b';
@@ -95,16 +102,25 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
   // :fileId) — replaces the old synthesized feed that just reflected
   // whatever fields the item already had (shared/updated_at/created_at),
   // which wasn't an actual history and forgot everything on reload.
+  const [accessLog, setAccessLog] = useState<FileAccessLogEntry[]>([]);
+  const [accessLogDenied, setAccessLogDenied] = useState(false);
+
   useEffect(() => {
     if (tab !== 'activity') return;
     let cancelled = false;
     setActivityLoading(true);
-    apiFetch(`/v1/activity/document/${item.id}`)
-      .then((rows: ActivityEvent[]) => { if (!cancelled) setActivity(rows); })
-      .catch(() => { if (!cancelled) setActivity([]); })
-      .finally(() => { if (!cancelled) setActivityLoading(false); });
+    setAccessLogDenied(false);
+    Promise.allSettled([
+      apiFetch(`/v1/activity/document/${item.id}`),
+      item.type === 'folder' ? Promise.resolve([]) : fetchAccessLog(item.id),
+    ]).then(([ev, log]) => {
+      if (cancelled) return;
+      setActivity(ev.status === 'fulfilled' ? (ev.value as ActivityEvent[]) : []);
+      if (log.status === 'fulfilled') setAccessLog(log.value as FileAccessLogEntry[]);
+      else { setAccessLog([]); setAccessLogDenied(true); }
+    }).finally(() => { if (!cancelled) setActivityLoading(false); });
     return () => { cancelled = true; };
-  }, [tab, item.id]);
+  }, [tab, item.id, item.type, fetchAccessLog]);
 
   const [comments, setComments] = useState<FileComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -362,6 +378,34 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
               </div>
             );
           })}
+
+          {!activityLoading && !accessLogDenied && item.type !== 'folder' && (
+            <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12, marginTop: 2 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: 10 }}>
+                Access log
+              </div>
+              {accessLog.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>No one has opened this file yet</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {accessLog.map(l => (
+                    <div key={l.id} style={{ display: 'flex', gap: 10 }}>
+                      <FeaturedIcon variant="gray" size="sm" shape="circle">
+                        <Icon name={l.action === 'preview' ? 'eye' : l.via === 'public_link' ? 'link' : 'download'} size={12} />
+                      </FeaturedIcon>
+                      <div>
+                        <div style={{ fontSize: 12.5, color: 'var(--ink)' }}>
+                          {ACCESS_ACTION_LABEL[l.action]}
+                          <span style={{ color: 'var(--ink3)' }}> — {l.actor_name}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{fmtDate(l.created_at)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>

@@ -143,6 +143,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
       patch.min_employees = v;
     }
     if (b.reduces_tax_base !== undefined) patch.reduces_tax_base = !!b.reduces_tax_base;
+    if (b.on_payslip !== undefined) patch.on_payslip = !!b.on_payslip;
     if (b.active !== undefined) patch.active = !!b.active;
     if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'Nothing to update' });
     patch.updated_at = new Date();
@@ -153,6 +154,31 @@ export async function payrollRoutes(fastify: FastifyInstance) {
         .returningAll().executeTakeFirst();
       if (!updated) return reply.status(404).send({ error: 'Scheme not found' });
       return updated;
+    });
+  });
+
+  // The full, editable list for the Statutory Rates settings screen —
+  // including inactive schemes (loadSchemes above filters active=true for
+  // the payroll engine's runtime use) and each row's id, which the engine
+  // read model deliberately omits. Newest vintage per code.
+  fastify.get('/settings/schemes', { preHandler: requireRole(...PAYROLL_ROLES) }, async (req) => {
+    const user = req.user;
+    const jurisdiction = String((req.query as any).jurisdiction ?? 'TZ');
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('payroll_contribution_schemes').selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('jurisdiction', '=', jurisdiction)
+        .orderBy('code')
+        .orderBy('effective_from', 'desc')
+        .execute();
+      // Collapse to the newest effective_from per code, so the editor shows
+      // one row per scheme rather than every historical vintage.
+      const seen = new Set<string>();
+      return rows.filter((r: any) => {
+        if (seen.has(r.code)) return false;
+        seen.add(r.code);
+        return true;
+      });
     });
   });
 

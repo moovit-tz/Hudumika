@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/Icon.js';
+import { apiFetchBlob } from '../../../lib/api.js';
 import { Dialog, DialogContent } from '../../../components/ui/dialog.js';
 import type { CloudFile } from '../../../shells/cloud-context.js';
 import { previewKind, fileTypeStyle } from '../lib/fileTypeStyle.js';
@@ -35,13 +36,71 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
 }) {
   const navigate = useNavigate();
   const kind = previewKind(item.type);
-  const { url, loading, error } = usePreviewBlob(item.id);
+  const { url, loading, error } = usePreviewBlob(kind ? item.id : null);
 
   const [zoom, setZoom] = useState(100);
 
   const isPdf = kind === 'pdf';
   const isImage = kind === 'image';
+  const ext = (item.type || '').toLowerCase();
+  const isText = ['txt', 'text', 'log', 'md', 'markdown', 'json', 'jsonl', 'csv', 'tsv', 'xml', 'yaml', 'yml', 'ini', 'conf'].includes(ext);
+  const isOffice = ['doc', 'docx', 'odt', 'rtf', 'xls', 'xlsx', 'ods', 'ppt', 'pptx', 'odp'].includes(ext);
   const isSheet = ['xlsx', 'xls', 'csv'].includes(item.type) || item.name.endsWith('.xlsx');
+
+  // ── Text / CSV: render the real content inline (no dependency) ──
+  const [textBody, setTextBody] = useState<string | null>(null);
+  const [textErr, setTextErr] = useState(false);
+  useEffect(() => {
+    if (!isText) { setTextBody(null); return; }
+    let cancelled = false;
+    setTextBody(null); setTextErr(false);
+    apiFetchBlob(`/v1/files/${item.id}/preview`)
+      .then(b => b.text())
+      .then(t => { if (!cancelled) setTextBody(t.slice(0, 500_000)); })
+      .catch(() => { if (!cancelled) setTextErr(true); });
+    return () => { cancelled = true; };
+  }, [isText, item.id]);
+
+  const csvRows = useMemo(() => {
+    if (!textBody || (ext !== 'csv' && ext !== 'tsv')) return null;
+    const sep = ext === 'tsv' ? '\t' : ',';
+    return textBody.split(/\r?\n/).slice(0, 500).filter(l => l.length).map(line => {
+      // minimal CSV: handles quoted fields with embedded separators
+      const out: string[] = []; let cur = ''; let q = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (q) { if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; }
+        else if (c === '"') q = true;
+        else if (c === sep) { out.push(cur); cur = ''; }
+        else cur += c;
+      }
+      out.push(cur);
+      return out;
+    });
+  }, [textBody, ext]);
+
+  // ── Office docs: server converts to PDF when LibreOffice is configured;
+  //    otherwise an honest "download to view". ──
+  const [officePdfUrl, setOfficePdfUrl] = useState<string | null>(null);
+  const [officeState, setOfficeState] = useState<'loading' | 'ready' | 'unavailable' | 'error'>('loading');
+  useEffect(() => {
+    if (!isOffice) return;
+    let cancelled = false;
+    let objUrl: string | null = null;
+    setOfficeState('loading'); setOfficePdfUrl(null);
+    apiFetchBlob(`/v1/files/${item.id}/preview`)
+      .then(blob => {
+        if (cancelled) return;
+        objUrl = URL.createObjectURL(blob);
+        setOfficePdfUrl(objUrl);
+        setOfficeState('ready');
+      })
+      .catch((e: any) => {
+        if (cancelled) return;
+        setOfficeState(String(e?.message || '').includes('PREVIEW_UNAVAILABLE') ? 'unavailable' : 'error');
+      });
+    return () => { cancelled = true; if (objUrl) URL.revokeObjectURL(objUrl); };
+  }, [isOffice, item.id]);
 
   // Badge config per file type
   const badgeConfig = isPdf
@@ -109,8 +168,8 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
     navigate(`/sign/editor?fileId=${item.id}&fileName=${encodeURIComponent(item.name)}`);
   }
 
-  const showLoading = loading || (isPdf && pdfLoading);
-  const showError = !showLoading && (error || (isPdf && pdfError));
+  const showLoading = loading || (isPdf && pdfLoading) || (isOffice && officeState === 'loading') || (isText && textBody == null && !textErr);
+  const showError = !showLoading && ((kind && error) || (isPdf && pdfError) || (isOffice && officeState === 'error') || (isText && textErr));
   const pdfRenderScale = fitScale * (zoom / 100);
 
   return (
@@ -278,7 +337,49 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
               <img src={url} alt={item.name} className="lightbox-image" style={{ transform: `scale(${zoom / 100})` }} />
             )}
 
-            {!showLoading && !showError && !isPdf && !isImage && (
+            {/* Office doc converted server-side to PDF (LibreOffice) */}
+            {!showLoading && !showError && isOffice && officeState === 'ready' && officePdfUrl && (
+              <iframe src={officePdfUrl} title={item.name}
+                style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }} />
+            )}
+
+            {/* Office doc, no converter configured — honest fallback */}
+            {!showLoading && !showError && isOffice && officeState === 'unavailable' && (
+              <div className="lbx-status">
+                <Icon name="fileText" size={28} />
+                <span>Inline preview isn't available for {ext.toUpperCase()} files on this deployment.</span>
+                <button className="btn btn-sm" style={{ marginTop: 10 }} onClick={() => onDownload(item)}>Download to view</button>
+              </div>
+            )}
+
+            {/* Text / CSV rendered inline */}
+            {!showLoading && !showError && isText && textBody != null && (
+              csvRows ? (
+                <div style={{ width: '100%', height: '100%', overflow: 'auto', background: '#fff' }}>
+                  <table className="lbx-csv-table" style={{ borderCollapse: 'collapse', fontSize: 12.5, width: '100%' }}>
+                    <tbody>
+                      {csvRows.map((r, ri) => (
+                        <tr key={ri}>
+                          {r.map((c, ci) => (
+                            ri === 0
+                              ? <th key={ci} style={{ border: '1px solid #e2e8f0', padding: '5px 9px', background: '#f8fafc', textAlign: 'left', position: 'sticky', top: 0 }}>{c}</th>
+                              : <td key={ci} style={{ border: '1px solid #e2e8f0', padding: '5px 9px' }}>{c}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <pre style={{
+                  width: '100%', height: '100%', overflow: 'auto', margin: 0, padding: 20,
+                  background: '#fff', color: '#1e293b', fontSize: 12.5, lineHeight: 1.6,
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                }}>{textBody}</pre>
+              )
+            )}
+
+            {!showLoading && !showError && !isPdf && !isImage && !isOffice && !isText && (
               <div className="lightbox-doc-sheet" style={{ transform: `scale(${zoom / 100})` }}>
                 <DocThumbnail type={item.type} name={item.name} url={url} />
               </div>

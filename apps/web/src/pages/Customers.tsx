@@ -11,6 +11,7 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { PersonAvatar, CompanyAvatar } from '../components/PersonAvatar.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
 import { EntityPicker } from '../components/EntityPicker.js';
@@ -239,29 +240,30 @@ function TinChip({ tin }: { tin?: string }) {
   };
 
   return (
-    <div
-      onClick={handleCopy}
-      title={tin ? `TIN: ${tin} (Click to copy)` : undefined}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        background: 'var(--bg)',
-        border: '1px solid var(--border)',
-        borderRadius: 6,
-        padding: '3px 8px',
-        cursor: 'pointer',
-        transition: 'all 0.15s ease',
-      }}
-    >
-      <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--blue)', letterSpacing: '0.04em', background: 'var(--blue-l)', borderRadius: 3, padding: '1px 4px' }}>TIN</span>
-      <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink)' }}>{masked}</span>
-      {copied ? (
-        <span style={{ fontSize: 10, color: 'var(--green)', fontWeight: 700 }}>✓</span>
-      ) : (
-        <Icon name="copy" size={11} style={{ color: 'var(--ink3)', opacity: 0.65 }} />
-      )}
-    </div>
+    <Tip label={copied ? 'Copied!' : `TIN: ${tin} — click to copy`} side="top">
+      <div
+        onClick={handleCopy}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          background: 'var(--bg)',
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          padding: '3px 8px',
+          cursor: 'pointer',
+          transition: 'all 0.15s ease',
+        }}
+      >
+        <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--blue)', letterSpacing: '0.04em', background: 'var(--blue-l)', borderRadius: 3, padding: '1px 4px' }}>TIN</span>
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink)' }}>{masked}</span>
+        {copied ? (
+          <span style={{ fontSize: 10, color: 'var(--green)', fontWeight: 700 }}>✓</span>
+        ) : (
+          <Icon name="copy" size={11} style={{ color: 'var(--ink3)', opacity: 0.65 }} />
+        )}
+      </div>
+    </Tip>
   );
 }
 
@@ -1186,70 +1188,74 @@ export const Customers: React.FC = () => {
 
               {/* View Mode Toggle: Table vs Cards */}
               <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r-sm, 6px)', overflow: 'hidden', background: 'var(--bg)' }}>
-                <button
-                  type="button"
-                  title="Table View"
-                  onClick={() => setViewMode('table')}
-                  style={{
-                    padding: '6px 10px',
-                    border: 'none',
-                    background: viewMode === 'table' ? 'var(--card-bg, var(--white))' : 'transparent',
-                    color: viewMode === 'table' ? 'var(--teal)' : 'var(--ink3)',
-                    cursor: 'pointer',
-                    boxShadow: viewMode === 'table' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Icon name="list" size={15} />
-                </button>
-                <button
-                  type="button"
-                  title="Cards Grid View"
-                  onClick={() => setViewMode('grid')}
-                  style={{
-                    padding: '6px 10px',
-                    border: 'none',
-                    background: viewMode === 'grid' ? 'var(--card-bg, var(--white))' : 'transparent',
-                    color: viewMode === 'grid' ? 'var(--teal)' : 'var(--ink3)',
-                    cursor: 'pointer',
-                    boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Icon name="grid" size={15} />
-                </button>
+                <Tip label="Table View" side="bottom">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('table')}
+                    style={{
+                      padding: '6px 10px',
+                      border: 'none',
+                      background: viewMode === 'table' ? 'var(--card-bg, var(--white))' : 'transparent',
+                      color: viewMode === 'table' ? 'var(--teal)' : 'var(--ink3)',
+                      cursor: 'pointer',
+                      boxShadow: viewMode === 'table' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Icon name="list" size={15} />
+                  </button>
+                </Tip>
+                <Tip label="Cards Grid View" side="bottom">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('grid')}
+                    style={{
+                      padding: '6px 10px',
+                      border: 'none',
+                      background: viewMode === 'grid' ? 'var(--card-bg, var(--white))' : 'transparent',
+                      color: viewMode === 'grid' ? 'var(--teal)' : 'var(--ink3)',
+                      cursor: 'pointer',
+                      boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Icon name="grid" size={15} />
+                  </button>
+                </Tip>
               </div>
 
               {/* Column Settings */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" style={{ padding: '0 8px', height: 34 }}>
-                    <Icon name="settings" size={14} style={{ color: 'var(--ink3)' }} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <div style={{ padding: '6px 10px 4px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Visible Columns</div>
-                  {([
-                    { key: 'email',   label: 'Email' },
-                    { key: 'phone',   label: 'Phone / WhatsApp' },
-                    { key: 'contact', label: 'Primary Contact' },
-                    { key: 'tin',     label: 'TIN Number' },
-                    { key: 'trade',   label: 'Trade Volume' },
-                    { key: 'joined',  label: 'Joined Date' },
-                  ] as { key: keyof typeof visibleCols; label: string }[]).map(col => (
-                    <DropdownMenuCheckboxItem
-                      key={col.key}
-                      checked={visibleCols[col.key]}
-                      onSelect={e => e.preventDefault()}
-                      onCheckedChange={() => setVisibleCols(v => ({ ...v, [col.key]: !v[col.key] }))}
-                    >
-                      {col.label}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Tip label="Column visibility" side="bottom">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" style={{ padding: '0 8px', height: 34 }}>
+                      <Icon name="settings" size={14} style={{ color: 'var(--ink3)' }} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <div style={{ padding: '6px 10px 4px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Visible Columns</div>
+                    {([
+                      { key: 'email',   label: 'Email' },
+                      { key: 'phone',   label: 'Phone / WhatsApp' },
+                      { key: 'contact', label: 'Primary Contact' },
+                      { key: 'tin',     label: 'TIN Number' },
+                      { key: 'trade',   label: 'Trade Volume' },
+                      { key: 'joined',  label: 'Joined Date' },
+                    ] as { key: keyof typeof visibleCols; label: string }[]).map(col => (
+                      <DropdownMenuCheckboxItem
+                        key={col.key}
+                        checked={visibleCols[col.key]}
+                        onSelect={e => e.preventDefault()}
+                        onCheckedChange={() => setVisibleCols(v => ({ ...v, [col.key]: !v[col.key] }))}
+                      >
+                        {col.label}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </Tip>
 
             </div>
 
@@ -1387,12 +1393,12 @@ export const Customers: React.FC = () => {
                               <td>
                                 {c.phone_wa ? (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <Tip label={`Open WhatsApp — ${c.phone_wa}`} side="top">
                                     <a
                                       href={`https://wa.me/${c.phone_wa.replace(/\D/g, '')}`}
                                       target="_blank"
                                       rel="noreferrer"
                                       onClick={e => e.stopPropagation()}
-                                      title="Open WhatsApp chat"
                                       style={{
                                         display: 'inline-flex', alignItems: 'center', gap: 5,
                                         fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink)',
@@ -1403,6 +1409,7 @@ export const Customers: React.FC = () => {
                                       <Icon name="phone" size={12} style={{ color: 'var(--green)' }} />
                                       {c.phone_wa}
                                     </a>
+                                  </Tip>
                                   </div>
                                 ) : (
                                   <span style={{ color: 'var(--ink3)', fontSize: 12.5 }}>—</span>
@@ -1538,26 +1545,28 @@ export const Customers: React.FC = () => {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 }}>
                         <div style={{ display: 'flex', gap: 6 }}>
                           {c.email && (
-                            <a
-                              href={`mailto:${c.email}`}
-                              onClick={e => e.stopPropagation()}
-                              title={c.email}
-                              style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)', background: 'var(--card-bg, var(--white))' }}
-                            >
-                              <Icon name="mail" size={13} />
-                            </a>
+                            <Tip label={`Email — ${c.email}`} side="top">
+                              <a
+                                href={`mailto:${c.email}`}
+                                onClick={e => e.stopPropagation()}
+                                style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)', background: 'var(--card-bg, var(--white))' }}
+                              >
+                                <Icon name="mail" size={13} />
+                              </a>
+                            </Tip>
                           )}
                           {c.phone_wa && (
-                            <a
-                              href={`https://wa.me/${c.phone_wa.replace(/\D/g, '')}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={e => e.stopPropagation()}
-                              title={c.phone_wa}
-                              style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)', background: 'var(--card-bg, var(--white))' }}
-                            >
-                              <Icon name="phone" size={13} />
-                            </a>
+                            <Tip label={`WhatsApp — ${c.phone_wa}`} side="top">
+                              <a
+                                href={`https://wa.me/${c.phone_wa.replace(/\D/g, '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={e => e.stopPropagation()}
+                                style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)', background: 'var(--card-bg, var(--white))' }}
+                              >
+                                <Icon name="phone" size={13} />
+                              </a>
+                            </Tip>
                           )}
                         </div>
 

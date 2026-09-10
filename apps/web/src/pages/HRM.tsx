@@ -25,6 +25,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { PageHeader as SharedPageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { PersonLink } from '../components/PersonLink.js';
+import { PayrollSettingsModal } from './PayrollSettingsModal.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 
@@ -2984,6 +2985,7 @@ export function PayrollPage() {
   const [busy, setBusy] = useState<'' | 'create' | 'calc' | 'approve' | 'distribute' | 'mark-paid'>('');
   const [search, setSearch] = useState('');
   const [showPay, setShowPay] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [payrollYear, setPayrollYear] = useState<number | null>(null);
   const [viewing, setViewing] = useState<Payslip | null>(null);
@@ -3108,6 +3110,13 @@ export function PayrollPage() {
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <Button
+            variant="secondary"
+            onClick={() => setShowSettings(true)}
+            style={{ height: 38, borderRadius: 8, padding: '0 14px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Icon name="sliders" size={15} /> Statutory rates
+          </Button>
+          <Button
             onClick={createRun}
             disabled={busy === 'create'}
             style={{ height: 38, background: '#3b82f6', color: '#fff', fontWeight: 700, borderRadius: 8, padding: '0 16px', fontSize: 13, border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px rgba(59,130,246,0.3)' }}
@@ -3116,6 +3125,8 @@ export function PayrollPage() {
           </Button>
         </div>
       </div>
+
+      {showSettings && <PayrollSettingsModal onClose={() => setShowSettings(false)} />}
 
       {/* 📊 Top Charts Row (Payroll Summary + Company Pay Donut) — both real,
           computed from payroll_runs' own stored totals (set once a run is

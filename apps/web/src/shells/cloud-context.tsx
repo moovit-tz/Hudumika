@@ -61,11 +61,30 @@ export interface StorageConnection {
   provider: StorageProvider;
   status: 'connected' | 'disconnected';
   account_label: string | null;
+  account_email?: string | null;
   auto_sync: boolean;
   connected_at: string | null;
   last_synced_at: string | null;
+  last_sync_error?: string | null;
+  /** true only for providers with a real integration (OneDrive today). */
+  supported?: boolean;
+  /** true once this tenant has stored a BYO OAuth Client ID + Secret. */
+  oauth_configured?: boolean;
+  oauth_client_id?: string | null;
   file_count: number;
   total_size: number;
+}
+
+export interface FileAccessLogEntry {
+  id: string;
+  file_id: string;
+  version_id: string | null;
+  user_id: string | null;
+  actor_name: string;
+  action: 'download' | 'preview' | 'version_download' | 'link_download';
+  via: 'app' | 'public_link';
+  ip: string | null;
+  created_at: string;
 }
 
 export type DriveType = 'personal' | 'shared';
@@ -163,6 +182,15 @@ export interface CloudCtxValue {
   connectProvider: (provider: StorageProvider, accountLabel: string) => Promise<void>;
   disconnectProvider: (provider: StorageProvider) => Promise<void>;
   syncProvider: (provider: StorageProvider) => Promise<void>;
+  /** Store the tenant's BYO OAuth app credentials for a real connector (OneDrive). */
+  configureConnectorOAuth: (provider: StorageProvider, clientId: string, clientSecret: string) => Promise<void>;
+  /** Get the provider consent URL to redirect the browser to. */
+  startConnectorOAuth: (provider: StorageProvider) => Promise<{ url: string; state: string }>;
+  /** Exchange the `?code=` from the consent redirect for tokens + first sync. */
+  completeConnectorOAuth: (provider: StorageProvider, code: string) => Promise<{ synced: number; email: string | null }>;
+
+  /** Per-file read audit (download / preview / version / public link). */
+  fetchAccessLog: (fileId: string) => Promise<FileAccessLogEntry[]>;
 }
 
 // ── Default no-op context ─────────────────────────────────────────────────
@@ -226,6 +254,10 @@ export const CloudCtx = createContext<CloudCtxValue>({
   connectProvider: noopAsync,
   disconnectProvider: noopAsync,
   syncProvider: noopAsync,
+  configureConnectorOAuth: noopAsync,
+  startConnectorOAuth: async () => ({ url: '', state: '' }),
+  completeConnectorOAuth: async () => ({ synced: 0, email: null }),
+  fetchAccessLog: async () => [],
 });
 
 export function useCloud() {
@@ -661,6 +693,44 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
     })(),
   [loadConnections]);
 
+  const configureConnectorOAuth = useCallback((provider: StorageProvider, clientId: string, clientSecret: string) =>
+    (async () => {
+      try {
+        await apiFetch(`/v1/files/connections/${provider}/oauth-config`, {
+          method: 'PUT', body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
+        });
+        await loadConnections();
+      } catch (err: any) {
+        setError(err.message || 'Could not save OAuth credentials');
+        throw err;
+      }
+    })(),
+  [loadConnections]);
+
+  const startConnectorOAuth = useCallback(async (provider: StorageProvider) => {
+    return apiFetch(`/v1/files/connections/${provider}/auth-url`) as Promise<{ url: string; state: string }>;
+  }, []);
+
+  const completeConnectorOAuth = useCallback((provider: StorageProvider, code: string) =>
+    (async () => {
+      try {
+        const res = await apiFetch(`/v1/files/connections/${provider}/callback`, {
+          method: 'POST', body: JSON.stringify({ code }),
+        });
+        await loadConnections();
+        return { synced: res?.synced ?? 0, email: res?.email ?? null };
+      } catch (err: any) {
+        setError(err.message || 'Could not finish connecting the account');
+        throw err;
+      }
+    })(),
+  [loadConnections]);
+
+  const fetchAccessLog = useCallback(async (fileId: string) => {
+    const res = await apiFetch(`/v1/files/${fileId}/access-log`);
+    return Array.isArray(res?.data) ? res.data as FileAccessLogEntry[] : [];
+  }, []);
+
   return (
     <CloudCtx.Provider value={{
       files, loading, error, dismissError, loadData,
@@ -674,6 +744,7 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
       createFolder, uploadFiles, uploadFolder, uploadingFiles, removeUploadingFile, renameItem, starItem, moveItem,
       trashItem, restoreItem, permanentlyDelete, emptyTrash, shareItem, downloadItem, canPermanentlyDelete,
       connections, connectionsLoading, loadConnections, connectProvider, disconnectProvider, syncProvider,
+      configureConnectorOAuth, startConnectorOAuth, completeConnectorOAuth, fetchAccessLog,
     }}>
       {children}
     </CloudCtx.Provider>

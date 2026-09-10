@@ -183,7 +183,7 @@ export default async function platformSupportRoutes(fastify: FastifyInstance) {
           .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst());
     if (!att) return reply.status(404).send({ error: 'Attachment not found.' });
 
-    const buf = MinioIntegration.readFile(att.storage_key);
+    const buf = await MinioIntegration.readFile(att.storage_key);
     if (!buf) return reply.status(404).send({ error: 'Attachment content is no longer on disk.' });
     reply.header('Content-Type', att.mime_type || 'application/octet-stream');
     // `inline` so a screenshot opens rather than downloads; the filename is

@@ -1,324 +1,182 @@
+/**
+ * Per-purpose storage-key layout for every stored file in the platform.
+ *
+ * The actual bytes go through `objectStore` (integrations/object-storage.ts),
+ * which is a local-disk backend by default and an S3-compatible object store
+ * when S3_* env is configured. This class only owns *where* a given kind of
+ * file is filed (`tenants/<id>/cloud/<fileId>/<name>`, `.../hr/<userId>/...`,
+ * etc.) so those trees never cross — an employee's contract must never land
+ * where code walking the customer tree would sweep it up, and so on.
+ *
+ * Historical name: it predates the storage backend being pluggable and every
+ * call site imports `MinioIntegration`; kept rather than churn ~40 files.
+ */
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { env } from '../config/env.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { objectStore } from './object-storage.js';
 
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+/** Disk-only: create the local folder + a small marker file so the tree is
+ *  navigable in a file explorer. A no-op when the backend is S3 (no folders). */
+function diskFolder(relDir: string, markerName: string, markerJson: string): void {
+  if (objectStore.kind !== 'disk') return;
+  const localDir = path.join(UPLOADS_DIR, relDir);
+  fs.mkdirSync(localDir, { recursive: true });
+  const metaPath = path.join(localDir, markerName);
+  if (!fs.existsSync(metaPath)) fs.writeFileSync(metaPath, markerJson);
 }
 
+const clean = (s: string) => s.replace(/[^a-zA-Z0-9._-]/g, '_');
+
 export class MinioIntegration {
-  /**
-   * Creates the top-level customer folder.
-   * Path: uploads/tenants/{tenantId}/customers/{customerId}/
-   * Called once when a customer is first created.
-   */
+  /** Top-level customer folder — `tenants/{t}/customers/{c}/`. */
   static ensureCustomerFolder(tenantId: string, customerId: string, customerName: string): string {
-    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'customers', customerId);
-    fs.mkdirSync(localDir, { recursive: true });
-    // Write a meta file so the folder is identifiable in a file explorer
-    const metaPath = path.join(localDir, '.customer');
-    if (!fs.existsSync(metaPath)) {
-      fs.writeFileSync(metaPath, JSON.stringify({ customerId, customerName, createdAt: new Date().toISOString() }));
-    }
-    const storagePrefix = `tenants/${tenantId}/customers/${customerId}`;
-    console.log(`📁 Storage: Customer folder created — ${storagePrefix} (${customerName})`);
-    return storagePrefix;
+    diskFolder(
+      path.join('tenants', tenantId, 'customers', customerId),
+      '.customer',
+      JSON.stringify({ customerId, customerName, createdAt: new Date().toISOString() }),
+    );
+    const prefix = `tenants/${tenantId}/customers/${customerId}`;
+    console.log(`📁 Storage: Customer folder — ${prefix} (${customerName})`);
+    return prefix;
   }
 
-  /**
-   * Creates a BL/AWB subfolder inside the customer folder.
-   * Path: uploads/tenants/{tenantId}/customers/{customerId}/{blNumber}/
-   * Called when a shipment is created.
-   */
+  /** BL/AWB subfolder inside a customer folder. */
   static ensureFolder(tenantId: string, customerId: string, folderName: string): string {
-    const clean = folderName.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'customers', customerId, clean);
-    fs.mkdirSync(localDir, { recursive: true });
-    // Write a meta file so the folder is identifiable
-    const metaPath = path.join(localDir, '.shipment');
-    if (!fs.existsSync(metaPath)) {
-      fs.writeFileSync(metaPath, JSON.stringify({ folderName, createdAt: new Date().toISOString() }));
-    }
-    const storagePrefix = `tenants/${tenantId}/customers/${customerId}/${clean}`;
-    console.log(`📁 Storage: Shipment folder created — ${storagePrefix}`);
-    return storagePrefix;
+    const c = clean(folderName);
+    diskFolder(
+      path.join('tenants', tenantId, 'customers', customerId, c),
+      '.shipment',
+      JSON.stringify({ folderName, createdAt: new Date().toISOString() }),
+    );
+    const prefix = `tenants/${tenantId}/customers/${customerId}/${c}`;
+    console.log(`📁 Storage: Shipment folder — ${prefix}`);
+    return prefix;
   }
 
-  /**
-   * Uploads a document into the customer/BL folder.
-   * Storage key: tenants/{tenantId}/customers/{customerId}/{folderName}/{filename}
-   */
   static async uploadDocument(
-    tenantId: string,
-    customerId: string,
-    folderName: string,
-    filename: string,
-    fileBuffer: Buffer
+    tenantId: string, customerId: string, folderName: string, filename: string, fileBuffer: Buffer,
   ): Promise<{ storageKey: string; size: number }> {
-    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
     const prefix = this.ensureFolder(tenantId, customerId, folderName);
-    const storageKey = `${prefix}/${cleanFilename}`;
-
-    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'customers', customerId, folderName.replace(/[^a-zA-Z0-9._-]/g, '_'));
-    fs.writeFileSync(path.join(localDir, cleanFilename), fileBuffer);
-
+    const storageKey = `${prefix}/${clean(filename)}`;
+    await objectStore.put(storageKey, fileBuffer);
     console.log(`🗄️ Storage: File saved — ${storageKey}`);
     return { storageKey, size: fileBuffer.length };
   }
 
-  /**
-   * Uploads a file for the Cloud/Drive file manager.
-   * Storage key: tenants/{tenantId}/cloud/{fileId}/{filename}
-   */
+  /** Cloud / Drive file manager — `tenants/{t}/cloud/{fileId}/{filename}`. */
   static async uploadCloudFile(
-    tenantId: string,
-    fileId: string,
-    filename: string,
-    fileBuffer: Buffer
+    tenantId: string, fileId: string, filename: string, fileBuffer: Buffer,
   ): Promise<{ storageKey: string; size: number }> {
-    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'cloud', fileId);
-    fs.mkdirSync(localDir, { recursive: true });
-    const storageKey = `tenants/${tenantId}/cloud/${fileId}/${cleanFilename}`;
-    fs.writeFileSync(path.join(localDir, cleanFilename), fileBuffer);
+    const storageKey = `tenants/${tenantId}/cloud/${fileId}/${clean(filename)}`;
+    await objectStore.put(storageKey, fileBuffer);
     console.log(`🗄️ Storage: Cloud file saved — ${storageKey}`);
     return { storageKey, size: fileBuffer.length };
   }
 
-  /**
-   * Stores a file attached to a platform support ticket — a screenshot, the
-   * report PDF, the invoice that broke. Kept out of the customer/cloud trees
-   * so a bug report's evidence never appears in a customer's document list.
-   */
   static async uploadSupportAttachment(
-    tenantId: string,
-    attachmentId: string,
-    filename: string,
-    fileBuffer: Buffer
+    tenantId: string, attachmentId: string, filename: string, fileBuffer: Buffer,
   ): Promise<{ storageKey: string; size: number }> {
-    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_') || 'attachment';
-    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'support', attachmentId);
-    fs.mkdirSync(localDir, { recursive: true });
-    const storageKey = `tenants/${tenantId}/support/${attachmentId}/${cleanFilename}`;
-    fs.writeFileSync(path.join(localDir, cleanFilename), fileBuffer);
+    const storageKey = `tenants/${tenantId}/support/${attachmentId}/${clean(filename) || 'attachment'}`;
+    await objectStore.put(storageKey, fileBuffer);
     console.log(`🗄️ Storage: Support attachment saved — ${storageKey}`);
     return { storageKey, size: fileBuffer.length };
   }
 
-  /**
-   * Stores an HR document about one member of staff — a contract, an ID scan,
-   * a disciplinary letter.
-   *
-   * Deliberately its own tree rather than reusing uploadDocument, whose path is
-   * `.../customers/{customerId}/...`. Filing an employee's contract under a
-   * customer folder would be wrong twice over: the id is not a customer, and
-   * anything that later walks the customer tree to build a client's document
-   * list would sweep up staff records.
-   */
   static async uploadHrDocument(
-    tenantId: string,
-    userId: string,
-    filename: string,
-    fileBuffer: Buffer
+    tenantId: string, userId: string, filename: string, fileBuffer: Buffer,
   ): Promise<{ storageKey: string; size: number }> {
-    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_') || 'document';
-    // Prefixed so two uploads of "contract.pdf" for the same person do not
-    // silently overwrite one another — the second would otherwise replace the
-    // first on disk while both rows still claimed to exist.
-    const unique = `${Date.now()}-${cleanFilename}`;
-    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'hr', userId);
-    fs.mkdirSync(localDir, { recursive: true });
+    // Timestamp-prefixed so two "contract.pdf" uploads for one person don't overwrite.
+    const unique = `${Date.now()}-${clean(filename) || 'document'}`;
     const storageKey = `tenants/${tenantId}/hr/${userId}/${unique}`;
-    fs.writeFileSync(path.join(localDir, unique), fileBuffer);
+    await objectStore.put(storageKey, fileBuffer);
     console.log(`🗄️ Storage: HR document saved — ${storageKey}`);
     return { storageKey, size: fileBuffer.length };
   }
 
-  /**
-   * Stores a KYC identity-document image (Ondi M4) — own tree, same
-   * reasoning as uploadHrDocument: this is government ID imagery, not a
-   * customer or cloud file, and must never be swept up by code that walks
-   * either of those trees. Never served by public URL — see kyc.routes.ts's
-   * download handler, which re-checks tenant + (owner or reviewer role) on
-   * every read, same convention as files.routes.ts's own download route.
-   */
   static async uploadKycDocument(
-    tenantId: string,
-    userId: string,
-    filename: string,
-    fileBuffer: Buffer
+    tenantId: string, userId: string, filename: string, fileBuffer: Buffer,
   ): Promise<{ storageKey: string; size: number }> {
-    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_') || 'document';
-    const unique = `${Date.now()}-${cleanFilename}`;
-    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'kyc', userId);
-    fs.mkdirSync(localDir, { recursive: true });
+    const unique = `${Date.now()}-${clean(filename) || 'document'}`;
     const storageKey = `tenants/${tenantId}/kyc/${userId}/${unique}`;
-    fs.writeFileSync(path.join(localDir, unique), fileBuffer);
+    await objectStore.put(storageKey, fileBuffer);
     console.log(`🗄️ Storage: KYC document saved — ${storageKey}`);
     return { storageKey, size: fileBuffer.length };
   }
 
-  /**
-   * Stores a tenant's own business-registration document (Ondi M5 org
-   * KYB) — own tree, keyed by tenant only (there's no per-user id here:
-   * this document belongs to the tenant, not to whichever admin uploaded
-   * it, unlike uploadKycDocument's per-user tree).
-   */
   static async uploadOrgKybDocument(
-    tenantId: string,
-    filename: string,
-    fileBuffer: Buffer
+    tenantId: string, filename: string, fileBuffer: Buffer,
   ): Promise<{ storageKey: string; size: number }> {
-    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_') || 'document';
-    const unique = `${Date.now()}-${cleanFilename}`;
-    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'kyb');
-    fs.mkdirSync(localDir, { recursive: true });
+    const unique = `${Date.now()}-${clean(filename) || 'document'}`;
     const storageKey = `tenants/${tenantId}/kyb/${unique}`;
-    fs.writeFileSync(path.join(localDir, unique), fileBuffer);
+    await objectStore.put(storageKey, fileBuffer);
     console.log(`🗄️ Storage: Org KYB document saved — ${storageKey}`);
     return { storageKey, size: fileBuffer.length };
   }
 
-  /**
-   * Stores a generated shipment-report PDF (daily automation + on-demand
-   * downloads). Deliberately its own tree, same reasoning as
-   * uploadHrDocument/uploadSupportAttachment — a report snapshot is neither
-   * a customer-uploaded document nor a cloud file.
-   */
   static async uploadShipmentReport(
-    tenantId: string,
-    shipmentId: string,
-    filename: string,
-    fileBuffer: Buffer
+    tenantId: string, shipmentId: string, filename: string, fileBuffer: Buffer,
   ): Promise<{ storageKey: string; size: number }> {
-    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_') || 'report.pdf';
-    const unique = `${Date.now()}-${cleanFilename}`;
-    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'shipment-reports', shipmentId);
-    fs.mkdirSync(localDir, { recursive: true });
+    const unique = `${Date.now()}-${clean(filename) || 'report.pdf'}`;
     const storageKey = `tenants/${tenantId}/shipment-reports/${shipmentId}/${unique}`;
-    fs.writeFileSync(path.join(localDir, unique), fileBuffer);
+    await objectStore.put(storageKey, fileBuffer, 'application/pdf');
     console.log(`🗄️ Storage: Shipment report saved — ${storageKey}`);
     return { storageKey, size: fileBuffer.length };
   }
 
-  /**
-   * Stores the final stamped PDF built at Sign envelope completion (the
-   * signature-overlaid document plus its appended audit-trail page) —
-   * same "its own tree" reasoning as uploadShipmentReport/uploadHrDocument:
-   * this is a generated artifact tied to a signing transaction, not a
-   * customer upload or a Cloud Drive file.
-   */
   static async uploadSignedDocument(
-    tenantId: string,
-    envelopeId: string,
-    fileBuffer: Buffer
+    tenantId: string, envelopeId: string, fileBuffer: Buffer,
   ): Promise<{ storageKey: string; size: number }> {
-    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'sign-documents', envelopeId);
-    fs.mkdirSync(localDir, { recursive: true });
-    const filename = 'signed.pdf';
-    const storageKey = `tenants/${tenantId}/sign-documents/${envelopeId}/${filename}`;
-    fs.writeFileSync(path.join(localDir, filename), fileBuffer);
+    const storageKey = `tenants/${tenantId}/sign-documents/${envelopeId}/signed.pdf`;
+    await objectStore.put(storageKey, fileBuffer, 'application/pdf');
     console.log(`🗄️ Storage: Signed document saved — ${storageKey}`);
     return { storageKey, size: fileBuffer.length };
   }
 
-  /** Same per-purpose storage-key convention as uploadSignedDocument, for the
-   *  M6 cross-app stamp example's one concrete consumer — a customer
-   *  invoice PDF once someone with stamp access applies the company stamp. */
   static async uploadStampedInvoice(
-    tenantId: string,
-    invoiceId: string,
-    fileBuffer: Buffer
+    tenantId: string, invoiceId: string, fileBuffer: Buffer,
   ): Promise<{ storageKey: string; size: number }> {
-    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'invoice-documents', invoiceId);
-    fs.mkdirSync(localDir, { recursive: true });
-    const filename = 'stamped.pdf';
-    const storageKey = `tenants/${tenantId}/invoice-documents/${invoiceId}/${filename}`;
-    fs.writeFileSync(path.join(localDir, filename), fileBuffer);
+    const storageKey = `tenants/${tenantId}/invoice-documents/${invoiceId}/stamped.pdf`;
+    await objectStore.put(storageKey, fileBuffer, 'application/pdf');
     console.log(`🗄️ Storage: Stamped invoice saved — ${storageKey}`);
     return { storageKey, size: fileBuffer.length };
   }
 
-  /** Same per-purpose storage-key convention as uploadSignedDocument — a
-   *  verifier's uploaded scan/photo/PDF, held only long enough for
-   *  sign-forensic-verify.job.ts to process it (see that job and
-   *  migration 427's own header for the retention reasoning). Filename
-   *  keeps its original extension since media_type alone (image/jpeg vs.
-   *  application/pdf) decides how the job re-reads it, not the name. */
   static async uploadForensicJobFile(
-    tenantId: string,
-    jobId: string,
-    filename: string,
-    fileBuffer: Buffer
+    tenantId: string, jobId: string, filename: string, fileBuffer: Buffer,
   ): Promise<{ storageKey: string; size: number }> {
-    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'sign-forensic-jobs', jobId);
-    fs.mkdirSync(localDir, { recursive: true });
-    const storageKey = `tenants/${tenantId}/sign-forensic-jobs/${jobId}/${cleanFilename}`;
-    fs.writeFileSync(path.join(localDir, cleanFilename), fileBuffer);
+    const storageKey = `tenants/${tenantId}/sign-forensic-jobs/${jobId}/${clean(filename)}`;
+    await objectStore.put(storageKey, fileBuffer);
     console.log(`🗄️ Storage: Forensic verification upload saved — ${storageKey}`);
     return { storageKey, size: fileBuffer.length };
   }
 
-  /** A forensic case's own durable evidence copy (migration 429) — distinct
-   *  from uploadForensicJobFile's ephemeral job storage, which the 24h
-   *  cleanup sweep (sign-forensic-verify.job.ts) deletes regardless of
-   *  whether a case was opened from it. Nothing in this codebase deletes
-   *  from this path — an evidence file lives as long as its case does. */
   static async uploadForensicEvidence(
-    tenantId: string,
-    caseId: string,
-    filename: string,
-    fileBuffer: Buffer
+    tenantId: string, caseId: string, filename: string, fileBuffer: Buffer,
   ): Promise<{ storageKey: string; size: number }> {
-    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'sign-forensic-evidence', caseId);
-    fs.mkdirSync(localDir, { recursive: true });
-    const storageKey = `tenants/${tenantId}/sign-forensic-evidence/${caseId}/${cleanFilename}`;
-    fs.writeFileSync(path.join(localDir, cleanFilename), fileBuffer);
+    const storageKey = `tenants/${tenantId}/sign-forensic-evidence/${caseId}/${clean(filename)}`;
+    await objectStore.put(storageKey, fileBuffer);
     console.log(`🗄️ Storage: Forensic evidence saved — ${storageKey}`);
     return { storageKey, size: fileBuffer.length };
   }
 
-  /**
-   * Generates a signed URL for reading/downloading a document.
-   */
-  static async getSignedUrl(
-    tenantId: string,
-    storageKey: string,
-    expiresInSeconds = 3600
-  ): Promise<string> {
+  /** A time-limited URL a browser can GET directly (S3 presigned GET, or an
+   *  HMAC-signed link to the public passthrough route on the disk backend). */
+  static async getSignedUrl(_tenantId: string, storageKey: string, expiresInSeconds = 3600): Promise<string> {
     const filename = storageKey.split('/').pop() || 'file';
-    return `http://localhost:${env.APP_PORT}/v1/documents/download?key=${encodeURIComponent(storageKey)}&filename=${encodeURIComponent(filename)}`;
+    return objectStore.presignGet(storageKey, expiresInSeconds, filename);
   }
 
-  /**
-   * Deletes a document from storage.
-   */
-  static async deleteDocument(tenantId: string, storageKey: string): Promise<boolean> {
-    // Reconstruct local path from storage key
-    const localPath = path.join(UPLOADS_DIR, storageKey);
-    if (fs.existsSync(localPath)) {
-      fs.unlinkSync(localPath);
-      console.log(`🗄️ Storage: File deleted — ${storageKey}`);
-      return true;
-    }
-    return false;
+  static async deleteDocument(_tenantId: string, storageKey: string): Promise<boolean> {
+    const removed = await objectStore.del(storageKey);
+    if (removed) console.log(`🗄️ Storage: File deleted — ${storageKey}`);
+    return removed;
   }
 
-  /**
-   * Reads a file from local storage by storage key — used for serving downloads.
-   */
-  static readFile(storageKey: string): Buffer | null {
-    const localPath = path.join(UPLOADS_DIR, storageKey);
-    if (fs.existsSync(localPath)) {
-      return fs.readFileSync(localPath);
-    }
-    return null;
+  /** Read a stored file's bytes by storage key. Now async — the S3 backend
+   *  can't be synchronous. Returns null if the key doesn't exist. */
+  static async readFile(storageKey: string): Promise<Buffer | null> {
+    return objectStore.get(storageKey);
   }
 }

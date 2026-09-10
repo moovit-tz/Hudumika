@@ -55,7 +55,7 @@ export async function drivesRoutes(fastify: FastifyInstance) {
 
         if (type === 'shared') {
           await trx.insertInto('cloud_drive_members').values({
-            drive_id: drive.id, person_name: user.name ?? 'You', role: 'manager',
+            tenant_id: user.tenant_id, drive_id: drive.id, person_name: user.name ?? 'You', role: 'manager',
           }).execute();
         }
         return drive;
@@ -135,7 +135,7 @@ export async function drivesRoutes(fastify: FastifyInstance) {
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         if (!drive) return reply.status(404).send({ error: 'Not found' });
         const row = await trx.insertInto('cloud_drive_members').values({
-          drive_id: id, person_name: person_name.trim(), role: safeRole,
+          tenant_id: user.tenant_id, drive_id: id, person_name: person_name.trim(), role: safeRole,
         }).onConflict(oc => oc.columns(['drive_id', 'person_name']).doUpdateSet({ role: safeRole }))
           .returningAll().executeTakeFirstOrThrow();
         return row;

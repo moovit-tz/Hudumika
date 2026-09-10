@@ -282,7 +282,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
       if (shared?.length) {
         await trx.insertInto('cloud_file_shares').values(
           shared.map(s => ({
-            file_id: id, person_name: s.name, role: s.role,
+            tenant_id, file_id: id, person_name: s.name, role: s.role,
             principal_type: s.principal_type ?? null, principal_id: s.principal_id ?? null,
           }))
         ).execute();
@@ -320,7 +320,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
       if (!file || !file.storage_key || (!isOwnFile && !isOwnShipmentDoc && !isSharedWithOrg)) {
         return reply.status(404).send({ error: 'File content not available' });
       }
-      const buf = MinioIntegration.readFile(file.storage_key);
+      const buf = await MinioIntegration.readFile(file.storage_key);
       if (!buf) return reply.status(404).send({ error: 'File content not found' });
       reply.header('Content-Disposition', `attachment; filename="${file.name.replace(/"/g, '')}"`);
       reply.header('Content-Type', file.mime_type || 'application/octet-stream');
