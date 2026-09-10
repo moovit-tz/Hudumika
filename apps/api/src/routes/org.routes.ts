@@ -70,6 +70,23 @@ function sealOrClauses(eb: any, sealIds: { lotIds: string[]; consignmentIds: str
 
 export async function orgRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // Production-readiness audit HUD-0024/0031: every route in this file
+  // reads req.user as OrgJWTPayload (org_id, no tenant_id) via orgUser() —
+  // a pure type cast with no runtime check that the token is actually an
+  // ORG token. A CUSTOMER (or any other role)'s JWT has no org_id at all,
+  // so `undefined` flows into org-scoped queries here; it happened to
+  // resolve to zero rows in the live probe that found this, but nothing
+  // enforced that — an accident of the current query shapes, not a
+  // guarantee, and POST /claim would run its `organization_id: user.org_id`
+  // customer-linking update with the same undefined value. This file exists
+  // exclusively for the ORG portal; every route in it should refuse
+  // anything else outright rather than rely on a token-shape mismatch
+  // happening to fail closed.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role !== 'ORG') {
+      return reply.status(403).send({ error: 'This is only available to the organization portal.' });
+    }
+  });
 
   // GET /v1/org/workspaces — any tenant that has self-declared this same
   // Organization as its own identity (tenants.organization_id, set from that

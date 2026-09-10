@@ -49,6 +49,16 @@ export async function notesRoutes(fastify: FastifyInstance) {
   // app already gets (middleware/entitlement.ts), which this route never
   // had until now.
   fastify.addHook('preHandler', requireEntitlement('notes'));
+  // Production-readiness audit HUD-0024/0031: notes.service.ts's own
+  // listNotes() correctly scopes by visibility (team / own / shared-with-me)
+  // — that part is fine — but "team" visibility means every tenant member,
+  // and this route never excluded CUSTOMER from being one. Proven live: a
+  // CUSTOMER JWT got back a real team-visible note row.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   fastify.get('/', async (request: any, reply) => {
     const { subject_type, subject_id, search, limit, offset } = request.query as {

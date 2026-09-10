@@ -117,6 +117,22 @@ function sendServiceError(reply: any, e: any) {
 export async function pettiRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('petti'));
+  // Production-readiness audit HUD-0024/0031: wallet mutations already
+  // require PETTI_FINANCE_ROLES, and withdrawal approve/reject/disburse are
+  // gated by the named-approver check in petti.service.ts — but GET
+  // /wallets and GET /wallets/:id (balance, name, currency) had no check at
+  // all, and any internal staff role is deliberately allowed to *request* a
+  // withdrawal against a wallet it didn't create (a real petty-cash
+  // workflow — restricting reads to PETTI_FINANCE_ROLES would break that
+  // for everyone else). The actual gap is narrower: a CUSTOMER-role portal
+  // account, an external party, seeing tenant wallet balances at all.
+  // Proven live: GET /v1/petti/wallets returned real wallet data for a
+  // CUSTOMER JWT.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ── Wallets ────────────────────────────────────────────────────────────
   fastify.get('/wallets', async (request) => {

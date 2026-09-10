@@ -23,6 +23,13 @@ function mapAnchor(row: any) {
 export async function declarationLedgerAnchorRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('clearos'));
+  // HUD-0024/0031: same gap as declarations.routes.ts — a separate
+  // file/plugin registration sharing the /v1/declarations prefix.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   fastify.get('/anchors', async (request: any, reply) => {
     try {

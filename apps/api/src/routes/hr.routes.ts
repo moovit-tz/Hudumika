@@ -270,6 +270,15 @@ export async function syncAttendanceFromSessions(trx: any, tenantId: string, use
 export async function hrRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
+  // Production-readiness audit HUD-0024/0031: HR data (departments, shifts,
+  // attendance, leave, staff records) had no role check beyond entitlement
+  // — reachable by a CUSTOMER-role portal account, which has no legitimate
+  // reason to see any internal HR data at all.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ── Departments ───────────────────────────────────────────────
 

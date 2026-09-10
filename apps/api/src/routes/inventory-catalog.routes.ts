@@ -86,6 +86,13 @@ function mapUom(row: any) {
 export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('inventory'));
+  // HUD-0024/0031: warehouse/item catalog had no role check beyond
+  // entitlement — reachable by a CUSTOMER-role portal account.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ── Warehouses ─────────────────────────────────────────────────────
   fastify.get('/warehouses', async (request: any, reply) => {

@@ -37,6 +37,13 @@ function mapLine(row: any) {
 export async function inventoryCountsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('inventory'));
+  // HUD-0024/0031: same gap as inventory-catalog.routes.ts — a separate
+  // file/plugin registration sharing the /v1/inventory prefix.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   fastify.get('/count-sessions', async (request: any, reply) => {
     try {

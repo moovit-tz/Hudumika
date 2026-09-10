@@ -10,6 +10,13 @@ import { escapeHtml } from '../services/sign-notify.service.js';
 export async function nexusHRRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
+  // HUD-0024/0031: same gap as hr.routes.ts — a separate file/plugin
+  // registration sharing the /v1/hr prefix, not covered by that fix.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ─── CORE HR ───────────────────────────────────────────────────────────────
 

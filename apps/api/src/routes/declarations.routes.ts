@@ -194,6 +194,18 @@ export async function declarationRoutes(fastify: FastifyInstance) {
   // Enforce authentication on all routes
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('clearos'));
+  // Production-readiness audit HUD-0024/0031: GET / and GET /:id list/return
+  // every declaration in the tenant with no per-role or customer_id scoping
+  // at all (unlike shipments.routes.ts, which does this correctly) — proven
+  // live: a CUSTOMER JWT got back real declaration rows for shipments that
+  // may not even be theirs. POST is already role-gated; this closes the
+  // read side for the one role that should never see the whole tenant's
+  // customs paperwork.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   /**
    * Proves the :id in the path is a declaration of the caller's own tenant.

@@ -14,6 +14,18 @@ const reviewSchema = z.object({
 export async function sanctionsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('clearos'));
+  // Production-readiness audit HUD-0024/0031: sanctions-screening results
+  // are compliance due-diligence material about a shipment's counterparties
+  // — routine reading for clearing staff (SENIOR/JUNIOR/OFFICER screen
+  // customers/suppliers as part of normal case handling, so this isn't
+  // narrowed to a management tier), but never appropriate for an external
+  // CUSTOMER-portal account. Proven live: GET /v1/sanctions/screenings
+  // returned real screening rows for a CUSTOMER JWT.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   fastify.get('/screenings', async (request: any, reply) => {
     const { status } = request.query as { status?: string };

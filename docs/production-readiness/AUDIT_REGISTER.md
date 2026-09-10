@@ -202,34 +202,65 @@ Mandatory quality gates:
   hook, right after the entitlement check.
 - **Re-test, live:** `CUSTOMER` → 403; `JUNIOR` → 200 (unaffected).
 
-### HUD-0031 — More CUSTOMER-reachable internal endpoints found; not yet fixed · OPEN
+### HUD-0031 — 21 more CUSTOMER-reachable internal endpoints across 23 files · FIXED (VERIFIED)
 - **Category:** Authorization (Phase 14, HUD-0024 continuation)
 - **Evidence:** having established "can a CUSTOMER JWT even reach this app's base route" as a
-  fast, high-confidence signal (4 for 4 real bugs when checked: Contacts/CMS/Onsite/Onsite-
-  backups), the same probe was run against every other remaining flagged file's base GET. Real
-  data came back (200, not just an empty array — i.e. genuinely reachable, not merely
-  "authenticated but nothing to show") for: **`/v1/petti/wallets`** (wallet/financial data),
-  **`/v1/sanctions/screenings`** (compliance screening results), **`/v1/notes`** (returned a
-  real note row, though title/content were blank for this one), **`/v1/org/tickets`**,
-  **`/v1/seal/compartments`**, **`/v1/reference/icd-operators`** (likely fine — looks like
-  public reference data, needs confirming not assuming), **`/v1/hr/departments`**,
-  **`/v1/depot/equipment`**, **`/v1/inventory/warehouses`**, **`/v1/dangerous-goods/declarations`**
-  and **`/v1/declarations`** (both returned real declaration rows).
-  `/v1/drives` was checked and is **already correctly blocked** (`"Not available for customer
-  accounts"` — a concurrent session's own fix, not this audit's). `/v1/project-os/portfolios`
-  returned a **500** for a `CUSTOMER` JWT — an unhandled exception, not yet triaged (Project OS
-  is under active concurrent development — check with the owning session before touching it).
-  `/v1/shipments` was checked and is **correctly scoped already** (real `customer_id`-based
-  row filtering, with a safe non-matching fallback when unresolved) — not a bug, left as
-  reference for what the fix should look like.
-- **Proposed fix:** for each, read the actual handler (not just the base route) to confirm
-  whether it's a genuine unintended-CUSTOMER-access gap (most likely) or, like `shipments`,
-  already-correct scoping my probe couldn't see from one GET call. Prioritize `petti/wallets`
-  (financial) and `sanctions/screenings` (compliance) first — same severity class as HUD-0025.
-  This list is itself not exhaustive — only the files already flagged by the original HUD-0024
-  scan were probed; the ~40 files still fully untriaged (calculators, AI, PDF tools, seal-*
-  family beyond the base route, warehouse, tracker, etc.) have not been checked at all yet,
-  including for this specific CUSTOMER-reachability angle.
+  fast, high-confidence signal (4 for 4 real bugs when first checked: Contacts/CMS/Onsite/Onsite-
+  Backups), the same probe was run against every other remaining flagged file's base GET. Real
+  data came back (200, not just an empty array) for **13 apps**: Petti wallets (financial),
+  Sanctions screenings (compliance), Notes (a real "team"-visibility note row — the service's own
+  sharing scope is correct, it just never excluded an external role from being "the team"), Org
+  tickets, SEAL compartments (+ 8 sibling `seal-*` files sharing the same file-level-hook, plugin-
+  per-file gap the HUD-0023/0030 Onsite split already proved happens), HR departments,
+  NexusHR (separate file, same `/v1/hr` prefix as `hr.routes.ts`), Depot equipment, Inventory
+  warehouses (+ 3 sibling files: counts/stock/tasks), Dangerous Goods declarations, and
+  Declarations (+ its sibling `declaration-ledger-anchor.routes.ts`) — the last one alarming in
+  its own right: `DeclarationService.list()` has **no `customer_id` scoping at all**, unlike
+  `shipments.routes.ts`'s correct model, so a `CUSTOMER` got back the tenant's customs paperwork
+  wholesale, not filtered to their own.
+  `org.routes.ts` was a distinct sub-case: every route in it casts `req.user` straight to
+  `OrgJWTPayload` (`org_id`) with **no runtime check the token is actually an `ORG` token** — an
+  accident-of-query-shape "safe" (a non-ORG token's missing `org_id` happened to resolve to zero
+  rows), not an enforced guarantee, and `POST /claim`'s customer-linking write would run the same
+  way. Fixed by requiring `role === 'ORG'` outright, not just excluding `CUSTOMER`.
+  `/v1/project-os/portfolios` returned a client-visible **500** for the `CUSTOMER` JWT — re-tested
+  after fixing the gate with a legitimate `JUNIOR` JWT and got the **same 500**, proving the
+  crash is a pre-existing, role-unrelated bug in `ProjectOsService.listPortfolios`, not something
+  the auth fix could or should paper over (logged separately, HUD-0032; Project OS is under
+  active concurrent development, so the crash itself was left for that session).
+  Two apps were checked and found **already correct**, left untouched: `/v1/shipments` (real
+  `customer_id`-scoped filtering with a safe non-matching fallback — the reference example of
+  what "done right" looks like) and `/v1/drives` (already blocked for `CUSTOMER`, a concurrent
+  session's own fix). `/v1/reference/icd-operators` was checked and is deliberately entitlement-
+  free, broadly-authenticated **global reference data** (tariff/excise/ICD-operator/clearing-
+  agent lookups) — correct as-is, not a gap.
+- **Fix:** the same minimal, additive one-hook pattern used throughout this session — reject
+  `role === 'CUSTOMER'` (or, for `org.routes.ts`, require `role === 'ORG'` specifically) in each
+  file's existing preHandler chain, right after its entitlement check. No business-logic edits.
+  23 files touched: `petti.routes.ts`, `sanctions.routes.ts`, `org.routes.ts`, `seal.routes.ts` +
+  8 `seal-*` siblings, `hr.routes.ts`, `nexushr.routes.ts`, `depot.routes.ts`,
+  `inventory-catalog.routes.ts` + 3 siblings, `dangerous-goods.routes.ts`, `declarations.routes.ts`
+  + `declaration-ledger-anchor.routes.ts`, `notes.routes.ts`, `project-os.routes.ts`.
+- **Re-test, live:** every one of the 13 apps' base route now returns **403** for the `CUSTOMER`
+  JWT and is **unaffected (200)** for a `JUNIOR` JWT (except `org/tickets`, correctly 403 for
+  `JUNIOR` too — it's not an `ORG` token either) — confirmed in one batch script hitting all 14
+  endpoints simultaneously with both tokens. Full suite still green (10 files / 103 tests),
+  `tsc --noEmit` clean, API healthy throughout.
+- **Not exhaustive:** only the files already flagged by the original HUD-0024 scan were probed
+  this way; ~40 files remain fully untriaged (calculators, AI, PDF tools, warehouse, tracker,
+  the self-service tail), including for this same CUSTOMER-reachability angle — it has not been
+  run against files the first regex pass didn't already flag as having an unguarded mutation.
+
+### HUD-0032 — Project OS `GET /portfolios` throws a 500 for any real user · OPEN
+- **Category:** Functional / reliability (found as a side effect of HUD-0031, not itself an
+  authorization finding)
+- **Evidence:** `GET /v1/project-os/portfolios` returns an unhandled 500 for a legitimate
+  `JUNIOR`-role JWT (confirmed after the HUD-0031 auth fix was in place, ruling out role as the
+  cause) — a bug in `ProjectOsService.listPortfolios` or its call chain, not a security issue.
+- **Not fixed here:** Project OS (`project-os.routes.ts` + `project-os.service.ts` + siblings) is
+  under active concurrent development this session (migration 448, a prior
+  `project-os-isolation.test.ts` and `docs/project-os-hardening-review.md` already exist from
+  that work) — flagged for the owning session rather than touched blind.
 
 ### HUD-0025 — ComplyOS Legal Marketplace had no role gate · FIXED (VERIFIED)
 - **Category:** Authorization (Phase 14 RBAC matrix, HUD-0024 follow-up)

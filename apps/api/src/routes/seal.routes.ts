@@ -277,6 +277,15 @@ function mapMovement(row: any) {
 export async function sealRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('seal'));
+  // Production-readiness audit HUD-0024/0031: bonded-warehouse operations
+  // (compartments, lots, consignments, containers) had no role check beyond
+  // the entitlement gate — reachable by a CUSTOMER-role portal account.
+  // Proven live via the same probe as HUD-0028/0029/0031's other entries.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ── Dashboard ──────────────────────────────────────────────────────────
   fastify.get('/dashboard', async (request: any, reply) => {

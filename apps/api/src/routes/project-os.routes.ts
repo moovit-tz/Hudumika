@@ -13,6 +13,18 @@ const uuidSchema = z.string().uuid();
 export async function projectOsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('projects'));
+  // Production-readiness audit HUD-0024/0031: Project OS had no role check
+  // beyond entitlement. A CUSTOMER-role JWT hitting GET /portfolios wasn't
+  // just an access-scope question — it produced an unhandled 500, meaning
+  // this code path was never written to expect that role at all. This gate
+  // is a minimal, additive change (one preHandler hook, no business-logic
+  // edits) so it shouldn't conflict with the module's own active
+  // development — flag/revert if it does.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ─── Command Center ───────────────────────────────────────────────
 

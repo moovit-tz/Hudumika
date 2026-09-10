@@ -98,6 +98,13 @@ export async function depotRoutes(fastify: FastifyInstance) {
   // pages reach this API directly when they need to (e.g. a shipment's
   // linked release document), same cross-app pattern as freight-booking.
   fastify.addHook('preHandler', requireEntitlement('tracking'));
+  // HUD-0024/0031: depot/equipment ops had no role check beyond
+  // entitlement — reachable by a CUSTOMER-role portal account.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   fastify.get('/equipment', async (request: any, reply) => {
     const { status } = request.query as { status?: string };

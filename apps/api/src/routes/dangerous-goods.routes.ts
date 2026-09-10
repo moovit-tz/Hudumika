@@ -43,6 +43,13 @@ const updateSchema = z.object({
 export async function dangerousGoodsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('clearos'));
+  // HUD-0024/0031: dangerous-goods declarations had no role check beyond
+  // entitlement — reachable by a CUSTOMER-role portal account.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   fastify.get('/reference', async (request: any, reply) => {
     const { q } = request.query as { q?: string };

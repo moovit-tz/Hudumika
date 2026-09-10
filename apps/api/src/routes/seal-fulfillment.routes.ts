@@ -62,6 +62,13 @@ function mapDispatchRequest(row: any) {
 export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('seal'));
+  // HUD-0024/0031: same gap as seal.routes.ts — a separate file/plugin
+  // registration, not covered by that fix. See seal.routes.ts's comment.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // Read-only proxy onto Tracking/HuduFreight's own vehicle registry, same
   // reasoning as the geofences proxy in seal.routes.ts — a SEAL-only user
