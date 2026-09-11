@@ -34,6 +34,17 @@ const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(s);
 export async function hudubiRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('hudubi'));
+  // Production-readiness audit HUD-0024/0031: cross-cutting business
+  // intelligence (dashboards, AI insights, metrics) had no role check beyond
+  // entitlement — this tenant doesn't have 'hudubi' entitled so the probe
+  // that found every other gap in this pass got PLAN_UPGRADE_REQUIRED here
+  // instead of real data, but any tenant that *does* have it entitled would
+  // expose internal executive analytics to a CUSTOMER-role portal account.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   const count = async (trx: any, table: string, tenantId: string) => {
     try {

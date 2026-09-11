@@ -112,7 +112,7 @@ function userEmail(req: FastifyRequest): string {
 // gating the tenant-wide view behind DOCUMENT_ADMIN_ROLES. This is that same
 // creator-or-admin rule, applied at the single-record mutation sites it was
 // missing from.
-function assertCanActOnEnvelope(req: FastifyRequest, reply: FastifyReply, envelope: { created_by: string }): boolean {
+export function assertCanActOnEnvelope(req: FastifyRequest, reply: FastifyReply, envelope: { created_by: string }): boolean {
   if (envelope.created_by === userId(req) || DOCUMENT_ADMIN_ROLES.includes(userRole(req))) return true;
   reply.status(403).send({ error: 'Only this document\'s owner or a tenant admin can do that.' });
   return false;

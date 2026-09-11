@@ -119,6 +119,15 @@ const penaltyPatchSchema = z.object({
 export async function customsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('clearos'));
+  // Production-readiness audit HUD-0024/0031: GET /penalties (customs
+  // penalty/violation records, no customer_id scoping) and the rest of this
+  // clearing-operations file had no role check beyond entitlement — proven
+  // live: a CUSTOMER JWT got back real penalty rows for the whole tenant.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ── GET /v1/customs/hs-search?q=laptop ───────────────────────────────────────
   // Full-text + code-prefix search of HS code database

@@ -473,6 +473,16 @@ export async function trackViaShip24(number: string, apiKey: string): Promise<Tr
 export async function trackerRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('cargotracker'));
+  // Production-readiness audit HUD-0024/0031: GET /snapshots lists every
+  // tracked AWB/BL in the tenant with no customer_id scoping (unlike
+  // shipments.routes.ts's correct model) and no role check — a CUSTOMER
+  // would see every other customer's shipment-tracking data, not just
+  // their own.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // POST /v1/tracker/track
   fastify.post('/track', async (req: FastifyRequest, reply) => {

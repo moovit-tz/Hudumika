@@ -10,8 +10,22 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const triggerClass = cn(
-  "flex min-h-9 w-full items-center gap-2 rounded-lg border border-input bg-transparent px-3 py-[var(--ds-input-py,8px)] text-left text-sm font-medium shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+  "flex min-h-(--ctl-h) w-full items-center gap-2 rounded-(--radius) border border-input bg-transparent px-3 py-[var(--ds-input-py,8px)] text-left text-sm font-medium shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
 )
+
+function ClearDateButton({ onClear, label, disabled }: { onClear: () => void; label: string; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={(event) => { event.stopPropagation(); onClear() }}
+      className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full p-1 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+    >
+      <X className="h-3.5 w-3.5" />
+    </button>
+  )
+}
 
 /** Parse a plain "YYYY-MM-DD" string (as produced by <input type="date">) into a local Date, avoiding UTC-parse day-shift. */
 export function parseDateOnly(s: string | null | undefined): Date | undefined {
@@ -53,22 +67,15 @@ export function DatePicker({ date: controlledDate, defaultDate, onChange, name, 
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button type="button" disabled={disabled} className={cn(triggerClass, !date && "text-muted-foreground", triggerClassName)}>
-          <CalendarIcon className="h-4 w-4 shrink-0 opacity-60" />
-          <span className="flex-1 truncate">{date ? format(date, "d MMM yyyy") : placeholder}</span>
-          {date && (
-            <span
-              role="button"
-              tabIndex={-1}
-              onClick={(e) => { e.stopPropagation(); handleSelect(undefined) }}
-              className="rounded-full p-0.5 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive"
-            >
-              <X className="h-3.5 w-3.5" />
-            </span>
-          )}
-        </button>
-      </PopoverTrigger>
+      <div className="relative w-full">
+        <PopoverTrigger asChild>
+          <button type="button" disabled={disabled} className={cn(triggerClass, date && "pr-9", !date && "text-muted-foreground", triggerClassName)}>
+            <CalendarIcon className="h-4 w-4 shrink-0 opacity-60" />
+            <span className="flex-1 truncate">{date ? format(date, "d MMM yyyy") : placeholder}</span>
+          </button>
+        </PopoverTrigger>
+        {date && <ClearDateButton label="Clear date" disabled={disabled} onClear={() => handleSelect(undefined)} />}
+      </div>
       <PopoverContent align="start" className={cn("w-auto p-2", className)}>
         {name && <input type="hidden" name={name} value={toDateOnlyString(date)} />}
         <Calendar
@@ -132,22 +139,15 @@ export function DateTimePicker({ date: controlledDate, defaultDate, onChange, pl
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button type="button" disabled={disabled} className={cn(triggerClass, !date && "text-muted-foreground", triggerClassName)}>
-          <CalendarIcon className="h-4 w-4 shrink-0 opacity-60" />
-          <span className="flex-1 truncate">{date ? format(date, "d MMM yyyy, HH:mm") : placeholder}</span>
-          {date && (
-            <span
-              role="button"
-              tabIndex={-1}
-              onClick={(e) => { e.stopPropagation(); commit(undefined) }}
-              className="rounded-full p-0.5 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive"
-            >
-              <X className="h-3.5 w-3.5" />
-            </span>
-          )}
-        </button>
-      </PopoverTrigger>
+      <div className="relative w-full">
+        <PopoverTrigger asChild>
+          <button type="button" disabled={disabled} className={cn(triggerClass, date && "pr-9", !date && "text-muted-foreground", triggerClassName)}>
+            <CalendarIcon className="h-4 w-4 shrink-0 opacity-60" />
+            <span className="flex-1 truncate">{date ? format(date, "d MMM yyyy, HH:mm") : placeholder}</span>
+          </button>
+        </PopoverTrigger>
+        {date && <ClearDateButton label="Clear date and time" disabled={disabled} onClear={() => commit(undefined)} />}
+      </div>
       <PopoverContent align="start" className={cn("w-auto p-2", className)}>
         <Calendar
           mode="single"
@@ -220,22 +220,15 @@ export function DateRangePicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button type="button" disabled={disabled} className={cn(triggerClass, !range?.from && "text-muted-foreground", triggerClassName)}>
-          <CalendarIcon className="h-4 w-4 shrink-0 opacity-60" />
-          <span className="flex-1 truncate">{label}</span>
-          {range?.from && (
-            <span
-              role="button"
-              tabIndex={-1}
-              onClick={(e) => { e.stopPropagation(); onChange(undefined) }}
-              className="rounded-full p-0.5 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive"
-            >
-              <X className="h-3.5 w-3.5" />
-            </span>
-          )}
-        </button>
-      </PopoverTrigger>
+      <div className="relative w-full">
+        <PopoverTrigger asChild>
+          <button type="button" disabled={disabled} className={cn(triggerClass, range?.from && "pr-9", !range?.from && "text-muted-foreground", triggerClassName)}>
+            <CalendarIcon className="h-4 w-4 shrink-0 opacity-60" />
+            <span className="flex-1 truncate">{label}</span>
+          </button>
+        </PopoverTrigger>
+        {range?.from && <ClearDateButton label="Clear date range" disabled={disabled} onClear={() => onChange(undefined)} />}
+      </div>
       <PopoverContent align="start" className={cn("w-auto p-0 flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-border shadow-xl rounded-xl overflow-hidden", className)}>
         {/* Preset shortcuts column */}
         <div className="flex flex-col gap-0.5 p-2 bg-muted/30 min-w-[120px] text-xs">

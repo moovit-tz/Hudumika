@@ -58,6 +58,14 @@ export async function warehouseRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('tracking'));
   fastify.addHook('preHandler', requireEntitlement('tracking.warehouse'));
+  // HUD-0024/0031: mutations already require FLEET_ROLES; GET routes
+  // (locations, dock-appointments, occupancy, insights) had no check at all
+  // beyond entitlement.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ── Locations ────────────────────────────────────────────────
 

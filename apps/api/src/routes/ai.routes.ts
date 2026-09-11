@@ -151,6 +151,17 @@ export async function callAI(apiKey: string, model: string, provider: string, me
 export async function aiRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('ai'));
+  // Production-readiness audit HUD-0024/0031: GET /memory deliberately
+  // includes every workspace-shared ai_memory row (user_id IS NULL) plus the
+  // caller's own — internal business context staff saved for the AI copilot
+  // to use, not something an external CUSTOMER-portal account should read
+  // (or add to/delete from). The AI chat/search/automation-generation
+  // features here are all staff tools in the same way.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   /**
    * POST /v1/ai/test

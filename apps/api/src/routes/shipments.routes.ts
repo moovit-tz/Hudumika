@@ -16,7 +16,7 @@ import { CloudSync } from '../services/cloud-sync.service.js';
 import { NotificationService } from '../services/notification.service.js';
 import { renderShipmentReportPdf, getOrCreateShareToken } from '../services/shipment-report.service.js';
 import type { CreateShipmentInput, AdvanceStageInput } from '@hudumika/types';
-import { buildMockResult, trackViaShipsGo, trackViaShip24 } from './tracker.routes.js';
+import { trackViaShipsGo, trackViaShip24 } from './tracker.routes.js';
 import { sql } from 'kysely';
 import { broadcastToTenant } from '../lib/ws-broadcast.js';
 
@@ -196,10 +196,82 @@ function parseJsonCol<T>(val: unknown, fallback: T): T {
   return val as T;
 }
 
+/**
+ * Shipment routes have many sub-resources.  Tenant filtering alone is not an
+ * object-access check: a portal customer must only reach their own case and
+ * an officer only their assignment, regardless of which nested URL they use.
+ */
+async function assertShipmentRouteAccess(request: any, reply: any): Promise<boolean> {
+  const user = request.user;
+  const params = request.params as { id?: string; taskId?: string; noteId?: string };
+  const shipmentId = params.id;
+  if (!shipmentId) return true;
+
+  return withTenant(user.tenant_id, async (trx) => {
+    const shipment = await trx.selectFrom('shipment_cases')
+      .select(['id', 'customer_id', 'assigned_to'])
+      .where('id', '=', shipmentId)
+      .where('tenant_id', '=', user.tenant_id)
+      .where('deleted_at', 'is', null)
+      .executeTakeFirst();
+    if (!shipment) {
+      reply.status(404).send({ error: 'Shipment case not found' });
+      return false;
+    }
+
+    if (user.role === 'OFFICER' && shipment.assigned_to !== user.sub) {
+      reply.status(403).send({ error: 'Forbidden: You are not assigned to this case' });
+      return false;
+    }
+    if (user.role === 'CUSTOMER' && shipment.customer_id !== await resolveCustomerId(user)) {
+      reply.status(403).send({ error: 'Forbidden: Access denied to this case' });
+      return false;
+    }
+
+    // Tasks and internal notes are addressed by UUID below the shipment URL.
+    // Assert their parent relationship so an id from another case cannot be
+    // read or mutated by replacing only the nested id in the request.
+    if (params.taskId) {
+      const task = await trx.selectFrom('shipment_tasks').select('id')
+        .where('id', '=', params.taskId)
+        .where('shipment_id', '=', shipmentId)
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      if (!task) {
+        reply.status(404).send({ error: 'Task not found for this shipment' });
+        return false;
+      }
+    }
+    if (params.noteId) {
+      const note = await trx.selectFrom('shipment_notes').select('id')
+        .where('id', '=', params.noteId)
+        .where('shipment_id', '=', shipmentId)
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      if (!note) {
+        reply.status(404).send({ error: 'Note not found for this shipment' });
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
 export async function shipmentRoutes(fastify: FastifyInstance) {
   // Enforce authentication on all routes in this file
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('clearos'));
+  fastify.addHook('preHandler', async (request, reply) => {
+    const route = request.routeOptions.url ?? '';
+    // These are staff-only operational records. The public customer surface is
+    // the shipment overview, approved files, and customer-facing messages.
+    const staffOnlySegments = ['/tasks', '/listeners', '/notes', '/team', '/ledger', '/time-entries', '/participant-customers', '/tags', '/flags', '/workflow-runs'];
+    if (request.user.role === 'CUSTOMER' && staffOnlySegments.some(segment => route.includes(segment))) {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+    const allowed = await assertShipmentRouteAccess(request, reply);
+    if (!allowed) return reply;
+  });
 
   /**
    * GET /v1/shipments
@@ -996,12 +1068,20 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         shipsgoKey = s?.['int-shipsgo']?.shipsgo_api_key ?? null;
         ship24Key  = s?.['int-shipsgo']?.ship24_api_key  ?? null;
       }
-    } catch { /* fall through to mock */ }
+    } catch { /* handled below with a truthful unavailable response */ }
 
     let result: any = null;
     if (shipsgoKey && resolvedType === 'BL') result = await trackViaShipsGo(normalized, shipsgoKey);
     if (!result && ship24Key) result = await trackViaShip24(normalized, ship24Key);
-    if (!result) result = buildMockResult(normalized, resolvedType);
+    // Never turn a failed provider call into plausible-looking operational
+    // facts. A synthetic ETA or vessel would otherwise be written to the case
+    // and influence customer updates, SLA work and downstream workflows.
+    if (!result) {
+      return reply.status(503).send({
+        error: 'Live tracking is unavailable. Configure a tracking provider or try again later.',
+        code: 'TRACKING_PROVIDER_UNAVAILABLE',
+      });
+    }
 
     // Write back to shipment_cases
     return withTenant(user.tenant_id, async (trx) => {

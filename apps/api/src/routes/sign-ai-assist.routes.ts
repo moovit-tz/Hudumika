@@ -5,6 +5,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import { analyzeDocumentForSigningAssist } from '../services/sign-ai-assist.service.js';
 
 function tenantId(req: FastifyRequest): string {
@@ -13,6 +14,14 @@ function tenantId(req: FastifyRequest): string {
 
 export async function signAiAssistRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // Production-readiness audit HUD-0024/0031: this file had no entitlement
+  // check at all. Also note (not fixed here — needs Drive's own permission
+  // model, not a guess at one): POST /ai-assist/analyze accepts an arbitrary
+  // file_id and reads it straight from cloud_files scoped only by tenant_id,
+  // bypassing whatever per-file sharing/visibility rules Drive itself
+  // enforces — any tenant member could point this at a colleague's private
+  // file by id and get its content analyzed back to them.
+  fastify.addHook('preHandler', requireEntitlement('sign'));
 
   // ── Analyze a document (either a fresh upload or an existing Drive/
   // envelope file) for missing fields + witness/notary blocks. ────────────

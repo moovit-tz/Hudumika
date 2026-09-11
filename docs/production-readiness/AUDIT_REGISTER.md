@@ -14,15 +14,21 @@ and the running API (`localhost:3001`), not just source reading.
 
 | Severity | Open | Fixed (verified) | Total |
 |----------|-----:|-----------------:|------:|
-| CRITICAL | 0 | 6 | 6 |
-| HIGH | 5 | 8 | 13 |
-| MEDIUM | 5 | 0 | 5 |
+| CRITICAL | 0 | 7 | 7 |
+| HIGH | 5 | 16 | 21 |
+| MEDIUM | 6 | 0 | 6 |
 | LOW | 6 | 0 | 6 |
+
+*Counts are by true severity (matching `FINAL_PRODUCTION_READINESS_REPORT.md`), not by which
+`##` section header an entry happens to sit under below — several entries (0025–0032) were
+appended near a related finding rather than re-filed under their exact severity section;
+cosmetic, not tracked as its own issue.*
 
 Regression guard added: `apps/api/src/tests/tenant-rls-coverage.test.ts` — 7 tests,
 schema-level assertion that every `tenant_id` base table plus the HUD-0003 children
 and the `shipment_cases` partitions enforce `ENABLE`+`FORCE`+policy, plus a live
-cross-tenant probe as the restricted role. Full API suite: **8 files / 83 tests pass**
+cross-tenant probe as the restricted role. Full API suite (as of 2026-09-11, including
+a concurrent session's own new tests): **11 files / 105 tests pass**
 after migrations 456/457/458 (no existing test broken).
 
 Mandatory quality gates:
@@ -33,11 +39,11 @@ Mandatory quality gates:
 | No CRITICAL security issues | PASS | — |
 | No exposed production secrets (client) | PASS | grep of `apps/web/src` — none |
 | Authentication enforced server-side | PASS (spot-checked) | `middleware/auth.ts` — cookie+CSRF, refresh/guest/2fa-setup token rejection, device revocation |
-| Authorization enforced server-side | **PARTIAL** — 8 gaps found+fixed live across 7 files (HUD-0023/0025/0026/0027/0028/0029/0030); 11 more candidates found, not yet fixed (HUD-0031); ~40 files still fully untriaged | HUD-0024/0031 |
+| Authorization enforced server-side | **PARTIAL** — 39 gaps found and fixed live across 40 files (HUD-0023/0025–0031/0033, 3 CRITICAL), zero known open; ~30 of 195 route files still fully untriaged | HUD-0024 |
 | Core workflows E2E | **UNVERIFIED** — Phase 5 not yet run platform-wide | — |
 | Production build | **UNVERIFIED** — `npm run build` not yet run | — |
 | CI meaningful | **PASS** — `ci.yml` gates on typecheck, fresh-DB migrate, API tests against that fresh DB, and full build; proven locally end to end | HUD-0006 |
-| Test coverage of critical workflows | **FAIL** — 9 API test files, 0 web test files for 195 routes / 153 services | HUD-0005 |
+| Test coverage of critical workflows | **FAIL** — 11 API test files, 0 web test files for 195 routes / 153 services | HUD-0005 |
 | Database migrations reproduce prod | **PASS** — fresh-DB proof: 474/474 migrations apply clean; full schema diff vs. live = 0 table/column/RLS mismatches | HUD-0009 |
 | Production build | **PASS** — `npm run build` (types/ui/api/web) now succeeds; was broken (HUD-0020) | HUD-0020 |
 | API survives a dropped DB connection | **PASS** — was FAIL, crashed the whole process on a live connection drop during this audit | HUD-0021 |
@@ -251,6 +257,64 @@ Mandatory quality gates:
   the self-service tail), including for this same CUSTOMER-reachability angle — it has not been
   run against files the first regex pass didn't already flag as having an unguarded mutation.
 
+### HUD-0033 — 10 more files: a forgery-risk stamp gap, an ownership gap on a Sign sibling file, and 6 more CUSTOMER-reachable apps · FIXED (VERIFIED)
+- **Category:** Authorization (Phase 14, HUD-0024 continuation, second pass after a session
+  boundary — re-verified all prior fixes were intact and committed before starting)
+- **Evidence, most serious first:**
+  - **`sign-stamps.routes.ts` — `PUT`/`DELETE /stamps/tenant` had zero check at all.** This is
+    the tenant's one official e-signature stamp image (company seal/letterhead used when
+    signing documents). Any authenticated user with 'sign' entitlement — including a `CUSTOMER`
+    — could overwrite it with an arbitrary image (a real forgery vector: replace the legitimate
+    stamp with a fraudulent one) or delete it outright. The file already had a correctly-role-
+    gated sibling endpoint (`PUT /stamps/access`, using `STAMP_SETTINGS_ADMIN_ROLES`) and even a
+    matching constant already declared — it just was never applied to the two routes that touch
+    the actual image. `GET /stamps/tenant` (reading the raw stamp bytes) was also unrestricted;
+    narrowed to `canApplyTenantStamp()`, the file's own existing "who may use this stamp" check,
+    rather than full admin-only, since viewing is a lesser action than replacing it.
+  - **`sign-versions.routes.ts` — a whole sibling file of `sign.routes.ts` with no entitlement
+    check and no ownership check at all**, missed when HUD-0027 fixed the main file. Any
+    authenticated user could list version history, read the full `document_data` of any past
+    version, and revert-and-mutate any other user's envelope — including a still-private draft.
+    Fixed by exporting `sign.routes.ts`'s own `assertCanActOnEnvelope()` and reusing it here
+    rather than duplicating the rule.
+  - **`sign-ai-assist.routes.ts`** had no entitlement check, and (noted, not fixed — needs
+    Drive's own permission model, not a guessed one) `POST /ai-assist/analyze` accepts an
+    arbitrary `file_id` and reads it straight from `cloud_files` scoped only by `tenant_id`,
+    bypassing Drive's own per-file sharing rules.
+  - **Six more apps reachable in full by a `CUSTOMER` JWT**, each proven live: Customs
+    (`GET /penalties` — regulatory violation records, no scoping at all), AI (`GET /memory` —
+    deliberately includes every workspace-shared fact, meant for internal staff), CargoTracker
+    snapshots (AWB/BL tracking data for the whole tenant, unlike `shipments.routes.ts`'s correct
+    per-customer model), HuduBI (cross-cutting business-intelligence dashboards — this dev
+    tenant isn't entitled to it so the probe hit `PLAN_UPGRADE_REQUIRED` instead of real data,
+    but any tenant that is entitled would expose it), and the HuduFreight `cargoLoading`/
+    `warehouse` route files (mutations were already `FLEET_ROLES`-gated; the GET routes weren't).
+  - **Confirmed already correct, left untouched:** `notifications.routes.ts` (explicitly branches
+    on `role === 'CUSTOMER'` to scope by `customer_id` instead of `user_id` — someone already
+    solved this correctly here), `activity-monitor.routes.ts` (self-scoped consent/samples,
+    `ADMIN_ROLES`-gated settings, `LEAD_ROLES`-gated team rollup), `tasks.routes.ts` (personal
+    lists scoped to `user_id` plus an explicit "shared with me" join), `comply-ocr.routes.ts` /
+    `ocr.routes.ts` (stateless scan-and-return, no stored-data access), `sign-pdf-tools.routes.ts`
+    (stateless PDF processing, "no persistence of its own" by the file's own header comment —
+    missing `requireEntitlement('sign')` is a plan-metering gap, not a privacy/security one, and
+    was left as a low-priority note rather than fixed here), `trade-wizard.routes.ts` (reference-
+    data lookups + a compute endpoint).
+- **Fix:** the same minimal, additive pattern as HUD-0031 — reject `role === 'CUSTOMER'` (7
+  files), or the more specific ownership/admin checks described above where a blanket role
+  exclusion wasn't the right shape (`sign-stamps.routes.ts`, `sign-versions.routes.ts`).
+- **Re-test, live:** every finding above re-verified with real JWTs after the fix — `CUSTOMER`
+  403 across all reachable-app fixes; `sign-stamps`: `CUSTOMER`/`JUNIOR` both 403 on `GET`
+  (neither is in the tenant's configured `stamp_roles`), `TENANT_ADMIN` 200, `PUT` as `JUNIOR`
+  403 ("Only an admin..."), `PUT` as `TENANT_ADMIN` 200 (legitimate admin flow preserved);
+  `sign-versions`: a non-creator, non-admin JWT got 403 with the exact `assertCanActOnEnvelope`
+  message, the actual creator got 200. Full suite green (11 files / 105 tests), `tsc --noEmit`
+  clean, API healthy throughout.
+- **Session-boundary note:** this fix batch started in a fresh session after a context reset.
+  Before continuing, verified all of HUD-0001–0032 had survived intact — an automated commit
+  (`3b699aba "Hudumika"`, not made by this agent) had captured every route-file change and the
+  `AUDIT_REGISTER.md` update from the prior turn; `FINAL_PRODUCTION_READINESS_REPORT.md` had not
+  yet been synced to match and was updated as the first action this turn.
+
 ### HUD-0032 — Project OS `GET /portfolios` throws a 500 for any real user · OPEN
 - **Category:** Functional / reliability (found as a side effect of HUD-0031, not itself an
   authorization finding)
@@ -334,17 +398,24 @@ Mandatory quality gates:
     a gap — kept as the reference example of what "done right" looks like here.
   - `drives.routes.ts` — checked; already correctly blocks `CUSTOMER` (a concurrent session's
     own fix, not this audit's).
-- **New candidates found this pass, not yet fixed:** see HUD-0031 — a CUSTOMER-JWT reachability
-  probe run against the remaining flagged files' base routes found real, non-empty data
-  reachable at `/v1/petti/wallets`, `/v1/sanctions/screenings`, `/v1/notes`, `/v1/org/tickets`,
-  `/v1/seal/compartments`, `/v1/reference/icd-operators`, `/v1/hr/departments`,
-  `/v1/depot/equipment`, `/v1/inventory/warehouses`, `/v1/dangerous-goods/declarations`,
-  `/v1/declarations` — and a 500 at `/v1/project-os/portfolios`. None of these fixed yet.
-- **Still fully untriaged:** ~40 files not touched by either the file-read pass or the
-  CUSTOMER-reachability probe — the `seal-*` sub-files beyond the base route, `warehouse.routes.ts`,
-  `tracker.routes.ts`, `inventory-*` beyond the base route, and the large lower-risk tail
-  (calculators, AI assist, PDF tools, calendar/notes/chat self-service actions — plausibly fine
-  to stay open to any authenticated user, but not yet confirmed either way).
+- **HUD-0031 and HUD-0033** (below) closed every candidate this file-level probe found: Petti,
+  Sanctions, Notes, Org (tickets), the whole `seal-*` family, HR/NexusHR, Depot, Inventory
+  family, Dangerous Goods, Declarations family, Project OS (auth side; see HUD-0032 for its
+  unrelated 500), Customs, AI memory, CargoTracker, HuduBI, and the HuduFreight
+  `cargoLoading`/`warehouse` files. `/v1/reference/icd-operators` was confirmed fine (deliberate
+  global reference data). Two Sign sibling files (`sign-stamps.routes.ts`,
+  `sign-versions.routes.ts`) had their own distinct gaps beyond simple CUSTOMER-reachability —
+  see HUD-0033.
+- **Confirmed already correct this pass (no fix needed):** `notifications.routes.ts`
+  (explicitly branches on `role === 'CUSTOMER'` to scope by `customer_id`), `activity-
+  monitor.routes.ts`, `tasks.routes.ts`, `comply-ocr.routes.ts`/`ocr.routes.ts` (stateless
+  scan-and-return), `sign-pdf-tools.routes.ts` (stateless, no stored-data access — missing
+  entitlement is a metering gap, not a security one), `trade-wizard.routes.ts`.
+- **Still fully untriaged:** ~30 files not touched by any pass so far — the large lower-risk
+  tail (remaining calculators, calendar/chat self-service actions not yet spot-checked) plus
+  anything outside the original HUD-0024 regex scan entirely (a mutating endpoint is not the
+  only shape a leak can take — an unscoped GET-only file was never flagged by that scan and
+  would need a separate, broader sweep to catch).
 
 ## HIGH
 

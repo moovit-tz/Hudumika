@@ -71,6 +71,13 @@ export async function signStampsRoutes(fastify: FastifyInstance) {
   fastify.get('/stamps/tenant', async (req: FastifyRequest, reply: FastifyReply) => {
     const tid = tenantId(req);
     return withTenant(tid, async (trx) => {
+      // HUD-0024/0031: the raw stamp image is real bytes someone could reuse
+      // to forge a document elsewhere — restrict reads to whoever is already
+      // allowed to apply the stamp (canApplyTenantStamp/stamp_roles), not
+      // literally anyone with 'sign' entitlement.
+      if (!(await canApplyTenantStamp(trx, tid, userRole(req)))) {
+        return reply.status(403).send({ error: 'You do not have access to the company stamp.' });
+      }
       const stamp = await trx.selectFrom('sign_stamps').selectAll()
         .where('tenant_id', '=', tid).where('owner_type', '=', 'tenant').executeTakeFirst();
       return reply.send(stamp ?? null);
@@ -78,6 +85,16 @@ export async function signStampsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put('/stamps/tenant', async (req: FastifyRequest, reply: FastifyReply) => {
+    // Production-readiness audit HUD-0024/0031: this is the tenant's one
+    // official e-signature stamp image — what PUT /stamps/access already
+    // protects with STAMP_SETTINGS_ADMIN_ROLES is "who may configure who can
+    // apply it", but the stamp image itself, the thing actually replaced or
+    // erased here, had no check at all. Any authenticated user with 'sign'
+    // entitlement — including a CUSTOMER — could overwrite the company's
+    // legal stamp (a forgery vector) or delete it outright.
+    if (!STAMP_SETTINGS_ADMIN_ROLES.includes(userRole(req))) {
+      return reply.status(403).send({ error: 'Only an admin can change the company stamp.' });
+    }
     const tid = tenantId(req);
     const uid = userId(req);
     const body = req.body as { image_data?: string; label?: string };
@@ -99,6 +116,10 @@ export async function signStampsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.delete('/stamps/tenant', async (req: FastifyRequest, reply: FastifyReply) => {
+    // See PUT /stamps/tenant's HUD-0024/0031 comment above — same gap, same fix.
+    if (!STAMP_SETTINGS_ADMIN_ROLES.includes(userRole(req))) {
+      return reply.status(403).send({ error: 'Only an admin can delete the company stamp.' });
+    }
     const tid = tenantId(req);
     return withTenant(tid, async (trx) => {
       await trx.deleteFrom('sign_stamps').where('tenant_id', '=', tid).where('owner_type', '=', 'tenant').execute();

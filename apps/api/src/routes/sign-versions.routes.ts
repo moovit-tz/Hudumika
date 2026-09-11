@@ -9,6 +9,8 @@
 // PDF Tool, a fresh re-upload) can be reviewed and reverted before sending.
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { withTenant } from '../db/client.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
+import { assertCanActOnEnvelope } from './sign.routes.js';
 
 function tenantId(req: FastifyRequest): string {
   return (req.user as { tenant_id: string }).tenant_id;
@@ -22,6 +24,14 @@ function userName(req: FastifyRequest): string {
 
 export async function signVersionsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // Production-readiness audit HUD-0024/0031: this file had no entitlement
+  // check at all (missing even the baseline every other /v1/sign file has)
+  // and no ownership check — any authenticated user could list, read the
+  // full document_data of, and revert-and-mutate any other user's envelope,
+  // including a still-private draft. Same creator-or-DOCUMENT_ADMIN_ROLES
+  // rule sign.routes.ts's own mutations use (HUD-0027), reused directly
+  // rather than duplicated.
+  fastify.addHook('preHandler', requireEntitlement('sign'));
 
   // ── List versions (newest first) — document_data omitted from the list
   // response (can be large; a version's own thumbnail/diff is fetched by id
@@ -29,9 +39,10 @@ export async function signVersionsRoutes(fastify: FastifyInstance) {
   fastify.get('/envelopes/:id/versions', async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const tid = tenantId(req);
     return withTenant(tid, async (trx) => {
-      const envelope = await trx.selectFrom('sign_envelopes').select('id')
+      const envelope = await trx.selectFrom('sign_envelopes').select(['id', 'created_by'])
         .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
       if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
+      if (!assertCanActOnEnvelope(req, reply, envelope)) return;
 
       const versions = await trx.selectFrom('sign_document_versions')
         .select(['id', 'version_number', 'file_name', 'change_summary', 'change_details', 'created_by', 'created_by_name', 'created_at'])
@@ -45,6 +56,11 @@ export async function signVersionsRoutes(fastify: FastifyInstance) {
   fastify.get('/envelopes/:id/versions/:versionId', async (req: FastifyRequest<{ Params: { id: string; versionId: string } }>, reply: FastifyReply) => {
     const tid = tenantId(req);
     return withTenant(tid, async (trx) => {
+      const envelope = await trx.selectFrom('sign_envelopes').select(['id', 'created_by'])
+        .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
+      if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
+      if (!assertCanActOnEnvelope(req, reply, envelope)) return;
+
       const version = await trx.selectFrom('sign_document_versions').selectAll()
         .where('id', '=', req.params.versionId).where('envelope_id', '=', req.params.id).where('tenant_id', '=', tid)
         .executeTakeFirst();
@@ -62,6 +78,7 @@ export async function signVersionsRoutes(fastify: FastifyInstance) {
       const envelope = await trx.selectFrom('sign_envelopes').selectAll()
         .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
       if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
+      if (!assertCanActOnEnvelope(req, reply, envelope)) return;
       if (envelope.status !== 'draft') return reply.status(409).send({ error: 'Only a draft envelope\'s document can be reverted' });
 
       const target = await trx.selectFrom('sign_document_versions').selectAll()
