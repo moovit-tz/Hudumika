@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
@@ -90,7 +91,7 @@ function MattersList() {
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} style={{ height: 52, borderRadius: 8, background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
+              <div key={i} style={{ height: 52, borderRadius: 'var(--r)', background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -107,7 +108,7 @@ function MattersList() {
               <div key={m.matter_reference}
                 onClick={() => navigate(`/sign/matters/${encodeURIComponent(m.matter_reference)}`)}
                 style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: i < filtered.length - 1 ? '1px solid var(--bg)' : 'none', cursor: 'pointer' }}>
-                <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name="briefcase" size={16} color="var(--teal)" strokeWidth={1.75} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -152,7 +153,7 @@ function MatterDetail({ reference }: { reference: string }) {
 
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
         {loading ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+          <SectionLoading />
         ) : envelopes.length === 0 ? (
           <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No documents found for this reference.</div>
         ) : (
@@ -161,7 +162,7 @@ function MatterDetail({ reference }: { reference: string }) {
               <div key={e.id}
                 onClick={() => navigate(`/sign/envelope/${e.id}`)}
                 style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < envelopes.length - 1 ? '1px solid var(--bg)' : 'none', cursor: 'pointer' }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name="stamp" size={16} color="var(--teal)" strokeWidth={1.75} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>

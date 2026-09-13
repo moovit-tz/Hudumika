@@ -1,7 +1,7 @@
 /* ── Google Drive UI Inspiration & Hudumika Cloud Design System ── */
 
 [data-cloud="true"] {
-  --cloud-accent: var(--teal, #0d9488);
+  --cloud-accent: var(--teal);
   --cloud-accent-hover: #0f766e;
   --cloud-blue: #1a73e8;
   --cloud-card-bg: var(--card-bg, #ffffff);

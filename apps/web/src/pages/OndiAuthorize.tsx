@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { CompanyAvatar } from '../components/PersonAvatar.js';
+import { Button } from '../components/ui/button.js';
 
 const SCOPE_LABEL: Record<string, string> = {
   openid: 'Confirm it\'s you',
@@ -70,7 +71,7 @@ export const OndiAuthorize: React.FC = () => {
 
   return (
     <div style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'var(--bg)' }}>
-      <div style={{ background: 'var(--white, #fff)', borderRadius: 12, padding: 32, width: 400, maxWidth: '92vw', boxShadow: 'var(--elev-lg)', textAlign: 'center' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 32, width: 400, maxWidth: '92vw', boxShadow: 'var(--elev-lg)', textAlign: 'center' }}>
         {(state === 'loading' || state === 'redirecting') && (
           <div style={{ padding: '20px 0', color: 'var(--ink3)', fontSize: 13 }}>
             {state === 'redirecting' ? 'Redirecting…' : 'Loading…'}
@@ -79,7 +80,7 @@ export const OndiAuthorize: React.FC = () => {
 
         {state === 'error' && (
           <div>
-            <Icon name="alertCircle" size={28} style={{ color: 'var(--red, #dc2626)', marginBottom: 12 } as React.CSSProperties} />
+            <Icon name="alertCircle" size={28} style={{ color: 'var(--red)', marginBottom: 12 } as React.CSSProperties} />
             <div style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600, marginBottom: 6 }}>Can't continue</div>
             <div style={{ fontSize: 13, color: 'var(--ink3)' }}>{error}</div>
           </div>
@@ -101,14 +102,12 @@ export const OndiAuthorize: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
-              <button type="button" onClick={deny} disabled={busy}
-                style={{ flex: 1, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white, #fff)', color: 'var(--ink)', fontWeight: 600, cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)' }}>
+              <Button type="button" variant="outline" onClick={deny} disabled={busy} style={{ flex: 1 }}>
                 Deny
-              </button>
-              <button type="button" onClick={allow} disabled={busy}
-                style={{ flex: 1, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: busy ? 0.6 : 1, minHeight: 'var(--ctl-h)' }}>
+              </Button>
+              <Button type="button" onClick={allow} disabled={busy} style={{ flex: 1 }}>
                 {busy ? 'Allowing…' : 'Allow'}
-              </button>
+              </Button>
             </div>
           </>
         )}

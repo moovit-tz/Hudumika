@@ -548,7 +548,7 @@ export function Calls() {
                 <Icon name="search" size={13} style={{ position: 'absolute', left: 10, top: 9.5, color: 'var(--ink3)' }} />
                 <input
                   className="input-field"
-                  style={{ paddingLeft: 28, fontSize: 12, height: 32, borderRadius: 20, width: '100%' }}
+                  style={{ paddingLeft: 28, fontSize: 12, height: 32, borderRadius: 'var(--r)', width: '100%' }}
                   placeholder="Search colleagues..."
                   value={searchStaff}
                   onChange={e => { setSearchStaff(e.target.value); setDirPage(1); }}
@@ -806,7 +806,7 @@ export function Calls() {
               <Icon name="search" size={13} style={{ position: 'absolute', left: 10, top: 9.5, color: 'var(--ink3)' }} />
               <input
                 className="input-field"
-                style={{ paddingLeft: 28, fontSize: 12, height: 32, borderRadius: 20, width: '100%' }}
+                style={{ paddingLeft: 28, fontSize: 12, height: 32, borderRadius: 'var(--r)', width: '100%' }}
                 placeholder="Search contact name..."
                 value={searchHistory}
                 onChange={e => { setSearchHistory(e.target.value); setHistoryPage(1); }}
@@ -1135,7 +1135,7 @@ export function Calls() {
                       padding: '6px 10px',
                       background: 'var(--card-bg, var(--white))',
                       border: '1px solid var(--border)',
-                      borderRadius: 6,
+                      borderRadius: 'var(--r-sm)',
                       fontSize: 12,
                       cursor: 'pointer',
                       textAlign: 'left',
@@ -1379,7 +1379,7 @@ export function Calls() {
                 width: isMobile ? 110 : 160,
                 height: isMobile ? 150 : 210,
                 objectFit: 'cover',
-                borderRadius: 'var(--r, 14px)',
+                borderRadius: 'var(--r)',
                 border: '2px solid rgba(255,255,255,0.3)',
                 background: '#14171d',
                 boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
@@ -1455,7 +1455,7 @@ export function Calls() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                boxShadow: '0 4px 18px rgba(239,68,68,0.5)',
+                boxShadow: '0 4px 18px var(--red-l)',
                 transition: 'all 0.15s ease',
               }}
             >

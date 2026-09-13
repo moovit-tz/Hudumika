@@ -112,6 +112,16 @@ function describeInput(schema: z.ZodTypeAny): { name: string; required: boolean 
 
 export async function workflowStudioRoutes(server: FastifyInstance) {
   server.addHook('preHandler', server.authenticate);
+  // HUD-0024 continuation: this file had no entitlement gate and no role
+  // check at all — any authenticated user of the tenant, any plan tier,
+  // could list/create/run internal workflow automations. CUSTOMER-excluded
+  // at minimum; the missing plan-entitlement gate is a separate, lower-
+  // priority metering gap (not fixed here).
+  server.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ── GET /v1/workflow-studio/triggers ─────────────────────────────────────────
   server.get('/triggers', async (_request: FastifyRequest, reply: FastifyReply) => {

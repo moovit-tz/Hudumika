@@ -69,7 +69,7 @@ export function DeveloperConsolePage() {
     return (
       <div className="dev-console-root" style={{ alignItems: 'center', justifyContent: 'center', minHeight: 360 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: 'var(--ink3)' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="refresh" size={20} />
           </div>
           <span style={{ fontWeight: 600 }}>Loading Developer Workspace…</span>
@@ -328,7 +328,7 @@ function DeveloperOverviewTab({
             <div className="dev-qs-step-num">3</div>
             <div style={{ fontWeight: 700, fontSize: 13.5 }}>Call the Gateway</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.45 }}>
-              Send requests to <code style={{ background: 'var(--bg)', padding: '2px 4px', borderRadius: 4 }}>/v1/developer/gateway/*</code>.
+              Send requests to <code style={{ background: 'var(--bg)', padding: '2px 4px', borderRadius: 'var(--r-sm)'}}>/v1/developer/gateway/*</code>.
             </div>
           </div>
         </div>
@@ -488,7 +488,7 @@ function DeveloperProjectsTab({
                     placeholder="e.g. Acme KYC Integration"
                     value={newProjectName}
                     onChange={e => setNewProjectName(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13 }}
                   />
                 </div>
                 <div>
@@ -498,7 +498,7 @@ function DeveloperProjectsTab({
                     value={newProjectDesc}
                     onChange={e => setNewProjectDesc(e.target.value)}
                     rows={3}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13 }}
                   />
                 </div>
               </div>
@@ -517,7 +517,7 @@ function DeveloperProjectsTab({
           <div key={p.id} className="dev-project-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="folder" size={18} />
                 </div>
                 <div>
@@ -540,7 +540,7 @@ function DeveloperProjectsTab({
                     fontSize: 10.5,
                     fontWeight: 700,
                     padding: '3px 8px',
-                    borderRadius: 4,
+                    borderRadius: 'var(--r-sm)',
                     background: env.environment === 'PRODUCTION' ? 'var(--green-l)' : 'var(--bg)',
                     color: env.environment === 'PRODUCTION' ? 'var(--green)' : 'var(--ink3)',
                     border: '1px solid var(--border)',
@@ -647,12 +647,12 @@ function DeveloperCredentialsTab({
       />
 
       {/* Project Selector Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--white)', padding: '10px 16px', borderRadius: 10, border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--white)', padding: '10px 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)' }}>Select Project:</span>
         <select
           value={selectedProjectId}
           onChange={e => setSelectedProjectId(e.target.value)}
-          style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13, fontWeight: 600 }}
+          style={{ padding: '6px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, fontWeight: 600 }}
         >
           {projects.map(p => (
             <option key={p.id} value={p.id}>{p.name}</option>
@@ -675,7 +675,7 @@ function DeveloperCredentialsTab({
 
             {newKeyRevealed ? (
               <div className="dev-modal-body">
-                <div style={{ padding: 12, borderRadius: 8, background: 'var(--gold-l)', border: '1px solid var(--gold)', fontSize: 12.5, color: 'var(--gold-d, #854d0e)' }}>
+                <div style={{ padding: 12, borderRadius: 'var(--r)', background: 'var(--gold-l)', border: '1px solid var(--gold)', fontSize: 12.5, color: 'var(--gold)' }}>
                   ⚠️ <strong>Save this key immediately!</strong> For security reasons, you will not be able to view it again.
                 </div>
                 <div className="dev-code-box" style={{ fontSize: 13.5 }}>
@@ -708,7 +708,7 @@ function DeveloperCredentialsTab({
                       placeholder="e.g. Backend Server Key"
                       value={keyName}
                       onChange={e => setKeyName(e.target.value)}
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13 }}
                     />
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
@@ -853,7 +853,7 @@ function DeveloperMarketplaceTab({
         </Button>
 
         {/* Product Hero Banner */}
-        <div style={{ background: 'var(--white)', padding: 24, borderRadius: 14, border: '1px solid var(--border)', display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+        <div style={{ background: 'var(--white)', padding: 24, borderRadius: 'var(--card-radius)', border: '1px solid var(--border)', display: 'flex', gap: 20, alignItems: 'flex-start' }}>
           <div className="dev-product-icon" style={{ width: 52, height: 52, fontSize: 24 }}>
             <Icon name={(selectedProduct.icon_name as IconName) || 'grid'} size={24} />
           </div>
@@ -875,9 +875,9 @@ function DeveloperMarketplaceTab({
         <SectionCard title="API Endpoints & Operations" collapsible={false}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {selectedProduct.versions?.[0]?.operations?.map(op => (
-              <div key={op.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)', flexWrap: 'wrap', gap: 8 }}>
+              <div key={op.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', flexWrap: 'wrap', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontWeight: 800, fontSize: 11, padding: '3px 8px', borderRadius: 4, background: op.http_method === 'GET' ? 'var(--blue-l)' : 'var(--green-l)', color: op.http_method === 'GET' ? 'var(--blue)' : 'var(--green)' }}>
+                  <span style={{ fontWeight: 800, fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: op.http_method === 'GET' ? 'var(--blue-l)' : 'var(--green-l)', color: op.http_method === 'GET' ? 'var(--blue)' : 'var(--green)' }}>
                     {op.http_method}
                   </span>
                   <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{op.path_pattern}</span>
@@ -895,7 +895,7 @@ function DeveloperMarketplaceTab({
         <SectionCard title="Pricing & Subscription Plans" collapsible={false}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
             {selectedProduct.pricing_plans?.map(plan => (
-              <div key={plan.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 18, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14 }}>
+              <div key={plan.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 18, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{plan.name}</div>
                   <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--teal)', marginTop: 8 }}>
@@ -1128,7 +1128,7 @@ function DeveloperBillingTab({ account }: { account: DeveloperAccount }) {
                         onClick={() => setTopUpAmount(amt)}
                         style={{
                           padding: '10px',
-                          borderRadius: 8,
+                          borderRadius: 'var(--r)',
                           border: `1px solid ${topUpAmount === amt ? 'var(--teal)' : 'var(--border)'}`,
                           background: topUpAmount === amt ? 'var(--teal-l)' : 'var(--white)',
                           fontWeight: 700,
@@ -1151,7 +1151,7 @@ function DeveloperBillingTab({ account }: { account: DeveloperAccount }) {
       )}
 
       {/* Balance Card */}
-      <div style={{ background: 'var(--white)', padding: 20, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+      <div style={{ background: 'var(--white)', padding: 20, borderRadius: 'var(--card-radius)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Available Prepaid Balance</div>
           <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--teal)', marginTop: 4 }}>
@@ -1168,7 +1168,7 @@ function DeveloperBillingTab({ account }: { account: DeveloperAccount }) {
             <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No active paid subscriptions.</div>
           ) : (
             billingData?.subscriptions?.map((sub: any) => (
-              <div key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+              <div key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{sub.product_name}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Plan: {sub.plan_name} · Renews: {new Date(sub.current_period_end).toLocaleDateString()}</div>
@@ -1258,7 +1258,7 @@ function DeveloperOrganizationTab({ account }: { account: DeveloperAccount }) {
                     placeholder="teammate@company.com"
                     value={inviteEmail}
                     onChange={e => setInviteEmail(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13 }}
                   />
                 </div>
                 <div>
@@ -1266,7 +1266,7 @@ function DeveloperOrganizationTab({ account }: { account: DeveloperAccount }) {
                   <select
                     value={inviteRole}
                     onChange={e => setInviteRole(e.target.value as any)}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13 }}
                   >
                     <option value="DEVELOPER">Developer (API access & sandbox keys)</option>
                     <option value="ADMIN">Admin (Full project & key management)</option>

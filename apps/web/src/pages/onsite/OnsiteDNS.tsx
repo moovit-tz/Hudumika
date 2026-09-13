@@ -264,11 +264,11 @@ export function OnsiteDNS() {
 
       {loading ? (
         <div className="onsite-card">
-          <p style={{ color: 'var(--ink-muted)' }}>Loading DNS zone records…</p>
+          <p style={{ color: 'var(--ink3)' }}>Loading DNS zone records…</p>
         </div>
       ) : error ? (
         <div className="onsite-card">
-          <p style={{ color: '#ef4444' }}>Error: {error}</p>
+          <p style={{ color: 'var(--red)' }}>Error: {error}</p>
         </div>
       ) : (
         <div className="onsite-card">
@@ -296,14 +296,14 @@ export function OnsiteDNS() {
                     <td className="onsite-mono" style={{ maxWidth: '360px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {r.value}
                     </td>
-                    <td style={{ color: 'var(--ink-muted)' }}>{r.ttl}s</td>
-                    <td style={{ color: 'var(--ink-muted)' }}>{r.priority ?? '—'}</td>
+                    <td style={{ color: 'var(--ink3)' }}>{r.ttl}s</td>
+                    <td style={{ color: 'var(--ink3)' }}>{r.priority ?? '—'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button className="btn btn-sm btn-ghost" onClick={() => handleCheckPropagation(r)} title="Check Propagation">
                           <Icon name="globe" size={14} /> Probe
                         </button>
-                        <button className="btn btn-sm btn-ghost" style={{ color: '#ef4444' }} onClick={() => handleDeleteRecord(r.id)}>
+                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDeleteRecord(r.id)}>
                           <Icon name="trash2" size={14} />
                         </button>
                       </div>
@@ -411,7 +411,7 @@ export function OnsiteDNS() {
                 <DialogTitle className="onsite-card-title">DNS Propagation Probe</DialogTitle>
                 <button className="btn btn-sm btn-ghost" onClick={() => setCheckRecord(null)}>✕</button>
               </div>
-              <p style={{ fontSize: '0.875rem', color: 'var(--ink-muted)' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ink3)' }}>
                 Checking global propagation for <strong>{checkRecord.type}</strong> <code>{checkRecord.name}</code>:
               </p>
 
@@ -461,7 +461,7 @@ export function OnsiteDNS() {
       <Dialog open={showImport} onOpenChange={(o) => { if (!o) { setShowImport(false); setImportPlan(null); } }}>
         <DialogContent className="max-w-160 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <DialogTitle style={{ marginTop: 0 }}>Import a zone file</DialogTitle>
-          <p style={{ color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>
+          <p style={{ color: 'var(--ink3)', fontSize: '0.8125rem' }}>
             Paste a BIND zone file. Nothing is written until you apply it, and
             records already present are left alone rather than duplicated.
           </p>
@@ -481,7 +481,7 @@ export function OnsiteDNS() {
                 {importPlan.errors?.length ? ` · ${importPlan.errors.length} line(s) unreadable` : ''}
               </div>
               {importPlan.errors?.length > 0 && (
-                <ul style={{ color: '#ef4444', fontSize: '0.8125rem', marginTop: '0.5rem' }}>
+                <ul style={{ color: 'var(--red)', fontSize: '0.8125rem', marginTop: '0.5rem' }}>
                   {importPlan.errors.slice(0, 8).map((e: any) => (
                     <li key={e.line}>Line {e.line}: {e.error}</li>
                   ))}
@@ -510,7 +510,7 @@ export function OnsiteDNS() {
       <Dialog open={showTemplates} onOpenChange={(o) => { if (!o) { setShowTemplates(false); setTemplatePreview(null); } }}>
         <DialogContent className="max-w-155 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <DialogTitle style={{ marginTop: 0 }}>Quick setup</DialogTitle>
-          <p style={{ color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>
+          <p style={{ color: 'var(--ink3)', fontSize: '0.8125rem' }}>
             Generates the records a common setup needs. Review them before they are added.
           </p>
 
@@ -521,7 +521,7 @@ export function OnsiteDNS() {
                   onChange={() => { setTemplateId(t.id); setTemplatePreview(null); }} />
                 <span>
                   <span style={{ fontWeight: 600 }}>{t.label}</span>
-                  <span style={{ display: 'block', color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>{t.description}</span>
+                  <span style={{ display: 'block', color: 'var(--ink3)', fontSize: '0.8125rem' }}>{t.description}</span>
                 </span>
               </label>
             ))}

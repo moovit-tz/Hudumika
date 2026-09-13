@@ -392,10 +392,10 @@ function TwotoneShowcaseGrid() {
 
   const colorMap = {
     teal: 'var(--teal)',
-    green: 'var(--green, #10b981)',
-    gold: 'var(--gold, #f59e0b)',
-    purple: 'var(--purple, #8b5cf6)',
-    red: 'var(--red, #ef4444)',
+    green: 'var(--green)',
+    gold: 'var(--gold)',
+    purple: 'var(--purple)',
+    red: 'var(--red)',
     ink: 'var(--ink)',
   };
 

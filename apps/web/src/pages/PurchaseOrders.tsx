@@ -108,7 +108,7 @@ function openPOPrintWindow(
     const taxable = base - disc;
     const taxAmt = prod ? prod.taxRates.reduce((s, t) => s + taxable * (t.rate / 100), 0) : 0;
     return `<tr>
-      <td>${prod?.name || 'Item'}<br><span style="color:var(--ink3);font-size:9px">${prod?.sku || ''}</span></td>
+      <td>${prod?.name || 'Item'}<br><span style="color:#9ca3af;font-size:9px">${prod?.sku || ''}</span></td>
       <td style="text-align:center">${item.qty}</td>
       <td style="text-align:right;font-family:monospace">${fmt(item.unitPrice)}</td>
       <td style="text-align:right;font-family:monospace">${item.discountPct > 0 ? `-${fmt(disc)}` : '—'}</td>
@@ -168,7 +168,7 @@ td{padding:6px 8px;border-bottom:1px solid #f3f4f6;vertical-align:top}
 </tr></thead><tbody>${rows || '<tr><td colspan="6" style="color:#9ca3af;font-style:italic">No items</td></tr>'}</tbody></table>
 <div class="totals">
   <div><span>Subtotal</span><span style="font-family:monospace">${fmt(totals.subtotal)}</span></div>
-  ${totals.discount > 0 ? `<div><span>Discount</span><span style="font-family:monospace;color:var(--red)">-${fmt(totals.discount)}</span></div>` : ''}
+  ${totals.discount > 0 ? `<div><span>Discount</span><span style="font-family:monospace;color:#dc2626">-${fmt(totals.discount)}</span></div>` : ''}
   <div><span>Tax</span><span style="font-family:monospace">${fmt(totals.tax)}</span></div>
   <div class="grand"><span>Total</span><span style="font-family:monospace">${fmt(totals.total)}</span></div>
 </div>
@@ -1928,13 +1928,13 @@ export const PurchaseOrders: React.FC = () => {
                               required
                               value={item.qty}
                               onChange={e => handleFormItemChange(idx, 'qty', parseInt(e.target.value, 10) || 1)}
-                              style={{ width: '100%', padding: '7px 6px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', textAlign: 'center' }}
+                              style={{ width: '100%', padding: '7px 6px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', textAlign: 'center' }}
                             />
                           </td>
 
                           {/* Unit Price */}
                           <td style={{ padding: '12px 12px', textAlign: 'right' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '0 8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '0 8px' }}>
                               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>$</span>
                               <input
                                 type="number"
@@ -1950,7 +1950,7 @@ export const PurchaseOrders: React.FC = () => {
 
                           {/* Discount % */}
                           <td style={{ padding: '12px 12px', textAlign: 'right' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '0 8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '0 8px' }}>
                               <input
                                 type="number"
                                 min={0}

@@ -8,6 +8,7 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import type { ShipmentCase } from '@hudumika/types';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { mapApiInvoice, invoiceTotals } from './Billing.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 /* ── helpers ──────────────────────────────────────────────── */
 function fmtDate(iso?: string | null) {
@@ -19,13 +20,13 @@ function fmtAmt(n: number) {
 }
 
 const STAGE_CFG: Record<string, { label: string; color: string; bg: string; step: number }> = {
-  INTAKE:      { label: 'Received',       color: '#0891b2', bg: '#ecfeff', step: 1 },
-  DOCS:        { label: 'Docs Check',     color: '#7c3aed', bg: 'var(--purple-l)', step: 2 },
+  INTAKE:      { label: 'Received',       color: 'var(--blue)', bg: 'var(--blue-l)', step: 1 },
+  DOCS:        { label: 'Docs Check',     color: 'var(--purple)', bg: 'var(--purple-l)', step: 2 },
   CUSTOMS:     { label: 'Customs',        color: 'var(--gold)', bg: 'var(--gold-l)', step: 3 },
-  DUTY:        { label: 'Duty Payment',   color: '#ea580c', bg: 'var(--gold-l)', step: 4 },
-  RELEASE:     { label: 'Port Release',   color: '#0d7a6b', bg: '#ccfbf1', step: 5 },
+  DUTY:        { label: 'Duty Payment',   color: 'var(--gold)', bg: 'var(--gold-l)', step: 4 },
+  RELEASE:     { label: 'Port Release',   color: 'var(--green)', bg: 'var(--green-l)', step: 5 },
   DELIVERY:    { label: 'Delivery',       color: 'var(--green)', bg: 'var(--green-l)', step: 6 },
-  CLOSED:      { label: 'Completed',      color: 'var(--ink2)', bg: '#f3f4f6', step: 7 },
+  CLOSED:      { label: 'Completed',      color: 'var(--ink2)', bg: 'var(--bg)', step: 7 },
 };
 const TOTAL_STEPS = 7;
 
@@ -66,9 +67,9 @@ function ShipmentCard({ s }: { s: ShipmentCase & { active_risk_types?: string[] 
     <Link to={`/clearance/${s.id}`} title={`Open ${s.ref_number}`}
       style={{
         display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', cursor: 'pointer',
-        background: 'var(--white)', border: `1px solid ${atRisk ? '#fca5a5' : 'var(--border)'}`,
+        background: 'var(--white)', border: `1px solid ${atRisk ? 'var(--red)' : 'var(--border)'}`,
         borderRadius: 'var(--r)', padding: '14px 16px', fontFamily: 'var(--font)',
-        boxShadow: atRisk ? '0 0 0 1px #fca5a5' : 'none', textDecoration: 'none', color: 'inherit',
+        boxShadow: atRisk ? '0 0 0 1px var(--red)' : 'none', textDecoration: 'none', color: 'inherit',
       }}
     >
       {/* Row 1: ref + stage badge */}
@@ -93,7 +94,7 @@ function ShipmentCard({ s }: { s: ShipmentCase & { active_risk_types?: string[] 
       <div style={{ background: 'var(--bg)', borderRadius: 99, height: 5, marginBottom: 6, overflow: 'hidden' }}>
         <div style={{
           height: '100%', borderRadius: 99, width: `${pct}%`,
-          background: s.stage === 'CLOSED' ? '#6b7280' : 'var(--teal)',
+          background: s.stage === 'CLOSED' ? 'var(--ink3)' : 'var(--teal)',
           transition: 'width 0.4s ease',
         }} />
       </div>
@@ -163,10 +164,18 @@ export const CustomerDashboard: React.FC = () => {
 
   return (
     <div style={{ paddingBottom: 20 }}>
+      <div style={{ padding: '20px 16px 0' }}>
+        <PageHeader
+          crumbs={['Workspace', 'Overview']}
+          titlePlain="Workspace"
+          titleEm="overview"
+          subtitle="Keep track of your shipments, invoices, and account activity."
+        />
+      </div>
 
       {/* ── Hero card ── */}
       <div style={{
-        background: 'linear-gradient(135deg, #0b7264 0%, #0e9b85 60%, #14b8a6 100%)',
+        background: 'hsl(var(--primary))',
         padding: '28px 20px 32px',
         position: 'relative', overflow: 'hidden',
       }}>
@@ -175,28 +184,28 @@ export const CustomerDashboard: React.FC = () => {
         <div style={{ position: 'absolute', bottom: -20, right: 40, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
 
         <div style={{ position: 'relative' }}>
-          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, margin: '0 0 4px' }}>
+          <p style={{ color: 'hsl(var(--primary-foreground) / 0.75)', fontSize: 13, margin: '0 0 4px' }}>
             Good day, {firstName}
           </p>
-          <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 700, margin: '0 0 20px', fontFamily: 'var(--font)' }}>
+          <div style={{ color: 'hsl(var(--primary-foreground))', fontSize: 22, fontWeight: 700, margin: '0 0 20px', fontFamily: 'var(--font)' }}>
             {user?.name?.split(' ').slice(0, 2).join(' ')}
-          </h1>
+          </div>
 
           {/* Stat chips */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {[
-              { label: 'Active', value: active.length,    icon: 'package',       bg: 'rgba(255,255,255,0.18)' },
+              { label: 'Active', value: active.length,    icon: 'package',       bg: 'hsl(var(--primary-foreground) / 0.18)' },
               { label: 'At Risk', value: atRisk.length,   icon: 'alertTriangle', bg: 'rgba(239,68,68,0.35)'   },
-              { label: 'Done',    value: delivered.length, icon: 'checkCircle',  bg: 'rgba(255,255,255,0.18)' },
+              { label: 'Done',    value: delivered.length, icon: 'checkCircle',  bg: 'hsl(var(--primary-foreground) / 0.18)' },
             ].map(chip => (
               <div key={chip.label} style={{
                 background: chip.bg, borderRadius: 'var(--r)', padding: '10px 14px',
                 display: 'flex', alignItems: 'center', gap: 8, backdropFilter: 'blur(6px)',
               }}>
-                <Icon name={chip.icon as any} size={15} color="#fff" />
+                <Icon name={chip.icon as any} size={15} color="hsl(var(--primary-foreground))" />
                 <div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{chip.value}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', marginTop: 1 }}>{chip.label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'hsl(var(--primary-foreground))', lineHeight: 1 }}>{chip.value}</div>
+                  <div style={{ fontSize: 10, color: 'hsl(var(--primary-foreground) / 0.75)', marginTop: 1 }}>{chip.label}</div>
                 </div>
               </div>
             ))}
@@ -211,9 +220,9 @@ export const CustomerDashboard: React.FC = () => {
           <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginBottom: 12 }}>QUICK ACTIONS</p>
           <div style={{ display: 'flex', gap: 10 }}>
             <QuickAction icon="package"    label="Track Shipment"   to="/"                  color="var(--teal)"  />
-            <QuickAction icon="clipboard"  label="Request Quote"    to="/quotations"         color="#7c3aed"      />
-            <QuickAction icon="headphones" label="Get Support"      to="/support/tickets"   color="#0891b2"      />
-            <QuickAction icon="folder"     label="My Files"         to="/documents"          color="#d97706"      />
+            <QuickAction icon="clipboard"  label="Request Quote"    to="/quotations"         color="var(--purple)" />
+            <QuickAction icon="headphones" label="Get Support"      to="/support/tickets"   color="var(--blue)"   />
+            <QuickAction icon="folder"     label="My Files"         to="/documents"          color="var(--gold)"   />
           </div>
         </div>
 
@@ -264,7 +273,7 @@ export const CustomerDashboard: React.FC = () => {
               padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap',
             }}>
               <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="globe" size={17} color="#059669" />
+                <Icon name="globe" size={17} color="var(--green)" />
               </div>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{totalCo2Kg.toLocaleString('en')} kg</div>

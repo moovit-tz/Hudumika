@@ -156,7 +156,7 @@ export const SuperAdminIssues: React.FC = () => {
         .sai-scroll tbody tr:hover { background: var(--teal-l); }
         .sai-detail { padding: 20px; }
         .sai-ctx { font-family: var(--mono, monospace); font-size: 11px; line-height: 1.6; color: var(--ink2);
-                   background: var(--surface, rgba(0,0,0,.03)); border: 1px solid var(--border);
+                   background: rgba(0,0,0,.03); border: 1px solid var(--border);
                    border-radius: var(--r-sm); padding: 12px; max-height: 240px; overflow: auto;
                    white-space: pre-wrap; word-break: break-word; }
         .sai-att { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin-top: 8px;
@@ -318,7 +318,7 @@ export const SuperAdminIssues: React.FC = () => {
               {(open.messages ?? []).map((m: any) => (
                 <div key={m.id} style={{
                   padding: '11px 13px', marginBottom: 8, borderRadius: 'var(--r-sm)', fontSize: 12.5, lineHeight: 1.55,
-                  background: m.is_platform_staff ? 'var(--teal-l)' : 'var(--surface, rgba(0,0,0,.03))',
+                  background: m.is_platform_staff ? 'var(--teal-l)' : 'rgba(0,0,0,.03)',
                   border: `1px solid ${m.is_platform_staff ? 'var(--teal-m, var(--teal-l))' : 'var(--border)'}`,
                 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: m.is_platform_staff ? 'var(--teal)' : 'var(--ink3)', marginBottom: 3 }}>

@@ -93,7 +93,7 @@ export const SuperAdminReferrals: React.FC = () => {
         </Select>
       </div>
 
-      <div className="card" style={{ background: 'var(--surface, #fff)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div className="card" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', overflow: 'hidden' }}>
         {loading ? (
           <SectionLoading />
         ) : rows.length === 0 ? (

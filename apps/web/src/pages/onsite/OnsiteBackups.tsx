@@ -109,19 +109,19 @@ export function OnsiteBackups() {
           value={retentionDays ?? ''}
           onChange={(e) => setRetentionDays(Number(e.target.value) || 1)}
         />
-        <span style={{ fontSize: '0.875rem', color: 'var(--ink-muted)' }}>days</span>
+        <span style={{ fontSize: '0.875rem', color: 'var(--ink3)' }}>days</span>
         <button className="btn btn-sm btn-secondary" disabled={savingRetention} onClick={handleSaveRetention}>
           {savingRetention ? 'Saving…' : 'Save'}
         </button>
       </div>
 
       {loading ? (
-        <div className="onsite-card"><p style={{ color: 'var(--ink-muted)' }}>Loading backups…</p></div>
+        <div className="onsite-card"><p style={{ color: 'var(--ink3)' }}>Loading backups…</p></div>
       ) : backups.length === 0 ? (
         <div className="onsite-card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-          <Icon name="layers" size={48} style={{ color: 'var(--ink-muted)', margin: '0 auto 1rem auto' }} />
+          <Icon name="layers" size={48} style={{ color: 'var(--ink3)', margin: '0 auto 1rem auto' }} />
           <h3>No backups yet</h3>
-          <p style={{ color: 'var(--ink-muted)', marginBottom: '1.5rem' }}>
+          <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             A scheduled snapshot runs automatically every day. Create one now to protect your current setup right away.
           </p>
           <button className="btn btn-primary" disabled={creating} onClick={handleCreate}>
@@ -158,7 +158,7 @@ export function OnsiteBackups() {
                             {restoringId === b.id ? 'Restoring…' : 'Restore'}
                           </button>
                         )}
-                        <button className="btn btn-sm btn-ghost" style={{ color: '#ef4444' }} onClick={() => handleDelete(b)}>
+                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(b)}>
                           <Icon name="trash2" size={14} />
                         </button>
                       </div>

@@ -194,7 +194,7 @@
 }
 .em-resizer:hover,
 .em-resizer:active {
-  background: var(--teal, #0097a7);
+  background: var(--teal);
   opacity: 0.5;
 }
 

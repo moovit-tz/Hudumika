@@ -1134,9 +1134,9 @@ select.input-field { cursor: pointer; }
 .th:hover { color: var(--ink2); }
 
 .th-urgency { width: 15px; margin-right: 12px; flex-shrink: 0; }
-.th-ref     { width: 130px; flex-shrink: 0; }
-.th-type    { width: 80px;  flex-shrink: 0; }
-.th-desc    { flex: 1; }
+.th-ref     { width: 360px; flex-shrink: 0; }
+.th-type    { width: 170px; flex-shrink: 0; }
+.th-desc    { flex: 1; min-width: 160px; }
 .th-stage   { width: 160px; flex-shrink: 0; padding: 0 12px; }
 .th-status  { width: 140px; flex-shrink: 0; }
 .th-officer { width: 100px; flex-shrink: 0; }
@@ -1222,6 +1222,22 @@ select.input-field { cursor: pointer; }
    exactly this job. Same pill shape, same weight, same face now; only the
    tint separates them, and the count leads so the eye lands on the number. */
 .ch-tags { display: flex; gap: 6px; align-items: center; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.ch-customer-cell { width: 326px; flex-shrink: 0; min-width: 0; }
+.ch-customer-cell > span { display: none; }
+.ch-avatar-cell { width: 34px; margin-right: 10px; flex-shrink: 0; }
+.ch-meta-cell { width: 170px; flex-shrink: 0; min-width: 0; color: var(--ink3); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ch-summary-cell { display: flex; align-items: center; min-width: 0; }
+.ch-risk-cell { flex: 1; min-width: 160px; }
+.ch-action-cell { width: 160px; flex-shrink: 0; padding: 0 12px; }
+.ch-active-cell { width: 140px; flex-shrink: 0; }
+.ch-empty { color: var(--ink3); font-size: 12px; }
+
+/* Customer directory: identity is the scanning anchor, so it gets a fixed,
+   generous column rather than wrapping beside the avatar. */
+.crm-customer-table .crm-col-company { width: 360px; min-width: 360px; }
+.crm-company-cell > div { min-width: 0; }
+.crm-company-cell > div > div:last-child { min-width: 0; }
+.crm-company-cell > div > div:last-child > div:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ch-tag {
   font-family: var(--font);
   font-size: var(--badge-fs-sm);
@@ -5961,4 +5977,19 @@ html[data-expanded="true"] .fin-shell {
   .th-days, .sr-days {
     display: none !important;
   }
+  .th-desc, .ch-risk-cell, .ch-action-cell, .ch-meta-cell { display: none !important; }
+  .table-hdr, .cust-header { padding-left: 12px; padding-right: 12px; }
+  .th-ref, .ch-customer-cell { width: auto; flex: 1 1 0; }
+  .ch-active-cell, .th-status { width: auto; flex: 0 0 auto; }
+  .ch-active-cell { padding-left: 8px; }
+  .ch-tag { font-size: 11px; }
+  .crm-customer-table { min-width: 0; table-layout: fixed; }
+  .crm-customer-table .crm-col-company { width: auto; min-width: 220px; }
+  .crm-customer-table .crm-col-contact,
+  .crm-customer-table .crm-col-phone,
+  .crm-customer-table .crm-col-tin,
+  .crm-customer-table .crm-col-trade,
+  .crm-customer-table .crm-col-joined,
+  .crm-customer-table .crm-col-actions { display: none; }
+  .crm-customer-table .crm-col-email { min-width: 180px; }
 }

@@ -146,7 +146,7 @@ export const OndiVault: React.FC = () => {
             </div>
           </div>
           <div className="ov-kpi-body">
-            <div className="ov-kpi-val" style={{ color: 'var(--green, #10b981)' }}>
+            <div className="ov-kpi-val" style={{ color: 'var(--green)' }}>
               {fmtSize(totalSize)}
             </div>
             <div className="ov-kpi-sub">Cloud Drive allocation</div>
@@ -161,7 +161,7 @@ export const OndiVault: React.FC = () => {
             </div>
           </div>
           <div className="ov-kpi-body">
-            <div className="ov-kpi-val" style={{ color: 'var(--purple, #8b5cf6)' }}>
+            <div className="ov-kpi-val" style={{ color: 'var(--purple)' }}>
               PRIVATE
             </div>
             <div className="ov-kpi-sub">Tenant & user-scoped</div>
@@ -245,7 +245,7 @@ export const OndiVault: React.FC = () => {
                 className="ov-upload-dropzone"
                 onClick={() => inputRef.current?.click()}
               >
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--white)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 'var(--r)', background: 'var(--white)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
                   <Icon name="upload" size={18} />
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>

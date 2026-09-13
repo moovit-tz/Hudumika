@@ -22,8 +22,8 @@ const CATEGORIES = [
 ];
 
 const PRIORITIES: { key: string; color: string; label: string; sub: string }[] = [
-  { key: 'low',    color: '#22c55e', label: 'Low',    sub: '5-7 business days' },
-  { key: 'medium', color: '#eab308', label: 'Medium', sub: '2-3 business days' },
+  { key: 'low',    color: 'var(--green)', label: 'Low',    sub: '5-7 business days' },
+  { key: 'medium', color: 'var(--gold)', label: 'Medium', sub: '2-3 business days' },
   { key: 'high',   color: '#f97316', label: 'High',   sub: '24 hours' },
   { key: 'urgent', color: 'var(--red)', label: 'Urgent', sub: '< 4 hours' },
 ];
@@ -138,7 +138,7 @@ export const SupportTicket: React.FC = () => {
         <div className="st-quick-grid">
           {QUICK_LINKS.map(q => (
             <a key={q.title} href={q.href} className="st-quick-card">
-              <div className="st-quick-card-icon"><Icon name={q.icon} size={22} color="#059669" /></div>
+              <div className="st-quick-card-icon"><Icon name={q.icon} size={22} color="var(--green)" /></div>
               <div className="st-quick-card-title">{q.title}</div>
               <div className="st-quick-card-desc">{q.desc}</div>
             </a>
@@ -147,7 +147,7 @@ export const SupportTicket: React.FC = () => {
 
         {submitted ? (
           <div className="st-success">
-            <div className="st-success-icon"><Icon name="checkCircle" size={40} color="#059669" /></div>
+            <div className="st-success-icon"><Icon name="checkCircle" size={40} color="var(--green)" /></div>
             <div className="st-success-title">Ticket Submitted Successfully</div>
             <div className="st-success-ref">{ticketRef}</div>
             <p className="st-success-body">

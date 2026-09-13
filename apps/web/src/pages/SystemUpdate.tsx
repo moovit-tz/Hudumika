@@ -83,7 +83,7 @@ const SYS_REQS = [
 type BadgeType = 'major' | 'minor' | 'patch' | 'security';
 const TYPE_COLORS: Record<BadgeType, { bg: string; color: string }> = {
   major:    { bg: 'var(--red-l)', color: 'var(--red)' },
-  minor:    { bg: 'var(--blue-l)', color: '#2563eb' },
+  minor:    { bg: 'var(--blue-l)', color: 'var(--blue)' },
   patch:    { bg: 'var(--green-l)', color: 'var(--green)' },
   security: { bg: 'var(--gold-l)', color: 'var(--gold)' },
 };
@@ -159,7 +159,7 @@ export const SystemUpdate: React.FC = () => {
             <button
               onClick={() => setShowConfirm(true)}
               disabled={updating}
-              style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border:'none', background: updating ? 'var(--ink3)' : 'hsl(var(--primary))', color: updating ? '#fff' : 'hsl(var(--primary-foreground))', fontSize:12, fontWeight:700, cursor: updating ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+              style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border:'none', background: updating ? 'var(--ink3)' : 'hsl(var(--primary))', color: updating ? 'var(--white)' : 'hsl(var(--primary-foreground))', fontSize:12, fontWeight:700, cursor: updating ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
             >
               <Icon name="upload" size={13} />
               {updating ? 'Updating…' : `Update to v${LATEST_VERSION}`}
@@ -196,8 +196,8 @@ export const SystemUpdate: React.FC = () => {
 
           {/* Success banner */}
           {updateDone && (
-            <div style={{ background:'var(--green-l)', border:'1px solid #a7f3d0', borderRadius: 'var(--r)', padding:'16px 20px', display:'flex', alignItems:'center', gap:12 }}>
-              <Icon name="checkCircle" size={20} color="#059669" />
+            <div style={{ background:'var(--green-l)', border:'1px solid var(--green)', borderRadius: 'var(--r)', padding:'16px 20px', display:'flex', alignItems:'center', gap:12 }}>
+              <Icon name="checkCircle" size={20} color="var(--green)" />
               <div>
                 <div style={{ fontSize:14, fontWeight:700, color:'var(--green)' }}>Successfully updated to v{LATEST_VERSION}</div>
                 <div style={{ fontSize:12, color:'var(--green)', marginTop:2 }}>All modules are running the latest version. A page reload may be required.</div>
@@ -212,19 +212,19 @@ export const SystemUpdate: React.FC = () => {
               <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 }}>Current Version</div>
               <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:8 }}>
                 <span style={{ fontSize:30, fontWeight:800, color:'var(--ink)', letterSpacing:'-0.04em' }}>v{updateDone ? LATEST_VERSION : CURRENT_VERSION}</span>
-                <span style={{ padding:'2px 8px', borderRadius:20, background:'var(--green-l)', color:'var(--green)', fontSize:11, fontWeight:700 }}>Installed</span>
+                <span style={{ padding:'2px 8px', borderRadius:'var(--badge-radius)', background:'var(--green-l)', color:'var(--green)', fontSize:11, fontWeight:700 }}>Installed</span>
               </div>
               <div style={{ fontSize:12, color:'var(--ink3)' }}>Released {UPDATE_HISTORY.find(u => u.version === CURRENT_VERSION)?.date}</div>
             </div>
 
             {/* Latest version */}
-            <div style={{ borderRadius: 'var(--r)', border: HAS_UPDATE && !updateDone ? '1px solid #bfdbfe' : '1px solid var(--border)', padding:'20px 22px', background: HAS_UPDATE && !updateDone ? '#eff6ff' : 'var(--white)' }}>
+            <div style={{ borderRadius: 'var(--r)', border: HAS_UPDATE && !updateDone ? '1px solid var(--blue)' : '1px solid var(--border)', padding:'20px 22px', background: HAS_UPDATE && !updateDone ? 'var(--blue-l)' : 'var(--white)' }}>
               <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 }}>Latest Version</div>
               <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:8 }}>
-                <span style={{ fontSize:30, fontWeight:800, color: HAS_UPDATE && !updateDone ? '#2563eb' : 'var(--ink)', letterSpacing:'-0.04em' }}>v{LATEST_VERSION}</span>
+                <span style={{ fontSize:30, fontWeight:800, color: HAS_UPDATE && !updateDone ? 'var(--blue)' : 'var(--ink)', letterSpacing:'-0.04em' }}>v{LATEST_VERSION}</span>
                 {HAS_UPDATE && !updateDone
-                  ? <span style={{ padding:'2px 8px', borderRadius:20, background:'var(--blue-l)', color:'var(--blue)', fontSize:11, fontWeight:700 }}>Update Available</span>
-                  : <span style={{ padding:'2px 8px', borderRadius:20, background:'var(--green-l)', color:'var(--green)', fontSize:11, fontWeight:700 }}>Up to Date</span>
+                  ? <span style={{ padding:'2px 8px', borderRadius:'var(--badge-radius)', background:'var(--blue-l)', color:'var(--blue)', fontSize:11, fontWeight:700 }}>Update Available</span>
+                  : <span style={{ padding:'2px 8px', borderRadius:'var(--badge-radius)', background:'var(--green-l)', color:'var(--green)', fontSize:11, fontWeight:700 }}>Up to Date</span>
                 }
               </div>
               <div style={{ fontSize:12, color:'var(--ink3)' }}>Released {UPDATE_HISTORY.find(u => u.version === LATEST_VERSION)?.date}</div>
@@ -235,7 +235,7 @@ export const SystemUpdate: React.FC = () => {
           {HAS_UPDATE && !updateDone && (
             <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
               <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:10 }}>
-                <div style={{ width:28, height:28, borderRadius:7, background:'var(--teal-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <div style={{ width:28, height:28, borderRadius: 'var(--r)', background:'var(--teal-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                   <Icon name="star" size={14} color="var(--teal)" />
                 </div>
                 <div>
@@ -260,7 +260,7 @@ export const SystemUpdate: React.FC = () => {
           {/* System requirements */}
           <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
             <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{ width:28, height:28, borderRadius:7, background:'var(--blue-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <div style={{ width:28, height:28, borderRadius: 'var(--r)', background:'var(--blue-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <Icon name="monitor" size={14} color="var(--blue)" />
               </div>
               <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>System Requirements</div>
@@ -288,7 +288,7 @@ export const SystemUpdate: React.FC = () => {
           {/* Update history */}
           <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
             <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{ width:28, height:28, borderRadius:7, background:'var(--purple-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <div style={{ width:28, height:28, borderRadius: 'var(--r)', background:'var(--purple-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <Icon name="clock" size={14} color="var(--purple)" />
               </div>
               <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>Update History</div>
@@ -338,7 +338,7 @@ export const SystemUpdate: React.FC = () => {
         <DialogContent className="max-w-105 gap-0" style={{ padding:'28px 32px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
               <div style={{ width:40, height:40, borderRadius: 'var(--r)', background:'var(--gold-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <Icon name="alertTriangle" size={20} color="#d97706" />
+                <Icon name="alertTriangle" size={20} color="var(--gold)" />
               </div>
               <div>
                 <DialogTitle style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>Confirm System Update</DialogTitle>

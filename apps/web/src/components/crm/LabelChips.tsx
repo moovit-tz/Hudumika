@@ -110,7 +110,7 @@ export function LabelChips({ subjectType, subjectId }: { subjectType: SubjectTyp
               );
             })}
           </div>
-          <div style={{ display: 'flex', gap: 6, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-soft)' }}>
+          <div style={{ display: 'flex', gap: 6, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
             <input
               className="input-field" style={{ height: 30, fontSize: 12.5 }}
               placeholder="New label…" value={newName} onChange={e => setNewName(e.target.value)}

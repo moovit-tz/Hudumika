@@ -420,7 +420,7 @@ export const OndiSecuritySettings: React.FC = () => {
             </div>
           </div>
           <div className="oss-kpi-body">
-            <div className="oss-kpi-val" style={{ color: twoFA?.enabled ? 'var(--green, #10b981)' : 'var(--gold, #f59e0b)' }}>
+            <div className="oss-kpi-val" style={{ color: twoFA?.enabled ? 'var(--green)' : 'var(--gold)' }}>
               {twoFA?.enabled ? 'ACTIVE' : 'OFF'}
             </div>
             <div className="oss-kpi-sub">
@@ -747,7 +747,7 @@ export const OndiSecuritySettings: React.FC = () => {
 
                 {/* Backup Codes Display */}
                 {backupCodes && (
-                  <div style={{ padding: '14px', background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                  <div style={{ padding: '14px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
                         One-Time Backup Security Codes (Save securely)
@@ -775,7 +775,7 @@ export const OndiSecuritySettings: React.FC = () => {
                 {/* Enabled Status */}
                 {twoFA?.enabled && !setupData && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green, #10b981)', fontSize: 13, fontWeight: 600 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', fontSize: 13, fontWeight: 600 }}>
                       <Icon name="checkCircle" size={16} />
                       <span>Two-factor authentication is active{twoFA.enabled_at ? ` since ${new Date(twoFA.enabled_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}.</span>
                     </div>
@@ -787,7 +787,7 @@ export const OndiSecuritySettings: React.FC = () => {
                         </Button>
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: 12, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: 12, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                         <input
                           type="text"
                           value={disableCode}
@@ -841,7 +841,7 @@ export const OndiSecuritySettings: React.FC = () => {
                     {passkeys.map((p) => (
                       <div key={p.id} className="oss-passkey-item">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--white, #ffffff)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--white, #ffffff)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
                             <Icon name="key" size={16} />
                           </div>
                           <div>
@@ -887,7 +887,7 @@ export const OndiSecuritySettings: React.FC = () => {
 
                 {kycStatus && kycStatus.verification_level !== 'unverified' && !phoneCodeSent && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green, #10b981)', fontSize: 13, fontWeight: 600 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', fontSize: 13, fontWeight: 600 }}>
                       <Icon name="checkCircle" size={16} />
                       <span>{user?.phone ? `${user.phone} is verified.` : 'Your phone number is verified.'}</span>
                     </div>
@@ -977,7 +977,7 @@ export const OndiSecuritySettings: React.FC = () => {
                 {kycStatus === null && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading verification status…</div>}
 
                 {kycStatus?.kyc_status === 'approved' && kycStatus.latest_submission && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 8, color: 'var(--green, #10b981)', fontSize: 13, fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', color: 'var(--green)', fontSize: 13, fontWeight: 600 }}>
                     <Icon name="checkCircle" size={17} />
                     <span>
                       Identity verified as {kycStatus.latest_submission.extracted_full_name || 'Account Holder'} via {kycStatus.latest_submission.document_type === 'passport' ? 'Passport' : kycStatus.latest_submission.document_type === 'drivers_license' ? "Driver's License" : 'National Identity Card'}.
@@ -1202,7 +1202,7 @@ export const OndiSecuritySettings: React.FC = () => {
               <div className="oss-card-body">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
                       <Icon name="smartphone" size={16} />
                     </div>
                     <div>
@@ -1252,11 +1252,11 @@ export const OndiSecuritySettings: React.FC = () => {
                   <span className="oss-side-trust-max">/ 850</span>
                 </div>
 
-                <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden', margin: '6px 0 2px' }}>
+                <div style={{ height: 6, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden', margin: '6px 0 2px' }}>
                   <div
                     style={{
                       height: '100%',
-                      background: trust.tier === 'HIGH' ? 'var(--green, #10b981)' : trust.tier === 'MEDIUM' ? 'var(--gold, #f59e0b)' : 'var(--red, #ef4444)',
+                      background: trust.tier === 'HIGH' ? 'var(--green)' : trust.tier === 'MEDIUM' ? 'var(--gold)' : 'var(--red)',
                       width: `${Math.max(0, Math.min(100, ((trust.score - 300) / (850 - 300)) * 100))}%`,
                     }}
                   />

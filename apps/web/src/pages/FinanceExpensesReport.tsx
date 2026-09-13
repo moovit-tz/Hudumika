@@ -15,12 +15,12 @@ const fmtFull = (n: number) => `TZS ${Math.round(n).toLocaleString()}`;
 // the two synthetic fleet-sourced categories, FUEL/MAINTENANCE).
 const CATS: Record<string, { label: string; color: string }> = {
   PORT_CHARGES:    { label: 'Port Charges',    color: 'var(--blue)' },
-  CUSTOMS_DUTY:    { label: 'Customs Duty',    color: '#cf222e' },
+  CUSTOMS_DUTY:    { label: 'Customs Duty',    color: 'var(--red)' },
   FREIGHT:         { label: 'Freight',         color: 'var(--teal)' },
-  HANDLING:        { label: 'Handling',        color: '#9a6700' },
-  TRANSPORT:       { label: 'Transport',       color: '#6e40c9' },
+  HANDLING:        { label: 'Handling',        color: 'var(--gold)' },
+  TRANSPORT:       { label: 'Transport',       color: 'var(--purple)' },
   INSPECTION_FEE:  { label: 'Inspection Fee',  color: 'var(--green)' },
-  AGENT_FEE:       { label: 'Agent Fee',       color: '#cf222e' },
+  AGENT_FEE:       { label: 'Agent Fee',       color: 'var(--red)' },
   MISCELLANEOUS:   { label: 'Miscellaneous',   color: 'var(--ink3)' },
   FUEL:            { label: 'Fuel',            color: '#0891b2' },
   MAINTENANCE:     { label: 'Maintenance',     color: '#7c3aed' },
@@ -48,7 +48,7 @@ function BarChart({ labels, values, color }: { labels: string[]; values: number[
       {values.map((v, i) => (
         <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
           <div style={{ fontSize: 9, color: 'var(--ink3)', marginBottom: 4, whiteSpace: 'nowrap' }}>{fmtM(v)}</div>
-          <div style={{ width: '65%', height: `${Math.max(4, (v / max) * 140)}px`, background: color, borderRadius: '4px 4px 0 0' }} />
+          <div style={{ width: '65%', height: `${Math.max(4, (v / max) * 140)}px`, background: color, borderRadius: `var(--r-sm) var(--r-sm) 0 0` }} />
           <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 6 }}>{labels[i]}</div>
         </div>
       ))}
@@ -216,8 +216,8 @@ export const FinanceExpensesReport: React.FC = () => {
                       <span style={{ fontSize: 11, color: 'var(--ink2)', fontWeight: 500 }}>{catLabel(cat)}</span>
                       <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{pct}%</span>
                     </div>
-                    <div style={{ height: 4, borderRadius: 2, background: 'var(--border)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 2 }} />
+                    <div style={{ height: 4, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 'var(--r-sm)' }} />
                     </div>
                   </div>
                 );

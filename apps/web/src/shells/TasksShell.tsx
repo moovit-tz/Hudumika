@@ -63,7 +63,7 @@ function SharePopover({ listId, listName }: { listId: string; listName: string }
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button type="button" title={`Share "${listName}"`}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', padding: 4, flexShrink: 0, display: 'flex' }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, flexShrink: 0, display: 'flex' }}
           onClick={e => e.stopPropagation()}>
           <Icon name="userPlus" size={12} />
         </button>
@@ -80,7 +80,7 @@ function SharePopover({ listId, listName }: { listId: string; listName: string }
                 <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--ink)' }}>{s.name}</span>
                 <span style={{ fontSize: 10.5, color: 'var(--ink3)', textTransform: 'capitalize' }}>{s.role}</span>
                 <button type="button" onClick={() => remove(s.userId)} title="Remove access"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', padding: 2, display: 'flex' }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, display: 'flex' }}>
                   <Icon name="x" size={11} />
                 </button>
               </div>
@@ -244,7 +244,7 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
               <span style={{ width: 9, height: 9, borderRadius: '50%', background: l.color, flexShrink: 0 }} />
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name}</span>
               {l.shared && (
-                <Icon name="userCheck" size={11} color={isActive ? 'var(--teal)' : 'var(--ink4)'} style={{ flexShrink: 0 }} />
+                <Icon name="userCheck" size={11} color={isActive ? 'var(--teal)' : 'var(--ink3)'} style={{ flexShrink: 0 }} />
               )}
               {count > 0 && (
                 <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? 'var(--teal)' : 'var(--ink3)', flexShrink: 0 }}>{count}</span>
@@ -254,7 +254,7 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
                 delete — shown with whose it is instead. */}
             {l.shared ? (
               <span title={`Shared by ${l.ownerName ?? 'a colleague'} · ${l.role === 'editor' ? 'can edit' : 'can view'}`}
-                style={{ padding: 4, flexShrink: 0, display: 'flex', color: 'var(--ink4)' }}>
+                style={{ padding: 4, flexShrink: 0, display: 'flex', color: 'var(--ink3)' }}>
                 <Icon name="info" size={12} />
               </span>
             ) : (
@@ -262,7 +262,7 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
                 <SharePopover listId={l.id} listName={l.name} />
                 {l.id !== inboxListId() && (
                   <button type="button" onClick={() => { if (isActive) setActiveTaskView('inbox'); deleteList(l.id); }} title="Delete list"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', padding: 4, flexShrink: 0 }}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, flexShrink: 0 }}>
                     <Icon name="x" size={12} />
                   </button>
                 )}

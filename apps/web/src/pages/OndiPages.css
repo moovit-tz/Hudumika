@@ -25,7 +25,7 @@
 .ondi-kpi-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: var(--r-md, 12px);
+  border-radius: var(--r);
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
@@ -79,7 +79,7 @@
 }
 
 .ondi-kpi-card:hover .ondi-kpi-icon-box {
-  background: var(--teal-l, #ecfeff);
+  background: var(--teal-l);
   color: var(--teal);
   transform: scale(1.05);
 }
@@ -165,10 +165,10 @@
   gap: 12px;
   padding: 14px 20px;
   background: var(--white);
-  border: 1px solid var(--border-soft);
+  border: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  border-top-left-radius: var(--r-md, 12px);
-  border-top-right-radius: var(--r-md, 12px);
+  border-top-left-radius: var(--r);
+  border-top-right-radius: var(--r);
 }
 
 .ondi-search-input {
@@ -226,7 +226,7 @@
 
 .ondi-table td {
   padding: 13px 16px;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border);
   color: var(--ink);
   vertical-align: middle;
   transition: background 0.15s ease;
@@ -293,7 +293,7 @@
 .ondi-entity-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: var(--r-md, 12px);
+  border-radius: var(--r);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -347,7 +347,7 @@
   width: 420px;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: var(--r-md, 12px);
+  border-radius: var(--r);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
   padding: 24px;
   display: flex;
@@ -381,7 +381,7 @@
 .ondi-modal-box {
   background: var(--white) !important;
   opacity: 1 !important;
-  border-radius: var(--r-md, 12px);
+  border-radius: var(--r);
   padding: 28px;
   width: 480px;
   max-width: 95vw;

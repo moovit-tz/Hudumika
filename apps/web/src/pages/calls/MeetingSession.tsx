@@ -156,7 +156,7 @@ export function MeetingSession({ meetingId, onExit }: { meetingId: string; onExi
             </>
           ) : (
             <>
-              <Spinner size={48} thickness={3} color="#10b981" trackColor="#1f2937" style={{ margin: '0 auto' }} />
+              <Spinner size={48} thickness={3} color="var(--green)" trackColor="#1f2937" style={{ margin: '0 auto' }} />
               <div style={{ fontSize: 15, fontWeight: 700, color: '#f9fafb', marginTop: 16 }}>Waiting for the host to let you in…</div>
               <div style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 6 }}>{meeting.title}</div>
             </>
@@ -171,7 +171,7 @@ export function MeetingSession({ meetingId, onExit }: { meetingId: string; onExi
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 2100, background: 'linear-gradient(135deg, #0b0f19 0%, #111827 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ background: '#111827', borderRadius: 16, border: '1px solid #1f2937', padding: 32, width: 360, maxWidth: 'calc(100vw - 32px)', boxSizing: 'border-box' }}>
-          <Icon name="lock" size={24} color="#8ab4f8" />
+          <Icon name="lock" size={24} color="var(--teal)" />
           <div style={{ fontSize: 15, fontWeight: 700, color: '#f9fafb', marginTop: 12 }}>This meeting is password-protected</div>
           <div style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 4, marginBottom: 16 }}>Enter the password the host shared with you.</div>
           <input
@@ -179,7 +179,7 @@ export function MeetingSession({ meetingId, onExit }: { meetingId: string; onExi
             onChange={e => setPasswordInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && doJoin(pendingOpts, passwordInput)}
             placeholder="Meeting password"
-            style={{ width: '100%', height: 40, borderRadius: 8, border: '1px solid #374151', background: '#1f2937', color: '#f9fafb', fontSize: 13, padding: '0 12px', outline: 'none', boxSizing: 'border-box' }}
+            style={{ width: '100%', height: 40, borderRadius: 'var(--r)', border: '1px solid #374151', background: '#1f2937', color: '#f9fafb', fontSize: 13, padding: '0 12px', outline: 'none', boxSizing: 'border-box' }}
           />
           {passwordError && <div style={{ fontSize: 12, color: '#fca5a5', marginTop: 8 }}>{passwordError}</div>}
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>

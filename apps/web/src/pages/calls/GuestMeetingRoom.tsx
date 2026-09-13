@@ -275,11 +275,11 @@ export function GuestMeetingRoom({
         </Button>
       </div>
 
-      {error && <div style={{ margin: '0 16px 8px', padding: '8px 12px', background: '#7f1d1d', color: '#fecaca', fontSize: 12.5, borderRadius: 8 }}>{error}</div>}
+      {error && <div style={{ margin: '0 16px 8px', padding: '8px 12px', background: '#7f1d1d', color: '#fecaca', fontSize: 12.5, borderRadius: 'var(--r)'}}>{error}</div>}
 
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 10, padding: '0 16px 16px', overflow: 'auto' }}>
         {tiles.map(t => (
-          <div key={t.id} style={{ position: 'relative', background: '#1f2937', borderRadius: 12, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 160 }}>
+          <div key={t.id} style={{ position: 'relative', background: '#1f2937', borderRadius: 'var(--r)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 160 }}>
             {t.isLocal ? (
               !camOff ? <video ref={t.stream as React.RefObject<HTMLVideoElement>} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} /> : <PersonAvatar name={t.name} size={56} />
             ) : (
@@ -287,7 +287,7 @@ export function GuestMeetingRoom({
                 <video autoPlay playsInline ref={el => { if (el && t.stream) (el as any).srcObject = t.stream; }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : <PersonAvatar name={t.name} size={56} />
             )}
-            <div style={{ position: 'absolute', bottom: 8, left: 8, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.55)', padding: '3px 8px', borderRadius: 6, fontSize: 11.5, color: '#fff' }}>
+            <div style={{ position: 'absolute', bottom: 8, left: 8, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.55)', padding: '3px 8px', borderRadius: 'var(--r-sm)', fontSize: 11.5, color: '#fff' }}>
               {t.muted && <Icon name="micOff" size={11} />}
               {t.name}
             </div>
@@ -321,7 +321,7 @@ export function GuestMeetingRoom({
             <input
               value={chatDraft} onChange={e => setChatDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()}
               placeholder={chatDisabled ? 'Chat is disabled by the host' : 'Send a message'} disabled={chatDisabled}
-              style={{ flex: 1, height: 34, borderRadius: 8, border: '1px solid #374151', background: '#111827', color: '#f9fafb', fontSize: 12.5, padding: '0 10px', outline: 'none' }}
+              style={{ flex: 1, height: 34, borderRadius: 'var(--r)', border: '1px solid #374151', background: '#111827', color: '#f9fafb', fontSize: 12.5, padding: '0 10px', outline: 'none' }}
             />
           </div>
         </div>
@@ -352,7 +352,7 @@ function Popover2({ onEmoji }: { onEmoji: (e: string) => void }) {
         <Icon name="smile" size={20} />
       </button>
       {open && (
-        <div style={{ position: 'absolute', bottom: 58, left: '50%', transform: 'translateX(-50%)', background: '#1f2937', border: '1px solid #374151', borderRadius: 12, padding: 8, display: 'flex', gap: 4 }}>
+        <div style={{ position: 'absolute', bottom: 58, left: '50%', transform: 'translateX(-50%)', background: '#1f2937', border: '1px solid #374151', borderRadius: 'var(--r)', padding: 8, display: 'flex', gap: 4 }}>
           {EMOJI.map(e => (
             <button key={e} onClick={() => { onEmoji(e); setOpen(false); }} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', padding: 4 }}>{e}</button>
           ))}

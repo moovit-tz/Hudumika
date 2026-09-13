@@ -252,14 +252,14 @@ ${pen.noDiFine > 0        ? `<tr><td>No DI Permit Fine</td><td class="red">TZS $
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function ToolCard({ title, desc, tags, color, icon, onRun, children }: {
+function ToolCard({ title, desc, tags, color, bg, icon, onRun, children }: {
   title: string; desc: string; tags: string[];
-  color: string; icon: IconName; onRun: () => void;
+  color: string; bg: string; icon: IconName; onRun: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid var(--border)', background: color + '0a' }}>
+    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid var(--border)', background: bg }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
           <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Icon name={icon} size={17} color="#fff" />
@@ -270,7 +270,7 @@ function ToolCard({ title, desc, tags, color, icon, onRun, children }: {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-          {tags.map(t => <span key={t} style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 10, background: color + '18', color }}>{t}</span>)}
+          {tags.map(t => <span key={t} style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 'var(--r)', background: bg, color }}>{t}</span>)}
         </div>
       </div>
       <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
@@ -293,7 +293,7 @@ function TF({ label, hint, full, children }: { label: string; hint?: string; ful
   return (
     <div style={full ? { gridColumn: '1 / -1' } : undefined}>
       <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>
-        {label}{hint && <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 6, color: 'var(--ink4)', fontSize: 10.5 }}>— {hint}</span>}
+        {label}{hint && <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 6, color: 'var(--ink3)', fontSize: 10.5 }}>— {hint}</span>}
       </label>
       {children}
     </div>
@@ -318,9 +318,9 @@ function RRow({ label, value, hi, red }: { label: string; value: string; hi?: bo
   );
 }
 
-function ResultBox({ color, children }: { color: string; children: React.ReactNode }) {
+function ResultBox({ border, children }: { border: string; children: React.ReactNode }) {
   return (
-    <div style={{ padding: 16, background: 'var(--bg)', borderRadius: 10, border: `1px solid ${color}25`, marginTop: 4 }}>
+    <div style={{ padding: 16, background: 'var(--bg)', borderRadius: 'var(--r)', border: `1px solid ${border}`, marginTop: 4 }}>
       {children}
     </div>
   );
@@ -471,7 +471,7 @@ export const ShipmentTools: React.FC = () => {
           title="Landed Cost Calculator"
           desc="Compute duty, VAT 18%, RDL 2%, CPF 1%, ICD & wharfage"
           tags={['Import Duty', 'VAT 18%', 'ICD Charges', 'Wharfage']}
-          color="var(--teal)" icon="package"
+          color="var(--teal)" bg="var(--teal-l)" icon="package"
           onRun={runLanded}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -502,7 +502,7 @@ export const ShipmentTools: React.FC = () => {
           </div>
 
           {lcResult && (
-            <ResultBox color="var(--teal)">
+            <ResultBox border="var(--teal-m)">
               <RRow label={`CIF in TZS (@${USD_TO_TZS.toLocaleString()})`} value={`TZS ${fmt(lcResult.cifTzs)}`} />
               <RRow label={`Import Duty (${lcResult.dutyRate}% EAC CET)`} value={`TZS ${fmt(lcResult.duty)}`} />
               <RRow label="VAT 18% (on CIF + Duty)" value={`TZS ${fmt(lcResult.vat)}`} />
@@ -521,7 +521,7 @@ export const ShipmentTools: React.FC = () => {
           title="Compliance Checker"
           desc="Check PVoC/COC, DI Inspection, CAMARTEC & GCLA requirements"
           tags={['PVoC / COC', 'DI Permit', 'CAMARTEC', 'GCLA']}
-          color="#7c3aed" icon="shield"
+          color="var(--purple)" bg="var(--purple-l)" icon="shield"
           onRun={runCompliance}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -536,7 +536,7 @@ export const ShipmentTools: React.FC = () => {
           </div>
 
           {ccResult && (
-            <ResultBox color="#7c3aed">
+            <ResultBox border="var(--purple)">
               {(
                 [
                   { label: 'PVoC / COC',        r: ccResult.pvoc     },
@@ -553,7 +553,7 @@ export const ShipmentTools: React.FC = () => {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{label}</span>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: r.required ? 'var(--red-l)' : 'var(--green-l)', color: r.required ? 'var(--red)' : 'var(--green)' }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r)', background: r.required ? 'var(--red-l)' : 'var(--green-l)', color: r.required ? 'var(--red)' : 'var(--green)' }}>
                         {r.required ? 'REQUIRED' : 'NOT REQUIRED'}
                       </span>
                     </div>
@@ -570,7 +570,7 @@ export const ShipmentTools: React.FC = () => {
           title="Penalty Estimator"
           desc="Estimate customs penalties under Tanzania CEMA CAP 403"
           tags={['Under-declaration', 'Late Payment', 'Mis-classification']}
-          color="#dc2626" icon="alertCircle"
+          color="var(--red)" bg="var(--red-l)" icon="alertCircle"
           onRun={runPenalty}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -609,17 +609,17 @@ export const ShipmentTools: React.FC = () => {
           </div>
 
           {pResult && (
-            <ResultBox color="#dc2626">
+            <ResultBox border="var(--red)">
               {pResult.underDeclaration > 0 && <RRow label="Under-declaration / Mis-classification" value={`TZS ${fmt(pResult.underDeclaration)}`} red />}
               {pResult.lateInterest > 0     && <RRow label="Late Payment Interest" value={`TZS ${fmt(pResult.lateInterest)}`} red />}
               {pResult.noPvocFine > 0       && <RRow label="No PVoC/COC Fine" value={`TZS ${fmt(pResult.noPvocFine)}`} red />}
               {pResult.noDiFine > 0         && <RRow label="No DI Permit Fine" value={`TZS ${fmt(pResult.noDiFine)}`} red />}
               <RRow label="Total Estimated Penalty" value={`TZS ${fmt(pResult.total)}`} hi red />
               {pResult.basis.length > 0 && (
-                <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, border: '1px solid #fecaca', background: '#fef2f208' }}>
+                <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid var(--red)', background: 'var(--red-l)' }}>
                   <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>Legal Basis</div>
                   {pResult.basis.map((b, i) => (
-                    <div key={i} style={{ fontSize: 11.5, color: 'var(--ink2)', paddingLeft: 10, borderLeft: '2px solid #fecaca', marginBottom: 5, lineHeight: 1.5 }}>{b}</div>
+                    <div key={i} style={{ fontSize: 11.5, color: 'var(--ink2)', paddingLeft: 10, borderLeft: '2px solid var(--red)', marginBottom: 5, lineHeight: 1.5 }}>{b}</div>
                   ))}
                 </div>
               )}

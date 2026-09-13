@@ -66,7 +66,7 @@ export function PettiGateways() {
         {loading ? (
           <SectionLoading />
         ) : status.configured ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 18px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 18px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
             <FeaturedIcon variant={status.chargeSupported ? 'success' : 'warning'} size="lg"><Icon name="creditCard" size={22} /></FeaturedIcon>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -82,7 +82,7 @@ export function PettiGateways() {
             </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 18px', background: 'var(--bg)', border: '1px dashed var(--border2)', borderRadius: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 18px', background: 'var(--bg)', border: '1px dashed var(--border2)', borderRadius: 'var(--r)' }}>
             <FeaturedIcon variant="gray" size="lg"><Icon name="creditCard" size={22} /></FeaturedIcon>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>No payment gateway connected</div>

@@ -44,7 +44,7 @@ export function BrowserToolbar(props: {
 
   if (selectedCount > 0) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 20px', background: 'rgba(13, 148, 136, 0.12)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 20px', background: 'var(--teal-l)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <button onClick={onClearSelection} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--teal)', display: 'flex' }} aria-label="Clear selection"><Icon name="x" size={18} color="var(--teal)" /></button>
         <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--teal)' }}>{selectedCount} selected</span>
         <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
@@ -143,7 +143,7 @@ export function BrowserToolbar(props: {
             </SelectContent>
           </Select>
 
-          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
+          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', flexShrink: 0 }}>
             {(['grid', 'list'] as const).map(m => (
               <button
                 key={m} onClick={() => setViewMode(m)} title={m === 'grid' ? 'Grid view' : 'List view'}

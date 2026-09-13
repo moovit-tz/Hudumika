@@ -85,7 +85,7 @@ export const CustomerOverview: React.FC = () => {
 
   const cardStyle: React.CSSProperties = {
     background: 'var(--card-bg, var(--white))',
-    borderRadius: 12,
+    borderRadius: 'var(--r)',
     border: '1px solid var(--border)',
     padding: '16px 18px',
     boxShadow: 'var(--elev-sm)',
@@ -148,14 +148,14 @@ export const CustomerOverview: React.FC = () => {
             { label: 'At-Risk Shipments',     value: `${data.status_cards.at_risk_shipments} of ${data.status_cards.active_shipment_count}`, pct: data.status_cards.active_shipment_count > 0 ? Math.round((data.status_cards.at_risk_shipments / data.status_cards.active_shipment_count) * 100) : 0, color: 'var(--red)', icon: 'alertTriangle' as IconName },
             { label: 'Freight Revenue (MTD)', value: fmtM(data.status_cards.freight_revenue_mtd_tzs), pct: 100,                                        color: 'var(--purple)', icon: 'barChart2'    as IconName },
           ]).map(s => (
-            <div key={s.label} style={{ background: 'var(--card-bg, var(--white))', borderRadius: 12, border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--elev-sm)' }}>
+            <div key={s.label} style={{ background: 'var(--card-bg, var(--white))', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--elev-sm)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
                 <Icon name={s.icon} size={13} color={s.color} />
                 <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{s.label}</span>
               </div>
               <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', marginBottom: 10 }}>{s.value}</div>
-              <div style={{ height: 5, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min(100, s.pct)}%`, borderRadius: 3, background: s.color, transition: 'width 0.6s ease' }} />
+              <div style={{ height: 5, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.min(100, s.pct)}%`, borderRadius: 'var(--r-sm)', background: s.color, transition: 'width 0.6s ease' }} />
               </div>
             </div>
           ))}
@@ -173,8 +173,8 @@ export const CustomerOverview: React.FC = () => {
                   <div key={s.label} style={{ padding: '11px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
                     <span style={{ flex: 1, fontSize: 12.5, color: 'var(--ink2)', fontWeight: 500 }}>{s.label}</span>
-                    <div style={{ width: 90, height: 4, borderRadius: 2, background: 'var(--bg)', overflow: 'hidden', flexShrink: 0 }}>
-                      <div style={{ height: '100%', width: `${s.pct}%`, background: s.color, borderRadius: 2, transition: 'width 0.6s ease' }} />
+                    <div style={{ width: 90, height: 4, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden', flexShrink: 0 }}>
+                      <div style={{ height: '100%', width: `${s.pct}%`, background: s.color, borderRadius: 'var(--r-sm)', transition: 'width 0.6s ease' }} />
                     </div>
                     <span style={{ width: 28, textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--ink)', flexShrink: 0 }}>{s.count}</span>
                     <Badge variant={s.variant} style={{ fontSize: 10, padding: '1px 5px', flexShrink: 0 }}>{s.pct}%</Badge>
@@ -195,7 +195,7 @@ export const CustomerOverview: React.FC = () => {
                     borderBottom: i < data.top_customers.length - 1 ? '1px solid var(--border)' : 'none',
                   }}>
                     <div style={{
-                      width: 28, height: 28, borderRadius: 8, background: 'var(--teal-l)',
+                      width: 28, height: 28, borderRadius: 'var(--r-sm)', background: 'var(--teal-l)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 11, fontWeight: 800, color: 'var(--teal)', flexShrink: 0,
                     }}>{i + 1}</div>
@@ -227,8 +227,8 @@ export const CustomerOverview: React.FC = () => {
                       <span style={{ fontSize: 12.5, color: 'var(--ink2)', fontWeight: 500 }}>{r.label}</span>
                       <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{cur} {r.amount.toLocaleString()}</span>
                     </div>
-                    <div style={{ height: 4, borderRadius: 2, background: 'var(--bg)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${Math.min(100, r.pct)}%`, background: r.color, borderRadius: 2, transition: 'width 0.6s ease' }} />
+                    <div style={{ height: 4, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${Math.min(100, r.pct)}%`, background: r.color, borderRadius: 'var(--r-sm)', transition: 'width 0.6s ease' }} />
                     </div>
                   </div>
                 ))}
@@ -254,7 +254,7 @@ export const CustomerOverview: React.FC = () => {
                     to={a.path}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '10px 12px', borderRadius: 8,
+                      padding: '10px 12px', borderRadius: 'var(--r-sm)',
                       border: '1px solid var(--border)', background: 'var(--bg)',
                       color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600,
                       textDecoration: 'none', transition: 'background 0.12s, color 0.12s, border-color 0.12s',

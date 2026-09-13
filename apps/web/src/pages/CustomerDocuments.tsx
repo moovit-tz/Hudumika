@@ -7,6 +7,8 @@ import type { IconName } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
 
 /* ── File type → icon/colour — same mapping as the staff-side Customers.tsx
    Documents tab, kept as its own small copy rather than a shared import
@@ -117,16 +119,15 @@ export const CustomerDocuments: React.FC = () => {
       <div style={{ padding: '20px 16px 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div>
-            <h2 style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>Documents</h2>
+            <PageHeader crumbs={['Workspace', 'Documents']} titlePlain="Your" titleEm="documents" />
             <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--ink3)' }}>
               {loading ? 'Loading…' : `${files.length} file${files.length !== 1 ? 's' : ''}`}
             </p>
           </div>
-          <button type="button" disabled={uploading} onClick={() => fileInputRef.current?.click()}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: uploading ? 'var(--ink3)' : 'hsl(var(--primary))', color: uploading ? '#fff' : 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: uploading ? 'default' : 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+          <Button type="button" disabled={uploading} onClick={() => fileInputRef.current?.click()} style={{ flexShrink: 0 }}>
             <Icon name="upload" size={14} strokeWidth={2} />
             {uploading ? 'Uploading…' : 'Upload'}
-          </button>
+          </Button>
           <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }}
             onChange={e => { const fl = Array.from(e.target.files || []); e.target.value = ''; handleUpload(fl); }} />
         </div>
@@ -143,9 +144,9 @@ export const CustomerDocuments: React.FC = () => {
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your documents</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
-            <button type="button" onClick={load} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+            <Button type="button" onClick={load}>
               Retry
-            </button>
+            </Button>
           </div>
         ) : files.length === 0 ? (
           <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
@@ -174,17 +175,17 @@ export const CustomerDocuments: React.FC = () => {
                 )}
                 {linkedOrg && (
                   <button type="button" title="Share" aria-label="Share" onClick={() => setShareFile(f)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: isSharedWithOrg(f) ? 'var(--teal-l)' : 'var(--bg)', border: 'none', borderRadius: 8, color: isSharedWithOrg(f) ? 'var(--teal)' : 'var(--ink3)', cursor: 'pointer', flexShrink: 0 }}>
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: isSharedWithOrg(f) ? 'var(--teal-l)' : 'var(--bg)', border: 'none', borderRadius: 'var(--r-sm)', color: isSharedWithOrg(f) ? 'var(--teal)' : 'var(--ink3)', cursor: 'pointer', flexShrink: 0 }}>
                     <Icon name="userPlus" size={15} />
                   </button>
                 )}
                 <button type="button" title="Download" aria-label="Download"
                   onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name).catch((err: any) => showAlert(err.message || 'Download failed'))}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 8, color: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 'var(--r-sm)', color: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }}>
                   <Icon name="download" size={15} />
                 </button>
                 <button type="button" title="Remove" aria-label="Remove" onClick={() => handleDelete(f)}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 8, color: 'var(--ink3)', cursor: 'pointer', flexShrink: 0 }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 'var(--r-sm)', color: 'var(--ink3)', cursor: 'pointer', flexShrink: 0 }}>
                   <Icon name="x" size={15} />
                 </button>
               </div>

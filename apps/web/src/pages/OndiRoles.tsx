@@ -256,13 +256,13 @@ export const OndiRoles: React.FC = () => {
                 </SelectContent>
               </Select>
               <button type="button" onClick={submitAccessRequest} disabled={!requestRoleId || requesting}
-                style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: (!requestRoleId || requesting) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+                style={{ padding: '8px 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: (!requestRoleId || requesting) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px var(--teal-m)' }}>
                 {requesting ? 'Sending…' : 'Request'}
               </button>
             </div>
             <input value={requestReason} onChange={e => setRequestReason(e.target.value)} placeholder="Why do you need this access? (optional)" style={inputStyle} />
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer', background: 'var(--bg)', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-soft)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer', background: 'var(--bg)', padding: '10px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
               <Checkbox checked={breakGlass} onCheckedChange={() => setBreakGlass(v => !v)} />
               <span><strong>Break-glass (emergency)</strong> — requires 2 admin approvals &amp; auto-expires</span>
             </label>
@@ -282,10 +282,10 @@ export const OndiRoles: React.FC = () => {
             )}
 
             {myRequests.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border-soft)', paddingTop: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>My Recent Requests</div>
                 {myRequests.map(r => (
-                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, background: 'var(--bg)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border-soft)' }}>
+                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, background: 'var(--bg)', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                     <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.role_name}</span>
                     {r.break_glass && (
                       <span className="ondi-status-pill error" style={{ fontSize: 10 }}>
@@ -325,7 +325,7 @@ export const OndiRoles: React.FC = () => {
                 </div>
               </div>
               <button type="submit" disabled={!newRoleName.trim() || creating}
-                style={{ width: '100%', padding: '10px', borderRadius: 8, border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: (!newRoleName.trim() || creating) ? 0.6 : 1 }}>
+                style={{ width: '100%', padding: '10px', borderRadius: 'var(--r)', border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: (!newRoleName.trim() || creating) ? 0.6 : 1 }}>
                 {creating ? 'Creating…' : 'Create Role'}
               </button>
             </form>
@@ -340,7 +340,7 @@ export const OndiRoles: React.FC = () => {
             {queue?.length === 0 && <div style={{ padding: '36px 20px', fontSize: 13, color: 'var(--ink3)', textAlign: 'center' }}>No pending approval requests.</div>}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {queue?.map((r, i) => (
-                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderTop: i > 0 ? '1px solid var(--border-soft)' : 'none' }}>
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
                   <PersonAvatar userId={r.user_id} name={r.user_name} size={36} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -355,11 +355,11 @@ export const OndiRoles: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button type="button" onClick={() => decide(r.id, false)}
-                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 6, padding: '6px 14px', border: '1px solid #fecaca', background: 'var(--red-l)', color: 'var(--red)', cursor: 'pointer' }}>
+                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 'var(--r-sm)', padding: '6px 14px', border: '1px solid var(--red)', background: 'var(--red-l)', color: 'var(--red)', cursor: 'pointer' }}>
                       Deny
                     </button>
                     <button type="button" onClick={() => decide(r.id, true)} disabled={r.my_decision === 'approve'}
-                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 6, padding: '6px 14px', border: 'none', background: 'var(--green-l)', color: 'var(--green)', cursor: r.my_decision === 'approve' ? 'default' : 'pointer', opacity: r.my_decision === 'approve' ? 0.5 : 1 }}>
+                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 'var(--r-sm)', padding: '6px 14px', border: 'none', background: 'var(--green-l)', color: 'var(--green)', cursor: r.my_decision === 'approve' ? 'default' : 'pointer', opacity: r.my_decision === 'approve' ? 0.5 : 1 }}>
                       {r.my_decision === 'approve' ? 'Approved' : 'Approve'}
                     </button>
                   </div>
@@ -402,7 +402,7 @@ export const OndiRoles: React.FC = () => {
                 </div>
 
                 {/* Members list */}
-                <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Members ({r.members.length})</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 130, overflowY: 'auto' }}>
                     {r.members.map(m => {
@@ -428,7 +428,7 @@ export const OndiRoles: React.FC = () => {
                 </div>
 
                 {/* Add member select box */}
-                <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 12, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <Select value={pendingExpiry[r.id] || '__never__'} onValueChange={v => setPendingExpiry(prev => ({ ...prev, [r.id]: v === '__never__' ? '' : v }))}>
                     <SelectTrigger style={{ width: '100%', height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
                     <SelectContent>

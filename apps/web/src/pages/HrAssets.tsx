@@ -33,7 +33,7 @@ interface Asset {
 interface EmploymentOption { employment_id: string; first_name: string; last_name: string }
 
 const card: React.CSSProperties = {
-  border: '1px solid var(--border)', borderRadius: 12,
+  border: '1px solid var(--border)', borderRadius: 'var(--r)',
   background: 'var(--card-bg, var(--white))', overflow: 'hidden',
 };
 const label: React.CSSProperties = {
@@ -99,7 +99,7 @@ export function HrAssets() {
       />
 
       {error && (
-        <div style={{ padding: '10px 13px', borderRadius: 10, background: 'var(--red-l)',
+        <div style={{ padding: '10px 13px', borderRadius: 'var(--r)', background: 'var(--red-l)',
                       color: 'var(--red)', fontSize: 12.5, marginBottom: 14 }}>{error}</div>
       )}
 

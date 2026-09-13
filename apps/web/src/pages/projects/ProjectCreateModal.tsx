@@ -124,7 +124,7 @@ export const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
       <div
         style={{
           background: 'var(--white)',
-          borderRadius: 16,
+          borderRadius: 'var(--r-lg)',
           width: '100%',
           maxWidth: 780,
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
@@ -178,7 +178,7 @@ export const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
                     onClick={() => setFormData({ ...formData, industry: ind.id })}
                     style={{
                       border: `2px solid ${isSelected ? 'var(--teal)' : 'var(--border)'}`,
-                      borderRadius: 10,
+                      borderRadius: 'var(--r)',
                       padding: '10px 12px',
                       cursor: 'pointer',
                       background: isSelected ? 'var(--teal-l)' : 'var(--white)',
@@ -228,7 +228,7 @@ export const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
                   type="color"
                   value={formData.color}
                   onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  style={{ width: 38, height: 38, border: 'none', borderRadius: 6, cursor: 'pointer', background: 'none' }}
+                  style={{ width: 38, height: 38, border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer', background: 'none' }}
                 />
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)' }}>{formData.color}</span>
               </div>

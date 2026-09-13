@@ -21,7 +21,7 @@ export const CustomerGroup: React.FC<CustomerGroupProps> = ({ group, shipmentHre
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: 0,
           padding: '10px 16px',
           background: 'var(--bg)',
           cursor: 'pointer',
@@ -44,10 +44,12 @@ export const CustomerGroup: React.FC<CustomerGroupProps> = ({ group, shipmentHre
 
         {/* Customer Avatar — the real CRM logo when the company has one, else
             the derived initials on the brand colour. */}
-        <CompanyAvatar name={group.customer.name} logoUrl={group.customer.logo_url} size={34} shape="circle" />
+        <div className="ch-avatar-cell">
+          <CompanyAvatar name={group.customer.name} logoUrl={group.customer.logo_url} size={34} shape="circle" />
+        </div>
 
         {/* Customer name → CRM profile, with the CRM category/location under it. */}
-        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div className="ch-customer-cell" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <Link
             to={`/crm/customers?id=${group.customer.id}`}
             onClick={(e) => e.stopPropagation()}
@@ -67,21 +69,14 @@ export const CustomerGroup: React.FC<CustomerGroupProps> = ({ group, shipmentHre
         </div>
 
         {/* Risk Indicators */}
-        <div className="ch-tags">
-          {group.urgent_count > 0 && (
-            <span className="ch-tag ct-red" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <Icon name="alertCircle" size={11} /> {group.urgent_count} Demurrage Risk
-            </span>
-          )}
-          {group.action_count > 0 && (
-            <span className="ch-tag ct-amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <Icon name="alertTriangle" size={11} /> {group.action_count} Action Needed
-            </span>
-          )}
-          <span className="ch-tag ct-def" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <Icon name="package" size={11} /> {group.shipment_count} Active
-          </span>
+        <div className="ch-meta-cell">{[group.customer.category, group.customer.city].filter(Boolean).join(' / ') || '—'}</div>
+        <div className="ch-summary-cell ch-risk-cell">
+          {group.urgent_count > 0 ? <span className="ch-tag ct-red"><Icon name="alertCircle" size={11} /> {group.urgent_count} at risk</span> : <span className="ch-empty">None</span>}
         </div>
+        <div className="ch-summary-cell ch-action-cell">
+          {group.action_count > 0 ? <span className="ch-tag ct-amber"><Icon name="alertTriangle" size={11} /> {group.action_count} required</span> : <span className="ch-empty">None</span>}
+        </div>
+        <div className="ch-summary-cell ch-active-cell"><span className="ch-tag ct-def"><Icon name="package" size={11} /> {group.shipment_count} active</span></div>
       </div>
 
       {isOpen && (

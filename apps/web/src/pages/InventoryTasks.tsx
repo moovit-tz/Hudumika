@@ -165,7 +165,7 @@ export function InventoryTasks() {
                   {colTasks.length === 0 ? (
                     <div style={{ fontSize: 12, color: 'var(--ink3)', padding: '8px 4px' }}>Nothing here.</div>
                   ) : colTasks.map(t => (
-                    <div key={t.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 12, background: 'var(--bg)' }}>
+                    <div key={t.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 12, background: 'var(--bg)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                         <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{t.title}</div>
                         <Badge variant={PRIORITY_VARIANT[t.priority]}>{t.priority}</Badge>

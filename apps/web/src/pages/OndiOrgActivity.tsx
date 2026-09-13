@@ -131,14 +131,14 @@ export const OndiOrgActivity: React.FC = () => {
               background: 'var(--teal)',
               color: '#fff',
               border: 'none',
-              borderRadius: 'var(--r-md, 12px)',
+              borderRadius: 'var(--r)',
               padding: '10px 18px',
               fontFamily: 'var(--font)',
               fontWeight: 700,
               fontSize: 13,
               cursor: 'pointer',
               opacity: exporting ? 0.6 : 1,
-              boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)'
+              boxShadow: '0 2px 8px var(--teal-m)'
             }}
           >
             <Icon name="download" size={15} /> {exporting ? 'Exporting…' : 'Export CSV'}
@@ -151,7 +151,7 @@ export const OndiOrgActivity: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Total Audit Events</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#ecfeff', color: 'var(--teal)' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--teal-l)', color: 'var(--teal)' }}>
               <Icon name="activity" size={18} />
             </div>
           </div>
@@ -164,12 +164,12 @@ export const OndiOrgActivity: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Authentication Events</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#eff6ff', color: '#1e40af' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--blue-l)', color: 'var(--blue)' }}>
               <Icon name="logIn" size={18} />
             </div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#1e40af' }}>{authEventCount}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--blue)' }}>{authEventCount}</span>
             <span className="ondi-kpi-sub">sign-ins &amp; OTPs</span>
           </div>
         </div>
@@ -226,7 +226,7 @@ export const OndiOrgActivity: React.FC = () => {
               className={`ondi-tab-btn ${categoryTab === 'security' ? 'active' : ''}`}
               onClick={() => setCategoryTab('security')}
             >
-              Security Warnings <span className="ondi-tab-badge" style={{ background: 'rgba(220,38,38,0.12)', color: 'var(--red)' }}>{failedCount}</span>
+              Security Warnings <span className="ondi-tab-badge" style={{ background: 'var(--red-l)', color: 'var(--red)' }}>{failedCount}</span>
             </button>
           </div>
 
@@ -249,7 +249,7 @@ export const OndiOrgActivity: React.FC = () => {
         )}
 
         {err && (
-          <div style={{ padding: 24, fontSize: 13, color: 'var(--red)', background: 'var(--red-l)', borderBottom: '1px solid #fee2e2' }}>
+          <div style={{ padding: 24, fontSize: 13, color: 'var(--red)', background: 'var(--red-l)', borderBottom: '1px solid var(--red)' }}>
             {err}
           </div>
         )}
@@ -304,7 +304,7 @@ export const OndiOrgActivity: React.FC = () => {
 
                     <td>
                       {e.ip ? (
-                        <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink2)', background: 'var(--bg)', padding: '2px 7px', borderRadius: 4, border: '1px solid var(--border-soft)' }}>
+                        <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink2)', background: 'var(--bg)', padding: '2px 7px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                           {e.ip}
                         </code>
                       ) : (

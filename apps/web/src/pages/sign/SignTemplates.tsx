@@ -68,7 +68,7 @@ function BulkSendModal({ template, onClose }: { template: SignTemplate; onClose:
               onChange={e => setRaw(e.target.value)}
               placeholder={'Jane Mwangi, jane@example.com\nJuma Hassan, juma@example.com, 0712345678'}
               rows={8}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontFamily: 'monospace', resize: 'vertical', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontFamily: 'monospace', resize: 'vertical', boxSizing: 'border-box' }}
             />
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 6 }}>
               {validRows.length} of {rows.length} line(s) recognized
@@ -88,7 +88,7 @@ function BulkSendModal({ template, onClose }: { template: SignTemplate; onClose:
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
               {results.map((r, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 7, background: r.ok ? 'var(--sign-green-l)' : 'var(--sign-red-l)', fontSize: 12.5 }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 'var(--r)', background: r.ok ? 'var(--sign-green-l)' : 'var(--sign-red-l)', fontSize: 12.5 }}>
                   <Icon name={r.ok ? 'checkCircle' : 'xCircle'} size={13} style={{ color: r.ok ? 'var(--sign-green)' : 'var(--sign-red)', flexShrink: 0 }} />
                   <span style={{ color: 'var(--ink)' }}>{r.email}</span>
                   {!r.ok && <span style={{ marginLeft: 'auto', color: 'var(--sign-red)' }}>{r.error}</span>}
@@ -191,7 +191,7 @@ export function SignTemplates() {
         {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} style={{ height: 140, borderRadius: 12, background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
+              <div key={i} style={{ height: 140, borderRadius: 'var(--r)', background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
             ))}
           </div>
         ) : templates.length === 0 ? (
@@ -212,13 +212,13 @@ export function SignTemplates() {
             {templates.map(t => (
               <div key={t.id} className="sign-envelope-card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 10, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="layers" size={18} /></div>
+                  <div style={{ width: 42, height: 42, borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="layers" size={18} /></div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
                     {t.description && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.description}</div>}
                   </div>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', display: 'flex', gap: 14, background: 'var(--bg)', padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', display: 'flex', gap: 14, background: 'var(--bg)', padding: '6px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Icon name="user" size={11} /> {(t.recipients as unknown[]).length ?? 0} recipient(s)</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Icon name="fileText" size={11} /> {(t.fields as unknown[]).length ?? 0} field(s)</span>
                 </div>

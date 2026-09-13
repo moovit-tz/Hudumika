@@ -84,7 +84,7 @@ interface ExpiryRadarData {
 
 const cardStyle: React.CSSProperties = {
   border: '1px solid var(--border)',
-  borderRadius: 12,
+  borderRadius: 'var(--r)',
   background: 'var(--card-bg, var(--white))',
   overflow: 'hidden',
 };
@@ -474,7 +474,7 @@ export function HrDocuments() {
                           )}
                         </td>
                         <td style={{ padding: '11px 14px' }}>
-                          <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 6 }}>
+                          <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 'var(--r-sm)' }}>
                             {d.category || 'GENERAL'}
                           </span>
                         </td>
@@ -490,7 +490,7 @@ export function HrDocuments() {
                               style={{
                                 background: 'var(--gold-l)',
                                 color: 'var(--gold)',
-                                border: '1px solid var(--gold-m)',
+                                border: '1px solid var(--gold)',
                                 padding: '3px 10px',
                                 borderRadius: 12,
                                 fontSize: 11.5,
@@ -685,7 +685,7 @@ export function HrDocuments() {
               </div>
 
               {/* Form Inputs for Dynamic Tokens */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: 'var(--bg)', padding: 14, borderRadius: 8, border: '1px solid var(--border)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: 'var(--bg)', padding: 14, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4, color: 'var(--ink)' }}>Target Employee</label>
                   <Combobox
@@ -724,10 +724,10 @@ export function HrDocuments() {
                   style={{
                     background: '#fff',
                     border: '1px solid var(--border)',
-                    borderRadius: 8,
+                    borderRadius: 'var(--r)',
                     padding: 24,
                     minHeight: 280,
-                    boxShadow: 'var(--elev-md)',
+                    boxShadow: 'var(--elev)',
                     marginTop: 8,
                   }}
                   dangerouslySetInnerHTML={{ __html: genHtmlPreview }}
@@ -872,7 +872,7 @@ export function HrDocuments() {
                   onChange={e => setReviewNotes(e.target.value)}
                   placeholder="e.g. Document verified against National Identification database."
                   rows={3}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12.5, outline: 'none' }}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 12.5, outline: 'none' }}
                 />
               </div>
 

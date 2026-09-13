@@ -738,6 +738,6 @@
 
 .sfc-case-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--elev-md);
+  box-shadow: var(--elev);
   border-color: var(--teal);
 }

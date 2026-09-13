@@ -6,6 +6,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
 
 /* ── SVG brand marks (vector, no 3D) ─────────────────────────────── */
 const XeroLogo = () => (
@@ -189,8 +190,8 @@ export function AccountingIntegrations() {
           {(['connected', 'marketplace'] as TabId[]).map(tab => (
             <TabsTrigger key={tab} value={tab}>
               {tab === 'connected' ? 'Connected Platforms' : 'Marketplace'}
-              {tab === 'connected' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 8, background: 'var(--teal-l)', color: 'var(--teal)' }}>{integrations.filter(i => i.status === 'CONNECTED').length}</span>}
-              {tab === 'marketplace' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 8, background: 'var(--bg)', color: 'var(--ink3)' }}>{MARKETPLACE.length}</span>}
+              {tab === 'connected' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', background: 'var(--teal-l)', color: 'var(--teal)' }}>{integrations.filter(i => i.status === 'CONNECTED').length}</span>}
+              {tab === 'marketplace' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', background: 'var(--bg)', color: 'var(--ink3)' }}>{MARKETPLACE.length}</span>}
             </TabsTrigger>
           ))}
           </TabsList>
@@ -210,7 +211,7 @@ export function AccountingIntegrations() {
                 const isError = p.status === 'ERROR';
                 const { Logo } = brand;
                 return (
-                  <div key={p.provider} style={{ border: `1.5px solid ${isConnected ? brand.color + '4d' : 'var(--border)'}`, borderRadius: 12, background: 'var(--white)', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: isConnected ? `0 2px 12px ${brand.color}18` : 'none' }}>
+                  <div key={p.provider} style={{ border: `1.5px solid ${isConnected ? brand.color + '4d' : 'var(--border)'}`, borderRadius: 'var(--r)', background: 'var(--white)', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: isConnected ? `0 2px 12px ${brand.color}18` : 'none' }}>
                     <div style={{ padding: 18, display: 'flex', gap: 14, alignItems: 'flex-start', flex: 1 }}>
                       <div style={{ flexShrink: 0 }}><Logo /></div>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -239,20 +240,20 @@ export function AccountingIntegrations() {
                     <div style={{ padding: '12px 18px', background: 'var(--bg)', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                       {isConnected ? (
                         <>
-                          <button type="button" className="btn btn-secondary btn-sm" disabled={testingProvider === p.provider} onClick={() => handleTestConnection(p.provider)}>
+                          <Button type="button" variant="outline" size="sm" disabled={testingProvider === p.provider} onClick={() => handleTestConnection(p.provider)}>
                             {testingProvider === p.provider ? 'Testing…' : 'Test'}
-                          </button>
-                          <button type="button" className="btn btn-secondary btn-sm" disabled={syncingProvider === p.provider} onClick={() => handleSyncNow(p.provider)}>
+                          </Button>
+                          <Button type="button" variant="outline" size="sm" disabled={syncingProvider === p.provider} onClick={() => handleSyncNow(p.provider)}>
                             {syncingProvider === p.provider ? 'Syncing…' : 'Pull Chart of Accounts'}
-                          </button>
-                          <button type="button" style={{ fontSize: 13, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} onClick={() => handleDisconnect(p.provider)}>
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" style={{ color: 'var(--red)' }} onClick={() => handleDisconnect(p.provider)}>
                             Disconnect
-                          </button>
+                          </Button>
                         </>
                       ) : (
-                        <button type="button" className="btn btn-primary btn-sm" disabled={!p.configured || connectingProvider === p.provider} onClick={() => handleConnect(p.provider)}>
+                        <Button type="button" size="sm" disabled={!p.configured || connectingProvider === p.provider} onClick={() => handleConnect(p.provider)}>
                           {connectingProvider === p.provider ? 'Connecting…' : `Connect ${brand.name}`}
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -323,10 +324,10 @@ export function AccountingIntegrations() {
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {categories.map(cat => (
-                  <button key={cat} type="button" onClick={() => setActiveCat(cat)}
-                    style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: activeCat === cat ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: activeCat === cat ? 'var(--teal-l)' : 'var(--white)', color: activeCat === cat ? 'var(--teal)' : 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  <Button key={cat} type="button" variant="outline" size="sm" onClick={() => setActiveCat(cat)}
+                    style={activeCat === cat ? { borderColor: 'var(--teal)', background: 'var(--teal-l)', color: 'var(--teal)' } : undefined}>
                     {cat}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -341,25 +342,25 @@ export function AccountingIntegrations() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
               {displayed.map(item => (
-                <div key={item.id} style={{ border: '1.5px solid var(--border)', borderRadius: 12, background: 'var(--white)', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+                <div key={item.id} style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'border-color 0.15s, box-shadow 0.15s' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = item.color; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px ${item.color}20`; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}>
                   <div style={{ padding: 18, flex: 1, display: 'flex', gap: 14 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 10, background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${item.color}30` }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 'var(--r-sm)', background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${item.color}30` }}>
                       <span style={{ fontWeight: 800, fontSize: 13.5, color: item.color, fontFamily: 'system-ui, sans-serif', letterSpacing: '-0.02em' }}>{item.initials}</span>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 4 }}>
                         <span style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--ink)' }}>{item.name}</span>
-                        <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, background: item.bg, color: item.color, fontWeight: 700 }}>{item.category}</span>
+                        <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 'var(--badge-radius)', background: item.bg, color: item.color, fontWeight: 700 }}>{item.category}</span>
                       </div>
                       <div style={{ fontSize: 12.5, color: 'var(--ink3)', lineHeight: 1.45 }}>{item.desc}</div>
                     </div>
                   </div>
                   <div style={{ padding: '10px 18px', borderTop: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button type="button" className="btn btn-primary btn-sm" disabled={installingId === item.id} onClick={() => handleInstall(item)}>
+                    <Button type="button" size="sm" disabled={installingId === item.id} onClick={() => handleInstall(item)}>
                       {installingId === item.id ? 'Adding…' : '+ Add Integration'}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}

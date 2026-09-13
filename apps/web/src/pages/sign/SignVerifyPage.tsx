@@ -316,7 +316,7 @@ export function SignVerifyPage() {
       {/* Public Branded Header */}
       <header style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 6, background: 'hsl(var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--primary-foreground))' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', background: 'hsl(var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--primary-foreground))' }}>
             <Icon name="edit" size={16} />
           </div>
           <span>Hudumika eSign</span>
@@ -330,7 +330,7 @@ export function SignVerifyPage() {
 
       {/* Main Content Area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
-        <div style={{ maxWidth: 560, width: '100%', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '32px', boxShadow: 'var(--elev-sm)' }}>
+        <div style={{ maxWidth: 560, width: '100%', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '32px', boxShadow: 'var(--elev-sm)' }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 8, textAlign: 'center' }}>Verify a Document</h2>
           <p style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20, textAlign: 'center' }}>
             Check a Digital Execution Seal's record, or upload a printed/scanned copy to compare it against the original.
@@ -357,7 +357,7 @@ export function SignVerifyPage() {
                       onKeyDown={e => e.key === 'Enter' && verify(code)}
                       placeholder="e.g. HSGN-A1B2C3-D4E5F6"
                       style={{
-                        width: '100%', padding: isCurrentlyVerified ? '10px 36px 10px 14px' : '10px 14px', borderRadius: 6,
+                        width: '100%', padding: isCurrentlyVerified ? '10px 36px 10px 14px' : '10px 14px', borderRadius: 'var(--r-sm)',
                         border: `1px solid ${isCurrentlyVerified ? 'var(--sign-green)' : 'var(--border)'}`,
                         fontSize: 14, fontFamily: 'monospace', fontWeight: 600,
                         color: 'var(--ink)', background: 'var(--bg)', outline: 'none', boxSizing: 'border-box',
@@ -368,7 +368,7 @@ export function SignVerifyPage() {
                     )}
                   </div>
                   <Button variant="default" onClick={() => verify(code)} disabled={loading || !code.trim()}
-                    style={{ background: isCurrentlyVerified ? 'var(--sign-green)' : 'var(--blue)', color: isCurrentlyVerified ? 'hsl(var(--green-foreground))' : 'hsl(var(--blue-foreground))', padding: '0 20px', borderRadius: 6, fontSize: 13.5, fontWeight: 600 }}>
+                    style={{ background: isCurrentlyVerified ? 'var(--sign-green)' : 'var(--blue)', color: isCurrentlyVerified ? 'hsl(var(--green-foreground))' : 'hsl(var(--blue-foreground))', padding: '0 20px', borderRadius: 'var(--r-sm)', fontSize: 13.5, fontWeight: 600 }}>
                     {loading ? 'Verifying...' : isCurrentlyVerified ? 'Re-verify' : 'Verify'}
                   </Button>
                 </div>
@@ -388,7 +388,7 @@ export function SignVerifyPage() {
               <div
                 onClick={() => fileInputRef.current?.click()}
                 role="button" tabIndex={0}
-                style={{ border: '2px dashed var(--border)', borderRadius: 8, padding: '28px 16px', textAlign: 'center', cursor: 'pointer', background: 'var(--bg)' }}>
+                style={{ border: '2px dashed var(--border)', borderRadius: 'var(--r)', padding: '28px 16px', textAlign: 'center', cursor: 'pointer', background: 'var(--bg)' }}>
                 <Icon name="upload" size={22} style={{ color: 'var(--ink3)', marginBottom: 8 }} />
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Upload a photo, scan, or PDF</div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>We'll read the QR or the printed serial automatically.</div>
@@ -408,10 +408,10 @@ export function SignVerifyPage() {
                   </Banner>
                   <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                     <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="e.g. HSGN-A1B2C3-D4E5F6"
-                      style={{ flex: 1, padding: '10px 14px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 14, fontFamily: 'monospace', fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', outline: 'none', boxSizing: 'border-box' }} />
+                      style={{ flex: 1, padding: '10px 14px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 14, fontFamily: 'monospace', fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', outline: 'none', boxSizing: 'border-box' }} />
                     <Button variant="default" disabled={!code.trim() || !pendingFileRef.current}
                       onClick={() => pendingFileRef.current && runCompare(code, pendingFileRef.current.base64, pendingFileRef.current.mediaType)}
-                      style={{ padding: '0 20px', borderRadius: 6, fontSize: 13.5, fontWeight: 600 }}>
+                      style={{ padding: '0 20px', borderRadius: 'var(--r-sm)', fontSize: 13.5, fontWeight: 600 }}>
                       Compare
                     </Button>
                   </div>
@@ -433,7 +433,7 @@ export function SignVerifyPage() {
             const toneBg = { green: 'var(--green-l)', gold: 'var(--gold-l)', red: 'var(--red-l)', gray: 'var(--bg)' }[cfg.tone];
             return (
               <div style={{ marginTop: 24 }}>
-                <div style={{ background: toneBg, border: `1px solid ${toneColor}`, borderRadius: 6, padding: '12px 16px', marginBottom: 16 }}>
+                <div style={{ background: toneBg, border: `1px solid ${toneColor}`, borderRadius: 'var(--r-sm)', padding: '12px 16px', marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 700, color: toneColor }}>
                     <Icon name={cfg.tone === 'green' ? 'checkCircle' : cfg.tone === 'red' ? 'xCircle' : 'alertCircle'} size={16} />
                     {cfg.label}
@@ -463,7 +463,7 @@ export function SignVerifyPage() {
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {compareResult.structural.findings.map((f, i) => (
-                        <div key={i} style={{ padding: '8px 10px', borderRadius: 6, background: f.severity === 'risk' ? 'var(--red-l)' : 'var(--bg)', border: `1px solid ${f.severity === 'risk' ? 'var(--red)' : 'var(--border)'}`, fontSize: 12, color: f.severity === 'risk' ? 'var(--red)' : 'var(--ink2)' }}>
+                        <div key={i} style={{ padding: '8px 10px', borderRadius: 'var(--r-sm)', background: f.severity === 'risk' ? 'var(--red-l)' : 'var(--bg)', border: `1px solid ${f.severity === 'risk' ? 'var(--red)' : 'var(--border)'}`, fontSize: 12, color: f.severity === 'risk' ? 'var(--red)' : 'var(--ink2)' }}>
                           {f.text}
                         </div>
                       ))}
@@ -489,7 +489,7 @@ export function SignVerifyPage() {
                       {compareResult.visual.pages.map(p => (
                         <div key={p.page}>
                           <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--red)', marginBottom: 4 }}>Page {p.page} — {p.diffPercent}% different</div>
-                          <img src={`data:image/png;base64,${p.diffPngBase64}`} alt={`Visual diff, page ${p.page}`} style={{ width: '100%', border: '1px solid var(--red)', borderRadius: 6 }} />
+                          <img src={`data:image/png;base64,${p.diffPngBase64}`} alt={`Visual diff, page ${p.page}`} style={{ width: '100%', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)'}} />
                         </div>
                       ))}
                     </div>
@@ -503,7 +503,7 @@ export function SignVerifyPage() {
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {compareResult.findings.map((f, i) => (
-                        <div key={i} style={{ padding: '8px 10px', borderRadius: 6, background: f.type === 'added' ? 'var(--green-l)' : 'var(--red-l)', border: `1px solid ${f.type === 'added' ? 'var(--green)' : 'var(--red)'}`, fontSize: 12 }}>
+                        <div key={i} style={{ padding: '8px 10px', borderRadius: 'var(--r-sm)', background: f.type === 'added' ? 'var(--green-l)' : 'var(--red-l)', border: `1px solid ${f.type === 'added' ? 'var(--green)' : 'var(--red)'}`, fontSize: 12 }}>
                           <span style={{ fontWeight: 700, color: f.type === 'added' ? 'var(--green)' : 'var(--red)', textTransform: 'uppercase', fontSize: 10 }}>
                             {f.type === 'added' ? 'Present in uploaded, not in original' : 'Present in original, missing from uploaded'}
                           </span>
@@ -523,7 +523,7 @@ export function SignVerifyPage() {
           {mode === 'code' && result && (
             <div style={{ marginTop: 24 }}>
               {/* Status Banner */}
-              <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 6, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                 <Icon name="checkCircle" size={18} style={{ color: 'var(--green)' }} />
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--green)' }}>
                   This document is authentic and verified.
@@ -586,7 +586,7 @@ export function SignVerifyPage() {
                   and their roll number, so it gets its own distinct block
                   rather than blending into the ordinary signers list above. */}
               {result.certification && (
-                <div style={{ marginBottom: 24, padding: 14, borderRadius: 6, background: 'var(--blue-l)', border: '1px solid var(--blue)' }}>
+                <div style={{ marginBottom: 24, padding: 14, borderRadius: 'var(--r-sm)', background: 'var(--blue-l)', border: '1px solid var(--blue)' }}>
                   <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--blue)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Icon name="shield" size={13} /> Certified True Copy
                   </h3>
@@ -607,7 +607,7 @@ export function SignVerifyPage() {
               )}
 
               {/* Cryptographic Proof Details */}
-              <div style={{ padding: '16px', background: 'var(--card-sunken)', borderRadius: 6, border: '1px solid var(--border)' }}>
+              <div style={{ padding: '16px', background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                 {result.stamp_applied && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--green)', fontWeight: 600, marginBottom: 8 }}>
                     <Icon name="checkCircle" size={14} />
@@ -628,7 +628,7 @@ export function SignVerifyPage() {
 
               {result.has_signed_pdf && (
                 <a href={`${BASE_URL}/v1/sign/public/verify/${result.verification_code}/download`} download
-                  style={{ display: 'block', textAlign: 'center', marginTop: 24, padding: '10px 16px', borderRadius: 6, background: 'var(--blue)', color: 'hsl(var(--blue-foreground))', fontSize: 13.5, fontWeight: 600, textDecoration: 'none', transition: 'background 0.15s' }}>
+                  style={{ display: 'block', textAlign: 'center', marginTop: 24, padding: '10px 16px', borderRadius: 'var(--r-sm)', background: 'var(--blue)', color: 'hsl(var(--blue-foreground))', fontSize: 13.5, fontWeight: 600, textDecoration: 'none', transition: 'background 0.15s' }}>
                   Download Signed PDF
                 </a>
               )}

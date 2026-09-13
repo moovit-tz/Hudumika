@@ -128,7 +128,7 @@ export function PettiSend() {
                 type="number" required min="1" step="any"
                 value={amount} onChange={e => setAmount(e.target.value)}
                 placeholder="e.g. 150000"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 14 }}
               />
             </div>
 
@@ -138,7 +138,7 @@ export function PettiSend() {
                 type="text"
                 value={note} onChange={e => setNote(e.target.value)}
                 placeholder="e.g. Rebalancing regional branch liquidity"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
               />
             </div>
 
@@ -150,11 +150,11 @@ export function PettiSend() {
 
         {/* Transfer Visualizer */}
         <div>
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 20, boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <h4 style={{ margin: '0 0 16px 0', fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>Transfer Visualizer</h4>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
+              <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Source</div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginTop: 2 }}>{sourceWallet?.name || 'Select Wallet'}</div>
                 <div style={{ fontSize: 13, color: 'var(--ink2)', fontFamily: 'var(--mono)', marginTop: 4 }}>
@@ -166,7 +166,7 @@ export function PettiSend() {
                 ↓ Instant Transfer ↓
               </div>
 
-              <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
+              <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Destination</div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginTop: 2 }}>{destWallet?.name || 'Select Wallet'}</div>
                 <div style={{ fontSize: 13, color: 'var(--ink2)', fontFamily: 'var(--mono)', marginTop: 4 }}>

@@ -58,6 +58,14 @@ function normalizeName(first?: string | null, last?: string | null): string {
 export async function smsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('sms'));
+  // HUD-0024 continuation: internal bulk/transactional SMS tool — its
+  // contact groups carry real phone numbers for the whole tenant's customer
+  // base, not just the caller's own.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ── Dashboard stats ──────────────────────────────────────────────────
   fastify.get('/stats', async (request) => {

@@ -162,7 +162,7 @@ export function CertificateOfOriginPage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {shipmentFilter && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 10, fontSize: 12.5, color: 'var(--ink2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink2)' }}>
             <Icon name="package" size={14} color="var(--teal)" />
             <span>Showing certificates for shipment <strong>{shipmentLabel(shipmentFilter) ?? shipmentFilter}</strong>.</span>
             <Link to="/clearos/compliance/origin" style={{ marginLeft: 'auto', color: 'var(--teal)', fontWeight: 600, fontSize: 12 }}>View all certificates</Link>

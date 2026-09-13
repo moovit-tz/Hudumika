@@ -121,7 +121,7 @@ export function ActivityTimeline({ subjectType, subjectId, currentUserId }: {
             const cfg = TYPE_CFG[a.type];
             const canDelete = MANUAL_TYPES.includes(a.type) && (a.actor_id === currentUserId || !currentUserId);
             return (
-              <div key={a.id} style={{ display: 'flex', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--border-soft)' }}>
+              <div key={a.id} style={{ display: 'flex', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ width: 26, height: 26, borderRadius: '50%', background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                   <Icon name={cfg.icon} size={12} color={cfg.color} />
                 </div>

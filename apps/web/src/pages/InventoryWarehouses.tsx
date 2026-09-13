@@ -128,7 +128,7 @@ export function InventoryWarehouses() {
                 <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {warehouseLocations.map(l => (
-                      <span key={l.id} className="inv-mono" style={{ fontSize: 12, padding: '5px 10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                      <span key={l.id} className="inv-mono" style={{ fontSize: 12, padding: '5px 10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
                         {l.code} — {l.name} ({l.locationType})
                       </span>
                     ))}

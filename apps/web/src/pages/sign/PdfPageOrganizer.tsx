@@ -325,7 +325,7 @@ export function PdfPageOrganizer({ documentSrc, fileName, onExport, onClose }: {
                     onDrop={() => { if (dragIndex !== null) movePage(dragIndex, i); setDragIndex(null); }}
                     onDragEnd={() => setDragIndex(null)}
                     style={{
-                      background: accentTint, border: `1px solid ${dragIndex === i ? 'var(--teal)' : accent ?? 'var(--border)'}`, borderRadius: 10,
+                      background: accentTint, border: `1px solid ${dragIndex === i ? 'var(--teal)' : accent ?? 'var(--border)'}`, borderRadius: 'var(--r)',
                       padding: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, position: 'relative', width: 'fit-content',
                       cursor: dragDisabled ? 'default' : 'grab', opacity: dragIndex === i ? 0.5 : matchesFilter ? 1 : 0.45,
                       order: matchesFilter ? 0 : 1, transition: 'opacity 0.1s, border-color 0.1s',

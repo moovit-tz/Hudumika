@@ -5,6 +5,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 type FieldSpec = { kind: 'text' | 'num' | 'date'; ops: string[] };
 interface Rule { id: string; label: string; field: string; op: string; value: string | null; points: number; active: boolean }
@@ -73,7 +74,7 @@ export function CrmLeadScoring() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {rules === null ? <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+        {rules === null ? <SectionLoading />
           : rules.length === 0 ? <div style={{ color: 'var(--ink3)', fontSize: 13, fontStyle: 'italic' }}>No scoring rules yet — every lead scores 0 until you add some.</div>
           : rules.map(r => (
             <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 14px', opacity: r.active ? 1 : 0.5 }}>

@@ -52,11 +52,11 @@ const MONTH_NAMES = [
 // filteredEvents.filter(e => activeCategories[e.category]) silently
 // excluded every one of them. Real, verified bug, not a hypothetical.
 const CATEGORY_MAP = {
-  work:     { color: '#1a73e8', label: 'Work Sync' },
+  work:     { color: 'var(--blue)', label: 'Work Sync' },
   personal: { color: '#0f9d58', label: 'Client / Social' },
-  customs:  { color: '#ea580c', label: 'Customs Deadline' },
+  customs:  { color: 'var(--gold)', label: 'Customs Deadline' },
   todo:     { color: 'var(--purple)', label: 'Scheduled Todo' },
-  holiday:  { color: '#16a34a', label: 'Holidays' },
+  holiday:  { color: 'var(--green)', label: 'Holidays' },
 } as const;
 
 type Category = keyof typeof CATEGORY_MAP;
@@ -673,7 +673,7 @@ export const CalendarApp: React.FC = () => {
             onClick={() => setBookingPagesOpen(true)}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px',
-              border: '1px solid var(--border)', borderRadius: 7, background: 'var(--white)',
+              border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)',
               fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
               transition: 'all 0.15s ease', whiteSpace: 'nowrap'
             }}
@@ -691,7 +691,7 @@ export const CalendarApp: React.FC = () => {
             onClick={() => setCalendarSyncOpen(true)}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px',
-              border: '1px solid var(--border)', borderRadius: 7, background: 'var(--white)',
+              border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)',
               fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
               transition: 'all 0.15s ease', whiteSpace: 'nowrap'
             }}
@@ -735,7 +735,7 @@ export const CalendarApp: React.FC = () => {
               <button
                 type="button"
                 onClick={handleExportICS}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
@@ -745,7 +745,7 @@ export const CalendarApp: React.FC = () => {
                 type="button"
                 onClick={() => icsFileInputRef.current?.click()}
                 disabled={icsImporting}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: icsImporting ? 'default' : 'pointer', borderRadius: 6, fontSize: 13, color: 'var(--ink)', fontWeight: 500, opacity: icsImporting ? 0.6 : 1 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: icsImporting ? 'default' : 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500, opacity: icsImporting ? 0.6 : 1 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
@@ -754,7 +754,7 @@ export const CalendarApp: React.FC = () => {
               <DropdownMenuItem asChild onSelect={() => setBookingPagesOpen(true)}>
                 <button
                   type="button"
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >
@@ -764,7 +764,7 @@ export const CalendarApp: React.FC = () => {
               <DropdownMenuItem asChild onSelect={() => setCalendarSyncOpen(true)}>
                 <button
                   type="button"
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >
@@ -782,7 +782,7 @@ export const CalendarApp: React.FC = () => {
                 className="cal-topbar-view-dropdown-btn"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
-                  border: '1px solid var(--border)', borderRadius: 6, background: 'var(--white)',
+                  border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--white)',
                   fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
                   transition: 'background 0.15s ease'
                 }}
@@ -888,7 +888,7 @@ export const CalendarApp: React.FC = () => {
                             title="Drag to reschedule"
                             style={{
                               fontSize: 12, fontWeight: 500, color: '#fff',
-                              background: resolveEventColor(ev), padding: '4px 8px', borderRadius: 6,
+                              background: resolveEventColor(ev), padding: '4px 8px', borderRadius: 'var(--r-sm)',
                               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                               cursor: 'grab', opacity: draggingEventId === ev.id ? 0.4 : 1,
                             }}
@@ -947,7 +947,7 @@ export const CalendarApp: React.FC = () => {
                             <div
                               key={ev.id + ev.occurrenceDate}
                               onClick={e => openPopover(ev, e)}
-                              style={{ fontSize: 11, fontWeight: 600, color: '#fff', background: resolveEventColor(ev), borderRadius: 4, padding: '2px 6px', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                              style={{ fontSize: 11, fontWeight: 600, color: '#fff', background: resolveEventColor(ev), borderRadius: 'var(--r-sm)', padding: '2px 6px', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                             >
                               {ev.title}
                             </div>
@@ -978,7 +978,7 @@ export const CalendarApp: React.FC = () => {
                             onMouseDown={() => beginDragCreate(cellDateStr, hour)}
                             onMouseEnter={e => { extendDragCreate(cellDateStr, hour); if (!inDragRange) e.currentTarget.style.background = 'var(--bg)'; }}
                             onMouseLeave={e => { if (!inDragRange) e.currentTarget.style.background = 'none'; }}
-                            style={{ borderLeft: '1px solid var(--border2)', cursor: 'pointer', position: 'relative', background: inDragRange ? 'var(--teal-l, rgba(13,148,136,0.12))' : undefined }}
+                            style={{ borderLeft: '1px solid var(--border2)', cursor: 'pointer', position: 'relative', background: inDragRange ? 'var(--teal-l)' : undefined }}
                           />
                         );
                       })}
@@ -996,8 +996,8 @@ export const CalendarApp: React.FC = () => {
                   const left = `calc(60px + ${dayIdx} * ((100% - 60px) / 7))`;
                   const width = `calc((100% - 60px) / 7)`;
                   return (
-                    <div style={{ position: 'absolute', top, left, width, height: 2, background: '#ea4335', zIndex: 15, pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
-                      <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#ea4335', marginLeft: -4 }} />
+                    <div style={{ position: 'absolute', top, left, width, height: 2, background: 'var(--red)', zIndex: 15, pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                      <div style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--red)', marginLeft: -4 }} />
                     </div>
                   );
                 })()}
@@ -1021,7 +1021,7 @@ export const CalendarApp: React.FC = () => {
                     <div
                       key={`busy-${p.userId}-${bi}`}
                       title={`${p.name} is busy ${bStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} – ${bEnd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
-                      style={{ position: 'absolute', top, left, width: 5, height, background: MEET_WITH_COLORS[pi % MEET_WITH_COLORS.length], borderRadius: 2, zIndex: 5, opacity: 0.85 }}
+                      style={{ position: 'absolute', top, left, width: 5, height, background: MEET_WITH_COLORS[pi % MEET_WITH_COLORS.length], borderRadius: 'var(--r-sm)', zIndex: 5, opacity: 0.85 }}
                     />
                   );
                 }))}
@@ -1053,7 +1053,7 @@ export const CalendarApp: React.FC = () => {
                       title="Drag to reschedule"
                       style={{
                         position: 'absolute', top: top + 2, left, width, height: height - 4,
-                        background: resolveEventColor(ev), borderRadius: 6, padding: '6px 8px',
+                        background: resolveEventColor(ev), borderRadius: 'var(--r-sm)', padding: '6px 8px',
                         fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'grab', zIndex: isResizingThis ? 20 : 10,
                         opacity: draggingEventId === ev.id ? 0.4 : 1,
                         overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 2,
@@ -1111,7 +1111,7 @@ export const CalendarApp: React.FC = () => {
                         <div
                           key={ev.id + ev.occurrenceDate}
                           onClick={e => openPopover(ev, e)}
-                          style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: resolveEventColor(ev), borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}
+                          style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: resolveEventColor(ev), borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer' }}
                         >
                           {ev.title}
                         </div>
@@ -1137,7 +1137,7 @@ export const CalendarApp: React.FC = () => {
                         onMouseDown={() => beginDragCreate(cellDateStr, hour)}
                         onMouseEnter={e => { extendDragCreate(cellDateStr, hour); if (!inDragRange) e.currentTarget.style.background = 'var(--bg)'; }}
                         onMouseLeave={e => { if (!inDragRange) e.currentTarget.style.background = 'none'; }}
-                        style={{ borderLeft: '1px solid var(--border2)', cursor: 'pointer', background: inDragRange ? 'var(--teal-l, rgba(13,148,136,0.12))' : undefined }}
+                        style={{ borderLeft: '1px solid var(--border2)', cursor: 'pointer', background: inDragRange ? 'var(--teal-l)' : undefined }}
                       />
                     </div>
                   );
@@ -1148,8 +1148,8 @@ export const CalendarApp: React.FC = () => {
                   if (nowH < 8 || nowH > 20 || formatISO(nowDate) !== formatISO(currentDate)) return null;
                   const top = (nowH - 8) * HOUR_ROW_PX;
                   return (
-                    <div style={{ position: 'absolute', top, left: 60, right: 0, height: 2, background: '#ea4335', zIndex: 15, pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
-                      <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#ea4335', marginLeft: -4 }} />
+                    <div style={{ position: 'absolute', top, left: 60, right: 0, height: 2, background: 'var(--red)', zIndex: 15, pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                      <div style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--red)', marginLeft: -4 }} />
                     </div>
                   );
                 })()}
@@ -1167,7 +1167,7 @@ export const CalendarApp: React.FC = () => {
                     <div
                       key={`busy-${p.userId}-${bi}`}
                       title={`${p.name} is busy ${bStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} – ${bEnd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
-                      style={{ position: 'absolute', top, left: 60 + 4 + pi * 7, width: 5, height, background: MEET_WITH_COLORS[pi % MEET_WITH_COLORS.length], borderRadius: 2, zIndex: 5, opacity: 0.85 }}
+                      style={{ position: 'absolute', top, left: 60 + 4 + pi * 7, width: 5, height, background: MEET_WITH_COLORS[pi % MEET_WITH_COLORS.length], borderRadius: 'var(--r-sm)', zIndex: 5, opacity: 0.85 }}
                     />
                   );
                 }))}
@@ -1191,7 +1191,7 @@ export const CalendarApp: React.FC = () => {
                         title="Drag to reschedule"
                         style={{
                           position: 'absolute', top: top + 2, left: 64, right: 16, height: height - 4,
-                          background: resolveEventColor(ev), borderRadius: 8, padding: '12px 16px',
+                          background: resolveEventColor(ev), borderRadius: 'var(--r)', padding: '12px 16px',
                           fontSize: 14, color: '#fff', cursor: 'grab', zIndex: isResizingThis ? 20 : 10,
                           opacity: draggingEventId === ev.id ? 0.4 : 1,
                           display: 'flex', flexDirection: 'column', gap: 4, overflow: 'hidden',
@@ -1234,7 +1234,7 @@ export const CalendarApp: React.FC = () => {
                         onClick={e => openPopover(ev, e)}
                         style={{
                           display: 'flex', gap: 16, background: 'var(--white)', padding: 16,
-                          borderRadius: 12, border: '1px solid var(--border)', cursor: 'pointer',
+                          borderRadius: 'var(--r)', border: '1px solid var(--border)', cursor: 'pointer',
                           transition: 'box-shadow .15s',
                         }}
                         onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,.05)')}
@@ -1242,7 +1242,7 @@ export const CalendarApp: React.FC = () => {
                       >
                         <div style={{
                           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                          width: 56, height: 56, background: color.startsWith('#') ? color + '18' : 'var(--bg)', borderRadius: 10, flexShrink: 0,
+                          width: 56, height: 56, background: color.startsWith('#') ? color + '18' : 'var(--bg)', borderRadius: 'var(--r)', flexShrink: 0,
                         }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase' }}>
                             {evDate.toLocaleDateString('en-US', { month: 'short' })}
@@ -1282,24 +1282,24 @@ export const CalendarApp: React.FC = () => {
                 style={{ flex: 1, fontSize: 20, fontWeight: 600, border: 'none', background: 'transparent', color: 'var(--ink)', outline: 'none' }}
               />
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 16 }}>
-                <Button variant="default" onClick={handleSave} style={{ fontWeight: 600, padding: '6px 20px', borderRadius: 6 }}>
+                <Button variant="default" onClick={handleSave} style={{ fontWeight: 600, padding: '6px 20px', borderRadius: 'var(--r-sm)'}}>
                   Save
                 </Button>
                 {editingEvent && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" style={{ borderRadius: 6 }}>
+                      <Button variant="outline" size="sm" style={{ borderRadius: 'var(--r-sm)'}}>
                         More actions <Icon name="chevronDown" size={13} />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40 p-1">
-                      <button onClick={handleDelete} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 10px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 13, fontWeight: 500, borderRadius: 6 }}>
+                      <button onClick={handleDelete} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 10px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 13, fontWeight: 500, borderRadius: 'var(--r-sm)'}}>
                         <Icon name="trash" size={14} /> Delete event
                       </button>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
-                <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--ink3)', borderRadius: 6 }}>
+                <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--ink3)', borderRadius: 'var(--r-sm)'}}>
                   <Icon name="close" size={18} />
                 </button>
               </div>
@@ -1308,20 +1308,20 @@ export const CalendarApp: React.FC = () => {
             {/* Editor Body */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* Date & Time & Timezone Row */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--bg)', padding: 14, borderRadius: 8, border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--bg)', padding: 14, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <input
                     type={eventAllDay ? 'date' : 'datetime-local'}
                     value={eventAllDay ? eventStart.slice(0, 10) : eventStart}
                     onChange={e => setEventStart(eventAllDay ? `${e.target.value}T00:00` : e.target.value)}
-                    style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg)', color: 'var(--ink)' }}
+                    style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg)', color: 'var(--ink)' }}
                   />
                   <span style={{ fontSize: 13, color: 'var(--ink3)' }}>to</span>
                   <input
                     type={eventAllDay ? 'date' : 'datetime-local'}
                     value={eventAllDay ? eventEnd.slice(0, 10) : eventEnd}
                     onChange={e => setEventEnd(eventAllDay ? `${e.target.value}T23:59` : e.target.value)}
-                    style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg)', color: 'var(--ink)' }}
+                    style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg)', color: 'var(--ink)' }}
                   />
                   <Button variant="ghost" size="xs" onClick={() => setShowTimezoneModal(true)} style={{ color: 'var(--teal)', fontWeight: 600 }}>
                     <Icon name="globe" size={13} /> {eventTimezone || 'Time zone'}
@@ -1344,7 +1344,7 @@ export const CalendarApp: React.FC = () => {
                 {/* Left Column — Details & Video Call */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
                   {/* Video Call Integration */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: 12, borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: 12, borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Icon name="video" size={16} style={{ color: 'var(--teal)' }} />
@@ -1409,11 +1409,11 @@ export const CalendarApp: React.FC = () => {
                       same password/waiting-room/guest-access controls the
                       meeting room's own Host Controls panel offers. */}
                   {showMeetingCreateOptions && !eventMeetingUrl && hasBliss && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
                       <input
                         value={meetingCreatePassword} onChange={e => setMeetingCreatePassword(e.target.value)}
                         placeholder="Password (optional)"
-                        style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12.5, background: 'var(--white)', color: 'var(--ink)' }}
+                        style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5, background: 'var(--white)', color: 'var(--ink)' }}
                       />
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink)', cursor: 'pointer' }}>
                         <Checkbox checked={meetingCreateWaitingRoom} onCheckedChange={c => setMeetingCreateWaitingRoom(c === true)} />
@@ -1433,7 +1433,7 @@ export const CalendarApp: React.FC = () => {
                       value={eventLocation}
                       onChange={e => setEventLocation(e.target.value)}
                       placeholder="Add location"
-                      style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13.5, background: 'var(--bg)', color: 'var(--ink)' }}
+                      style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, background: 'var(--bg)', color: 'var(--ink)' }}
                     />
                   </div>
 
@@ -1503,7 +1503,7 @@ export const CalendarApp: React.FC = () => {
                       onChange={e => setEventDescription(e.target.value)}
                       placeholder="Add description or agenda items"
                       rows={4}
-                      style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13.5, background: 'var(--bg)', color: 'var(--ink)', resize: 'vertical' }}
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, background: 'var(--bg)', color: 'var(--ink)', resize: 'vertical' }}
                     />
                   </div>
                 </div>
@@ -1573,7 +1573,7 @@ export const CalendarApp: React.FC = () => {
             <div style={{ position: 'fixed', inset: 0, zIndex: 900 }} onClick={() => setPopover(null)} />
             <div style={{
               position: 'fixed', top: Math.min(popover.y, window.innerHeight - 200), left: Math.min(popover.x, window.innerWidth - 300),
-              width: 280, background: 'var(--white)', borderRadius: 12, padding: 16, zIndex: 901,
+              width: 280, background: 'var(--white)', borderRadius: 'var(--r)', padding: 16, zIndex: 901,
               boxShadow: 'var(--elev-lg)', border: '1px solid var(--border)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
@@ -1685,7 +1685,7 @@ const EventRecurrencePicker: React.FC<{ value: RecurrenceRule | null; onChange: 
           onClick={() => setOpen(!open)}
           style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 20, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
-            border: `1px solid ${value ? 'var(--teal)' : 'var(--border)'}`, background: value ? 'var(--teal-l, rgba(13,148,136,0.08))' : 'var(--white)',
+            border: `1px solid ${value ? 'var(--teal)' : 'var(--border)'}`, background: value ? 'var(--teal-l)' : 'var(--white)',
             color: value ? 'var(--teal)' : 'var(--ink2)',
           }}
         >
@@ -1699,7 +1699,7 @@ const EventRecurrencePicker: React.FC<{ value: RecurrenceRule | null; onChange: 
             <input
               type="number" min={1} max={365} value={draft.interval}
               onChange={e => setDraft(d => ({ ...d, interval: Math.max(1, parseInt(e.target.value, 10) || 1) }))}
-              style={{ width: 52, padding: '5px 6px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12.5 }}
+              style={{ width: 52, padding: '5px 6px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5 }}
             />
             <Select value={draft.freq} onValueChange={v => setDraft(d => ({ ...d, freq: v as RecurrenceRule['freq'] }))}>
               <SelectTrigger style={{ minHeight: 28, fontSize: 12.5, flex: 1 }}><SelectValue /></SelectTrigger>
@@ -1755,7 +1755,7 @@ const EventRecurrencePicker: React.FC<{ value: RecurrenceRule | null; onChange: 
                       type="number" min={1} max={1000} value={draft.count ?? 10}
                       onChange={e => setDraft(d => ({ ...d, count: Math.max(1, parseInt(e.target.value, 10) || 1) }))}
                       onFocus={() => setEndMode('count')}
-                      style={{ width: 52, padding: '4px 6px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
+                      style={{ width: 52, padding: '4px 6px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12 }}
                     />
                     occurrences
                   </span>
@@ -1795,7 +1795,7 @@ const EventReminderPicker: React.FC<{ value: number[]; onChange: (v: number[]) =
           onClick={() => setOpen(!open)}
           style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 20, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
-            border: `1px solid ${value.length ? 'var(--teal)' : 'var(--border)'}`, background: value.length ? 'var(--teal-l, rgba(13,148,136,0.08))' : 'var(--white)',
+            border: `1px solid ${value.length ? 'var(--teal)' : 'var(--border)'}`, background: value.length ? 'var(--teal-l)' : 'var(--white)',
             color: value.length ? 'var(--teal)' : 'var(--ink2)',
           }}
         >
@@ -1842,10 +1842,10 @@ const EventGuestPicker: React.FC<{ guests: CalendarGuest[]; onAdd: (p: Person) =
         <input
           type="text" value={query} onChange={e => setQuery(e.target.value)}
           placeholder="Add guests"
-          style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14 }}
+          style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 14 }}
         />
         {(results.length > 0 || searching) && (
-          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 20, maxHeight: 200, overflowY: 'auto' }}>
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 20, maxHeight: 200, overflowY: 'auto' }}>
             {searching && <div style={{ padding: 8, fontSize: 12.5, color: 'var(--ink3)' }}>Searching…</div>}
             {!searching && results.map(p => (
               <button
@@ -1962,7 +1962,7 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
     navigator.clipboard?.writeText(url).then(() => { setCopiedId(p.id); setTimeout(() => setCopiedId(null), 1500); });
   }
 
-  const inputStyle: React.CSSProperties = { padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5, width: '100%', boxSizing: 'border-box' };
+  const inputStyle: React.CSSProperties = { padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5, width: '100%', boxSizing: 'border-box' };
 
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
@@ -1983,7 +1983,7 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
               </div>
             )}
             {pages.map(p => (
-              <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{p.title}</div>
@@ -1992,13 +1992,13 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
                   <Switch checked={p.active} onCheckedChange={() => handleToggleActive(p)} />
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={() => copyLink(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 7, background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--ink2)' }}>
+                  <button type="button" onClick={() => copyLink(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--ink2)' }}>
                     <Icon name={copiedId === p.id ? 'check' : 'link'} size={13} /> {copiedId === p.id ? 'Copied' : 'Copy link'}
                   </button>
-                  <button type="button" onClick={() => startEdit(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 7, background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--ink2)' }}>
+                  <button type="button" onClick={() => startEdit(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--ink2)' }}>
                     <Icon name="edit" size={13} /> Edit
                   </button>
-                  <button type="button" onClick={() => handleDeletePage(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: 'none', borderRadius: 7, background: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--red)', marginLeft: 'auto' }}>
+                  <button type="button" onClick={() => handleDeletePage(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: 'none', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--red)', marginLeft: 'auto' }}>
                     <Icon name="trash" size={13} />
                   </button>
                 </div>
@@ -2006,7 +2006,7 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
             ))}
             <button
               type="button" onClick={startCreate}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 14px', border: '1px dashed var(--border2)', borderRadius: 10, background: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: 'var(--teal)', marginTop: 4 }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 14px', border: '1px dashed var(--border2)', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: 'var(--teal)', marginTop: 4 }}
             >
               <Icon name="plus" size={14} /> New booking page
             </button>
@@ -2151,7 +2151,7 @@ const CalendarSyncPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
     }
   }
 
-  const inputStyle: React.CSSProperties = { padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, width: '100%', boxSizing: 'border-box' };
+  const inputStyle: React.CSSProperties = { padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, width: '100%', boxSizing: 'border-box' };
 
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
@@ -2172,8 +2172,8 @@ const CalendarSyncPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
               const conn = statusFor(provider);
               const status = conn?.status ?? 'disconnected';
               return (
-                <div key={provider} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div key={provider} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="calendar" size={17} color="var(--ink3)" />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -2203,7 +2203,7 @@ const CalendarSyncPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
               type="button" onClick={openConfig}
               style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: 'var(--ink2)', padding: 0 }}
             >
-              <Icon name={configOpen ? 'chevronUp' : 'chevronDown'} size={13} color="var(--ink4)" />
+              <Icon name={configOpen ? 'chevronUp' : 'chevronDown'} size={13} color="var(--ink3)" />
               App credentials (admin)
             </button>
             {configOpen && (

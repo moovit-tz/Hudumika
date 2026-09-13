@@ -21,7 +21,7 @@ const usd = (v: number) => v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(2)}M` : 
 const tzs = (v: number) => v >= 1_000_000 ? `TZS ${(v / 1_000_000).toFixed(1)}M` : `TZS ${Math.round(v).toLocaleString()}`;
 const monthLabel = (m: string) => { const [y, mo] = m.split('-'); return new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString('en-US', { month: 'short' }); };
 
-const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' };
+const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' };
 const cardSub: React.CSSProperties = { fontSize: 12, color: 'var(--ink3)', marginTop: 2 };
 
 // A labelled horizontal bar list, shares of a total. Colour comes from the
@@ -37,8 +37,8 @@ function BarList({ rows }: { rows: { label: string; value: number }[] }) {
             <span style={{ color: 'var(--ink2)' }}>{r.label}</span>
             <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.value}</span>
           </div>
-          <div style={{ height: 7, borderRadius: 4, background: 'var(--bg)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${Math.round((r.value / max) * 100)}%`, background: 'var(--teal)', borderRadius: 4, transition: 'width 0.5s' }} />
+          <div style={{ height: 7, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${Math.round((r.value / max) * 100)}%`, background: 'var(--teal)', borderRadius: 'var(--r-sm)', transition: 'width 0.5s' }} />
           </div>
         </div>
       ))}
@@ -95,7 +95,7 @@ export function HuduBIDashboard() {
           {/* Data-layer strip */}
           <SectionCard>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name="layers" size={18} color="var(--teal)" />
             </div>
             <div style={{ flex: 1, minWidth: 220 }}>
@@ -115,7 +115,7 @@ export function HuduBIDashboard() {
             {kpis.map(kpi => (
               <div key={kpi.label} style={card}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name={kpi.icon} size={16} color="var(--teal)" />
                   </div>
                 </div>
@@ -154,7 +154,7 @@ export function HuduBIDashboard() {
                     {data.monthlyVolume.map(m => (
                       <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{m.count}</span>
-                        <div style={{ width: '100%', maxWidth: 46, height: `${Math.max(4, (m.count / max) * 100)}%`, background: 'var(--teal)', borderRadius: '5px 5px 0 0', transition: 'height 0.5s' }} />
+                        <div style={{ width: '100%', maxWidth: 46, height: `${Math.max(4, (m.count / max) * 100)}%`, background: 'var(--teal)', borderRadius: `var(--r-sm) var(--r-sm) 0 0`, transition: 'height 0.5s' }} />
                         <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{monthLabel(m.month)}</span>
                       </div>
                     ))}
@@ -174,7 +174,7 @@ export function HuduBIDashboard() {
             {explain ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {([['Method', explain.modelName], ['What it does', explain.description], ['Basis', explain.rationale], ['Note', explain.note]] as const).map(([label, val]) => val && (
-                  <div key={label} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 14 }}>
+                  <div key={label} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>{label}</div>
                     <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.5 }}>{val}</div>
                   </div>

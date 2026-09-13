@@ -113,7 +113,7 @@ export const OndiOrgTrust: React.FC = () => {
                       </div>
                     </td>
                     <td>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, background: 'var(--bg)', border: '1px solid var(--border-soft)', padding: '3px 8px', borderRadius: 6 }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, background: 'var(--bg)', border: '1px solid var(--border)', padding: '3px 8px', borderRadius: 6 }}>
                         {m.role}
                       </span>
                     </td>

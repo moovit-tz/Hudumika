@@ -72,7 +72,7 @@ function MiniMonthPicker() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 1 }}>
         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-          <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'var(--ink4)', padding: '2px 0' }}>{d}</div>
+          <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', padding: '2px 0' }}>{d}</div>
         ))}
         {cells.map((d, i) => {
           if (!d) return <div key={i} />;
@@ -143,7 +143,7 @@ function MeetWithPanel() {
         {people.length > 0 && (
           <span style={{ background: 'var(--teal-l)', color: 'var(--teal)', padding: '1px 7px', borderRadius: 10, fontSize: 10.5, fontWeight: 700 }}>{people.length}</span>
         )}
-        <Icon name={open ? 'chevronUp' : 'chevronDown'} size={13} color="var(--ink4)" style={{ marginLeft: 'auto' }} />
+        <Icon name={open ? 'chevronUp' : 'chevronDown'} size={13} color="var(--ink3)" style={{ marginLeft: 'auto' }} />
       </button>
       {open && (
         <div style={{ paddingTop: 4 }}>
@@ -177,7 +177,7 @@ function MeetWithPanel() {
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: MEET_WITH_COLORS[i % MEET_WITH_COLORS.length], flexShrink: 0 }} />
                   <PersonAvatar userId={p.userId} name={p.name} size={18} />
                   <span style={{ flex: 1, color: 'var(--ink2)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                  <button type="button" onClick={() => removeMeetWithPerson(p.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex', padding: 2 }}>
+                  <button type="button" onClick={() => removeMeetWithPerson(p.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 2 }}>
                     <Icon name="x" size={12} />
                   </button>
                 </div>
@@ -315,7 +315,7 @@ function TodoSidebarContent({ collapsed }: { collapsed: boolean }) {
                     style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid var(--border2)', background: 'transparent', cursor: 'pointer', flexShrink: 0 }}
                   />
                   <span style={{ flex: 1, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontWeight: 500 }}>{todo.title}</span>
-                  <Icon name="moreVertical" size={13} color="var(--ink4)" />
+                  <Icon name="moreVertical" size={13} color="var(--ink3)" />
                 </div>
               ))}
             </div>

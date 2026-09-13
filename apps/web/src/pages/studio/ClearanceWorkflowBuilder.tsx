@@ -122,11 +122,11 @@ const OPERATORS: {value: FieldCondition['operator']; label: string}[] = [
 ];
 
 const CHANNELS: {value: AutoComm['channel']; label: string; icon: IconName; color: string}[] = [
-  {value:'email',               label:'Email',               icon:'mail',          color:'#DBEAFE'},
-  {value:'sms',                 label:'SMS',                 icon:'messageSquare', color:'#DCFCE7'},
-  {value:'whatsapp',            label:'WhatsApp',            icon:'smartphone',    color:'#DCFCE7'},
-  {value:'system_notification', label:'System Notification', icon:'bell',          color:'#FEF3C7'},
-  {value:'webhook',             label:'Webhook',              icon:'link',         color:'#F3E8FF'},
+  {value:'email',               label:'Email',               icon:'mail',          color:'var(--blue-l)'},
+  {value:'sms',                 label:'SMS',                 icon:'messageSquare', color:'var(--green-l)'},
+  {value:'whatsapp',            label:'WhatsApp',            icon:'smartphone',    color:'var(--green-l)'},
+  {value:'system_notification', label:'System Notification', icon:'bell',          color:'var(--gold-l)'},
+  {value:'webhook',             label:'Webhook',              icon:'link',         color:'var(--purple-l)'},
 ];
 
 const RECIPIENTS: {value: AutoComm['recipient']; label: string}[] = [

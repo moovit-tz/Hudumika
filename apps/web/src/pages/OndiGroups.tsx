@@ -23,7 +23,7 @@ interface GroupDetail extends Omit<GroupSummary, 'roles'> {
 }
 interface AvailableRole { id: string; name: string; description: string | null }
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
 function fmtDate(d: string): string {
@@ -163,7 +163,7 @@ export const OndiGroups: React.FC = () => {
         subtitle="Bulk-manage role access by group — static member assignments or dynamic rule-based evaluators."
         actions={!showNew ? (
           <button type="button" onClick={() => { setShowNew(true); resetForm(); }}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 8, padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px var(--teal-m)' }}>
             <Icon name="plus" size={15} /> New Group
           </button>
         ) : undefined}
@@ -196,10 +196,10 @@ export const OndiGroups: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Static Groups</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#f1f5f9', color: '#475569' }}><Icon name="userCheck" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: '#f1f5f9', color: 'var(--ink2)' }}><Icon name="userCheck" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#475569' }}>{staticCount}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--ink2)' }}>{staticCount}</span>
             <span className="ondi-kpi-sub">manual members</span>
           </div>
         </div>
@@ -223,14 +223,14 @@ export const OndiGroups: React.FC = () => {
                   {(['static', 'dynamic'] as const).map(t => (
                     <div key={t} onClick={() => setMembershipType(t)}
                       role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMembershipType(t); } }}
-                      style={{ flex: 1, textAlign: 'center', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, border: `2px solid ${membershipType === t ? 'var(--teal)' : 'var(--border)'}`, background: membershipType === t ? 'var(--teal-l, #ecfeff)' : 'var(--white)', color: membershipType === t ? 'var(--teal)' : 'var(--ink2)', transition: 'all 0.15s ease' }}>
+                      style={{ flex: 1, textAlign: 'center', padding: '10px 14px', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 13, fontWeight: 700, border: `2px solid ${membershipType === t ? 'var(--teal)' : 'var(--border)'}`, background: membershipType === t ? 'var(--teal-l)' : 'var(--white)', color: membershipType === t ? 'var(--teal)' : 'var(--ink2)', transition: 'all 0.15s ease' }}>
                       {t === 'static' ? 'Static (Manual List)' : 'Dynamic (Rule Evaluator)'}
                     </div>
                   ))}
                 </div>
               </div>
               {membershipType === 'dynamic' && (
-                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 14 }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14 }}>
                   <div style={{ flex: 1 }}>
                     <label style={labelStyle}>Evaluate where…</label>
                     <Select value={ruleAttribute} onValueChange={v => { setRuleAttribute(v as 'role' | 'active'); setRuleValue(''); }}>
@@ -264,11 +264,11 @@ export const OndiGroups: React.FC = () => {
               )}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="button" disabled={creating} onClick={createGroup}
-                  style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: creating ? 0.6 : 1, boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+                  style={{ padding: '8px 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: creating ? 0.6 : 1, boxShadow: '0 2px 8px var(--teal-m)' }}>
                   {creating ? 'Creating…' : 'Create Group'}
                 </button>
                 <button type="button" onClick={() => { setShowNew(false); resetForm(); }}
-                  style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                  style={{ padding: '8px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                   Cancel
                 </button>
               </div>
@@ -300,7 +300,7 @@ export const OndiGroups: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 280 }}>
                   {g.roles.map(r => <span key={r.id} className="ondi-perm-chip">{r.name}</span>)}
-                  {g.roles.length === 0 && <span style={{ fontSize: 12, color: 'var(--ink4)' }}>No roles granted</span>}
+                  {g.roles.length === 0 && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>No roles granted</span>}
                 </div>
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink2)', minWidth: 80, textAlign: 'right' }}>{g.member_count} member{g.member_count === 1 ? '' : 's'}</span>
                 <button type="button" onClick={e => { e.stopPropagation(); deleteGroup(g); }} title="Delete group"
@@ -310,20 +310,20 @@ export const OndiGroups: React.FC = () => {
               </div>
 
               {open && (
-                <div style={{ padding: '0 20px 20px 50px', display: 'flex', flexDirection: 'column', gap: 18, borderTop: '1px solid var(--border-soft)', paddingTop: 16 }}>
+                <div style={{ padding: '0 20px 20px 50px', display: 'flex', flexDirection: 'column', gap: 18, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
                   {!d ? (
                     <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading details…</div>
                   ) : (
                     <>
                       {g.membership_type === 'dynamic' && g.rule && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#ecfeff', border: '1px solid var(--teal)', borderRadius: 8, padding: '10px 14px', fontSize: 12.5 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--teal-l)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: 12.5 }}>
                           <Icon name="zap" size={15} color="var(--teal)" />
                           <span style={{ color: 'var(--ink)' }}>
                             Rule: <strong>{g.rule.attribute === 'active' ? 'Active status' : 'Account role'}</strong> equals{' '}
                             <strong>{g.rule.attribute === 'active' ? (g.rule.value === 'true' ? 'Active' : 'Inactive') : String(g.rule.value)}</strong>
                           </span>
                           <button type="button" disabled={recalculating === g.id} onClick={() => recalculate(g.id)}
-                            style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 700, color: 'var(--teal)', background: 'var(--white)', border: '1px solid var(--teal)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' }}>
+                            style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 700, color: 'var(--teal)', background: 'var(--white)', border: '1px solid var(--teal)', borderRadius: 'var(--r-sm)', padding: '4px 12px', cursor: 'pointer' }}>
                             {recalculating === g.id ? 'Recalculating…' : 'Recalculate Now'}
                           </button>
                         </div>
@@ -333,10 +333,10 @@ export const OndiGroups: React.FC = () => {
                         <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Granted Roles</div>
                         {d.roles.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 8 }}>No roles attached — group members receive no extra permissions yet.</div>}
                         {d.roles.map(r => (
-                          <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid var(--border-soft)' }}>
+                          <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
                             <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{r.name}{r.description ? <span style={{ color: 'var(--ink3)', fontWeight: 400 }}> · {r.description}</span> : null}</div>
                             <button type="button" onClick={() => detachRole(g.id, r.id)}
-                              style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--red)', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>
+                              style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--red)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer' }}>
                               Detach
                             </button>
                           </div>
@@ -353,7 +353,7 @@ export const OndiGroups: React.FC = () => {
                             </Select>
                           </div>
                           <button type="button" onClick={() => attachRole(g.id)}
-                            style={{ fontSize: 12.5, fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 8, padding: '0 16px', cursor: 'pointer' }}>
+                            style={{ fontSize: 12.5, fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: '0 16px', cursor: 'pointer' }}>
                             Attach
                           </button>
                         </div>
@@ -363,13 +363,13 @@ export const OndiGroups: React.FC = () => {
                         <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Group Members ({d.members.length})</div>
                         {d.members.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 8 }}>No members assigned to group.</div>}
                         {d.members.map(m => (
-                          <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border-soft)' }}>
+                          <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
                             <PersonAvatar userId={m.user_id} name={m.user_name} size={28} />
                             <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{m.user_name} <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>· {m.user_email}</span></div>
                             <span className={`ondi-status-pill ${m.source === 'rule' ? 'success' : 'gray'}`}>
                               {m.source === 'rule' ? 'Rule Match' : 'Manual'}
                             </span>
-                            <span style={{ fontSize: 11, color: 'var(--ink4)' }}>{fmtDate(m.added_at)}</span>
+                            <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{fmtDate(m.added_at)}</span>
                             <button type="button" onClick={() => removeMember(g.id, m.user_id)} title="Remove"
                               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
                               <Icon name="x" size={14} />
@@ -381,7 +381,7 @@ export const OndiGroups: React.FC = () => {
                             <EntityPicker value={memberPick[g.id] ?? null} onChange={p => setMemberPick(prev => ({ ...prev, [g.id]: p }))} search={searchStaff} placeholder="Add colleague to group…" />
                           </div>
                           <button type="button" onClick={() => addMember(g.id)}
-                            style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'var(--ink)', border: 'none', borderRadius: 8, padding: '0 16px', cursor: 'pointer' }}>
+                            style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'var(--ink)', border: 'none', borderRadius: 'var(--r)', padding: '0 16px', cursor: 'pointer' }}>
                             Add
                           </button>
                         </div>

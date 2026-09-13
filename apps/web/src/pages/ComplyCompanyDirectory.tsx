@@ -10,6 +10,7 @@ import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { CompanyAvatar } from '../components/PersonAvatar.js';
+import { Button } from '../components/ui/button.js';
 
 type EditableField = 'name' | 'contact_name' | 'email' | 'phone_wa' | 'tax_id' | 'entity_type' | 'registration_status' | 'registered_address' | 'incorporation_date';
 
@@ -132,10 +133,10 @@ export function ComplyCompanyDirectory() {
         subtitle="Companies captured from BRELA Search. Drafts are a holding layer only you can see here — review and mark a profile complete to move it into the CRM shared across every Hudumika app."
         actions={
         <div className="comply-action-row">
-          <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => navigate('/complyos/brela-search')}>
+          <Button type="button" variant="outline" size="sm" onClick={() => navigate('/complyos/brela-search')}>
             <Icon name="search" size={13} />
             <span>BRELA Search</span>
-          </button>
+          </Button>
         </div>
         }
       />
@@ -243,36 +244,36 @@ export function ComplyCompanyDirectory() {
               </span>
             </h3>
             <div className="comply-action-row">
-              <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={backToList}>
+              <Button type="button" variant="outline" size="sm" onClick={backToList}>
                 <Icon name="arrowLeft" size={13} />
                 <span>Back to Directory</span>
-              </button>
+              </Button>
               {editMode ? (
                 <>
-                  <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => openProfile(selected)} disabled={saving}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => openProfile(selected)} disabled={saving}>
                     <span>Cancel</span>
-                  </button>
-                  <button type="button" className="comply-btn-primary comply-btn-sm" onClick={handleSave} disabled={saving}>
+                  </Button>
+                  <Button type="button" size="sm" onClick={handleSave} disabled={saving}>
                     <Icon name="check" size={13} />
                     <span>{saving ? 'Saving…' : 'Save'}</span>
-                  </button>
+                  </Button>
                 </>
               ) : (
                 <>
-                  <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => setEditMode(true)}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setEditMode(true)}>
                     <Icon name="edit" size={13} />
                     <span>Edit</span>
-                  </button>
+                  </Button>
                   {!selected.active && (
-                    <button type="button" className="comply-btn-primary comply-btn-sm" onClick={() => handleMarkComplete(selected)}>
+                    <Button type="button" size="sm" onClick={() => handleMarkComplete(selected)}>
                       <Icon name="checkCircle" size={13} />
                       <span>Mark Complete — Move to CRM</span>
-                    </button>
+                    </Button>
                   )}
-                  <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => handleDelete(selected)}>
+                  <Button type="button" variant="outline" size="sm" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} onClick={() => handleDelete(selected)}>
                     <Icon name="trash" size={13} />
                     <span>Delete</span>
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

@@ -92,7 +92,7 @@ function AccountRow({
           onClick={e => { e.stopPropagation(); if (hasChildren) onToggle(account.id); }}
           style={{
             width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 4, cursor: hasChildren ? 'pointer' : 'default',
+            borderRadius: 'var(--r-sm)', cursor: hasChildren ? 'pointer' : 'default',
             color: hasChildren ? cfg.color : 'transparent',
             fontSize: 11, fontWeight: 800,
           }}
@@ -474,7 +474,7 @@ export const ChartOfAccounts: React.FC = () => {
         {loading ? (
           <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--ink3)' }}>Loading chart of accounts…</div>
         ) : loadError ? (
-          <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--red, #dc2626)' }}>{loadError}</div>
+          <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--red)' }}>{loadError}</div>
         ) : coaTree.length === 0 ? (
           <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--ink3)' }}>
             <Icon name="folder" size={28} color="var(--ink3)" />
@@ -535,7 +535,7 @@ export const ChartOfAccounts: React.FC = () => {
         <div style={{
           position: 'fixed', bottom: 24, right: 24, width: 320,
           background: 'var(--white)', border: '1px solid var(--border)',
-          borderRadius: 12, boxShadow: 'var(--elev-lg)',
+          borderRadius: 'var(--card-radius)', boxShadow: 'var(--elev-lg)',
           zIndex: 200, overflow: 'hidden',
         }}>
           <div style={{

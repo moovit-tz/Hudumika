@@ -104,7 +104,7 @@ export const FinanceAgedPayables: React.FC = () => {
               { label: '1–30 Days',  value: totals.days_1_30,    color: 'var(--gold)'       },
               { label: '31–60 Days', value: totals.days_31_60,   color: 'var(--red)'    },
               { label: '61–90 Days', value: totals.days_61_90,   color: 'var(--red)'    },
-              { label: '90+ Days',   value: totals.days_90_plus, color: '#7c3aed'       },
+              { label: '90+ Days',   value: totals.days_90_plus, color: 'var(--purple)'       },
             ].map(band => {
               const pct = totals.total > 0 ? Math.round((band.value / totals.total) * 100) : 0;
               return (
@@ -113,8 +113,8 @@ export const FinanceAgedPayables: React.FC = () => {
                     <span style={{ fontSize: 11, color: 'var(--ink2)', fontWeight: 500 }}>{band.label}</span>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)' }}>{pct}%</span>
                   </div>
-                  <div style={{ height: 6, borderRadius: 3, background: 'var(--border)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: band.color, borderRadius: 3 }} />
+                  <div style={{ height: 6, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: band.color, borderRadius: 'var(--r-sm)'}} />
                   </div>
                   <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4, fontFamily: 'var(--mono)' }}>{fmtFull(band.value)}</div>
                 </div>
@@ -147,7 +147,7 @@ export const FinanceAgedPayables: React.FC = () => {
                       <td style={{ padding: '10px 16px', color: 'var(--gold)',       fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_1_30)}</td>
                       <td style={{ padding: '10px 16px', color: 'var(--red)',    fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_31_60)}</td>
                       <td style={{ padding: '10px 16px', color: 'var(--red)',    fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_61_90)}</td>
-                      <td style={{ padding: '10px 16px', color: '#7c3aed',       fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_90_plus)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--purple)',       fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_90_plus)}</td>
                       <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 700, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.total)}</td>
                       <td style={{ padding: '10px 16px' }}>
                         <span style={{ fontSize: 10, fontWeight: 700, color: badge.color, background: badge.bg, borderRadius: 'var(--r-sm)', padding: '2px 7px' }}>{badge.label}</span>
@@ -161,7 +161,7 @@ export const FinanceAgedPayables: React.FC = () => {
                   <td style={{ padding: '10px 16px', color: 'var(--gold)',       fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_1_30)}</td>
                   <td style={{ padding: '10px 16px', color: 'var(--red)',    fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_31_60)}</td>
                   <td style={{ padding: '10px 16px', color: 'var(--red)',    fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_61_90)}</td>
-                  <td style={{ padding: '10px 16px', color: '#7c3aed',       fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_90_plus)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--purple)',       fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_90_plus)}</td>
                   <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.total)}</td>
                   <td style={{ borderTop: '2px solid var(--border)' }} />
                 </tr>

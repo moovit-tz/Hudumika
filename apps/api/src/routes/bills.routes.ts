@@ -24,14 +24,23 @@ const recurringBillSchema = z.object({
   bills_generated: z.number().int().min(0).optional(),
   total_spend: z.number().min(0).optional(),
 });
+// HUD-0060: previously documented `quantity`/`unit_cost`/`amount`/`account_id`
+// — fields buildBillLines() below has never read. The shipped Bills.tsx
+// already sends the real names (qty/unit_price/category), so no live bill
+// was ever affected, but any other caller trusting this schema (a future
+// integration, an API-key consumer) would have every line silently price at
+// zero — buildBillLines() defaults a missing qty/unit_price rather than
+// erroring, so this was a silent wrong-total, not a crash like HUD-0043's
+// equivalent on invoices.
 const billLineSchema = z.object({
   description: z.string().max(500).optional(),
-  account_id: z.string().optional(),
-  quantity: z.number().optional(),
-  unit_cost: z.number().optional(),
-  amount: z.number().optional(),
+  category: z.string().max(50).optional(),
+  qty: z.number().optional(),
+  unit_price: z.number().optional(),
+  tax_rate: z.number().min(0).max(100).optional(),
   tax_code_id: z.string().optional(),
   wht_rate_id: z.string().optional(),
+  sort_order: z.number().int().optional(),
 }).passthrough(); // buildBillLines does its own detailed validation on each line — this just guards the shape isn't a non-object/non-array.
 const billCreateSchema = z.object({
   items: z.array(billLineSchema).optional(),
@@ -242,6 +251,16 @@ export async function billRoutes(fastify: FastifyInstance) {
   // ── Stats ─────────────────────────────────────────────────────────────────
 
   // GET /v1/bills/stats  (must be before /:id)
+  // HUD-0024 continuation: internal tenant-business data (finance ledgers,
+  // fleet ops, HR, identity/access admin, or tenant configuration) with only
+  // an entitlement gate — reachable end-to-end by a CUSTOMER JWT (confirmed
+  // live before this fix). Not customer-portal data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
+
   fastify.get('/stats', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {

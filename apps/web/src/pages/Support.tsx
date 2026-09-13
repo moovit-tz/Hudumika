@@ -8,7 +8,7 @@ import { OPS_ROLES } from '../lib/permissions.js';
 import { useMediaQuery } from '../hooks/useMediaQuery.js';
 import { useWebSocket } from '../hooks/useWebSocket.js';
 import { Icon } from '../components/Icon.js';
-import { PageLoading } from '../components/ui/spinner.js';
+import { PageLoading, SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import '../pages/Bliss.css';
@@ -959,7 +959,7 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                       {channelKey(t.channel) === 'note' && (
                         <Tip label="Internal Note">
-                          <Icon name="lock" size={11} color="var(--gold, #f59e0b)" />
+                          <Icon name="lock" size={11} color="var(--gold)" />
                         </Tip>
                       )}
                       <span className="spt-conv-row-time">
@@ -1429,7 +1429,7 @@ function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSuggestionT
             return (
               <div key={m.id} className="spt-bedesk-internal-note-card">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f59e0b', fontSize: 12, fontWeight: 800 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--gold)', fontSize: 12, fontWeight: 800 }}>
                     <Icon name="lock" size={13} />
                     <span>Internal Note</span>
                   </div>
@@ -1655,14 +1655,14 @@ function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSuggestionT
               </Tip>
               <PopoverContent align="start" side="top" className="w-72 p-2">
                 <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {macros === null && <div style={{ padding: 10, fontSize: 12, color: 'var(--ink3)' }}>Loading…</div>}
+                  {macros === null && <SectionLoading size={14} style={{ padding: 10 }} />}
                   {macros !== null && macros.length === 0 && <div style={{ padding: 10, fontSize: 12, color: 'var(--ink3)' }}>No canned responses yet.</div>}
                   {macros?.map(m => (
                     <div key={m.id} role="button" tabIndex={0}
                       onClick={() => { setCompose(c => c ? `${c}\n${m.content}` : m.content); setShowMacros(false); }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 8px', borderRadius: 6, cursor: 'pointer' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 8px', borderRadius: 'var(--r-sm)', cursor: 'pointer' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{m.title}</div>
                         <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.content}</div>
@@ -1678,7 +1678,7 @@ function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSuggestionT
                     <div style={{ display: 'flex', gap: 4 }}>
                       <input autoFocus value={newMacroTitle} onChange={e => setNewMacroTitle(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') saveMacro(); if (e.key === 'Escape') setNewMacroOpen(false); }}
-                        placeholder="Macro title…" style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--white)', color: 'var(--ink)' }} />
+                        placeholder="Macro title…" style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--white)', color: 'var(--ink)' }} />
                       <button type="button" onClick={saveMacro} disabled={!newMacroTitle.trim() || !compose.trim()} className="btn btn-primary btn-sm">Save</button>
                     </div>
                   ) : (
@@ -1805,7 +1805,7 @@ function RelatedTickets({ ticket }: { ticket: Ticket }) {
   return (
     <DetailsAccordion title="Other tickets from this customer">
       {related === null ? (
-        <div style={{ padding: '4px 0', fontSize: 12, color: 'var(--ink3)' }}>Loading…</div>
+        <SectionLoading size={14} style={{ padding: '4px 0' }} />
       ) : related.length === 0 ? (
         <div style={{ padding: '4px 0', fontSize: 12, color: 'var(--ink3)' }}>No other tickets from this customer yet.</div>
       ) : (
@@ -1817,7 +1817,7 @@ function RelatedTickets({ ticket }: { ticket: Ticket }) {
               <Link
                 key={r.id}
                 to={`/bliss/inbox?id=${r.id}`}
-                style={{ textDecoration: 'none', color: 'inherit', display: 'block', padding: '8px 10px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--border)' }}
+                style={{ textDecoration: 'none', color: 'inherit', display: 'block', padding: '8px 10px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', border: '1px solid var(--border)' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.subject}</span>
@@ -2819,7 +2819,7 @@ export const Support: React.FC<{
                           background: 'none',
                           border: 'none',
                           fontSize: 28,
-                          color: active ? '#f59e0b' : 'var(--border)',
+                          color: active ? 'var(--gold)' : 'var(--border)',
                           cursor: 'pointer',
                           transition: 'transform 0.15s ease',
                           transform: csatScore === star ? 'scale(1.2)' : 'none',
@@ -2851,7 +2851,7 @@ export const Support: React.FC<{
                           borderRadius: '50%',
                           border: active ? 'none' : '1px solid var(--border)',
                           background: active ? 'var(--teal)' : 'var(--white)',
-                          color: active ? '#ffffff' : 'var(--ink)',
+                          color: active ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
                           fontSize: 12,
                           fontWeight: 700,
                           cursor: 'pointer',

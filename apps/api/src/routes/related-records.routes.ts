@@ -12,6 +12,18 @@ import { RELATED_REGISTRY } from '../lib/related-records.js';
  */
 export async function relatedRecordsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // HUD-0024 continuation: RELATED_REGISTRY's resolve() functions scope by
+  // tenant_id only, not by ownership (e.g. the `shipment` entry resolves any
+  // shipment in the tenant, not just ones belonging to the caller) — this is
+  // fine for internal staff (tenant-wide visibility is the existing model
+  // elsewhere too) but lets a CUSTOMER pull another customer's shipment's
+  // linked invoices/documents by guessing/enumerating an id, bypassing the
+  // ownership scoping shipments.routes.ts itself correctly enforces.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   fastify.get<{ Params: { entityType: string; entityId: string } }>('/:entityType/:entityId', async (request, reply) => {
     const user = request.user;

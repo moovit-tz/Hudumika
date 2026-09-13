@@ -55,7 +55,7 @@ export function SmsDashboard() {
       />
 
       {!stats?.gatewayConfigured && !loading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gold-l)', border: '1px solid var(--gold-m)', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 20 }}>
           <FeaturedIcon variant="warning" size="sm" shape="circle"><Icon name="alertTriangle" size={15} /></FeaturedIcon>
           <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>
             No SMS gateway configured yet — sends will fail until Africa's Talking or Twilio credentials are saved.

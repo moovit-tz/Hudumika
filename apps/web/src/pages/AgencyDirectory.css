@@ -107,7 +107,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--surface, #fff);
+  background: #fff;
   border: 1px solid var(--border);
   border-radius: var(--r, 8px);
   padding: 0 12px;
@@ -126,7 +126,7 @@
 .ad-filter-select {
   border: 1px solid var(--border);
   border-radius: var(--r, 8px);
-  background: var(--surface, #fff);
+  background: #fff;
   color: var(--ink);
   font-size: 13.5px;
   padding: 0 12px;
@@ -137,7 +137,7 @@
   align-items: center;
   gap: 6px;
   border: 1px solid var(--teal);
-  background: var(--teal-l, #fff7ed);
+  background: var(--teal-l);
   color: var(--teal);
   border-radius: 999px;
   font-size: 12.5px;
@@ -170,7 +170,7 @@
   gap: 18px;
 }
 .ad-card {
-  background: var(--surface, #fff);
+  background: #fff;
   border: 1px solid var(--border);
   border-radius: var(--r, 12px);
   padding: 20px;
@@ -201,9 +201,9 @@
   border-radius: 999px;
   white-space: nowrap;
 }
-.ad-tier-budget   { background: var(--green-l, #ecfdf5); color: var(--green, #1a7f37); }
-.ad-tier-standard { background: var(--blue-l, #eff6ff);  color: var(--blue, #2563eb); }
-.ad-tier-premium  { background: var(--gold-l, #fffbeb);  color: var(--gold, #b45309); }
+.ad-tier-budget   { background: var(--green-l); color: var(--green); }
+.ad-tier-standard { background: var(--blue-l);  color: var(--blue); }
+.ad-tier-premium  { background: var(--gold-l);  color: var(--gold); }
 
 .ad-card-desc {
   font-size: 13px;
@@ -306,7 +306,7 @@
   padding: 16px;
 }
 .ad-modal {
-  background: var(--surface, #fff);
+  background: #fff;
   border-radius: var(--r, 12px);
   width: 100%;
   max-width: 420px;
@@ -353,7 +353,7 @@
   gap: 10px;
   text-align: center;
   padding: 12px 0;
-  color: var(--green, #1a7f37);
+  color: var(--green);
 }
 .ad-modal-sent p { color: var(--ink2); font-size: 13.5px; margin: 0; }
 

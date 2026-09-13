@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { z } from 'zod';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
@@ -399,6 +400,7 @@ export const ACTIONS: ActionDef[] = [
         if (!list) return { ok: false, detail: `User ${input.userId} has no task list to add this to.` };
 
         const row = await trx.insertInto('tasks').values({
+          id: crypto.randomUUID(),
           tenant_id: ctx.tenantId,
           user_id: input.userId,
           list_id: list.id,

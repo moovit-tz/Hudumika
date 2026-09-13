@@ -156,7 +156,7 @@ export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{s.name}</span>
-                            <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>{s.code}</span>
+                            <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '1px 5px' }}>{s.code}</span>
                           </div>
                           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer' }}>
                             <input type="checkbox" checked={!!value(s, 'active')} onChange={e => set(s.id, 'active', e.target.checked)} />

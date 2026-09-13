@@ -5,6 +5,7 @@ import { Badge } from '../components/ui/badge.js';
 import { Banner } from '../components/ui/alert.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 
@@ -197,7 +198,7 @@ export const DutyCheckPage: React.FC = () => {
 
           {/* LEFT: input card + HS finder, stacked */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 24, boxShadow: 'var(--elev-lg)' }}>
+          <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 24, boxShadow: 'var(--elev-lg)' }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="percent" size={18} color="var(--teal)" /> Item Details
             </div>
@@ -226,12 +227,12 @@ export const DutyCheckPage: React.FC = () => {
                 )}
 
                 {hsResults.length > 0 && !hsSelected && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, zIndex: 1000, boxShadow: 'var(--elev-lg)', overflow: 'hidden', marginTop: 6, maxHeight: 260, overflowY: 'auto' }}>
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', zIndex: 1000, boxShadow: 'var(--elev-lg)', overflow: 'hidden', marginTop: 6, maxHeight: 260, overflowY: 'auto' }}>
                     {hsResults.map(r => (
                       <div key={r.code} onClick={() => { setHs(r.code); setHsSelected(r); setHsResults([]); }}
                         role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setHs(r.code); setHsSelected(r); setHsResults([]); } }}
                         style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface, rgba(255,255,255,0.06))')}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
                         onMouseLeave={e => (e.currentTarget.style.background = '')}>
                         <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{r.code}</span>
                         <span style={{ color: 'var(--ink2)' }}> — {r.description}</span>
@@ -251,18 +252,17 @@ export const DutyCheckPage: React.FC = () => {
                 <Banner variant="error">{error}</Banner>
               )}
 
-              <button type="button" onClick={() => runCheck()} disabled={checking} className="btn btn-primary"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, fontSize: 14, fontWeight: 700 }}>
-                <Icon name="percent" size={15} color="#fff" />
+              <Button type="button" onClick={() => runCheck()} disabled={checking} className="w-full" style={{ minHeight: 44 }}>
+                <Icon name="percent" size={15} />
                 {checking ? 'Checking…' : 'Check Duty'}
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* HS code finder — description → suggestions → optional AI pick.
               Lives right under the main input, not in the results column, since
               its whole purpose is finding a code before you have one to check. */}
-          <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
+          <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 }}>
             {!showSuggester ? (
               <button type="button" onClick={() => setShowSuggester(true)}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%', textAlign: 'left', fontFamily: 'var(--font)' }}>
@@ -296,11 +296,10 @@ export const DutyCheckPage: React.FC = () => {
                   <div style={{ marginTop: 8 }}><Banner variant="error">{suggestError}</Banner></div>
                 )}
 
-                <button type="button" onClick={fetchSuggestions} disabled={suggesting} className="btn btn-secondary"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 38, fontSize: 13, fontWeight: 700, marginTop: 10, width: '100%' }}>
+                <Button type="button" variant="outline" size="sm" onClick={fetchSuggestions} disabled={suggesting} className="w-full" style={{ marginTop: 10 }}>
                   <Icon name="search" size={14} />
                   {suggesting ? 'Searching…' : 'Suggest HS code'}
-                </button>
+                </Button>
 
                 {suggestions.length > 0 && (
                   <div style={{ marginTop: 14 }}>
@@ -310,7 +309,7 @@ export const DutyCheckPage: React.FC = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {suggestions.map(s => (
                         <button key={s.code} type="button" onClick={() => acceptCode(s.code)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
                           onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                           <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', flexShrink: 0 }}>{s.code}</span>
@@ -326,13 +325,12 @@ export const DutyCheckPage: React.FC = () => {
                           <div style={{ marginTop: 10 }}><Banner variant="error">{aiPickError}</Banner></div>
                         )}
                         {!aiPick ? (
-                          <button type="button" onClick={pickWithAI} disabled={aiPicking} className="btn btn-secondary"
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 36, fontSize: 12.5, fontWeight: 700, marginTop: 10, width: '100%' }}>
+                          <Button type="button" variant="outline" size="sm" onClick={pickWithAI} disabled={aiPicking} className="w-full" style={{ marginTop: 10 }}>
                             <Icon name="sparkle" size={13} />
                             {aiPicking ? 'Asking AI…' : 'Let AI pick the best match'}
-                          </button>
+                          </Button>
                         ) : (
-                          <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 10 }}>
+                          <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r-sm)' }}>
                             {aiPick.code ? (
                               <>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -341,10 +339,9 @@ export const DutyCheckPage: React.FC = () => {
                                   <Badge variant={aiPick.confidence === 'high' ? 'success' : aiPick.confidence === 'medium' ? 'warning' : 'gray'}>{aiPick.confidence} confidence</Badge>
                                 </div>
                                 <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 6, lineHeight: 1.5 }}>{aiPick.reason}</div>
-                                <button type="button" onClick={() => acceptCode(aiPick.code!)} className="btn btn-primary"
-                                  style={{ height: 32, fontSize: 12, fontWeight: 700, marginTop: 8, padding: '0 14px' }}>
+                                <Button type="button" size="xs" onClick={() => acceptCode(aiPick.code!)} style={{ marginTop: 8 }}>
                                   Use this code
-                                </button>
+                                </Button>
                               </>
                             ) : (
                               <div style={{ fontSize: 12, color: 'var(--ink2)', lineHeight: 1.5 }}>{aiPick.reason || 'The AI did not settle on any of the candidate headings.'}</div>
@@ -363,14 +360,14 @@ export const DutyCheckPage: React.FC = () => {
           {/* RIGHT: results */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {!result && !checking && (
-              <div style={{ background: 'var(--card-bg, var(--white))', border: '1px dashed var(--border)', borderRadius: 16, padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
-                <Icon name="percent" size={28} color="var(--ink4)" style={{ display: 'block', margin: '0 auto 12px' }} />
+              <div style={{ background: 'var(--card-bg, var(--white))', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
+                <Icon name="percent" size={28} color="var(--ink3)" style={{ display: 'block', margin: '0 auto 12px' }} />
                 <div style={{ fontSize: 13.5 }}>Enter an HS code and run the check — or describe the product below and let the finder locate one.</div>
               </div>
             )}
 
             {checking && (
-              <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
+              <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
                 <Icon name="sliders" size={28} color="var(--teal)" style={{ display: 'block', margin: '0 auto 12px', animation: 'ds-spin 1.2s linear infinite' }} />
                 <div style={{ fontSize: 13.5 }}>Looking up duty and excise…</div>
               </div>
@@ -379,7 +376,7 @@ export const DutyCheckPage: React.FC = () => {
             {result && !checking && (
               <>
                 {/* Summary line */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 12, fontSize: 13, color: 'var(--ink2)', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--ink2)', flexWrap: 'wrap' }}>
                   <Icon name="info" size={16} color="var(--teal)" />
                   <span><strong>{result.code}</strong> — {result.description}{result.unit ? ` (per ${result.unit})` : ''}</span>
                   {result.pvoc_required && <Badge variant="warning">PVoC required</Badge>}
@@ -388,12 +385,12 @@ export const DutyCheckPage: React.FC = () => {
 
                 {/* Import Duty / Excise Duty cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                  <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 22px' }}>
+                  <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '20px 22px' }}>
                     <FeaturedIcon variant="info" size="md" shape="square"><Icon name="percent" size={18} /></FeaturedIcon>
                     <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--ink)', marginTop: 14, letterSpacing: '-0.5px' }}>{pct(result.import_duty_rate)}</div>
                     <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 4, fontWeight: 600 }}>Import Duty (EAC CET)</div>
                   </div>
-                  <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 22px' }}>
+                  <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '20px 22px' }}>
                     <FeaturedIcon variant="warning" size="md" shape="square"><Icon name="percent" size={18} /></FeaturedIcon>
                     <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--ink)', marginTop: 14, letterSpacing: '-0.5px' }}>{pct(result.excise_rate)}</div>
                     <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 4, fontWeight: 600 }}>Excise Duty</div>
@@ -402,13 +399,13 @@ export const DutyCheckPage: React.FC = () => {
 
                 {/* Alternative HS codes — siblings under the same 4-digit heading */}
                 {result.alternatives.length > 0 && (
-                  <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
+                  <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 }}>
                     <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Alternative HS codes</div>
                     <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>Other subheadings under the same tariff heading — in case this isn't quite the right one.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {result.alternatives.map(a => (
                         <button key={a.code} type="button" onClick={() => runCheck(a.code)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
                           onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                           <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', flexShrink: 0 }}>{a.code}</span>

@@ -12,9 +12,9 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 
 const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
-  ASSET:     { label: 'Asset',     color: '#0891b2', bg: '#ecfeff' },
+  ASSET:     { label: 'Asset',     color: 'var(--blue)', bg: 'var(--blue-l)' },
   LIABILITY: { label: 'Liability', color: 'var(--red)', bg: 'var(--red-l)' },
-  EQUITY:    { label: 'Equity',    color: '#7c3aed', bg: 'var(--purple-l)' },
+  EQUITY:    { label: 'Equity',    color: 'var(--purple)', bg: 'var(--purple-l)' },
   REVENUE:   { label: 'Revenue',   color: 'var(--green)', bg: 'var(--green-l)' },
   EXPENSE:   { label: 'Expense',   color: 'var(--gold)', bg: 'var(--gold-l)' },
 };
@@ -179,9 +179,9 @@ export const FinanceLedger: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
         {[
           { label: 'Active Accounts', value: accounts.length, color: 'var(--teal)' },
-          { label: 'Total Debits',    value: fmt(totals.dr), color: '#0891b2' },
-          { label: 'Total Credits',   value: fmt(totals.cr), color: '#7c3aed' },
-          { label: 'Net Movement',    value: fmt(totals.dr - totals.cr), color: totals.dr >= totals.cr ? 'var(--green)' : '#ef4444' },
+          { label: 'Total Debits',    value: fmt(totals.dr), color: 'var(--blue)' },
+          { label: 'Total Credits',   value: fmt(totals.cr), color: 'var(--purple)' },
+          { label: 'Net Movement',    value: fmt(totals.dr - totals.cr), color: totals.dr >= totals.cr ? 'var(--green)' : 'var(--red)' },
         ].map(c => (
           // No accent bar across the top. Four cards each in a different
           // colour is decoration competing with the figures they carry.
@@ -240,12 +240,12 @@ export const FinanceLedger: React.FC = () => {
       {/* Ledger table */}
       {TYPE_ORDER.filter(t => grouped[t]).map(t => (
         <div key={t} style={{ marginBottom: 24 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 16px', background:`${TYPE_CFG[t].color}12`, borderRadius: '9px 9px 0 0', borderBottom:`2px solid ${TYPE_CFG[t].color}` }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 16px', background: TYPE_CFG[t].bg, borderRadius: `var(--r) var(--r) 0 0`, borderBottom:`2px solid ${TYPE_CFG[t].color}` }}>
             <span style={{ fontSize:11, fontWeight:800, color:TYPE_CFG[t].color, textTransform:'uppercase', letterSpacing:'0.08em' }}>{TYPE_CFG[t].label}S</span>
             <span style={{ fontSize:11, color:'var(--ink3)' }}>— {grouped[t]!.length} accounts</span>
           </div>
 
-          <div style={{ border:'1px solid var(--border)', borderTop:'none', borderRadius: '0 0 9px 9px', overflow:'hidden', overflowX:'auto' }}>
+          <div style={{ border:'1px solid var(--border)', borderTop:'none', borderRadius: `0 0 var(--r) var(--r)`, overflow:'hidden', overflowX:'auto' }}>
             {/* Account rows */}
             {grouped[t]!.map((acc, ai) => {
               const open = acc.opening_debit - acc.opening_credit;
@@ -265,10 +265,10 @@ export const FinanceLedger: React.FC = () => {
                     <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--ink3)', fontWeight:600 }}>{acc.account_code}</span>
                     <span style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{acc.account_name}</span>
                     <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--ink2)', textAlign:'right' }}>{fmt(Math.abs(open))}</span>
-                    <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'#0891b2', textAlign:'right' }}>{acc.period_debit > 0 ? fmt(acc.period_debit) : '—'}</span>
-                    <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'#7c3aed', textAlign:'right' }}>{acc.period_credit > 0 ? fmt(acc.period_credit) : '—'}</span>
+                    <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--blue)', textAlign:'right' }}>{acc.period_debit > 0 ? fmt(acc.period_debit) : '—'}</span>
+                    <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--purple)', textAlign:'right' }}>{acc.period_credit > 0 ? fmt(acc.period_credit) : '—'}</span>
                     <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
-                      <span style={{ fontSize:11, fontWeight:700, color: close < 0 ? '#7c3aed' : '#0891b2', background: close < 0 ? '#ede9fe' : '#ecfeff', padding:'2px 6px', borderRadius: 'var(--r)', whiteSpace:'nowrap' }}>
+                      <span style={{ fontSize:11, fontWeight:700, color: close < 0 ? 'var(--purple)' : 'var(--blue)', background: close < 0 ? 'var(--purple-l)' : 'var(--blue-l)', padding:'2px 6px', borderRadius: 'var(--r)', whiteSpace:'nowrap' }}>
                         {close < 0 ? 'Cr' : 'Dr'}
                       </span>
                     </span>
@@ -305,8 +305,8 @@ export const FinanceLedger: React.FC = () => {
                           <span style={{ fontSize:11, fontFamily:'var(--mono)', color:'var(--ink3)' }}>{e.entry_number}</span>
                           <span style={{ fontSize:11, color:'var(--ink3)' }}>{fmtDate(e.date)}</span>
                           <span style={{ fontSize:12, color:'var(--ink2)' }}>{e.description}</span>
-                          <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'#0891b2', textAlign:'right' }}>{e.debit > 0 ? fmt(e.debit) : ''}</span>
-                          <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'#7c3aed', textAlign:'right' }}>{e.credit > 0 ? fmt(e.credit) : ''}</span>
+                          <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--blue)', textAlign:'right' }}>{e.debit > 0 ? fmt(e.debit) : ''}</span>
+                          <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--purple)', textAlign:'right' }}>{e.credit > 0 ? fmt(e.credit) : ''}</span>
                           <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--ink)', textAlign:'right' }}>{fmt(Math.abs(e.running_balance))} {e.running_balance < 0 ? 'Cr' : 'Dr'}</span>
                         </div>
                       ))}
@@ -314,12 +314,12 @@ export const FinanceLedger: React.FC = () => {
                         <div style={{ padding:'10px 14px', fontSize:12, color:'var(--ink3)', fontStyle:'italic' }}>No entries this period.</div>
                       )}
                       {/* Closing balance */}
-                      <div style={{ display:'grid', gridTemplateColumns:'28px 70px 120px 1fr 130px 130px 130px', gap:0, padding:'8px 14px', background:'var(--teal-l)', borderTop:`1px solid ${cfg.color}40` }}>
+                      <div style={{ display:'grid', gridTemplateColumns:'28px 70px 120px 1fr 130px 130px 130px', gap:0, padding:'8px 14px', background:'var(--teal-l)', borderTop:`1px solid ${cfg.bg}` }}>
                         <span/><span/>
                         <span style={{ fontSize:11, color:'var(--ink3)', fontStyle:'italic' }}>Closing</span>
                         <span style={{ fontSize:12, fontWeight:700, color:'var(--ink)' }}>Closing Balance c/f</span>
-                        <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'#0891b2', textAlign:'right', fontWeight:700 }}>{fmt(acc.period_debit)}</span>
-                        <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'#7c3aed', textAlign:'right', fontWeight:700 }}>{fmt(acc.period_credit)}</span>
+                        <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--blue)', textAlign:'right', fontWeight:700 }}>{fmt(acc.period_debit)}</span>
+                        <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--purple)', textAlign:'right', fontWeight:700 }}>{fmt(acc.period_credit)}</span>
                         <span style={{ fontSize:13, fontFamily:'var(--mono)', color:'var(--teal)', textAlign:'right', fontWeight:800 }}>{fmt(Math.abs(close))} {close < 0 ? 'Cr' : 'Dr'}</span>
                       </div>
                       </>

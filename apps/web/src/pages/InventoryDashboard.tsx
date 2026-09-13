@@ -170,7 +170,7 @@ export function InventoryDashboard() {
                       key={w.id}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                        borderRadius: 12, border: '1px solid var(--border)', marginBottom: 10,
+                        borderRadius: 'var(--r)', border: '1px solid var(--border)', marginBottom: 10,
                         background: 'var(--white)',
                       }}
                     >

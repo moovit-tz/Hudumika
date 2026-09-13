@@ -100,7 +100,7 @@ export default function BuildingBlocksShowcase() {
             { label: 'Compliance Audits', val: '99.4%', trend: 'Clean', icon: 'shieldCheck', color: 'var(--blue)' },
             { label: 'Demurrage Risk', val: '3 Assets', trend: 'High Risk', icon: 'alertTriangle', color: 'var(--red)' },
           ].map(k => (
-            <div key={k.label} className="ondi-kpi-card" style={{ padding: 18, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+            <div key={k.label} className="ondi-kpi-card" style={{ padding: 18, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)' }}>{k.label}</span>
                 <FeaturedIcon variant="gray" size="sm" shape="circle"><Icon name={k.icon as any} size={14} /></FeaturedIcon>
@@ -230,7 +230,7 @@ export default function BuildingBlocksShowcase() {
     { name: 'Growth', price: '$18', desc: 'For growing operational teams', badge: 'MOST POPULAR', features: ['Every module included', '500 items / mo', '50 GB storage', 'WhatsApp Bot'] },
     { name: 'Enterprise', price: 'Custom', desc: 'Custom SLAs & dedicated manager', badge: 'CURRENT PLAN', features: ['Unlimited storage', '24/7 phone support', 'Custom API access'] },
   ].map(p => (
-    <div key={p.name} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+    <div key={p.name} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 20 }}>
       {p.badge && <Badge variant={p.badge === 'MOST POPULAR' ? 'teal' : 'gray'} style={{ marginBottom: 10 }}>{p.badge}</Badge>}
       <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{p.name}</div>
       <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>{p.desc}</div>
@@ -246,7 +246,7 @@ export default function BuildingBlocksShowcase() {
             { name: 'Growth', price: '$18', desc: 'For growing operational teams', badge: 'MOST POPULAR', features: ['Every module included', '500 items / mo', '50 GB storage', 'WhatsApp Bot'] },
             { name: 'Enterprise', price: 'Custom', desc: 'Custom SLAs & dedicated manager', badge: 'CURRENT PLAN', features: ['Unlimited storage', '24/7 phone support', 'Custom API access'] },
           ].map(p => (
-            <div key={p.name} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+            <div key={p.name} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 20 }}>
               {p.badge && <Badge variant={p.badge === 'MOST POPULAR' ? 'brand' : 'gray'} style={{ marginBottom: 10 }}>{p.badge}</Badge>}
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{p.name}</div>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>{p.desc}</div>
@@ -264,7 +264,7 @@ export default function BuildingBlocksShowcase() {
       title: 'Empty State Illustration Block',
       category: 'empty',
       description: 'Centered empty state with FeaturedIcon circle, clear explanation text, and primary call-to-action button.',
-      codeSnippet: `<div style={{ padding: 40, textAlign: 'center', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14 }}>
+      codeSnippet: `<div style={{ padding: 40, textAlign: 'center', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)' }}>
   <FeaturedIcon variant="brand" size="lg" shape="circle" style={{ margin: '0 auto 12px' }}>
     <Icon name="package" size={20} />
   </FeaturedIcon>
@@ -275,7 +275,7 @@ export default function BuildingBlocksShowcase() {
   <Button variant="default" size="sm"><Icon name="plus" size={14} /> Create Record</Button>
 </div>`,
       render: () => (
-        <div style={{ padding: 36, textAlign: 'center', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14 }}>
+        <div style={{ padding: 36, textAlign: 'center', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
             <FeaturedIcon variant="brand" size="lg" shape="circle">
               <Icon name="package" size={20} />
@@ -310,7 +310,7 @@ export default function BuildingBlocksShowcase() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '0 4px' }}>
       {/* Header Banner */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 24 }}>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -348,7 +348,7 @@ export default function BuildingBlocksShowcase() {
       {/* Building Blocks List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         {filteredBlocks.map(b => (
-          <div key={b.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+          <div key={b.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', overflow: 'hidden' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{b.title}</div>

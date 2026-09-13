@@ -10,12 +10,28 @@ import { MinioIntegration } from '../integrations/minio.js';
 
 // Real values — Billing.tsx's own `Status` type.
 const INVOICE_STATUS = ['Draft', 'Partial', 'Paid', 'Credited', 'Unpaid', 'Overdue'] as const;
+// Phase 5 (functional tracing): this schema used to declare description/
+// account_id/quantity/unit_price — fields buildInvoiceLines() below has
+// never read (it reads name/unit/rate/qty/tax_pct/line_group/currency,
+// exactly what Billing.tsx's real save payload sends) and account_id has
+// never been read anywhere in this file. A caller that reasonably trusted
+// this schema instead of the frontend's actual field names got every line
+// silently zeroed out (rate/qty default to 0/1) or, since `name` is a
+// NOT NULL column, a raw Postgres constraint violation surfaced as a bare
+// 500 — reproduced live while tracing the create-invoice flow. Corrected
+// to the fields the rest of this file actually reads.
 const invoiceLineSchema = z.object({
-  description: z.string().max(500).optional(),
-  account_id: z.string().optional(),
-  quantity: z.number().optional(),
-  unit_price: z.number().optional(),
-  amount: z.number().optional(),
+  // Required, not optional: `name` is a NOT NULL column (sales_invoice_
+  // lines) — better a clean 400 here than the raw Postgres constraint
+  // violation this schema previously let straight through.
+  name: z.string().trim().min(1).max(500),
+  unit: z.string().max(50).optional(),
+  rate: z.number().optional(),
+  qty: z.number().optional(),
+  tax_pct: z.number().optional(),
+  line_group: z.string().max(100).optional(),
+  currency: z.string().max(10).optional(),
+  sort_order: z.number().int().optional(),
   tax_code_id: z.string().optional(),
 }).passthrough(); // resolveItemTaxCodes/buildInvoiceLines do their own per-line validation — this only guards the shape isn't a non-object.
 const invoiceCreateSchema = z.object({
@@ -245,6 +261,16 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireAnyEntitlement(['finops', 'seal']));
 
   // GET /v1/invoices/stats
+  // HUD-0024 continuation: internal tenant-business data (finance ledgers,
+  // fleet ops, HR, identity/access admin, or tenant configuration) with only
+  // an entitlement gate — reachable end-to-end by a CUSTOMER JWT (confirmed
+  // live before this fix). Not customer-portal data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
+
   fastify.get('/stats', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {

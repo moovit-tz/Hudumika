@@ -76,12 +76,12 @@ export const OndiBusinessVerification: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Trust &amp; Security Grade</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#eff6ff', color: '#1e40af' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--blue-l)', color: 'var(--blue)' }}>
               <Icon name="shield" size={18} />
             </div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#1e40af' }}>
+            <span className="ondi-kpi-num" style={{ color: 'var(--blue)' }}>
               {isVerified ? 'Tier 3' : 'Tier 1'}
             </span>
           </div>
@@ -93,12 +93,12 @@ export const OndiBusinessVerification: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Compliance Standard</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--purple-l)', color: 'var(--purple)' }}>
               <Icon name="fileText" size={18} />
             </div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ fontSize: 22, color: '#7c3aed' }}>
+            <span className="ondi-kpi-num" style={{ fontSize: 22, color: 'var(--purple)' }}>
               BRELA / TRA
             </span>
           </div>
@@ -131,7 +131,7 @@ export const OndiBusinessVerification: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 14, display: 'flex', gap: 12 }}>
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, display: 'flex', gap: 12 }}>
                 <FeaturedIcon variant="info" size="sm" shape="square">
                   <Icon name="eye" size={16} />
                 </FeaturedIcon>
@@ -143,7 +143,7 @@ export const OndiBusinessVerification: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 14, display: 'flex', gap: 12 }}>
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, display: 'flex', gap: 12 }}>
                 <FeaturedIcon variant="success" size="sm" shape="square">
                   <Icon name="checkCircle" size={16} />
                 </FeaturedIcon>
@@ -161,7 +161,7 @@ export const OndiBusinessVerification: React.FC = () => {
           <div style={{
             background: 'var(--bg)',
             border: '1px solid var(--border)',
-            borderRadius: 'var(--r-md, 12px)',
+            borderRadius: 'var(--r)',
             padding: 18,
             display: 'flex',
             alignItems: 'center',

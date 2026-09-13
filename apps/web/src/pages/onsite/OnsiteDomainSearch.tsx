@@ -134,15 +134,15 @@ export function OnsiteDomainSearch() {
       )}
 
       <div className="onsite-feature-banners">
-        <div className="onsite-feature-banner" style={{ background: '#4c1d95', color: '#ffffff' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', background: '#6d28d9', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="onsite-feature-banner onsite-banner-email">
+          <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', background: 'var(--purple)', color: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="refresh" size={20} />
           </div>
           <div>
-            <h3 style={{ color: '#ffffff', fontSize: '1.35rem', marginTop: '1rem' }}>Already own a domain?</h3>
-            <p style={{ color: '#ddd6fe', marginTop: '0.5rem' }}>Bring it over — we'll record the transfer request for you.</p>
+            <h3 style={{ fontSize: '1.35rem', marginTop: '1rem' }}>Already own a domain?</h3>
+            <p style={{ marginTop: '0.5rem' }}>Bring it over — we'll record the transfer request for you.</p>
           </div>
-          <button className="onsite-btn-outline" style={{ background: '#ffffff', color: '#18181b', marginTop: '1rem' }} onClick={() => navigate('/onsite/domains/transfers')}>
+          <button className="onsite-btn-outline" style={{ marginTop: '1rem' }} onClick={() => navigate('/onsite/domains/transfers')}>
             Transfer domain ↗
           </button>
         </div>

@@ -153,7 +153,7 @@ export function PettiWithdrawals() {
                 type="number" required min="1" step="any"
                 value={amount} onChange={e => setAmount(e.target.value)}
                 placeholder="Enter amount"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 14 }}
               />
             </div>
 
@@ -163,7 +163,7 @@ export function PettiWithdrawals() {
                 type="text"
                 value={payeeName} onChange={e => setPayeeName(e.target.value)}
                 placeholder="e.g. Shell Station Mwenge"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
               />
             </div>
 
@@ -173,7 +173,7 @@ export function PettiWithdrawals() {
                 type="text" required
                 value={purpose} onChange={e => setPurpose(e.target.value)}
                 placeholder="Reason for cash withdrawal"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
               />
             </div>
 
@@ -194,7 +194,7 @@ export function PettiWithdrawals() {
             shown here for reference.
           </p>
           {gatewayStatus.configured ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
               <FeaturedIcon variant={gatewayStatus.chargeSupported ? 'success' : 'warning'} size="md"><Icon name="creditCard" size={18} /></FeaturedIcon>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{gatewayStatus.label}</div>
@@ -203,7 +203,7 @@ export function PettiWithdrawals() {
               <Link to="/workspace/settings?s=payment-gateways" className="btn btn-secondary btn-sm">Manage</Link>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg)', border: '1px dashed var(--border2)', borderRadius: 10, padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg)', border: '1px dashed var(--border2)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
               <FeaturedIcon variant="gray" size="md"><Icon name="creditCard" size={18} /></FeaturedIcon>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>No payment gateway connected</div>

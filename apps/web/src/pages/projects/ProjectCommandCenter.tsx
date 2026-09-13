@@ -73,10 +73,10 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
       {/* Hero Banner with Live EVM Radar */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
-          borderRadius: 16,
+          background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, var(--teal) 50%, hsl(var(--primary)) 100%)',
+          borderRadius: 'var(--r-lg)',
           padding: '24px 28px',
-          color: '#ffffff',
+          color: 'hsl(var(--primary-foreground))',
           position: 'relative',
           overflow: 'hidden',
           border: '1px solid rgba(255,255,255,0.1)',
@@ -86,7 +86,7 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', background: 'rgba(20, 184, 166, 0.2)', color: '#2dd4bf', padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em' }}>
+              <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', background: 'var(--teal-l)', color: 'var(--teal)', padding: '2px 8px', borderRadius: 'var(--r-sm)', letterSpacing: '0.06em' }}>
                 Hudumika Project OS • Global Executive Radar
               </span>
               <span style={{ fontSize: 12, opacity: 0.8 }}>Live Enterprise Aggregations</span>
@@ -100,13 +100,13 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
           </div>
 
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            <div style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 18px', textAlign: 'center' }}>
+            <div style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 'var(--r-lg)', padding: '12px 18px', textAlign: 'center' }}>
               <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.7, textTransform: 'uppercase' }}>Portfolio CPI</div>
               <div className={`text-2xl font-black ${cpiHealth}`} style={{ marginTop: 2 }}>{data.portfolio_cpi.toFixed(2)}</div>
               <div style={{ fontSize: 10, opacity: 0.7 }}>Cost Efficiency</div>
             </div>
 
-            <div style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 18px', textAlign: 'center' }}>
+            <div style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 'var(--r-lg)', padding: '12px 18px', textAlign: 'center' }}>
               <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.7, textTransform: 'uppercase' }}>Portfolio SPI</div>
               <div className={`text-2xl font-black ${spiHealth}`} style={{ marginTop: 2 }}>{data.portfolio_spi.toFixed(2)}</div>
               <div style={{ fontSize: 10, opacity: 0.7 }}>Schedule Velocity</div>
@@ -117,7 +117,7 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
 
       {/* KPI Cards Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink3)' }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase' }}>Total Contract Value</span>
             <Icon name="fileText" size={16} style={{ color: 'var(--teal)' }} />
@@ -130,10 +130,10 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink3)' }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase' }}>Baseline Budget (BAC)</span>
-            <Icon name="dollarSign" size={16} style={{ color: '#2563eb' }} />
+            <Icon name="dollarSign" size={16} style={{ color: 'var(--blue)' }} />
           </div>
           <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', marginTop: 8 }}>
             {formatCurrency(data.total_budget)}
@@ -143,12 +143,12 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink3)' }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase' }}>Total Earned Value (EV)</span>
-            <Icon name="checkCircle" size={16} style={{ color: '#16a34a' }} />
+            <Icon name="checkCircle" size={16} style={{ color: 'var(--green)' }} />
           </div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#16a34a', marginTop: 8 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--green)', marginTop: 8 }}>
             {formatCurrency(data.total_earned_value)}
           </div>
           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>
@@ -156,12 +156,12 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink3)' }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase' }}>Fleet Utilization</span>
-            <Icon name="truck" size={16} style={{ color: '#d97706' }} />
+            <Icon name="truck" size={16} style={{ color: 'var(--gold)' }} />
           </div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#d97706', marginTop: 8 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--gold)', marginTop: 8 }}>
             {data.heavy_machinery_utilization_pct}%
           </div>
           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>
@@ -172,38 +172,38 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
 
       {/* Health Distribution & Industry Packs Breakdown */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 18 }}>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20 }}>
           <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
             Portfolio Health Classification
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div style={{ background: '#dcfce7', borderRadius: 10, padding: 14, border: '1px solid #bbf7d0' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>ON TRACK (GREEN)</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#15803d', marginTop: 4 }}>{data.health_distribution.green}</div>
-              <div style={{ fontSize: 11.5, color: '#166534' }}>CPI &ge; 1.0 &bull; SPI &ge; 1.0</div>
+            <div style={{ background: 'var(--green-l)', borderRadius: 'var(--r)', padding: 14, border: '1px solid var(--green)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase' }}>ON TRACK (GREEN)</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--green)', marginTop: 4 }}>{data.health_distribution.green}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--green)' }}>CPI &ge; 1.0 &bull; SPI &ge; 1.0</div>
             </div>
 
-            <div style={{ background: '#fef3c7', borderRadius: 10, padding: 14, border: '1px solid #fde68a' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>AT RISK (AMBER)</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#b45309', marginTop: 4 }}>{data.health_distribution.amber}</div>
-              <div style={{ fontSize: 11.5, color: '#92400e' }}>Cost/time deviation &lt; 15%</div>
+            <div style={{ background: 'var(--gold-l)', borderRadius: 'var(--r)', padding: 14, border: '1px solid var(--gold)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase' }}>AT RISK (AMBER)</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--gold)', marginTop: 4 }}>{data.health_distribution.amber}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--gold)' }}>Cost/time deviation &lt; 15%</div>
             </div>
 
-            <div style={{ background: '#fee2e2', borderRadius: 10, padding: 14, border: '1px solid #fecaca' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#991b1b', textTransform: 'uppercase' }}>CRITICAL (RED)</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#b91c1c', marginTop: 4 }}>{data.health_distribution.red}</div>
-              <div style={{ fontSize: 11.5, color: '#991b1b' }}>EAC variance &gt; 15%</div>
+            <div style={{ background: 'var(--red-l)', borderRadius: 'var(--r)', padding: 14, border: '1px solid var(--red)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--red)', textTransform: 'uppercase' }}>CRITICAL (RED)</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--red)', marginTop: 4 }}>{data.health_distribution.red}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--red)' }}>EAC variance &gt; 15%</div>
             </div>
 
-            <div style={{ background: '#ccfbf1', borderRadius: 10, padding: 14, border: '1px solid #99f6e4' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#115e59', textTransform: 'uppercase' }}>STAGE GATES PASSED</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#0f766e', marginTop: 4 }}>{data.health_distribution.critical}</div>
-              <div style={{ fontSize: 11.5, color: '#115e59' }}>Executive approved</div>
+            <div style={{ background: 'var(--teal-l)', borderRadius: 'var(--r)', padding: 14, border: '1px solid var(--teal)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase' }}>STAGE GATES PASSED</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--teal)', marginTop: 4 }}>{data.health_distribution.critical}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--teal)' }}>Executive approved</div>
             </div>
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20 }}>
           <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
             Active Industry Pack Distribution
           </h3>
@@ -217,7 +217,7 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
                   alignItems: 'center',
                   padding: '8px 12px',
                   background: 'var(--bg-subtle)',
-                  borderRadius: 8,
+                  borderRadius: 'var(--r)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

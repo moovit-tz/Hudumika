@@ -148,7 +148,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
               {/* Volume Meter Indicator Overlay */}
               <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', padding: '4px 10px', borderRadius: 'var(--badge-radius)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <Icon name="volume2" size={13} color={audioEnabled ? 'var(--teal)' : 'var(--red)'} />
-                <div style={{ width: 60, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
+                <div style={{ width: 60, height: 4, borderRadius: 'var(--r-sm)', background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
                   <div style={{ width: `${Math.round(level * 100)}%`, height: '100%', background: 'var(--teal)', transition: 'width 0.1s ease' }} />
                 </div>
               </div>
@@ -157,7 +157,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
               {videoEnabled && kind === 'VIDEO' && (
                 <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 6 }}>
                   <Badge variant="brand">{hdMode ? '1080p HD' : '720p SD'}</Badge>
-                  <span style={{ background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6, display: 'inline-flex', alignItems: 'center' }}>
+                  <span style={{ background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r-sm)', display: 'inline-flex', alignItems: 'center' }}>
                     Preview
                   </span>
                 </div>
@@ -231,7 +231,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Microphone Input
                 </label>
-                <span style={{ fontSize: 10.5, color: 'var(--ink4)' }}>Captures your voice stream</span>
+                <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Captures your voice stream</span>
               </div>
               <Select value={devices.micId || '__default__'} onValueChange={v => devices.setMicId(v === '__default__' ? '' : v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -251,7 +251,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
                   <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Camera Device
                   </label>
-                  <span style={{ fontSize: 10.5, color: 'var(--ink4)' }}>High-quality video capture</span>
+                  <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>High-quality video capture</span>
                 </div>
                 <Select value={devices.cameraId || '__default__'} onValueChange={v => devices.setCameraId(v === '__default__' ? '' : v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -272,7 +272,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
                   <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Speaker Output
                   </label>
-                  <span style={{ fontSize: 10.5, color: 'var(--ink4)' }}>Output audio device</span>
+                  <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Output audio device</span>
                 </div>
                 <Select value={devices.speakerId || '__default__'} onValueChange={v => devices.setSpeakerId(v === '__default__' ? '' : v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>

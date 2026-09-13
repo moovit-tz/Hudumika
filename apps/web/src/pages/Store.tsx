@@ -264,7 +264,7 @@ export const Store: React.FC = () => {
               <div style={{ padding: '40px', color: 'var(--ink3)' }}>No apps found in this category.</div>
             ) : filteredApps.map(app => {
               const isInstalled = installedApps.includes(app.id);
-              const iconNode = app.iconUrl ? <img src={app.iconUrl} alt="icon" style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover' }} /> : (APP_ICONS[app.id] || <Icon name="package" size={48} color="#2563eb" />);
+              const iconNode = app.iconUrl ? <img src={app.iconUrl} alt="icon" style={{ width: 48, height: 48, borderRadius: 'var(--r)', objectFit: 'cover' }} /> : (APP_ICONS[app.id] || <Icon name="package" size={48} color="var(--blue)" />);
               return (
                 <div
                   key={app.id}
@@ -284,7 +284,7 @@ export const Store: React.FC = () => {
                     <h4 className="store-app-name">{app.name}</h4>
                     <div className="store-app-dev">By {app.developer_name || app.developer}</div>
                     <div className="store-app-meta">
-                      <span className="store-app-rating" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>{app.rating} <Icon name="star" size={11} duotone color="#f59e0b" /></span>
+                      <span className="store-app-rating" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>{app.rating} <Icon name="star" size={11} duotone color="var(--gold)" /></span>
                       <span className="store-app-sep">|</span>
                       <span className="store-app-installs">{app.installs} installs</span>
                     </div>
@@ -311,13 +311,13 @@ export const Store: React.FC = () => {
             <div className="store-detail-header">
               <div className="store-detail-app-info">
                 <div className="store-detail-app-icon">
-                  {selectedApp.iconUrl ? <img src={selectedApp.iconUrl} alt="icon" style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover' }} /> : (APP_ICONS[selectedApp.id] || <Icon name="package" size={48} color="#2563eb" />)}
+                  {selectedApp.iconUrl ? <img src={selectedApp.iconUrl} alt="icon" style={{ width: 48, height: 48, borderRadius: 'var(--r)', objectFit: 'cover' }} /> : (APP_ICONS[selectedApp.id] || <Icon name="package" size={48} color="var(--blue)" />)}
                 </div>
                 <div>
                   <h3 className="store-detail-name">{selectedApp.name}</h3>
                   <div className="store-detail-dev">By {selectedApp.developer_name || selectedApp.developer}</div>
                   <div className="store-detail-meta">
-                    <span className="store-detail-rating" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>{selectedApp.rating} <Icon name="star" size={12} duotone color="#f59e0b" /></span>
+                    <span className="store-detail-rating" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>{selectedApp.rating} <Icon name="star" size={12} duotone color="var(--gold)" /></span>
                     <span className="store-detail-sep">|</span>
                     <span className="store-detail-reviews">{selectedApp.reviewsCount} reviews</span>
                     <span className="store-detail-sep">|</span>
@@ -381,7 +381,7 @@ export const Store: React.FC = () => {
                     <div className="store-rating-big">
                       <div className="store-rating-num">{selectedApp.rating}</div>
                       <div className="store-rating-stars" style={{ display: 'flex', gap: 2 }}>
-                        {Array.from({ length: 5 }, (_, i) => <Icon key={i} name="star" size={13} duotone color="#f59e0b" />)}
+                        {Array.from({ length: 5 }, (_, i) => <Icon key={i} name="star" size={13} duotone color="var(--gold)" />)}
                       </div>
                       <div className="store-rating-total">{selectedApp.reviewsCount} reviews</div>
                     </div>
@@ -405,7 +405,7 @@ export const Store: React.FC = () => {
                           <span className="store-review-date">{rev.date}</span>
                         </div>
                         <div className="store-review-stars" style={{ display: 'flex', gap: 2 }}>
-                          {Array.from({ length: 5 }, (_, si) => <Icon key={si} name="star" size={12} duotone={si < rev.rating} color={si < rev.rating ? '#f59e0b' : 'var(--border2)'} />)}
+                          {Array.from({ length: 5 }, (_, si) => <Icon key={si} name="star" size={12} duotone={si < rev.rating} color={si < rev.rating ? 'var(--gold)' : 'var(--border2)'} />)}
                         </div>
                         <p className="store-review-text">{rev.comment}</p>
                       </div>
@@ -421,7 +421,7 @@ export const Store: React.FC = () => {
                   <div className="store-perm-list">
                     {selectedApp.permissions.map((p, i) => (
                       <div key={i} className="store-perm-item">
-                        <Icon name="checkCircle" size={15} color="#8b5cf6" style={{ marginTop: 2 }} />
+                        <Icon name="checkCircle" size={15} color="var(--purple)" style={{ marginTop: 2 }} />
                         <span className="store-perm-text">{p}</span>
                       </div>
                     ))}
@@ -445,7 +445,7 @@ export const Store: React.FC = () => {
               <span className="store-consent-brand-name">Hudumika</span>
               <span className="store-consent-arrow">→</span>
               <div className="store-consent-icon">
-                {selectedApp.iconUrl ? <img src={selectedApp.iconUrl} alt="icon" style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover' }} /> : (APP_ICONS[selectedApp.id] || <Icon name="package" size={48} color="#2563eb" />)}
+                {selectedApp.iconUrl ? <img src={selectedApp.iconUrl} alt="icon" style={{ width: 48, height: 48, borderRadius: 'var(--r)', objectFit: 'cover' }} /> : (APP_ICONS[selectedApp.id] || <Icon name="package" size={48} color="var(--blue)" />)}
               </div>
             </div>
             <h3 className="store-consent-title">Grant Permissions</h3>
@@ -455,7 +455,7 @@ export const Store: React.FC = () => {
             <div className="store-consent-scopes">
               {selectedApp.permissions.map((p, i) => (
                 <div key={i} className="store-consent-scope-item">
-                  <Icon name="check" size={14} color="#8b5cf6" className="store-consent-scope-check" />
+                  <Icon name="check" size={14} color="var(--purple)" className="store-consent-scope-check" />
                   <span className="store-consent-scope-text">{p}</span>
                 </div>
               ))}

@@ -370,7 +370,7 @@ const CompanySection: React.FC = () => {
             </div>
             {logoUrl && (
               <button type="button" title="Remove logo" onClick={e => { e.preventDefault(); setLogoUrl(null); }} className="s-upload-rm">
-                <Icon name="x" size={13} color="#dc2626" />
+                <Icon name="x" size={13} color="var(--red)" />
               </button>
             )}
             <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
@@ -388,7 +388,7 @@ const CompanySection: React.FC = () => {
             </div>
             {logoUrlDark && (
               <button type="button" title="Remove dark-mode logo" onClick={e => { e.preventDefault(); setLogoUrlDark(null); }} className="s-upload-rm">
-                <Icon name="x" size={13} color="#dc2626" />
+                <Icon name="x" size={13} color="var(--red)" />
               </button>
             )}
             <input type="file" accept="image/*" className="hidden" onChange={handleLogoDarkChange} />
@@ -418,7 +418,7 @@ const CompanySection: React.FC = () => {
             </div>
             {faviconUrl && (
               <button type="button" title="Remove favicon" onClick={e => { e.preventDefault(); setFaviconUrl(null); }} className="s-upload-rm">
-                <Icon name="x" size={13} color="#dc2626" />
+                <Icon name="x" size={13} color="var(--red)" />
               </button>
             )}
             <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.png,.jpg,.jpeg,.svg,.ico" className="hidden" onChange={handleFaviconChange} />
@@ -683,8 +683,8 @@ const EmailSection: React.FC = () => {
       {oauthNotice && (
         <div style={{
           padding: '10px 14px', borderRadius: 'var(--r-sm)', marginBottom: 12, fontSize: 13, fontWeight: 600,
-          background: oauthNotice.ok ? 'var(--green-l, #ecfdf5)' : 'var(--red-l, #fef2f2)',
-          color: oauthNotice.ok ? 'var(--green, #059669)' : 'var(--red, #dc2626)',
+          background: oauthNotice.ok ? 'var(--green-l)' : 'var(--red-l)',
+          color: oauthNotice.ok ? 'var(--green)' : 'var(--red)',
         }}>
           {oauthNotice.msg}
         </div>
@@ -797,7 +797,7 @@ const EmailSection: React.FC = () => {
                 {testing ? 'Sending…' : 'Send Test Email'}
               </button>
               {testResult && (
-                <span style={{ fontSize: 12, fontWeight: 600, color: testResult.ok ? 'var(--green, #059669)' : 'var(--red, #dc2626)' }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: testResult.ok ? 'var(--green)' : 'var(--red)' }}>
                   {testResult.ok ? 'Sent' : testResult.msg}
                 </span>
               )}
@@ -1154,7 +1154,7 @@ const GATEWAYS: GatewayDef[] = [
   // -- Bank & Manual ------------------------------------------
   {
     id: 'bank', name: 'Bank Transfer', desc: 'Manual bank transfers · CRDB, NMB, NBC and others.',
-    color: 'var(--ink2)', bg: '#f1f5f9', abbr: 'BK', region: 'Bank / Manual', sandbox: false,
+    color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted))', abbr: 'BK', region: 'Bank / Manual', sandbox: false,
     fields: [
       { key: 'bankName',   label: 'Bank Name',         placeholder: 'e.g. CRDB Bank' },
       { key: 'accountNo',  label: 'Account Number',    placeholder: 'e.g. 0150614123600' },
@@ -1360,7 +1360,7 @@ const PaymentGatewaysSection: React.FC = () => {
                             {testing === gw.id ? 'Testing…' : 'Test Connection'}
                           </button>
                           {testResults[gw.id] && (
-                            <span style={{ fontSize: 11.5, marginLeft: 8, fontWeight: 600, color: testResults[gw.id].ok ? 'var(--green, #059669)' : 'var(--red, #dc2626)' }}>
+                            <span style={{ fontSize: 11.5, marginLeft: 8, fontWeight: 600, color: testResults[gw.id].ok ? 'var(--green)' : 'var(--red)' }}>
                               {testResults[gw.id].message}
                             </span>
                           )}
@@ -1521,8 +1521,8 @@ const GpswoxSection: React.FC = () => {
           <button type="button" className="btn btn-outline btn-sm" onClick={handleTest} disabled={testing || !f.base_url || !f.email || !f.password}>
             {testing ? 'Testing…' : 'Test Connection'}
           </button>
-          {testResult === 'ok' && <span style={{ fontSize: 12, color: 'var(--green, #059669)', fontWeight: 600 }}>Connected</span>}
-          {testResult === 'fail' && <span style={{ fontSize: 12, color: 'var(--red, #dc2626)', fontWeight: 600 }}>Connection failed · check URL/credentials</span>}
+          {testResult === 'ok' && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>Connected</span>}
+          {testResult === 'fail' && <span style={{ fontSize: 12, color: 'var(--red)', fontWeight: 600 }}>Connection failed · check URL/credentials</span>}
         </div>
       </Card>
       <p className="s-fld-hint" style={{ margin: '4px 2px 0' }}>Until credentials are saved and valid, vehicle positions must be entered manually · no simulated fleet data is shown.</p>
@@ -1708,7 +1708,7 @@ const TRASection: React.FC = () => {
     return (
       <>
         <Card title="TRA VFD · Registered" desc="Fiscal receipts are signed and submitted to TRA through this registration. Invoices can now be submitted to TRA from Finance → Sales Invoices.">
-          <Field label="Status"><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--green)', fontWeight: 700 }}><Icon name="checkCircle" size={14} color="#059669" /> Registered</span></Field>
+          <Field label="Status"><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--green)', fontWeight: 700 }}><Icon name="checkCircle" size={14} color="var(--green)" /> Registered</span></Field>
           <Field label="Environment"><span style={{ textTransform: 'uppercase', fontWeight: 700, color: config.environment === 'production' ? 'var(--red)' : 'var(--ink2)' }}>{config.environment}</span></Field>
           <Field label="REGID"><span style={{ fontFamily: 'var(--mono)' }}>{config.reg_id}</span></Field>
           <Field label="Receipt Code"><span style={{ fontFamily: 'var(--mono)' }}>{config.receipt_code}</span></Field>
@@ -2105,7 +2105,7 @@ const ModulesSection: React.FC = () => {
           <div style={{ fontSize: 13, marginTop: 10, fontWeight: 500 }}>Loading workspace modules & entitlements…</div>
         </div>
       ) : filteredKeys.length === 0 ? (
-        <div style={{ padding: '60px 20px', textAlign: 'center', background: 'var(--white)', borderRadius: 14, border: '1px dashed var(--border)' }}>
+            <div style={{ padding: '60px 20px', textAlign: 'center', background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px dashed var(--border)' }}>
           <Icon name="search" size={32} color="var(--ink3)" style={{ margin: '0 auto 12px' }} />
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>No matching modules found</div>
           <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4 }}>
@@ -2484,7 +2484,7 @@ function AppLicensePanel({
                           placeholder="Filter members…"
                           value={searchGrantQuery}
                           onChange={e => setSearchGrantQuery(e.target.value)}
-                          style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', width: 140 }}
+                          style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', width: 140 }}
                         />
                       )}
                     </div>
@@ -2694,7 +2694,7 @@ const EsignSection: React.FC = () => {
             {/* Square, not the old 160×90 letterbox — a round or circular
                 stamp (the common case) needs equal width and height to show
                 at a legible size instead of being shrunk to fit a short box. */}
-            <div style={{ width: 160, height: 160, border: '1px solid var(--border)', borderRadius: 8, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+            <div style={{ width: 160, height: 160, border: '1px solid var(--border)', borderRadius: 'var(--r)', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
               <img src={stamp.image_data} alt="Company stamp" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -2833,7 +2833,7 @@ const ApiKeysSection: React.FC = () => {
               <>
                 <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>Key created</div>
                 <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>Copy this now · it won't be shown again.</p>
-                <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, fontFamily: 'var(--mono)', fontSize: 12, wordBreak: 'break-all', marginBottom: 16 }}>{mintedKey}</div>
+                <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', fontFamily: 'var(--mono)', fontSize: 12, wordBreak: 'break-all', marginBottom: 16 }}>{mintedKey}</div>
                 <button type="button" className="btn btn-primary btn-sm" onClick={() => { setShowCreate(false); setMintedKey(null); }}>Done</button>
               </>
             ) : (

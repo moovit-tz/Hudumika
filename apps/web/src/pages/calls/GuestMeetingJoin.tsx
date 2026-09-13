@@ -129,7 +129,7 @@ export function GuestMeetingJoin() {
             </>
           ) : (
             <>
-              <Spinner size={48} thickness={3} color="#10b981" trackColor="#1f2937" style={{ margin: '0 auto' }} />
+              <Spinner size={48} thickness={3} color="var(--green)" trackColor="#1f2937" style={{ margin: '0 auto' }} />
               <div style={{ fontSize: 15, fontWeight: 700, color: '#f9fafb', marginTop: 16 }}>Waiting for the host to let you in…</div>
               <div style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 6 }}>{meeting.title}</div>
             </>
@@ -165,7 +165,7 @@ export function GuestMeetingJoin() {
   return (
     <div style={shellStyle}>
       <div style={cardStyle}>
-        <Icon name={meeting.kind === 'VIDEO' ? 'video' : 'phone'} size={24} color="#8ab4f8" />
+        <Icon name={meeting.kind === 'VIDEO' ? 'video' : 'phone'} size={24} color="var(--teal)" />
         <div style={{ fontSize: 16, fontWeight: 700, color: '#f9fafb', marginTop: 12 }}>{meeting.title}</div>
         <div style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 4, marginBottom: 20 }}>Hosted by {meeting.host_name} · joining as a guest</div>
 
@@ -173,14 +173,14 @@ export function GuestMeetingJoin() {
           autoFocus value={name} onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !meeting.hasPassword && submitJoin()}
           placeholder="Your name" maxLength={80}
-          style={{ width: '100%', height: 40, borderRadius: 8, border: '1px solid #374151', background: '#1f2937', color: '#f9fafb', fontSize: 13, padding: '0 12px', outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
+          style={{ width: '100%', height: 40, borderRadius: 'var(--r)', border: '1px solid #374151', background: '#1f2937', color: '#f9fafb', fontSize: 13, padding: '0 12px', outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
         />
         {meeting.hasPassword && (
           <input
             type="password" value={password} onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && submitJoin()}
             placeholder="Meeting password"
-            style={{ width: '100%', height: 40, borderRadius: 8, border: '1px solid #374151', background: '#1f2937', color: '#f9fafb', fontSize: 13, padding: '0 12px', outline: 'none', boxSizing: 'border-box' }}
+            style={{ width: '100%', height: 40, borderRadius: 'var(--r)', border: '1px solid #374151', background: '#1f2937', color: '#f9fafb', fontSize: 13, padding: '0 12px', outline: 'none', boxSizing: 'border-box' }}
           />
         )}
         {passwordError && <div style={{ fontSize: 12, color: '#fca5a5', marginTop: 8 }}>{passwordError}</div>}
@@ -189,7 +189,7 @@ export function GuestMeetingJoin() {
           {submitting ? 'Joining…' : 'Join meeting'}
         </Button>
         <div style={{ fontSize: 11, color: '#6b7280', marginTop: 14 }}>
-          Have a Hudumika account? <a href={`/bliss/calls/meeting/${meeting.id}`} style={{ color: '#8ab4f8' }}>Sign in to join instead</a>
+          Have a Hudumika account? <a href={`/bliss/calls/meeting/${meeting.id}`} style={{ color: 'var(--teal)' }}>Sign in to join instead</a>
         </div>
       </div>
     </div>

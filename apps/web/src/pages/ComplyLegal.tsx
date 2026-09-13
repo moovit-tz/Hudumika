@@ -12,6 +12,7 @@ import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { PersonAvatar, CompanyAvatar } from '../components/PersonAvatar.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
+import { Button } from '../components/ui/button.js';
 
 const SPECIALTIES_FILTER = [
   'All', 'Corporate Registration', 'Tax Compliance', 'Employment Law',
@@ -115,7 +116,7 @@ function EngagementDrawer({ engagement, onClose, onSendMessage, onSetMilestone, 
               <div className="comply-section-title">Milestones</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {engagement.milestones.map(m => (
-                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', background: 'var(--bg)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                     <div>
                       <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{m.description}</div>
                       {m.amount && <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{m.amount}</div>}
@@ -138,7 +139,7 @@ function EngagementDrawer({ engagement, onClose, onSendMessage, onSetMilestone, 
             <div className="comply-section-title">Shared Workspace</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto', marginBottom: 10 }}>
               {engagement.messages.map(m => (
-                <div key={m.id || m.created_at} style={{ alignSelf: m.sender_type === 'tenant' ? 'flex-end' : 'flex-start', maxWidth: '85%', background: m.sender_type === 'tenant' ? 'var(--comply-l)' : 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px' }}>
+                <div key={m.id || m.created_at} style={{ alignSelf: m.sender_type === 'tenant' ? 'flex-end' : 'flex-start', maxWidth: '85%', background: m.sender_type === 'tenant' ? 'var(--comply-l)' : 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '8px 12px' }}>
                   <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 3 }}>{m.sender_type === 'tenant' ? 'You' : engagement.firm_name}</div>
                   <div style={{ fontSize: 13, color: 'var(--ink)' }}>{m.body}</div>
                 </div>
@@ -146,16 +147,16 @@ function EngagementDrawer({ engagement, onClose, onSendMessage, onSetMilestone, 
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <input className="input-field" style={{ flex: 1 }} value={message} onChange={e => setMessage(e.target.value)} placeholder="Send a message to the firm…" onKeyDown={e => { if (e.key === 'Enter') handleSend(); }} />
-              <button type="button" className="comply-btn-primary comply-btn-sm" disabled={sending} onClick={handleSend}>
+              <Button type="button" size="icon" disabled={sending} onClick={handleSend} title="Send message" aria-label="Send message">
                 <Icon name="send" size={13} />
-              </button>
+              </Button>
             </div>
           </div>
 
           {engagement.status !== 'completed' && engagement.status !== 'cancelled' && (
-            <button type="button" className="comply-btn-secondary" style={{ alignSelf: 'flex-start', color: 'var(--red)' }} disabled={cancelling} onClick={handleCancel}>
+            <Button type="button" variant="outline" size="sm" style={{ alignSelf: 'flex-start', color: 'var(--red)', borderColor: 'var(--red)' }} disabled={cancelling} onClick={handleCancel}>
               <Icon name="x" size={13} color="var(--red)" /> {cancelling ? 'Cancelling…' : 'Cancel Engagement'}
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -282,8 +283,8 @@ export function ComplyLegal() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--border)', marginTop: 4 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{firm.starting_price_label}</span>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => setSelected(firm)}>Profile</button>
-                    <button type="button" className="comply-btn-primary comply-btn-sm" onClick={() => navigate(engageUrl(firm.id))}>Engage</button>
+                    <Button type="button" variant="outline" size="xs" onClick={() => setSelected(firm)}>Profile</Button>
+                    <Button type="button" size="xs" onClick={() => navigate(engageUrl(firm.id))}>Engage</Button>
                   </div>
                 </div>
               </div>

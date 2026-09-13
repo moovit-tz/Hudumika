@@ -11,6 +11,7 @@ import { SkeletonPage } from '../components/ui/skeleton.js';
 import { SetupGuideWidget } from '../components/SetupGuideWidget.js';
 import { AttendanceStatusBanner } from '../components/AttendanceStatusBanner.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
+import { PageHeader } from '../components/PageHeader.js';
 import './WorkspaceHome.css';
 
 interface HudumikaApp {
@@ -208,6 +209,12 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
 
         {/* ── Main Content Area ── */}
         <div className="wh-new-container">
+          <PageHeader
+            crumbs={['Workspace', 'Home']}
+            titlePlain="Your"
+            titleEm="workspace"
+            subtitle="Open the tools and workspaces available to your organisation."
+          />
 
           {/* ── Section: Attendance / Clock-in identity banner — moved here
               from NexusHR's own "My HR" ESS dashboard at the user's request. ── */}
@@ -286,7 +293,7 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                 />
 
                 {/* Settings Link */}
-                <Link to="/admin/branding" className="wh-btn wh-btn--ghost wh-btn--sm" style={{ padding: '0 14px', height: 'var(--ctl-h-sm)', boxSizing: 'border-box', fontSize: 13, fontWeight: 700, borderRadius: 8, border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--ink)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Link to="/admin/branding" className="wh-btn wh-btn--ghost wh-btn--sm" style={{ padding: '0 14px', height: 'var(--ctl-h-sm)', boxSizing: 'border-box', fontSize: 13, fontWeight: 700, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--ink)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <Icon name="sliders" size={14} />
                   <span>SETTINGS</span>
                 </Link>

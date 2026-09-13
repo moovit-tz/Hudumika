@@ -145,7 +145,7 @@ export const TrackingVehicleDetail: React.FC = () => {
     labels: cost_of_ownership.map(c => c.month),
     datasets: [
       { label: 'Fuel', data: cost_of_ownership.map(c => c.fuel), backgroundColor: '#0891b2' },
-      { label: 'Service', data: cost_of_ownership.map(c => c.service), backgroundColor: 'var(--gold)' },
+      { label: 'Service', data: cost_of_ownership.map(c => c.service), backgroundColor: '#9a6700' },
       { label: 'Other', data: cost_of_ownership.map(c => c.other), backgroundColor: '#64748b' },
     ],
   };
@@ -174,7 +174,7 @@ export const TrackingVehicleDetail: React.FC = () => {
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 64, height: 64, borderRadius: 12, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Icon name="truck" size={28} color="var(--teal)" />
           </div>
           <div>
@@ -286,20 +286,20 @@ export const TrackingVehicleDetail: React.FC = () => {
                     <>
                       <input value={editForm[k] || ''} list="vdetail-make-options" title="Make" placeholder="e.g. Isuzu"
                         onChange={e => setEditForm({ ...editForm, make: e.target.value, model: '' })}
-                        style={{ flex: 1, maxWidth: 220, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
+                        style={{ flex: 1, maxWidth: 220, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
                       <datalist id="vdetail-make-options">{makes.map(m => <option key={m} value={m} />)}</datalist>
                     </>
                   ) : k === 'model' ? (
                     <>
                       <input value={editForm[k] || ''} list="vdetail-model-options" disabled={!editForm.make} title="Model" placeholder="e.g. NPR"
                         onChange={e => setEditForm({ ...editForm, model: e.target.value })}
-                        style={{ flex: 1, maxWidth: 220, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
+                        style={{ flex: 1, maxWidth: 220, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
                       <datalist id="vdetail-model-options">{models.map(m => <option key={m} value={m} />)}</datalist>
                     </>
                   ) : (
                     <input value={editForm[k] || ''} onChange={e => setEditForm({ ...editForm, [k]: e.target.value })}
                       type={k === 'year' || k === 'mileage_km' ? 'number' : 'text'}
-                      style={{ flex: 1, maxWidth: 220, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
+                      style={{ flex: 1, maxWidth: 220, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
                   )
                 ) : (
                   <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{v}</span>
@@ -360,7 +360,7 @@ export const TrackingVehicleDetail: React.FC = () => {
                 {active_trip.load_capacity_pct != null && (
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--ink3)', marginBottom: 4 }}><span>Load Capacity</span><span>{active_trip.load_capacity_pct}%</span></div>
-                    <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: 6, background: 'var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
                       <div style={{ width: `${active_trip.load_capacity_pct}%`, height: '100%', background: 'var(--teal)' }} />
                     </div>
                   </div>
@@ -407,7 +407,7 @@ export const TrackingVehicleDetail: React.FC = () => {
             {open_issues.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No open issues.</div>}
             {open_issues.map(i => (
               <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-                <Icon name="alertTriangle" size={14} color="#dc2626" />
+                <Icon name="alertTriangle" size={14} color="var(--red)" />
                 <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{i.title}</div>
                 <button type="button" onClick={() => resolveIssue(i.id)} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>Resolve</button>
               </div>
@@ -563,7 +563,7 @@ function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) {
               <tr key={s.id} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--ink)' }}>{s.snapshot_type}</td>
                 <td style={{ padding: '12px 10px' }}>
-                  <pre style={{ margin: 0, fontSize: 11, background: 'var(--bg)', padding: 8, borderRadius: 6, color: 'var(--ink2)', maxWidth: 400, overflowX: 'auto' }}>
+                  <pre style={{ margin: 0, fontSize: 11, background: 'var(--bg)', padding: 8, borderRadius: 'var(--r-sm)', color: 'var(--ink2)', maxWidth: 400, overflowX: 'auto' }}>
                     {typeof s.payload === 'string' ? s.payload : JSON.stringify(s.payload, null, 2)}
                   </pre>
                 </td>
@@ -736,7 +736,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
     );
   }
 
-  const smallInput: React.CSSProperties = { width: '100%', padding: '6px 8px', borderRadius: 7, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
+  const smallInput: React.CSSProperties = { width: '100%', padding: '6px 8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 14 }}>
@@ -793,7 +793,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
               <span>Weight</span><strong>{packResult.weight_utilization_pct}%</strong>
             </div>
             {packResult.unplaced_items.length > 0 && (
-              <div style={{ marginTop: 8, padding: '7px 9px', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 7, fontSize: 11, color: 'var(--red)' }}>
+              <div style={{ marginTop: 8, padding: '7px 9px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r)', fontSize: 11, color: 'var(--red)' }}>
                 Didn't fit: {packResult.unplaced_items.map(u => `${u.label} ×${u.count}`).join(', ')}
               </div>
             )}

@@ -116,7 +116,7 @@ export function PettiRequest() {
                 type="number" required min="1" step="any"
                 value={amount} onChange={e => setAmount(e.target.value)}
                 placeholder="e.g. 75000"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 14 }}
               />
             </div>
 
@@ -138,7 +138,7 @@ export function PettiRequest() {
                 type="text" required
                 value={purpose} onChange={e => setPurpose(e.target.value)}
                 placeholder="e.g. Emergency fuel for delivery van"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
               />
             </div>
 
@@ -148,7 +148,7 @@ export function PettiRequest() {
                 type="text"
                 value={payeeName} onChange={e => setPayeeName(e.target.value)}
                 placeholder="e.g. Shell Station Mwenge"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
               />
             </div>
 
@@ -160,7 +160,7 @@ export function PettiRequest() {
 
         {/* Workflow Info Box */}
         <div>
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 20, boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="check" size={15} color="var(--teal)" />

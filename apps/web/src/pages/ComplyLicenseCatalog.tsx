@@ -149,7 +149,7 @@ export function ComplyLicenseCatalog() {
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {selected.requirements.map((r, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                       <Icon name="fileText" size={13} color="var(--comply)" />
                       <span style={{ fontSize: 13, color: 'var(--ink)' }}>{r}</span>
                     </div>

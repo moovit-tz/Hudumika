@@ -72,17 +72,17 @@
 
 .ov-kpi-icon.success {
   background: var(--green-l);
-  color: var(--green, #10b981);
+  color: var(--green);
 }
 
 .ov-kpi-icon.warning {
   background: var(--gold-l);
-  color: var(--gold, #f59e0b);
+  color: var(--gold);
 }
 
 .ov-kpi-icon.purple {
   background: var(--purple-l);
-  color: var(--purple, #8b5cf6);
+  color: var(--purple);
 }
 
 .ov-kpi-body {

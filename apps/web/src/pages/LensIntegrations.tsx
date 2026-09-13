@@ -123,7 +123,7 @@ export function LensIntegrations() {
           return (
             <div key={p.provider} style={{
               background: 'var(--white)', border: `1px solid ${isExpanded ? 'var(--teal)' : 'var(--border)'}`,
-              borderRadius: '12px', overflow: 'hidden',
+              borderRadius: 'var(--r)', overflow: 'hidden',
               boxShadow: isExpanded ? '0 4px 20px rgba(0,0,0,0.06)' : '0 1px 3px rgba(0,0,0,0.03)',
               transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
             }}>
@@ -139,7 +139,7 @@ export function LensIntegrations() {
                 onMouseLeave={e => { if(!isExpanded) e.currentTarget.style.background = 'transparent'; }}
               >
                 <div style={{
-                  width: 42, height: 42, borderRadius: 10, background: 'var(--white)', border: '1px solid var(--border)',
+                  width: 42, height: 42, borderRadius: 'var(--r)', background: 'var(--white)', border: '1px solid var(--border)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                 }}>
@@ -149,7 +149,7 @@ export function LensIntegrations() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{p.label}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: statusBg, padding: '3px 8px', borderRadius: 12 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, boxShadow: p.status === 'connected' ? `0 0 0 2px rgba(16, 185, 129, 0.2)` : 'none' }} />
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, boxShadow: p.status === 'connected' ? `0 0 0 2px var(--green-l)` : 'none' }} />
                       <span style={{ fontSize: 10, fontWeight: 700, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{p.status}</span>
                     </div>
                   </div>
@@ -283,7 +283,7 @@ export function LensIntegrations() {
 
                   {(r || p.last_error) && (
                     <div style={{
-                      marginTop: 20, padding: '12px 14px', borderRadius: 8,
+                      marginTop: 20, padding: '12px 14px', borderRadius: 'var(--r)',
                       fontSize: 12, fontFamily: 'var(--mono)', lineHeight: 1.5,
                       background: r?.ok ? 'var(--green-l)' : '#1e1e1e',
                       border: `1px solid ${r?.ok ? 'var(--green)' : '#333'}`,

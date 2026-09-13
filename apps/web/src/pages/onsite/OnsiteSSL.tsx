@@ -89,7 +89,7 @@ export function OnsiteSSL() {
 
       {loading ? (
         <div className="onsite-card">
-          <p style={{ color: 'var(--ink-muted)' }}>Loading certificates…</p>
+          <p style={{ color: 'var(--ink3)' }}>Loading certificates…</p>
         </div>
       ) : (
         <>
@@ -109,7 +109,7 @@ export function OnsiteSSL() {
                 <tbody>
                   {certs.length === 0 && unchecked.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', color: 'var(--ink3)' }}>
                         No domains yet. Add one under Domains to start tracking its certificate.
                       </td>
                     </tr>
@@ -121,7 +121,7 @@ export function OnsiteSSL() {
                           <tr key={c.id}>
                             <td style={{ fontWeight: 600 }}>{c.domain ?? c.subject ?? '—'}</td>
                             <td>
-                              {c.issuer ?? <span style={{ color: 'var(--ink-muted)' }}>Unknown</span>}
+                              {c.issuer ?? <span style={{ color: 'var(--ink3)' }}>Unknown</span>}
                               {c.provider === 'self_signed' && (
                                 <div style={{ fontSize: '0.75rem', color: 'var(--gold)' }}>Self-signed</div>
                               )}
@@ -129,7 +129,7 @@ export function OnsiteSSL() {
                             <td>
                               <span className={`onsite-badge ${c.status}`}>{c.status}</span>
                               {c.last_error && (
-                                <div style={{ fontSize: '0.75rem', color: '#ef4444', maxWidth: 320 }}>{c.last_error}</div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--red)', maxWidth: 320 }}>{c.last_error}</div>
                               )}
                             </td>
                             <td>
@@ -137,14 +137,14 @@ export function OnsiteSSL() {
                                 <>
                                   {new Date(c.expires_at).toLocaleDateString()}
                                   {days !== null && (
-                                    <div style={{ fontSize: '0.75rem', color: days <= 30 ? '#ef4444' : 'var(--ink-muted)' }}>
+                                    <div style={{ fontSize: '0.75rem', color: days <= 30 ? 'var(--red)' : 'var(--ink3)' }}>
                                       {days < 0 ? `${Math.abs(days)} days ago` : `in ${days} days`}
                                     </div>
                                   )}
                                 </>
-                              ) : <span style={{ color: 'var(--ink-muted)' }}>—</span>}
+                              ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
                             </td>
-                            <td style={{ color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>
+                            <td style={{ color: 'var(--ink3)', fontSize: '0.8125rem' }}>
                               {c.last_checked_at ? new Date(c.last_checked_at).toLocaleString() : 'Never'}
                             </td>
                             <td>
@@ -159,7 +159,7 @@ export function OnsiteSSL() {
                       {unchecked.map((d) => (
                         <tr key={d.id}>
                           <td style={{ fontWeight: 600 }}>{d.domain}</td>
-                          <td colSpan={4} style={{ color: 'var(--ink-muted)' }}>
+                          <td colSpan={4} style={{ color: 'var(--ink3)' }}>
                             Not checked yet — no certificate has been read from this host.
                           </td>
                           <td>
@@ -178,7 +178,7 @@ export function OnsiteSSL() {
           </div>
 
           <div className="onsite-card" style={{ marginTop: '1rem' }}>
-            <p style={{ color: 'var(--ink-muted)', fontSize: '0.8125rem', margin: 0 }}>
+            <p style={{ color: 'var(--ink3)', fontSize: '0.8125rem', margin: 0 }}>
               Certificates are re-read automatically every six hours, and workspace
               administrators are notified when one moves within 30 days of expiry.
               Onsite reports certificates; it does not issue or renew them yet.

@@ -653,7 +653,7 @@ function CandidateProfileModal({ candidateId, candidateName, onClose }: { candid
               <textarea value={education} onChange={e => setEducation(e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} />
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={onClose}>Close</Button>
+              <Button variant="outline" onClick={onClose}>Cancel</Button>
               <Button disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Save profile'}</Button>
             </DialogFooter>
           </div>

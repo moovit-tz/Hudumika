@@ -184,7 +184,7 @@ export const TrackingLiveMap: React.FC = () => {
        vehicle panel, and the panel's `bottom: 16px` fell below the fold. */
     <div className="trk-livemap-shell">
       {loadError && (
-        <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 20, background: 'var(--red-l, #fef2f2)', color: 'var(--red, #b91c1c)', padding: '8px 16px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600, boxShadow: 'var(--elev-sm)' }}>
+        <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 20, background: 'var(--red-l)', color: 'var(--red)', padding: '8px 16px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600, boxShadow: 'var(--elev-sm)' }}>
           {loadError}
         </div>
       )}
@@ -410,7 +410,7 @@ export const TrackingLiveMap: React.FC = () => {
                 <div className="trk-info-label">Status Overview</div>
                 <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
                   <div className="trk-info-value">
-                    <Icon name="zap" size={16} style={{ color: selectedVehicle.ignition ? '#10b981' : '#94a3b8' }}/> 
+                    <Icon name="zap" size={16} style={{ color: selectedVehicle.ignition ? 'var(--green)' : 'var(--ink3)' }}/>
                     {selectedVehicle.ignition ? 'Ignition ON' : 'Ignition OFF'}
                   </div>
                   <div className="trk-info-value" style={{ textTransform: 'capitalize' }}>

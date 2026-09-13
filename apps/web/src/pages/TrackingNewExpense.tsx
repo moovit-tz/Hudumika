@@ -120,7 +120,7 @@ export const TrackingNewExpense: React.FC = () => {
 
       <div className="exp-form-container">
         {error && (
-          <div style={{ padding: 16, background: 'rgba(220,38,38,0.08)', color: 'var(--red)', borderRadius: 8, marginBottom: 24, fontSize: 13, border: '1px solid rgba(220,38,38,0.25)' }}>
+          <div style={{ padding: 16, background: 'var(--red-l)', color: 'var(--red)', borderRadius: 'var(--r)', marginBottom: 24, fontSize: 13, border: '1px solid var(--red)' }}>
             {error}
           </div>
         )}
@@ -270,7 +270,7 @@ export const TrackingNewExpense: React.FC = () => {
             <div className="exp-upload-col">
               <label className="exp-label">Documents</label>
               <div className="exp-upload-zone" onDragOver={handleDragOver} onDrop={handleDrop}>
-                <div className="exp-upload-icon" style={{ borderRadius: 4 }}></div>
+                <div className="exp-upload-icon" style={{ borderRadius: 'var(--r-sm)' }}></div>
                 <div className="exp-upload-text">
                   <div className="exp-upload-primary">Drag & drop files to upload</div>
                   <div className="exp-upload-secondary">or click to pick files</div>

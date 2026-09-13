@@ -14,13 +14,13 @@ interface KindRow { kind: string; count: number }
 interface TrendRow { day: string; searches: number; runs: number }
 interface TenantRow { tenant_id: string; tenant_name: string; search_count: number; run_count: number }
 
-const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 };
+const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 };
 
 function RankedBar({ value, max, color }: { value: number; max: number; color: string }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
-    <div style={{ width: '100%', height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
-      <div style={{ width: `${pct}%`, height: '100%', borderRadius: 3, background: color }} />
+    <div style={{ width: '100%', height: 6, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
+      <div style={{ width: `${pct}%`, height: '100%', borderRadius: 'var(--r-sm)', background: color }} />
     </div>
   );
 }
@@ -97,8 +97,8 @@ export function SuperAdminTradeWizardAnalytics() {
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 100 }}>
               {trend.map(t => (
                 <div key={t.day} title={`${t.day}: ${t.searches} searches, ${t.runs} runs`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 1, height: '100%' }}>
-                  <div style={{ width: '100%', background: 'var(--blue)', opacity: 0.85, borderRadius: '2px 2px 0 0', height: `${(t.searches / maxTrend) * 100}%`, minHeight: t.searches > 0 ? 2 : 0 }} />
-                  <div style={{ width: '100%', background: 'var(--teal)', borderRadius: '2px 2px 0 0', height: `${(t.runs / maxTrend) * 100}%`, minHeight: t.runs > 0 ? 2 : 0 }} />
+                  <div style={{ width: '100%', background: 'var(--blue)', opacity: 0.85, borderRadius: `var(--r-sm) var(--r-sm) 0 0`, height: `${(t.searches / maxTrend) * 100}%`, minHeight: t.searches > 0 ? 2 : 0 }} />
+                  <div style={{ width: '100%', background: 'var(--teal)', borderRadius: `var(--r-sm) var(--r-sm) 0 0`, height: `${(t.runs / maxTrend) * 100}%`, minHeight: t.runs > 0 ? 2 : 0 }} />
                 </div>
               ))}
             </div>
@@ -185,7 +185,7 @@ export function SuperAdminTradeWizardAnalytics() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {noResults.map(r => (
-                <div key={r.term} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: 8, background: 'var(--red-l)' }}>
+                <div key={r.term} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: 'var(--r)', background: 'var(--red-l)' }}>
                   <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{r.term}</span>
                   <Badge variant="error">{r.count}×</Badge>
                 </div>

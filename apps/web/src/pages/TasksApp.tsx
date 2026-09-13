@@ -30,17 +30,17 @@ import { Button } from '../components/ui/button.js';
 /* ── STATUS & PRIORITY META (Perfex CRM Standard) ──────────────────── */
 
 const STATUS_META: Record<TaskStatus, { label: string; variant: 'gray' | 'brand' | 'warning' | 'info' | 'success'; color: string; bg: string }> = {
-  none:        { label: 'Not Started', variant: 'gray',    color: '#64748b', bg: 'rgba(100,116,139,0.1)' },
-  in_progress: { label: 'In Progress', variant: 'brand',   color: '#2563eb', bg: 'rgba(37,99,235,0.1)' },
+  none:        { label: 'Not Started', variant: 'gray',    color: 'var(--ink2)', bg: 'rgba(100,116,139,0.1)' },
+  in_progress: { label: 'In Progress', variant: 'brand',   color: 'var(--blue)', bg: 'var(--blue-l)' },
   in_review:   { label: 'Testing / Review', variant: 'warning', color: 'var(--gold)', bg: 'rgba(217,119,6,0.1)' },
-  waiting:     { label: 'Awaiting Feedback', variant: 'info',  color: '#7c3aed', bg: 'rgba(124,58,237,0.1)' },
+  waiting:     { label: 'Awaiting Feedback', variant: 'info',  color: 'var(--purple)', bg: 'var(--purple-l)' },
   completed:   { label: 'Complete',    variant: 'success', color: 'var(--green)', bg: 'rgba(5,150,105,0.1)' },
 };
 
 const PRIORITY_META: Record<TaskPriority, { label: string; color: string; bg: string }> = {
-  low:    { label: 'Low',    color: '#64748b', bg: '#f1f5f9' },
-  medium: { label: 'Medium', color: 'var(--gold)', bg: '#fef3c7' },
-  high:   { label: 'High',   color: '#ea580c', bg: '#ffedd5' },
+  low:    { label: 'Low',    color: 'var(--ink2)', bg: 'var(--bg-subtle)' },
+  medium: { label: 'Medium', color: 'var(--gold)', bg: 'var(--gold-l)' },
+  high:   { label: 'High',   color: 'var(--gold)', bg: 'var(--gold-l)' },
   urgent: { label: 'Urgent', color: 'var(--red)', bg: 'var(--red-l)' },
 };
 
@@ -258,7 +258,7 @@ export const TasksApp: React.FC = () => {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search tasks…"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '6px 10px 6px 30px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, background: 'var(--white)', color: 'var(--ink)' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '6px 10px 6px 30px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12.5, background: 'var(--white)', color: 'var(--ink)' }}
               />
             </div>
 
@@ -280,23 +280,23 @@ export const TasksApp: React.FC = () => {
             
             <button type="button" onClick={() => setFilterStatus(prev => prev === 'none' ? 'all' : 'none')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'none' ? 'var(--teal)' : 'var(--border)'}`,
-              borderRadius: 10, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
+              borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Not Started</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase' }}>Not Started</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginTop: 2 }}>{counts.notStarted}</div>
             </button>
 
             <button type="button" onClick={() => setFilterStatus(prev => prev === 'in_progress' ? 'all' : 'in_progress')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'in_progress' ? 'var(--teal)' : 'var(--border)'}`,
-              borderRadius: 10, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
+              borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#2563eb', textTransform: 'uppercase' }}>In Progress</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#2563eb', marginTop: 2 }}>{counts.inProgress}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--blue)', textTransform: 'uppercase' }}>In Progress</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--blue)', marginTop: 2 }}>{counts.inProgress}</div>
             </button>
 
             <button type="button" onClick={() => setFilterStatus(prev => prev === 'in_review' ? 'all' : 'in_review')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'in_review' ? 'var(--teal)' : 'var(--border)'}`,
-              borderRadius: 10, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
+              borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
             }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase' }}>Testing / Review</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--gold)', marginTop: 2 }}>{counts.inReview}</div>
@@ -304,15 +304,15 @@ export const TasksApp: React.FC = () => {
 
             <button type="button" onClick={() => setFilterStatus(prev => prev === 'waiting' ? 'all' : 'waiting')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'waiting' ? 'var(--teal)' : 'var(--border)'}`,
-              borderRadius: 10, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
+              borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase' }}>Awaiting Feedback</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#7c3aed', marginTop: 2 }}>{counts.waiting}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--purple)', textTransform: 'uppercase' }}>Awaiting Feedback</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--purple)', marginTop: 2 }}>{counts.waiting}</div>
             </button>
 
             <button type="button" onClick={() => setFilterStatus(prev => prev === 'completed' ? 'all' : 'completed')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'completed' ? 'var(--teal)' : 'var(--border)'}`,
-              borderRadius: 10, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
+              borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
             }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase' }}>Completed</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--green)', marginTop: 2 }}>{counts.complete}</div>
@@ -395,10 +395,10 @@ function TasksKanbanBoard({ todos, listMap, onTaskClick }: {
   onTaskClick: (id: string) => void;
 }) {
   const columns: { status: TaskStatus; title: string; color: string; bg: string }[] = [
-    { status: 'none',        title: 'Not Started',       color: '#64748b', bg: '#f8fafc' },
-    { status: 'in_progress', title: 'In Progress',       color: '#2563eb', bg: '#eff6ff' },
+    { status: 'none',        title: 'Not Started',       color: 'var(--ink2)', bg: 'var(--bg-subtle)' },
+    { status: 'in_progress', title: 'In Progress',       color: 'var(--blue)', bg: 'var(--blue-l)' },
     { status: 'in_review',   title: 'Testing / Review',  color: 'var(--gold)', bg: 'var(--gold-l)' },
-    { status: 'waiting',     title: 'Awaiting Feedback', color: '#7c3aed', bg: '#f5f3ff' },
+    { status: 'waiting',     title: 'Awaiting Feedback', color: 'var(--purple)', bg: 'var(--purple-l)' },
     { status: 'completed',   title: 'Completed',         color: 'var(--green)', bg: 'var(--green-l)' },
   ];
 
@@ -420,14 +420,14 @@ function TasksKanbanBoard({ todos, listMap, onTaskClick }: {
             onDragOver={e => e.preventDefault()}
             onDrop={e => handleKanbanDrop(e, col.status)}
             style={{
-              background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)',
+              background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)',
               display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
             }}
           >
             {/* Column Header */}
             <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', background: col.bg, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: col.color }}>{col.title}</span>
-              <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 10, background: 'var(--white)', color: col.color, border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--r)', background: 'var(--white)', color: col.color, border: '1px solid var(--border)' }}>
                 {colTodos.length}
               </span>
             </div>
@@ -441,7 +441,7 @@ function TasksKanbanBoard({ todos, listMap, onTaskClick }: {
                   onDragStart={e => e.dataTransfer.setData('text/kanban-task-id', t.id)}
                   onClick={() => onTaskClick(t.id)}
                   style={{
-                    background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)',
+                    background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)',
                     padding: 12, cursor: 'grab', boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
                     transition: 'all 0.15s ease'
                   }}
@@ -451,7 +451,7 @@ function TasksKanbanBoard({ todos, listMap, onTaskClick }: {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                     {t.priority && (
                       <span style={{
-                        fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+                        fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 'var(--r-sm)',
                         background: PRIORITY_META[t.priority]?.bg, color: PRIORITY_META[t.priority]?.color, textTransform: 'uppercase'
                       }}>
                         {t.priority}
@@ -475,7 +475,7 @@ function TasksKanbanBoard({ todos, listMap, onTaskClick }: {
                         <span>Subtasks</span>
                         <span>{t.subtasks.filter(s => s.completed).length}/{t.subtasks.length}</span>
                       </div>
-                      <div style={{ height: 4, borderRadius: 2, background: 'var(--border)', overflow: 'hidden' }}>
+                      <div style={{ height: 4, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
                         <div style={{ height: '100%', width: `${Math.round((t.subtasks.filter(s => s.completed).length / t.subtasks.length) * 100)}%`, background: col.color }} />
                       </div>
                     </div>
@@ -491,7 +491,7 @@ function TasksKanbanBoard({ todos, listMap, onTaskClick }: {
                 </div>
               ))}
               {colTodos.length === 0 && (
-                <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 12, color: 'var(--ink3)', border: '1px dashed var(--border)', borderRadius: 8 }}>
+                <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 12, color: 'var(--ink3)', border: '1px dashed var(--border)', borderRadius: 'var(--r)'}}>
                   Drop tasks here
                 </div>
               )}
@@ -539,8 +539,8 @@ function TaskTimerWidget({ todo }: { todo: Todo }) {
       onClick={toggleTimer}
       title={isTimerActive ? 'Stop live timer' : 'Start live timer'}
       style={{
-        display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 12,
-        border: 'none', background: isTimerActive ? 'rgba(239,68,68,0.12)' : 'var(--bg)',
+        display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 'var(--r)',
+        border: 'none', background: isTimerActive ? 'var(--red-l)' : 'var(--bg)',
         color: isTimerActive ? 'var(--red)' : 'var(--ink2)', fontSize: 11, fontWeight: 700, cursor: 'pointer'
       }}
     >
@@ -593,7 +593,7 @@ function CreateTaskModal({ open, onClose, defaultListId, lists }: {
               type="text" required autoFocus
               value={title} onChange={e => setTitle(e.target.value)}
               placeholder="e.g. Prepare customs documentation for shipment #1042"
-              style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5 }}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5 }}
             />
           </div>
 
@@ -665,7 +665,7 @@ function CreateTaskModal({ open, onClose, defaultListId, lists }: {
               value={notes} onChange={e => setNotes(e.target.value)}
               placeholder="Add detailed task instructions or checklist requirements…"
               rows={3}
-              style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, resize: 'vertical' }}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, resize: 'vertical' }}
             />
           </div>
 
@@ -685,7 +685,7 @@ function LinkedTaskRow({ task }: { task: import('../data/calendarStore.js').Link
   return (
     <Link to={task.path} style={{
       display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', textDecoration: 'none',
-      background: 'var(--white)', borderRadius: 10, border: '1px dashed var(--border)',
+      background: 'var(--white)', borderRadius: 'var(--r)', border: '1px dashed var(--border)',
     }}>
       <Icon name="externalLink" size={14} color="var(--ink3)" />
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -699,7 +699,7 @@ function LinkedTaskRow({ task }: { task: import('../data/calendarStore.js').Link
 }
 
 const EVENT_CATEGORY_COLOR: Record<string, string> = {
-  work: '#1a73e8', personal: '#0f9d58', customs: '#ea580c', todo: 'var(--purple)',
+  work: 'var(--blue)', personal: 'var(--green)', customs: 'var(--gold)', todo: 'var(--purple)',
 };
 
 function initials(name: string): string {
@@ -796,7 +796,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
   return (
     <div className="list-row-accent" data-variant={!trashed && todo.status !== 'none' ? statusMeta.variant : undefined}
       style={{
-        background: 'var(--white)', borderRadius: 10, overflow: 'hidden',
+        background: 'var(--white)', borderRadius: 'var(--r)', overflow: 'hidden',
         borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
       }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', opacity: todo.completed ? 0.6 : 1 }}>
@@ -816,7 +816,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
               opacity: readOnly ? 0.5 : 1,
             }}
           >
-            {todo.completed && <Icon name="check" size={12} color="#fff" />}
+            {todo.completed && <Icon name="check" size={12} color="hsl(var(--primary-foreground))" />}
           </button>
         )}
 
@@ -833,7 +833,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
             {todo.starred && <Icon name="star" size={13} color="var(--gold)" />}
             {todo.reminder && <Icon name="clock" size={13} color="var(--teal)" />}
             {todo.priority && (
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: priorityMeta.bg, color: priorityMeta.color, textTransform: 'uppercase' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 'var(--r-sm)', background: priorityMeta.bg, color: priorityMeta.color, textTransform: 'uppercase' }}>
                 {priorityMeta.label}
               </span>
             )}
@@ -855,7 +855,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
               </span>
             )}
             {todo.tags.map(tag => (
-              <span key={tag} style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 7px', borderRadius: 10 }}>#{tag}</span>
+              <span key={tag} style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 7px', borderRadius: 'var(--r)'}}>#{tag}</span>
             ))}
           </div>
         </div>
@@ -880,7 +880,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
         {!trashed && !readOnly && todo.status === 'none' && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" title="Set status" style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 20, cursor: 'pointer', padding: '3px 9px', fontSize: 11, color: 'var(--ink3)' }}>+ Status</button>
+              <button type="button" title="Set status" style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--badge-radius)', cursor: 'pointer', padding: '3px 9px', fontSize: 11, color: 'var(--ink3)' }}>+ Status</button>
             </DropdownMenuTrigger>
             <StatusMenuItems todoId={todo.id} />
           </DropdownMenu>
@@ -959,7 +959,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
               onChange={v => updateTodo(todo.id, { reminder: v })}
               open={reminderOpen}
               onOpenChange={setReminderOpen}
-              triggerStyle={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--ink3)', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, height: 32, boxSizing: 'border-box' }}
+              triggerStyle={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink3)', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, height: 32, boxSizing: 'border-box' }}
             />
 
             {entitlements?.features.projects && (
@@ -984,7 +984,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
                       type="number" min={1} max={365} value={todo.recurrenceRule.interval}
                       disabled={trashed || readOnly}
                       onChange={e => updateTodo(todo.id, { recurrenceRule: { ...todo.recurrenceRule!, interval: Math.max(1, Number(e.target.value) || 1) } })}
-                      style={{ width: 44, padding: '3px 5px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
+                      style={{ width: 44, padding: '3px 5px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12 }}
                     />
                   </span>
                 )}
@@ -1019,7 +1019,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
             placeholder="Detailed description & instructions…"
             rows={3}
             disabled={trashed || readOnly}
-            style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, resize: 'vertical', background: 'var(--white)', color: 'var(--ink)', fontFamily: 'var(--font)' }}
+            style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, resize: 'vertical', background: 'var(--white)', color: 'var(--ink)', fontFamily: 'var(--font)' }}
           />
 
           {!trashed && !readOnly && (
@@ -1033,7 +1033,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
           {!trashed && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
               {todo.tags.map(tag => (
-                <span key={tag} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'var(--teal-l)', padding: '3px 8px', borderRadius: 10 }}>
+                <span key={tag} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'var(--teal-l)', padding: '3px 8px', borderRadius: 'var(--r)'}}>
                   #{tag}
                   {!readOnly && (
                     <button type="button" onClick={() => removeTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', display: 'flex', padding: 0 }}><Icon name="x" size={10} /></button>
@@ -1047,14 +1047,14 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
                   onKeyDown={e => { if (e.key === 'Enter') addTag(); }}
                   onBlur={() => newTag.trim() && addTag()}
                   placeholder="+ tag"
-                  style={{ width: 70, border: '1px dashed var(--border)', borderRadius: 10, padding: '3px 8px', fontSize: 11, background: 'transparent', color: 'var(--ink)', outline: 'none' }}
+                  style={{ width: 70, border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: '3px 8px', fontSize: 11, background: 'transparent', color: 'var(--ink)', outline: 'none' }}
                 />
               )}
             </div>
           )}
 
           {/* Subtasks Checklist */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--white)', padding: 12, borderRadius: 8, border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--white)', padding: 12, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Checklist / Subtasks</span>
               {todo.subtasks.length > 0 && (
@@ -1067,7 +1067,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
               <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <button type="button" disabled={readOnly} onClick={() => !readOnly && updateSubtask(todo.id, s.id, { completed: !s.completed })}
                   style={{ width: 16, height: 16, borderRadius: '50%', border: s.completed ? 'none' : '2px solid var(--border2)', background: s.completed ? 'var(--teal)' : 'transparent', cursor: readOnly ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: readOnly ? 0.6 : 1 }}>
-                  {s.completed && <Icon name="check" size={10} color="#fff" />}
+                  {s.completed && <Icon name="check" size={10} color="hsl(var(--primary-foreground))" />}
                 </button>
                 <span style={{ flex: 1, fontSize: 13, color: s.completed ? 'var(--ink3)' : 'var(--ink)', textDecoration: s.completed ? 'line-through' : 'none' }}>{s.title}</span>
                 {!readOnly && (
@@ -1160,7 +1160,7 @@ function CommentsSection({ taskId, readOnly }: { taskId: string; readOnly: boole
             </div>
             {c.authorId === user?.id && (
               <button type="button" onClick={() => remove(c.id)} title="Delete comment"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', padding: 2, flexShrink: 0 }}>
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, flexShrink: 0 }}>
                 <Icon name="x" size={11} />
               </button>
             )}

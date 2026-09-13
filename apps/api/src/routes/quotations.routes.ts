@@ -3,6 +3,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { quotationService } from '../services/quotation.service.js';
 import { isTaxCodeUserError } from '../services/tax-code.service.js';
 import { withTenant } from '../db/client.js';
+import { resolveCustomerId } from '../services/customer-identity.service.js';
 
 // Matches the frontend's actual route grant for /quotations (FIN_ROLES +
 // SENIOR, apps/web/src/lib/permissions.ts) — the inline checks below used
@@ -25,12 +26,19 @@ export async function quotationRoutes(app: FastifyInstance) {
   // (convert-to-shipment, below) still gates on 'clearos' specifically.
   app.addHook('preHandler', requireAnyEntitlement(['crm', 'clearos']));
 
+  // HUD-0024 continuation: neither route below enforced `customer_id` at
+  // all — any CUSTOMER JWT could list or open every quotation in the
+  // tenant (including other customers' quoted prices) by omitting the
+  // filter or guessing an id. Scoped the same way shipments.routes.ts
+  // already does it: a CUSTOMER's own resolved id always wins over
+  // whatever the query/param says.
   app.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;
     const query = req.query as any;
+    const customerId = user.role === 'CUSTOMER' ? (await resolveCustomerId(user)) ?? '00000000-0000-0000-0000-000000000000' : query.customer_id;
     const quotes = await quotationService.list(user.tenant_id, {
       status: query.status,
-      customer_id: query.customer_id,
+      customer_id: customerId,
     });
     return quotes;
   });
@@ -39,6 +47,10 @@ export async function quotationRoutes(app: FastifyInstance) {
     const user = (req as any).user;
     const { id } = req.params as any;
     const quote = await quotationService.getById(user.tenant_id, id);
+    if (!quote) return reply.status(404).send({ error: 'Quotation not found' });
+    if (user.role === 'CUSTOMER' && (quote as any).customer_id !== await resolveCustomerId(user)) {
+      return reply.status(404).send({ error: 'Quotation not found' });
+    }
     return quote;
   });
 
@@ -49,7 +61,12 @@ export async function quotationRoutes(app: FastifyInstance) {
     }
     const body = req.body as any;
     try {
-      const quote = await quotationService.create(user.tenant_id, user.id, body);
+      // HUD-0058: this file's `(req as any).user` cast hid a `user.id`
+      // typo — JWTPayload only has `.sub` — at all three call sites in this
+      // file that pass an actor id (here, /status, and /convert). Every
+      // quotation's prepared_by/approved_by, and every quote-converted
+      // shipment's assigned_to, was silently null regardless of who acted.
+      const quote = await quotationService.create(user.tenant_id, user.sub, body);
       return reply.code(201).send(quote);
     } catch (e) {
       // An unknown (or another tenant's) tax code is a bad request, not a
@@ -59,11 +76,25 @@ export async function quotationRoutes(app: FastifyInstance) {
     }
   });
 
+  // HUD-0058: the only mutating route in this file with no role check at
+  // all — POST/convert/DELETE below all gate on QUOTE_WRITE_ROLES, but this
+  // one let ANY authenticated user approve or reject ANY quotation in the
+  // tenant. GET /:id already deliberately 404s a CUSTOMER against another
+  // customer's quote (line ~51), yet that same blocked customer could still
+  // silently approve it here — confirmed live. Approving/rejecting is a
+  // staff decision in every other approval workflow this platform has
+  // (Petti, ComplyOS, NexusHR); a customer accepting or declining a quote
+  // sent to them isn't a feature this codebase builds today, so the fix is
+  // the same guard the sibling routes already use, not a narrower
+  // ownership check.
   app.patch('/:id/status', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;
+    if (!QUOTE_WRITE_ROLES.includes(user.role)) {
+      return reply.code(403).send({ error: 'Insufficient permissions' });
+    }
     const { id } = req.params as any;
     const { status, reason } = req.body as any;
-    const quote = await quotationService.updateStatus(user.tenant_id, id, status, user.id, reason);
+    const quote = await quotationService.updateStatus(user.tenant_id, id, status, user.sub, reason);
     return quote;
   });
 
@@ -79,7 +110,7 @@ export async function quotationRoutes(app: FastifyInstance) {
     await requireEntitlement('clearos')(req, reply);
     if (reply.sent) return;
     const { id } = req.params as any;
-    const result = await quotationService.convertToShipment(user.tenant_id, id, user.id);
+    const result = await quotationService.convertToShipment(user.tenant_id, id, user.sub);
     return result;
   });
 

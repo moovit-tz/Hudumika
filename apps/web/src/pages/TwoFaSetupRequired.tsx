@@ -82,7 +82,7 @@ export const TwoFaSetupRequired: React.FC = () => {
         {setupData && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-              <div style={{ padding: 10, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10 }}>
+              <div style={{ padding: 10, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
                 <QRCodeSVG value={setupData.uri} size={128} level="M" />
               </div>
               <div style={{ flex: 1, minWidth: 200 }}>

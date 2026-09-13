@@ -53,7 +53,7 @@ export function ActivityMonitorPage() {
   const cell = (r: number, cc: number) => {
     const v = summary?.zones[`r${r}c${cc}`] ?? 0;
     const t = v / maxZone;
-    return <div key={`r${r}c${cc}`} title={`zone ${r},${cc}: ${v}`} style={{ background: `rgba(13,148,136,${v ? 0.1 + 0.85 * t : 0})`, borderRadius: 3 }} />;
+    return <div key={`r${r}c${cc}`} title={`zone ${r},${cc}: ${v}`} style={{ background: `rgba(13,148,136,${v ? 0.1 + 0.85 * t : 0})`, borderRadius: 'var(--r-sm)'}} />;
   };
 
   return (
@@ -66,7 +66,7 @@ export function ActivityMonitorPage() {
       />
 
       {/* Privacy statement */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 16 }}>
         <Icon name="shield" size={16} color="var(--teal-d)" />
         <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.55 }}>
           This records the <strong>number</strong> of keystrokes and clicks, mouse-travel distance, active seconds, and a coarse on-screen heat zone — <strong>never which keys, never any text or field values</strong>. It runs only while both the workspace has it switched on and you have opted in, and shows a visible indicator whenever it is active.
@@ -143,7 +143,7 @@ export function ActivityMonitorPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) minmax(280px, 1.2fr)', gap: 16, alignItems: 'start' }}>
         <SectionCard title="Attention heatmap">
           {summary && summary.rows > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${summary.grid.cols}, 1fr)`, gridAutoRows: '1fr', gap: 2, aspectRatio: `${summary.grid.cols} / ${summary.grid.rows}`, background: 'var(--bg)', padding: 4, borderRadius: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${summary.grid.cols}, 1fr)`, gridAutoRows: '1fr', gap: 2, aspectRatio: `${summary.grid.cols} / ${summary.grid.rows}`, background: 'var(--bg)', padding: 4, borderRadius: 'var(--r-sm)'}}>
               {Array.from({ length: summary.grid.rows }).flatMap((_, r) => Array.from({ length: summary.grid.cols }).map((__, cc) => cell(r, cc)))}
             </div>
           ) : <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '18px 0', textAlign: 'center' }}>No activity recorded yet.</div>}

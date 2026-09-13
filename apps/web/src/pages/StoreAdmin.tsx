@@ -49,7 +49,7 @@ export const StoreAdmin: React.FC = () => {
         subtitle="Review and manage app submissions to the Hudumika Store."
       />
 
-      <div style={{ background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflowX: 'auto', overflowY: 'hidden', marginTop: 20 }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflowX: 'auto', overflowY: 'hidden', marginTop: 20 }}>
         <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
@@ -65,7 +65,7 @@ export const StoreAdmin: React.FC = () => {
               <tr key={app.id} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td style={{ padding: '16px', fontWeight: 600 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    {app.iconUrl ? <img src={app.iconUrl} alt="icon" style={{ width: 24, height: 24, borderRadius: 4 }} /> : <Icon name="package" size={24} />}
+                    {app.iconUrl ? <img src={app.iconUrl} alt="icon" style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)' }} /> : <Icon name="package" size={24} />}
                     {app.name}
                   </div>
                 </td>
@@ -74,8 +74,8 @@ export const StoreAdmin: React.FC = () => {
                 <td style={{ padding: '16px' }}>
                   <span style={{ 
                     padding: '4px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600,
-                    background: app.status === 'approved' ? 'var(--green-l)' : app.status === 'rejected' ? 'var(--red-l)' : '#fef3c7',
-                    color: app.status === 'approved' ? 'var(--green)' : app.status === 'rejected' ? '#991b1b' : '#92400e'
+                    background: app.status === 'approved' ? 'var(--green-l)' : app.status === 'rejected' ? 'var(--red-l)' : 'var(--gold-l)',
+                    color: app.status === 'approved' ? 'var(--green)' : app.status === 'rejected' ? 'var(--red)' : 'var(--gold)'
                   }}>
                     {app.status}
                   </span>

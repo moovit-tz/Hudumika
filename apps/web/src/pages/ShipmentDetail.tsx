@@ -793,7 +793,7 @@ function CustomerAttentionPanel({ job }: { job: ClearanceJob }) {
 
   if (!blocker) {
     return (
-      <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <Icon name="checkCircle" size={18} color="var(--green)" />
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)' }}>You're all caught up</div>
@@ -804,7 +804,7 @@ function CustomerAttentionPanel({ job }: { job: ClearanceJob }) {
   }
 
   return (
-    <div style={{ background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12, padding: '14px 18px' }}>
+    <div style={{ background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '14px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <Icon name="alertCircle" size={16} color="var(--gold)" />
         <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--gold)' }}>Needs your attention</span>
@@ -838,10 +838,10 @@ function CustomerAgentCard({ job }: { job: ClearanceJob }) {
       </div>
       {agent && (
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <a href={`tel:${agent.phone}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 7, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
+          <a href={`tel:${agent.phone}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
             <Icon name="phone" size={13} color="#fff" /> Call
           </a>
-          <a href={`mailto:${agent.email}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', background: 'var(--bg)', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
+          <a href={`mailto:${agent.email}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', background: 'var(--bg)', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
             <Icon name="mail" size={13} /> Email
           </a>
         </div>
@@ -885,7 +885,7 @@ function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
   // under the header instead of a darkened full-screen overlay.
   return (
     <div style={embedded
-      ? { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }
+      ? { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }
       : { background: 'var(--white)', borderBottom: '1px solid var(--border)', boxShadow: 'var(--elev-lg)' }}>
       <div style={embedded ? {} : { maxWidth: 560, margin: '0 auto' }}>
         <div style={{ padding: '16px 20px 0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -904,7 +904,7 @@ function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
           </div>
 
           {targetReqs && targetReqs.length > 0 && (
-            <div style={{ marginBottom: 14, background: 'var(--bg)', border: `1px solid ${hasUnmet ? 'var(--red-l)' : 'var(--border)'}`, borderRadius: 8, padding: '10px 12px' }}>
+            <div style={{ marginBottom: 14, background: 'var(--bg)', border: `1px solid ${hasUnmet ? 'var(--red-l)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: '10px 12px' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 7 }}>Requirements to enter this stage</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {targetReqs.map((r, i) => (
@@ -924,11 +924,11 @@ function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
 
           <div style={{ marginBottom: 14 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Transition Note <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(visible to listeners)</span></label>
-            <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="What was completed? Any key info to share…" style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const }} />
+            <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="What was completed? Any key info to share…" style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const }} />
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Blocker / Pending <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(optional)</span></label>
-            <textarea value={blocker} onChange={e => setBlocker(e.target.value)} rows={2} placeholder="Any blockers or outstanding actions?" style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const }} />
+            <textarea value={blocker} onChange={e => setBlocker(e.target.value)} rows={2} placeholder="Any blockers or outstanding actions?" style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const }} />
           </div>
           <div style={{ marginBottom: 20 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 8 }}>Notify via</label>
@@ -936,7 +936,7 @@ function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
               {(['internal', 'whatsapp', 'email', 'teams', 'sms'] as Channel[]).map(ch => {
                 const cfg = CH_CFG[ch]; const on = chans.includes(ch);
                 return (
-                  <button key={ch} type="button" onClick={() => toggle(ch)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', transition: 'all 0.15s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  <button key={ch} type="button" onClick={() => toggle(ch)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', transition: 'all 0.15s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     {cfg.label}
                   </button>
                 );
@@ -969,7 +969,7 @@ function DocPreview({ shipmentId, doc }: { shipmentId: string; doc: ShipDoc }) {
   }, [shipmentId, doc.id]);
   const isImg = /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(doc.name);
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', background: 'var(--white)', flexShrink: 0 }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', background: 'var(--white)', flexShrink: 0 }}>
       <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
         <Icon name="fileText" size={14} color="var(--ink3)" />
         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{doc.name}</span>
@@ -1036,7 +1036,7 @@ function AdvanceStageView({ job, shipmentId, isLive, isMobile, onClose, onAdvanc
         <div style={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 'calc(100vh - 210px)', overflowY: 'auto' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Document previews</div>
           {docs.length === 0
-            ? <div style={{ padding: '28px 16px', fontSize: 13, color: 'var(--ink3)', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 10 }}>No documents to preview.</div>
+            ? <div style={{ padding: '28px 16px', fontSize: 13, color: 'var(--ink3)', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 'var(--r)'}}>No documents to preview.</div>
             : docs.map(d => <DocPreview key={d.id} shipmentId={shipmentId} doc={d} />)}
         </div>
       )}
@@ -1100,7 +1100,7 @@ function EntryPointSteps({ entryOffice }: { entryOffice: string }) {
   const cfg = ENTRY_POINT_STEPS[entryOffice];
   if (!cfg) return null;
   return (
-    <div style={{ marginTop: 14, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 18px' }}>
+    <div style={{ marginTop: 14, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 18px' }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>
         Clearing Process — {cfg.label}
       </div>
@@ -1576,7 +1576,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
       {/* OCR pre-fill banner */}
       {/* Nothing lodged yet — start from the shipment instead of an empty form. */}
       {prefill && (
-        <div style={{ padding: '12px 14px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 12, marginBottom: 14 }}>
+        <div style={{ padding: '12px 14px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
             <Icon name="zap" size={18} color="var(--teal)" style={{ flexShrink: 0, marginTop: 1 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1627,7 +1627,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
       )}
 
       {ocrBanner && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 14px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 12, marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 14px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="search" size={18} color="var(--teal)" />
             <div>
@@ -1787,7 +1787,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
               <DField label="Excise Rate (%)"><DInput value={financial.excise_rate} onChange={v => setFinancial(f => ({ ...f, excise_rate: v }))} placeholder="0" mono /></DField>
             </div>
             {cifUsd > 0 && (
-              <div style={{ marginTop: 12, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+              <div style={{ marginTop: 12, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 16px' }}>
                 {[
                   ['CIF Value (TZS)', cifTzs],
                   [`Customs Duty ${financial.duty_rate}%`, dutyAmt],
@@ -1979,13 +1979,13 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{msg.userName}</span>
                 <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{fdatetime(msg.ts)}</span>
-                {msg.isInternal && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, padding: '2px 7px', borderRadius: 3, background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)', fontWeight: 600 }}><Icon name="lock" size={9} /> Internal Only</span>}
+                {msg.isInternal && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, padding: '2px 7px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)', fontWeight: 600 }}><Icon name="lock" size={9} /> Internal Only</span>}
                 {msg.channels.filter(c => c !== 'internal').map(c => <ChBadge key={c} ch={c} />)}
               </div>
-              <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, padding: '12px 16px', background: msg.isInternal ? 'var(--bg)' : 'var(--white)', border: '1px solid var(--border)', borderRadius: '0 10px 10px 10px', borderTopLeftRadius: 2 }}>
+              <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, padding: '12px 16px', background: msg.isInternal ? 'var(--bg)' : 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm) var(--r) var(--r) var(--r)' }}>
                 {msg.content}
                 {msg.attachments?.map(a => (
-                  <div key={a} style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: 'var(--bg)', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12, color: 'var(--teal)', cursor: 'pointer' }}>
+                  <div key={a} style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: 'var(--bg)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--teal)', cursor: 'pointer' }}>
                     <Icon name="paperclip" size={13} /> {a}
                   </div>
                 ))}
@@ -2004,7 +2004,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
 
       {/* ── Quick Stage Update ── */}
       {showStageBar && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--teal)', borderRadius: 12, overflow: 'hidden', marginBottom: 12 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', overflow: 'hidden', marginBottom: 12 }}>
           <div style={{ padding: '10px 14px', background: 'var(--teal-l)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)' }}>Set Stage — click to update</span>
             <button type="button" onClick={() => setShowStageBar(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}><Icon name="x" size={13} color="var(--teal)" /></button>
@@ -2024,20 +2024,20 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
         </div>
       )}
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>Post to:</span>
-          <button type="button" onClick={() => setIsInternal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${isInternal ? 'var(--ink3)' : 'var(--border)'}`, background: isInternal ? 'var(--bg)' : 'var(--white)', color: isInternal ? 'var(--ink)' : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="lock" size={11} /> Internal Note</button>
-          <button type="button" onClick={() => { setIsInternal(false); if (!chans.length) setChans(['whatsapp']); }} style={{ padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${!isInternal ? CH_CFG.whatsapp.color : 'var(--border)'}`, background: !isInternal ? CH_CFG.whatsapp.bg : 'var(--white)', color: !isInternal ? CH_CFG.whatsapp.color : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>↗ Share Update</button>
+          <button type="button" onClick={() => setIsInternal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${isInternal ? 'var(--ink3)' : 'var(--border)'}`, background: isInternal ? 'var(--bg)' : 'var(--white)', color: isInternal ? 'var(--ink)' : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="lock" size={11} /> Internal Note</button>
+          <button type="button" onClick={() => { setIsInternal(false); if (!chans.length) setChans(['whatsapp']); }} style={{ padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${!isInternal ? CH_CFG.whatsapp.color : 'var(--border)'}`, background: !isInternal ? CH_CFG.whatsapp.bg : 'var(--white)', color: !isInternal ? CH_CFG.whatsapp.color : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>↗ Share Update</button>
           {!isInternal && (['whatsapp', 'email', 'teams', 'sms'] as Channel[]).map(ch => {
             const cfg = CH_CFG[ch]; const on = chans.includes(ch);
-            return <button key={ch} type="button" onClick={() => toggleCh(ch)} style={{ padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>{cfg.label}</button>;
+            return <button key={ch} type="button" onClick={() => toggleCh(ch)} style={{ padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>{cfg.label}</button>;
           })}
         </div>
         <div style={{ padding: '12px 16px' }}>
           <textarea value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSend(); }} rows={3}
             placeholder={isInternal ? 'Write an internal note — not visible to customer…' : 'Write a customer update — will be sent via selected channels…'}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const, lineHeight: 1.5, outline: 'none' }} />
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const, lineHeight: 1.5, outline: 'none' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Ctrl+Enter to send</span>
@@ -2080,7 +2080,7 @@ function CustomerOverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: b
               ['Gross Weight',job.weight || '—',                               false],
               ['Containers',  (job.containers?.length ?? 0) > 0 ? (job.containers ?? []).join(', ') : '—', true],
             ] as [string,string,boolean][]).map(([k, v, mono], i) => (
-              <div key={k} style={{ padding: '8px 10px', background: i % 2 === 0 ? 'var(--bg)' : 'var(--white)', borderRadius: 4 }}>
+              <div key={k} style={{ padding: '8px 10px', background: i % 2 === 0 ? 'var(--bg)' : 'var(--white)', borderRadius: 'var(--r-sm)'}}>
                 <div style={{ fontSize: 10, color: 'var(--ink3)', marginBottom: 1 }}>{k}</div>
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', fontFamily: mono ? 'var(--mono)' : undefined, wordBreak: 'break-all' }}>{v}</div>
               </div>
@@ -2093,7 +2093,7 @@ function CustomerOverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: b
         <CustomerAgentCard job={job} />
         <SectionCard title="Shared Documents">
           <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 10 }}>{job.documents.length} document{job.documents.length === 1 ? '' : 's'} on this shipment</div>
-          <Link to={`?tab=files`} style={{ display: 'block', textAlign: 'center', padding: '9px 0', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', textDecoration: 'none' }}>
+          <Link to={`?tab=files`} style={{ display: 'block', textAlign: 'center', padding: '9px 0', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', textDecoration: 'none' }}>
             View Files
           </Link>
         </SectionCard>
@@ -2141,7 +2141,7 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
           { label: 'Documents',    value: String(job.documents.length),  sub: `${job.documents.filter(d => d.extracted?.status === 'done').length} AI extracted`, color: 'var(--purple)', icon: 'folder' as IconName },
           { label: 'Total Charges',value: totalCharges > 0 ? `TZS ${(totalCharges/1_000_000).toFixed(1)}M` : '—', sub: `${job.ledger.filter(e => e.type==='charge').length} entries`, color: 'var(--red)', icon: 'receipt' as IconName },
         ].map(c => (
-          <div key={c.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
+          <div key={c.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <Icon name={c.icon} size={12} color={c.color} />
               <span style={{ fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.label}</span>
@@ -2159,7 +2159,7 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
             <span style={{ fontSize: 13, color: 'var(--ink2)' }}>Total charges: <strong style={{ color: 'var(--ink)' }}>{fmtTZS(totalCharges)}</strong></span>
             <span style={{ fontSize: 13, color: 'var(--ink2)' }}>Paid: <strong style={{ color: 'var(--green, var(--green))' }}>{fmtTZS(totalPaid)}</strong></span>
           </div>
-          <div style={{ display: 'flex', height: 10, borderRadius: 6, overflow: 'hidden', background: 'var(--bg)' }}>
+          <div style={{ display: 'flex', height: 10, borderRadius: 'var(--r-sm)', overflow: 'hidden', background: 'var(--bg)' }}>
             {totalCharges > 0 && (
               <>
                 <div style={{ width: `${Math.min(100, (totalPaid / totalCharges) * 100)}%`, background: 'var(--green)' }} />
@@ -2168,10 +2168,10 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
             )}
           </div>
           <div style={{ display: 'flex', gap: 18, marginTop: 10, flexWrap: 'wrap', fontSize: 11.5 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ink2)' }}><span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--green)', display: 'inline-block' }} />Paid {fmtTZS(totalPaid)}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ink2)' }}><span style={{ width: 8, height: 8, borderRadius: 'var(--r-sm)', background: 'var(--green)', display: 'inline-block' }} />Paid {fmtTZS(totalPaid)}</span>
             {balanceDue > 0 && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ink2)' }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: isOverdueBal ? 'var(--red)' : 'var(--gold)', display: 'inline-block' }} />
+                <span style={{ width: 8, height: 8, borderRadius: 'var(--r-sm)', background: isOverdueBal ? 'var(--red)' : 'var(--gold)', display: 'inline-block' }} />
                 {isOverdueBal ? 'Overdue' : 'Due'} {fmtTZS(balanceDue)}
               </span>
             )}
@@ -2466,9 +2466,9 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
     <div>
       {/* Status filter strip */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-        <button type="button" onClick={() => setFilterStatus('all')} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${filterStatus === 'all' ? 'var(--teal)' : 'var(--border)'}`, background: filterStatus === 'all' ? 'var(--teal-l)' : 'var(--white)', color: filterStatus === 'all' ? 'var(--teal)' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>All <span style={{ fontWeight: 700 }}>{counts.all}</span></button>
+        <button type="button" onClick={() => setFilterStatus('all')} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${filterStatus === 'all' ? 'var(--teal)' : 'var(--border)'}`, background: filterStatus === 'all' ? 'var(--teal-l)' : 'var(--white)', color: filterStatus === 'all' ? 'var(--teal)' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>All <span style={{ fontWeight: 700 }}>{counts.all}</span></button>
         {statuses.map(s => { const cfg = TASK_STATUS_CFG[s]; const on = filterStatus === s; return (
-          <button key={s} type="button" onClick={() => setFilterStatus(s)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button key={s} type="button" onClick={() => setFilterStatus(s)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
             {cfg.label} <span style={{ fontWeight: 700 }}>{counts[s]}</span>
           </button>
         ); })}
@@ -2578,7 +2578,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                     ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
                   </td>
                   <td style={{ padding: '10px 14px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: sCfg.bg, color: sCfg.color, whiteSpace: 'nowrap' }}>{sCfg.label}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: sCfg.bg, color: sCfg.color, whiteSpace: 'nowrap' }}>{sCfg.label}</span>
                   </td>
                   <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fdate(task.startDate)}</td>
                   <td style={{ padding: '10px 14px', fontSize: 12, color: overdue ? 'var(--red)' : 'var(--ink3)', fontWeight: overdue ? 700 : 400, whiteSpace: 'nowrap' }}>{fdate(task.dueDate)}</td>
@@ -2595,7 +2595,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                      {task.tags.map(tag => <span key={tag} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)' }}>{tag}</span>)}
+                      {task.tags.map(tag => <span key={tag} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)' }}>{tag}</span>)}
                     </div>
                   </td>
                   <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
@@ -2852,8 +2852,8 @@ function ExtractedView({ doc }: { doc: ShipDoc }) {
   if (ex.status === 'processing') return (
     <div style={{ padding: '16px 0' }}>
       <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 8 }}>Extracting with AI…</div>
-      <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: '65%', background: 'var(--teal)', borderRadius: 2 }} />
+      <div style={{ height: 4, background: 'var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: '65%', background: 'var(--teal)', borderRadius: 'var(--r-sm)'}} />
       </div>
     </div>
   );
@@ -2861,11 +2861,11 @@ function ExtractedView({ doc }: { doc: ShipDoc }) {
   if (ex.status === 'failed')  return <div style={{ fontSize: 13, color: 'var(--red)' }}>Extraction failed. Please retry.</div>;
   return (
     <div>
-      {ex.summary && <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 14, padding: '10px 14px', background: 'var(--green-l)', borderRadius: 6, borderLeft: '3px solid var(--green)', lineHeight: 1.5 }}>{ex.summary}</div>}
+      {ex.summary && <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 14, padding: '10px 14px', background: 'var(--green-l)', borderRadius: 'var(--r-sm)', borderLeft: '3px solid var(--green)', lineHeight: 1.5 }}>{ex.summary}</div>}
       {ex.sections?.map(sec => (
         <div key={sec.title} style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{sec.title}</div>
-          <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
             {sec.fields.map((f, i) => (
               <div key={f.label} style={{ display: 'flex', padding: '8px 14px', background: i % 2 === 0 ? 'var(--white)' : 'var(--bg)', borderBottom: i < sec.fields.length - 1 ? '1px solid var(--border)' : 'none', gap: 16 }}>
                 <span style={{ fontSize: 12, color: 'var(--ink3)', width: 200, flexShrink: 0 }}>{f.label}</span>
@@ -3292,7 +3292,7 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
       <input ref={fileInputRef} type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" style={{ display: 'none' }} onChange={handleFileChange} />
 
       {extracted.length > 0 && (
-        <div style={{ display: 'flex', gap: 16, padding: '14px 20px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 12, marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 16, padding: '14px 20px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', marginBottom: 20 }}>
           <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--green)' }}>{extracted.length}</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)' }}>Documents Extracted by AI</div>
@@ -3318,7 +3318,7 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
       </div>
 
       {stagedFiles.length > 0 && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--teal)', borderRadius: 12, padding: '16px 20px', marginBottom: 20 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', padding: '16px 20px', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
               {stagedFiles.length} file{stagedFiles.length !== 1 ? 's' : ''} ready to upload
@@ -3372,10 +3372,10 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
         {uploadedDocuments.map(doc => {
           const isExp = expanded === doc.id; const ex = doc.extracted;
           return (
-            <div key={doc.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+            <div key={doc.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer' }} onClick={() => setExpanded(isExp ? null : doc.id)}
                 role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(isExp ? null : doc.id); } }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)', flexShrink: 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)', flexShrink: 0 }}>
                   <Icon name={docIcon(doc.type)} size={20} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -3384,15 +3384,15 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                   {ex?.status === 'done' && ex.summary && <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.summary}</div>}
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                  {ex?.status === 'done'       && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, background: 'var(--green-l)', color: 'var(--green)', fontWeight: 700, border: '1px solid var(--green)' }}>✓ AI Extracted · {ex.confidence}%</span>}
-                  {ex?.status === 'processing' && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, background: 'var(--gold-l)', color: 'var(--gold)', fontWeight: 700 }}>Processing…</span>}
+                  {ex?.status === 'done'       && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--green-l)', color: 'var(--green)', fontWeight: 700, border: '1px solid var(--green)' }}>✓ AI Extracted · {ex.confidence}%</span>}
+                  {ex?.status === 'processing' && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--gold-l)', color: 'var(--gold)', fontWeight: 700 }}>Processing…</span>}
                   {(!ex || ex.status === 'pending') && (
                     <button type="button" onClick={e => { e.stopPropagation(); handleExtract(doc.id); }} style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--teal)', color: 'var(--teal)', background: 'var(--white)', cursor: 'pointer', fontWeight: 700, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
                       Extract with AI
                     </button>
                   )}
                   {doc.status === 'VERIFIED' ? (
-                    <span title="Verified" style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: 'var(--green-l)', color: 'var(--green)', border: '1px solid var(--green)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="checkCircle" size={12} color="var(--green)" /> Verified</span>
+                    <span title="Verified" style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--green-l)', color: 'var(--green)', border: '1px solid var(--green)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="checkCircle" size={12} color="var(--green)" /> Verified</span>
                   ) : canVerify ? (
                     <button type="button" onClick={e => { e.stopPropagation(); verifyDoc(doc.id); }} disabled={verifying === doc.id} title="Mark this document as verified" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--green)', color: 'var(--green)', background: 'var(--white)', cursor: verifying === doc.id ? 'default' : 'pointer', fontWeight: 700, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
                       {verifying === doc.id ? '…' : 'Verify'}
@@ -3462,7 +3462,7 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
       {/* Results */}
       {job.co2EmissionsKg !== undefined && (
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 220, background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 12, padding: '20px' }}>
+          <div style={{ flex: 1, minWidth: 220, background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: 'var(--green)' }}>
               <Icon name="activity" size={16} />
               <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total CO₂ Emissions</span>
@@ -3471,7 +3471,7 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
               {job.co2EmissionsKg.toLocaleString()} <span style={{ fontSize: 16, fontWeight: 600 }}>kg</span>
             </div>
           </div>
-          <div style={{ flex: 1, minWidth: 220, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12, padding: '20px' }}>
+          <div style={{ flex: 1, minWidth: 220, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: 'var(--gold)' }}>
               <Icon name="sun" size={16} />
               <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Carbon Credits Saved</span>
@@ -3495,7 +3495,7 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
         </div>
 
         {!canCalculate && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12, fontSize: 12.5, color: 'var(--gold)', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--gold)', marginBottom: 14 }}>
             <Icon name="alertCircle" size={14} color="var(--gold)" />
             Add {[!hasOriginDest && 'origin/destination', !hasWeight && 'gross weight'].filter(Boolean).join(' and ')} on the Edit page to enable calculation.
           </div>
@@ -3511,7 +3511,7 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
         </button>
 
         {job.co2CalcDetails && (
-          <div style={{ marginTop: 18, padding: '14px 16px', background: 'var(--bg)', borderRadius: 12, fontSize: 12, color: 'var(--ink3)' }}>
+          <div style={{ marginTop: 18, padding: '14px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', fontSize: 12, color: 'var(--ink3)' }}>
             <strong>Calculation details:</strong> Distance {job.co2CalcDetails.distance_km}km · Mode {job.co2CalcDetails.mode}{job.co2CalcDetails.factor ? ` · GLEC Factor ${job.co2CalcDetails.factor}` : ''}
           </div>
         )}
@@ -3619,7 +3619,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
                 { label: 'Gross Margin',   value: fmtTZS(Math.abs(grossMargin)), color: grossMargin >= 0 ? 'var(--green)' : 'var(--red)', icon: grossMargin >= 0 ? 'checkCircle' : 'alertTriangle' },
                 { label: 'Time Logged, Billable', value: billableSummary.length ? billableSummary.map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ') : '—', color: 'var(--blue)', icon: 'clock' },
               ] as { label: string; value: string; color: string; icon: IconName }[]).map(c => (
-                <div key={c.label} style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                <div key={c.label} style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}><Icon name={c.icon} size={10} /> {c.label}</div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: c.color, fontFamily: 'var(--mono)' }}>{c.value}</div>
                 </div>
@@ -3640,7 +3640,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
           { label: 'Total Received', value: fmtTZS(totalPaid),    color: 'var(--green)',  sub: `${payments.length} payments` },
           { label: balance >= 0 ? 'Net Surplus' : 'Balance Due', value: fmtTZS(Math.abs(balance)), color: balance >= 0 ? 'var(--green)' : 'var(--gold)', sub: balance >= 0 ? 'Client ahead' : 'Outstanding' },
         ].map(card => (
-          <div key={card.label} style={{ padding: '16px 20px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--white)' }}>
+          <div key={card.label} style={{ padding: '16px 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)' }}>
             <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{card.label}</div>
             <div style={{ fontSize: 20, fontWeight: 700, color: card.color, marginBottom: 3 }}>{card.value}</div>
             <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{card.sub}</div>
@@ -3742,11 +3742,11 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
                     <tr key={e.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--white)' : 'var(--bg)' }}>
                       <td style={{ padding: '11px 20px', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fdate(e.date)}</td>
                       <td style={{ padding: '11px 20px' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: typeColor, background: typeColor + '18', padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>{typeLabel}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: typeColor, background: typeColor + '18', padding: '2px 8px', borderRadius: 'var(--r-sm)', whiteSpace: 'nowrap' }}>{typeLabel}</span>
                       </td>
                       <td style={{ padding: '11px 20px', fontSize: 13, fontWeight: 500 }}>{e.description}</td>
                       <td style={{ padding: '11px 20px', fontSize: 12, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{e.reference || '—'}</td>
-                      <td style={{ padding: '11px 20px' }}><span style={{ fontSize: 11, fontWeight: 700, color: sColor(e.status), background: sColor(e.status) + '18', padding: '2px 8px', borderRadius: 4 }}>{e.status.toUpperCase()}</span></td>
+                      <td style={{ padding: '11px 20px' }}><span style={{ fontSize: 11, fontWeight: 700, color: sColor(e.status), background: sColor(e.status) + '18', padding: '2px 8px', borderRadius: 'var(--r-sm)'}}>{e.status.toUpperCase()}</span></td>
                       <td style={{ padding: '11px 20px', fontSize: 13, fontWeight: 700, textAlign: 'right', color: signed >= 0 ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>
                         {signed >= 0 ? '+' : '−'}{fmtTZS(Math.abs(signed))}
                       </td>
@@ -4044,7 +4044,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
             <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search by name, department, or role…"
-              style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 12, fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
+              style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
           </div>
         </div>
 
@@ -4078,7 +4078,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
                   <div style={{ fontSize: 13, fontWeight: 700, color: on ? 'var(--teal)' : 'var(--ink)' }}>{e.name}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{e.designation} · {e.dept}</div>
                 </div>
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6, background: STATUS_COLOR[e.status] ? `${STATUS_COLOR[e.status]}20` : 'var(--bg)', color: STATUS_COLOR[e.status] ?? 'var(--ink3)', flexShrink: 0 }}>{e.status === 'ON_LEAVE' ? 'On Leave' : 'Active'}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--r-sm)', background: STATUS_COLOR[e.status] ? `${STATUS_COLOR[e.status]}20` : 'var(--bg)', color: STATUS_COLOR[e.status] ?? 'var(--ink3)', flexShrink: 0 }}>{e.status === 'ON_LEAVE' ? 'On Leave' : 'Active'}</span>
                 <div style={{ width: 20, height: 20, borderRadius: 'var(--r-sm)', border: `2px solid ${on ? 'var(--teal)' : 'var(--border)'}`, background: on ? 'var(--teal)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {on && <Icon name="check" size={11} color="#fff" />}
                 </div>
@@ -4325,9 +4325,9 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
       {/* Listeners Card */}
       <Card title="Listeners" padded={false} action={(
         <span style={{ display: 'flex', gap: 5 }}>
-          <span style={{ padding: '1px 7px', background: 'var(--bg)', borderRadius: 12, fontSize: 10, fontWeight: 700, color: 'var(--ink3)' }}>{job.listeners.length}</span>
+          <span style={{ padding: '1px 7px', background: 'var(--bg)', borderRadius: 'var(--r)', fontSize: 10, fontWeight: 700, color: 'var(--ink3)' }}>{job.listeners.length}</span>
           {customers.length > 0 && (
-            <span style={{ padding: '1px 7px', background: waActive ? 'var(--green-l)' : 'var(--bg)', color: waActive ? 'var(--green)' : 'var(--ink3)', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>WA {waActive ? '✓' : '✕'}</span>
+            <span style={{ padding: '1px 7px', background: waActive ? 'var(--green-l)' : 'var(--bg)', color: waActive ? 'var(--green)' : 'var(--ink3)', borderRadius: 'var(--r)', fontSize: 10, fontWeight: 700 }}>WA {waActive ? '✓' : '✕'}</span>
           )}
         </span>
       )}>
@@ -4810,7 +4810,7 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
       )}
 
       {verifyMsg && (
-        <div style={{ marginTop: 10, borderRadius: 8, padding: '9px 11px', fontSize: 11.5, lineHeight: 1.5,
+        <div style={{ marginTop: 10, borderRadius: 'var(--r)', padding: '9px 11px', fontSize: 11.5, lineHeight: 1.5,
           background: verifyMsg.valid ? 'var(--green-l)' : 'var(--gold-l)',
           border: `1px solid ${verifyMsg.valid ? 'var(--green)' : 'var(--gold)'}`, color: 'var(--ink2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -4849,7 +4849,7 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
           </Select>
 
           {target && landingIdx >= 0 && (
-            <div style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 11px' }}>
+            <div style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '9px 11px' }}>
               <div><strong style={{ color: 'var(--ink)' }}>Now:</strong> {curStep?.label ?? '—'}{curIdx >= 0 ? ` (step ${curIdx + 1} of ${total})` : ''}</div>
               <div style={{ marginTop: 3 }}><strong style={{ color: 'var(--ink)' }}>After:</strong> {targetSteps[landingIdx]?.name} (step {landingIdx + 1} of {targetSteps.length}) in {targetName}</div>
               <div style={{ marginTop: 5, color: 'var(--ink3)' }}>Progress is kept at the same position where the new workflow has one, otherwise its nearest step. You can refine the stage afterward from Advance Stage.</div>
@@ -5069,7 +5069,7 @@ export function ShipmentDetail() {
   if (!job) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12 }}>
       <div style={{ fontSize: 16, color: 'var(--ink3)' }}>Shipment not found.</div>
-      <Link to="/" style={{ padding: '8px 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, textDecoration: 'none' }}>← Back</Link>
+      <Link to="/" style={{ padding: '8px 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer', fontSize: 13, textDecoration: 'none' }}>← Back</Link>
     </div>
   );
 
@@ -5120,15 +5120,15 @@ export function ShipmentDetail() {
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.06em' }}>{job.sysRef}</span>
               )}
               {bookingRef && (
-                <Link to="/cargotracker/bookings" title="View freight booking" style={{ fontSize: 10.5, padding: '2px 8px', background: 'var(--white)', border: '1px solid var(--border)', color: 'var(--ink2)', borderRadius: 4, fontWeight: 700, textDecoration: 'none' }}>
+                <Link to="/cargotracker/bookings" title="View freight booking" style={{ fontSize: 10.5, padding: '2px 8px', background: 'var(--white)', border: '1px solid var(--border)', color: 'var(--ink2)', borderRadius: 'var(--r-sm)', fontWeight: 700, textDecoration: 'none' }}>
                   Booked via {bookingRef.booking_number}
                 </Link>
               )}
-              {!isMock && <span style={{ fontSize: 10.5, padding: '2px 7px', background: 'var(--green-l)', color: 'var(--green)', borderRadius: 4, fontWeight: 700 }}>LIVE</span>}
+              {!isMock && <span style={{ fontSize: 10.5, padding: '2px 7px', background: 'var(--green-l)', color: 'var(--green)', borderRadius: 'var(--r-sm)', fontWeight: 700 }}>LIVE</span>}
               {isOverdue && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: 'var(--red)' }}><Icon name="alertTriangle" size={11} /> Overdue</span>}
               {job.hasDangerousGoods && (
                 <button type="button" onClick={() => setTab('overview')} title="Carries a dangerous-goods declaration — see the Overview tab"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, padding: '2px 7px', background: 'var(--gold-l)', color: 'var(--gold)', borderRadius: 4, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, padding: '2px 7px', background: 'var(--gold-l)', color: 'var(--gold)', borderRadius: 'var(--r-sm)', fontWeight: 700, border: 'none', cursor: 'pointer' }}>
                   <Icon name="alertTriangle" size={11} color="var(--gold)" /> DG
                 </button>
               )}
@@ -5176,7 +5176,7 @@ export function ShipmentDetail() {
         </div>
 
         {/* Stage stepper — floats up over the hero band */}
-        <div style={{ margin: isMobile ? '-10px 10px 0' : '-12px 14px 0', position: 'relative', background: 'var(--white)', borderRadius: 12, padding: '10px 0 8px', border: '1px solid var(--border)' }}>
+        <div style={{ margin: isMobile ? '-10px 10px 0' : '-12px 14px 0', position: 'relative', background: 'var(--white)', borderRadius: 'var(--r)', padding: '10px 0 8px', border: '1px solid var(--border)' }}>
           {isStaff ? <StageStepper job={job} /> : (
             <div style={{ padding: '0 24px' }}><CustomerMilestoneTimeline job={job} compact /></div>
           )}

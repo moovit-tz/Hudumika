@@ -25,7 +25,7 @@
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   border: none;
-  border-radius: var(--r-md, 8px);
+  border-radius: var(--r);
   padding: 0 16px;
   height: 38px;
   box-sizing: border-box;

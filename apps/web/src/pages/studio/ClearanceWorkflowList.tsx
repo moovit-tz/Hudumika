@@ -246,7 +246,7 @@ export function ClearanceWorkflowList() {
           </div>
           <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
             {templates.map(tpl => (
-              <div key={tpl.id} style={{ flex: '0 0 240px', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div key={tpl.id} style={{ flex: '0 0 240px', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                   <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{tpl.name}</span>
                   <span className="wf-badge wf-badge-gray" style={{ whiteSpace: 'nowrap' }}>v{tpl.version}</span>
@@ -277,7 +277,7 @@ export function ClearanceWorkflowList() {
           </div>
 
           {learning.proposals.map(p => (
-            <div key={p.id} style={{ border: '1px solid var(--teal-m)', background: 'var(--teal-l)', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
+            <div key={p.id} style={{ border: '1px solid var(--teal-m)', background: 'var(--teal-l)', borderRadius: 'var(--r)', padding: '12px 14px', marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                 <div>
                   <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{p.name}</span>
@@ -446,14 +446,14 @@ export function ClearanceWorkflowList() {
             </table>
           </div>
 
-          <div style={{ marginTop: 16, padding: '12px 16px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink3)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <div style={{ marginTop: 16, padding: '12px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink3)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <Icon name="zap" size={14} color="var(--teal)" />
             <span>Changes to the assignment matrix take effect immediately for new shipments. Existing shipments in progress continue on their original workflow until completion.</span>
           </div>
 
           {/* Default workflow selector */}
           {workflows.length > 0 && (
-            <div style={{ marginTop: 20, padding: '14px 18px', background: 'var(--white)', borderRadius: 8, border: '1.5px solid var(--border)' }}>
+            <div style={{ marginTop: 20, padding: '14px 18px', background: 'var(--white)', borderRadius: 'var(--r)', border: '1.5px solid var(--border)' }}>
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon name="star" size={14} color="var(--gold)" duotone /> Default Fallback Workflow
               </div>

@@ -64,7 +64,7 @@ function timeAgo(iso: string): string {
 }
 
 const cardStyle: React.CSSProperties = {
-  border: '1px solid var(--border)', borderRadius: 12,
+  border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
   background: 'var(--card-bg, var(--white))', overflow: 'hidden',
 };
 

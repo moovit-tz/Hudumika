@@ -200,11 +200,11 @@ export function InventoryItems() {
                         <td colSpan={6} style={{ background: 'var(--bg)', padding: 16 }} onClick={e => e.stopPropagation()}>
                           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 8 }}>Units of Measure</div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-                            <span className="inv-mono" style={{ fontSize: 12, padding: '5px 10px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                            <span className="inv-mono" style={{ fontSize: 12, padding: '5px 10px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
                               {item.baseUom} (base, ×1)
                             </span>
                             {uoms.map(u => (
-                              <span key={u.id} className="inv-mono" style={{ fontSize: 12, padding: '5px 10px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                              <span key={u.id} className="inv-mono" style={{ fontSize: 12, padding: '5px 10px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
                                 {u.uomCode} (×{u.conversionFactor})
                               </span>
                             ))}

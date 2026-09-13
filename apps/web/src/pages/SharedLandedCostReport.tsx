@@ -13,6 +13,8 @@ import { BASE_URL } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { printSharedReport } from './LandedCostPage.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { useBranding } from '../hooks/useBranding.js';
+import { pickForegroundHsl } from '../lib/color.js';
 
 interface Teaser {
   hs_code: string | null;
@@ -23,6 +25,8 @@ interface Teaser {
 }
 
 export const SharedLandedCostReport: React.FC = () => {
+  const branding = useBranding();
+  const appColor = branding.getAppColor('clearos');
   const { token } = useParams<{ token: string }>();
   const [teaser, setTeaser] = useState<Teaser | null>(null);
   const [loadError, setLoadError] = useState('');
@@ -80,17 +84,17 @@ export const SharedLandedCostReport: React.FC = () => {
   }
 
   const shell = (children: React.ReactNode) => (
-    <div style={{ minHeight: '100vh', background: '#F3F5F7', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 520, background: '#fff', borderRadius: 16, border: '1px solid #E5E9EC', boxShadow: 'var(--elev-lg)', padding: '28px 26px' }}>
+    <div style={{ '--clearos-accent': appColor, '--clearos-foreground': pickForegroundHsl(appColor), minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 } as React.CSSProperties}>
+      <div style={{ width: '100%', maxWidth: 520, background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev-lg)', padding: '28px 26px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: '#FF5E1A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name="package" size={18} color="#fff" />
+          <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--clearos-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name="package" size={18} color="hsl(var(--clearos-foreground))" />
           </div>
-          <div style={{ fontFamily: 'system-ui', fontSize: 19, fontWeight: 800, color: '#14181B', letterSpacing: '-.01em' }}>
-            Clear<span style={{ color: '#FF5E1A' }}>OS</span>
+          <div style={{ fontFamily: 'system-ui', fontSize: 19, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.01em' }}>
+            Clear<span style={{ color: 'var(--clearos-accent)' }}>OS</span>
           </div>
         </div>
-        <div style={{ fontSize: 10.5, letterSpacing: '.12em', textTransform: 'uppercase', color: '#5B646D', fontWeight: 700, marginBottom: 20 }}>
+        <div style={{ fontSize: 10.5, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--ink3)', fontWeight: 700, marginBottom: 20 }}>
           Customs &amp; Landed Cost Intelligence
         </div>
         {children}
@@ -98,28 +102,28 @@ export const SharedLandedCostReport: React.FC = () => {
     </div>
   );
 
-  if (loading) return shell(<div style={{ color: '#5B646D', fontSize: 14 }}>Loading report…</div>);
+  if (loading) return shell(<div style={{ color: 'var(--ink3)', fontSize: 14 }}>Loading report…</div>);
 
   if (loadError) return shell(
-    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '14px 16px', borderRadius: 10, background: 'rgba(220,38,38,.07)', border: '1px solid rgba(220,38,38,.25)' }}>
-      <Icon name="alertCircle" size={17} color="#DC2626" />
+    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '14px 16px', borderRadius: 'var(--r)', background: 'var(--red-l)', border: '1px solid var(--red)' }}>
+      <Icon name="alertCircle" size={17} color="var(--red)" />
       <div style={{ fontSize: 13.5, color: 'var(--red)', lineHeight: 1.6 }}>{loadError}</div>
     </div>
   );
 
   if (unlocked) return shell(
     <>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '14px 16px', borderRadius: 10, background: 'rgba(22,163,74,.08)', border: '1px solid rgba(22,163,74,.25)', marginBottom: 18 }}>
-        <Icon name="check" size={17} color="#16A34A" />
-        <div style={{ fontSize: 13.5, color: '#14532D', lineHeight: 1.6 }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '14px 16px', borderRadius: 'var(--r)', background: 'var(--green-l)', border: '1px solid var(--green)', marginBottom: 18 }}>
+        <Icon name="check" size={17} color="var(--green)" />
+        <div style={{ fontSize: 13.5, color: 'var(--green)', lineHeight: 1.6 }}>
           Report unlocked. {teaser?.prepared_by ? `${teaser.prepared_by} will follow up with you shortly.` : 'The clearing agent will follow up with you shortly.'}
         </div>
       </div>
       <button type="button" onClick={download}
-        style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: '#FF5E1A', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
-        <Icon name="download" size={16} color="#fff" /> Download the PDF
+        style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--clearos-accent)', color: 'hsl(var(--clearos-foreground))', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        <Icon name="download" size={16} color="hsl(var(--clearos-foreground))" /> Download the PDF
       </button>
-      <div style={{ fontSize: 11.5, color: '#8A939C', marginTop: 12, lineHeight: 1.6 }}>
+      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 12, lineHeight: 1.6 }}>
         Opens your browser's print dialog — choose “Save as PDF” as the destination.
       </div>
     </>
@@ -127,14 +131,14 @@ export const SharedLandedCostReport: React.FC = () => {
 
   return shell(
     <>
-      <div style={{ fontSize: 10.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#E8480A', fontWeight: 700 }}>Estimate</div>
+      <div style={{ fontSize: 10.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--clearos-accent)', fontWeight: 700 }}>Estimate</div>
       <PageHeader
         crumbs={['ClearOS', 'Landed Cost']}
         titlePlain="Landed Cost"
         titleEm="report"
       />
 
-      <div style={{ border: '1px solid #E5E9EC', borderRadius: 11, overflow: 'hidden', marginBottom: 20 }}>
+      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', marginBottom: 20 }}>
         {([
           ['Cargo', teaser?.description],
           ['HS Code', teaser?.hs_code],
@@ -144,47 +148,47 @@ export const SharedLandedCostReport: React.FC = () => {
         ] as [string, string | null | undefined][])
           .filter(([, v]) => !!v)
           .map(([k, v], i) => (
-            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '10px 14px', borderTop: i === 0 ? 'none' : '1px solid #EEF2F4', background: i % 2 ? '#fff' : '#F7F9FA' }}>
-              <span style={{ fontSize: 12.5, color: '#5B646D' }}>{k}</span>
-              <span style={{ fontSize: 12.5, color: '#2A3035', fontWeight: 600, textAlign: 'right' }}>{v}</span>
+            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '10px 14px', borderTop: i === 0 ? 'none' : '1px solid var(--border)', background: i % 2 ? 'var(--white)' : 'var(--bg-subtle)' }}>
+              <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>{k}</span>
+              <span style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 600, textAlign: 'right' }}>{v}</span>
             </div>
           ))}
       </div>
 
       <form onSubmit={unlock}>
-        <div style={{ fontSize: 13.5, color: '#2A3035', lineHeight: 1.65, marginBottom: 16 }}>
+        <div style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.65, marginBottom: 16 }}>
           Enter your email to download the full report with every duty, tax and charge itemised.
         </div>
 
-        <label style={{ fontSize: 11, fontWeight: 700, color: '#5B646D', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>Email address *</label>
+        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>Email address *</label>
         <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.co.tz"
-          style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14, padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid #E5E9EC', marginBottom: 13 }} />
+          style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14, padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid var(--border)', marginBottom: 13 }} />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: '#5B646D', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>Your name</label>
+            <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>Your name</label>
             <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Optional"
-              style={{ width: '100%', boxSizing: 'border-box', height: 42, fontSize: 13.5, padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid #E5E9EC' }} />
+              style={{ width: '100%', boxSizing: 'border-box', height: 42, fontSize: 13.5, padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }} />
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: '#5B646D', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>Company</label>
+            <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>Company</label>
             <input value={company} onChange={e => setCompany(e.target.value)} placeholder="Optional"
-              style={{ width: '100%', boxSizing: 'border-box', height: 42, fontSize: 13.5, padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid #E5E9EC' }} />
+              style={{ width: '100%', boxSizing: 'border-box', height: 42, fontSize: 13.5, padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }} />
           </div>
         </div>
 
         {submitError && (
-          <div style={{ marginBottom: 14, padding: '11px 14px', borderRadius: 'var(--r)', background: 'rgba(220,38,38,.07)', border: '1px solid rgba(220,38,38,.25)', color: 'var(--red)', fontSize: 13 }}>
+          <div style={{ marginBottom: 14, padding: '11px 14px', borderRadius: 'var(--r)', background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)', fontSize: 13 }}>
             {submitError}
           </div>
         )}
 
         <button type="submit" disabled={submitting}
-          style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: submitting ? '#C9CED3' : '#FF5E1A', color: '#fff', fontWeight: 700, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: submitting ? 'var(--border)' : 'var(--clearos-accent)', color: 'hsl(var(--clearos-foreground))', fontWeight: 700, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
           {submitting ? 'Unlocking…' : 'Get the full report'}
         </button>
 
-        <div style={{ fontSize: 11, color: '#8A939C', marginTop: 12, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 12, lineHeight: 1.6 }}>
           {teaser?.prepared_by ? `${teaser.prepared_by} ` : 'The clearing agent '}
           will use your email to send this report and follow up about your shipment.
         </div>

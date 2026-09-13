@@ -146,7 +146,7 @@ function ChecklistDetailModal({ id, onClose, onChanged }: { id: string; onClose:
             </DialogHeader>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
               {item.items.map((i: any) => (
-                <label key={i.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: busy ? 'default' : 'pointer', padding: '8px 10px', background: 'var(--bg)', borderRadius: 8 }}>
+                <label key={i.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: busy ? 'default' : 'pointer', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
                   <Checkbox checked={i.done} disabled={busy} onCheckedChange={c => toggle(i.id, c === true)} style={{ marginTop: 2 }} />
                   <div>
                     <div style={{ fontSize: 13, color: 'var(--ink)', textDecoration: i.done ? 'line-through' : 'none' }}>{i.label}</div>
@@ -231,7 +231,7 @@ function Templates() {
                 {items.length === 0 ? (
                   <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No tasks yet — add the first one below.</div>
                 ) : items.map((label, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'var(--bg)', borderRadius: 8 }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
                     <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{label}</span>
                     <button type="button" disabled={saving || i === 0} onClick={() => moveItem(i, -1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', opacity: i === 0 ? 0.3 : 1 }}><Icon name="chevronUp" size={14} /></button>
                     <button type="button" disabled={saving || i === items.length - 1} onClick={() => moveItem(i, 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', opacity: i === items.length - 1 ? 0.3 : 1 }}><Icon name="chevronDown" size={14} /></button>

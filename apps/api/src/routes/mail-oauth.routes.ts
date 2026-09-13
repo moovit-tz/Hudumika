@@ -1,6 +1,9 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { encryptSecret, decryptSecret } from '../services/onsite-secrets.service.js';
+import { requireRole } from '../middleware/rbac.js';
+
+const MAIL_SETTINGS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
 
 interface ProviderConfig {
   key: 'outlook' | 'gmail';
@@ -79,7 +82,16 @@ export async function mailOAuthRoutes(fastify: FastifyInstance) {
     // directly; it would 401 before ever reaching Microsoft/Google. The
     // frontend calls this via apiFetch (which does send the header) and
     // only THEN navigates the browser, to the third-party URL this returns.
-    fastify.get(`/${provider.key}/authorize`, { preHandler: fastify.authenticate }, async (request, reply) => {
+    // HUD-0034: this used to be fastify.authenticate only — the signed
+    // state it mints carries just the tenantId, not who initiated the
+    // flow or what role they hold. Any authenticated user of the tenant
+    // (proven live: a CUSTOMER JWT reached this route's business logic,
+    // stopped only by the dev tenant having no Client ID saved yet) could
+    // complete the consent screen with their own Microsoft/Google account
+    // and have its tokens saved as the tenant's outbound mail identity —
+    // hijacking what address the whole tenant sends as. Only the same
+    // roles allowed to save the Client ID/Secret in Settings may start it.
+    fastify.get(`/${provider.key}/authorize`, { preHandler: [fastify.authenticate, requireRole(...MAIL_SETTINGS_ROLES)] }, async (request, reply) => {
       const user = request.user;
       const { emailConfig } = await withTenant(user.tenant_id, trx => loadEmailConfig(trx, user.tenant_id));
       const clientId = emailConfig[clientIdKey];

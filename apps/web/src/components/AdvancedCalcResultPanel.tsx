@@ -41,7 +41,7 @@ export function AdvancedCalcResultPanel({ result, loading, error, meta, onAmend,
   if (!result) {
     return (
       <div style={{ background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 16, padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
-        <Icon name="calculator" size={28} color="var(--ink4)" style={{ display: 'block', margin: '0 auto 12px' }} />
+        <Icon name="calculator" size={28} color="var(--ink3)" style={{ display: 'block', margin: '0 auto 12px' }} />
         <div style={{ fontSize: 13.5 }}>Fill in the shipment details and calculate.</div>
       </div>
     );

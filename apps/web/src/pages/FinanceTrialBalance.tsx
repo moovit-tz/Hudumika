@@ -11,9 +11,9 @@ import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
 
 const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
-  ASSET:     { label: 'Assets',      color: '#0891b2', bg: '#ecfeff' },
+  ASSET:     { label: 'Assets',      color: 'var(--blue)', bg: 'var(--blue-l)' },
   LIABILITY: { label: 'Liabilities', color: 'var(--red)', bg: 'var(--red-l)' },
-  EQUITY:    { label: 'Equity',      color: '#7c3aed', bg: 'var(--purple-l)' },
+  EQUITY:    { label: 'Equity',      color: 'var(--purple)', bg: 'var(--purple-l)' },
   REVENUE:   { label: 'Revenue',     color: 'var(--green)', bg: 'var(--green-l)' },
   EXPENSE:   { label: 'Expenses',    color: 'var(--gold)', bg: 'var(--gold-l)' },
 };
@@ -260,10 +260,10 @@ export const FinanceTrialBalance: React.FC = () => {
               return (
                 <React.Fragment key={t}>
                   {/* Group header */}
-                  <tr style={{ background:`${cfg.color}10` }}>
+                  <tr style={{ background: cfg.bg }}>
                     <td colSpan={3} style={{ fontSize:10, fontWeight:800, color:cfg.color, textTransform:'uppercase', letterSpacing:'0.08em' }}>{cfg.label}</td>
-                    <td style={{ textAlign:'right', fontSize:11, fontWeight:700, color:'#0891b2', fontFamily:'var(--mono)' }}>{gt.debit > 0 ? `${cur} ${gt.debit.toLocaleString()}` : ''}</td>
-                    <td style={{ textAlign:'right', fontSize:11, fontWeight:700, color:'#7c3aed', fontFamily:'var(--mono)' }}>{gt.credit > 0 ? `${cur} ${gt.credit.toLocaleString()}` : ''}</td>
+                    <td style={{ textAlign:'right', fontSize:11, fontWeight:700, color:'var(--blue)', fontFamily:'var(--mono)' }}>{gt.debit > 0 ? `${cur} ${gt.debit.toLocaleString()}` : ''}</td>
+                    <td style={{ textAlign:'right', fontSize:11, fontWeight:700, color:'var(--purple)', fontFamily:'var(--mono)' }}>{gt.credit > 0 ? `${cur} ${gt.credit.toLocaleString()}` : ''}</td>
                   </tr>
 
                   {/* Account rows */}
@@ -274,10 +274,10 @@ export const FinanceTrialBalance: React.FC = () => {
                       <td className="col-hide-sm">
                         <span style={{ fontSize:10, fontWeight:700, color:cfg.color, background:cfg.bg, padding:'2px 7px', borderRadius: 'var(--r)' }}>{cfg.label.slice(0,-1)}</span>
                       </td>
-                      <td style={{ textAlign:'right', fontFamily:'var(--mono)', color: acc.closing_debit > 0 ? '#0891b2' : 'var(--ink3)', fontWeight: acc.closing_debit > 0 ? 600 : 400 }}>
+                      <td style={{ textAlign:'right', fontFamily:'var(--mono)', color: acc.closing_debit > 0 ? 'var(--blue)' : 'var(--ink3)', fontWeight: acc.closing_debit > 0 ? 600 : 400 }}>
                         {fmt(acc.closing_debit, cur)}
                       </td>
-                      <td style={{ textAlign:'right', fontFamily:'var(--mono)', color: acc.closing_credit > 0 ? '#7c3aed' : 'var(--ink3)', fontWeight: acc.closing_credit > 0 ? 600 : 400 }}>
+                      <td style={{ textAlign:'right', fontFamily:'var(--mono)', color: acc.closing_credit > 0 ? 'var(--purple)' : 'var(--ink3)', fontWeight: acc.closing_credit > 0 ? 600 : 400 }}>
                         {fmt(acc.closing_credit, cur)}
                       </td>
                     </tr>
@@ -296,8 +296,8 @@ export const FinanceTrialBalance: React.FC = () => {
                   </span>
                 )}
               </td>
-              <td style={{ textAlign:'right', fontSize:14, fontFamily:'var(--mono)', color:'#0891b2', fontWeight:800 }}>{cur} {totals.debit.toLocaleString()}</td>
-              <td style={{ textAlign:'right', fontSize:14, fontFamily:'var(--mono)', color:'#7c3aed', fontWeight:800 }}>{cur} {totals.credit.toLocaleString()}</td>
+              <td style={{ textAlign:'right', fontSize:14, fontFamily:'var(--mono)', color:'var(--blue)', fontWeight:800 }}>{cur} {totals.debit.toLocaleString()}</td>
+              <td style={{ textAlign:'right', fontSize:14, fontFamily:'var(--mono)', color:'var(--purple)', fontWeight:800 }}>{cur} {totals.credit.toLocaleString()}</td>
             </tr>
 
             {/* Balance check row */}
@@ -307,7 +307,7 @@ export const FinanceTrialBalance: React.FC = () => {
                 {balanced ? 'Balanced — Nil Difference' : 'Out of Balance'}
               </td>
               <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--mono)', color: balanced ? 'var(--green)' : 'var(--red)', fontWeight:700 }}>{balanced ? '—' : `${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`}</td>
-              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--mono)', color: balanced ? 'var(--green)' : '#ef4444', fontWeight:700 }}>{balanced ? '—' : ''}</td>
+              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--mono)', color: balanced ? 'var(--green)' : 'var(--red)', fontWeight:700 }}>{balanced ? '—' : ''}</td>
             </tr>
           </tbody>
         </table>
@@ -317,7 +317,7 @@ export const FinanceTrialBalance: React.FC = () => {
       {filtered.length > PAGE_SIZE && (
         <div style={{
           display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap',
-          padding:'14px 16px', border:'1px solid var(--border)', borderRadius:9,
+          padding:'14px 16px', border:'1px solid var(--border)', borderRadius: 'var(--r)',
           background:'var(--white)', marginTop:14, fontSize:12.5, color:'var(--ink3)',
         }}>
           <span>

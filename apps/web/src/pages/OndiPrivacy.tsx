@@ -124,7 +124,7 @@ export const OndiPrivacy: React.FC = () => {
             </div>
           </div>
           <div className="op-kpi-body">
-            <div className="op-kpi-val" style={{ color: 'var(--green, #10b981)' }}>
+            <div className="op-kpi-val" style={{ color: 'var(--green)' }}>
               READY
             </div>
             <div className="op-kpi-sub">JSON format on-demand</div>

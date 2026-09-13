@@ -27,6 +27,17 @@ export async function chatRoutes(fastify: FastifyInstance) {
   // whose plan excludes Bliss could still use Team Chat purely by being
   // logged in.
   fastify.addHook('preHandler', requireEntitlement('bliss'));
+  // HUD-0024 continuation: Team Chat is internal-staff-only. Beyond the
+  // reachability gap this closes, the #general bootstrap seed below queries
+  // `users` filtered only by `active` — CUSTOMER-role rows live in the same
+  // `users` table (confirmed live), so a brand-new tenant's first Team Chat
+  // access would have auto-enrolled every customer-portal account into the
+  // company-wide channel alongside real staff.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // GET /v1/chat/channels — every channel the user belongs to, with unread
   // count and last-message preview.
@@ -44,7 +55,8 @@ export async function chatRoutes(fastify: FastifyInstance) {
           description: 'Company-wide discussion & announcements', created_by: user.sub,
         }).returningAll().executeTakeFirstOrThrow();
         const staff = await trx.selectFrom('users').select('id')
-          .where('tenant_id', '=', user.tenant_id).where('active', '=', true).execute();
+          .where('tenant_id', '=', user.tenant_id).where('active', '=', true)
+          .where('role', 'not in', ['CUSTOMER', 'ORG']).execute();
         await trx.insertInto('chat_channel_members').values(
           staff.map((s) => ({ channel_id: general.id, user_id: s.id }))
         ).execute();

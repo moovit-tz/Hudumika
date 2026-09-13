@@ -12,6 +12,7 @@ import { PaginationBar } from '../components/PaginationBar.js';
 import { Spinner } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Button } from '../components/ui/button.js';
 
 // ── Customs Reference — ICD directory, TASAC agents, EAC excise, port/agency tariff ──
 // Real gazette data imported from the public EAC customs suite
@@ -49,7 +50,7 @@ interface TariffItem {
 
 const th: React.CSSProperties = { padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--ink2)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' };
 const td: React.CSSProperties = { padding: '10px 14px', borderBottom: '1px solid var(--border)', verticalAlign: 'top' };
-const editInput: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '5px 7px', borderRadius: 6, border: '1px solid var(--teal)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'var(--font)' };
+const editInput: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '5px 7px', borderRadius: 'var(--r-sm)', border: '1px solid var(--teal)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'var(--font)' };
 
 export const CustomsReference: React.FC = () => {
   const isMobile = useIsMobile();
@@ -245,10 +246,9 @@ export const CustomsReference: React.FC = () => {
         titleEm="reference"
         subtitle="Licensed ICD operators, TASAC clearing-agent registry (GN 83/2026), EAC excise duty schedules, and the TPA/TASAC port & agency tariff book."
         actions={canEdit && tab !== 'tariff' ? (
-          <button type="button" onClick={() => handleUploadClick(tab)} disabled={importBusy !== null}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: importBusy ? 'wait' : 'pointer', opacity: importBusy ? 0.7 : 1, flexShrink: 0, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <Button type="button" onClick={() => handleUploadClick(tab)} disabled={importBusy !== null} style={{ flexShrink: 0 }}>
             <Icon name="upload" size={15} /> {importBusy === tab ? 'Uploading…' : `Upload fresh ${TABS.find(t => t.key === tab)?.label} list`}
-          </button>
+          </Button>
         ) : undefined}
       />
 
@@ -260,7 +260,7 @@ export const CustomsReference: React.FC = () => {
       )}
 
       {importResult && importResult.tab === tab && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 10, marginBottom: 16, fontSize: 13, color: 'var(--green)', fontWeight: 600 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', marginBottom: 16, fontSize: 13, color: 'var(--green)', fontWeight: 600 }}>
           <span>
             Imported {importResult.summary.total} rows — {importResult.summary.updated} updated, {importResult.summary.inserted} new
             {importResult.summary.skipped > 0 ? `, ${importResult.summary.skipped} skipped (missing required fields)` : ''}.
@@ -291,7 +291,7 @@ export const CustomsReference: React.FC = () => {
             value={q}
             onChange={e => onSearch(e.target.value)}
             placeholder={tab === 'icd' ? 'Search operator, licence, address…' : tab === 'agents' ? 'Search agent name, licence, email…' : tab === 'tariff' ? 'Search clause, item, category…' : 'Search product…'}
-            style={{ width: '100%', height: 32, boxSizing: 'border-box', padding: '0 12px 0 30px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13 }}
+            style={{ width: '100%', height: 32, boxSizing: 'border-box', padding: '0 12px 0 30px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13 }}
           />
         </div>
         {tab === 'tariff' && (
@@ -360,7 +360,7 @@ export const CustomsReference: React.FC = () => {
                       ) : (
                         <>
                           <td style={{ ...td, fontWeight: 600 }}>{o.name}<div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{o.address}</div></td>
-                          <td style={td}><span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(8,145,178,0.1)', color: 'var(--teal)' }}>{o.operator_type}</span></td>
+                          <td style={td}><span style={{ padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 700, background: 'var(--teal-l)', color: 'var(--teal)' }}>{o.operator_type}</span></td>
                           <td style={td}>{o.region ?? '—'}</td>
                           <td style={{ ...td, fontFamily: 'var(--mono)', fontSize: 12 }}>{o.license_no ?? '—'}</td>
                           <td style={td}>{fmtDate(o.license_exp)}</td>
@@ -494,7 +494,7 @@ export const CustomsReference: React.FC = () => {
                         </>
                       ) : (
                         <>
-                          <td style={td}><span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(8,145,178,0.1)', color: 'var(--teal)' }}>{AUTHORITY_LABEL[t.authority] ?? t.authority}</span></td>
+                          <td style={td}><span style={{ padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 700, background: 'var(--teal-l)', color: 'var(--teal)' }}>{AUTHORITY_LABEL[t.authority] ?? t.authority}</span></td>
                           <td style={{ ...td, fontFamily: 'var(--mono)', fontSize: 11.5, whiteSpace: 'nowrap' }}>{t.clause_ref ?? '—'}</td>
                           <td style={{ ...td, fontWeight: 600 }}>
                             {t.item_name}

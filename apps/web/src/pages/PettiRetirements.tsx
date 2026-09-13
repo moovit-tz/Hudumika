@@ -181,7 +181,7 @@ export function PettiRetirements() {
                   <textarea
                     value={note} onChange={e => setNote(e.target.value)} rows={2}
                     placeholder="Optional — e.g. why this is short, or written off"
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
                   />
                 </div>
               </div>

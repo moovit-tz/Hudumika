@@ -11,12 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 const CATS: Record<string, { label: string; color: string }> = {
   PORT_CHARGES:    { label: 'Port Charges',    color: 'var(--blue)' },
-  CUSTOMS_DUTY:    { label: 'Customs Duty',    color: '#cf222e' },
+  CUSTOMS_DUTY:    { label: 'Customs Duty',    color: 'var(--red)' },
   FREIGHT:         { label: 'Freight',         color: 'var(--teal)' },
-  HANDLING:        { label: 'Handling',        color: '#9a6700' },
-  TRANSPORT:       { label: 'Transport',       color: '#6e40c9' },
+  HANDLING:        { label: 'Handling',        color: 'var(--gold)' },
+  TRANSPORT:       { label: 'Transport',       color: 'var(--purple)' },
   INSPECTION_FEE:  { label: 'Inspection Fee',  color: 'var(--green)' },
-  AGENT_FEE:       { label: 'Agent Fee',       color: '#cf222e' },
+  AGENT_FEE:       { label: 'Agent Fee',       color: 'var(--red)' },
   MISCELLANEOUS:   { label: 'Miscellaneous',   color: 'var(--ink3)' },
   FUEL:            { label: 'Fuel',            color: '#0891b2' },
   MAINTENANCE:     { label: 'Maintenance',     color: '#7c3aed' },
@@ -187,10 +187,10 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
             {expense.is_revenue ? '+' : '-'}{fmt(expense.amount, 'TZS')}
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 4, background: cat ? `${cat.color}18` : 'var(--bg)', color: cat?.color || 'var(--ink)' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: cat ? `${cat.color}18` : 'var(--bg)', color: cat?.color || 'var(--ink)' }}>
               {cat?.label || expense.category}
             </span>
-            <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 4, background: 'var(--bg)', color: 'var(--ink)' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink)' }}>
               {expense.expense_date.split('T')[0]}
             </span>
           </div>
@@ -208,7 +208,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
             {expense.reference && (
               expense.efd_verified ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Icon name="checkCircle" size={13} color="#059669" />
+                  <Icon name="checkCircle" size={13} color="var(--green)" />
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--green)' }}>EFD Verified</span>
                 </div>
               ) : (
@@ -225,7 +225,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Shipment (Job)</div>
             {job ? (
-              <Link to={`/clearos/clearance/${job.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--navy)', background: '#f1f5f9', padding: '4px 8px', borderRadius: 6, textDecoration: 'none' }}>
+              <Link to={`/clearos/clearance/${job.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--navy)', background: 'hsl(var(--muted))', padding: '4px 8px', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}>
                 <Icon name="package" size={12} /> {job.bl_number || job.ref_number}
               </Link>
             ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
@@ -233,7 +233,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Client</div>
             {client ? (
-              <Link to={`/crm/customers?id=${client.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--green)', background: 'var(--green-l)', padding: '4px 8px', borderRadius: 6, textDecoration: 'none' }}>
+              <Link to={`/crm/customers?id=${client.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--green)', background: 'var(--green-l)', padding: '4px 8px', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}>
                 <Icon name="building" size={12} /> {client.name}
               </Link>
             ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
@@ -241,7 +241,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Paid To Supplier</div>
             {supplier ? (
-              <Link to={`/finance/vendors?id=${supplier.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#9a6700', background: '#fff8e1', padding: '4px 8px', borderRadius: 6, textDecoration: 'none' }}>
+              <Link to={`/finance/vendors?id=${supplier.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--gold)', background: 'var(--gold-l)', padding: '4px 8px', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}>
                 <Icon name="warehouse" size={12} /> {supplier.name}
               </Link>
             ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
@@ -268,9 +268,9 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
                 <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 10 }}>
                   Cash was disbursed for this advance — attach the receipt and record how it was retired.
                 </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, border: '1.5px dashed var(--border)', borderRadius: 8, cursor: uploadingReceipt ? 'wait' : 'pointer', background: 'var(--white)', marginBottom: 10 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, border: '1.5px dashed var(--border)', borderRadius: 'var(--r)', cursor: uploadingReceipt ? 'wait' : 'pointer', background: 'var(--white)', marginBottom: 10 }}>
                   {expense.attachment_data
-                    ? <img src={expense.attachment_data} alt="Receipt" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} />
+                    ? <img src={expense.attachment_data} alt="Receipt" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 'var(--r-sm)', flexShrink: 0 }} />
                     : <Icon name="paperclip" size={16} color="var(--ink3)" />}
                   <span style={{ fontSize: 12, fontWeight: 600, color: expense.attachment_data ? 'var(--teal)' : 'var(--ink3)' }}>
                     {uploadingReceipt ? 'Uploading…' : expense.attachment_data ? 'Receipt attached — click to replace' : 'Attach receipt image'}
@@ -311,7 +311,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 8 }}>Receipt Attachment</div>
           {expense.attachment_data ? (
             <div style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: 4, background: 'var(--bg)' }}>
-              <img src={expense.attachment_data} alt="Receipt Attachment" style={{ width: '100%', height: 'auto', borderRadius: 4, display: 'block' }} />
+              <img src={expense.attachment_data} alt="Receipt Attachment" style={{ width: '100%', height: 'auto', borderRadius: 'var(--r-sm)', display: 'block' }} />
             </div>
           ) : (
             <div style={{ border: '1.5px dashed var(--border)', borderRadius: 'var(--r)', padding: 30, textAlign: 'center', background: 'var(--bg)', color: 'var(--ink3)' }}>
@@ -532,7 +532,7 @@ export const Expenses: React.FC = () => {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search expenses, descriptions or tags…"
-            style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
           />
         </div>
 
@@ -604,7 +604,7 @@ export const Expenses: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{e.name}</span>
                     {e.retirement_status === 'pending' && (
-                      <span title="Petty cash retirement pending" style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', padding: '1px 6px', borderRadius: 4 }}>Retire</span>
+                      <span title="Petty cash retirement pending" style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', padding: '1px 6px', borderRadius: 'var(--r-sm)'}}>Retire</span>
                     )}
                   </div>
                   {isSplit && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{e.date.split('T')[0]}</div>}
@@ -616,7 +616,7 @@ export const Expenses: React.FC = () => {
 
                 {/* Category */}
                 <div style={{ flex: 1 }}>
-                  <span style={{ fontFamily: 'var(--font)', fontWeight: 600, fontSize: 10, padding: '2px 8px', borderRadius: 4, background: cat ? `${cat.color}18` : 'var(--bg)', color: cat?.color || 'var(--ink3)' }}>
+                  <span style={{ fontFamily: 'var(--font)', fontWeight: 600, fontSize: 10, padding: '2px 8px', borderRadius: 'var(--r-sm)', background: cat ? `${cat.color}18` : 'var(--bg)', color: cat?.color || 'var(--ink3)' }}>
                     {cat?.label || e.category}
                   </span>
                 </div>
@@ -625,11 +625,11 @@ export const Expenses: React.FC = () => {
                 {!isSplit && (
                   <div style={{ flex: 1 }}>
                     {e.source !== 'finance' ? (
-                      <span style={{ fontSize: 11, color: '#0891b2', background: '#ecfeff', padding: '2px 6px', borderRadius: 4, width: 'fit-content' }}>{SOURCE_LABEL[e.source]}</span>
+                      <span style={{ fontSize: 11, color: '#0891b2', background: '#ecfeff', padding: '2px 6px', borderRadius: 'var(--r-sm)', width: 'fit-content' }}>{SOURCE_LABEL[e.source]}</span>
                     ) : (
                       <>
-                        {e.shipment_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--navy)', background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, width: 'fit-content', marginBottom: 2 }}><Icon name="package" size={10} /> Job Link</div>}
-                        {e.customer_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--green)', background: 'var(--green-l)', padding: '2px 6px', borderRadius: 4, width: 'fit-content' }}><Icon name="building" size={10} /> Client Link</div>}
+                        {e.shipment_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--navy)', background: 'hsl(var(--muted))', padding: '2px 6px', borderRadius: 'var(--r-sm)', width: 'fit-content', marginBottom: 2 }}><Icon name="package" size={10} /> Job Link</div>}
+                        {e.customer_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--green)', background: 'var(--green-l)', padding: '2px 6px', borderRadius: 'var(--r-sm)', width: 'fit-content' }}><Icon name="building" size={10} /> Client Link</div>}
                       </>
                     )}
                   </div>
@@ -717,7 +717,7 @@ export const Expenses: React.FC = () => {
             <form onSubmit={handleBulkUpload} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Paste CSV Data</label>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>Format: <code style={{ background: 'var(--bg)', padding: '2px 4px', borderRadius: 4 }}>Name, Amount, Date, Category, PaymentMode</code></div>
+                <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>Format: <code style={{ background: 'var(--bg)', padding: '2px 4px', borderRadius: 'var(--r-sm)'}}>Name, Amount, Date, Category, PaymentMode</code></div>
                 <textarea
                   className="input-field"
                   rows={8}

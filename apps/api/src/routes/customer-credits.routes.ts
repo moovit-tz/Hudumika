@@ -21,6 +21,16 @@ export async function customerCreditRoutes(fastify: FastifyInstance) {
 
   // GET /v1/customer-credits?customer_id= — remaining balance is computed
   // live (amount minus the sum of its own applications), never stored.
+  // HUD-0024 continuation: internal tenant-business data (finance ledgers,
+  // fleet ops, HR, identity/access admin, or tenant configuration) with only
+  // an entitlement gate — reachable end-to-end by a CUSTOMER JWT (confirmed
+  // live before this fix). Not customer-portal data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
+
   fastify.get('/', async (request) => {
     const user = request.user;
     const { customer_id } = request.query as { customer_id?: string };

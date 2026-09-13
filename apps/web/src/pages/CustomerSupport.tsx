@@ -7,6 +7,8 @@ import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { LiveChatWidget } from '../components/LiveChatWidget.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
+import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
 
 /* ── Types ── */
 interface Message {
@@ -58,16 +60,16 @@ function mapMessage(row: any): Message {
 }
 
 const STATUS_CFG: Record<Ticket['status'], { label: string; color: string; bg: string }> = {
-  OPEN:        { label: 'Open',        color: '#0891b2', bg: '#ecfeff' },
+  OPEN:        { label: 'Open',        color: 'var(--blue)', bg: 'var(--blue-l)' },
   IN_PROGRESS: { label: 'In Progress', color: 'var(--gold)', bg: 'var(--gold-l)' },
   RESOLVED:    { label: 'Resolved',    color: 'var(--green)', bg: 'var(--green-l)' },
-  CLOSED:      { label: 'Closed',      color: 'var(--ink2)', bg: '#f3f4f6' },
+  CLOSED:      { label: 'Closed',      color: 'var(--ink2)', bg: 'var(--bg)' },
 };
 
 const PRIORITY_CFG: Record<string, { label: string; color: string }> = {
   LOW:    { label: 'Low',    color: 'var(--ink2)' },
-  NORMAL: { label: 'Normal', color: '#0891b2' },
-  MEDIUM: { label: 'Medium', color: '#0891b2' },
+  NORMAL: { label: 'Normal', color: 'var(--blue)' },
+  MEDIUM: { label: 'Medium', color: 'var(--blue)' },
   HIGH:   { label: 'High',   color: 'var(--gold)' },
   URGENT: { label: 'Urgent', color: 'var(--red)' },
 };
@@ -220,7 +222,7 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{ticket.category}</div>
         {ticket.description && (
-          <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 8, background: 'var(--bg)', borderRadius: 8, padding: '8px 10px', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 8, background: 'var(--bg)', borderRadius: 'var(--r)', padding: '8px 10px', lineHeight: 1.5 }}>
             {ticket.description}
           </div>
         )}
@@ -241,8 +243,8 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
             }}>
               <div style={{
                 maxWidth: '82%',
-                background: isMe ? 'var(--teal)' : 'var(--white)',
-                color: isMe ? '#fff' : 'var(--ink)',
+                background: isMe ? 'hsl(var(--primary))' : 'var(--white)',
+                color: isMe ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
                 borderRadius: isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
                 padding: '10px 14px',
                 fontSize: 14,
@@ -281,20 +283,9 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
               lineHeight: 1.5,
             }}
           />
-          <button
-            type="button"
-            title="Send reply"
-            onClick={submit}
-            disabled={!reply.trim() || sending}
-            style={{
-              background: reply.trim() && !sending ? 'var(--teal)' : 'var(--border)',
-              color: '#fff', border: 'none', borderRadius: 'var(--r)',
-              width: 44, height: 44, cursor: reply.trim() && !sending ? 'pointer' : 'default',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, transition: 'background 0.15s',
-            }}>
-            <Icon name="send" size={18} color="#fff" />
-          </button>
+          <Button type="button" size="icon" title="Send reply" onClick={submit} disabled={!reply.trim() || sending} style={{ flexShrink: 0 }}>
+            <Icon name="send" size={18} />
+          </Button>
         </div>
       )}
     </div>
@@ -387,20 +378,16 @@ function NewTicketModal({ onClose, onCreate, creating }: {
             />
           </div>
 
-          <button
+          <Button
             type="button"
+            size="lg"
             title="Submit ticket"
             onClick={submit}
             disabled={!subject.trim() || !body.trim() || creating}
-            style={{
-              background: subject.trim() && body.trim() && !creating ? 'var(--teal)' : 'var(--border)',
-              color: '#fff', border: 'none', borderRadius: 'var(--r)',
-              padding: '14px', fontSize: 15, fontWeight: 700,
-              cursor: subject.trim() && body.trim() && !creating ? 'pointer' : 'default',
-              fontFamily: 'var(--font)', letterSpacing: '0.01em',
-            }}>
+            className="w-full"
+          >
             {creating ? 'Submitting…' : 'Submit Ticket'}
-          </button>
+          </Button>
           </div>
         </div>
       </SheetContent>
@@ -503,23 +490,15 @@ export const CustomerSupport: React.FC = () => {
         marginBottom: 16,
       }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>Support</h2>
+          <PageHeader crumbs={['Workspace', 'Support']} titlePlain="Customer" titleEm="support" />
           <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink3)' }}>
             {loading ? 'Loading…' : `${tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length} open ticket(s)`}
           </p>
         </div>
-        <button
-          type="button"
-          title="Create new ticket"
-          onClick={() => setShowNew(true)}
-          style={{
-            background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)',
-            padding: 'var(--ds-btn-py) 18px', fontSize: 14, fontWeight: 700,
-            cursor: 'pointer', fontFamily: 'var(--font)',
-            display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-          <Icon name="plus" size={16} color="#fff" />
+        <Button type="button" title="Create new ticket" onClick={() => setShowNew(true)}>
+          <Icon name="plus" size={16} />
           New
-        </button>
+        </Button>
       </div>
 
       {/* Filter tabs */}
@@ -544,9 +523,9 @@ export const CustomerSupport: React.FC = () => {
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your tickets</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
-            <button type="button" onClick={load} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+            <Button type="button" onClick={load}>
               Retry
-            </button>
+            </Button>
           </div>
         ) : filtered.length === 0 ? (
           <div style={{
@@ -558,13 +537,9 @@ export const CustomerSupport: React.FC = () => {
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 20px' }}>
               Our support team is ready to help
             </p>
-            <button type="button" title="Open new ticket" onClick={() => setShowNew(true)}
-              style={{
-                background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)',
-                padding: 'var(--ds-btn-py) 22px', fontSize: 14, fontWeight: 700,
-                cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <Button type="button" title="Open new ticket" onClick={() => setShowNew(true)}>
               Open a Ticket
-            </button>
+            </Button>
           </div>
         ) : (
           filtered.map(t => (

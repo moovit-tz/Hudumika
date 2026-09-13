@@ -468,7 +468,7 @@ export function ClockInPage() {
         subtitle="Live attendance tracking, stopwatch timer, and weekly hours visualizer"
         actions={
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', fontSize: 13, color: 'var(--ink2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 10px', fontSize: 13, color: 'var(--ink2)' }}>
               <Icon name="clock" size={14} color="var(--teal)" />
               <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--navy)' }}>
                 {formatTimer(elapsedSeconds)}
@@ -483,7 +483,7 @@ export function ClockInPage() {
                 REJECTED:  { bg: 'var(--red-l)', fg: 'var(--red)', icon: 'alertCircle' as IconName, label: 'Rejected' },
               }[myApproval.status];
               return (
-                <span title={myApproval.note || undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: map.bg, color: map.fg, borderRadius: 8, padding: '5px 10px', fontSize: 12.5, fontWeight: 600 }}>
+                <span title={myApproval.note || undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: map.bg, color: map.fg, borderRadius: 'var(--r)', padding: '5px 10px', fontSize: 12.5, fontWeight: 600 }}>
                   <Icon name={map.icon} size={13} /> {map.label}
                 </span>
               );
@@ -529,7 +529,7 @@ export function ClockInPage() {
               <SelectItem value="month">This Month</SelectItem>
             </SelectContent>
           </Select>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 8, fontSize: 13, color: 'var(--ink2)', fontWeight: 500 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--ink2)', fontWeight: 500 }}>
             <Icon name="calendar" size={14} color="var(--ink3)" />
             <span>
               {new Date(periodStart + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} – {new Date(periodEnd + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
@@ -543,7 +543,7 @@ export function ClockInPage() {
         <SectionCard title={`Timesheets awaiting your approval (${approvals.length})`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {approvals.map(a => (
-              <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--card-sunken)', flexWrap: 'wrap' }}>
+              <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--card-sunken)', flexWrap: 'wrap' }}>
                 <PersonAvatar userId={a.user_id} name={a.employee_name || 'Employee'} size={34} />
                 <div style={{ flex: 1, minWidth: 160 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{a.employee_name || 'Employee'}</div>
@@ -553,10 +553,10 @@ export function ClockInPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={() => handleReview(a.id, 'reject')} disabled={reviewingId === a.id} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--red)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <button type="button" onClick={() => handleReview(a.id, 'reject')} disabled={reviewingId === a.id} style={{ padding: '6px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--red)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <Icon name="x" size={13} /> Reject
                   </button>
-                  <button type="button" onClick={() => handleReview(a.id, 'approve')} disabled={reviewingId === a.id} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--green)', color: 'hsl(var(--green-foreground))', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <button type="button" onClick={() => handleReview(a.id, 'approve')} disabled={reviewingId === a.id} style={{ padding: '6px 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green)', color: 'hsl(var(--green-foreground))', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <Icon name="check" size={13} /> {reviewingId === a.id ? '…' : 'Approve'}
                   </button>
                 </div>
@@ -573,11 +573,11 @@ export function ClockInPage() {
         <SectionCard
           title="Clock-in"
           action={activeSession ? (
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 12, background: activeSession.status === 'ON_BREAK' ? 'var(--gold-l)' : 'var(--teal-l)', color: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r)', background: activeSession.status === 'ON_BREAK' ? 'var(--gold-l)' : 'var(--teal-l)', color: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 {activeSession.status === 'ON_BREAK' ? 'ON BREAK' : 'ONGOING'}
               </span>
             ) : (
-              <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 12, background: 'var(--card-sunken)', color: 'var(--ink3)' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink3)' }}>
                 NOT CLOCKED IN
               </span>
             )}
@@ -595,17 +595,17 @@ export function ClockInPage() {
             <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 12 }}>
               {activeSession ? (
                 <>
-                  <button type="button" onClick={handleToggleBreak} style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid var(--border)', background: activeSession.status === 'ON_BREAK' ? 'var(--gold-l)' : 'var(--card-sunken)', color: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button type="button" onClick={handleToggleBreak} style={{ padding: '8px 16px', borderRadius: 'var(--badge-radius)', border: '1px solid var(--border)', background: activeSession.status === 'ON_BREAK' ? 'var(--gold-l)' : 'var(--card-sunken)', color: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : 'var(--ink3)' }}></span>
                     {activeSession.status === 'ON_BREAK' ? 'Resume Work' : 'Break'}
                   </button>
-                  <button type="button" onClick={handleStopClockOut} style={{ padding: '8px 20px', borderRadius: 20, border: 'none', background: 'var(--red)', color: 'hsl(var(--red-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }}></span>
+                  <button type="button" onClick={handleStopClockOut} style={{ padding: '8px 20px', borderRadius: 'var(--badge-radius)', border: 'none', background: 'var(--red)', color: 'hsl(var(--red-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--white)' }}></span>
                     Clock-out
                   </button>
                 </>
               ) : (
-                <button type="button" onClick={handleStartClockIn} style={{ padding: '10px 28px', borderRadius: 20, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button type="button" onClick={handleStartClockIn} style={{ padding: '10px 28px', borderRadius: 'var(--badge-radius)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Icon name="check" size={16} />
                   Clock-in Now
                 </button>
@@ -625,10 +625,10 @@ export function ClockInPage() {
                 value={selectedProject || projectInput}
                 onChange={e => { setProjectInput(e.target.value); setSelectedProject(e.target.value); }}
                 placeholder="Add projects you are working on..."
-                style={{ flex: 1, padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, background: 'var(--white)', color: 'var(--ink)' }}
+                style={{ flex: 1, padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, background: 'var(--white)', color: 'var(--ink)' }}
               />
               {projectInput && (
-                <button type="button" onClick={handleAddProject} style={{ padding: '7px 12px', borderRadius: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                <button type="button" onClick={handleAddProject} style={{ padding: '7px 12px', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                   +
                 </button>
               )}
@@ -663,7 +663,7 @@ export function ClockInPage() {
         {/* Widget 3: Worked Hours Widget */}
         <SectionCard title="Worked hours">
           <div>
-            <div style={{ background: 'var(--card-sunken)', borderRadius: 10, padding: '16px 18px', textAlign: 'center', border: '1px solid var(--border)', marginBottom: 14 }}>
+            <div style={{ background: 'var(--card-sunken)', borderRadius: 'var(--r)', padding: '16px 18px', textAlign: 'center', border: '1px solid var(--border)', marginBottom: 14 }}>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>Total hours (Until today)</div>
               <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--navy)' }}>
                 {formatHoursMins(workedMinutesTotal)}
@@ -687,24 +687,24 @@ export function ClockInPage() {
             {/* Category Legend */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 12, color: 'var(--ink2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--teal)' }}></span>
+                <span style={{ width: 10, height: 10, borderRadius: 'var(--r-sm)', background: 'var(--teal)' }}></span>
                 <span>Working time</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--blue)' }}></span>
+                <span style={{ width: 10, height: 10, borderRadius: 'var(--r-sm)', background: 'var(--blue)' }}></span>
                 <span>Break</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--gold)' }}></span>
+                <span style={{ width: 10, height: 10, borderRadius: 'var(--r-sm)', background: 'var(--gold)' }}></span>
                 <span>Overtime</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--red)' }}></span>
+                <span style={{ width: 10, height: 10, borderRadius: 'var(--r-sm)', background: 'var(--red)' }}></span>
                 <span>Late</span>
               </div>
             </div>
 
-            <button type="button" onClick={() => setShowManualModal(true)} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', fontSize: 12, fontWeight: 600, color: 'var(--navy)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button type="button" onClick={() => setShowManualModal(true)} style={{ padding: '6px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', fontSize: 12, fontWeight: 600, color: 'var(--navy)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
               + Entry log
             </button>
           </div>
@@ -744,7 +744,7 @@ export function ClockInPage() {
                 </div>
 
                 {/* Center Timeline Segment Bar */}
-                <div style={{ flex: 1, height: 16, background: 'var(--card-sunken)', borderRadius: 8, position: 'relative', overflow: 'hidden', display: 'flex' }}>
+                <div style={{ flex: 1, height: 16, background: 'var(--card-sunken)', borderRadius: 'var(--r)', position: 'relative', overflow: 'hidden', display: 'flex' }}>
                   {row.blocks.map((b, idx) => {
                     const bg = b.type === 'working' ? 'var(--teal)' : b.type === 'break' ? 'var(--blue)' : b.type === 'overtime' ? 'var(--gold)' : 'var(--red)';
                     return (
@@ -756,7 +756,7 @@ export function ClockInPage() {
                           width: `${b.widthPercent}%`,
                           marginLeft: idx === 0 ? `${b.startPercent}%` : 0,
                           background: bg,
-                          borderRadius: 4,
+                          borderRadius: 'var(--r-sm)',
                           marginRight: 2,
                           transition: 'opacity 0.2s',
                           cursor: 'pointer',
@@ -803,7 +803,7 @@ export function ClockInPage() {
                   value={manualClockIn}
                   onChange={e => setManualClockIn(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
                 />
               </div>
               <div>
@@ -813,7 +813,7 @@ export function ClockInPage() {
                   value={manualClockOut}
                   onChange={e => setManualClockOut(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
@@ -825,7 +825,7 @@ export function ClockInPage() {
                 value={manualBreakMins}
                 onChange={e => setManualBreakMins(e.target.value)}
                 min="0"
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -836,7 +836,7 @@ export function ClockInPage() {
                 value={manualProject}
                 onChange={e => setManualProject(e.target.value)}
                 placeholder="e.g. Mobile App Redesign"
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -861,7 +861,7 @@ export function ClockInPage() {
               onChange={e => setRejectNote(e.target.value)}
               placeholder="Let them know what needs correcting…"
               rows={3}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
             />
           </div>
           <DialogFooter>

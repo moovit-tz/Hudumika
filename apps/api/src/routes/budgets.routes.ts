@@ -14,6 +14,16 @@ export async function budgetRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
 
+  // HUD-0024 continuation: internal tenant-business data (finance ledgers,
+  // fleet ops, HR, identity/access admin, or tenant configuration) with only
+  // an entitlement gate — reachable end-to-end by a CUSTOMER JWT (confirmed
+  // live before this fix). Not customer-portal data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
+
   fastify.get('/', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
@@ -99,12 +109,23 @@ export async function budgetRoutes(fastify: FastifyInstance) {
 
       const yearStart = `${budget.fiscal_year}-01-01`;
       const yearEnd = `${budget.fiscal_year}-12-31`;
+      // HUD-0067: no status filter here, deliberately — same shape as
+      // GLService.trialBalance (which also sums every line unconditionally).
+      // GLService.voidEntry never deletes or mutates the original entry's
+      // lines; it marks the original 'VOIDED' *and* posts a separate mirror
+      // reversal entry (status 'POSTED') so the pair cancels through plain
+      // summation. Filtering `status != 'VOIDED'` (the previous code here)
+      // breaks that: it drops the original's debit but keeps the reversal's
+      // offsetting credit, leaving a lone, phantom variance equal to the
+      // negated voided amount — confirmed live by posting then voiding a
+      // 300,000 TZS bill against a budgeted account and watching "actual"
+      // move from 1,000,000 to 1,300,000 (correct) to 700,000 (wrong; should
+      // return to 1,000,000).
       const actualRows = await trx.selectFrom('journal_lines as jl')
         .innerJoin('journal_entries as je', 'je.id', 'jl.journal_entry_id')
         .innerJoin('chart_of_accounts as coa', 'coa.id', 'jl.account_id')
         .select(['coa.code as account_code', 'je.entry_date', 'jl.debit', 'jl.credit'])
         .where('je.tenant_id', '=', user.tenant_id)
-        .where('je.status', '!=', 'VOIDED')
         .where('coa.code', 'in', accountCodes)
         .where('je.entry_date', '>=', yearStart)
         .where('je.entry_date', '<=', yearEnd)

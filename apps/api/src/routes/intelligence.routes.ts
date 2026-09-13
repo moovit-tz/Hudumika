@@ -20,6 +20,16 @@ import {
  */
 export async function intelligenceRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // HUD-0024 continuation (closes the last file of the full 196-route-file
+  // sweep): GET /accuracy had no role check — internal AI/rules-accuracy
+  // telemetry for the tenant, not customer-portal data. The write endpoints
+  // are staff workflow signals (accepting/rejecting an HS code suggestion)
+  // a CUSTOMER has no legitimate occasion to submit either.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ── POST /v1/intel/hs-classifications ─────────────────────────────────────
   // One row per line whose HS code was settled. Written on acceptance *and*

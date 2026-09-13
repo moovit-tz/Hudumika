@@ -51,16 +51,16 @@ function MetricSection({ title, icon, variant, onExport, statTiles, chart, table
         {chart}
       </div>
 
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={onToggle}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--cts-accent, var(--teal))', fontSize: 13, fontWeight: 600, padding: 'var(--ds-btn-py-sm) 0', marginBottom: expanded ? 12 : 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
+        style={{ color: 'var(--cts-accent, var(--teal))', marginBottom: expanded ? 12 : 0 }}
       >
         <Icon name={expanded ? 'chevronUp' : 'chevronDown'} size={13} />
         {expanded ? 'Hide detailed table' : 'View detailed table'}
-      </button>
+      </Button>
 
       {expanded && table}
     </div>
@@ -153,7 +153,7 @@ function LedgerIntegritySection() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {anchors.map(a => (
-            <div key={a.id} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 16px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12 }}>
+            <div key={a.id} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 16px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
               {/* Identity row: status + hash lead, block height (the actual proof of external verification) trails on the right */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>

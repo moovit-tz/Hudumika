@@ -8,6 +8,7 @@ import { getHudumikaFooterHtml } from '../lib/watermark.js';
 import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
 
 interface TerminalLog {
   id: string;
@@ -229,14 +230,14 @@ export function ComplyLicenseAutomation() {
               <ol style={{ margin: '0 0 18px', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13, color: 'var(--ink2)' }}>
                 <li>
                   Log in to Tausi Portal inside the in-app browser or via the dialog.{' '}
-                  <button
+                  <Button
                     type="button"
-                    className="comply-btn-primary comply-btn-sm"
-                    style={{ margin: '0 4px', display: 'inline-flex', verticalAlign: 'middle' }}
+                    size="xs"
+                    style={{ margin: '0 4px', verticalAlign: 'middle' }}
                     onClick={() => setIsTausiLoginDialogOpen(true)}
                   >
                     Open Tausi Dialog
-                  </button>
+                  </Button>
                 </li>
                 <li>Export your business license statement or screenshot your dashboard.</li>
                 <li>Upload the file below — ComplyOS files all permits automatically.</li>
@@ -257,7 +258,7 @@ export function ComplyLicenseAutomation() {
             </div>
 
             {/* Terminal Agent Logs */}
-            <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, padding: '14px 18px', fontFamily: 'monospace', fontSize: 11.5, color: '#94a3b8', display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto' }}>
+            <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 'var(--r)', padding: '14px 18px', fontFamily: 'monospace', fontSize: 11.5, color: '#94a3b8', display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto' }}>
               <div style={{ fontSize: 10, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
                 COMPLYOS EXTRACTION AGENT LOG
               </div>
@@ -290,7 +291,7 @@ export function ComplyLicenseAutomation() {
               <button
                 type="button"
                 onClick={() => setIframeKey(k => k + 1)}
-                style={{ border: 'none', background: '#334155', color: '#f8fafc', width: 30, height: 30, borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ border: 'none', background: '#334155', color: '#f8fafc', width: 30, height: 30, borderRadius: 'var(--r-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 title="Reload portal"
               >
                 <Icon name="refresh" size={14} />
@@ -299,7 +300,7 @@ export function ComplyLicenseAutomation() {
               <button
                 type="button"
                 onClick={openNativeTausi}
-                style={{ border: 'none', background: '#334155', color: '#f8fafc', width: 30, height: 30, borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ border: 'none', background: '#334155', color: '#f8fafc', width: 30, height: 30, borderRadius: 'var(--r-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 title="Open in new browser tab"
               >
                 <Icon name="externalLink" size={14} />
@@ -353,9 +354,9 @@ export function ComplyLicenseAutomation() {
               </div>
               <p className="comply-page-sub" style={{ margin: '4px 0 0' }}>Council: {resultData.taxpayer?.registered_council || '—'} &bull; TIN: {resultData.taxpayer?.tin || '—'}</p>
             </div>
-            <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={handleReset}>
+            <Button type="button" variant="outline" size="sm" onClick={handleReset}>
               <Icon name="refresh" style={{ marginRight: 6 }} /> Return to Portal / Capture More
-            </button>
+            </Button>
           </div>
 
           {/* Results Tabs */}
@@ -391,9 +392,9 @@ export function ComplyLicenseAutomation() {
                       ✓ Synced to Permits Vault
                     </span>
                   ) : (
-                    <button type="button" className="comply-btn-primary comply-btn-sm" onClick={handleImportLicenses} disabled={savingLicense || !resultData.licenses?.length}>
+                    <Button type="button" size="sm" onClick={handleImportLicenses} disabled={savingLicense || !resultData.licenses?.length}>
                       {savingLicense ? 'Syncing...' : 'Sync to Permits Vault & Track Expirations'}
-                    </button>
+                    </Button>
                   )}
                 </div>
                 {!resultData.licenses?.length ? (
@@ -439,9 +440,9 @@ export function ComplyLicenseAutomation() {
                   {leviesSaved ? (
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--comply)' }}>✓ Registered in Obligations</span>
                   ) : (
-                    <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={handleRegisterLevies} disabled={savingLevies || !resultData.levies?.length}>
+                    <Button type="button" variant="outline" size="sm" onClick={handleRegisterLevies} disabled={savingLevies || !resultData.levies?.length}>
                       {savingLevies ? 'Registering...' : 'Register Levies'}
-                    </button>
+                    </Button>
                   )}
                 </div>
                 {!resultData.levies?.length ? (
@@ -524,7 +525,7 @@ export function ComplyLicenseAutomation() {
                       <p style={{ fontSize: 12.5, color: 'var(--ink2)', margin: '0 0 16px' }}>{wf.description}</p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {wf.steps.map((st: any) => (
-                          <div key={st.order} style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12.5, background: 'var(--white)', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)' }}>
+                          <div key={st.order} style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12.5, background: 'var(--white)', padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                             <span style={{ display: 'flex', width: 18, height: 18, borderRadius: '50%', background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 10, fontWeight: 700, alignItems: 'center', justifyContent: 'center' }}>
                               {st.order}
                             </span>

@@ -138,7 +138,7 @@ export function SealExWarehouseEntryDetail() {
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'flex-start', marginTop: 16 }}>
-        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 24, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13.5 }}>
+        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 24, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13.5 }}>
           <Row label="Declaration Date" value={new Date(entry.declarationDate).toLocaleDateString()} />
           <Row label="Country of Origin" value={entry.countryOfOrigin ?? '—'} />
           <Row label="Invoice Value" value={`${entry.invoiceValue.toLocaleString()} ${entry.currency}`} />
@@ -232,7 +232,7 @@ export function SealExWarehouseEntryDetail() {
           </div>
         </div>
 
-        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 24 }}>
           <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 14px' }}>Duty Computation</h2>
           {!c ? (
             <div style={{ color: 'var(--ink3)' }}>No computation stored.</div>
@@ -264,11 +264,11 @@ export function SealExWarehouseEntryDetail() {
       </div>
 
       {examinations.length > 0 && (
-        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 24, marginTop: 20 }}>
+        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 24, marginTop: 20 }}>
           <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 14px' }}>Customs Examination</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {examinations.map(ex => (
-              <div key={ex.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, border: '1px solid var(--border)', borderRadius: 10 }}>
+              <div key={ex.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <Badge variant={ex.selectivityChannel === 'GREEN' ? 'success' : ex.selectivityChannel === 'YELLOW' ? 'warning' : 'error'}>{ex.selectivityChannel} channel</Badge>
                   <Badge variant={ex.status === 'COMPLETED' || ex.status === 'WAIVED' ? 'gray' : 'brand'}>{ex.status}</Badge>

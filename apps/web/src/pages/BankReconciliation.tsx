@@ -243,7 +243,7 @@ export function BankReconciliation() {
                   .sort((a, b) => Math.abs(a.amount - pendingLine.amount) - Math.abs(b.amount - pendingLine.amount))
                   .map(c => (
                     <button key={c.id} type="button" onClick={() => handleMatch(pendingLine.id, c.id)}
-                      style={{ width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: Math.abs(c.amount - pendingLine.amount) < 0.01 ? 'var(--teal-l)' : 'var(--white)', cursor: 'pointer', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      style={{ width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: Math.abs(c.amount - pendingLine.amount) < 0.01 ? 'var(--teal-l)' : 'var(--white)', cursor: 'pointer', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <div style={{ fontSize: 12.5, fontWeight: 600 }}>{c.description}</div>
                         <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{c.entryNumber} · {new Date(c.date).toLocaleDateString('en-GB')}</div>

@@ -36,7 +36,7 @@ function fmtDate(d: string): string {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' };
 
 function EditableFields({ label, setLabel, username, setUsername, url, setUrl, secret, setSecret, secretRequired }: {
   label: string; setLabel: (v: string) => void;
@@ -270,10 +270,10 @@ export const OndiWallet: React.FC = () => {
               <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
                 {item.username || '—'}{item.url ? ` · ${item.url}` : ''}
               </div>
-              <div style={{ fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink)', marginTop: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', display: 'inline-block', minWidth: 140 }}>
+              <div style={{ fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink)', marginTop: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '4px 10px', display: 'inline-block', minWidth: 140 }}>
                 {revealed[item.id] !== undefined ? revealed[item.id] : '••••••••••••'}
               </div>
-              <div style={{ fontSize: 10.5, color: 'var(--ink4)', marginTop: 4 }}>Updated {fmtDate(item.updated_at)}</div>
+              <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 4 }}>Updated {fmtDate(item.updated_at)}</div>
             </div>
             <button type="button" title={revealed[item.id] !== undefined ? 'Hide' : 'Reveal'} disabled={revealing === item.id} onClick={() => reveal(item)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
@@ -311,7 +311,7 @@ export const OndiWallet: React.FC = () => {
                 <div style={{ flex: 1, fontSize: 12.5, color: 'var(--ink)' }}>{g.grantee_name} <span style={{ color: 'var(--ink3)' }}>· {g.grantee_email}</span></div>
                 <Badge variant={g.permission === 'edit' ? 'brand' : 'gray'}>{g.permission === 'edit' ? 'Can edit' : 'Can view'}</Badge>
                 <button type="button" onClick={() => revokeShare(item.id, g.id)}
-                  style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--red)', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 9px', cursor: 'pointer' }}>
+                  style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--red)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '3px 9px', cursor: 'pointer' }}>
                   Revoke
                 </button>
               </div>

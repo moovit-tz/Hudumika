@@ -35,7 +35,7 @@ export function DocThumbnail({ type, name, url }: DocThumbnailProps) {
   if (isSheet) {
     return (
       <div style={{ width: '100%', height: '100%', background: '#f8fafc', padding: 10, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 8 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, background: '#10b981', padding: '4px 6px', borderRadius: 4, color: '#fff', fontWeight: 700 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, background: 'var(--green)', padding: '4px 6px', borderRadius: 4, color: '#fff', fontWeight: 700 }}>
           <span>QTY</span><span>ITEM</span><span>PRICE</span><span>TOTAL</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, background: '#fff', padding: '3px 6px', borderBottom: '1px solid #e2e8f0', color: '#334155' }}>
@@ -54,7 +54,7 @@ export function DocThumbnail({ type, name, url }: DocThumbnailProps) {
   if (isPresentation) {
     return (
       <div style={{ width: '100%', height: '100%', background: 'var(--gold-l)', padding: 12, display: 'flex', flexDirection: 'column', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
-        <div style={{ width: '80%', height: 12, background: '#f59e0b', borderRadius: 3 }} />
+        <div style={{ width: '80%', height: 12, background: 'var(--gold)', borderRadius: 3 }} />
         <div style={{ width: '60%', height: 6, background: '#fde68a', borderRadius: 2 }} />
         <div style={{ display: 'flex', gap: 6, width: '100%', marginTop: 6 }}>
           <div style={{ flex: 1, height: 28, background: '#fef3c7', borderRadius: 4 }} />
@@ -71,7 +71,7 @@ export function DocThumbnail({ type, name, url }: DocThumbnailProps) {
         {/* Letterhead & Logo */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 14, height: 14, borderRadius: '50%', background: isPdf ? '#ef4444' : '#2563eb' }} />
+            <div style={{ width: 14, height: 14, borderRadius: '50%', background: isPdf ? 'var(--red)' : 'var(--blue)' }} />
             <div style={{ width: 36, height: 5, background: '#0f172a', borderRadius: 2 }} />
           </div>
           <div style={{ fontSize: 6, color: '#64748b', fontWeight: 600 }}>CONFIDENTIAL</div>
@@ -95,7 +95,7 @@ export function DocThumbnail({ type, name, url }: DocThumbnailProps) {
             <div style={{ width: 28, height: 2, background: '#64748b' }} />
             <div style={{ fontSize: 5, color: '#94a3b8' }}>Authorized Signatory</div>
           </div>
-          <div style={{ width: 20, height: 20, borderRadius: '50%', border: '1.5px dashed #2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', fontSize: 5, fontWeight: 800, opacity: 0.85 }}>
+          <div style={{ width: 20, height: 20, borderRadius: '50%', border: '1.5px dashed var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--blue)', fontSize: 5, fontWeight: 800, opacity: 0.85 }}>
             SEAL
           </div>
         </div>

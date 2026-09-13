@@ -143,17 +143,17 @@
 
 .opa-kpi-icon.success {
   background: var(--green-l);
-  color: var(--green, #10b981);
+  color: var(--green);
 }
 
 .opa-kpi-icon.warning {
   background: var(--gold-l);
-  color: var(--gold, #f59e0b);
+  color: var(--gold);
 }
 
 .opa-kpi-icon.purple {
   background: var(--purple-l);
-  color: var(--purple, #8b5cf6);
+  color: var(--purple);
 }
 
 .opa-kpi-body {
@@ -196,7 +196,7 @@
 
 .opa-kpi-pill.purple {
   background: var(--purple-l);
-  color: var(--purple, #8b5cf6);
+  color: var(--purple);
 }
 
 .opa-kpi-pill.gray {
@@ -307,11 +307,11 @@
 }
 
 .opa-filter-btn-danger.active {
-  background: var(--red, #ef4444);
+  background: var(--red);
 }
 
 .opa-filter-count.danger {
-  color: var(--red, #ef4444);
+  color: var(--red);
 }
 
 .opa-filter-btn-danger.active .opa-filter-count.danger {
@@ -487,7 +487,7 @@
   background: var(--red-l, rgba(239, 68, 68, 0.08));
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: var(--r, 12px);
-  color: var(--red, #ef4444);
+  color: var(--red);
   font-size: 13px;
   font-weight: 600;
   display: flex;
@@ -665,12 +665,12 @@
 
 .opa-event-icon-box.login-success {
   background: var(--green-l);
-  color: var(--green, #10b981);
+  color: var(--green);
 }
 
 .opa-event-icon-box.login-failed {
   background: var(--red-l);
-  color: var(--red, #ef4444);
+  color: var(--red);
 }
 
 .opa-event-icon-box.security {
@@ -680,12 +680,12 @@
 
 .opa-event-icon-box.identity {
   background: var(--purple-l);
-  color: var(--purple, #8b5cf6);
+  color: var(--purple);
 }
 
 .opa-event-icon-box.wallet {
   background: var(--gold-l);
-  color: var(--gold, #f59e0b);
+  color: var(--gold);
 }
 
 .opa-event-info {
@@ -713,7 +713,7 @@
 }
 
 .opa-event-title.failed {
-  color: var(--red, #ef4444);
+  color: var(--red);
 }
 
 /* Risk Level Pills */
@@ -728,17 +728,17 @@
 
 .opa-risk-pill.low {
   background: var(--green-l);
-  color: var(--green, #10b981);
+  color: var(--green);
 }
 
 .opa-risk-pill.medium {
   background: var(--gold-l);
-  color: var(--gold, #f59e0b);
+  color: var(--gold);
 }
 
 .opa-risk-pill.high {
   background: var(--red-l);
-  color: var(--red, #ef4444);
+  color: var(--red);
 }
 
 .opa-event-badges {
@@ -944,12 +944,12 @@
 
 .opa-modal-avatar.login-success {
   background: var(--green-l);
-  color: var(--green, #10b981);
+  color: var(--green);
 }
 
 .opa-modal-avatar.login-failed {
   background: var(--red-l);
-  color: var(--red, #ef4444);
+  color: var(--red);
 }
 
 .opa-modal-avatar.security {

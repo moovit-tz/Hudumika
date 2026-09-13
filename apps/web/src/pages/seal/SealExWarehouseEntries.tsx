@@ -56,7 +56,7 @@ export function SealExWarehouseEntries() {
         </Select>
       </div>
 
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', overflow: 'hidden' }}>
         {loading ? (
           <SectionLoading />
         ) : entries.length === 0 ? (

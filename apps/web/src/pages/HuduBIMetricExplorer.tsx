@@ -116,7 +116,7 @@ function AlertsMiniSection({ metricKey, canManage }: { metricKey: string; canMan
           {!r.enabled && <Badge variant="gray">Disabled</Badge>}
           {canManage && (
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-              <button type="button" onClick={() => toggle(r.id, !r.enabled)} style={{ fontSize: 11, color: 'var(--teal-deep)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <button type="button" onClick={() => toggle(r.id, !r.enabled)} style={{ fontSize: 11, color: 'var(--teal-d)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                 {r.enabled ? 'Disable' : 'Enable'}
               </button>
               <button type="button" onClick={() => remove(r.id)} style={{ fontSize: 11, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
@@ -145,7 +145,7 @@ function AlertsMiniSection({ metricKey, canManage }: { metricKey: string; canMan
             <button type="button" onClick={() => setCreating(false)} style={{ fontSize: 11.5, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
           </div>
         ) : (
-          <button type="button" onClick={() => setCreating(true)} style={{ fontSize: 11.5, color: 'var(--teal-deep)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 4 }}>
+          <button type="button" onClick={() => setCreating(true)} style={{ fontSize: 11.5, color: 'var(--teal-d)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 4 }}>
             + Add alert
           </button>
         )
@@ -208,7 +208,7 @@ function MetricRow({ def }: { def: MetricDef }) {
           </div>
           {sourceTables.length > 0 && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {sourceTables.map(t => <code key={t} style={{ fontSize: 10.5, background: 'var(--surface2, var(--bg))', padding: '2px 6px', borderRadius: 4, color: 'var(--ink2)' }}>{t}</code>)}
+              {sourceTables.map(t => <code key={t} style={{ fontSize: 10.5, background: 'var(--bg)', padding: '2px 6px', borderRadius: 4, color: 'var(--ink2)' }}>{t}</code>)}
             </div>
           )}
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', display: 'flex', gap: 16 }}>

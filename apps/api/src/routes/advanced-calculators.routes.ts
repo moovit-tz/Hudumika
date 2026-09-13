@@ -115,6 +115,16 @@ const routeSchema = z.object({
 export async function advancedCalculatorRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('clearos'));
+  // HUD-0024 continuation: matches customs.routes.ts's own CUSTOMER
+  // exclusion (HUD-0033) on the sibling sea_fcl/sea_lcl/air calculators —
+  // this file's /transit-routes is a tenant-wide, freely mutable reference
+  // table (affects landed-cost results for every shipment), not per-caller
+  // data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   /** Saves an advanced-calculator result into the shared landed_cost_records
    *  history table — same shape historyExtras() in customs.routes.ts builds

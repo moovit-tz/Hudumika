@@ -133,7 +133,7 @@ const STATUS_STYLE: Record<PageDiffStatus, { accent: string | null; tint: string
 function WordDiff({ oldText, newText }: { oldText: string; newText: string }) {
   const parts = useMemo(() => diffWords(oldText, newText), [oldText, newText]);
   return (
-    <div style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--ink2)', maxHeight: 140, overflowY: 'auto', padding: '8px 10px', background: '#fff', borderRadius: 6, border: '1px solid var(--border)' }}>
+    <div style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--ink2)', maxHeight: 140, overflowY: 'auto', padding: '8px 10px', background: '#fff', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
       {parts.map((part, i) => (
         <span key={i} style={
           part.added ? { background: 'var(--green-l)', color: 'var(--green)', textDecoration: 'underline' }
@@ -168,8 +168,8 @@ function DiffPageCard({ entry, oldDoc, newDoc }: { entry: PageDiffEntry; oldDoc:
   const h = naturalSize ? Math.round(naturalSize.h * scale) : THUMB_W * 1.414;
 
   return (
-    <div style={{ background: style.tint, border: `1px solid ${style.accent ?? 'var(--border)'}`, borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 6, width: 'fit-content' }}>
-      <div style={{ width: THUMB_W, height: h, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden', opacity: entry.status === 'removed' ? 0.55 : 1, filter: entry.status === 'removed' ? 'grayscale(1)' : undefined }}>
+    <div style={{ background: style.tint, border: `1px solid ${style.accent ?? 'var(--border)'}`, borderRadius: 'var(--r)', padding: 10, display: 'flex', flexDirection: 'column', gap: 6, width: 'fit-content' }}>
+      <div style={{ width: THUMB_W, height: h, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden', opacity: entry.status === 'removed' ? 0.55 : 1, filter: entry.status === 'removed' ? 'grayscale(1)' : undefined }}>
         {doc && naturalSize && <PdfPageCanvas doc={doc} pageNumber={pageNumber} scale={scale} style={{ display: 'block' }} />}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -291,7 +291,7 @@ export function VersionHistoryPanel({ envelopeId, onRestore, onClose }: {
           ) : versions.map(v => (
             <button key={v.id} type="button" onClick={() => setSelectedId(v.id)}
               style={{
-                textAlign: 'left', padding: '10px 12px', borderRadius: 10, border: `1px solid ${v.id === selectedId ? 'var(--teal)' : 'var(--border)'}`,
+                textAlign: 'left', padding: '10px 12px', borderRadius: 'var(--r)', border: `1px solid ${v.id === selectedId ? 'var(--teal)' : 'var(--border)'}`,
                 background: v.id === selectedId ? 'var(--teal-l)' : 'var(--card-bg)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4,
               }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

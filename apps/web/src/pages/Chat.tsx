@@ -94,7 +94,7 @@ const EMOJIS = ['👍', '❤️', '😄', '🎉', '🚀', '👀', '✅', '😂',
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '🔥'];
 const POLL_MS = 6000;
 
-const fieldStyle: React.CSSProperties = { width: '100%', height: 38, background: 'var(--card-sunken)', border: '1px solid var(--border2)', borderRadius: 8, padding: '0 12px', color: 'var(--ink)', fontSize: 13, outline: 'none' };
+const fieldStyle: React.CSSProperties = { width: '100%', height: 38, background: 'var(--card-sunken)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '0 12px', color: 'var(--ink)', fontSize: 13, outline: 'none' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 };
 
 export const Chat: React.FC = () => {
@@ -388,17 +388,17 @@ export const Chat: React.FC = () => {
           <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Messages</h2>
           <div style={{ display: 'flex', gap: 4 }}>
             <Tip label="Browse channels">
-              <button type="button" onClick={openBrowse} style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button type="button" onClick={openBrowse} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name={"compass" as IconName} size={15} />
               </button>
             </Tip>
             <Tip label="New Direct Message">
-              <button type="button" onClick={() => setCreating('dm')} style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button type="button" onClick={() => setCreating('dm')} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="edit" size={15} />
               </button>
             </Tip>
             <Tip label="New Channel">
-              <button type="button" onClick={() => setCreating('channel')} style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button type="button" onClick={() => setCreating('channel')} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="plus" size={15} />
               </button>
             </Tip>
@@ -418,7 +418,7 @@ export const Chat: React.FC = () => {
                 height: 32,
                 background: 'var(--card-sunken)',
                 border: '1px solid var(--border2)',
-                borderRadius: 8,
+                borderRadius: 'var(--r)',
                 paddingLeft: 28,
                 paddingRight: search ? 24 : 8,
                 color: 'var(--ink)',
@@ -455,7 +455,7 @@ export const Chat: React.FC = () => {
                   style={{
                     height: 32,
                     padding: '0 8px',
-                    borderRadius: 8,
+                    borderRadius: 'var(--r)',
                     border: activeTab !== 'all' ? '1px solid var(--teal)' : '1px solid var(--border2)',
                     background: activeTab !== 'all' ? 'var(--teal-l)' : 'var(--card-sunken)',
                     color: activeTab !== 'all' ? 'var(--teal)' : 'var(--ink2)',
@@ -497,7 +497,7 @@ export const Chat: React.FC = () => {
                 <Icon name="messageSquare" size={13} style={{ marginRight: 8 }} />
                 <span style={{ flex: 1 }}>Unread</span>
                 {totalUnread > 0 && (
-                  <span style={{ fontSize: 9.5, background: 'var(--red)', color: '#ffffff', padding: '1px 5px', borderRadius: 8, fontWeight: 800, marginRight: 4 }}>
+                  <span style={{ fontSize: 9.5, background: 'var(--red)', color: '#ffffff', padding: '1px 5px', borderRadius: 'var(--r)', fontWeight: 800, marginRight: 4 }}>
                     {totalUnread}
                   </span>
                 )}
@@ -571,7 +571,7 @@ export const Chat: React.FC = () => {
           <button
             type="button"
             onClick={() => setCreating('dm')}
-            style={{ width: '100%', height: 34, borderRadius: 10, background: 'var(--card-sunken)', border: '1px solid var(--border2)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            style={{ width: '100%', height: 34, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: '1px solid var(--border2)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
           >
             <Icon name="plus" size={14} /> New direct message
           </button>
@@ -885,7 +885,7 @@ export const Chat: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 4, borderBottom: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)' }}>Channel Members</span>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: 'var(--teal-l)', color: 'var(--teal)' }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)' }}>
                       {allMembers.length}
                     </span>
                   </div>
@@ -899,7 +899,7 @@ export const Chat: React.FC = () => {
                       value={memberSearch}
                       onChange={e => setMemberSearch(e.target.value)}
                       placeholder="Filter members…"
-                      style={{ width: '100%', height: 28, background: 'var(--card-sunken)', border: '1px solid var(--border2)', borderRadius: 6, paddingLeft: 26, paddingRight: 8, color: 'var(--ink)', fontSize: 11.5, outline: 'none' }}
+                      style={{ width: '100%', height: 28, background: 'var(--card-sunken)', border: '1px solid var(--border2)', borderRadius: 'var(--r-sm)', paddingLeft: 26, paddingRight: 8, color: 'var(--ink)', fontSize: 11.5, outline: 'none' }}
                     />
                     {memberSearch && (
                       <button type="button" onClick={() => setMemberSearch('')} style={{ position: 'absolute', right: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 0 }}>
@@ -916,7 +916,7 @@ export const Chat: React.FC = () => {
                       key={m.id}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '6px 8px', borderRadius: 8, background: 'var(--card-sunken)',
+                        padding: '6px 8px', borderRadius: 'var(--r)', background: 'var(--card-sunken)',
                         border: '1px solid var(--border2)'
                       }}
                     >
@@ -932,7 +932,7 @@ export const Chat: React.FC = () => {
                               {m.name}
                             </span>
                             {m.isCurrent && (
-                              <span style={{ fontSize: 9.5, padding: '1px 4px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', fontWeight: 800 }}>You</span>
+                              <span style={{ fontSize: 9.5, padding: '1px 4px', borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', color: 'var(--teal)', fontWeight: 800 }}>You</span>
                             )}
                           </div>
                           <div style={{ fontSize: 10.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -949,7 +949,7 @@ export const Chat: React.FC = () => {
                           style={{
                             background: 'none', border: 'none', cursor: 'pointer',
                             color: 'var(--ink3)', padding: 4, display: 'flex', alignItems: 'center',
-                            borderRadius: 4, transition: 'color 0.12s'
+                            borderRadius: 'var(--r-sm)', transition: 'color 0.12s'
                           }}
                         >
                           <Icon name="message" size={13} />
@@ -968,7 +968,7 @@ export const Chat: React.FC = () => {
             const presenceCfg = dmPresence ? PRESENCE_LABEL[dmPresence] : null;
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--card-sunken)', borderRadius: 10, padding: 12, border: '1px solid var(--border2)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--card-sunken)', borderRadius: 'var(--r)', padding: 12, border: '1px solid var(--border2)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
                     <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>Status</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: presenceCfg?.color ?? 'var(--ink3)', fontWeight: 700, fontSize: 11.5 }}>
@@ -993,14 +993,14 @@ export const Chat: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => startCallWith(activeCh.other_user_id, 'VOICE')}
-                    style={{ flex: 1, height: 32, borderRadius: 8, border: '1px solid var(--border2)', background: 'var(--card-sunken)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    style={{ flex: 1, height: 32, borderRadius: 'var(--r)', border: '1px solid var(--border2)', background: 'var(--card-sunken)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
                     <Icon name="phone" size={13} /> Call
                   </button>
                   <button
                     type="button"
                     onClick={() => startCallWith(activeCh.other_user_id, 'VIDEO')}
-                    style={{ flex: 1, height: 32, borderRadius: 8, border: '1px solid var(--border2)', background: 'var(--card-sunken)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    style={{ flex: 1, height: 32, borderRadius: 'var(--r)', border: '1px solid var(--border2)', background: 'var(--card-sunken)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
                     <Icon name="camera" size={13} /> Video
                   </button>
@@ -1032,7 +1032,7 @@ export const Chat: React.FC = () => {
           {creating === 'group' && (
             <div>
               <label style={labelStyle}>Select members</label>
-              <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid var(--border2)', borderRadius: 8, background: 'var(--card-sunken)' }}>
+              <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid var(--border2)', borderRadius: 'var(--r)', background: 'var(--card-sunken)' }}>
                 {staff.map(s => {
                   const sel = newMemberIds.includes(s.id);
                   return (
@@ -1053,8 +1053,8 @@ export const Chat: React.FC = () => {
           )}
 
           <DialogFooter>
-            <button type="button" onClick={() => setCreating(null)} style={{ height: 38, padding: '0 16px', borderRadius: 8, background: 'var(--card-sunken)', border: '1px solid var(--border2)', color: 'var(--ink2)', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-            <button type="button" onClick={createChannelOrGroup} style={{ height: 38, padding: '0 16px', borderRadius: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontWeight: 700, cursor: 'pointer' }}>Create</button>
+            <button type="button" onClick={() => setCreating(null)} style={{ height: 38, padding: '0 16px', borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: '1px solid var(--border2)', color: 'var(--ink2)', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+            <button type="button" onClick={createChannelOrGroup} style={{ height: 38, padding: '0 16px', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontWeight: 700, cursor: 'pointer' }}>Create</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1065,7 +1065,7 @@ export const Chat: React.FC = () => {
           <DialogHeader>
             <DialogTitle>New direct message</DialogTitle>
           </DialogHeader>
-          <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border2)', borderRadius: 8, background: 'var(--card-sunken)' }}>
+          <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border2)', borderRadius: 'var(--r)', background: 'var(--card-sunken)' }}>
             {staff.map(s => (
               <button
                 key={s.id}
@@ -1097,7 +1097,7 @@ export const Chat: React.FC = () => {
             )}
             {!browseLoading && browseList?.map(c => (
               <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px', borderBottom: '1px solid var(--border2)' }}>
-                <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name={c.type === 'channel' ? 'hash' : 'users'} size={16} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -1110,7 +1110,7 @@ export const Chat: React.FC = () => {
                   type="button"
                   onClick={() => joinChannel(c.id)}
                   disabled={joiningId === c.id}
-                  style={{ height: 28, padding: '0 12px', borderRadius: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontSize: 11.5, fontWeight: 700, cursor: joiningId === c.id ? 'default' : 'pointer', opacity: joiningId === c.id ? 0.6 : 1, flexShrink: 0 }}
+                  style={{ height: 28, padding: '0 12px', borderRadius: 'var(--r-sm)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontSize: 11.5, fontWeight: 700, cursor: joiningId === c.id ? 'default' : 'pointer', opacity: joiningId === c.id ? 0.6 : 1, flexShrink: 0 }}
                 >
                   {joiningId === c.id ? 'Joining…' : 'Join'}
                 </button>
@@ -1178,14 +1178,14 @@ function ConversationItem({
     <div
       onClick={onClick}
       style={{
-        padding: '8px 10px', borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+        padding: '8px 10px', borderRadius: 'var(--r)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
         background: active ? 'var(--card-sunken)' : 'transparent', transition: 'background 0.1s', marginBottom: 2
       }}
     >
       {channel.type === 'dm' ? (
         <PersonAvatar userId={channel.other_user_id} name={channel.name} size={32} />
       ) : (
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name={channel.type === 'channel' ? 'hash' : 'users'} size={14} />
         </div>
       )}
@@ -1215,7 +1215,7 @@ function ConversationItem({
       </Tip>
 
       {channel.unread > 0 && (
-        <span style={{ fontSize: 9.5, background: 'var(--red)', color: 'hsl(var(--red-foreground))', padding: '1px 6px', borderRadius: 10, fontWeight: 800, flexShrink: 0 }}>
+        <span style={{ fontSize: 9.5, background: 'var(--red)', color: 'hsl(var(--red-foreground))', padding: '1px 6px', borderRadius: 'var(--r)', fontWeight: 800, flexShrink: 0 }}>
           {channel.unread}
         </span>
       )}

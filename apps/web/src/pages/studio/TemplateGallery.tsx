@@ -62,7 +62,7 @@ export function TemplateGallery() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
         {templates.map(t => (
-          <div key={t.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--card-bg, var(--white))', padding: 15, display: 'flex', flexDirection: 'column', gap: 9 }}>
+          <div key={t.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--card-bg, var(--white))', padding: 15, display: 'flex', flexDirection: 'column', gap: 9 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 8, height: 8, borderRadius: 99, background: t.color }} />
               <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.4px', textTransform: 'uppercase', color: t.color }}>{t.appName}</span>
@@ -93,7 +93,7 @@ export function TemplateGallery() {
       </div>
 
       {!loading && templates.length === 0 && (
-        <div style={{ padding: 36, textAlign: 'center', color: 'var(--ink3)', fontSize: 13, border: '1px dashed var(--border)', borderRadius: 12 }}>
+        <div style={{ padding: 36, textAlign: 'center', color: 'var(--ink3)', fontSize: 13, border: '1px dashed var(--border)', borderRadius: 'var(--card-radius)' }}>
           No templates available.
         </div>
       )}

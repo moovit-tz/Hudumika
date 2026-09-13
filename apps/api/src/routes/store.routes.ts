@@ -41,8 +41,15 @@ export const storeRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  // HUD-0024 continuation: neither route below had a role check — any
+  // authenticated user, CUSTOMER included, could install/uninstall a
+  // marketplace app for the whole tenant. Same MGMT convention addons.
+  // routes.ts already uses for "browse freely, but only these roles change
+  // what the tenant actually has."
+  const STORE_MGMT_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
+
   // POST /v1/store/installed { app_id } -> mark an app installed for this tenant
-  app.post('/installed', async (request, reply) => {
+  app.post('/installed', { preHandler: requireRole(...STORE_MGMT_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { app_id } = z.object({ app_id: z.string() }).parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
@@ -55,7 +62,7 @@ export const storeRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // DELETE /v1/store/installed/:appId -> uninstall for this tenant
-  app.delete('/installed/:appId', async (request, reply) => {
+  app.delete('/installed/:appId', { preHandler: requireRole(...STORE_MGMT_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { appId } = request.params as { appId: string };
     return withTenant(user.tenant_id, async (trx) => {

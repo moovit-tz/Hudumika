@@ -405,7 +405,7 @@ export const TrackingCargoLoading: React.FC = () => {
               
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 {isDraft ? (
-                  <button onClick={approvePlan} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--indigo)', color: '#fff', borderRadius: 'var(--r)', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  <button onClick={approvePlan} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--purple)', color: '#fff', borderRadius: 'var(--r)', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     Approve Plan
                   </button>
                 ) : manifest.status === 'APPROVED' ? (
@@ -413,7 +413,7 @@ export const TrackingCargoLoading: React.FC = () => {
                     Dispatch Vehicle
                   </button>
                 ) : (
-                  <div style={{ flex: 1, padding: '6px 12px', background: 'var(--bg)', color: 'var(--ink)', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, textAlign: 'center' }}>
+                  <div style={{ flex: 1, padding: '6px 12px', background: 'var(--bg)', color: 'var(--ink)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, textAlign: 'center' }}>
                     Dispatched ({manifest.vehicle_plate || manifest.vehicle_name || 'Vehicle Assigned'})
                   </div>
                 )}
@@ -466,7 +466,7 @@ export const TrackingCargoLoading: React.FC = () => {
                   <span>Weight</span><strong>{packResult.weight_utilization_pct}%</strong>
                 </div>
                 {packResult.unplaced_items.length > 0 && (
-                  <div style={{ marginTop: 10, padding: '8px 10px', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 8, fontSize: 11, color: 'var(--red)' }}>
+                  <div style={{ marginTop: 10, padding: '8px 10px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r)', fontSize: 11, color: 'var(--red)' }}>
                     Didn't fit: {packResult.unplaced_items.map(u => `${u.label} ×${u.count}`).join(', ')}
                   </div>
                 )}

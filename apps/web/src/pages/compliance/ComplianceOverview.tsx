@@ -210,13 +210,13 @@ export function ComplianceOverview() {
         style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', userSelect: 'none', color: active ? 'var(--ink)' : 'var(--ink3)', fontWeight: active ? 700 : 600, ...style }}
       >
         {label}
-        <Icon name={active && sortDir === 'asc' ? 'chevronUp' : 'chevronDown'} size={11} color={active ? 'var(--teal)' : 'var(--ink4)'} style={{ opacity: active ? 1 : 0.4 }} />
+        <Icon name={active && sortDir === 'asc' ? 'chevronUp' : 'chevronDown'} size={11} color={active ? 'var(--teal)' : 'var(--ink3)'} style={{ opacity: active ? 1 : 0.4 }} />
       </div>
     );
   }
 
   const cardStyle: React.CSSProperties = {
-    background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14,
+    background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
     boxShadow: 'var(--elev-lg)',
   };
 
@@ -271,7 +271,7 @@ export function ComplianceOverview() {
                   <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: C.axisText }} interval={2} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: C.axisText }} allowDecimals={false} width={24} />
                   <RechartsTooltip
-                    contentStyle={{ background: C.tooltipBg, border: `1px solid ${C.tooltipBorder}`, borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ background: C.tooltipBg, border: `1px solid ${C.tooltipBorder}`, borderRadius: 'var(--r)', fontSize: 12 }}
                     labelStyle={{ color: 'var(--ink)', fontWeight: 700, marginBottom: 2 }}
                   />
                   <Area type="monotone" dataKey="checks" name="Quick Checks" stroke={C.teal} strokeWidth={2} fillOpacity={1} fill="url(#checksGrad)" />
@@ -317,7 +317,7 @@ export function ComplianceOverview() {
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: r.color, display: 'inline-block', flexShrink: 0 }} />
                     <span style={{ flex: 1, color: 'var(--ink2)' }}>{r.name}</span>
                     <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.value}</span>
-                    <span style={{ color: 'var(--ink4)', width: 34, textAlign: 'right' }}>{totalChecks > 0 ? Math.round((r.value / totalChecks) * 100) : 0}%</span>
+                    <span style={{ color: 'var(--ink3)', width: 34, textAlign: 'right' }}>{totalChecks > 0 ? Math.round((r.value / totalChecks) * 100) : 0}%</span>
                   </div>
                 ))}
               </div>
@@ -342,7 +342,7 @@ export function ComplianceOverview() {
                   <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: C.axisText }} allowDecimals={false} />
                   <YAxis type="category" dataKey="kind" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--ink)', fontWeight: 600 }} width={100} />
                   <RechartsTooltip
-                    contentStyle={{ background: C.tooltipBg, border: `1px solid ${C.tooltipBorder}`, borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ background: C.tooltipBg, border: `1px solid ${C.tooltipBorder}`, borderRadius: 'var(--r)', fontSize: 12 }}
                     cursor={{ fill: C.gridLine }}
                   />
                   <Bar dataKey="value" name="Runs" radius={[0, 6, 6, 0]} maxBarSize={22}>
@@ -364,14 +364,14 @@ export function ComplianceOverview() {
                 <span style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)' }}>{wizardUsage.used}</span>
                 <span style={{ fontSize: 13, color: 'var(--ink3)' }}>/ {wizardUsage.limit} used</span>
               </div>
-              <div style={{ height: 8, borderRadius: 4, background: 'var(--bg)', overflow: 'hidden' }}>
+              <div style={{ height: 8, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
                 <div style={{
-                  height: '100%', borderRadius: 4, width: `${quotaPct}%`,
+                  height: '100%', borderRadius: 'var(--r-sm)', width: `${quotaPct}%`,
                   background: quotaPct >= 90 ? C.red : quotaPct >= 70 ? C.gold : C.teal,
                   transition: 'width 0.3s ease',
                 }} />
               </div>
-              <div style={{ fontSize: 11, color: 'var(--ink4)', marginTop: 6 }}>{quotaPct}% of monthly quota used</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 6 }}>{quotaPct}% of monthly quota used</div>
             </>
           ) : (
             <SectionLoading />
@@ -383,7 +383,7 @@ export function ComplianceOverview() {
       <SectionCard
         title="Recent activity"
         padded={false}
-        action={<span style={{ fontSize: 11.5, color: 'var(--ink4)' }}>Click a row to reopen and customize it</span>}
+        action={<span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Click a row to reopen and customize it</span>}
       >
         {loading ? (
           <SectionLoading />
@@ -420,7 +420,7 @@ export function ComplianceOverview() {
                     <td style={{ padding: '11px 12px' }}>
                       <Badge variant={r.resultVariant}>{r.result}</Badge>
                     </td>
-                    <td style={{ padding: '11px 18px', fontSize: 11, color: 'var(--ink4)', textAlign: 'right', whiteSpace: 'nowrap' }}>{timeAgo(r.created_at)}</td>
+                    <td style={{ padding: '11px 18px', fontSize: 11, color: 'var(--ink3)', textAlign: 'right', whiteSpace: 'nowrap' }}>{timeAgo(r.created_at)}</td>
                     <td style={{ padding: '11px 18px' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 700, color: 'var(--teal)' }}>
                         Open <Icon name="chevronRight" size={13} color="var(--teal)" />

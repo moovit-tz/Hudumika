@@ -203,7 +203,7 @@ export function SmsGateways() {
                             <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{sid.sender_id}</span>
                             {sid.is_default && <Badge variant="brand">Default</Badge>}
                             {!sid.is_default && <button type="button" onClick={() => setDefaultSenderId(g.id, sid.id)} style={{ fontSize: 11.5, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>Make default</button>}
-                            <button type="button" onClick={() => removeSenderId(g.id, sid.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex' }}><Icon name="x" size={12} /></button>
+                            <button type="button" onClick={() => removeSenderId(g.id, sid.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex' }}><Icon name="x" size={12} /></button>
                           </div>
                         ))}
                         {(senderIds[g.id] || []).length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No named sender IDs — using the gateway's default above.</div>}

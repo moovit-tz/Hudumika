@@ -255,7 +255,7 @@ export const ContractDetail: React.FC = () => {
                     <div key={r.id} style={{ fontSize: 12, color: 'var(--ink3)' }}>
                       <span style={{ fontWeight: 700, color: 'var(--ink2)' }}>{r.actor_name}</span> extended {r.previous_end_date || '—'} → {r.new_end_date}
                       {r.note && <span> — {r.note}</span>}
-                      <span style={{ color: 'var(--ink4)' }}> · {new Date(r.created_at).toLocaleDateString()}</span>
+                      <span style={{ color: 'var(--ink3)' }}> · {new Date(r.created_at).toLocaleDateString()}</span>
                     </div>
                   ))}
                 </div>
@@ -288,10 +288,10 @@ export const ContractDetail: React.FC = () => {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {files.map(f => (
-                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)'}}>
                     <Icon name="fileText" size={14} color="var(--ink3)" />
                     <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{f.name}</span>
-                    <span style={{ fontSize: 11, color: 'var(--ink4)' }}>{f.size ? `${(f.size / 1024).toFixed(0)} KB` : ''}</span>
+                    <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{f.size ? `${(f.size / 1024).toFixed(0)} KB` : ''}</span>
                   </div>
                 ))}
               </div>
@@ -314,8 +314,8 @@ export const ContractDetail: React.FC = () => {
               <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No comments yet.</div>
             ) : (
               comments.map(c => (
-                <div key={c.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{c.author_name} <span style={{ fontWeight: 400, color: 'var(--ink4)', fontSize: 11 }}>· {new Date(c.created_at).toLocaleString()}</span></div>
+                <div key={c.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 12 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{c.author_name} <span style={{ fontWeight: 400, color: 'var(--ink3)', fontSize: 11 }}>· {new Date(c.created_at).toLocaleString()}</span></div>
                   <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 4 }}>{c.content}</div>
                 </div>
               ))

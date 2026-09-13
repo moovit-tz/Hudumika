@@ -13,6 +13,14 @@ import { demurrageService } from '../services/demurrage.service.js';
  */
 export async function cargoDashboardRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // HUD-0024 continuation: tenant-wide cargo/demurrage analytics dashboard —
+  // an internal ops rollup across every customer's shipments, not a
+  // per-customer view.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   const cargoGate = requireEntitlement('cargotracker');
   const demurrageGate = requireEntitlement('demurrage');

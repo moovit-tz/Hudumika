@@ -29,17 +29,17 @@ export function OnsiteDeployments() {
 
       {loading ? (
         <div className="onsite-card">
-          <p style={{ color: 'var(--ink-muted)' }}>Loading deployment logs…</p>
+          <p style={{ color: 'var(--ink3)' }}>Loading deployment logs…</p>
         </div>
       ) : error ? (
         <div className="onsite-card">
-          <p style={{ color: '#ef4444' }}>Error: {error}</p>
+          <p style={{ color: 'var(--red)' }}>Error: {error}</p>
         </div>
       ) : deployments.length === 0 ? (
         <div className="onsite-card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-          <Icon name="gitBranch" size={48} style={{ color: 'var(--ink-muted)', margin: '0 auto 1rem auto' }} />
+          <Icon name="gitBranch" size={48} style={{ color: 'var(--ink3)', margin: '0 auto 1rem auto' }} />
           <h3>No deployment history recorded yet</h3>
-          <p style={{ color: 'var(--ink-muted)' }}>
+          <p style={{ color: 'var(--ink3)' }}>
             Trigger your first deployment from the Applications section.
           </p>
         </div>
@@ -79,7 +79,7 @@ export function OnsiteDeployments() {
                         {d.status}
                       </span>
                     </td>
-                    <td style={{ color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>
+                    <td style={{ color: 'var(--ink3)', fontSize: '0.8125rem' }}>
                       {new Date(d.queued_at).toLocaleString()}
                     </td>
                   </tr>

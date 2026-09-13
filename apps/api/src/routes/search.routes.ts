@@ -47,6 +47,16 @@ const CATEGORY_APP: Record<string, string> = {
  */
 export async function searchRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // HUD-0024 continuation: this is the internal staff header search — it
+  // returns other customers' names/emails/tax IDs, every staff member, every
+  // driver and vehicle, and matching shipments/invoices tenant-wide. A
+  // CUSTOMER account (which does have its own, separately-scoped portal
+  // routes elsewhere) must not get this unscoped cross-entity view.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   fastify.get('/', async (request) => {
     const user = request.user;

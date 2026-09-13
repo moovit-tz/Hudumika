@@ -293,7 +293,7 @@ export function SignPublicPage() {
       {/* Public Branded Header */}
       <header style={{ background: '#fff', borderBottom: '1px solid var(--border)', height: 60, display: 'flex', alignItems: 'center', padding: '0 24px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 6, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: accentFg }}>
+          <div style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: accentFg }}>
             <Icon name="edit" size={16} />
           </div>
           <span>eSign</span>
@@ -302,24 +302,24 @@ export function SignPublicPage() {
 
       {/* Main Content Area */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '32px', maxWidth: 520, width: '100%', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '32px', maxWidth: 520, width: '100%', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--green-l)', border: '1px solid #10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-              <Icon name="checkCircle" size={24} style={{ color: '#10b981' }} />
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--green-l)', border: '1px solid var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+              <Icon name="checkCircle" size={24} style={{ color: 'var(--green)' }} />
             </div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 6px', color: '#111827' }}>Document Signed</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 6px', color: 'var(--ink)' }}>Document Signed</h1>
             <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>Your signature has been securely recorded and legally timestamped.</p>
           </div>
 
           {stamp && (
-            <div style={{ background: 'var(--green-l)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 6, padding: 16, marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#10b981', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="lock" size={11} /> Verification Stamp</div>
-              <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: '#10b981', letterSpacing: '0.08em', marginBottom: 10 }}>{stamp.verification_code}</div>
-              <div style={{ fontSize: 12.5, color: '#374151', marginBottom: 4 }}>Document: <strong>{stamp.title}</strong></div>
-              <div style={{ fontSize: 12.5, color: '#374151', marginBottom: 10 }}>Completed: <strong>{new Date(stamp.completed_at).toLocaleString()}</strong></div>
+            <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', padding: 16, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--green)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="lock" size={11} /> Verification Stamp</div>
+              <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: 'var(--green)', letterSpacing: '0.08em', marginBottom: 10 }}>{stamp.verification_code}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink2)', marginBottom: 4 }}>Document: <strong>{stamp.title}</strong></div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink2)', marginBottom: 10 }}>Completed: <strong>{new Date(stamp.completed_at).toLocaleString()}</strong></div>
               {stamp.signers.map((s, i) => (
-                <div key={i} style={{ fontSize: 12, color: '#374151', display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
-                  <Icon name="checkCircle" size={12} style={{ color: '#10b981', flexShrink: 0 }} />
+                <div key={i} style={{ fontSize: 12, color: 'var(--ink2)', display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+                  <Icon name="checkCircle" size={12} style={{ color: 'var(--green)', flexShrink: 0 }} />
                   <span><strong>{s.name}</strong> ({s.email})</span>
                   {s.signed_at && <span style={{ marginLeft: 'auto', color: '#6b7280' }}>{new Date(s.signed_at).toLocaleDateString()}</span>}
                 </div>
@@ -329,8 +329,8 @@ export function SignPublicPage() {
                   renders when the platform's public URL is actually
                   configured (see StampPayload.qr_data_uri's own comment). */}
               {stamp.qr_data_uri && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(16,185,129,0.2)' }}>
-                  <img src={stamp.qr_data_uri} alt="Scan to verify this document" width={64} height={64} style={{ borderRadius: 4, flexShrink: 0 }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--green)' }}>
+                  <img src={stamp.qr_data_uri} alt="Scan to verify this document" width={64} height={64} style={{ borderRadius: 'var(--r-sm)', flexShrink: 0 }} />
                   <span style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4 }}>Scan to verify this document's status at any time, from anywhere.</span>
                 </div>
               )}
@@ -338,7 +338,7 @@ export function SignPublicPage() {
           )}
 
           <a href={`${BASE_URL}/v1/sign/public/${token}/download`} download
-            style={{ display: 'block', textAlign: 'center', width: '100%', padding: '10px 16px', borderRadius: 6, background: accent, color: accentFg, fontSize: 13.5, fontWeight: 600, textDecoration: 'none', marginBottom: 12, boxSizing: 'border-box' }}>
+            style={{ display: 'block', textAlign: 'center', width: '100%', padding: '10px 16px', borderRadius: 'var(--r-sm)', background: accent, color: accentFg, fontSize: 13.5, fontWeight: 600, textDecoration: 'none', marginBottom: 12, boxSizing: 'border-box' }}>
             Download Signed PDF
           </a>
           <Button variant="outline" onClick={() => window.close()}
@@ -374,7 +374,7 @@ export function SignPublicPage() {
           </p>
         )}
         <a href={`${BASE_URL}/v1/sign/public/${token}/download`} download
-          style={{ display: 'block', textAlign: 'center', width: '100%', padding: '12px', borderRadius: 10, background: 'var(--sign-green-l)', color: 'var(--sign-green)', border: '1.5px solid var(--sign-green)', cursor: 'pointer', fontSize: 14, fontWeight: 700, textDecoration: 'none', marginBottom: 10, boxSizing: 'border-box' }}>
+          style={{ display: 'block', textAlign: 'center', width: '100%', padding: '12px', borderRadius: 'var(--r)', background: 'var(--sign-green-l)', color: 'var(--sign-green)', border: '1.5px solid var(--sign-green)', cursor: 'pointer', fontSize: 14, fontWeight: 700, textDecoration: 'none', marginBottom: 10, boxSizing: 'border-box' }}>
           Download your signed copy
         </a>
         {data.envelope.verification_code && (
@@ -472,7 +472,7 @@ export function SignPublicPage() {
             <img src={data.tenant.logo_url} alt="" onError={() => setLogoFailed(true)} style={{ height: 34, maxWidth: 150, objectFit: 'contain' }} />
           ) : (
             <div style={{ fontWeight: 800, fontSize: 18, color: accent, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: accentFg, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+              <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: accentFg, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
                 <Icon name="edit" size={17} />
               </div>
               <span style={{ letterSpacing: '-0.02em' }}>eSign</span>
@@ -522,7 +522,7 @@ export function SignPublicPage() {
         {/* Document area */}
         <div className="sign-public-doc-area" style={{ display: isMobile && mobileTab !== 'doc' ? 'none' : 'flex' }}>
           {data.envelope.message && (
-            <div style={{ width: '100%', maxWidth: docPaneW, background: 'var(--card-bg)', borderRadius: 10, padding: '12px 16px', border: '1px solid var(--border)', fontSize: 13, color: 'var(--ink2)', marginBottom: 4, display: 'flex', alignItems: 'flex-start', gap: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <div style={{ width: '100%', maxWidth: docPaneW, background: 'var(--card-bg)', borderRadius: 'var(--r)', padding: '12px 16px', border: '1px solid var(--border)', fontSize: 13, color: 'var(--ink2)', marginBottom: 4, display: 'flex', alignItems: 'flex-start', gap: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
               <Icon name="mail" size={16} color="var(--teal)" style={{ flexShrink: 0, marginTop: 2 }} />
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)', marginBottom: 2 }}>Note from sender</div>
@@ -535,7 +535,7 @@ export function SignPublicPage() {
               attached one, for a notarial execution the certifier/affiant
               may need to meet live over before signing. */}
           {data.envelope.meeting_url && (
-            <div style={{ width: '100%', maxWidth: docPaneW, background: 'var(--blue-l)', borderRadius: 10, padding: '12px 16px', border: '1px solid var(--blue)', fontSize: 13, color: 'var(--ink2)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <div style={{ width: '100%', maxWidth: docPaneW, background: 'var(--blue-l)', borderRadius: 'var(--r)', padding: '12px 16px', border: '1px solid var(--blue)', fontSize: 13, color: 'var(--ink2)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
               <Icon name="video" size={16} color="var(--blue)" style={{ flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--blue)', marginBottom: 2 }}>Notary session</div>
@@ -561,7 +561,7 @@ export function SignPublicPage() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {data.envelope.file_name}
                   </span>
-                  <span style={{ fontSize: 10, fontWeight: 800, background: '#1e293b', color: '#94a3b8', padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase', flexShrink: 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, background: '#1e293b', color: '#94a3b8', padding: '2px 6px', borderRadius: 'var(--r-sm)', textTransform: 'uppercase', flexShrink: 0 }}>
                     {data.envelope.file_name.split('.').pop() || 'PDF'}
                   </span>
                 </div>
@@ -608,7 +608,7 @@ export function SignPublicPage() {
                 <div style={{ padding: '48px 56px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{data.envelope.title}</h2>
                   {Array.from({ length: 28 }).map((_, i) => (
-                    <div key={i} style={{ height: 2, background: '#f3f4f6', borderRadius: 1, width: i % 7 === 0 ? '70%' : i % 3 === 0 ? '85%' : '97%' }} />
+                    <div key={i} style={{ height: 2, background: 'var(--border)', borderRadius: 'var(--r-sm)', width: i % 7 === 0 ? '70%' : i % 3 === 0 ? '85%' : '97%' }} />
                   ))}
                 </div>
               )}
@@ -629,13 +629,13 @@ export function SignPublicPage() {
                       position: 'absolute',
                       left: `${field.x * 100}%`, top: `${field.y * 100}%`,
                       width: `${field.width * 100}%`, height: `${field.height * 100}%`,
-                      border: isFilled ? (isStamp ? '3px double #10b981' : '2px solid #10b981') : `2px dashed ${accent}`,
-                      background: isFilled ? 'rgba(16,185,129,0.1)' : 'rgba(13,148,136,0.1)',
+                      border: isFilled ? (isStamp ? '3px double var(--green)' : '2px solid var(--green)') : `2px dashed ${accent}`,
+                      background: isFilled ? 'var(--green-l)' : `${accent}1a`,
                       borderRadius: isStamp ? '50%' : 6,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       cursor: 'pointer',
                       overflow: 'hidden',
-                      boxShadow: isFilled ? '0 0 0 1px #10b981' : '0 0 0 2px rgba(13,148,136,0.2)',
+                      boxShadow: isFilled ? '0 0 0 1px var(--green)' : `0 0 0 2px ${accent}33`,
                       transition: 'all 0.15s ease',
                     }}
                     onClick={() => {
@@ -650,7 +650,7 @@ export function SignPublicPage() {
                         <div style={{
                           width: '100%', height: '100%', borderRadius: '50%',
                           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                          fontFamily: 'monospace', fontWeight: 800, color: '#10b981',
+                          fontFamily: 'monospace', fontWeight: 800, color: 'var(--green)',
                           transform: 'rotate(-4deg)', background: 'rgba(255, 255, 255, 0.95)',
                           padding: '4px 6px', boxSizing: 'border-box', textAlign: 'center', lineHeight: 1.1,
                         }}>
@@ -673,12 +673,12 @@ export function SignPublicPage() {
                       <img src={signature} alt="sig" style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain' }} />
                     ) : isCheckbox ? (
                       fieldValues[field.id] === 'true' ? (
-                        <Icon name="check" size={14} style={{ color: '#10b981', fontWeight: 900 }} />
+                        <Icon name="check" size={14} style={{ color: 'var(--green)', fontWeight: 900 }} />
                       ) : (
                         <span style={{ fontSize: 10, color: '#9ca3af' }}>[ ]</span>
                       )
                     ) : (field.field_type === 'text' || field.field_type === 'date') && fieldValues[field.id] ? (
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#111827', width: '100%', textAlign: 'center', padding: '2px 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', width: '100%', textAlign: 'center', padding: '2px 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {fieldValues[field.id]}
                       </span>
                     ) : (
@@ -712,7 +712,7 @@ export function SignPublicPage() {
 
           <div className="sign-public-sidebar-body">
             {/* Progress */}
-            <div style={{ background: 'var(--bg)', borderRadius: 8, padding: '12px 14px', border: '1px solid var(--border)' }}>
+            <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '12px 14px', border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Required Fields</span>
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: completedCount === requiredFields.length ? 'var(--green)' : 'var(--teal)' }}>
@@ -735,7 +735,7 @@ export function SignPublicPage() {
                           if (f.page) setCurrentPdfPage(f.page);
                         }}
                         style={{
-                          width: 30, height: 30, borderRadius: 6, border: 'none', cursor: 'pointer',
+                          width: 30, height: 30, borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer',
                           background: isDone ? 'var(--green)' : i === currentField ? accent : 'var(--border)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
                           color: isDone || i === currentField ? '#fff' : 'var(--ink2)', fontWeight: 700
@@ -756,8 +756,8 @@ export function SignPublicPage() {
                 <Icon name="edit" size={14} color="var(--teal)" /> Your Signature <span style={{ color: 'var(--sign-red)' }}>*</span>
               </div>
               {signature ? (
-                <div style={{ border: '1.5px solid var(--green)', borderRadius: 8, padding: 10, background: 'var(--green-l)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <img src={signature} alt="signature" style={{ width: '100%', height: 64, objectFit: 'contain', background: '#fff', borderRadius: 6, border: '1px solid var(--border)' }} />
+                <div style={{ border: '1.5px solid var(--green)', borderRadius: 'var(--r)', padding: 10, background: 'var(--green-l)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <img src={signature} alt="signature" style={{ width: '100%', height: 64, objectFit: 'contain', background: '#fff', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }} />
                   {data.recipient.saved_signature === signature && (
                     <div style={{ fontSize: 11, color: 'var(--green)', display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
                       <Icon name="checkCircle" size={12} color="var(--green)" /> Pre-filled from your profile signature
@@ -772,7 +772,7 @@ export function SignPublicPage() {
 
             {/* Stamp notice if present */}
             {data.envelope.tenant_stamp_image && data.fields.some(f => f.field_type === 'stamp') && (
-              <div style={{ fontSize: 12, color: 'var(--ink2)', display: 'flex', alignItems: 'flex-start', gap: 8, background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 8, padding: '10px 12px' }}>
+              <div style={{ fontSize: 12, color: 'var(--ink2)', display: 'flex', alignItems: 'flex-start', gap: 8, background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', padding: '10px 12px' }}>
                 <Icon name="stamp" size={15} style={{ color: 'var(--teal)', flexShrink: 0, marginTop: 1 }} />
                 <span>Your organization's verification stamp will be applied automatically on submit.</span>
               </div>
@@ -786,7 +786,7 @@ export function SignPublicPage() {
                   {field.required && <span style={{ color: 'var(--sign-red)', fontSize: 11 }}>Required</span>}
                 </label>
                 {field.field_type === 'checkbox' ? (
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: 'var(--bg)', borderRadius: 6, border: '1px solid var(--border)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                     <Checkbox checked={!!fieldValues[field.id]}
                       onCheckedChange={c => setFieldValues(prev => ({ ...prev, [field.id]: c === true ? 'true' : '' }))} />
                     <span style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 500 }}>{field.placeholder ?? 'I agree to the terms'}</span>
@@ -801,7 +801,7 @@ export function SignPublicPage() {
                 ) : (
                   <input value={fieldValues[field.id] ?? ''} placeholder={field.placeholder ?? ''}
                     onChange={e => setFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
                 )}
               </div>
             ))}

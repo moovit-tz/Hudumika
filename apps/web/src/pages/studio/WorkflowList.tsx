@@ -172,7 +172,7 @@ export function WorkflowList() {
       {error && <Banner variant="error" className="mb-3">{error}</Banner>}
       {loading && <SectionLoading />}
       {!loading && visible.length === 0 && (
-        <div style={{ padding: 36, textAlign: 'center', color: 'var(--ink3)', fontSize: 13, border: '1px dashed var(--border)', borderRadius: 12 }}>
+        <div style={{ padding: 36, textAlign: 'center', color: 'var(--ink3)', fontSize: 13, border: '1px dashed var(--border)', borderRadius: 'var(--card-radius)' }}>
           No workflows match.
         </div>
       )}
@@ -183,7 +183,7 @@ export function WorkflowList() {
           return (
             <div key={w.id}
               className="studio-card-interactive studio-workflow-item-mobile"
-              style={{ display: 'flex', gap: 14, alignItems: 'center', padding: '14px 16px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--card-bg, var(--white))', cursor: 'pointer' }}
+              style={{ display: 'flex', gap: 14, alignItems: 'center', padding: '14px 16px', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--card-bg, var(--white))', cursor: 'pointer' }}
               onClick={() => navigate(`/studio/w/${w.id}${returnTo ? `?return=${encodeURIComponent(returnTo)}` : ''}`)}
             >
               <div className="studio-workflow-item-header">

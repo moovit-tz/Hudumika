@@ -51,3 +51,84 @@ not add new usages. When touching an existing surface, migrate the control to
 the live primitive or at minimum replace fixed shape/density/elevation values
 with the token contract above. This keeps the migration incremental without
 introducing a competing component system.
+
+## Loading states
+
+Never hand-roll a `<div>Loading…</div>` or a bespoke `border-top-color:
+transparent` spin. `apps/web/src/components/ui/spinner.tsx` and
+`skeleton.tsx` already cover every shape this app needs:
+
+| Situation | Use |
+| --- | --- |
+| A panel/card/tab/popover's content while it loads | `SectionLoading` |
+| A whole page's first load | `PageLoading` |
+| Inside a solid-fill button (primary, danger, …) | `ButtonSpinner` |
+| A list/table/cards/detail view whose final shape you already know | `SkeletonTable` / `SkeletonCardsGrid` / `SkeletonDetail` / `SkeletonPage` |
+
+Skeletons are for content whose shape is known; use `SectionLoading` /
+`PageLoading` for everything else. Never a full-screen spinner for a partial
+update — spin only the region that's actually reloading.
+
+## Motion
+
+Hudumika has no animation framework beyond CSS transitions — that's
+deliberate, keep it that way; do not add Framer Motion, GSAP, or a spring
+library for a web dashboard's motion needs. Decide *whether* to animate
+before *how*:
+
+1. **Frequency gate first.** Something the user triggers dozens of times a
+   session (tab switch, row hover, focus) → no motion or the browser/Radix
+   default only. Occasional (a dialog opening, a toast, a panel expanding)
+   → a short, standard transition. Rare, first-time moments only → anything
+   fancier. When unsure, the correct fix is usually to delete the
+   animation, not add one.
+2. **Name the purpose in one word** — feedback, spatial continuity, state
+   change, or preventing a jarring cut — or don't build it. Data the user
+   is reading (a table re-sorting, numbers updating) never moves for style.
+3. **Keep it under ~200ms, ease-out.** `transition: all var(--dur, 150ms)
+   var(--ease, ease)` (already the `.input-field` convention) is the
+   default; do not invent a new duration/easing pair per component.
+4. **Respect `prefers-reduced-motion`.** Any transition longer than a
+   button-hover fade should have a reduced-motion fallback.
+
+## Mechanical slop pre-flight
+
+`node scripts/check-slop-preflight.mjs` (or `npm run check:slop`) scans
+every page under `apps/web/src/pages` for the four checkable symptoms of a
+screen that was assembled from defaults rather than designed against this
+system:
+
+1. **Accent hues** — raw hex/rgb color literals outside `var(--teal)` /
+   `var(--primary)` / the semantic tokens. `--teal` (plus its tenant/app
+   theme variants) is the *only* locked accent — a hardcoded blue or purple
+   CTA next to it is exactly the "AI-default styling" tell.
+2. **Corner radii** — raw px `border-radius` values instead of `--r-sm` /
+   `--r` / `--r-lg`. One stated scale, never violated (pill/circle shapes —
+   999, 50%, etc. — are exempt; they're not part of this scale's debate).
+3. **Gradients** — `linear-gradient()` / `radial-gradient()` usage. Not an
+   automatic fail — a gradient the brand actually asked for is fine — but
+   every one should have a reason you could state out loud.
+4. **Duplicate CTA phrasing** — the same file using more than one literal
+   label ("Save" / "Save changes" / "Update") for what reads as the same
+   action. One label per intent, everywhere it appears.
+
+It is a **report, not a gate** — it is not wired into `npm run typecheck`,
+because the honest baseline the day it was written (470 pages scanned) was
+large and pre-existing: 1,627 raw accent-color instances across 167 files
+(712 of them blue — the single most common off-accent hue in the app), 1,842
+raw radius instances across 266 files spanning 26 distinct raw px values
+against a 3-token scale, 44 gradients across 24 files, and only 3 files with
+a real duplicate-CTA-phrasing hit once the other two were checked by hand
+and turned out to be legitimate ("Apply" on a popover vs. "Save" on a form;
+a read-only "Close" vs. a form's "Cancel" are different intents, not drift).
+The tool is regex-based, not a real parser — it also deliberately does not
+flag values that look like a declared palette array (`const AVATAR_COLORS =
+[...]`, a chart's category-color series) as accent violations, since those
+are legitimate multi-hue surfaces this system already relies on. Its output
+is a triage worklist, not an auto-fail: read the surrounding code before
+changing a flagged value.
+
+Run it, fix what's clearly real (an off-brand hex where `var(--teal)` was
+obviously meant, a radius that should just be `--r-sm`), and leave what
+turns out to be a legitimate palette or a genuinely distinct intent — same
+discipline as the duplicate-CTA check above already had to apply to itself.

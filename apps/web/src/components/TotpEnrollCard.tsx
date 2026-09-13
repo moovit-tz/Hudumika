@@ -126,7 +126,7 @@ export function TotpEnrollCard() {
             </div>
             <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>1. Scan the QR code, or copy the secret key</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px', fontFamily: 'var(--mono)', fontSize: 12.5 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontFamily: 'var(--mono)', fontSize: 12.5 }}>
                 <span style={{ flex: 1, overflow: 'auto', whiteSpace: 'nowrap' }}>{setupData.secret}</span>
                 <button type="button" onClick={() => { navigator.clipboard.writeText(setupData.secret); showAlert('Secret key copied.', { variant: 'success' }); }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, display: 'flex' }}>

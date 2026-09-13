@@ -119,7 +119,7 @@ export function StaffContracts({ userId, canEdit }: { userId: string; canEdit: b
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>
-              Ends {openEnded && <span style={{ color: 'var(--ink4)' }}>— permanent, so none</span>}
+              Ends {openEnded && <span style={{ color: 'var(--ink3)' }}>— permanent, so none</span>}
             </label>
             {!openEnded && (
               <DatePicker date={parseDateOnly(form.end_date)} onChange={d => setForm((f: any) => ({ ...f, end_date: toDateOnlyString(d) }))} />

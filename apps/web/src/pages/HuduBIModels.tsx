@@ -45,7 +45,7 @@ export function HuduBIModels() {
         <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Generated from your live customers, shipments, declarations and finance figures.</div>
 
         {err && (
-          <div style={{ marginTop: 16, fontSize: 12.5, color: 'var(--ink2)', background: 'var(--gold-l)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>{err}</div>
+          <div style={{ marginTop: 16, fontSize: 12.5, color: 'var(--ink2)', background: 'var(--gold-l)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px' }}>{err}</div>
         )}
 
         {digest && (
@@ -68,7 +68,7 @@ export function HuduBIModels() {
       {/* Transparency: the exact figures the analysis was given */}
       {signals && (
         <SectionCard title="Figures the analysis was given">
-          <pre style={{ margin: 0, fontSize: 11.5, color: 'var(--ink2)', fontFamily: 'var(--mono)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 14, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+          <pre style={{ margin: 0, fontSize: 11.5, color: 'var(--ink2)', fontFamily: 'var(--mono)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
 {JSON.stringify(signals, null, 2)}
           </pre>
         </SectionCard>

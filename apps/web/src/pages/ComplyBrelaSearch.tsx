@@ -9,6 +9,7 @@ import { apiFetch } from '../lib/api.js';
 import { formatDashedDigits9, badgeVariantForStatus } from '../lib/complyBrelaFormat.js';
 import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
 
 export interface BrelaEntity {
   id: string;
@@ -449,19 +450,14 @@ export function ComplyBrelaSearch() {
         subtitle="Search Tanzania's BRELA business registry and capture verified company records into ComplyOS."
         actions={
         <div className="comply-action-row">
-          <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => navigate('/complyos/brela-search/history')}>
+          <Button type="button" variant="outline" size="sm" onClick={() => navigate('/complyos/brela-search/history')}>
             <Icon name="clock" size={13} />
             <span>History</span>
-          </button>
-          <a
-            href="https://ors.brela.go.tz/orsreg/searchbusinesspublic"
-            target="_blank"
-            rel="noreferrer"
-            className="comply-btn-secondary comply-btn-sm"
-          >
+          </Button>
+          <Button asChild variant="outline" size="sm"><a href="https://ors.brela.go.tz/orsreg/searchbusinesspublic" target="_blank" rel="noreferrer">
             <Icon name="externalLink" size={13} />
             <span>Open BRELA ORS Portal</span>
-          </a>
+          </a></Button>
         </div>
         }
       />
@@ -475,10 +471,10 @@ export function ComplyBrelaSearch() {
             <div className="comply-import-toast-title">Captured &ldquo;{importedStatus}&rdquo;</div>
             <div className="comply-import-toast-sub">Draft company profile created and Vault doc imported. Complete the profile to move it into the CRM.</div>
           </div>
-          <button type="button" className="comply-btn-primary comply-btn-sm" onClick={() => navigate('/complyos/companies')}>
+          <Button type="button" size="sm" onClick={() => navigate('/complyos/companies')}>
             <Icon name="briefcase" size={13} />
             <span>Open Company Directory</span>
-          </button>
+          </Button>
         </div>
       )}
       {importError && (

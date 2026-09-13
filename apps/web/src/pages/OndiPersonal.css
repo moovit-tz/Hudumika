@@ -328,11 +328,11 @@
 }
 
 .op-kyc-bar--active {
-  background: var(--green, #10b981);
+  background: var(--green);
 }
 
 .op-kyc-bar--current {
-  background: var(--teal, #0d9488);
+  background: var(--teal);
 }
 
 .op-kyc-label {
@@ -343,12 +343,12 @@
 }
 
 .op-kyc-label--active {
-  color: var(--green, #10b981);
+  color: var(--green);
   font-weight: 700;
 }
 
 .op-kyc-label--current {
-  color: var(--teal, #0d9488);
+  color: var(--teal);
   font-weight: 700;
 }
 
@@ -687,7 +687,7 @@
 
 .op-nav-card:hover {
   border-color: var(--teal);
-  background: var(--teal-l, #f0fdfa);
+  background: var(--teal-l);
   transform: translateY(-1px);
   box-shadow: var(--elev, 0 2px 8px rgba(0,0,0,0.07));
 }

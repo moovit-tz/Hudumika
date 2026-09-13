@@ -292,7 +292,7 @@ function AnswerModal({ survey, onClose, onSubmitted }: { survey: SurveyInstance;
                   {[1, 2, 3, 4, 5].map(n => (
                     <button key={n} type="button" onClick={() => setAnswers(a => ({ ...a, [i]: String(n) }))}
                       style={{
-                        width: 36, height: 36, borderRadius: 8, border: '1px solid var(--border)', cursor: 'pointer',
+                        width: 36, height: 36, borderRadius: 'var(--r)', border: '1px solid var(--border)', cursor: 'pointer',
                         background: answers[i] === String(n) ? 'hsl(var(--primary))' : 'var(--bg)',
                         color: answers[i] === String(n) ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
                         fontWeight: 700, fontSize: 13,
@@ -337,7 +337,7 @@ function ResultsModal({ results, onClose }: { results: any; onClose: () => void 
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {results.answers.map((r: any, i: number) => (
-              <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
+              <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 12 }}>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 6 }}>
                   {r.respondent ?? 'Anonymous'} · {new Date(r.created_at).toLocaleString()}
                 </div>

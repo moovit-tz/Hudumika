@@ -82,7 +82,7 @@ export const TrackingNewVehicle: React.FC = () => {
   };
 
   const inputStyle = {
-    width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)',
+    width: '100%', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)',
     fontSize: 14, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)'
   };
   const labelStyle = { display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 };
@@ -285,7 +285,7 @@ export const TrackingNewVehicle: React.FC = () => {
                     {['LOAN', 'LEASE', 'NONE'].map(t => (
                       <div key={t} onClick={() => handleChange('financing_type', t)}
                         role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleChange('financing_type', t); } }}
-                        style={{ border: `1px solid ${form.financing_type === t ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 8, padding: 16, cursor: 'pointer', background: form.financing_type === t ? 'var(--teal-l)' : 'var(--white)' }}>
+                        style={{ border: `1px solid ${form.financing_type === t ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 16, cursor: 'pointer', background: form.financing_type === t ? 'var(--teal-l)' : 'var(--white)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                           <input type="radio" checked={form.financing_type === t} readOnly style={{ accentColor: 'var(--teal)' }} />
                           <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{t === 'NONE' ? 'None' : t === 'LOAN' ? 'Loan' : 'Lease'}</span>
@@ -357,7 +357,7 @@ export const TrackingNewVehicle: React.FC = () => {
 
             {['Maintenance', 'Settings'].includes(activeSection) && (
               <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)' }}>
-                <Icon name="tool" size={32} color="var(--border-dark)" style={{ marginBottom: 16 }} />
+                <Icon name="tool" size={32} color="var(--ink3)" style={{ marginBottom: 16 }} />
                 <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink2)' }}>{activeSection} Fields</div>
                 <div style={{ fontSize: 14 }}>Additional configuration goes here.</div>
               </div>

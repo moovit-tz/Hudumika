@@ -41,7 +41,7 @@ function ClickToAddWaypoint({ onAdd }: { onAdd: (pos: [number, number]) => void 
 // Custom markers
 const stopMarkerIcon = new L.DivIcon({
   className: 'custom-div-icon',
-  html: `<div style="background-color:#fff; width:16px; height:16px; border-radius:50%; border:4px solid #2563eb; box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>`,
+  html: `<div style="background-color:#fff; width:16px; height:16px; border-radius:50%; border:4px solid var(--blue); box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>`,
   iconSize: [16, 16],
   iconAnchor: [8, 8]
 });
@@ -152,7 +152,7 @@ export const TrackingRoutePlanner: React.FC = () => {
           <MapTileLayer override={mapVariant} />
           <ClickToAddWaypoint onAdd={addWaypoint} />
           {waypoints.map((pos, i) => <Marker key={i} position={pos} icon={stopMarkerIcon} />)}
-          {route && <Polyline positions={route.geometry} pathOptions={{ color: '#2563eb', weight: 5, opacity: 0.8 }} />}
+          {route && <Polyline positions={route.geometry} pathOptions={{ color: 'var(--blue)', weight: 5, opacity: 0.8 }} />}
           {!route && waypoints.length > 1 && <Polyline positions={waypoints} pathOptions={{ color: 'var(--ink3)', weight: 3, dashArray: '8 8' }} />}
         </MapContainer>
 
@@ -189,8 +189,8 @@ export const TrackingRoutePlanner: React.FC = () => {
             </div>
             <Icon name="info" size={14} style={{ color: 'var(--ink3)' }} />
           </div>
-          <div style={{ background: 'var(--bg)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <Icon name="package" size={14} color="#3b82f6" /> {selectedVehicle.type === 'REFRIGERATED' ? 'Refrigerated' : 'General Cargo'}
+          <div style={{ background: 'var(--bg)', padding: '8px 12px', borderRadius: 'var(--r)', fontSize: '13px', fontWeight: 600, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <Icon name="package" size={14} color="var(--blue)" /> {selectedVehicle.type === 'REFRIGERATED' ? 'Refrigerated' : 'General Cargo'}
           </div>
           <div style={{ fontSize: '11px', color: 'var(--ink3)', marginBottom: '8px' }}>Cargo Weight</div>
           <div className="rp-widget-val-row">
@@ -232,7 +232,7 @@ export const TrackingRoutePlanner: React.FC = () => {
 
               <div className="rp-section-title">
                 Info Truck & Container
-                <Link to={`/tracking/vehicles/${selectedVehicle.id}`} style={{ fontSize: '11px', color: '#2563eb', cursor: 'pointer', fontWeight: 600, textDecoration: 'none' }}>More details »</Link>
+                <Link to={`/tracking/vehicles/${selectedVehicle.id}`} style={{ fontSize: '11px', color: 'var(--blue)', cursor: 'pointer', fontWeight: 600, textDecoration: 'none' }}>More details »</Link>
               </div>
               <div className="rp-truck-info-grid">
                 <div className="rp-info-block"><Icon name="truck" size={16} /> <span>{selectedVehicle.plate_number || 'N/A'}</span></div>
@@ -246,7 +246,7 @@ export const TrackingRoutePlanner: React.FC = () => {
           )}
 
           <div className="rp-section-title" style={{ marginTop: '24px' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Icon name="compass" size={16} color="#2563eb" /> ETA & Route Tracking Optimization</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Icon name="compass" size={16} color="var(--blue)" /> ETA & Route Tracking Optimization</span>
           </div>
           
           <div className="rp-input-row">
@@ -276,7 +276,7 @@ export const TrackingRoutePlanner: React.FC = () => {
             <Icon name="map" size={16} /> {loading ? 'Optimizing Route...' : 'Generate Route'}
           </button>
           
-          {error && <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(220,38,38,0.1)', color: 'var(--red)', fontSize: '12px', borderRadius: '8px' }}>{error}</div>}
+          {error && <div style={{ marginTop: '12px', padding: '10px', background: 'var(--red-l)', color: 'var(--red)', fontSize: '12px', borderRadius: 'var(--r)' }}>{error}</div>}
 
           {/* Results & Timeline Area */}
           {(route || waypoints.length > 0) && (

@@ -373,7 +373,7 @@ export function SealConsignmentDetail() {
                       Tally Lines
                     </div>
                     {tallyLines.map((line, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', padding: 12, background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                      <div key={i} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', padding: 12, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                         <input type="text" className="seal-input-control" style={{ flex: '2 1 180px' }} placeholder="Description" value={line.description} onChange={e => updateLine(i, { description: e.target.value })} />
                         {!line.discrepancy && (
                           <>

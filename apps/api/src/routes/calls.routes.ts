@@ -221,6 +221,19 @@ function generateJoinCode(): string {
   return code;
 }
 
+// HUD-0024 continuation: none of this file's REST routes had a role check —
+// Bliss Calls is the same "internal comms tool" pillar as Team Chat
+// (chat.routes.ts, fixed under HUD-0035), and the file's own header comment
+// already says as much ("an internal tool, not a public webinar product").
+// Left off the signaling WebSocket route deliberately — that connection's
+// auth shape (cookie-based, guest-aware) is different enough from a normal
+// REST preHandler that changing it wasn't verified as part of this pass.
+async function blockCustomer(req: any, reply: any) {
+  if (req.user.role === 'CUSTOMER') {
+    return reply.status(403).send({ error: 'Not available for this account type.' });
+  }
+}
+
 export async function callsRoutes(fastify: FastifyInstance) {
   // ── Signaling socket ──────────────────────────────────────────────
   // Browsers can't set an Authorization header on a WebSocket handshake, but
@@ -350,12 +363,12 @@ export async function callsRoutes(fastify: FastifyInstance) {
   });
 
   // ── REST: presence, history, records ──────────────────────────────
-  fastify.get('/presence', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
+  fastify.get('/presence', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any) => {
     const user = req.user;
     return { online: onlineUserIds(user.tenant_id).filter(id => id !== user.sub) };
   });
 
-  fastify.get('/config', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
+  fastify.get('/config', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any) => {
     // Public STUN handles same-network / simple-NAT calls on its own. For strict
     // NATs a TURN relay is required — read it from the tenant's own settings
     // (settings.turnConfig = { urls, username, credential }, set via the Bliss
@@ -366,7 +379,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     return { iceServers, turnConfigured: iceServers.length > 2 };
   });
 
-  fastify.get('/direct', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
+  fastify.get('/direct', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('bliss_calls as c')
@@ -383,7 +396,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/direct', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/direct', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const b = (req.body as any) || {};
     if (!b.callee_id) return reply.status(400).send({ error: 'callee_id is required' });
@@ -398,7 +411,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/direct/:id', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.patch('/direct/:id', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const b = (req.body as any) || {};
@@ -425,7 +438,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
   // ── REST: group meetings ────────────────────────────────────────────
   const MEETING_KINDS = ['VIDEO', 'VOICE'];
 
-  fastify.get('/meetings', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
+  fastify.get('/meetings', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any) => {
     const user = req.user;
     const q = req.query as { page?: string; pageSize?: string; search?: string; status?: string; kind?: string; mine?: string; dateFrom?: string; dateTo?: string };
     const page = Math.max(1, parseInt(q.page || '1', 10) || 1);
@@ -557,7 +570,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/meetings/by-code/:code', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.get('/meetings/by-code/:code', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const code = String((req.params as any).code || '').toUpperCase();
     return withTenant(user.tenant_id, async (trx) => {
@@ -567,7 +580,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/meetings/:id', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.get('/meetings/:id', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -584,7 +597,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const b = (req.body as any) || {};
     const kind = MEETING_KINDS.includes(b.kind) ? b.kind : 'VIDEO';
@@ -632,7 +645,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/meetings/:id', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.patch('/meetings/:id', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const b = (req.body as any) || {};
@@ -671,7 +684,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/meetings/:id', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.delete('/meetings/:id', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -683,7 +696,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/join', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/join', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const b = (req.body as any) || {};
@@ -736,7 +749,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/leave', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
+  fastify.post('/meetings/:id/leave', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -750,7 +763,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/end', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/end', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -762,7 +775,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/meetings/:id/participants', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
+  fastify.get('/meetings/:id/participants', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -780,7 +793,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
   // — never a fabricated placeholder. The tenant-wide leaderboard section is
   // gated to HR/admin roles: a "who calls the most" ranking visible to every
   // employee reads as surveillance in an HR context, not a helpful metric.
-  fastify.get('/metrics', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
+  fastify.get('/metrics', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any) => {
     const user = req.user;
     const days = Math.min(365, Math.max(1, Number((req.query as any)?.days) || 30));
     const since = new Date(Date.now() - days * 86400_000);
@@ -890,7 +903,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     return { ok: true as const };
   }
 
-  fastify.get('/meetings/:id/polls', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
+  fastify.get('/meetings/:id/polls', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -910,7 +923,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/polls', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/polls', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const b = (req.body as any) || {};
@@ -930,7 +943,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/polls/:pollId/vote', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/polls/:pollId/vote', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id, pollId } = req.params as any;
     const optionIndex = Number((req.body as any)?.option_index);
@@ -952,7 +965,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/polls/:pollId/close', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/polls/:pollId/close', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id, pollId } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -967,7 +980,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/meetings/:id/questions', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
+  fastify.get('/meetings/:id/questions', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -984,7 +997,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/questions', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/questions', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const text = String((req.body as any)?.text || '').trim();
@@ -998,7 +1011,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/questions/:qId/upvote', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/questions/:qId/upvote', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id, qId } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1015,7 +1028,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/questions/:qId/answer', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/questions/:qId/answer', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id, qId } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1030,7 +1043,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/meetings/:id/transcript', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
+  fastify.get('/meetings/:id/transcript', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1045,7 +1058,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
   // posts each recognized segment here so it (a) broadcasts as a live
   // caption to everyone else in the room and (b) survives as a real
   // post-meeting transcript, rather than existing only in one browser tab.
-  fastify.post('/meetings/:id/transcript', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/transcript', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const text = String((req.body as any)?.text || '').trim();
@@ -1060,7 +1073,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
   });
 
   // ── REST: waiting room ──────────────────────────────────────────────
-  fastify.get('/meetings/:id/waiting-room', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.get('/meetings/:id/waiting-room', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1075,7 +1088,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
   // The pending participant's own client polls this while they wait — it
   // isn't connected to the signaling socket yet (that only opens once
   // actually admitted into the room), so a push isn't available on this side.
-  fastify.get('/meetings/:id/waiting-room/my-status', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
+  fastify.get('/meetings/:id/waiting-room/my-status', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1089,7 +1102,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
   // 368) has no user_id to match on at all, so the host UI passes whichever
   // identifier the row actually has (see the guest_name fallback rendering
   // in MeetingRoom.tsx's waiting-room panel).
-  fastify.post('/meetings/:id/waiting-room/:userId/admit', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/waiting-room/:userId/admit', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id, userId } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1108,7 +1121,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/waiting-room/:userId/reject', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/waiting-room/:userId/reject', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id, userId } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1124,7 +1137,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/waiting-room/admit-all', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/waiting-room/admit-all', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1139,7 +1152,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
   });
 
   // ── REST: co-hosts & per-participant state ──────────────────────────
-  fastify.post('/meetings/:id/participants/:userId/co-host', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/participants/:userId/co-host', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id, userId } = req.params as any;
     const makeCoHost = !!(req.body as any)?.coHost;
@@ -1159,7 +1172,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
   });
 
   // ── REST: breakout rooms ─────────────────────────────────────────────
-  fastify.get('/meetings/:id/breakout-rooms', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
+  fastify.get('/meetings/:id/breakout-rooms', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1176,7 +1189,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/breakout-rooms', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/breakout-rooms', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const b = (req.body as any) || {};
@@ -1197,7 +1210,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/breakout-rooms/assign', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/breakout-rooms/assign', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const b = (req.body as any) || {};
@@ -1240,7 +1253,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/breakout-rooms/broadcast', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/breakout-rooms/broadcast', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const text = String((req.body as any)?.text || '').trim();
@@ -1257,7 +1270,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/breakout-rooms/close', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/breakout-rooms/close', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1274,7 +1287,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
   });
 
   // ── REST: AI meeting summary + meeting-to-tasks ──────────────────────
-  fastify.get('/meetings/:id/summary', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.get('/meetings/:id/summary', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1285,7 +1298,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/summarize', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/summarize', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1334,7 +1347,7 @@ If the transcript is too short or unclear to extract something, use an empty arr
     });
   });
 
-  fastify.post('/meetings/:id/create-tasks', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/create-tasks', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const b = (req.body as any) || {};
@@ -1378,7 +1391,7 @@ If the transcript is too short or unclear to extract something, use an empty arr
   });
 
   // ── REST: meeting recording & Drive storage ──────────────────────────
-  fastify.get('/meetings/:id/recording', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.get('/meetings/:id/recording', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1420,7 +1433,7 @@ If the transcript is too short or unclear to extract something, use an empty arr
   });
 
   // ── REST: meeting notes & sync ─────────────────────────────────────────
-  fastify.get('/meetings/:id/notes', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.get('/meetings/:id/notes', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1440,7 +1453,7 @@ If the transcript is too short or unclear to extract something, use an empty arr
     });
   });
 
-  fastify.post('/meetings/:id/notes', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/notes', { preHandler: [fastify.authenticate, requireEntitlement('bliss'), blockCustomer] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const { content, keyPoints, decisions, actionItems } = (req.body as any) || {};

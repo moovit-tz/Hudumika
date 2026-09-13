@@ -139,7 +139,7 @@ export function OndiItAdmin() {
           {logins.length === 0 ? <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '8px 0' }}>No sign-in history.</div> : logins.slice(0, 8).map(l => {
             const ok = String(l.status).toUpperCase() === 'SUCCESS';
             return (
-              <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border-soft)' }}>
+              <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
                 <PersonAvatar userId={l.user_id} name={l.user_name || 'Unknown'} size={24} />
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.user_name || 'Unknown'}</span>
                 <Badge variant={ok ? 'success' : 'error'}>
@@ -154,7 +154,7 @@ export function OndiItAdmin() {
         {/* Recent Activity */}
         <SectionCard title="Recent Security Activity" action={cardAction('/ondi/activity', 'View All')}>
           {activity.length === 0 ? <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '8px 0' }}>No activity logged.</div> : activity.slice(0, 8).map(a => (
-            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border-soft)' }}>
+            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
               <PersonAvatar userId={a.user_id} name={a.user_name || 'System'} size={24} />
               <span style={{ fontSize: 12.5, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {a.user_name ? <strong style={{ fontWeight: 700 }}>{a.user_name}</strong> : 'System'} <span style={{ color: 'var(--ink2)' }}>{a.action}</span>

@@ -102,6 +102,14 @@ export async function freightBookingRoutes(fastify: FastifyInstance) {
   // still call this API directly; the gate checks the tenant's entitlements,
   // not which app's frontend made the call.
   fastify.addHook('preHandler', requireEntitlement('cargotracker'));
+  // HUD-0024 continuation: no role check anywhere in this file — rate cards/
+  // contracts carry both cost_rate and sell_rate (real margin data), and
+  // bookings are tenant-wide. Not customer-portal data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ── Carriers ─────────────────────────────────────────────────────────────
   fastify.get('/carriers', async (request) => {

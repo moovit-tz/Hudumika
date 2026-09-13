@@ -37,12 +37,12 @@ export function OnsiteActivateStandalone() {
           <Icon name="globe" size={28} style={{ color: 'var(--teal)' }} />
           <div>
             <div style={{ fontWeight: 700, fontSize: '1.125rem' }}>Onsite</div>
-            <div style={{ color: 'var(--ink-muted)', fontSize: '0.875rem' }}>Hosting, domains &amp; DNS — nothing else</div>
+            <div style={{ color: 'var(--ink3)', fontSize: '0.875rem' }}>Hosting, domains &amp; DNS — nothing else</div>
           </div>
         </div>
 
         <div style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem' }}>
-          $9<span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--ink-muted)' }}>/month</span>
+          $9<span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--ink3)' }}>/month</span>
         </div>
 
         <ul style={{ margin: '0 0 1.5rem', paddingLeft: '1.25rem', color: 'var(--ink2)', fontSize: '0.875rem', lineHeight: 1.8 }}>

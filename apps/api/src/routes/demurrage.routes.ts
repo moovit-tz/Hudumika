@@ -5,6 +5,13 @@ import { demurrageService } from '../services/demurrage.service.js';
 export async function demurrageRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
   app.addHook('preHandler', requireEntitlement('demurrage'));
+  // HUD-0024 continuation: tariffs and container tracking had no role check
+  // at all — internal ops data, not customer-portal data.
+  app.addHook('preHandler', async (req: any, reply: any) => {
+    if (req.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ── Tariffs ──
 

@@ -98,7 +98,7 @@ export function SealExWarehouseEntryNew() {
       <PageHeader crumbs={['ClearOS', 'Ops Command', 'Declarations']} titlePlain="New" titleEm="Declaration" subtitle="Every number below traces to a stored HS tariff line — the computation panel updates live as you type." />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'flex-start', marginTop: 16 }}>
-        <form onSubmit={handleSubmit} style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <form onSubmit={handleSubmit} style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
           <Field label="Lot (under bond)">
             <Combobox
               options={lots.map(l => ({ value: l.id, label: l.description, sublabel: [l.ownerName, l.hsCode ? `HS ${l.hsCode}` : null].filter(Boolean).join(' · ') }))}
@@ -140,7 +140,7 @@ export function SealExWarehouseEntryNew() {
           </div>
         </form>
 
-        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 24 }}>
           <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 14px' }}>Duty Computation</h2>
           {quoting ? (
             <div style={{ color: 'var(--ink3)' }}>Computing…</div>

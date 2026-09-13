@@ -54,14 +54,14 @@ export function StartCallButton({ subjectType, subjectId, phone, onLogged, child
     const waLink = phone ? `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Join our call: ${link}`)}` : null;
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--teal-l)' }}>
-        <Icon name="phone" size={14} color="var(--teal-deep)" />
-        <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: 'var(--teal-deep)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link}</div>
+        <Icon name="phone" size={14} color="var(--teal-d)" />
+        <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: 'var(--teal-d)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link}</div>
         {waLink && (
-          <a href={waLink} target="_blank" rel="noreferrer" title="Share via WhatsApp" style={{ color: 'var(--teal-deep)', display: 'flex' }}>
+          <a href={waLink} target="_blank" rel="noreferrer" title="Share via WhatsApp" style={{ color: 'var(--teal-d)', display: 'flex' }}>
             <Icon name="send" size={14} />
           </a>
         )}
-        <a href={link} target="_blank" rel="noreferrer" title="Join" style={{ color: 'var(--teal-deep)', display: 'flex' }}>
+        <a href={link} target="_blank" rel="noreferrer" title="Join" style={{ color: 'var(--teal-d)', display: 'flex' }}>
           <Icon name="externalLink" size={14} />
         </a>
       </div>

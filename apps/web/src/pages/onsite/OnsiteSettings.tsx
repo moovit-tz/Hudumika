@@ -48,10 +48,10 @@ function AgencyRelationshipCard() {
         <h3 className="onsite-card-title">Your hosting agency</h3>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <p style={{ color: 'var(--ink-muted)', margin: 0 }}>
+        <p style={{ color: 'var(--ink3)', margin: 0 }}>
           Onsite is currently managed by <strong style={{ color: 'var(--ink)' }}>{agency.agency_name}</strong> under their package.
         </p>
-        <button className="btn btn-sm btn-secondary" style={{ color: '#ef4444' }} disabled={leaving} onClick={handleLeave}>
+        <button className="btn btn-sm btn-secondary" style={{ color: 'var(--red)' }} disabled={leaving} onClick={handleLeave}>
           {leaving ? 'Leaving…' : 'Leave this agency'}
         </button>
       </div>
@@ -128,9 +128,9 @@ export function OnsiteSettings() {
         <div className="onsite-card">
           <h3 className="onsite-card-title">Connected Providers</h3>
           {loading ? (
-            <p style={{ color: 'var(--ink-muted)' }}>Loading provider connections…</p>
+            <p style={{ color: 'var(--ink3)' }}>Loading provider connections…</p>
           ) : connections.length === 0 ? (
-            <p style={{ color: 'var(--ink-muted)', padding: '1rem 0' }}>
+            <p style={{ color: 'var(--ink3)', padding: '1rem 0' }}>
               No external providers connected yet. Connect GitHub or CircleCI to enable automated repository deployments.
             </p>
           ) : (
@@ -152,7 +152,7 @@ export function OnsiteSettings() {
                       <td>
                         <span className={`onsite-badge ${c.status}`}>{c.status}</span>
                       </td>
-                      <td style={{ color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>
+                      <td style={{ color: 'var(--ink3)', fontSize: '0.8125rem' }}>
                         {new Date(c.created_at).toLocaleDateString()}
                       </td>
                     </tr>
@@ -166,45 +166,45 @@ export function OnsiteSettings() {
         <div className="onsite-card">
           <h3 className="onsite-card-title">Supported Integrations</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Icon name="gitBranch" size={20} />
                 <div>
                   <div style={{ fontWeight: 600 }}>GitHub</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>Repository triggers & webhooks</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>Repository triggers & webhooks</div>
                 </div>
               </div>
               <button className="btn btn-sm btn-secondary" onClick={() => { setProvider('github'); setShowAddModal(true); }}>Connect</button>
             </div>
 
-            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Icon name="circle" size={20} />
                 <div>
                   <div style={{ fontWeight: 600 }}>CircleCI</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>CI/CD pipelines & build notifications</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>CI/CD pipelines & build notifications</div>
                 </div>
               </div>
               <button className="btn btn-sm btn-secondary" onClick={() => { setProvider('circleci'); setShowAddModal(true); }}>Connect</button>
             </div>
 
-            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Icon name="globe" size={20} />
                 <div>
                   <div style={{ fontWeight: 600 }}>Cloudflare Pages</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>Static/JAMstack deployments</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>Static/JAMstack deployments</div>
                 </div>
               </div>
               <button className="btn btn-sm btn-secondary" onClick={() => { setProvider('cloudflare'); setShowAddModal(true); }}>Connect</button>
             </div>
 
-            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Icon name="monitor" size={20} />
                 <div>
                   <div style={{ fontWeight: 600 }}>DigitalOcean App Platform</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>Managed app deployments</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>Managed app deployments</div>
                 </div>
               </div>
               <button className="btn btn-sm btn-secondary" onClick={() => { setProvider('digitalocean'); setShowAddModal(true); }}>Connect</button>
@@ -264,7 +264,7 @@ export function OnsiteSettings() {
                   onChange={(e) => setExternalId(e.target.value)}
                   required
                 />
-                <span style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>
                   Tells Onsite which specific {provider === 'github' ? 'repository' : provider === 'cloudflare' ? 'Pages project' : provider === 'digitalocean' ? 'app' : 'project'} to deploy — a token alone only proves the credential works.
                 </span>
               </div>

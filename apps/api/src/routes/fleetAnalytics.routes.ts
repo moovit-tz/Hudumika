@@ -25,6 +25,13 @@ function stripSecret<T extends { device_secret?: unknown }>(v: T): Omit<T, 'devi
 export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('tracking'));
+  // HUD-0024 continuation: internal fleet-ops analytics (vehicle health,
+  // maintenance/document status) — not customer-facing.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ── Analytics (Enterprise) ──────────────────────────────────
 

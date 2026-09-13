@@ -5,6 +5,7 @@ import { Banner } from '../components/ui/alert.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Button } from '../components/ui/button.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 
@@ -83,9 +84,9 @@ export const CustomerBulkUpload: React.FC = () => {
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Use our template to ensure your data is formatted correctly</div>
                 </div>
               </div>
-              <button onClick={downloadCsvTemplate} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, width: isMobile ? '100%' : 'auto', flexShrink: 0 }}>
+              <Button variant="outline" size="sm" onClick={downloadCsvTemplate} style={{ width: isMobile ? '100%' : 'auto', flexShrink: 0 }}>
                 <Icon name="download" size={13} /> CSV Template
-              </button>
+              </Button>
             </div>
           </SectionCard>
 
@@ -116,13 +117,13 @@ export const CustomerBulkUpload: React.FC = () => {
                   )}
                 </div>
                 {summary.inserted > 0 && (
-                  <Link to="/customers" style={{ marginLeft: 'auto', padding: '7px 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>
-                    View List
-                  </Link>
+                  <Button asChild size="sm" style={{ marginLeft: 'auto' }}>
+                    <Link to="/customers">View List</Link>
+                  </Button>
                 )}
               </div>
               {summary.errors.length > 0 && (
-                <ul style={{ margin: '12px 0 0', paddingLeft: 20, fontSize: 12, color: '#7f1d1d' }}>
+                <ul style={{ margin: '12px 0 0', paddingLeft: 20, fontSize: 12, color: 'var(--red)' }}>
                   {summary.errors.slice(0, 10).map((e, i) => <li key={i}>{e}</li>)}
                 </ul>
               )}
@@ -148,7 +149,7 @@ export const CustomerBulkUpload: React.FC = () => {
                   borderRight: (!isMobile && i % 2 === 0) ? '1px solid var(--border)' : 'none',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                    <code style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 4 }}>{col}</code>
+                    <code style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 'var(--r-sm)' }}>{col}</code>
                     {req && <span style={{ fontSize: 10, color: 'var(--red)', fontWeight: 700 }}>required</span>}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{desc}</div>
@@ -161,20 +162,21 @@ export const CustomerBulkUpload: React.FC = () => {
           {/* Action buttons */}
           {file && !summary && (
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button
+              <Button
+                variant="outline"
+                size="default"
                 onClick={() => setFile(null)}
                 disabled={uploading}
-                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                size="default"
                 onClick={handleImport}
                 disabled={uploading}
-                style={{ padding: 'var(--ds-btn-py) 22px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, opacity: uploading ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
               >
                 <Icon name="upload" size={14} /> {uploading ? 'Uploading…' : 'Upload & Import'}
-              </button>
+              </Button>
             </div>
           )}
         </div>

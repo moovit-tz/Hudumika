@@ -63,7 +63,7 @@ export function DataTable<T extends Record<string, any>>({ columns, rows, sortab
         </thead>
         <tbody>
           {displayedRows.map((row, idx) => (
-            <tr key={idx} style={{ background: idx % 2 === 0 ? 'var(--color-bg)' : 'transparent' }}>
+            <tr key={idx} style={{ background: idx % 2 === 0 ? 'hsl(var(--muted))' : 'transparent' }}>
               {columns.map(col => (
                 <td key={String(col.accessor)} style={{ padding: '8px', borderBottom: '1px solid var(--border)' }}>
                   {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}

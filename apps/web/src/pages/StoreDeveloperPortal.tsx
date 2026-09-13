@@ -77,7 +77,7 @@ export const StoreDeveloperPortal: React.FC = () => {
         subtitle="Publish an integration to the Hudumika Store for review by the Admin team."
       />
 
-      <div style={{ background: 'var(--surface)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border)', marginTop: '20px' }}>
+      <div style={{ background: 'var(--white)', padding: '24px', borderRadius: 'var(--card-radius)', border: '1px solid var(--border)', marginTop: '20px' }}>
         {error && <Banner variant="error" className="mb-5">{error}</Banner>}
 
         <form onSubmit={handleSubmit}>

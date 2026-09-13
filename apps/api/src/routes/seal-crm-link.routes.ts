@@ -10,6 +10,14 @@ import { withTenant } from '../db/client.js';
 export async function sealCrmLinkRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireAnyEntitlement(['seal', 'crm']));
+  // HUD-0024 continuation: sibling of seal.routes.ts and its 8 already-fixed
+  // siblings (HUD-0031) — this file was missed by that sweep. Bonded-
+  // warehouse lot data (duty/tax at risk) is not customer-portal data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   fastify.get('/lots-for-customer', async (request: any, reply) => {
     try {

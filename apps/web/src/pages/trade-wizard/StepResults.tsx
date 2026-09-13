@@ -225,7 +225,7 @@ export function StepResults({ draft, onBack }: StepProps) {
 
           <div style={{ maxWidth: 420 }}>
             {posted ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', borderRadius: 11, background: 'var(--green-l)', color: 'var(--green)', fontSize: 13, fontWeight: 700 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', borderRadius: 'var(--r)', background: 'var(--green-l)', color: 'var(--green)', fontSize: 13, fontWeight: 700 }}>
                 <Icon name="checkCircle" size={15} /> Draft invoice created — find it in Billing to review and send.
               </div>
             ) : !showRequestForm ? (

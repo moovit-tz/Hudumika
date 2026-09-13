@@ -47,10 +47,10 @@ function fmtTime(iso: string): string {
 
 const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
   DELIVERED:       { bg: 'var(--green-l)', fg: 'var(--green)' },
-  IN_TRANSIT:      { bg: 'var(--blue-l)', fg: '#2563eb' },
-  TRANSIT:         { bg: 'var(--blue-l)', fg: '#2563eb' },
-  PICKED_UP:       { bg: 'var(--purple-l)', fg: '#6366f1' },
-  DEPARTED:        { bg: 'var(--blue-l)', fg: '#0284c7' },
+  IN_TRANSIT:      { bg: 'var(--blue-l)', fg: 'var(--blue)' },
+  TRANSIT:         { bg: 'var(--blue-l)', fg: 'var(--blue)' },
+  PICKED_UP:       { bg: 'var(--purple-l)', fg: 'var(--purple)' },
+  DEPARTED:        { bg: 'var(--blue-l)', fg: 'var(--blue)' },
   CUSTOMS_CLEARED: { bg: 'var(--gold-l)', fg: 'var(--gold)' },
   ON_HOLD:         { bg: 'var(--red-l)', fg: 'var(--red)' },
   DELAYED:         { bg: 'var(--red-l)', fg: 'var(--red)' },
@@ -72,10 +72,10 @@ export const TrackingShared: React.FC = () => {
   }, [token]);
 
   const events = snap ? parseEvts(snap.events) : [];
-  const sc = snap?.status_code ? STATUS_COLORS[snap.status_code] ?? { bg: '#f1f5f9', fg: '#64748b' } : { bg: '#f1f5f9', fg: '#64748b' };
+  const sc = snap?.status_code ? STATUS_COLORS[snap.status_code] ?? { bg: 'hsl(var(--muted))', fg: 'hsl(var(--muted-foreground))' } : { bg: 'hsl(var(--muted))', fg: 'hsl(var(--muted-foreground))' };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>
 
       {/* Header */}
       <div style={{ background: NAVY, padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -92,7 +92,7 @@ export const TrackingShared: React.FC = () => {
 
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 16 }}>
-            <Spinner size={36} thickness={3} color={BRAND} trackColor="#e2e8f0" />
+            <Spinner size={36} thickness={3} color={BRAND} trackColor="var(--border)" />
             <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Loading tracking information…</div>
           </div>
         )}
@@ -100,7 +100,7 @@ export const TrackingShared: React.FC = () => {
         {error && !loading && (
           <div style={{ textAlign: 'center', padding: '80px 0' }}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--red-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <Icon name="alertCircle" size={28} color="#dc2626" />
+              <Icon name="alertCircle" size={28} color="var(--red)" />
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Snapshot not found</div>
             <div style={{ fontSize: 14, color: 'var(--ink2)' }}>This tracking link may have expired or been removed.</div>
@@ -110,7 +110,7 @@ export const TrackingShared: React.FC = () => {
         {snap && !loading && (
           <>
             {/* Hero card */}
-            <div style={{ background: NAVY, borderRadius: 18, padding: '28px 28px 24px', marginBottom: 16, color: '#fff' }}>
+            <div style={{ background: NAVY, borderRadius: 'var(--r-lg)', padding: '28px 28px 24px', marginBottom: 16, color: 'var(--white)' }}>
 
               {/* Top row: number + status */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
@@ -122,7 +122,7 @@ export const TrackingShared: React.FC = () => {
                     {snap.tracking_number}
                   </div>
                 </div>
-                <div style={{ background: sc.bg, color: sc.fg, borderRadius: 8, padding: '5px 13px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                <div style={{ background: sc.bg, color: sc.fg, borderRadius: 'var(--r)', padding: '5px 13px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>
                   {snap.status ?? 'Unknown'}
                 </div>
               </div>
@@ -135,8 +135,8 @@ export const TrackingShared: React.FC = () => {
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,.55)', marginTop: 1, maxWidth: 100 }}>{snap.origin_name ?? ''}</div>
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <div style={{ height: 2, width: '100%', background: 'rgba(255,255,255,.12)', borderRadius: 2, position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${snap.progress_pct}%`, background: `linear-gradient(90deg,${BRAND},#f97316)`, borderRadius: 2 }} />
+                  <div style={{ height: 2, width: '100%', background: 'rgba(255,255,255,.12)', borderRadius: 'var(--r-sm)', position: 'relative' }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${snap.progress_pct}%`, background: `linear-gradient(90deg,${BRAND},#f97316)`, borderRadius: 'var(--r-sm)' }} />
                     <div style={{ position: 'absolute', top: '50%', left: `${snap.progress_pct}%`, transform: 'translate(-50%,-50%)', width: 8, height: 8, borderRadius: '50%', background: BRAND, boxShadow: `0 0 0 3px rgba(232,70,26,.3)` }} />
                   </div>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>{snap.progress_pct}% complete</div>
@@ -155,7 +155,7 @@ export const TrackingShared: React.FC = () => {
                   { label: 'Last Location', value: snap.current_location ?? '—' },
                   { label: 'Snapshot Date', value: fmtDate(snap.created_at) },
                 ].map(k => (
-                  <div key={k.label} style={{ background: 'rgba(255,255,255,.06)', borderRadius: 10, padding: '10px 14px' }}>
+                  <div key={k.label} style={{ background: 'rgba(255,255,255,.06)', borderRadius: 'var(--r)', padding: '10px 14px' }}>
                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>{k.label}</div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', lineHeight: 1.3 }}>{k.value}</div>
                   </div>
@@ -165,24 +165,24 @@ export const TrackingShared: React.FC = () => {
 
             {/* Events */}
             {events.length > 0 && (
-              <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', padding: '22px 24px' }}>
+              <div style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', padding: '22px 24px' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>
                   Tracking Events ({events.length})
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {events.map((ev, i) => {
                     const isFirst = i === 0;
-                    const evSc = STATUS_COLORS[ev.status_code] ?? { bg: '#f1f5f9', fg: '#64748b' };
+                    const evSc = STATUS_COLORS[ev.status_code] ?? { bg: 'hsl(var(--muted))', fg: 'hsl(var(--muted-foreground))' };
                     return (
                       <div key={i} style={{ display: 'flex', gap: 14, paddingBottom: i < events.length - 1 ? 18 : 0 }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, width: 20 }}>
-                          <div style={{ width: 10, height: 10, borderRadius: '50%', background: isFirst ? BRAND : '#cbd5e1', flexShrink: 0, marginTop: 4 }} />
-                          {i < events.length - 1 && <div style={{ flex: 1, width: 2, background: '#f1f5f9', marginTop: 4 }} />}
+                          <div style={{ width: 10, height: 10, borderRadius: '50%', background: isFirst ? 'var(--teal)' : 'var(--border)', flexShrink: 0, marginTop: 4 }} />
+                          {i < events.length - 1 && <div style={{ flex: 1, width: 2, background: 'var(--border)', marginTop: 4 }} />}
                         </div>
                         <div style={{ flex: 1, paddingBottom: i < events.length - 1 ? 0 : 0 }}>
                           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                             <div>
-                              <div style={{ fontSize: 13, fontWeight: isFirst ? 700 : 500, color: isFirst ? '#1e293b' : '#334155' }}>{ev.description}</div>
+                              <div style={{ fontSize: 13, fontWeight: isFirst ? 700 : 500, color: isFirst ? 'var(--ink)' : 'var(--ink2)' }}>{ev.description}</div>
                               <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{ev.location}</div>
                             </div>
                             <div style={{ textAlign: 'right', flexShrink: 0 }}>

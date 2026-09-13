@@ -182,7 +182,7 @@ export const TrackingShipmentNew: React.FC = () => {
           <div style={labelStyle}>Search ClearOS shipments</div>
           <input value={shipmentSearch} onChange={e => setShipmentSearch(e.target.value)} placeholder="Reference #, goods description, B/L, AWB…" style={inputStyle} />
           {clearosAvailable === false && (
-            <div style={{ marginTop: 10, fontSize: 12.5, color: '#c2410c' }}>ClearOS isn't enabled for this account — switch to "Transport Only" on the previous step instead.</div>
+            <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--gold)' }}>ClearOS isn't enabled for this account — switch to "Transport Only" on the previous step instead.</div>
           )}
           <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {searching && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Searching…</div>}

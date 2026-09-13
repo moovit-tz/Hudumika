@@ -104,12 +104,12 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
 
   // Badge config per file type
   const badgeConfig = isPdf
-    ? { label: 'PDF', bg: '#ef4444', text: '#fff' }
+    ? { label: 'PDF', bg: 'var(--red)', text: '#fff' }
     : isSheet
-    ? { label: 'Sheet', bg: '#10b981', text: '#fff' }
+    ? { label: 'Sheet', bg: 'var(--green)', text: '#fff' }
     : isImage
-    ? { label: 'Image', bg: '#8b5cf6', text: '#fff' }
-    : { label: 'Doc', bg: '#3b82f6', text: '#fff' };
+    ? { label: 'Image', bg: 'var(--purple)', text: '#fff' }
+    : { label: 'Doc', bg: 'var(--blue)', text: '#fff' };
 
   // ── Real PDF pagination ──
   const { doc: pdfDoc, numPages, loading: pdfLoading, error: pdfError } = usePdfDocument(isPdf ? url : null);
@@ -192,7 +192,7 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
         <div className="lbx-bar">
           {/* Left: badge + filename */}
           <div className="lbx-bar-left">
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 6, background: badgeConfig.bg, color: badgeConfig.text, flexShrink: 0 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 'var(--r-sm)', background: badgeConfig.bg, color: badgeConfig.text, flexShrink: 0 }}>
               <Icon name={fileTypeStyle(item.type).icon} size={14} />
             </span>
             <span className="lbx-filename">{item.name}</span>
@@ -257,9 +257,9 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
               onClick={() => onStar(item)}
               title={item.starred ? 'Unstar' : 'Star'}
               className="lbx-icon-btn lbx-action-btn"
-              style={{ color: item.starred ? '#f59e0b' : undefined }}
+              style={{ color: item.starred ? 'var(--gold)' : undefined }}
             >
-              <Icon name="star" size={15} color={item.starred ? '#f59e0b' : undefined} />
+              <Icon name="star" size={15} color={item.starred ? 'var(--gold)' : undefined} />
             </button>
             <button onClick={() => onShare(item)} title="Share" className="lbx-icon-btn lbx-action-btn">
               <Icon name="userPlus" size={15} />

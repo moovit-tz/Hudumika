@@ -82,7 +82,7 @@ export function OnsiteReferrals() {
               <h3 className="onsite-card-title">Commissions earned</h3>
             </div>
             {commissions.length === 0 ? (
-              <p style={{ color: 'var(--ink-muted)', padding: '1rem 0' }}>
+              <p style={{ color: 'var(--ink3)', padding: '1rem 0' }}>
                 No referrals have signed up and paid yet.
               </p>
             ) : (

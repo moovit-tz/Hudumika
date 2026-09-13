@@ -160,7 +160,7 @@ export const OndiPolicies: React.FC = () => {
                 background: 'var(--white)',
                 color: 'var(--teal)',
                 border: '1px solid var(--border)',
-                borderRadius: 'var(--r-md, 12px)',
+                borderRadius: 'var(--r)',
                 padding: '10px 18px',
                 fontFamily: 'var(--font)',
                 fontWeight: 700,
@@ -184,14 +184,14 @@ export const OndiPolicies: React.FC = () => {
                 background: 'var(--teal)',
                 color: '#fff',
                 border: 'none',
-                borderRadius: 'var(--r-md, 12px)',
+                borderRadius: 'var(--r)',
                 padding: '10px 20px',
                 fontFamily: 'var(--font)',
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: canManagePolicies ? 'pointer' : 'not-allowed',
                 opacity: (saving || !loaded || !canManagePolicies) ? 0.6 : 1,
-                boxShadow: '0 2px 10px rgba(0, 181, 137, 0.3)'
+                boxShadow: '0 2px 10px var(--teal-m)'
               }}
             >
               <Icon name="check" size={16} />
@@ -239,7 +239,7 @@ export const OndiPolicies: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Password Complexity</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#eff6ff', color: '#1e40af' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--blue-l)', color: 'var(--blue)' }}>
               <Icon name="lock" size={18} />
             </div>
           </div>
@@ -254,12 +254,12 @@ export const OndiPolicies: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Custom Policy Rules</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--purple-l)', color: 'var(--purple)' }}>
               <Icon name="fileText" size={18} />
             </div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#7c3aed' }}>{customPolicies.filter(p => p.enabled).length}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--purple)' }}>{customPolicies.filter(p => p.enabled).length}</span>
             <span className="ondi-kpi-sub">active custom rules</span>
           </div>
         </div>
@@ -286,7 +286,7 @@ export const OndiPolicies: React.FC = () => {
                   style={{
                     width: 120,
                     padding: '8px 12px',
-                    borderRadius: 8,
+                    borderRadius: 'var(--r)',
                     border: '1px solid var(--border)',
                     background: 'var(--bg)',
                     color: 'var(--ink)',
@@ -306,7 +306,7 @@ export const OndiPolicies: React.FC = () => {
                     onClick={() => setTimeoutMinutes(mins)}
                     style={{
                       padding: '6px 14px',
-                      borderRadius: 8,
+                      borderRadius: 'var(--r)',
                       border: timeoutMinutes === mins ? '1px solid var(--teal)' : '1px solid var(--border)',
                       fontWeight: 700,
                       fontSize: 12.5,
@@ -340,16 +340,16 @@ export const OndiPolicies: React.FC = () => {
               alignItems: 'center',
               gap: 12,
               padding: '12px 16px',
-              borderRadius: 8,
-              background: '#eff6ff',
-              border: '1px solid #bfdbfe',
-              color: '#1e40af',
+              borderRadius: 'var(--r)',
+              background: 'var(--blue-l)',
+              border: '1px solid var(--blue)',
+              color: 'var(--blue)',
               fontSize: 13
             }}>
               <Icon name="info" size={18} style={{ flexShrink: 0 }} />
               <div>
                 Track user adoption rates under the{' '}
-                <Link to="/ondi/compliance" style={{ color: '#1e40af', fontWeight: 800, textDecoration: 'underline' }}>
+                <Link to="/ondi/compliance" style={{ color: 'var(--blue)', fontWeight: 800, textDecoration: 'underline' }}>
                   Compliance Posture
                 </Link>{' '}
                 analytics page.
@@ -374,8 +374,8 @@ export const OndiPolicies: React.FC = () => {
                   fontWeight: 700,
                   color: 'var(--teal)',
                   background: 'var(--teal-l)',
-                  border: '1px solid rgba(0,181,137,0.2)',
-                  borderRadius: 6,
+                  border: '1px solid var(--teal-m)',
+                  borderRadius: 'var(--r-sm)',
                   padding: '6px 14px',
                   cursor: canManagePolicies ? 'pointer' : 'not-allowed',
                   opacity: canManagePolicies ? 1 : 0.6
@@ -389,8 +389,8 @@ export const OndiPolicies: React.FC = () => {
               {customPolicies.map(pol => (
                 <div key={pol.id} style={{
                   background: 'var(--bg)',
-                  border: '1px solid var(--border-soft)',
-                  borderRadius: 10,
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--r)',
                   padding: 18,
                   display: 'flex',
                   flexDirection: 'column',
@@ -446,9 +446,9 @@ export const OndiPolicies: React.FC = () => {
 
             <div style={{
               padding: 16,
-              borderRadius: 10,
+              borderRadius: 'var(--r)',
               background: 'var(--bg)',
-              border: '1px solid var(--border-soft)',
+              border: '1px solid var(--border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -470,7 +470,7 @@ export const OndiPolicies: React.FC = () => {
                   style={{
                     width: 80,
                     padding: '6px 10px',
-                    borderRadius: 8,
+                    borderRadius: 'var(--r)',
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
                     color: 'var(--ink)',
@@ -483,7 +483,7 @@ export const OndiPolicies: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--border-soft)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--border)' }}>
               <SwitchRow
                 title="Require uppercase & lowercase letters"
                 description="Requires at least one uppercase (A-Z) and one lowercase (a-z) character."
@@ -539,7 +539,7 @@ export const OndiPolicies: React.FC = () => {
                   placeholder="e.g. Mandatory Admin IP Subnet Restriction"
                   value={newPolicyName}
                   onChange={e => setNewPolicyName(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -590,7 +590,7 @@ export const OndiPolicies: React.FC = () => {
                   placeholder="Describe the governance requirement and target parameters..."
                   value={newPolicyDesc}
                   onChange={e => setNewPolicyDesc(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }}
                 />
               </div>
 
@@ -598,14 +598,14 @@ export const OndiPolicies: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  style={{ padding: '9px 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!newPolicyName.trim()}
-                  style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: !newPolicyName.trim() ? 0.6 : 1 }}
+                  style={{ padding: '9px 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: !newPolicyName.trim() ? 0.6 : 1 }}
                 >
                   Create Policy Rule
                 </button>

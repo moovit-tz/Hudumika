@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
+import { Button } from '../../components/ui/button.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { apiFetch } from '../../lib/api.js';
 import type { ProjectOSDetail } from '@hudumika/types';
@@ -46,21 +47,13 @@ export const ProjectFinancialsEvm: React.FC<ProjectFinancialsEvmProps> = ({
 
   if (!project) {
     return (
-      <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)' }}>
+      <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)' }}>
         <Icon name="calculator" size={32} style={{ color: 'var(--ink3)', margin: '0 auto 12px' }} />
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Financials & EVM Engine</div>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, maxWidth: 440, margin: '4px auto 16px' }}>
           No EVM baselines found for this project yet. Configure baseline budget and work packages to compute Earned Value Analysis.
         </div>
-        <button
-          onClick={loadDetail}
-          style={{
-            background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 8,
-            padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer'
-          }}
-        >
-          Recalculate EVM Metrics
-        </button>
+        <Button size="sm" onClick={loadDetail}>Recalculate EVM Metrics</Button>
       </div>
     );
   }

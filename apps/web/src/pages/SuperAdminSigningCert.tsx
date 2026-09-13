@@ -128,7 +128,7 @@ export function SuperAdminSigningCert() {
           <SectionLoading />
         ) : active ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name="checkCircle" size={18} color="var(--green)" />
             </div>
             <div>
@@ -138,7 +138,7 @@ export function SuperAdminSigningCert() {
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name="alertCircle" size={18} color="var(--gold)" />
             </div>
             <div>
@@ -162,12 +162,12 @@ export function SuperAdminSigningCert() {
           <div>
             <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)', marginBottom: 4 }}>Label</label>
             <input value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. DigiCert OV 2026"
-              style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)', marginBottom: 4 }}>Certificate password</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password on the .p12/.pfx file"
-              style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }} />
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -188,7 +188,7 @@ export function SuperAdminSigningCert() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
             {history.map(row => (
-              <div key={row.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: `1px solid ${row.enabled ? 'var(--green)' : 'var(--border)'}`, borderRadius: 8, background: row.enabled ? 'var(--green-l)' : 'transparent' }}>
+              <div key={row.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: `1px solid ${row.enabled ? 'var(--green)' : 'var(--border)'}`, borderRadius: 'var(--r)', background: row.enabled ? 'var(--green-l)' : 'transparent' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
                     {row.label} {row.enabled && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)' }}>· ACTIVE</span>}

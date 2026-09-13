@@ -13,6 +13,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 /* ── Role label ── */
 const ROLE_LABELS: Record<string, string> = {
@@ -231,13 +232,19 @@ export const UserProfile: React.FC = () => {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)', padding: isMobile ? '8px 16px 16px' : '12px 32px 32px' }}>
+      <PageHeader
+        crumbs={['Workspace', 'Profile']}
+        titlePlain="My"
+        titleEm="profile"
+        subtitle="Manage your account details, security, preferences, and activity."
+      />
       <style>{`
         .profile-container {
           max-width: 1600px;
           margin: 0 auto;
           background: var(--white);
           border: 1px solid var(--border);
-          border-radius: 12px;
+          border-radius: var(--card-radius);
           overflow: hidden;
           box-shadow: 0 2px 12px rgba(0,0,0,0.03);
           transition: max-width 0.25s ease;
@@ -260,7 +267,7 @@ export const UserProfile: React.FC = () => {
           onPointerCancel={handleCoverPointerUp}
           style={{
             height: 150,
-            backgroundImage: form.cover_url ? `url("${form.cover_url}")` : 'linear-gradient(135deg, var(--navy) 0%, var(--teal) 100%)',
+            backgroundImage: form.cover_url ? `url("${form.cover_url}")` : 'linear-gradient(135deg, var(--teal-d) 0%, var(--teal) 100%)',
             backgroundSize: 'cover',
             backgroundPosition: form.cover_url ? `${form.cover_position.x}% ${form.cover_position.y}%` : 'center',
             backgroundRepeat: 'no-repeat',

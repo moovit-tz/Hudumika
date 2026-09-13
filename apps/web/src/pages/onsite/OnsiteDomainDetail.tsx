@@ -24,7 +24,7 @@ export function OnsiteDomainDetail() {
   if (loading) {
     return (
       <div className="onsite-page">
-        <p style={{ color: 'var(--ink-muted)' }}>Loading domain details…</p>
+        <p style={{ color: 'var(--ink3)' }}>Loading domain details…</p>
       </div>
     );
   }
@@ -33,7 +33,7 @@ export function OnsiteDomainDetail() {
     return (
       <div className="onsite-page">
         <div className="onsite-card">
-          <p style={{ color: '#ef4444' }}>{error || 'Domain not found'}</p>
+          <p style={{ color: 'var(--red)' }}>{error || 'Domain not found'}</p>
           <Link to="/onsite/domains" className="btn btn-secondary" style={{ marginTop: '1rem', width: 'fit-content' }}>
             ← Back to Domains
           </Link>
@@ -60,19 +60,19 @@ export function OnsiteDomainDetail() {
             <h3 className="onsite-card-title">Domain Overview</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Registrar</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Registrar</label>
                 <div style={{ fontWeight: 600 }}>{domain.registrar || 'Self-managed'}</div>
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Auto Renew</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Auto Renew</label>
                 <div style={{ fontWeight: 600 }}>{domain.auto_renew ? 'Enabled' : 'Disabled'}</div>
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>DNS Health</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>DNS Health</label>
                 <div><span className={`onsite-badge ${domain.dns_status}`}>{domain.dns_status}</span></div>
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SSL Certificate</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SSL Certificate</label>
                 <div><span className={`onsite-badge ${domain.ssl_status}`}>{domain.ssl_status}</span></div>
               </div>
             </div>
@@ -80,7 +80,7 @@ export function OnsiteDomainDetail() {
 
           <div className="onsite-card">
             <h3 className="onsite-card-title">Delegated Nameservers</h3>
-            <p style={{ fontSize: '0.875rem', color: 'var(--ink-muted)' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--ink3)' }}>
               To route DNS through Hudumika Onsite, set your domain's nameservers at your registrar to:
             </p>
             <div className="onsite-table-wrapper" style={{ marginTop: '0.5rem' }}>

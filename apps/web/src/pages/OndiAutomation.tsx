@@ -103,8 +103,8 @@ export const OndiAutomation: React.FC = () => {
         </SectionCard>
 
         <SectionCard title="Leaver — Offboarding & Account Deactivation">
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, background: 'var(--green-l)', padding: 16, borderRadius: 10, border: '1px solid rgba(4,120,87,0.2)' }}>
-            <Icon name="checkCircle" size={20} color="#047857" style={{ flexShrink: 0, marginTop: 2 }} />
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, background: 'var(--green-l)', padding: 16, borderRadius: 'var(--r)', border: '1px solid var(--green)' }}>
+            <Icon name="checkCircle" size={20} color="var(--green)" style={{ flexShrink: 0, marginTop: 2 }} />
             <div style={{ fontSize: 13, color: 'var(--green)', lineHeight: 1.55 }}>
               <strong>Always Active:</strong> The moment an account is deactivated (from Ondi or NexusHR), Ondi instantly revokes its role grants, authorized app tokens, and active sessions. No standing credentials remain on deactivated accounts.
             </div>

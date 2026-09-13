@@ -134,10 +134,10 @@ export function genRefCode(id: string, version: number): string {
 }
 
 export const STATUS_STYLE: Record<Status, { bg: string; color: string; label: string }> = {
-  Draft:    { bg: '#e5e7eb', color: 'var(--ink)', label: 'Draft'          },
+  Draft:    { bg: 'var(--border)', color: 'var(--ink)', label: 'Draft'          },
   Partial:  { bg: 'var(--blue-l)', color: 'var(--blue)', label: 'Partially paid' },
-  Paid:     { bg: '#1e293b', color: '#f1f5f9', label: 'Fully paid'     },
-  Credited: { bg: '#fce7f3', color: '#be185d', label: 'Credited'       },
+  Paid:     { bg: 'var(--ink)', color: 'var(--white)', label: 'Fully paid'     },
+  Credited: { bg: 'var(--purple-l)', color: 'var(--purple)', label: 'Credited' },
   Unpaid:   { bg: 'var(--gold-l)', color: 'var(--gold)', label: 'Not paid'       },
   Overdue:  { bg: 'var(--red-l)', color: 'var(--red)', label: 'Overdue'        },
 };
@@ -181,7 +181,7 @@ export function mapApiInvoice(d: any): Invoice {
 }
 
 const tbBtn: React.CSSProperties = {
-  height: 30, padding: '0 10px', borderRadius: 7, border: '1px solid var(--border)',
+  height: 30, padding: '0 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)',
   background: 'var(--bg)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600,
   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
   fontFamily: 'var(--font)', whiteSpace: 'nowrap' as const,
@@ -217,7 +217,7 @@ export function openPrintWindow(inv: Invoice) {
         <td style="text-align:right;font-family:monospace;font-weight:700">${fmt(lineSub + lineTax)}</td>
       </tr>`;
     }).join('');
-    const emptyRow = `<tr><td colspan="6" style="color:var(--ink3);font-style:italic;padding:10px 12px">No charges</td><td style="text-align:right;font-family:monospace">0</td></tr>`;
+    const emptyRow = `<tr><td colspan="6" style="color:#9ca3af;font-style:italic;padding:10px 12px">No charges</td><td style="text-align:right;font-family:monospace">0</td></tr>`;
     return `
       <div class="section">
         <div class="sec-hdr">${title}</div>
@@ -285,11 +285,11 @@ td{padding:4px 6px;border-bottom:1px solid #f3f4f6;vertical-align:top;font-size:
     <img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&data=${encodeURIComponent(JSON.stringify({ ref: inv.refCode, inv: inv.id, amt: T.grandTotalTZS }))}" alt="QR" style="width:64px;height:64px;border:1px solid #e5e7eb;padding:2px;border-radius:6px">
     <div class="qr-lbl">Ref: ${inv.refCode}<br>v${inv.version}</div>
   </div>
-  <div style="text-align:right;font-size:12px;color:var(--ink2)">
+  <div style="text-align:right;font-size:12px;color:#555">
     <div style="font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;font-size:9px">Invoice Details</div>
     <div style="margin-bottom:4px;display:flex;justify-content:flex-end;gap:12px"><span>Invoice #:</span><strong style="color:#0d9488">${inv.id}</strong></div>
     <div style="margin-bottom:4px;display:flex;justify-content:flex-end;gap:12px"><span>Invoice Date:</span><strong style="color:#111">${inv.billDate}</strong></div>
-    ${inv.dueDate ? `<div style="margin-bottom:4px;display:flex;justify-content:flex-end;gap:12px"><span>Due Date:</span><strong style="${inv.status === 'Overdue' ? 'color:var(--red)' : 'color:#111'}">${inv.dueDate}</strong></div>` : ''}
+    ${inv.dueDate ? `<div style="margin-bottom:4px;display:flex;justify-content:flex-end;gap:12px"><span>Due Date:</span><strong style="${inv.status === 'Overdue' ? 'color:#dc2626' : 'color:#111'}">${inv.dueDate}</strong></div>` : ''}
     <div style="margin-bottom:4px;display:flex;justify-content:flex-end;gap:12px"><span>Agent:</span><strong style="color:#111">${inv.saleAgent}</strong></div>
   </div>
 </div>
@@ -303,20 +303,20 @@ ${sectionHtml('Clearing Charges — Paid in TZS', 'TZS', T.cl, T.sub(T.cl), T.ta
 ${sectionHtml('Shipping Line Charges — Paid in USD', 'USD', T.sh, T.sub(T.sh), T.tax(T.sh), T.shippingTotal)}
 ${sectionHtml('Other Charges — Paid in TZS', 'TZS', T.ot, T.sub(T.ot), T.tax(T.ot), T.otherTotal)}
 <div class="grand"><span>GRAND TOTAL</span><span>${fmtTZS(T.grandTotalTZS)}</span></div>
-${inv.exchangeRate > 0 && T.shippingTotal > 0 ? `<div style="text-align:right;font-size:11px;color:var(--ink2);margin-bottom:12px">USD shipping converted at 1 USD = TZS ${inv.exchangeRate.toLocaleString()}</div>` : ''}
+${inv.exchangeRate > 0 && T.shippingTotal > 0 ? `<div style="text-align:right;font-size:11px;color:#555;margin-bottom:12px">USD shipping converted at 1 USD = TZS ${inv.exchangeRate.toLocaleString()}</div>` : ''}
 ${inv.received > 0 ? `<div class="due"><span>Less: Amount Received</span><span style="color:#059669">(${fmtTZS(inv.received)})</span></div>` : ''}
 <div class="due"><span>Amount Due</span><span>${fmtTZS(Math.max(0, due))}</span></div>
 ${inv.shipmentCarbon ? `
-<div style="margin-top:12px;padding:12px;background:var(--green-l);border-radius:6px;font-size:10px;color:var(--ink);border:1px solid #a7f3d0">
+<div style="margin-top:12px;padding:12px;background:#dafbe1;border-radius:6px;font-size:10px;color:#111;border:1px solid #a7f3d0">
   <div style="font-weight:800;text-transform:uppercase;margin-bottom:6px;color:#111">Carbon Footprint (Estimate)</div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;line-height:1.6">
     <div><strong>CO₂ Emissions:</strong> ${Number(inv.shipmentCarbon.co2_emissions_kg).toLocaleString()} kg</div>
     <div><strong style="color:#059669">Credits Saved:</strong> ${Number(inv.shipmentCarbon.carbon_credits_saved).toFixed(2)}</div>
     ${inv.shipmentCarbon.distance_km ? `<div><strong>Distance:</strong> ${inv.shipmentCarbon.distance_km} km</div>` : ''}
   </div>
-  <div style="font-size:8.5px;color:var(--ink3);margin-top:6px;font-style:italic">GLEC v3.2 / ISO 14083 methodology. Internal ESG estimate — not a registry-issued or tradeable carbon credit.</div>
+  <div style="font-size:8.5px;color:#9ca3af;margin-top:6px;font-style:italic">GLEC v3.2 / ISO 14083 methodology. Internal ESG estimate — not a registry-issued or tradeable carbon credit.</div>
 </div>` : ''}
-<div style="margin-top:20px;padding:12px;background:#f9fafb;border-radius:6px;font-size:10px;color:var(--ink);border:1px solid #e5e7eb">
+<div style="margin-top:20px;padding:12px;background:#f9fafb;border-radius:6px;font-size:10px;color:#111;border:1px solid #e5e7eb">
   <div style="font-weight:800;text-transform:uppercase;margin-bottom:6px;color:#111">Payment Information</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;line-height:1.6">
     <div>
@@ -345,7 +345,7 @@ function FormField({ label, value, onChange, placeholder, disabled, mono }: { la
     <div>
       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>{label}</label>
       <input value={value} onChange={e => onChange?.(e.target.value)} placeholder={placeholder} disabled={disabled}
-        style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border)', background: disabled ? 'var(--bg)' : 'var(--white)', color: disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontFamily: mono ? 'var(--mono)' : 'var(--font)', outline: 'none', boxSizing: 'border-box' as const }} />
+        style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: disabled ? 'var(--bg)' : 'var(--white)', color: disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontFamily: mono ? 'var(--mono)' : 'var(--font)', outline: 'none', boxSizing: 'border-box' as const }} />
     </div>
   );
 }
@@ -358,7 +358,7 @@ function ChargeSectionView({ title, color, currency, items, subTotal, taxAmt, se
   const fmt = (n: number) => fmtAmt(n, currency);
   return (
     <div style={{ marginBottom: 22 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#fff', background: color, padding: '6px 14px', borderRadius: '6px 6px 0 0' }}>{title}</div>
+      <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'hsl(var(--primary-foreground))', background: color, padding: '6px 14px', borderRadius: 'var(--r) var(--r) 0 0' }}>{title}</div>
       <div className="rtbl-wrap" style={{ border: '1px solid var(--border)', borderTop: 'none' }}>
       <table className="rtbl" style={{ borderCollapse: 'collapse' }}>
         <thead>
@@ -488,7 +488,7 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImp
           ) : entries.length === 0 ? (
             <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)' }}>No time entries with a billable rate found. Time logged with no service attached has nothing to bill and isn't listed.</div>
           ) : (
-            <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
               {entries.map(e => (
                 <label key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: selected.has(e.id) ? 'var(--teal-l)' : 'var(--white)' }}>
                   <Checkbox checked={selected.has(e.id)} onCheckedChange={() => {
@@ -516,8 +516,8 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImp
             {selected.size > 0 && <>Total: <strong style={{ fontFamily: 'var(--mono)' }}>{fmtAmt(selectedTotal, sectionCurrency)}</strong></>}
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="button" onClick={handleImport} disabled={selected.size === 0} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, cursor: selected.size ? 'pointer' : 'default', opacity: selected.size ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Import {selected.size} {selected.size === 1 ? 'Entry' : 'Entries'}</button>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="button" onClick={handleImport} disabled={selected.size === 0}>Import {selected.size} {selected.size === 1 ? 'Entry' : 'Entries'}</Button>
           </div>
         </div>
       </DialogContent>
@@ -575,7 +575,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
 
   return (
     <div style={{ marginBottom: 22 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#fff', background: color, padding: '6px 14px', borderRadius: '6px 6px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'hsl(var(--primary-foreground))', background: color, padding: '6px 14px', borderRadius: 'var(--r) var(--r) 0 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span>{title}</span>
         <span style={{ fontSize: 10, opacity: 0.85 }}>{currency}</span>
       </div>
@@ -862,7 +862,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
         <div style={{ marginBottom: 18 }}>
           <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Client Address — one line per entry</label>
           <textarea value={addr} onChange={e => setAddr(e.target.value)} rows={3} placeholder={'Company Name\nStreet / P.O. Box\nCity, Country\nVAT Number'}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'var(--font)', resize: 'vertical', outline: 'none', lineHeight: 1.7, boxSizing: 'border-box' as const }} />
+            style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'var(--font)', resize: 'vertical', outline: 'none', lineHeight: 1.7, boxSizing: 'border-box' as const }} />
         </div>
 
         {/* Shipment details */}
@@ -950,7 +950,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
         <div>
           <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Terms &amp; Conditions</label>
           <textarea value={terms} onChange={e => setTerms(e.target.value)} rows={3}
-            style={{ width: '100%', padding: '9px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'var(--font)', resize: 'vertical', outline: 'none', lineHeight: 1.7, boxSizing: 'border-box' as const }} />
+            style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'var(--font)', resize: 'vertical', outline: 'none', lineHeight: 1.7, boxSizing: 'border-box' as const }} />
         </div>
     </FormPage>
   );
@@ -1017,7 +1017,7 @@ function RequestStampDialog({ invoiceLabel, onClose }: { invoiceLabel: string; o
             <div style={{ marginTop: 10 }}>
               <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)', marginBottom: 4 }}>Note (optional)</label>
               <textarea value={note} onChange={e => setNote(e.target.value)} rows={3}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               <Button variant="outline" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
@@ -1310,7 +1310,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
         </div>
         <button type="button" onClick={() => { setShowPayment(v => !v); setPayAmt(String(Math.round(due))); }}
           style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green)', color: 'hsl(var(--green-foreground))', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-          <Icon name="dollarSign" size={13} color="#fff" /> Payment
+          <Icon name="dollarSign" size={13} color="hsl(var(--green-foreground))" /> Payment
         </button>
       </div>
 
@@ -1330,7 +1330,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               <div key={String(label)}>
                 <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{String(label)}</label>
                 <input type={String(type)} value={String(val)} onChange={e => (setter as (v: string) => void)(e.target.value)}
-                  style={{ width: '100%', padding: '7px 9px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--mono)', outline: 'none', boxSizing: 'border-box' as const }} />
+                  style={{ width: '100%', padding: '7px 9px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--mono)', outline: 'none', boxSizing: 'border-box' as const }} />
               </div>
             ))}
             <div>

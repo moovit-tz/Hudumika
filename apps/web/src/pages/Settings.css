@@ -61,7 +61,7 @@
    Upload areas (CompanySection)
 ══════════════════════════════════════════════════════════ */
 .s-upload           { display: flex; align-items: center; gap: 14px; padding: 18px 16px; border: 2px dashed var(--border); border-radius: var(--r); background: var(--bg); cursor: pointer; transition: border-color .15s, background .15s; }
-.s-upload:hover     { border-color: var(--teal-m, #2dd4bf); }
+.s-upload:hover     { border-color: var(--teal-m); }
 .s-upload--on       { border-color: var(--teal); background: var(--teal-l); }
 .s-upload--sm       { padding: 14px 16px; }
 .s-upload-ph        { border-radius: 4px; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--ink3); font-weight: 700; flex-shrink: 0; }

@@ -49,7 +49,7 @@ interface Addon { id:string; code:string; name:string; description:string; featu
 function mapAddonFromApi(a: { id:string; code:string; name:string; description:string; featureKey:string; monthlyPrice:number; annualPrice:number; color:string|null; activeCompanies?:number }): Addon {
   return {
     id: a.id, code: a.code, name: a.name, description: a.description, featureKey: a.featureKey,
-    monthly: a.monthlyPrice, annual: a.annualPrice, color: a.color || '#e8461a',
+    monthly: a.monthlyPrice, annual: a.annualPrice, color: a.color || 'var(--teal)',
     activeCompanies: a.activeCompanies ?? 0,
   };
 }
@@ -154,7 +154,7 @@ function coByID(id: string) { return COMPANIES.find(c=>c.id===id)!; }
 
 /* ── Status badge ── */
 function Badge({ cfg }: { cfg:{label:string;color:string;bg:string} }) {
-  return <span style={{ fontSize:11, fontWeight:700, color:cfg.color, background:cfg.bg, padding:'3px 9px', borderRadius:20, whiteSpace:'nowrap' }}>{cfg.label}</span>;
+  return <span style={{ fontSize:11, fontWeight:700, color:cfg.color, background:cfg.bg, padding:'3px 9px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap' }}>{cfg.label}</span>;
 }
 
 /* ── Company avatar ── */
@@ -341,7 +341,7 @@ function ActBtn({ icon, color, title, onClick }: { icon:IconName; color?:string;
 /* ── Stat summary card ── */
 function StatCard({ label, value }: { label:string; value:number|string; color?:string }) {
   return (
-    <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 12, padding:'16px 20px', flex:1, boxShadow: 'var(--elev-sm, 0 1px 3px rgba(0, 0, 0, 0.03))' }}>
+    <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', padding:'16px 20px', flex:1, boxShadow: 'var(--elev-sm, 0 1px 3px rgba(0, 0, 0, 0.03))' }}>
       <div style={{ fontSize:24, fontWeight:800, color:'var(--ink)' }}>{value}</div>
       <div style={{ fontSize:12.5, fontWeight:500, color:'var(--ink3)', marginTop:4 }}>{label}</div>
     </div>
@@ -841,7 +841,7 @@ export function CompaniesView() {
                       {co.founderPersonalEmailDomain && (
                         <span
                           title={`Signed up with a personal email (${co.founderPersonalEmailDomain}), not a verified work domain`}
-                          style={{ fontSize:10, fontWeight:700, borderRadius:20, padding:'2px 7px', color:'var(--gold)', background:'var(--gold-l)', whiteSpace:'nowrap' }}>
+                          style={{ fontSize:10, fontWeight:700, borderRadius:'var(--badge-radius)', padding:'2px 7px', color:'var(--gold)', background:'var(--gold-l)', whiteSpace:'nowrap' }}>
                           Personal email
                         </span>
                       )}
@@ -951,7 +951,7 @@ export function CompaniesView() {
 
             <div style={{ marginTop: 20 }}>
               <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:8 }}>Enabled Apps</label>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, padding:12, background:'var(--bg)', borderRadius:8, border:'1px solid var(--border)' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, padding:12, background:'var(--bg)', borderRadius: 'var(--r)', border:'1px solid var(--border)' }}>
                 {TENANT_APPS.map(app => {
                   const enabled = editEnabledApps[app.id] !== false;
                   return (
@@ -971,7 +971,7 @@ export function CompaniesView() {
             {addonsCatalog.length > 0 && (
               <div style={{ marginTop: 16 }}>
                 <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:8 }}>Add-ons</label>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, padding:12, background:'var(--bg)', borderRadius:8, border:'1px solid var(--border)' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, padding:12, background:'var(--bg)', borderRadius: 'var(--r)', border:'1px solid var(--border)' }}>
                   {addonsCatalog.map(addon => {
                     const granted = editAddonGrants[addon.code] === true;
                     return (
@@ -1246,8 +1246,8 @@ function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
                 <TD>
                   {parent ? (
                     <span style={{ display:'inline-flex', alignItems:'baseline', gap:6, paddingLeft:18, fontSize:12.5, color:'var(--ink2)' }}>
-                      <span style={{ color:'var(--ink4)' }}>–</span> {label}
-                      <span style={{ fontSize:10.5, color:'var(--ink4)' }}>({parent})</span>
+                      <span style={{ color:'var(--ink3)' }}>–</span> {label}
+                      <span style={{ fontSize:10.5, color:'var(--ink3)' }}>({parent})</span>
                     </span>
                   ) : (
                     <span style={{ fontWeight:600 }}>{label}</span>
@@ -1334,8 +1334,8 @@ function AppQuotasEditor({ packageCode }: { packageCode: string }) {
                 <TD>
                   {parent ? (
                     <span style={{ display:'inline-flex', alignItems:'baseline', gap:6, paddingLeft:18, fontSize:12.5, color:'var(--ink2)' }}>
-                      <span style={{ color:'var(--ink4)' }}>–</span> {label}
-                      <span style={{ fontSize:10.5, color:'var(--ink4)' }}>({parent})</span>
+                      <span style={{ color:'var(--ink3)' }}>–</span> {label}
+                      <span style={{ fontSize:10.5, color:'var(--ink3)' }}>({parent})</span>
                     </span>
                   ) : (
                     <span style={{ fontWeight:600 }}>{label}</span>
@@ -1406,7 +1406,7 @@ export function PackagesView() {
       // color, which is exactly how one plan card ended up a different,
       // unintended colour from the other three. Same real brand accent every
       // other package already uses, not a fresh arbitrary pick.
-      color: pkg.color || '#e8461a',
+      color: pkg.color || 'var(--teal)',
       popular: pkg.popular,
       features: pkg.features,
       isActive: pkg.is_active,
@@ -1437,7 +1437,7 @@ export function PackagesView() {
       <PageHdr title="Subscription Packages" sub="Manage subscription plans and pricing"
         action={
           <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-            <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:6, overflow:'hidden' }}>
+            <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', overflow:'hidden' }}>
               {(['monthly','annual'] as const).map(b=>(
                 <button key={b} onClick={()=>setBilling(b)} style={{ padding:'var(--ds-btn-py-sm) 14px', border:'none', cursor:'pointer', fontSize:12, fontWeight:600, background:billing===b?'hsl(var(--primary))':'var(--white)', color:billing===b?'hsl(var(--primary-foreground))':'var(--ink3)', textTransform:'capitalize', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>{b}</button>
               ))}
@@ -1462,10 +1462,10 @@ export function PackagesView() {
         {packages?.map(pkg=>(
           <div key={pkg.id} className="card" style={{ padding:'28px 26px', position:'relative', border:`2px solid ${pkg.popular&&pkg.isActive?pkg.color:'var(--border)'}`, opacity: pkg.isActive ? 1 : 0.6 }}>
             {pkg.popular && pkg.isActive && (
-              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:pkg.color, color:'#fff', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:20, whiteSpace:'nowrap', letterSpacing:'0.06em' }}>MOST POPULAR</div>
+              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:pkg.color, color:'var(--white)', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>MOST POPULAR</div>
             )}
             {!pkg.isActive && (
-              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:'var(--ink3)', color:'#fff', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:20, whiteSpace:'nowrap', letterSpacing:'0.06em' }}>INACTIVE — hidden from signups</div>
+              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:'var(--ink3)', color:'var(--white)', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>INACTIVE — hidden from signups</div>
             )}
 
             <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
@@ -1544,7 +1544,7 @@ export function PackagesView() {
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))', gap:14 }}>
             {addons.map(addon => (
               <div key={addon.id} className="card" style={{ padding:'18px 20px', display:'flex', gap:14, alignItems:'flex-start' }}>
-                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:9, background:`${addon.color}18`, flexShrink:0 }}>
+                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius: 'var(--r)', background:`${addon.color}18`, flexShrink:0 }}>
                   <Icon name="globe" size={16} color={addon.color} />
                 </span>
                 <div style={{ flex:1, minWidth:0 }}>
@@ -1594,7 +1594,7 @@ export function PackagesView() {
                   value={editingAddon.description}
                   onChange={e=>setEditingAddon(p=>p?({...p,description:e.target.value}):p)}
                   rows={3}
-                  style={{ width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius:9, fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', resize:'vertical', boxSizing:'border-box' }}
+                  style={{ width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', resize:'vertical', boxSizing:'border-box' }}
                 />
               </div>
 
@@ -1676,7 +1676,7 @@ export function PackagesView() {
                   those were never editable anywhere in this console before now,
                   which is exactly why Subscription.tsx's own per-seat pricing has
                   had to be hand-migrated through SQL up to this point. */}
-              <div style={{ marginTop:16, padding:'14px 16px', border:'1px solid var(--border)', borderRadius:9, background:'var(--bg)' }}>
+              <div style={{ marginTop:16, padding:'14px 16px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)' }}>
                 <FeatureToggleRow
                   icon={<Icon name="users" size={18} strokeWidth={1.75} />}
                   title="Per-seat pricing"
@@ -1709,7 +1709,7 @@ export function PackagesView() {
                 )}
               </div>
 
-              <div style={{ marginTop:12, padding:'2px 16px', border:'1px solid var(--border)', borderRadius:9 }}>
+              <div style={{ marginTop:12, padding:'2px 16px', border:'1px solid var(--border)', borderRadius: 'var(--r)'}}>
                 <FeatureToggleRow
                   icon={<Icon name="eye" size={18} strokeWidth={1.75} />}
                   title="Active — visible to signups"
@@ -1878,7 +1878,7 @@ export function DomainsView() {
       <PageHdr title="Custom Domains" sub="Custom domains across all companies, and what the last DNS and TLS check actually found" />
 
       {loadError && (
-        <div style={{ padding:'10px 13px', borderRadius:10, background:'var(--red-l)', color:'var(--red)', fontSize:12.5, marginBottom:14 }}>{loadError}</div>
+        <div style={{ padding:'10px 13px', borderRadius: 'var(--r)', background:'var(--red-l)', color:'var(--red)', fontSize:12.5, marginBottom:14 }}>{loadError}</div>
       )}
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
@@ -1944,7 +1944,7 @@ export function DomainsView() {
           <TR key={d.id}>
             <TD>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:6, background:'var(--bg)' }}>
+                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius: 'var(--r-sm)', background:'var(--bg)' }}>
                   <Icon name="globe" size={14} color="var(--teal)" />
                 </span>
                 <div>
@@ -1960,13 +1960,13 @@ export function DomainsView() {
               {/* Only a handshake that returned a trusted certificate says
                   anything here, and it says when that certificate expires. */}
               {d.ssl_ok
-                ? <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, fontWeight:700, color:'var(--green)', background:'var(--green-l)', padding:'3px 8px', borderRadius:20 }}>
+                ? <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, fontWeight:700, color:'var(--green)', background:'var(--green-l)', padding:'3px 8px', borderRadius:'var(--badge-radius)' }}>
                     <Icon name="lock" size={10} color="var(--green)" />
                     expires {d.ssl_expires_at ? fmtDate(d.ssl_expires_at) : 'unknown'}
                   </span>
                 : d.never_checked
                   ? <span style={{ fontSize:11.5, color:'var(--ink3)' }}>not checked yet</span>
-                  : <span style={{ fontSize:11, fontWeight:700, color:'var(--red)', background:'var(--red-l)', padding:'3px 8px', borderRadius:20 }}>no certificate</span>}
+                  : <span style={{ fontSize:11, fontWeight:700, color:'var(--red)', background:'var(--red-l)', padding:'3px 8px', borderRadius:'var(--badge-radius)' }}>no certificate</span>}
             </TD>
             <TD>
               <Badge cfg={DOM_CFG[d.status as DomainStatus]} />
@@ -2299,7 +2299,7 @@ export function ActivityView() {
       <PageHdr title="Activity Log" sub="Every superadmin action on the platform, recorded as it happened" />
 
       {loadError && (
-        <div style={{ padding:'10px 13px', borderRadius:10, background:'var(--red-l)', color:'var(--red)', fontSize:12.5, marginBottom:14 }}>{loadError}</div>
+        <div style={{ padding:'10px 13px', borderRadius: 'var(--r)', background:'var(--red-l)', color:'var(--red)', fontSize:12.5, marginBottom:14 }}>{loadError}</div>
       )}
 
       <div className="sa-toolbar">
@@ -2570,7 +2570,7 @@ export function SettingsView() {
   const SAToggle = ({ value, onChange, label }: { value:boolean; onChange:(v:boolean)=>void; label:string }) => (
     <button type="button" title={`Toggle ${label}`} onClick={() => onChange(!value)}
       style={{ width:38, height:22, borderRadius:99, border:'none', cursor:'pointer', background:value?'var(--teal)':'var(--border)', position:'relative', transition:'background .2s', flexShrink:0 }}>
-      <span style={{ position:'absolute', top:3, left:value?18:3, width:16, height:16, borderRadius:99, background:'#fff', transition:'left .2s', display:'block', boxShadow: 'var(--elev-sm)' }} />
+      <span style={{ position:'absolute', top:3, left:value?18:3, width:16, height:16, borderRadius:99, background:'var(--white)', transition:'left .2s', display:'block', boxShadow: 'var(--elev-sm)' }} />
     </button>
   );
 
@@ -2612,7 +2612,7 @@ export function SettingsView() {
         <TabsContent value="security">
       {/* ── Security & Sessions ── */}
       <SectionCard title="Security & Sessions" sub="Password policy, session management, and access controls" section="security">
-        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--teal)', background:'var(--teal-l)', border:'1px solid var(--teal)', borderRadius:8, padding:'8px 12px', marginBottom:16 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--teal)', background:'var(--teal-l)', border:'1px solid var(--teal)', borderRadius: 'var(--r)', padding:'8px 12px', marginBottom:16 }}>
           <Icon name="shield" size={13} />
           Enforced platform-wide on every login and request. SUPER_ADMIN accounts are exempt from the IP allowlist so a misconfiguration here can never lock the console itself out.
         </div>
@@ -2828,7 +2828,7 @@ export function SettingsView() {
         <TabsContent value="cron">
       {/* ── Cron Jobs ── */}
       <SectionCard title="Cron Jobs" sub="Every background job actually registered by this server — name and schedule, read live" section="cron" readOnly>
-        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color: jobs.connected ? 'var(--green)' : 'var(--gold)', background: jobs.connected ? 'var(--green-l)' : 'var(--gold-l)', border: `1px solid ${jobs.connected ? 'var(--green)' : 'var(--gold)'}`, borderRadius:8, padding:'8px 12px', marginBottom:16 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color: jobs.connected ? 'var(--green)' : 'var(--gold)', background: jobs.connected ? 'var(--green-l)' : 'var(--gold-l)', border: `1px solid ${jobs.connected ? 'var(--green)' : 'var(--gold)'}`, borderRadius: 'var(--r)', padding:'8px 12px', marginBottom:16 }}>
           <Icon name={jobs.connected ? 'checkCircle' : 'alertTriangle'} size={13} />
           {jobs.connected ? 'BullMQ (Redis) connected — schedules below are persistent and distributed.' : 'Redis unavailable — running on an in-process interval fallback (no persisted run history).'}
         </div>
@@ -3162,7 +3162,7 @@ export function AppStatusView() {
                       <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                         <span style={{ fontSize:14, fontWeight:700, color: muted ? 'var(--ink3)' : 'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{label}</span>
                         {row.is_beta && (
-                          <span style={{ fontSize:9.5, fontWeight:700, padding:'1px 6px', borderRadius:4, background:'var(--gold-l)', color:'var(--gold)', border:'1px solid var(--gold)', textTransform:'uppercase', letterSpacing:'0.4px', flexShrink:0 }}>
+                          <span style={{ fontSize:9.5, fontWeight:700, padding:'1px 6px', borderRadius: 'var(--r-sm)', background:'var(--gold-l)', color:'var(--gold)', border:'1px solid var(--gold)', textTransform:'uppercase', letterSpacing:'0.4px', flexShrink:0 }}>
                             Beta
                           </span>
                         )}

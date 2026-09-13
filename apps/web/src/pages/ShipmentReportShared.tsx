@@ -43,8 +43,8 @@ export const ShipmentReportShared: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, background: '#f8fafc' }}>
-        <Spinner size={36} thickness={3} color="#0b1e3a" trackColor="#e2e8f0" />
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, background: 'var(--bg)' }}>
+        <Spinner size={36} thickness={3} color="#0b1e3a" trackColor="var(--border)" />
         <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Loading shipment report…</div>
       </div>
     );
@@ -52,9 +52,9 @@ export const ShipmentReportShared: React.FC = () => {
 
   if (error || !html) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, background: '#f8fafc', padding: 24 }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'var(--bg)', padding: 24 }}>
         <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--red-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="alertCircle" size={28} color="#dc2626" />
+          <Icon name="alertCircle" size={28} color="var(--red)" />
         </div>
         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>Report link not valid</div>
         <div style={{ fontSize: 14, color: 'var(--ink2)', textAlign: 'center' }}>This link may have been removed. Ask your clearing agent for a fresh copy.</div>

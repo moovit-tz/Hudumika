@@ -62,6 +62,17 @@ export async function deliveryDocumentsRoutes(fastify: FastifyInstance) {
   // same standing rule as every other page mounted in two apps' nav this
   // session: gate on requireAnyEntitlement, not a single app's key.
   fastify.addHook('preHandler', requireAnyEntitlement(['clearos', 'finops']));
+  // HUD-0024 continuation: no role check at all — a CUSTOMER JWT could not
+  // only read every delivery document in the tenant but create/edit/issue/
+  // delete them too (confirmed live: GET 200, POST reached the usage gate,
+  // i.e. passed every check ahead of it). A customer fabricating or altering
+  // its own release/delivery documentation is a real integrity risk, not
+  // just a read leak.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   fastify.get('/', async (request: any, reply) => {
     const { shipment_id, doc_type, status } = request.query as { shipment_id?: string; doc_type?: string; status?: string };

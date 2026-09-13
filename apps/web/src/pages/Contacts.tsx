@@ -570,7 +570,7 @@ export function Contacts() {
                   className="btn btn-secondary btn-sm"
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
-                  <Icon name="star" size={14} color={activeContact.is_favorite ? '#f4b400' : 'var(--ink2)'} />
+                  <Icon name="star" size={14} color={activeContact.is_favorite ? 'var(--gold)' : 'var(--ink2)'} />
                   {activeContact.is_favorite ? 'Favorited' : 'Favorite'}
                 </button>
                 <button
@@ -599,7 +599,7 @@ export function Contacts() {
               
               {/* Left Column: Profile Card */}
               <div style={{ width: 300, flexShrink: 0 }}>
-                <div style={{ background: 'var(--white)', borderRadius: 12, padding: 24, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 24, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                   
                   {/* Avatar — a contact could show a picture but never set
                       one (the column was written only by the Google sync).
@@ -702,7 +702,7 @@ export function Contacts() {
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
                 
                 {/* Tabs Header */}
-                <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--white)', borderRadius: '12px 12px 0 0', padding: '0 16px', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--white)', borderRadius: `var(--r) var(--r) 0 0`, padding: '0 16px', border: '1px solid var(--border)' }}>
                   {[
                     { key: 'overview', label: 'Overview', icon: 'user' as IconName },
                     { key: 'notes', label: 'Notes', icon: 'fileText' as IconName },
@@ -729,7 +729,7 @@ export function Contacts() {
                 </div>
 
                 {/* Tab Body */}
-                <div style={{ background: 'var(--white)', borderRadius: '0 0 12px 12px', padding: 24, border: '1px solid var(--border)', borderTop: 'none', flex: 1 }}>
+                <div style={{ background: 'var(--white)', borderRadius: `0 0 var(--r) var(--r)`, padding: 24, border: '1px solid var(--border)', borderTop: 'none', flex: 1 }}>
                   
                   {/* OVERVIEW TAB */}
                   {activeTab === 'overview' && (
@@ -836,7 +836,7 @@ export function Contacts() {
                         </button>
                       </div>
                       <div style={{
-                        flex: 1, padding: 16, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)',
+                        flex: 1, padding: 16, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)',
                         fontSize: 14, color: 'var(--ink)', whiteSpace: 'pre-wrap', minHeight: 200, fontFamily: 'inherit'
                       }}>
                         {activeContact.notes || 'No notes added yet. Click Edit to write notes about this contact.'}
@@ -1029,7 +1029,7 @@ export function Contacts() {
               
               {/* Bulk Action Bar (when items are selected) */}
               {selectedIds.size > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 16px', background: 'var(--cts-accent-bg)', borderRadius: 8, marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 16px', background: 'var(--cts-accent-bg)', borderRadius: 'var(--r)', marginBottom: 16 }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--cts-accent)' }}>{selectedIds.size} selected</span>
                   <button type="button" className="btn btn-secondary btn-sm" onClick={toggleSelectAll}>Deselect all</button>
                   
@@ -1175,7 +1175,7 @@ export function Contacts() {
                                         <Icon
                                           name="star"
                                           size={18}
-                                          color={contact.is_favorite ? '#f4b400' : 'var(--ink2)'}
+                                          color={contact.is_favorite ? 'var(--gold)' : 'var(--ink2)'}
                                         />
                                       </button>
                                       {/* Edit */}
@@ -1257,7 +1257,7 @@ export function Contacts() {
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       {duplicates.map((group, index) => (
-                        <div key={index} className="card" style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
+                        <div key={index} className="card" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 }}>
                           <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 12, fontWeight: 600 }}>
                             {group.type === 'email' && `Duplicate email: ${group.value}`}
                             {group.type === 'phone' && `Duplicate phone: ${group.value}`}
@@ -1270,7 +1270,7 @@ export function Contacts() {
                               <div
                                 key={c.id}
                                 onClick={() => setActiveContact(c)}
-                                style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 12, background: 'var(--bg)', borderRadius: 8, cursor: 'pointer' }}
+                                style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 12, background: 'var(--bg)', borderRadius: 'var(--r)', cursor: 'pointer' }}
                               >
                                 <PersonAvatar userId={c.id} kind="contacts" name={`${c.first_name} ${c.last_name || ''}`.trim()} size={32} />
                                 <div>
@@ -1406,7 +1406,7 @@ export function Contacts() {
                   {showAvatarSelector && (
                     <div style={{
                       position: 'absolute', top: 90, zIndex: 10, width: 220,
-                      background: 'var(--white)', borderRadius: 8, padding: 16,
+                      background: 'var(--white)', borderRadius: 'var(--r)', padding: 16,
                       boxShadow: 'var(--elev-lg)', border: '1px solid var(--border)'
                     }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1691,7 +1691,7 @@ export function Contacts() {
               {/* Pill selector container */}
               <div style={{
                 display: 'flex', gap: 6, flexWrap: 'wrap', maxHeight: 110, overflowY: 'auto',
-                padding: 10, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg)', marginBottom: 8
+                padding: 10, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--bg)', marginBottom: 8
               }}>
                 {labels.length === 0 ? (
                   <span style={{ fontSize: 12, color: 'var(--ink2)', fontStyle: 'italic' }}>No labels created yet. Use the input below to create one!</span>
@@ -1731,7 +1731,7 @@ export function Contacts() {
                   placeholder="Type new label name..."
                   style={{
                     flex: 1, height: 32, fontSize: 12.5, border: '1px solid var(--border)',
-                    borderRadius: 6, padding: '0 10px', outline: 'none'
+                    borderRadius: 'var(--r-sm)', padding: '0 10px', outline: 'none'
                   }}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateLabelInline(); } }}
                 />

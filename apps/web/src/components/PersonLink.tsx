@@ -40,7 +40,7 @@ export function PersonLink({
   // Somebody who is recorded but not named — an unassigned ticket, a deleted
   // account — reads as "Unassigned", not as an empty row that looks like a bug.
   if (!label && !userId) {
-    return <span style={{ color: 'var(--ink4)', fontSize: 13, ...style }}>Unassigned</span>;
+    return <span style={{ color: 'var(--ink3)', fontSize: 13, ...style }}>Unassigned</span>;
   }
 
   const body = (

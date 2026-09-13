@@ -8,6 +8,7 @@ import { apiFetch } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { MGMT_ROLES } from '../../lib/permissions.js';
 import { showAlert } from '../../lib/alert.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 
 /** This used to be a fake multi-vendor SIP trunk marketplace (Twilio/
  *  Telnyx/Asterisk cards with invented account SIDs and per-minute rates) —
@@ -97,7 +98,7 @@ export const BlissTelephony: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+        <SectionLoading />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
           <div style={{ background: 'var(--white)', padding: 16, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev)' }}>

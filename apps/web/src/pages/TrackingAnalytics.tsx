@@ -99,7 +99,7 @@ export const TrackingAnalytics: React.FC = () => {
 
   const costData = {
     labels: ['Fuel', 'Maintenance'],
-    datasets: [{ data: [data.cost_breakdown.fuel, data.cost_breakdown.maintenance], backgroundColor: ['#0891b2', 'var(--gold)'], borderWidth: 0 }],
+    datasets: [{ data: [data.cost_breakdown.fuel, data.cost_breakdown.maintenance], backgroundColor: ['#0891b2', '#9a6700'], borderWidth: 0 }],
   };
 
   const totalCostData = {
@@ -109,7 +109,7 @@ export const TrackingAnalytics: React.FC = () => {
 
   const serviceCostData = {
     labels: data.total_cost_by_month.map(c => c.month),
-    datasets: [{ label: 'Service cost', data: data.total_cost_by_month.map(c => c.service), backgroundColor: 'var(--gold)' }],
+    datasets: [{ label: 'Service cost', data: data.total_cost_by_month.map(c => c.service), backgroundColor: '#9a6700' }],
   };
 
   const costPerKmData = {

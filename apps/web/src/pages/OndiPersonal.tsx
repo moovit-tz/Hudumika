@@ -93,9 +93,9 @@ const VERIFICATION_LEVEL_MAP: Record<string, { label: string; step: number }> = 
 };
 
 const TIER_COLORS: Record<string, { main: string; bg: string; border: string }> = {
-  LOW:    { main: 'var(--red, #ef4444)',   bg: 'var(--red-l, #fef2f2)',   border: 'var(--red, #ef4444)' },
-  MEDIUM: { main: 'var(--gold, #d97706)',  bg: 'var(--gold-l, #fffbeb)',  border: 'var(--gold, #d97706)' },
-  HIGH:   { main: 'var(--green, #059669)', bg: 'var(--green-l, #ecfdf5)', border: 'var(--green, #059669)' },
+  LOW:    { main: 'var(--red)',   bg: 'var(--red-l)',   border: 'var(--red)' },
+  MEDIUM: { main: 'var(--gold)',  bg: 'var(--gold-l)',  border: 'var(--gold)' },
+  HIGH:   { main: 'var(--green)', bg: 'var(--green-l)', border: 'var(--green)' },
 };
 
 function formatRole(role?: string): string {
@@ -562,7 +562,7 @@ export const OndiPersonal: React.FC = () => {
           <div className="op-posture-stat-val">
             <span>{twoFA?.enabled ? 'Enabled' : 'Disabled'}</span>
             {passkeys.length > 0 && (
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'var(--bg)', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'var(--bg)', padding: '2px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                 {passkeys.length} {passkeys.length === 1 ? 'passkey' : 'passkeys'}
               </span>
             )}

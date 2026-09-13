@@ -13,6 +13,7 @@
 import net from 'node:net';
 import type { Kysely, Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
+import { assertPublicHttpUrl } from '../lib/ssrf-guard.js';
 
 type Db = Kysely<Database> | Transaction<Database>;
 
@@ -49,6 +50,12 @@ export async function probe(target: {
   const started = Date.now();
 
   try {
+    // HUD-0024 continuation (Phase 6, SSRF): a monitor URL is tenant-
+    // configured and this fetch runs unattended on a schedule — without
+    // this, "add a monitor" was a way to make the server itself probe its
+    // own private network (cloud metadata, internal services) and report
+    // back the resulting status code/timing.
+    await assertPublicHttpUrl(target.url);
     const res = await fetch(target.url, {
       method: target.method || 'GET',
       signal: controller.signal,

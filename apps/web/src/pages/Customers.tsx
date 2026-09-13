@@ -50,7 +50,7 @@ function openStatementPrintWindow(
     <td>${tx.date ? new Date(tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
     <td>${tx.ref}</td>
     <td style="text-transform:capitalize">${tx.type}</td>
-    <td style="text-align:right;font-family:monospace;color:${tx.debit ? 'var(--red)' : 'var(--green)'}">${tx.debit ? '-' : '+'}${money(tx.amount)}</td>
+    <td style="text-align:right;font-family:monospace;color:${tx.debit ? '#dc2626' : '#059669'}">${tx.debit ? '-' : '+'}${money(tx.amount)}</td>
     <td style="text-align:right;font-family:monospace;font-weight:700;${tx.balance < 0 ? 'color:#dc2626' : ''}">${money(tx.balance)}</td>
   </tr>`).join('');
 
@@ -95,7 +95,7 @@ td{padding:7px 8px;border-bottom:1px solid #f3f4f6;font-size:10.5px}
 <div class="totals">
   <div><div class="lbl">Total Invoiced</div><div class="val">${money(totals.totalInvoiced)}</div></div>
   <div><div class="lbl">Total Paid</div><div class="val" style="color:#059669">${money(totals.totalPaid)}</div></div>
-  <div><div class="lbl">Outstanding</div><div class="val" style="color:${totals.outstanding > 0 ? 'var(--red)' : 'var(--green)'}">${money(totals.outstanding)}</div></div>
+  <div><div class="lbl">Outstanding</div><div class="val" style="color:${totals.outstanding > 0 ? '#dc2626' : '#059669'}">${money(totals.outstanding)}</div></div>
 </div>
 <table><thead><tr>
   <th>Date</th><th>Reference</th><th>Type</th><th>Amount</th><th>Balance</th>
@@ -159,7 +159,7 @@ function Avatar({ name, size = 36, customerId }: { name: string; size?: number; 
       size={size}
       shape="square"
       style={{
-        borderRadius: 8,
+        borderRadius: 'var(--r)',
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         border: '1px solid var(--border)',
       }}
@@ -249,13 +249,13 @@ function TinChip({ tin }: { tin?: string }) {
           gap: 6,
           background: 'var(--bg)',
           border: '1px solid var(--border)',
-          borderRadius: 6,
+          borderRadius: 'var(--r-sm)',
           padding: '3px 8px',
           cursor: 'pointer',
           transition: 'all 0.15s ease',
         }}
       >
-        <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--blue)', letterSpacing: '0.04em', background: 'var(--blue-l)', borderRadius: 3, padding: '1px 4px' }}>TIN</span>
+        <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--blue)', letterSpacing: '0.04em', background: 'var(--blue-l)', borderRadius: 'var(--r-sm)', padding: '1px 4px' }}>TIN</span>
         <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink)' }}>{masked}</span>
         {copied ? (
           <span style={{ fontSize: 10, color: 'var(--green)', fontWeight: 700 }}>✓</span>
@@ -268,9 +268,9 @@ function TinChip({ tin }: { tin?: string }) {
 }
 
 /* ── Table header cell ── */
-function Th({ children, align = 'left', width }: { children?: React.ReactNode; align?: 'left'|'right'|'center'; width?: number | string }) {
+function Th({ children, align = 'left', width, className }: { children?: React.ReactNode; align?: 'left'|'right'|'center'; width?: number | string; className?: string }) {
   return (
-    <th style={{ textAlign: align, width }}>
+    <th className={className} style={{ textAlign: align, width }}>
       {children}
     </th>
   );
@@ -1010,7 +1010,7 @@ export const Customers: React.FC = () => {
           {/* Top KPI Metrics Ribbon */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 14 }}>
             {/* KPI 1 */}
-            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>
                   Total Customers
@@ -1028,7 +1028,7 @@ export const Customers: React.FC = () => {
             </div>
 
             {/* KPI 2 */}
-            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>
                   Corporate Accounts
@@ -1046,7 +1046,7 @@ export const Customers: React.FC = () => {
             </div>
 
             {/* KPI 3 */}
-            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>
                   Trade Shipments
@@ -1064,7 +1064,7 @@ export const Customers: React.FC = () => {
             </div>
 
             {/* KPI 4 */}
-            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>
                   Tax Compliance Rate
@@ -1094,7 +1094,7 @@ export const Customers: React.FC = () => {
           </Tabs>
 
           {/* Main Card */}
-          <div className="crm-card" style={{ borderRadius: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)' }}>
+          <div className="crm-card" style={{ borderRadius: 'var(--r)', background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)' }}>
 
             {/* Unified Toolbar */}
             <div className="crm-toolbar" style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
@@ -1124,7 +1124,7 @@ export const Customers: React.FC = () => {
               </div>
 
               {selectedIds.length > 0 && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--border))', borderRadius: 6, padding: '3px 8px', fontSize: 12, fontWeight: 600, color: 'var(--teal)' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--border))', borderRadius: 'var(--r-sm)', padding: '3px 8px', fontSize: 12, fontWeight: 600, color: 'var(--teal)' }}>
                   <span>{selectedIds.length} selected</span>
                   <button type="button" onClick={() => setSelectedIds([])} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, lineHeight: 1, fontSize: 14 }}>×</button>
                 </div>
@@ -1262,21 +1262,21 @@ export const Customers: React.FC = () => {
             {/* View Mode 1: Table View */}
             {viewMode === 'table' && (
               <div style={{ overflowX: 'auto' }}>
-                <table className="crm-table">
+                <table className="crm-table crm-customer-table">
                   <thead>
                     <tr>
                       <Th width={42}>
                         <Checkbox checked={allChecked ? true : someChecked ? 'indeterminate' : false} onCheckedChange={toggleAll} />
                       </Th>
-                      <Th>Customer / Company</Th>
-                      {visibleCols.contact && <Th>Primary Contact</Th>}
-                      {visibleCols.email   && <Th>Email Address</Th>}
-                      {visibleCols.phone   && <Th>Phone / WhatsApp</Th>}
-                      {visibleCols.tin     && <Th>TIN & Compliance</Th>}
-                      {visibleCols.trade   && <Th>Trade Volume</Th>}
-                      {visibleCols.joined  && <Th>Joined</Th>}
+                      <Th className="crm-col-company" width={360}>Customer / Company</Th>
+                      {visibleCols.contact && <Th className="crm-col-contact">Primary Contact</Th>}
+                      {visibleCols.email   && <Th className="crm-col-email">Email Address</Th>}
+                      {visibleCols.phone   && <Th className="crm-col-phone">Phone / WhatsApp</Th>}
+                      {visibleCols.tin     && <Th className="crm-col-tin">TIN & Compliance</Th>}
+                      {visibleCols.trade   && <Th className="crm-col-trade">Trade Volume</Th>}
+                      {visibleCols.joined  && <Th className="crm-col-joined">Joined</Th>}
                       <Th>Status</Th>
-                      <Th align="right" width={80}>Actions</Th>
+                      <Th className="crm-col-actions" align="right" width={80}>Actions</Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1327,7 +1327,7 @@ export const Customers: React.FC = () => {
                             </td>
 
                             {/* Customer Identity */}
-                            <td>
+                            <td className="crm-col-company crm-company-cell">
                               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                 <Avatar name={c.name} size={38} customerId={c.id} />
                                 <div>
@@ -1357,7 +1357,7 @@ export const Customers: React.FC = () => {
 
                             {/* Contact Person */}
                             {visibleCols.contact && (
-                              <td>
+                              <td className="crm-col-contact">
                                 {c.contact_name ? (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <PersonAvatar name={c.contact_name} size={24} />
@@ -1371,7 +1371,7 @@ export const Customers: React.FC = () => {
 
                             {/* Email Address */}
                             {visibleCols.email && (
-                              <td>
+                              <td className="crm-col-email">
                                 {c.email ? (
                                   <a
                                     href={`mailto:${c.email}`}
@@ -1390,7 +1390,7 @@ export const Customers: React.FC = () => {
 
                             {/* Phone / WhatsApp */}
                             {visibleCols.phone && (
-                              <td>
+                              <td className="crm-col-phone">
                                 {c.phone_wa ? (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                     <Tip label={`Open WhatsApp — ${c.phone_wa}`} side="top">
@@ -1403,7 +1403,7 @@ export const Customers: React.FC = () => {
                                         display: 'inline-flex', alignItems: 'center', gap: 5,
                                         fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink)',
                                         textDecoration: 'none', background: 'var(--bg)', padding: '2px 7px',
-                                        borderRadius: 5, border: '1px solid var(--border)',
+                                        borderRadius: 'var(--r-sm)', border: '1px solid var(--border)',
                                       }}
                                     >
                                       <Icon name="phone" size={12} style={{ color: 'var(--green)' }} />
@@ -1419,14 +1419,14 @@ export const Customers: React.FC = () => {
 
                             {/* TIN Number */}
                             {visibleCols.tin && (
-                              <td>
+                              <td className="crm-col-tin">
                                 <TinChip tin={c.tax_id} />
                               </td>
                             )}
 
                             {/* Trade Volume */}
                             {visibleCols.trade && (
-                              <td>
+                              <td className="crm-col-trade">
                                 {(c.shipment_count ?? 0) > 0 ? (
                                   <Badge variant="info" className="gap-1 font-semibold">
                                     <Icon name="ship" size={11} />
@@ -1440,7 +1440,7 @@ export const Customers: React.FC = () => {
 
                             {/* Joined Date */}
                             {visibleCols.joined && (
-                              <td style={{ fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
+                              <td className="crm-col-joined" style={{ fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
                                 {fmtDate(c.created_at)}
                               </td>
                             )}
@@ -1451,7 +1451,7 @@ export const Customers: React.FC = () => {
                             </td>
 
                             {/* Row Action Menu */}
-                            <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                            <td className="crm-col-actions" style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                               <ActionsMenu
                                 onView={() => openProfile(c)}
                                 onEdit={() => { openProfile(c); setTimeout(() => setEditMode(true), 0); }}
@@ -1491,7 +1491,7 @@ export const Customers: React.FC = () => {
                       style={{
                         background: isChecked ? 'var(--teal-l)' : 'var(--card-bg, var(--white))',
                         border: `1px solid ${isChecked ? 'var(--teal)' : 'var(--border)'}`,
-                        borderRadius: 12,
+                        borderRadius: 'var(--r)',
                         padding: 16,
                         display: 'flex',
                         flexDirection: 'column',
@@ -1520,7 +1520,7 @@ export const Customers: React.FC = () => {
                       </div>
 
                       {/* Contact & Commercial Info */}
-                      <div style={{ background: 'var(--bg)', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
+                      <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
                         {c.contact_name && (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <span style={{ color: 'var(--ink3)' }}>Contact:</span>
@@ -1549,7 +1549,7 @@ export const Customers: React.FC = () => {
                               <a
                                 href={`mailto:${c.email}`}
                                 onClick={e => e.stopPropagation()}
-                                style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)', background: 'var(--card-bg, var(--white))' }}
+                                style={{ width: 30, height: 30, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)', background: 'var(--card-bg, var(--white))' }}
                               >
                                 <Icon name="mail" size={13} />
                               </a>
@@ -1562,7 +1562,7 @@ export const Customers: React.FC = () => {
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={e => e.stopPropagation()}
-                                style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)', background: 'var(--card-bg, var(--white))' }}
+                                style={{ width: 30, height: 30, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)', background: 'var(--card-bg, var(--white))' }}
                               >
                                 <Icon name="phone" size={13} />
                               </a>
@@ -1621,7 +1621,7 @@ export const Customers: React.FC = () => {
                       const v = parseInt(e.target.value);
                       if (v >= 1 && v <= totalPages) setPage(v);
                     }}
-                    style={{ width: 44, padding: '3px 6px', border: '1px solid var(--border)', borderRadius: 5, fontSize: 12.5, textAlign: 'center', fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--card-bg, var(--white))' }}
+                    style={{ width: 44, padding: '3px 6px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5, textAlign: 'center', fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--card-bg, var(--white))' }}
                   />
                   <span>OF {totalPages}</span>
                 </div>
@@ -1655,7 +1655,7 @@ export const Customers: React.FC = () => {
                       value={createForm.name}
                       onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))}
                       placeholder="e.g. Acme Industrial Supplies Ltd"
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
                     />
                   </div>
 
@@ -1685,7 +1685,7 @@ export const Customers: React.FC = () => {
                       value={createForm.contact_name}
                       onChange={e => setCreateForm(p => ({ ...p, contact_name: e.target.value }))}
                       placeholder="e.g. John Doe (Director)"
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
                     />
                   </div>
 
@@ -1699,7 +1699,7 @@ export const Customers: React.FC = () => {
                       value={createForm.email}
                       onChange={e => setCreateForm(p => ({ ...p, email: e.target.value }))}
                       placeholder="accounts@company.co.tz"
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
                     />
                   </div>
 
@@ -1713,7 +1713,7 @@ export const Customers: React.FC = () => {
                       value={createForm.phone_wa}
                       onChange={e => setCreateForm(p => ({ ...p, phone_wa: e.target.value }))}
                       placeholder="+255 712 345 678"
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
                     />
                   </div>
 
@@ -1727,7 +1727,7 @@ export const Customers: React.FC = () => {
                       value={createForm.tax_id}
                       onChange={e => setCreateForm(p => ({ ...p, tax_id: e.target.value }))}
                       placeholder="e.g. 123-456-789"
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
                     />
                   </div>
 
@@ -1741,7 +1741,7 @@ export const Customers: React.FC = () => {
                       value={createForm.vat_number}
                       onChange={e => setCreateForm(p => ({ ...p, vat_number: e.target.value }))}
                       placeholder="e.g. 40-001234-V"
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
                     />
                   </div>
 
@@ -1790,7 +1790,7 @@ export const Customers: React.FC = () => {
                       value={createForm.address}
                       onChange={e => setCreateForm(p => ({ ...p, address: e.target.value }))}
                       placeholder="e.g. Plot 45, Nyerere Road, Industrial Area, Dar es Salaam"
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }}
                     />
                   </div>
 
@@ -2332,7 +2332,7 @@ export const Customers: React.FC = () => {
         unpaid:   { bg: 'var(--gold-l)',        color: 'var(--gold)'       },
         overdue:  { bg: 'var(--red-l)',   color: 'var(--red)'    },
         draft:    { bg: 'var(--bg)',      color: 'var(--ink3)'   },
-        partial:  { bg: 'var(--purple-l)',        color: '#7c3aed'       },
+        partial:  { bg: 'var(--purple-l)',        color: 'var(--purple)'       },
       };
 
       return (
@@ -2484,7 +2484,7 @@ export const Customers: React.FC = () => {
                 <SectionCard padded={false} title="Transaction History">
                   {transactions.map((tx, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--border)', gap: 14 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: tx.debit ? 'var(--red-l)' : 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: tx.debit ? 'var(--red-l)' : 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon name={tx.debit ? 'fileText' : 'creditCard'} size={14} color={tx.debit ? 'var(--red)' : 'var(--green)'} strokeWidth={1.75} />
                       </div>
                       <div style={{ flex: 1 }}>
@@ -2518,7 +2518,7 @@ export const Customers: React.FC = () => {
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{e.name}</div>
                     </div>
                     <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{e.date.split('T')[0]}</div>
-                    <div style={{ flex: 1 }}><span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'var(--bg)', color: 'var(--ink3)' }}>{e.category}</span></div>
+                    <div style={{ flex: 1 }}><span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)' }}>{e.category}</span></div>
                     <div style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, color: e.is_revenue ? 'var(--green)' : 'var(--red)', textAlign: 'right' }}>{e.is_revenue ? '+' : '-'}{(e.amount || 0).toLocaleString()}</div>
                   </div>
                 ))}
@@ -2658,8 +2658,8 @@ export const Customers: React.FC = () => {
       ];
 
       const TICKET_STATUS: Record<string, { bg: string; color: string }> = {
-        open:        { bg: 'var(--blue-l)', color: '#2563eb' },
-        in_progress: { bg: '#ccfbf1', color: '#0d9488' },
+        open:        { bg: 'var(--blue-l)', color: 'var(--blue)' },
+        in_progress: { bg: 'var(--teal-l)', color: 'var(--teal)' },
         resolved:    { bg: 'var(--green-l)', color: 'var(--green)' },
         closed:      { bg: 'var(--bg)', color: 'var(--ink3)' },
         escalated:   { bg: 'var(--red-l)', color: 'var(--red)' },
@@ -2689,8 +2689,8 @@ export const Customers: React.FC = () => {
                 const sc = TICKET_STATUS[st] || TICKET_STATUS.open;
                 return (
                   <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Icon name="headphones" size={14} color="#2563eb" strokeWidth={1.75} />
+                    <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon name="headphones" size={14} color="var(--blue)" strokeWidth={1.75} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject || t.title || `Ticket #${t.id?.slice(-5)}`}</div>
@@ -2746,7 +2746,7 @@ export const Customers: React.FC = () => {
               {custSealLots.map((l: any) => {
                 const style = SEAL_STATUS_COLOR[l.customsStatus] || { bg: 'var(--bg)', color: 'var(--ink2)' };
                 return (
-                  <div key={l.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 10, gap: 12, flexWrap: 'wrap' }}>
+                  <div key={l.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', gap: 12, flexWrap: 'wrap' }}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{l.description}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
@@ -2832,7 +2832,7 @@ export const Customers: React.FC = () => {
                 const ft = fileTypeStyle(f.type);
                 return (
                   <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < linkedFiles.length - 1 ? '1px solid var(--bg)' : 'none' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Icon name={ft.icon} size={16} color={ft.color} strokeWidth={1.75} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -2884,10 +2884,10 @@ export const Customers: React.FC = () => {
                     return (
                       <button key={f.id} type="button" disabled={alreadyLinked || fileLinking === f.id}
                         onClick={() => linkExistingFile(f.id)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '9px 8px', border: 'none', borderRadius: 8, background: 'none', cursor: alreadyLinked ? 'default' : 'pointer', fontFamily: 'var(--font)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '9px 8px', border: 'none', borderRadius: 'var(--r)', background: 'none', cursor: alreadyLinked ? 'default' : 'pointer', fontFamily: 'var(--font)' }}
                         onMouseEnter={e => { if (!alreadyLinked) e.currentTarget.style.background = 'var(--bg)'; }}
                         onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-                        <div style={{ width: 28, height: 28, borderRadius: 7, background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 'var(--r)', background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Icon name={ft.icon} size={14} color={ft.color} strokeWidth={1.75} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -2943,7 +2943,7 @@ export const Customers: React.FC = () => {
               {custSignEnvelopes.map((e: any, i: number) => (
                 <Link key={e.id} to={`/sign/envelope/${e.id}`} style={{ textDecoration: 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < custSignEnvelopes.length - 1 ? '1px solid var(--bg)' : 'none', cursor: 'pointer' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Icon name="stamp" size={16} color="var(--teal)" strokeWidth={1.75} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -2992,10 +2992,10 @@ export const Customers: React.FC = () => {
                     return (
                       <button key={f.id} type="button" disabled={!sel.email || sendingForSignature === f.id}
                         onClick={() => sendFileForSignature(f)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '9px 8px', border: 'none', borderRadius: 8, background: 'none', cursor: !sel.email ? 'default' : 'pointer', fontFamily: 'var(--font)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '9px 8px', border: 'none', borderRadius: 'var(--r)', background: 'none', cursor: !sel.email ? 'default' : 'pointer', fontFamily: 'var(--font)' }}
                         onMouseEnter={ev => { if (sel.email) ev.currentTarget.style.background = 'var(--bg)'; }}
                         onMouseLeave={ev => (ev.currentTarget.style.background = 'none')}>
-                        <div style={{ width: 28, height: 28, borderRadius: 7, background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 'var(--r)', background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Icon name={ft.icon} size={14} color={ft.color} strokeWidth={1.75} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>

@@ -88,7 +88,7 @@ export function FreightRateCardsPage() {
       />
 
       {activeCarriers.length === 0 && !loading && (
-        <div style={{ padding: '12px 18px', borderRadius: 'var(--r)', background: 'rgba(184,121,28,0.08)', border: '1px solid rgba(184,121,28,0.25)', marginBottom: 20, fontSize: 12.5, color: 'var(--ink2)' }}>
+        <div style={{ padding: '12px 18px', borderRadius: 'var(--r)', background: 'var(--gold-l)', border: '1px solid var(--gold)', marginBottom: 20, fontSize: 12.5, color: 'var(--ink2)' }}>
           {carriers.length === 0
             ? 'Add a carrier first — rate cards belong to a carrier.'
             : 'No active carriers — activate one on the Carriers page before adding a rate card.'}
@@ -163,7 +163,7 @@ export function FreightRateCardsPage() {
                 <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-                      <PersonAvatar userId={c.carrier_id} kind="carriers" name={c.carrier_name ?? ''} size={26} style={{ borderRadius: 6 }} />
+                      <PersonAvatar userId={c.carrier_id} kind="carriers" name={c.carrier_name ?? ''} size={26} style={{ borderRadius: 'var(--r-sm)' }} />
                       {c.carrier_name || '—'}
                     </span>
                   </td>

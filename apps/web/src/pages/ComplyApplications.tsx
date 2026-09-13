@@ -13,6 +13,7 @@ import { ComplyCustomerPicker } from './ComplyCustomerPicker.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
 
 const NEW_APP_STEPS = ['Document', 'Details', 'Review'];
 
@@ -179,12 +180,12 @@ export function ComplyApplications() {
         subtitle="Track submissions across all government agencies"
         actions={
           <div className="comply-action-row">
-            <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh applications">
+            <Button type="button" variant="outline" size="icon" onClick={refresh} title="Refresh applications" aria-label="Refresh applications">
               <Icon name="refresh" size={13} />
-            </button>
-            <button type="button" className="comply-btn-primary" onClick={() => navigate('/complyos/applications/new')}>
+            </Button>
+            <Button type="button" size="sm" onClick={() => navigate('/complyos/applications/new')}>
               <Icon name="plus" size={14} /> New Application
-            </button>
+            </Button>
           </div>
         }
       />
@@ -243,11 +244,11 @@ export function ComplyApplications() {
                   <td className="comply-td-muted">{formatDate(app.updated_at)}</td>
                   <td onClick={e => e.stopPropagation()}>
                     <div className="comply-td-actions">
-                      <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => setSelected(app)}>
+                      <Button type="button" variant="outline" size="xs" onClick={() => setSelected(app)}>
                         View
-                      </button>
+                      </Button>
                       {app.status === 'rejected' && (
-                        <button type="button" className="comply-btn-secondary comply-btn-sm" disabled={submitting} onClick={() => handleAppeal(app)}>Appeal</button>
+                        <Button type="button" variant="outline" size="xs" disabled={submitting} onClick={() => handleAppeal(app)}>Appeal</Button>
                       )}
                     </div>
                   </td>
@@ -312,7 +313,7 @@ export function ComplyApplications() {
                   <div className="comply-section-title">Requirements Checklist</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {((selected.metadata as any).requirements as string[]).map((r, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                         <Icon name="fileText" size={13} color="var(--comply)" />
                         <span style={{ fontSize: 13, color: 'var(--ink)' }}>{r}</span>
                       </div>
@@ -340,36 +341,36 @@ export function ComplyApplications() {
 
               <div className="comply-action-row">
                 {selected.status === 'draft' && (
-                  <button
+                  <Button
                     type="button"
-                    className="comply-btn-primary"
+                    size="sm"
                     disabled={submitting}
                     onClick={() => handleSubmit(selected)}
                   >
                     <Icon name="send" size={13} />
                     {submitting ? 'Submitting…' : 'Submit Application'}
-                  </button>
+                  </Button>
                 )}
                 {selected.status === 'rejected' && (
-                  <button type="button" className="comply-btn-primary" disabled={submitting} onClick={() => handleAppeal(selected)}>
+                  <Button type="button" size="sm" disabled={submitting} onClick={() => handleAppeal(selected)}>
                     <Icon name="refresh" size={13} /> {submitting ? 'Submitting…' : 'Start Appeal'}
-                  </button>
+                  </Button>
                 )}
-                <button type="button" className="comply-btn-secondary" onClick={() => handleDownloadPackage(selected)}>
+                <Button type="button" variant="outline" size="sm" onClick={() => handleDownloadPackage(selected)}>
                   <Icon name="download" size={13} /> Download Package
-                </button>
-                <button type="button" className="comply-btn-secondary" onClick={() => handleEngageLegalFirm(selected)}>
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => handleEngageLegalFirm(selected)}>
                   <Icon name="briefcase" size={13} /> Engage Legal Firm
-                </button>
+                </Button>
                 {!selected.sign_envelope_id && (
-                  <button type="button" className="comply-btn-secondary" disabled={requestingSignature} onClick={() => handleRequestSignature(selected)}>
+                  <Button type="button" variant="outline" size="sm" disabled={requestingSignature} onClick={() => handleRequestSignature(selected)}>
                     <Icon name="fileText" size={13} /> {requestingSignature ? 'Sending…' : 'Request Signature'}
-                  </button>
+                  </Button>
                 )}
                 {selected.status === 'draft' && (
-                  <button type="button" className="comply-btn-secondary" style={{ color: 'var(--red)' }} disabled={deleting} onClick={() => handleDelete(selected)}>
+                  <Button type="button" variant="outline" size="sm" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} disabled={deleting} onClick={() => handleDelete(selected)}>
                     <Icon name="trash" size={13} color="var(--red)" /> {deleting ? 'Deleting…' : 'Delete Draft'}
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>

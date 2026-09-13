@@ -24,8 +24,8 @@ function BarList({ rows }: { rows: { label: string; value: number; display: stri
             <span style={{ color: 'var(--ink2)' }}>{r.label}</span>
             <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.display}</span>
           </div>
-          <div style={{ height: 7, borderRadius: 4, background: 'var(--bg)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${Math.round((r.value / max) * 100)}%`, background: 'var(--teal)', borderRadius: 4 }} />
+          <div style={{ height: 7, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${Math.round((r.value / max) * 100)}%`, background: 'var(--teal)', borderRadius: 'var(--r-sm)' }} />
           </div>
         </div>
       ))}

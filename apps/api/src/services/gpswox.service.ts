@@ -1,5 +1,6 @@
 import { withTenant } from '../db/client.js';
 import { checkGeofenceTransitions } from '../routes/tracking.routes.js';
+import { assertPublicHttpUrl } from '../lib/ssrf-guard.js';
 
 export interface GpswoxCreds {
   base_url: string;
@@ -59,6 +60,14 @@ export class GpswoxService {
    */
   async login(creds: GpswoxCreds): Promise<string | null> {
     try {
+      // HUD-0024 continuation (Phase 6, SSRF): base_url is tenant-configured
+      // ("GPSWOX is typically self-hosted per deployment" — see getCreds
+      // above) — without this, the tracking-sync poll and /gpswox/test were
+      // both a way to make the server itself probe an internal address on
+      // the admin's behalf, on a recurring schedule. login() gates both
+      // real call paths (syncPositions and testConnection each call this
+      // before getDevicesLatest), so one check here covers the file.
+      await assertPublicHttpUrl(creds.base_url);
       const res = await fetch(`${creds.base_url}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

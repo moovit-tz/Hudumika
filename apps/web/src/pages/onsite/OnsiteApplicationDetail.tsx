@@ -105,7 +105,7 @@ export function OnsiteApplicationDetail() {
   if (loading) {
     return (
       <div className="onsite-page">
-        <p style={{ color: 'var(--ink-muted)' }}>Loading application details…</p>
+        <p style={{ color: 'var(--ink3)' }}>Loading application details…</p>
       </div>
     );
   }
@@ -114,7 +114,7 @@ export function OnsiteApplicationDetail() {
     return (
       <div className="onsite-page">
         <div className="onsite-card">
-          <p style={{ color: '#ef4444' }}>{error || 'Application not found'}</p>
+          <p style={{ color: 'var(--red)' }}>{error || 'Application not found'}</p>
           <Link to="/onsite/applications" className="btn btn-secondary" style={{ marginTop: '1rem', width: 'fit-content' }}>
             ← Back to Applications
           </Link>
@@ -141,20 +141,20 @@ export function OnsiteApplicationDetail() {
             <h3 className="onsite-card-title">Configuration</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>Build Command</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>Build Command</label>
                 <div className="onsite-mono">{app.build_command || 'None'}</div>
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>Start Command</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>Start Command</label>
                 <div className="onsite-mono">{app.start_command || 'None'}</div>
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>Repository URL</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>Repository URL</label>
                 <div className="onsite-mono">{app.repo_url || 'Not connected'}</div>
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>Current Version</label>
-                <div className="onsite-mono">{app.current_version || <span style={{ color: 'var(--ink-muted)' }}>Never deployed</span>}</div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>Current Version</label>
+                <div className="onsite-mono">{app.current_version || <span style={{ color: 'var(--ink3)' }}>Never deployed</span>}</div>
               </div>
             </div>
           </div>
@@ -162,7 +162,7 @@ export function OnsiteApplicationDetail() {
           {/* Environment Variables / Secrets */}
           <div className="onsite-card">
             <h3 className="onsite-card-title">Environment Variables & Secrets</h3>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--ink-muted)' }}>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--ink3)' }}>
               Values are encrypted at rest with AES-256-GCM. Secret values are never sent in cleartext API responses.
             </p>
 
@@ -202,7 +202,7 @@ export function OnsiteApplicationDetail() {
                 <tbody>
                   {secrets.length === 0 ? (
                     <tr>
-                      <td colSpan={3} style={{ color: 'var(--ink-muted)', textAlign: 'center' }}>
+                      <td colSpan={3} style={{ color: 'var(--ink3)', textAlign: 'center' }}>
                         No environment variables set yet.
                       </td>
                     </tr>
@@ -210,9 +210,9 @@ export function OnsiteApplicationDetail() {
                     secrets.map((s) => (
                       <tr key={s.id}>
                         <td className="onsite-mono" style={{ fontWeight: 600 }}>{s.key}</td>
-                        <td className="onsite-mono" style={{ color: 'var(--ink-muted)' }}>{s.value_masked}</td>
+                        <td className="onsite-mono" style={{ color: 'var(--ink3)' }}>{s.value_masked}</td>
                         <td>
-                          <button className="btn btn-sm btn-ghost" style={{ color: '#ef4444' }} onClick={() => handleDeleteSecret(s.id)}>
+                          <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDeleteSecret(s.id)}>
                             <Icon name="trash2" size={14} />
                           </button>
                         </td>
@@ -238,7 +238,7 @@ export function OnsiteApplicationDetail() {
                 <div key={env.id} style={{ padding: '0.75rem', borderRadius: '0.5rem', background: 'var(--bg-subtle, #f8fafc)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontWeight: 600, textTransform: 'capitalize' }}>{env.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>Branch: {env.branch || 'main'}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>Branch: {env.branch || 'main'}</div>
                   </div>
                   <span className={`onsite-badge ${env.status}`}>{env.status}</span>
                 </div>
@@ -246,7 +246,7 @@ export function OnsiteApplicationDetail() {
             </div>
 
             {showAddEnv && (
-              <form onSubmit={handleAddEnvironment} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
+              <form onSubmit={handleAddEnvironment} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
                 <div className="onsite-form-group">
                   <label>Environment name *</label>
                   <input type="text" className="onsite-input" placeholder="staging" value={envName} onChange={(e) => setEnvName(e.target.value)} required />

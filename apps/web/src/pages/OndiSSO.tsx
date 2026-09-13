@@ -171,7 +171,7 @@ function AddProviderModal({ onClose, onAdded, onStartSaml }: { onClose: () => vo
             <input required value={name} onChange={e => setName(e.target.value)} placeholder={type === 'SAML' ? 'e.g. Company Okta' : 'e.g. Company Google Workspace'} style={inputStyle} />
           </div>
           {type === 'SAML' ? (
-            <div style={{ background: 'var(--teal-l, #ecfeff)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: 'var(--ink2)' }}>
+            <div style={{ background: 'var(--teal-l)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 12, color: 'var(--ink2)' }}>
               Continuing opens a short, guided setup — it gives you Hudumika's own connection details first (to paste into Okta, Entra ID, or Google Workspace), then asks for theirs.
             </div>
           ) : (
@@ -363,7 +363,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
         </DialogHeader>
 
         <DialogBody>
-        {error && <div style={{ background: 'var(--red-l, #fef2f2)', color: 'var(--red)', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, marginBottom: 14 }}>{error}</div>}
+        {error && <div style={{ background: 'var(--red-l)', color: 'var(--red)', borderRadius: 'var(--r)', padding: '8px 12px', fontSize: 12.5, marginBottom: 14 }}>{error}</div>}
 
         {/* Step 1 — name it */}
         {step === 'basics' && (
@@ -377,7 +377,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {(Object.keys(SAML_VENDOR_GUIDES) as Array<keyof typeof SAML_VENDOR_GUIDES>).map(v => (
                   <button key={v} type="button" onClick={() => setVendor(v)}
-                    style={{ padding: '9px 12px', borderRadius: 'var(--r)', border: vendor === v ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: vendor === v ? 'var(--teal-l, #ecfeff)' : 'var(--bg)', color: vendor === v ? 'var(--teal)' : 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' }}>
+                    style={{ padding: '9px 12px', borderRadius: 'var(--r)', border: vendor === v ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: vendor === v ? 'var(--teal-l)' : 'var(--bg)', color: vendor === v ? 'var(--teal)' : 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' }}>
                     {SAML_VENDOR_GUIDES[v].label}
                   </button>
                 ))}
@@ -395,7 +395,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
             </div>
             <CopyRow label="ACS / Reply URL (Single sign-on URL)" value={acsUrl} />
             <CopyRow label="Entity ID / Audience URI" value={metadataUrl} />
-            <div style={{ background: 'var(--bg)', border: '1px solid var(--border-soft)', borderRadius: 'var(--r)', padding: '12px 14px' }}>
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px' }}>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.03em' }}>In {SAML_VENDOR_GUIDES[vendor].label}</div>
               <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {SAML_VENDOR_GUIDES[vendor].steps.map((s, i) => (
@@ -493,7 +493,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)' }}>{label}</label>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        <code style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 11.5, background: 'var(--bg)', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-soft)', overflow: 'auto', whiteSpace: 'nowrap' }}>{value}</code>
+        <code style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 11.5, background: 'var(--bg)', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'auto', whiteSpace: 'nowrap' }}>{value}</code>
         <button type="button" title="Copy" onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
           style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: copied ? 'var(--teal)' : 'var(--ink3)', flexShrink: 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }}>
           <Icon name={copied ? 'check' : 'copy'} size={13} />
@@ -669,7 +669,7 @@ export const OndiSSO: React.FC = () => {
 
           {subTab === 'idps' ? (
             <>
-              <div style={{ background: 'var(--gold-l)', border: '1px solid #fde68a', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: 12, color: '#854d0e', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <div style={{ background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: 12, color: 'var(--gold)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <Icon name="alertTriangle" size={15} style={{ flexShrink: 0 }} />
                 <span>Google, Microsoft and SAML providers here connect to real sign-in against Ondi Auth Server routes once enabled. A generic OIDC provider is still config-only — that federation still needs building.</span>
               </div>
@@ -694,7 +694,7 @@ export const OndiSSO: React.FC = () => {
                         <td style={{ padding: '10px 14px' }}>
                           {isSaml ? (
                             needsSetup
-                              ? <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '4px 12px', background: 'var(--gold-l)', color: '#854d0e' }}>Needs setup</span>
+                              ? <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '4px 12px', background: 'var(--gold-l)', color: 'var(--gold)' }}>Needs setup</span>
                               : <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '4px 12px', background: 'var(--green-l)', color: 'var(--green)' }}>Ready</span>
                           ) : (
                             <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>
@@ -702,7 +702,7 @@ export const OndiSSO: React.FC = () => {
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           <button type="button" onClick={() => toggleEnabled(p)} disabled={needsSetup || !governanceEntitled} title={needsSetup ? 'Finish setup before enabling' : !governanceEntitled ? 'Requires the Enterprise Identity & Governance add-on' : undefined}
-                            style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '4px 12px', border: 'none', cursor: (needsSetup || !governanceEntitled) ? 'not-allowed' : 'pointer', opacity: (needsSetup || !governanceEntitled) ? 0.6 : 1, background: p.enabled ? 'var(--green-l)' : '#f1f5f9', color: p.enabled ? 'var(--green)' : '#64748b', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                            style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '4px 12px', border: 'none', cursor: (needsSetup || !governanceEntitled) ? 'not-allowed' : 'pointer', opacity: (needsSetup || !governanceEntitled) ? 0.6 : 1, background: p.enabled ? 'var(--green-l)' : 'var(--bg)', color: p.enabled ? 'var(--green)' : 'var(--ink2)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                             {p.enabled ? 'Enabled' : 'Disabled'}
                           </button>
                         </td>
@@ -712,7 +712,7 @@ export const OndiSSO: React.FC = () => {
                             {isSaml && (
                               needsSetup ? (
                                 <button type="button" onClick={() => governanceEntitled && setSamlWizard(p)} disabled={!governanceEntitled} title={governanceEntitled ? undefined : 'Requires the Enterprise Identity & Governance add-on'}
-                                  style={{ fontSize: 11.5, fontWeight: 700, border: '1px solid var(--teal)', background: 'var(--teal-l, #ecfeff)', color: 'var(--teal)', borderRadius: 'var(--r)', padding: '6px 12px', cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                                  style={{ fontSize: 11.5, fontWeight: 700, border: '1px solid var(--teal)', background: 'var(--teal-l)', color: 'var(--teal)', borderRadius: 'var(--r)', padding: '6px 12px', cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
                                   Finish setup
                                 </button>
                               ) : (
@@ -740,7 +740,7 @@ export const OndiSSO: React.FC = () => {
             </>
           ) : (
             <>
-              <div style={{ background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: 12.5, color: 'var(--ink2)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: 12.5, color: 'var(--ink2)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <Icon name="shield" size={15} style={{ flexShrink: 0, color: 'var(--teal)', marginTop: 1 }} />
                 <span>Configure external client applications integrating with Ondi for single sign-on. Registered clients can initiate OAuth2/OIDC flows using PKCE or client secret signatures. First-party apps skip the user consent prompt.</span>
               </div>
@@ -762,7 +762,7 @@ export const OndiSSO: React.FC = () => {
                           <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--ink)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               {c.logo_url ? (
-                                <img src={c.logo_url} alt="" style={{ width: 20, height: 20, borderRadius: 4, objectFit: 'contain' }} />
+                                <img src={c.logo_url} alt="" style={{ width: 20, height: 20, borderRadius: 'var(--r-sm)', objectFit: 'contain' }} />
                               ) : (
                                 <Icon name="globe" size={15} style={{ color: 'var(--ink3)' }} />
                               )}
@@ -771,7 +771,7 @@ export const OndiSSO: React.FC = () => {
                           </td>
                           <td style={{ padding: '12px 14px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <code style={{ fontFamily: 'var(--mono)', fontSize: 12, background: 'var(--bg)', padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border-soft)' }}>{c.client_id}</code>
+                              <code style={{ fontFamily: 'var(--mono)', fontSize: 12, background: 'var(--bg)', padding: '2px 6px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>{c.client_id}</code>
                               <button type="button" title="Copy Client ID" onClick={() => copyToClipboard(c.client_id)}
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex' }}>
                                 <Icon name="copy" size={13} />
@@ -779,12 +779,12 @@ export const OndiSSO: React.FC = () => {
                             </div>
                           </td>
                           <td style={{ padding: '12px 14px' }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: c.first_party ? 'var(--green-l)' : '#f1f5f9', color: c.first_party ? 'var(--green)' : '#64748b' }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: c.first_party ? 'var(--green-l)' : 'var(--bg)', color: c.first_party ? 'var(--green)' : 'var(--ink2)' }}>
                               {c.first_party ? 'First Party' : 'Third Party'}
                             </span>
                           </td>
                           <td style={{ padding: '12px 14px' }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: c.client_secret_hash ? '#eff6ff' : 'var(--red-l)', color: c.client_secret_hash ? '#1d4ed8' : 'var(--red)' }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: c.client_secret_hash ? 'var(--blue-l)' : 'var(--red-l)', color: c.client_secret_hash ? 'var(--blue)' : 'var(--red)' }}>
                               {c.client_secret_hash ? 'Confidential' : 'Public (PKCE)'}
                             </span>
                           </td>
@@ -883,7 +883,7 @@ export const OndiSSO: React.FC = () => {
                   { step: '4', title: '/oauth/token', desc: 'Signed token exchange' },
                   { step: '5', title: 'JWKS Verify', desc: 'RS256 crypt verify' },
                 ].map((s, idx) => (
-                  <div key={idx} style={{ flex: 1, minWidth: 140, background: 'var(--bg)', borderRadius: 10, padding: 12, border: '1px solid var(--border)', position: 'relative' }}>
+                  <div key={idx} style={{ flex: 1, minWidth: 140, background: 'var(--bg)', borderRadius: 'var(--r)', padding: 12, border: '1px solid var(--border)', position: 'relative' }}>
                     <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase', marginBottom: 4 }}>Step 0{s.step}</div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{s.title}</div>
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{s.desc}</div>

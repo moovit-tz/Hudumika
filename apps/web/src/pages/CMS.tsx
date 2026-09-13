@@ -430,7 +430,7 @@ export const CMS: React.FC = () => {
                   <FL label="Title"><input value={draftTitle} onChange={e => setDraftTitle(e.target.value)} placeholder="Title" className="input-field" style={{ fontSize: 13 }} /></FL>
                   <FL label="Content">
                     <textarea value={draftContent} onChange={e => setDraftContent(e.target.value)} placeholder="What's on your mind?!" rows={6}
-                      style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 7, padding: '9px 11px', fontSize: 13, lineHeight: 1.6, resize: 'none', fontFamily: 'var(--font)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', background: 'var(--white)' }} />
+                      style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '9px 11px', fontSize: 13, lineHeight: 1.6, resize: 'none', fontFamily: 'var(--font)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', background: 'var(--white)' }} />
                   </FL>
                   <button onClick={saveDraft} className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }}>Save Draft</button>
                 </div>
@@ -507,7 +507,7 @@ export const CMS: React.FC = () => {
               </Tabs>
               <div style={{ position: 'relative' }}>
                 <Icon name="search" size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-                <input value={pSearch} onChange={e => setPSearch(e.target.value)} placeholder="Search…" style={{ border: '1px solid var(--border)', borderRadius: 7, padding: '7px 12px 7px 30px', fontSize: 13, outline: 'none', fontFamily: 'var(--font)', width: 200, background: 'var(--white)' }} />
+                <input value={pSearch} onChange={e => setPSearch(e.target.value)} placeholder="Search…" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 12px 7px 30px', fontSize: 13, outline: 'none', fontFamily: 'var(--font)', width: 200, background: 'var(--white)' }} />
               </div>
             </div>
 
@@ -618,7 +618,7 @@ export const CMS: React.FC = () => {
             )}
             {comments.map(c => (
               <div key={c.id} className="card" style={{ padding: '16px 20px', display: 'flex', gap: 14, borderLeftWidth: 3, borderLeftStyle: 'solid', borderLeftColor: c.status === 'pending' ? 'var(--gold)' : c.status === 'spam' ? 'var(--red)' : 'var(--teal)' }}>
-                <Av initials={c.author.split(' ').map(w => w[0]).join('').slice(0, 2)} color={c.status === 'approved' ? '#0d7a6b' : c.status === 'spam' ? 'var(--red)' : 'var(--gold)'} size={40} />
+                <Av initials={c.author.split(' ').map(w => w[0]).join('').slice(0, 2)} color={c.status === 'approved' ? 'var(--teal)' : c.status === 'spam' ? 'var(--red)' : 'var(--gold)'} size={40} />
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)' }}>{c.author}</span>
@@ -708,7 +708,7 @@ function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings | null;
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <FL label="Accent Colour">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <input type="color" value={form.accentColor} onChange={e => set('accentColor', e.target.value)} style={{ width: 44, height: 34, border: '1px solid var(--border)', borderRadius: 6, padding: 2, cursor: 'pointer' }} />
+              <input type="color" value={form.accentColor} onChange={e => set('accentColor', e.target.value)} style={{ width: 44, height: 34, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: 2, cursor: 'pointer' }} />
               <input value={form.accentColor} onChange={e => set('accentColor', e.target.value)} className="input-field" style={{ fontFamily: 'var(--mono)', fontSize: 12, maxWidth: 120 }} />
             </div>
           </FL>

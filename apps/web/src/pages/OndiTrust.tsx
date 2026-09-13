@@ -58,23 +58,23 @@ const VERIFICATION_LABEL: Record<string, string> = {
 
 const TIER_META: Record<string, { main: string; bg: string; border: string; label: string; desc: string }> = {
   LOW: {
-    main: 'var(--red, #ef4444)',
-    bg: 'var(--red-l, #fef2f2)',
-    border: 'var(--red, #ef4444)',
+    main: 'var(--red)',
+    bg: 'var(--red-l)',
+    border: 'var(--red)',
     label: 'Low Trust Band',
     desc: 'Basic identity signal. Verification and MFA required to elevate trust tier.',
   },
   MEDIUM: {
-    main: 'var(--gold, #d97706)',
-    bg: 'var(--gold-l, #fffbeb)',
-    border: 'var(--gold, #d97706)',
+    main: 'var(--gold)',
+    bg: 'var(--gold-l)',
+    border: 'var(--gold)',
     label: 'Standard Trust Band',
     desc: 'Solid operational trust. Verified credentials and active session track record.',
   },
   HIGH: {
-    main: 'var(--green, #059669)',
-    bg: 'var(--green-l, #ecfdf5)',
-    border: 'var(--green, #059669)',
+    main: 'var(--green)',
+    bg: 'var(--green-l)',
+    border: 'var(--green)',
     label: 'High Trust Band',
     desc: 'Exceptional enterprise trust signal with verified government identity and hardware security.',
   },
@@ -159,10 +159,25 @@ export const OndiTrust: React.FC = () => {
       };
     });
 
-    const linePath = pts.reduce((acc, pt, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`, '');
+    // Convert the discrete assessment points into a smooth, continuous trend
+    // without sacrificing the exact score values shown in the ledger.
+    const linePath = pts.reduce((acc, point, i) => {
+      if (i === 0) return `M ${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
+      const before = pts[i - 2] ?? pts[i - 1];
+      const previous = pts[i - 1];
+      const after = pts[i + 1] ?? point;
+      const controlOneX = previous.x + (point.x - before.x) / 6;
+      const controlOneY = previous.y + (point.y - before.y) / 6;
+      const controlTwoX = point.x - (after.x - previous.x) / 6;
+      const controlTwoY = point.y - (after.y - previous.y) / 6;
+      return `${acc} C ${controlOneX.toFixed(1)} ${controlOneY.toFixed(1)}, ${controlTwoX.toFixed(1)} ${controlTwoY.toFixed(1)}, ${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
+    }, '');
     const areaPath = pts.length > 1
       ? `${linePath} L ${pts[pts.length - 1].x.toFixed(1)} ${padTop + plotH} L ${pts[0].x.toFixed(1)} ${padTop + plotH} Z`
       : '';
+    const milestones = pts.filter((pt, i) =>
+      i === 0 || i === pts.length - 1 || pt.score !== pts[i - 1].score,
+    );
 
     return {
       w,
@@ -177,6 +192,7 @@ export const OndiTrust: React.FC = () => {
       yMax,
       gridTicks,
       pts,
+      milestones,
       linePath,
       areaPath,
       rawMin,
@@ -491,16 +507,17 @@ export const OndiTrust: React.FC = () => {
                 <path
                   d={chartData.linePath}
                   fill="none"
-                  stroke={volatility && volatility.label === 'Declining' ? 'var(--red, #ef4444)' : 'var(--teal, #0d9488)'}
+                  stroke={volatility && volatility.label === 'Declining' ? 'var(--red)' : 'var(--teal)'}
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
 
-                {/* Interactive Milestone Nodes */}
-                {chartData.pts.map((pt, i) => {
-                  const isHovered = activeSnapshotIndex === i;
-                  const isLast = i === chartData.pts.length - 1;
+                {/* Interactive markers identify actual score changes, rather
+                    than repeating the same marker for unchanged snapshots. */}
+                {chartData.milestones.map((pt) => {
+                  const isHovered = activeSnapshotIndex === pt.index;
+                  const isLast = pt.index === chartData.pts.length - 1;
                   // Reuses this snapshot's own recorded tier (same field the
                   // tooltip's Badge below already reads) rather than a second,
                   // separately-guessed score threshold — the two used to be
@@ -509,11 +526,11 @@ export const OndiTrust: React.FC = () => {
                   const nodeColor = (TIER_META[pt.tier] || TIER_META.LOW).main;
                   return (
                     <g
-                      key={i}
+                      key={pt.index}
                       className="ot-chart-node-group"
-                      onMouseEnter={() => setActiveSnapshotIndex(i)}
+                      onMouseEnter={() => setActiveSnapshotIndex(pt.index)}
                       onMouseLeave={() => setActiveSnapshotIndex(null)}
-                      onClick={() => setActiveSnapshotIndex(i === activeSnapshotIndex ? null : i)}
+                      onClick={() => setActiveSnapshotIndex(pt.index === activeSnapshotIndex ? null : pt.index)}
                       style={{ cursor: 'pointer' }}
                     >
                       {/* Hover / Active Ring */}

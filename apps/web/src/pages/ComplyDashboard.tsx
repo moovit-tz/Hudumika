@@ -6,6 +6,7 @@ import { useComplyDashboard, useComplyApplications, useComplyProfile } from '../
 import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
+import { Button } from '../components/ui/button.js';
 
 // agency-code → class name mapping (gov | tax | social | reg | fin)
 const AGENCY_CLASS: Record<string, string> = {
@@ -72,21 +73,15 @@ export function ComplyDashboard() {
         subtitle="Live data · Tanzania · East Africa"
         actions={
           <div className="comply-action-row">
-            <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh">
+            <Button type="button" variant="outline" size="icon" onClick={refresh} title="Refresh" aria-label="Refresh compliance data">
               <Icon name="refresh" size={14} />
-            </button>
-            <button type="button" className="comply-btn-secondary" onClick={() => navigate('/complyos/obligation-scan')}>
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => navigate('/complyos/obligation-scan')}>
               <Icon name="sparkle" size={14} />
               AI Obligation Scan
-            </button>
-            <Link to="/complyos/brela-search" className="comply-btn-secondary">
-              <Icon name="search" size={14} />
-              BRELA Search
-            </Link>
-            <Link to="/complyos/applications" className="comply-btn-primary">
-              <Icon name="plus" size={14} />
-              New Application
-            </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm"><Link to="/complyos/brela-search"><Icon name="search" size={14} /> BRELA Search</Link></Button>
+            <Button asChild size="sm"><Link to="/complyos/applications"><Icon name="plus" size={14} /> New Application</Link></Button>
           </div>
         }
       />
@@ -95,7 +90,7 @@ export function ComplyDashboard() {
         <div className="comply-note" style={{ marginBottom: 16 }}>
           <Icon name="sparkle" size={16} />
           <span>You haven't run an AI Obligation Scan yet — tell us your sector and we'll map the certifications your business needs. </span>
-          <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => navigate('/complyos/obligation-scan')}>Run Scan</button>
+          <Button type="button" variant="outline" size="sm" onClick={() => navigate('/complyos/obligation-scan')}>Run Scan</Button>
         </div>
       )}
 

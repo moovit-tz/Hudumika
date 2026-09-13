@@ -45,23 +45,23 @@ export const OndiCompliance: React.FC = () => {
           {/* Metric 1: Identity Verification */}
           <SectionCard title="Identity Verification (KYC)">
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(4,120,87,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="fingerprint" size={20} color="#047857" />
+              <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="fingerprint" size={20} color="var(--green)" />
               </div>
               <div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)' }}>{data.kyc.pct}%</div>
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{data.kyc.verified} of {data.kyc.total} active members KYC-verified</div>
               </div>
             </div>
-            <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', marginTop: 16, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${data.kyc.pct}%`, background: pctColor(data.kyc.pct), borderRadius: 3, transition: 'width 0.4s ease' }} />
+            <div style={{ height: 6, borderRadius: 'var(--r-sm)', background: 'var(--bg)', marginTop: 16, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${data.kyc.pct}%`, background: pctColor(data.kyc.pct), borderRadius: 'var(--r-sm)', transition: 'width 0.4s ease' }} />
             </div>
           </SectionCard>
 
           {/* Metric 2: 2FA Adoption */}
           <SectionCard title="Two-Factor Adoption">
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(0,181,137,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="shield" size={20} color="var(--teal)" />
               </div>
               <div>
@@ -69,15 +69,15 @@ export const OndiCompliance: React.FC = () => {
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{data.mfa.enabled} of {data.mfa.total} active members have 2FA or passkey</div>
               </div>
             </div>
-            <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', marginTop: 16, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${data.mfa.pct}%`, background: pctColor(data.mfa.pct), borderRadius: 3, transition: 'width 0.4s ease' }} />
+            <div style={{ height: 6, borderRadius: 'var(--r-sm)', background: 'var(--bg)', marginTop: 16, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${data.mfa.pct}%`, background: pctColor(data.mfa.pct), borderRadius: 'var(--r-sm)', transition: 'width 0.4s ease' }} />
             </div>
           </SectionCard>
 
           {/* Metric 3: Business Verification */}
           <SectionCard title="Business Verification (KYB)">
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--teal-l, #ecfeff)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="building" size={20} color="var(--teal)" />
               </div>
               <div>
@@ -95,7 +95,7 @@ export const OndiCompliance: React.FC = () => {
           {/* Metric 4: Stale Role Grants */}
           <SectionCard title="Stale Role Grants">
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: data.staleGrants.count > 0 ? 'var(--gold-l)' : 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: data.staleGrants.count > 0 ? 'var(--gold-l)' : 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="clock" size={20} color={data.staleGrants.count > 0 ? 'var(--gold)' : 'var(--green)'} />
               </div>
               <div>
@@ -115,8 +115,8 @@ export const OndiCompliance: React.FC = () => {
           {/* Metric 5: Access Review Cadence */}
           <SectionCard title="Access Review Cadence">
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="userCheck" size={20} color="#1d4ed8" />
+              <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="userCheck" size={20} color="var(--blue)" />
               </div>
               <div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)' }}>{data.accessReviews.completedCount}</div>

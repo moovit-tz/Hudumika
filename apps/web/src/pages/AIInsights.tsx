@@ -52,10 +52,10 @@ export const AIInsights: React.FC = () => {
         <Banner variant="error">{error}</Banner>
       ) : data ? (
         <>
-          <div className="card" style={{ padding: '20px 22px', marginBottom: 20, borderLeft: '3px solid #6d28d9' }}>
+          <div className="card" style={{ padding: '20px 22px', marginBottom: 20, borderLeft: '3px solid var(--purple)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <Icon name="sparkle" size={15} color="#6d28d9" />
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Today's Summary</span>
+              <Icon name="sparkle" size={15} color="var(--purple)" />
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--purple)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Today's Summary</span>
             </div>
             <div style={{ fontSize: 13.5, lineHeight: 1.8, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{data.digest}</div>
           </div>
@@ -110,7 +110,7 @@ export const AIInsights: React.FC = () => {
                       <tr key={d.customer}>
                         <td>{d.customer}</td>
                         <td style={{ textAlign: 'right', fontFamily: 'var(--mono)' }}>{d.total_owed.toLocaleString()}</td>
-                        <td className="col-hide-sm" style={{ textAlign: 'right', fontFamily: 'var(--mono)', color: d.days_90_plus > 0 ? '#ef4444' : 'var(--ink3)' }}>{d.days_90_plus.toLocaleString()}</td>
+                        <td className="col-hide-sm" style={{ textAlign: 'right', fontFamily: 'var(--mono)', color: d.days_90_plus > 0 ? 'var(--red)' : 'var(--ink3)' }}>{d.days_90_plus.toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>

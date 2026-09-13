@@ -132,7 +132,7 @@ export const SuperAdminKyb: React.FC = () => {
         <DialogContent hideClose className="max-w-fit bg-transparent border-none shadow-none p-0 gap-0" style={{ cursor: 'pointer' }}>
           <DialogTitle className="sr-only">KYB document preview</DialogTitle>
           {previewUrl && <>
-            <img src={previewUrl} alt="KYB document" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: 'var(--elev-lg)', display: 'block' }} />
+            <img src={previewUrl} alt="KYB document" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', display: 'block' }} />
             <button type="button" onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
               style={{ position: 'absolute', top: 24, right: 24, background: '#fff', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer' }}>
               <Icon name="x" size={18} />

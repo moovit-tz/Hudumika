@@ -72,7 +72,7 @@ function money(v: number | string, currency?: string | null) {
 }
 
 const card: React.CSSProperties = {
-  border: '1px solid var(--border)', borderRadius: 12,
+  border: '1px solid var(--border)', borderRadius: 'var(--r)',
   background: 'var(--card-bg, var(--white))', overflow: 'hidden',
 };
 const label: React.CSSProperties = {
@@ -127,7 +127,7 @@ export function EmploymentRecords() {
       />
 
       {error && (
-        <div style={{ padding: '10px 13px', borderRadius: 10, background: 'var(--red-l)', border: '1px solid var(--red-l)',
+        <div style={{ padding: '10px 13px', borderRadius: 'var(--r)', background: 'var(--red-l)', border: '1px solid var(--red-l)',
                       color: 'var(--red)', fontSize: 12.5, marginBottom: 14 }}>{error}</div>
       )}
 
@@ -392,7 +392,7 @@ function CompensationPanel({ userId, who, defaultCurrency, defaultFrequency, onC
       </div>
 
       {err && (
-        <div style={{ padding: '8px 11px', borderRadius: 8, background: 'var(--red-l)',
+        <div style={{ padding: '8px 11px', borderRadius: 'var(--r)', background: 'var(--red-l)',
                       color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{err}</div>
       )}
 
@@ -719,7 +719,7 @@ function EmploymentPane({ entities, people, managers, busy, onCreate }: {
         </div>
         <div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>
-            Ends {openEnded && <span style={{ color: 'var(--ink4)' }}>— permanent, so none</span>}
+            Ends {openEnded && <span style={{ color: 'var(--ink3)' }}>— permanent, so none</span>}
           </div>
           {!openEnded && <DatePicker date={end} onChange={setEnd} />}
         </div>

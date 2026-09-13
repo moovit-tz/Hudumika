@@ -31,6 +31,16 @@ export async function hrTrainingRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
 
   // ── Catalogue ────────────────────────────────────────────────
+  // HUD-0024 continuation: internal tenant-business data (finance ledgers,
+  // fleet ops, HR, identity/access admin, or tenant configuration) with only
+  // an entitlement gate — reachable end-to-end by a CUSTOMER JWT (confirmed
+  // live before this fix). Not customer-portal data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
+
   fastify.get('/courses', async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, trx => trx.selectFrom('hr_training_courses')

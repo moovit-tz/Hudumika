@@ -134,7 +134,7 @@ export function PettiExchange() {
                 type="number" required min="1" step="any"
                 value={amount} onChange={e => setAmount(e.target.value)}
                 placeholder="Enter amount"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 14 }}
               />
             </div>
 
@@ -145,7 +145,7 @@ export function PettiExchange() {
             )}
 
             {/* Exchange Rate Box — real published rate (fx-rates.routes.ts), not a hardcoded table */}
-            <div style={{ padding: '12px 16px', background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '12px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Reference Rate</div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', marginTop: 2 }}>
@@ -173,7 +173,7 @@ export function PettiExchange() {
         </SectionCard>
 
         {/* Info card — replaces a hardcoded table of fake FX pairs */}
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 20, boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
           <h4 style={{ margin: '0 0 10px 0', fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>How this works today</h4>
           <p style={{ margin: '0 0 10px 0', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
             Wallet-to-wallet transfers only move money between wallets in the <strong>same currency</strong>. When you pick two

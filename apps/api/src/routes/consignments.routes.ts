@@ -7,6 +7,14 @@ export async function consignmentRoutes(app: FastifyInstance) {
   // Road consignments are surfaced in the HuduFreight (tracking) app —
   // gate matches where the feature now lives, not its ClearOS origins.
   app.addHook('preHandler', requireEntitlement('tracking'));
+  // HUD-0024 continuation: GET / and GET /:id had no role check at all —
+  // any CUSTOMER JWT could list/view every consignment in the tenant with
+  // no ownership scoping despite `customer_id` existing as a filter param.
+  app.addHook('preHandler', async (req: any, reply: any) => {
+    if (req.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   app.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;

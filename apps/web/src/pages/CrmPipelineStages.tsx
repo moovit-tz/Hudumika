@@ -5,6 +5,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 export interface PipelineStage {
   id: string; key: string; label: string; color: string; position: number;
@@ -106,7 +107,7 @@ export function CrmPipelineStages() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {stages === null ? (
-          <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+          <SectionLoading />
         ) : stages.length === 0 ? (
           <div style={{ color: 'var(--ink3)', fontSize: 13, fontStyle: 'italic' }}>No stages yet.</div>
         ) : stages.map((s, i) => {

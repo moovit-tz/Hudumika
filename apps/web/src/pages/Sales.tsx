@@ -17,25 +17,25 @@ import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 
 const STAGES = [
   { key: 'DRAFT',     label: 'Draft',          color: 'var(--ink3)' },
-  { key: 'PENDING',   label: 'Pending Review',  color: '#9a6700' },
+  { key: 'PENDING',   label: 'Pending Review',  color: 'var(--gold)' },
   { key: 'APPROVED',  label: 'Approved',         color: 'var(--green)' },
   { key: 'CONVERTED', label: 'Converted',        color: 'var(--teal)' },
-  { key: 'REJECTED',  label: 'Rejected',         color: '#cf222e' },
+  { key: 'REJECTED',  label: 'Rejected',         color: 'var(--red)' },
 ];
 
 const STATUS_BG: Record<string, string> = {
   DRAFT:     '#f0f0f0',
-  PENDING:   '#fff8e1',
-  APPROVED:  '#e6f4ea',
-  CONVERTED: '#e0f5f5',
-  REJECTED:  '#fdecea',
+  PENDING:   'var(--gold-l)',
+  APPROVED:  'var(--green-l)',
+  CONVERTED: 'var(--teal-l)',
+  REJECTED:  'var(--red-l)',
 };
 const STATUS_FG: Record<string, string> = {
   DRAFT:     'var(--ink3)',
-  PENDING:   '#9a6700',
+  PENDING:   'var(--gold)',
   APPROVED:  'var(--green)',
   CONVERTED: 'var(--teal)',
-  REJECTED:  '#cf222e',
+  REJECTED:  'var(--red)',
 };
 
 const SHIPMENT_TYPES = ['AIR', 'SEA', 'ROAD', 'RAIL'];
@@ -90,7 +90,7 @@ function Toast({ msg, kind, onClose }: { msg: string; kind: 'success' | 'error';
     <div style={{
       position: 'fixed', bottom: 24, right: 24, zIndex: 3000,
       background: kind === 'success' ? 'var(--green)' : 'var(--red)',
-      color: '#fff', borderRadius: 8, padding: '10px 18px',
+      color: '#fff', borderRadius: 'var(--r)', padding: '10px 18px',
       fontSize: 13, fontWeight: 600, boxShadow: 'var(--elev)',
       display: 'flex', alignItems: 'center', gap: 10,
     }}>
@@ -161,7 +161,7 @@ function StatusModal({
         {status === 'REJECTED' && (
           <div style={{ marginBottom: 14 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Rejection Reason</label>
-            <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder="Enter rejection reason…" style={{ width: '100%', padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+            <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder="Enter rejection reason…" style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
         )}
         {err && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{err}</div>}
@@ -279,21 +279,21 @@ function DetailPanel({
           {quote.goods_description && (
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Goods Description</div>
-              <div style={{ fontSize: 13, color: 'var(--ink)', background: 'var(--bg)', borderRadius: 6, padding: '8px 12px' }}>{quote.goods_description}</div>
+              <div style={{ fontSize: 13, color: 'var(--ink)', background: 'var(--bg)', borderRadius: 'var(--r-sm)', padding: '8px 12px' }}>{quote.goods_description}</div>
             </div>
           )}
 
           {quote.notes && (
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Notes</div>
-              <div style={{ fontSize: 13, color: 'var(--ink)', background: 'var(--bg)', borderRadius: 6, padding: '8px 12px' }}>{quote.notes}</div>
+              <div style={{ fontSize: 13, color: 'var(--ink)', background: 'var(--bg)', borderRadius: 'var(--r-sm)', padding: '8px 12px' }}>{quote.notes}</div>
             </div>
           )}
 
           {quote.rejection_reason && (
-            <div style={{ marginBottom: 16, background: '#fdecea', borderRadius: 6, padding: '8px 12px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#cf222e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Rejection Reason</div>
-              <div style={{ fontSize: 13, color: '#cf222e' }}>{quote.rejection_reason}</div>
+            <div style={{ marginBottom: 16, background: 'var(--red-l)', borderRadius: 'var(--r-sm)', padding: '8px 12px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Rejection Reason</div>
+              <div style={{ fontSize: 13, color: 'var(--red)' }}>{quote.rejection_reason}</div>
             </div>
           )}
 
@@ -345,7 +345,7 @@ function DetailPanel({
           </div>
 
           {quote.converted_shipment_id && (
-            <div style={{ marginTop: 16, background: '#e0f5f5', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: 'var(--teal)' }}>
+            <div style={{ marginTop: 16, background: 'var(--teal-l)', borderRadius: 'var(--r-sm)', padding: '8px 12px', fontSize: 12, color: 'var(--teal)' }}>
               Converted to Shipment ID: <span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{quote.converted_shipment_id}</span>
             </div>
           )}
@@ -485,7 +485,7 @@ function QuoteModal({
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '7px 10px', borderRadius: 6,
+    width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)',
     border: '1px solid var(--border)', fontSize: 13,
     background: 'var(--bg)', boxSizing: 'border-box',
   };

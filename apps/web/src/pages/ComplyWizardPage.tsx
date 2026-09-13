@@ -49,7 +49,7 @@ export function ComplyWizardPage({
                 <div style={{
                   width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 11, fontWeight: 700, flexShrink: 0,
-                  background: i < step ? 'hsl(var(--primary))' : i === step ? 'var(--comply-l, rgba(5,150,105,0.12))' : 'var(--bg)',
+                  background: i < step ? 'hsl(var(--primary))' : i === step ? 'var(--teal-l)' : 'var(--bg)',
                   color: i <= step ? (i < step ? 'hsl(var(--primary-foreground))' : 'var(--comply)') : 'var(--ink3)',
                   border: i === step ? '1.5px solid var(--comply)' : 'none',
                 }}>

@@ -179,7 +179,7 @@ export function SealDashboard() {
                   <div className="seal-empty">No lots on hand yet.</div>
                 ) : (
                   dashData!.byStatus.map(row => (
-                    <div key={row.status} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg)', borderRadius: 10 }}>
+                    <div key={row.status} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
                       <Badge variant={CUSTOMS_STATUS_VARIANT[row.status]}>{CUSTOMS_STATUS_LABELS[row.status] ?? row.status}</Badge>
                       <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{row.count}</span>
                     </div>
@@ -210,7 +210,7 @@ export function SealDashboard() {
                         onClick={() => navigate(`/seal/compartments/${c.id}/heat-grid`)}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                          borderRadius: 12, border: '1px solid var(--border)', marginBottom: 10,
+                          borderRadius: 'var(--r)', border: '1px solid var(--border)', marginBottom: 10,
                           cursor: 'pointer', background: 'var(--white)', transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                         }}
                         onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}

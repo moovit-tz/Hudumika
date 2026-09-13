@@ -717,7 +717,7 @@ export function SignEditor() {
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                style={{ width: '100%', textAlign: 'left', padding: '8px 10px', fontSize: 12.5, fontWeight: 600, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}
+                style={{ width: '100%', textAlign: 'left', padding: '8px 10px', fontSize: 12.5, fontWeight: 600, borderRadius: 'var(--r-sm)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
@@ -726,7 +726,7 @@ export function SignEditor() {
               <button
                 type="button"
                 onClick={handleSaveAsTemplate}
-                style={{ width: '100%', textAlign: 'left', padding: '8px 10px', fontSize: 12.5, fontWeight: 600, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}
+                style={{ width: '100%', textAlign: 'left', padding: '8px 10px', fontSize: 12.5, fontWeight: 600, borderRadius: 'var(--r-sm)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
@@ -764,7 +764,7 @@ export function SignEditor() {
               type="button"
               onClick={() => setMobileTab(tab.key as any)}
               style={{
-                flex: 1, padding: '6px 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: 'none',
+                flex: 1, padding: '6px 8px', borderRadius: 'var(--r-sm)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: 'none',
                 background: mobileTab === tab.key ? 'var(--teal-l)' : 'transparent',
                 color: mobileTab === tab.key ? 'var(--teal)' : 'var(--ink3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4
@@ -1099,7 +1099,7 @@ export function SignEditor() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                 <Icon name="fileText" size={16} style={{ color: '#38bdf8', flexShrink: 0 }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
-                <span style={{ fontSize: 10, fontWeight: 800, background: '#1e293b', color: '#94a3b8', padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase', flexShrink: 0 }}>
+                <span style={{ fontSize: 10, fontWeight: 800, background: '#1e293b', color: '#94a3b8', padding: '2px 6px', borderRadius: 'var(--r-sm)', textTransform: 'uppercase', flexShrink: 0 }}>
                   {fileName.split('.').pop() || 'PDF'}
                 </span>
               </div>
@@ -1136,7 +1136,7 @@ export function SignEditor() {
           {!previewSrc && (
             <div onClick={() => fileInputRef.current?.click()}
               role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
-              style={{ width: pageW, height: Math.round(pageW * 0.3), border: '2px dashed var(--border)', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', background: 'var(--card-bg)', color: 'var(--ink3)', transition: 'border-color 0.15s', marginTop: fileName ? 0 : undefined }}>
+              style={{ width: pageW, height: Math.round(pageW * 0.3), border: '2px dashed var(--border)', borderRadius: 'var(--r)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', background: 'var(--card-bg)', color: 'var(--ink3)', transition: 'border-color 0.15s', marginTop: fileName ? 0 : undefined }}>
               <Icon name="file" size={36} style={{ opacity: 0.4 }} />
               <div style={{ fontSize: 14, fontWeight: 600 }}>Upload Document</div>
               <div style={{ fontSize: 12 }}>PDF, DOCX, PNG, JPG</div>
@@ -1209,7 +1209,7 @@ export function SignEditor() {
             {/* Stamp badge (decorative, shows bottom-right on completed) */}
             {fields.length > 0 && (
               <div style={{ position: 'absolute', bottom: 12, right: 12, opacity: 0.25, pointerEvents: 'none' }}>
-                <div style={{ fontFamily: 'monospace', fontSize: 9, color: '#1a56db', border: '1px solid #1a56db', borderRadius: 6, padding: '4px 8px', background: 'rgba(255,255,255,0.9)', letterSpacing: '0.05em', fontWeight: 700 }}>
+                <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'var(--blue)', border: '1px solid var(--blue)', borderRadius: 'var(--r-sm)', padding: '4px 8px', background: 'rgba(255,255,255,0.9)', letterSpacing: '0.05em', fontWeight: 700 }}>
                   HSGN-XXXXXX-XXXXXX
                 </div>
               </div>
@@ -1218,7 +1218,7 @@ export function SignEditor() {
           </div>
 
           {placingType && (
-            <div style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 500, flexShrink: 0 }}>
+            <div style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', padding: '8px 16px', fontSize: 13, fontWeight: 500, flexShrink: 0 }}>
               Click anywhere on the page to place the <strong>{placingType}</strong> field
             </div>
           )}
@@ -1289,7 +1289,7 @@ export function SignEditor() {
                 {fields.map((f, i) => (
                   <div key={f.id}
                     onClick={() => { setSelectedField(f.id); setCurrentPdfPage(f.page || 1); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', cursor: 'pointer', background: selectedField === f.id ? 'var(--sign-blue-l)' : 'transparent', borderColor: selectedField === f.id ? 'var(--sign-blue)' : 'var(--border)' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', cursor: 'pointer', background: selectedField === f.id ? 'var(--sign-blue-l)' : 'transparent', borderColor: selectedField === f.id ? 'var(--sign-blue)' : 'var(--border)' }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: RECIPIENT_COLORS[f.recipient_index % RECIPIENT_COLORS.length], flexShrink: 0 }} />
                     <span style={{ fontSize: 12, flex: 1 }}>{FIELD_TYPES.find(ft => ft.type === f.field_type)?.label}</span>
                     <span style={{ fontSize: 11, color: 'var(--ink3)' }}>p.{f.page}</span>

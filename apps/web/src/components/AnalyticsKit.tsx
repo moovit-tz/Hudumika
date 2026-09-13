@@ -207,12 +207,12 @@ export function ClickableBarChart({ labels, values, barColors, onBarClick, yLabe
             scales: {
               x: {
                 ticks: {
-                  color: 'var(--ink3)', font: { size: 10.5 }, autoSkip: false, maxRotation: 45, minRotation: 0,
+                  color: '#8b949e', font: { size: 10.5 }, autoSkip: false, maxRotation: 45, minRotation: 0,
                   callback: (_value, index) => truncateLabel(labels[index] ?? ''),
                 },
                 grid: { display: false },
               },
-              y: { ticks: { color: 'var(--ink3)', font: { size: 11 } }, grid: { color: 'rgba(128,128,128,0.15)' }, beginAtZero: true },
+              y: { ticks: { color: '#8b949e', font: { size: 11 } }, grid: { color: 'rgba(128,128,128,0.15)' }, beginAtZero: true },
             },
             onHover: (event, elements) => {
               const target = event.native?.target as HTMLElement | undefined;

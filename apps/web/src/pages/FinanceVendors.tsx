@@ -42,17 +42,17 @@ const EMPTY_VENDOR: Vendor = {
 };
 
 const BILL_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  DRAFT:   { bg: '#f1f5f9', color: 'var(--ink2)' },
+  DRAFT:   { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
   POSTED:  { bg: 'var(--blue-l)', color: 'var(--blue)' },
   PARTIAL: { bg: 'var(--gold-l)', color: 'var(--gold)' },
   PAID:    { bg: 'var(--green-l)', color: 'var(--green)' },
   OVERDUE: { bg: 'var(--red-l)', color: 'var(--red)' },
-  VOID:    { bg: '#f1f5f9', color: 'var(--ink2)' },
+  VOID:    { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
 };
 
 /* ── Detail Panel ───────────────────────────────────────────────────────────── */
 const PO_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  DRAFT:     { bg: '#f1f5f9', color: 'var(--ink2)' },
+  DRAFT:     { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
   SENT:      { bg: 'var(--blue-l)', color: 'var(--blue)' },
   PARTIAL:   { bg: 'var(--gold-l)', color: 'var(--gold)' },
   RECEIVED:  { bg: 'var(--green-l)', color: 'var(--green)' },
@@ -111,7 +111,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
         </div>
 
         {/* Payment terms */}
-        <div style={{ padding: '10px 14px', background: 'var(--teal-l)', borderRadius: 8, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ padding: '10px 14px', background: 'var(--teal-l)', borderRadius: 'var(--r)', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="clock" size={14} color="var(--teal)" />
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)' }}>Payment Terms: {PAYMENT_TERMS_LABEL[vendor.paymentTerms]}</span>
         </div>
@@ -163,7 +163,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
               {vendorBills.map((b) => {
                 const bc = BILL_STATUS_COLOR[b.status] || BILL_STATUS_COLOR.DRAFT;
                 return (
-                  <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 7 }}>
+                  <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{b.bill_number}</div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{b.bill_date ? String(b.bill_date).slice(0, 10) : '—'}</div>
@@ -191,7 +191,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
               {vendorPOs.map((po) => {
                 const pc = PO_STATUS_COLOR[po.status] || PO_STATUS_COLOR.DRAFT;
                 return (
-                  <div key={po.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 7 }}>
+                  <div key={po.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{po.po_number}</div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{po.order_date ? String(po.order_date).slice(0, 10) : '—'}</div>
@@ -217,7 +217,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {vendorExpenses.map((e) => (
-                <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 7 }}>
+                <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{e.name}</div>
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{e.date.split('T')[0]}</div>
@@ -234,7 +234,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
         {vendor.notes && (
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Notes</div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, background: 'var(--bg)', padding: '10px 12px', borderRadius: 8 }}>{vendor.notes}</div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, background: 'var(--bg)', padding: '10px 12px', borderRadius: 'var(--r)'}}>{vendor.notes}</div>
           </div>
         )}
       </div>
@@ -264,7 +264,7 @@ function VendorForm({ vendor, onSave, onClose }: {
       {children}
     </div>
   );
-  const inp: React.CSSProperties = { padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)', outline: 'none', width: '100%', boxSizing: 'border-box' };
+  const inp: React.CSSProperties = { padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)', outline: 'none', width: '100%', boxSizing: 'border-box' };
   const sel: React.CSSProperties = { ...inp, cursor: 'pointer' };
 
   return (
@@ -540,7 +540,7 @@ export function FinanceVendors() {
           <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search vendors…"
-            style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
+            style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
         </div>
         <Select value={filterCat || '__all__'} onValueChange={v => setFilterCat(v === '__all__' ? '' : v as VendorCategory)}>
           <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>

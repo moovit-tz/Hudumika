@@ -157,7 +157,7 @@ export function WorkflowEditor() {
     setEdges(workflow.edges.map(e => ({
       id: e.id, source: e.source, target: e.target, label: e.label,
       markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-      style: { stroke: 'var(--border-strong, #cbd5e1)', strokeWidth: 1.6 },
+      style: { stroke: 'var(--border)', strokeWidth: 1.6 },
     })));
   }, [workflow, triggerById, actionById, viewedRun, setNodes, setEdges]);
 
@@ -378,7 +378,7 @@ export function WorkflowEditor() {
               <Background gap={18} size={1} color="var(--border)" />
               <Controls showInteractive={false} />
               <MiniMap pannable zoomable position="bottom-right"
-                style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: 8, width: 140, height: 92 }} />
+                style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 140, height: 92 }} />
             </ReactFlow>
             {workflow.nodes.length === 0 && (
               <div className="studio-empty">
@@ -413,7 +413,7 @@ export function WorkflowEditor() {
                     </span>
                   </div>
                   {viewedRun?.id === r.id && (
-                    <div style={{ border: '1px solid var(--border)', borderRadius: 10, margin: '6px 0 10px', overflow: 'hidden' }}>
+                    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', margin: '6px 0 10px', overflow: 'hidden' }}>
                       {r.error_message && (
                         <div style={{ padding: '8px 10px', background: 'var(--red-l)', color: 'var(--red)', fontSize: 11.5 }}>{r.error_message}</div>
                       )}

@@ -41,16 +41,16 @@ function StepBar({ current, steps }: { current: number; steps: string[] }) {
             <div style={{
               width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 12.5, fontWeight: 700, flexShrink: 0,
-              background: i <= current ? 'var(--teal, #0d9488)' : 'var(--border)',
-              color: i <= current ? '#fff' : 'var(--ink3)',
+              background: i <= current ? 'var(--teal)' : 'var(--border)',
+              color: i <= current ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
               transition: 'background 0.15s ease',
             }}>
-              {i < current ? <Icon name="check" size={13} color="#ffffff" strokeWidth={3} /> : i + 1}
+              {i < current ? <Icon name="check" size={13} color="hsl(var(--primary-foreground))" strokeWidth={3} /> : i + 1}
             </div>
             <span style={{ fontSize: 13, fontWeight: i === current ? 700 : 400, color: i === current ? 'var(--ink)' : 'var(--ink3)', whiteSpace: 'nowrap' }}>{label}</span>
           </div>
           {i < steps.length - 1 && (
-            <div style={{ flex: 1, height: 2, background: i < current ? 'var(--teal, #0d9488)' : 'var(--border)', margin: '0 16px', minWidth: 24, borderRadius: 2, transition: 'background 0.15s ease' }} />
+            <div style={{ flex: 1, height: 2, background: i < current ? 'var(--teal)' : 'var(--border)', margin: '0 16px', minWidth: 24, borderRadius: 'var(--r-sm)', transition: 'background 0.15s ease' }} />
           )}
         </React.Fragment>
       ))}
@@ -206,30 +206,30 @@ export const PenaltyPage: React.FC = () => {
                   key={card.value}
                   onClick={() => setViolation(card.value)}
                   style={{
-                    border: `2px solid ${selected ? 'var(--teal, #0d9488)' : 'var(--border)'}`,
-                    borderRadius: 14,
+                    border: `2px solid ${selected ? 'var(--teal)' : 'var(--border)'}`,
+                    borderRadius: 'var(--r-lg)',
                     padding: '24px 20px',
-                    background: selected ? 'var(--teal-l, rgba(13, 148, 136, 0.07))' : 'var(--white)',
+                    background: selected ? 'var(--teal-l)' : 'var(--white)',
                     cursor: 'pointer',
                     transition: 'all .16s ease',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 12,
                     userSelect: 'none',
-                    boxShadow: selected ? '0 4px 16px rgba(13, 148, 136, 0.12)' : 'none',
+                    boxShadow: selected ? '0 4px 16px var(--teal-l)' : 'none',
                   }}
                 >
                   <div style={{ marginBottom: 4 }}>
-                    <Icon name={card.icon} size={36} color={selected ? 'var(--teal, #0d9488)' : 'var(--ink2)'} />
+                    <Icon name={card.icon} size={36} color={selected ? 'var(--teal)' : 'var(--ink2)'} />
                   </div>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: selected ? 'var(--teal, #0d9488)' : 'var(--ink)', lineHeight: 1.35 }}>{card.title}</div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: selected ? 'var(--teal)' : 'var(--ink)', lineHeight: 1.35 }}>{card.title}</div>
                   <div style={{ fontSize: 12.5, color: selected ? 'var(--ink)' : 'var(--ink3)', lineHeight: 1.6 }}>{card.description}</div>
                   {selected && (
                     <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--teal, #0d9488)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>✓</span>
+                      <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ color: 'hsl(var(--primary-foreground))', fontSize: 11, fontWeight: 700 }}>✓</span>
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal, #0d9488)' }}>Selected</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)' }}>Selected</span>
                     </div>
                   )}
                 </div>
@@ -255,12 +255,12 @@ export const PenaltyPage: React.FC = () => {
       {step === 2 && (
         <SectionCard title="Declaration values" collapsible={false}>
           {/* Info banner */}
-          <div style={{ padding: '14px 18px', borderRadius: 10, background: 'var(--teal-l, rgba(13, 148, 136, 0.07))', border: '1px solid rgba(13, 148, 136, 0.2)', marginBottom: 24, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
+          <div style={{ padding: '14px 18px', borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', marginBottom: 24, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
             Penalty rates: <strong>Under-declaration 3× duty shortfall</strong> (s.133) · <strong>Mis-classification 1.5× duty diff.</strong> (s.128) · Late payment <strong>2%/month</strong> · No PVoC <strong>TZS 10M</strong> · No DI <strong>TZS 5M</strong> — Tanzania CEMA CAP 403
           </div>
 
           <div style={{ marginBottom: 20 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal, #0d9488)', background: 'var(--teal-l, rgba(13, 148, 136, 0.08))', border: '1px solid rgba(13, 148, 136, 0.2)', borderRadius: 6, padding: '3px 10px' }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r-sm)', padding: '3px 10px' }}>
               {VIOLATION_CARDS.find(c => c.value === violation)?.title}
             </span>
           </div>
@@ -270,7 +270,7 @@ export const PenaltyPage: React.FC = () => {
             <div>
               <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>
                 Declared CIF (USD)
-                <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 6, color: 'var(--ink4)', fontSize: 10.5 }}>— as submitted to customs</span>
+                <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 6, color: 'var(--ink3)', fontSize: 10.5 }}>— as submitted to customs</span>
               </label>
               <input className="input-field" type="number" min="0" placeholder="e.g. 10000" value={declared} onChange={e => setDeclared(e.target.value)} />
             </div>
@@ -280,7 +280,7 @@ export const PenaltyPage: React.FC = () => {
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>
                   Actual CIF (USD)
-                  <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 6, color: 'var(--ink4)', fontSize: 10.5 }}>— true value on inspection</span>
+                  <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 6, color: 'var(--ink3)', fontSize: 10.5 }}>— true value on inspection</span>
                 </label>
                 <input className="input-field" type="number" min="0" placeholder="e.g. 18000" value={actual} onChange={e => setActual(e.target.value)} />
               </div>
@@ -299,7 +299,7 @@ export const PenaltyPage: React.FC = () => {
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>
                   Months Overdue
-                  <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 6, color: 'var(--ink4)', fontSize: 10.5 }}>— for late payment interest</span>
+                  <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 6, color: 'var(--ink3)', fontSize: 10.5 }}>— for late payment interest</span>
                 </label>
                 <input className="input-field" type="number" min="0" placeholder="e.g. 3" value={months} onChange={e => setMonths(e.target.value)} />
               </div>
@@ -361,7 +361,7 @@ export const PenaltyPage: React.FC = () => {
                   disabled={calcLoading}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 36px', borderRadius: 'var(--r)', fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                 >
-                  <Icon name="alertCircle" size={15} color="#fff" />
+                  <Icon name="alertCircle" size={15} color="hsl(var(--primary-foreground))" />
                   <span>{calcLoading ? 'Calculating…' : 'Estimate Penalty'}</span>
                 </button>
               </div>
@@ -386,10 +386,10 @@ export const PenaltyPage: React.FC = () => {
               <RRow label="Total Estimated Penalty" value={`TZS ${fmt(result.total_penalty_tzs)}`} red />
 
               {result.legal_references.length > 0 && (
-                <div style={{ marginTop: 20, padding: '16px 18px', borderRadius: 10, background: 'var(--teal-l, rgba(13, 148, 136, 0.06))', border: '1px solid rgba(13, 148, 136, 0.2)' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal, #0d9488)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Legal Basis — CEMA CAP 403</div>
+                <div style={{ marginTop: 20, padding: '16px 18px', borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal-m)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Legal Basis — CEMA CAP 403</div>
                   {result.legal_references.map((b, i) => (
-                    <div key={i} style={{ fontSize: 12.5, color: 'var(--ink2)', paddingLeft: 12, borderLeft: '2px solid var(--teal, #0d9488)', marginBottom: 6, lineHeight: 1.6 }}>{b}</div>
+                    <div key={i} style={{ fontSize: 12.5, color: 'var(--ink2)', paddingLeft: 12, borderLeft: '2px solid var(--teal)', marginBottom: 6, lineHeight: 1.6 }}>{b}</div>
                   ))}
                 </div>
               )}
@@ -422,7 +422,7 @@ export const PenaltyPage: React.FC = () => {
               ← Back
             </button>
             <button type="button" onClick={resetAll}
-              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid rgba(13, 148, 136, 0.3)', background: 'var(--teal-l, rgba(13, 148, 136, 0.08))', color: 'var(--teal, #0d9488)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--teal-m)', background: 'var(--teal-l)', color: 'var(--teal)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               Start New Assessment
             </button>
           </div>

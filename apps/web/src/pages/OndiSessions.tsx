@@ -45,7 +45,7 @@ export const OndiSessions: React.FC = () => {
         titleEm="security"
         subtitle="Manage recognized workspace devices and audit log hash-chain integrity verification."
         actions={
-          <Link to="/ondi/policies" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--ink)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 16px', textDecoration: 'none' }}>
+          <Link to="/ondi/policies" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--ink)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 16px', textDecoration: 'none' }}>
             <Icon name="settings" size={15} /> Session &amp; MFA Policy
           </Link>
         }
@@ -84,10 +84,10 @@ export const OndiSessions: React.FC = () => {
       <SectionCard title="Cryptographic Hash-Chain Integrity">
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '6px 0' }}>
           <div style={{
-            width: 48, height: 48, borderRadius: 12, flexShrink: 0,
+            width: 48, height: 48, borderRadius: 'var(--r)', flexShrink: 0,
             background: chainStatus?.valid ? 'var(--green-l)' : chainStatus ? 'var(--red-l)' : 'var(--bg)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: `1px solid ${chainStatus?.valid ? 'rgba(4,120,87,0.2)' : 'var(--border)'}`
+            border: `1px solid ${chainStatus?.valid ? 'var(--green)' : 'var(--border)'}`
           }}>
             <Icon name={chainStatus?.valid ? 'checkCircle' : chainStatus ? 'alertTriangle' : 'shield'} size={22}
               color={chainStatus?.valid ? 'var(--green)' : chainStatus ? 'var(--red)' : 'var(--ink3)'} />
@@ -111,7 +111,7 @@ export const OndiSessions: React.FC = () => {
             )}
           </div>
           <button type="button" onClick={checkChain} disabled={checkingChain}
-            style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 16px', cursor: checkingChain ? 'default' : 'pointer', opacity: checkingChain ? 0.6 : 1 }}>
+            style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 16px', cursor: checkingChain ? 'default' : 'pointer', opacity: checkingChain ? 0.6 : 1 }}>
             Re-verify Chain
           </button>
         </div>
@@ -124,7 +124,7 @@ export const OndiSessions: React.FC = () => {
             <div className="ondi-card-grid">
               {devices.map(d => (
                 <div key={d.id} className="ondi-entity-card" style={{ padding: 18, flexDirection: 'row', alignItems: 'center' }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 10, background: 'var(--teal-l, #ecfeff)', border: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)', flexShrink: 0 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)', flexShrink: 0 }}>
                     <Icon name={d.device_type === 'mobile' ? 'smartphone' : 'monitor'} size={20} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -134,7 +134,7 @@ export const OndiSessions: React.FC = () => {
                     <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
                       User: <strong>{d.user_name}</strong>
                     </div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ink4)', marginTop: 1 }}>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>
                       {new Date(d.last_used_at).toLocaleString()}
                     </div>
                   </div>

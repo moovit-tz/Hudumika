@@ -134,4 +134,8 @@ Badges and chips run on two steps: `--badge-py`/`-px`/`-fs`/`-min-h` and the `-s
 - **Search placement:** In table, card, and page headers, primary section tabs / filter triggers belong on the left side of the toolbar header, while the search input sits right-aligned on the right side (`justify-content: space-between` / `margin-left: auto`).
 - **Margin consistency:** All page elements — `PageHeader`, `MetricsRow`, tab headers, and data table containers — must follow identical left and right margin boundaries set by `.page-layout` (and `.app-shell-content`). Inner list page wrappers must not apply arbitrary extra horizontal padding (e.g. `padding: 24px 28px`) that indents data tables inwards relative to top metrics cards and headers.
 
+**Loading states — never hand-roll `<div>Loading…</div>` or a bespoke spin keyframe.** Use `SectionLoading`/`PageLoading`/`ButtonSpinner` (`ui/spinner.tsx`) or the shape-matched `Skeleton*` family (`ui/skeleton.tsx`) — see `docs/DESIGN_SYSTEM.md`'s "Loading states" section for which one fits which surface.
+
+**Motion, and the mechanical slop pre-flight.** `docs/DESIGN_SYSTEM.md` also carries a short motion policy (CSS transitions only, no animation library, a frequency-gate decision order) and documents `npm run check:slop` — a page-by-page scanner (adapted from an external agent skill studied for this, not copied wholesale — see the design-system doc for why) for raw off-accent colors, raw corner-radius values outside the `--r-sm`/`--r` scale, unjustified gradients, and duplicate CTA phrasing. It's a report, not a `typecheck` gate — read that doc's own honest baseline numbers before assuming a page is clean.
+
 Verify with `npx tsc --noEmit` from `apps/web` after touching any of these files or their call sites.

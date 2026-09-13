@@ -226,7 +226,7 @@ function RowRate({ label, value, onChange, placeholder }: {
   const active = value.trim() !== '';
   return (
     <div>
-      <label style={{ fontSize: 9.5, fontWeight: 700, color: active ? 'var(--gold, #B8862F)' : 'var(--ink3)', textTransform: 'uppercase' }}>{label}</label>
+      <label style={{ fontSize: 9.5, fontWeight: 700, color: active ? 'var(--gold)' : 'var(--ink3)', textTransform: 'uppercase' }}>{label}</label>
       <input
         className="input-field"
         type="number"
@@ -235,7 +235,7 @@ function RowRate({ label, value, onChange, placeholder }: {
         value={value}
         placeholder={placeholder ?? 'auto'}
         onChange={e => onChange(e.target.value)}
-        style={{ width: '100%', boxSizing: 'border-box', fontSize: 12.5, borderColor: active ? 'var(--gold, #B8862F)' : undefined }}
+        style={{ width: '100%', boxSizing: 'border-box', fontSize: 12.5, borderColor: active ? 'var(--gold)' : undefined }}
       />
     </div>
   );
@@ -321,7 +321,7 @@ function Seg({ active, onClick, label, icon, fullWidth, grow }: { active: boolea
         // the same kind of thing and should not read as two components.
         padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r-sm)',
         border: `1.5px solid ${active ? 'var(--teal)' : 'var(--border)'}`,
-        background: active ? 'color-mix(in srgb, var(--teal) 12%, transparent)' : 'var(--card-bg, var(--white))',
+        background: active ? 'var(--teal-l)' : 'var(--card-bg, var(--white))',
         color: active ? 'var(--teal)' : 'var(--ink2)',
         fontWeight: active ? 700 : 500, fontSize: 13, cursor: 'pointer',
         transition: 'all .15s ease', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 10, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -334,12 +334,12 @@ function Seg({ active, onClick, label, icon, fullWidth, grow }: { active: boolea
 function Image1TotalStrip({ label, value }: { label: string; value: string }) {
   return (
     <div style={{
-      marginTop: 14, padding: '12px 18px', borderRadius: 10,
-      background: 'rgba(234, 88, 12, 0.07)', border: '1px solid rgba(234, 88, 12, 0.2)',
+      marginTop: 14, padding: '12px 18px', borderRadius: 'var(--r)',
+      background: 'var(--teal-l)', border: '1px solid var(--teal-m)',
       display: 'flex', justifyContent: 'space-between', alignItems: 'center'
     }}>
       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{label}</span>
-      <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--orange, #ea580c)' }}>{value}</span>
+      <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--teal)' }}>{value}</span>
     </div>
   );
 }
@@ -661,7 +661,7 @@ function FormattedLandedCostBreakdown({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* ── Card 1: CIF VALUE ── */}
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           CIF VALUE
         </div>
@@ -670,7 +670,7 @@ function FormattedLandedCostBreakdown({
       </div>
 
       {/* ── Card 2: DUTIES & TAXES ── */}
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           DUTIES &amp; TAXES
         </div>
@@ -682,7 +682,7 @@ function FormattedLandedCostBreakdown({
            own card with its own subtotal, matching the same buckets the
            Export PDF report uses so what's on screen and what's printed
            always agree. ── */}
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           TPA CHARGES
         </div>
@@ -694,7 +694,7 @@ function FormattedLandedCostBreakdown({
         </div>
       </div>
 
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           ICD CHARGES
         </div>
@@ -707,7 +707,7 @@ function FormattedLandedCostBreakdown({
         </div>
       </div>
 
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           CLEARANCE CHARGES <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>(documentation, verification &amp; TASAC agency fee)</span>
         </div>
@@ -719,7 +719,7 @@ function FormattedLandedCostBreakdown({
         </div>
       </div>
 
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           TBS CHARGES
         </div>
@@ -731,7 +731,7 @@ function FormattedLandedCostBreakdown({
         </div>
       </div>
 
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           SHIPPING LINE CHARGES
         </div>
@@ -744,7 +744,7 @@ function FormattedLandedCostBreakdown({
       </div>
 
       {/* ── ADDITIONAL PORT / TPA / TASAC CHARGES (optional, user-selected) ── */}
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
           ADDITIONAL PORT / TPA / TASAC CHARGES <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
         </div>
@@ -766,7 +766,7 @@ function FormattedLandedCostBreakdown({
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{[e.item.clause_ref, e.item.category].filter(Boolean).join(' · ')} — {e.item.rate_currency} {Number(e.item.rate_amount).toLocaleString('en-US')}{e.item.unit ? ` / ${e.item.unit}` : ''}</div>
                 </div>
                 <input type="number" min={1} value={e.qty} onChange={ev => onSetExtraQty(e.key, parseInt(ev.target.value, 10) || 1)}
-                  style={{ width: 56, height: 30, textAlign: 'center', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5 }} />
+                  style={{ width: 56, height: 30, textAlign: 'center', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5 }} />
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', minWidth: 90, textAlign: 'right' }}>TZS {fmt(extraLineTzs(e))}</div>
                 <button type="button" onClick={() => onRemoveExtra(e.key)} title="Remove"
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="x" size={14} /></button>
@@ -779,8 +779,8 @@ function FormattedLandedCostBreakdown({
 
       {/* ── GRAND TOTAL — LANDED COST ── */}
       <div style={{
-        background: 'rgba(234, 88, 12, 0.06)',
-        border: '1.5px solid rgba(234, 88, 12, 0.25)',
+        background: 'var(--teal-l)',
+        border: '1.5px solid var(--teal-m)',
         borderRadius: 16,
         padding: '24px 28px',
         display: 'flex',
@@ -794,26 +794,26 @@ function FormattedLandedCostBreakdown({
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>
             TOTAL LANDED COST
           </div>
-          <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--orange, #ea580c)', letterSpacing: '-0.02em', marginTop: 2 }}>
+          <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--teal)', letterSpacing: '-0.02em', marginTop: 2 }}>
             TZS {fmt(grandTotalTzs)}
           </div>
         </div>
 
         {/* 2x2 Grid Summary Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-          <div style={{ padding: '12px 16px', borderRadius: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)' }}>
+          <div style={{ padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)' }}>
             <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase' }}>PER UNIT</div>
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginTop: 3 }}>TZS {fmt(grandPerUnitTzs)}</div>
           </div>
-          <div style={{ padding: '12px 16px', borderRadius: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)' }}>
+          <div style={{ padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)' }}>
             <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase' }}>CIF (USD)</div>
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginTop: 3 }}>USD {fmtUsd(result.cif_usd)}</div>
           </div>
-          <div style={{ padding: '12px 16px', borderRadius: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)' }}>
+          <div style={{ padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)' }}>
             <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase' }}>DUTIES &amp; TAXES</div>
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginTop: 3 }}>TZS {fmt(result.statutory_total)}</div>
           </div>
-          <div style={{ padding: '12px 16px', borderRadius: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)' }}>
+          <div style={{ padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)' }}>
             <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase' }}>PORT + ICD + CLEARANCE</div>
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginTop: 3 }}>TZS {fmt(portIcdClearanceTotal)}</div>
           </div>
@@ -821,7 +821,7 @@ function FormattedLandedCostBreakdown({
 
         {/* Recoverable VAT footnote — statutory VAT plus every service-VAT
             amount shown in the cards above. */}
-        <div style={{ paddingTop: 10, borderTop: '1px solid rgba(234, 88, 12, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+        <div style={{ paddingTop: 10, borderTop: '1px solid var(--teal-m)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
           <span style={{ color: 'var(--ink3)' }}>Total excl. VAT (VAT recoverable)</span>
           <strong style={{ color: 'var(--teal)' }}>TZS {fmt(grandTotalExVatTzs)}</strong>
         </div>
@@ -829,7 +829,7 @@ function FormattedLandedCostBreakdown({
             TBS / Shipping cards above (and therefore into the total), so they
             are not added again here — only ones with no matching card are. */}
         {otherExtraTzs > 0 && (
-          <div style={{ paddingTop: 10, borderTop: '1px solid rgba(234, 88, 12, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+          <div style={{ paddingTop: 10, borderTop: '1px solid var(--teal-m)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
             <span style={{ color: 'var(--ink3)' }}>+ Additional charges with no matching card above</span>
             <strong style={{ color: 'var(--ink)' }}>TZS {fmt(otherExtraTzs)}</strong>
           </div>
@@ -2266,16 +2266,16 @@ function VerticalStepBar({ current, setStep }: { current: number; setStep: (s: W
               <div style={{
                 width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 13, fontWeight: 700, flexShrink: 0,
-                background: isActive ? 'var(--teal)' : isDone ? 'color-mix(in srgb, var(--teal) 15%, transparent)' : 'var(--surface, rgba(255,255,255,0.05))',
+                background: isActive ? 'var(--teal)' : isDone ? 'var(--teal-l)' : 'rgba(255,255,255,0.05)',
                 border: `1.5px solid ${isActive || isDone ? 'var(--teal)' : 'var(--border)'}`,
                 color: isActive ? '#fff' : isDone ? 'var(--teal)' : 'var(--ink3)',
-                boxShadow: isActive ? '0 0 14px color-mix(in srgb, var(--teal) 35%, transparent)' : 'none',
+                boxShadow: isActive ? '0 0 14px var(--teal-m)' : 'none',
                 transition: 'all 0.2s ease'
               }}>
                 {isDone ? <Icon name="check" size={15} color="var(--teal)" strokeWidth={3} /> : i + 1}
               </div>
               {i < STEP_ITEMS.length - 1 && (
-                <div style={{ width: 2, flex: 1, minHeight: 28, background: isDone ? 'var(--teal)' : 'var(--border)', margin: '6px 0', borderRadius: 2 }} />
+                <div style={{ width: 2, flex: 1, minHeight: 28, background: isDone ? 'var(--teal)' : 'var(--border)', margin: '6px 0', borderRadius: 'var(--r-sm)'}} />
               )}
             </div>
             <div style={{ paddingTop: 4 }}>
@@ -2310,7 +2310,7 @@ function HorizontalStepBar({ current, setStep }: { current: number; setStep: (s:
                 <div style={{
                   width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700, flexShrink: 0,
-                  background: isActive ? 'var(--teal)' : isDone ? 'color-mix(in srgb, var(--teal) 15%, transparent)' : 'var(--surface, rgba(255,255,255,0.05))',
+                  background: isActive ? 'var(--teal)' : isDone ? 'var(--teal-l)' : 'rgba(255,255,255,0.05)',
                   border: `1.5px solid ${isActive || isDone ? 'var(--teal)' : 'var(--border)'}`,
                   color: isActive ? '#fff' : isDone ? 'var(--teal)' : 'var(--ink3)',
                 }}>
@@ -2321,7 +2321,7 @@ function HorizontalStepBar({ current, setStep }: { current: number; setStep: (s:
                 </div>
               </div>
               {i < STEP_ITEMS.length - 1 && (
-                <div style={{ flex: 1, height: 2, background: isDone ? 'var(--teal)' : 'var(--border)', margin: '0 6px 16px', borderRadius: 2 }} />
+                <div style={{ flex: 1, height: 2, background: isDone ? 'var(--teal)' : 'var(--border)', margin: '0 6px 16px', borderRadius: 'var(--r-sm)'}} />
               )}
             </React.Fragment>
           );
@@ -2370,7 +2370,7 @@ function OverrideField({ label, suffix, value, onChange, placeholder, hint }: {
   const active = value.trim() !== '';
   return (
     <div>
-      <label style={{ fontSize: 11, fontWeight: 700, color: active ? 'var(--gold, #B8862F)' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px', display: 'block', marginBottom: 5 }}>
+      <label style={{ fontSize: 11, fontWeight: 700, color: active ? 'var(--gold)' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px', display: 'block', marginBottom: 5 }}>
         {label}{active && ' · override'}
       </label>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2384,7 +2384,7 @@ function OverrideField({ label, suffix, value, onChange, placeholder, hint }: {
           onChange={e => onChange(e.target.value)}
           style={{
             flex: 1, minWidth: 0, boxSizing: 'border-box', height: 40, fontSize: 13.5,
-            borderColor: active ? 'var(--gold, #B8862F)' : undefined,
+            borderColor: active ? 'var(--gold)' : undefined,
           }}
         />
         <span style={{ fontSize: 11.5, color: 'var(--ink3)', flexShrink: 0 }}>{suffix}</span>
@@ -3787,7 +3787,7 @@ export const LandedCostPage: React.FC = () => {
   const navRow = (
     <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
       {stepError && (
-        <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 'var(--r)', background: 'color-mix(in srgb, var(--red) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', color: 'var(--red)', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="alertCircle" size={15} color="var(--red)" /> {stepError}
         </div>
       )}
@@ -3801,7 +3801,7 @@ export const LandedCostPage: React.FC = () => {
         }
         {step < 4
           ? <button type="button" disabled={!!stepError} onClick={() => { if (!validateStep(step)) setStep(s => (s + 1) as any); }}
-              style={{ height: 'var(--ctl-h)', padding: '0 28px', borderRadius: 'var(--r-sm)', border: 'none', background: stepError ? 'var(--border)' : 'hsl(var(--primary))', color: stepError ? 'var(--ink3)' : 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 14, cursor: stepError ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: stepError ? 'none' : '0 4px 16px color-mix(in srgb, var(--teal) 30%, transparent)' }}>
+              style={{ height: 'var(--ctl-h)', padding: '0 28px', borderRadius: 'var(--r-sm)', border: 'none', background: stepError ? 'var(--border)' : 'hsl(var(--primary))', color: stepError ? 'var(--ink3)' : 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 14, cursor: stepError ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: stepError ? 'none' : '0 4px 16px var(--teal-m)' }}>
               Continue <Icon name="arrowRight" size={14} color={stepError ? 'var(--ink3)' : '#fff'} />
             </button>
           : null
@@ -3832,13 +3832,13 @@ export const LandedCostPage: React.FC = () => {
   const importFeedback = (
     <>
       {importNote && (
-        <div style={{ marginTop: 14, padding: '11px 14px', borderRadius: 'var(--r)', background: 'color-mix(in srgb, var(--teal) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 25%, transparent)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+        <div style={{ marginTop: 14, padding: '11px 14px', borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 9 }}>
           <Icon name="info" size={15} color="var(--teal)" style={{ flexShrink: 0, marginTop: 1 }} />
           <div>{importNote}</div>
         </div>
       )}
       {multiError && (
-        <div style={{ marginTop: 14, padding: '10px 14px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--red)' }}>
+        <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--red)' }}>
           {multiError}
         </div>
       )}
@@ -4498,7 +4498,7 @@ export const LandedCostPage: React.FC = () => {
 
           {/* Live FX Rate Card */}
           {fxRate && (
-            <div style={{ background: 'color-mix(in srgb, var(--teal) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 22%, transparent)', borderRadius: 12, padding: '14px 16px', fontSize: 12, color: 'var(--ink)' }}>
+            <div style={{ background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', padding: '14px 16px', fontSize: 12, color: 'var(--ink)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--teal)', fontWeight: 700, marginBottom: 4 }}>
                 <Icon name="trendingUp" size={14} color="var(--teal)" /> Live FX Exchange Rate
               </div>
@@ -4587,7 +4587,7 @@ export const LandedCostPage: React.FC = () => {
                   : 'Enter the shipment value and HS classification.'}
               </div>
 
-              <div style={{ padding: '12px 16px', borderRadius: 10, background: 'color-mix(in srgb, var(--teal) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 22%, transparent)', marginBottom: 24, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', marginBottom: 24, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Icon name="info" size={16} color="var(--teal)" style={{ flexShrink: 0 }} />
                 <div>
                   Rates: <strong>EAC CET 2022</strong> · VAT 18% · RDL 2% · CPF 1% (Finance Act 2026) · TPA Wharfage 1.6% ·{' '}
@@ -4615,7 +4615,7 @@ export const LandedCostPage: React.FC = () => {
                     <Icon name="dollarSign" size={15} color="var(--ink3)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
                   </div>
 
-                  <div style={{ marginTop: 14, padding: 14, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ marginTop: 14, padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 'var(--r)', display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div>
                       <div style={{ fontSize: 12.5, color: 'var(--ink2)', marginBottom: 8 }}>Does that price already include shipping to Tanzania?</div>
                       <div style={{ display: 'flex', gap: 8 }}>
@@ -4669,7 +4669,7 @@ export const LandedCostPage: React.FC = () => {
                   />
 
                   {hsSelected && (
-                    <div style={{ marginTop: 10, padding: '12px 16px', background: 'color-mix(in srgb, var(--teal) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius: 10, fontSize: 12.5, color: 'var(--ink)' }}>
+                    <div style={{ marginTop: 10, padding: '12px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Icon name="checkCircle" size={16} color="var(--teal)" />
                         <strong>{hsSelected.code}</strong> — {hsSelected.description}
@@ -4705,7 +4705,7 @@ export const LandedCostPage: React.FC = () => {
                 </div>
 
                 {/* Field 4: Finance Act 2026 (July update) special excise flags */}
-                <div style={{ padding: 14, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)', borderRadius: 10 }}>
+                <div style={{ padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 'var(--r)'}}>
                   <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 10 }}>
                     Special Excise — Finance Act 2026 (July update)
                   </label>
@@ -4752,7 +4752,7 @@ export const LandedCostPage: React.FC = () => {
                         // shouting: red for no HS code (which blocks assessment
                         // entirely), amber for no price, grey for switched off.
                         border: `1px solid ${issue ? ISSUE_STYLE[issue].edge : 'var(--border)'}`,
-                        background: issue ? ISSUE_STYLE[issue].tint : 'var(--surface, rgba(255,255,255,0.03))',
+                        background: issue ? ISSUE_STYLE[issue].tint : 'rgba(255,255,255,0.03)',
                         opacity: row.excluded ? 0.62 : 1,
                         scrollMarginTop: 12,
                       }}>
@@ -4854,7 +4854,7 @@ export const LandedCostPage: React.FC = () => {
                                     style={{
                                       fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap',
                                       padding: '1px 7px', borderRadius: 'var(--badge-radius)',
-                                      background: s.matchPct >= 70 ? 'var(--green-l)' : s.matchPct >= 40 ? 'var(--gold-l)' : 'var(--surface-2, rgba(0,0,0,.05))',
+                                      background: s.matchPct >= 70 ? 'var(--green-l)' : s.matchPct >= 40 ? 'var(--gold-l)' : 'rgba(0,0,0,.05)',
                                       color: s.matchPct >= 70 ? 'var(--green)' : s.matchPct >= 40 ? 'var(--gold)' : 'var(--ink3)',
                                     }}>
                                     {s.matchPct}% match
@@ -4911,7 +4911,7 @@ export const LandedCostPage: React.FC = () => {
                             own tariff rate. Anything typed here is flagged as a
                             manual override on the result and the PDF. */}
                         <details style={{ marginTop: 10 }}>
-                          <summary style={{ cursor: 'pointer', fontSize: 11, fontWeight: 700, color: rowHasOverride(row) ? 'var(--gold, #B8862F)' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>
+                          <summary style={{ cursor: 'pointer', fontSize: 11, fontWeight: 700, color: rowHasOverride(row) ? 'var(--gold)' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>
                             Rates {rowHasOverride(row) ? '· overridden' : '· from tariff database'}
                           </summary>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
@@ -5103,7 +5103,7 @@ export const LandedCostPage: React.FC = () => {
 
                   <Field label="Advanced Settings" hint="Replace a sourced rate. Blank uses the tariff or TPA figure.">
                     <button type="button" className="lcp-ctl" onClick={() => setShowAdvanced(v => !v)}
-                      style={{ width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 14px', background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink2)', fontSize: 13, fontWeight: 700 }}>
+                      style={{ width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink2)', fontSize: 13, fontWeight: 700 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Icon name="settings" size={15} color="var(--ink3)" />
                         {overrideCount > 0
@@ -5118,7 +5118,7 @@ export const LandedCostPage: React.FC = () => {
               </div>
 
               {/* Destination-charge basis info */}
-              <div style={{ marginTop: 24, padding: '12px 16px', background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12, color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ marginTop: 24, padding: '12px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="info" size={15} color="var(--teal)" style={{ flexShrink: 0 }} />
                 {isAir
                   ? <span>Air handling: TZS 55,000 documentation + TZS 242/kg chargeable weight · TPA Wharfage: 1.6% of CIF</span>
@@ -5138,7 +5138,7 @@ export const LandedCostPage: React.FC = () => {
                   full-width because six override fields cannot live in a third
                   of a row. */}
               {showAdvanced && (
-                <div style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
                   <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.6 }}>
                       Leave blank to use the rate from the EAC CET tariff database or the published TPA/TRA figure.
@@ -5192,7 +5192,7 @@ export const LandedCostPage: React.FC = () => {
               </div>
 
               {(itemMode === 'single' ? error : multiError) && (
-                <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 18, padding: '12px 16px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 18, padding: '12px 16px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Icon name="alertCircle" size={16} color="var(--red)" />
                   {itemMode === 'single' ? error : multiError}
                 </div>
@@ -5201,8 +5201,8 @@ export const LandedCostPage: React.FC = () => {
               {/* A missing QR should be explained, not silently absent — the
                   usual cause is the public domain not being configured yet. */}
               {shareNotice && (
-                <div style={{ marginBottom: 18, padding: '11px 15px', borderRadius: 10, background: 'var(--gold-l, rgba(184,134,47,.10))', border: '1px solid var(--gold-m, rgba(184,134,47,.30))', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <Icon name="info" size={15} color="var(--gold, #B8862F)" style={{ flexShrink: 0, marginTop: 1 }} />
+                <div style={{ marginBottom: 18, padding: '11px 15px', borderRadius: 'var(--r)', background: 'var(--gold-l)', border: '1px solid var(--gold)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <Icon name="info" size={15} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
                   <div style={{ fontSize: 12, color: 'var(--ink2)', lineHeight: 1.6 }}>
                     <strong>Exported without a QR code.</strong> {shareNotice} The report link itself was still saved, so it will work once that's set.
                   </div>
@@ -5213,10 +5213,10 @@ export const LandedCostPage: React.FC = () => {
                   tariff-sourced, and that has to be visible on the result
                   itself, not only in the fine print. */}
               {result && (result.overridden_fields?.length ?? 0) > 0 && (
-                <div style={{ marginBottom: 18, padding: '12px 16px', borderRadius: 10, background: 'var(--gold-l, rgba(184,134,47,.12))', border: '1px solid var(--gold-m, rgba(184,134,47,.35))', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <Icon name="alertTriangle" size={16} color="var(--gold, #B8862F)" style={{ flexShrink: 0, marginTop: 1 }} />
+                <div style={{ marginBottom: 18, padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--gold-l)', border: '1px solid var(--gold)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <Icon name="alertTriangle" size={16} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
                   <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
-                    <strong style={{ color: 'var(--gold, #B8862F)' }}>Manual rate override in effect.</strong>{' '}
+                    <strong style={{ color: 'var(--gold)' }}>Manual rate override in effect.</strong>{' '}
                     {result.overridden_fields!.map(f => OVERRIDE_LABELS[f] ?? f).join(', ')}
                     {' '}— entered in Advanced Settings, not sourced from the EAC CET tariff database or a published TPA/TRA rate. Verify before sending this to a customer.
                   </div>
@@ -5235,18 +5235,18 @@ export const LandedCostPage: React.FC = () => {
                   <div>
                     {/* Quick-read summary stats */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 18 }}>
-                      <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
+                      <div style={{ padding: '12px 14px', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
                         <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Effective Statutory Rate</div>
                         <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{result.effective_statutory_rate_pct.toFixed(1)}%</div>
                         <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>of CIF (duty+excise+RDL+CPF+VAT)</div>
                       </div>
-                      <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
+                      <div style={{ padding: '12px 14px', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
                         <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Landed Multiplier</div>
                         <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{result.landed_multiplier.toFixed(2)}×</div>
                         <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>landed cost ÷ CIF value</div>
                       </div>
                       {result.fob_usd != null && (
-                        <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
+                        <div style={{ padding: '12px 14px', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
                           <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>FOB + Freight + Insurance</div>
                           <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>
                             {fmtUsd(result.fob_usd)} + {fmtUsd(result.freight_usd ?? 0)} + {fmtUsd(result.insurance_usd ?? 0)}
@@ -5258,7 +5258,7 @@ export const LandedCostPage: React.FC = () => {
 
                     {/* Compliance alerts */}
                     {(result.pvoc_required || result.di_required || (result.permits?.length > 0)) && (
-                      <div style={{ marginBottom: 20, padding: '14px 18px', background: 'color-mix(in srgb, var(--gold) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--gold) 30%, transparent)', borderRadius: 12, fontSize: 13, color: 'var(--ink)' }}>
+                      <div style={{ marginBottom: 20, padding: '14px 18px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--ink)' }}>
                         <div style={{ fontWeight: 700, marginBottom: 8, color: 'var(--gold)', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Icon name="alertTriangle" size={16} color="var(--gold)" /> Compliance Requirements
                         </div>
@@ -5288,8 +5288,8 @@ export const LandedCostPage: React.FC = () => {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     {summary && (
-                      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                        <div style={{ padding: '14px 18px', background: 'color-mix(in srgb, var(--teal) 8%, transparent)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 18px', background: 'var(--teal-l)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Icon name="sparkle" size={16} color="var(--teal)" />
                           <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>AI Analysis</span>
                           <button type="button" onClick={() => setSummary('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 16, padding: 0, display: 'flex', alignItems: 'center' }}>
@@ -5301,7 +5301,7 @@ export const LandedCostPage: React.FC = () => {
                     )}
 
                     {!summary && (
-                      <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '20px 18px', background: 'var(--card-bg, var(--white))' }}>
+                      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '20px 18px', background: 'var(--card-bg, var(--white))' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                           <Icon name="sparkle" size={16} color="var(--teal)" />
                           <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>AI Analysis</span>
@@ -5309,7 +5309,7 @@ export const LandedCostPage: React.FC = () => {
                         <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16, lineHeight: 1.6 }}>Get AI-powered interpretation of your landed cost and compliance status.</div>
 
                         {aiError && (
-                          <div style={{ marginBottom: 14, padding: '11px 14px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--red)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          <div style={{ marginBottom: 14, padding: '11px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--red)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                             <Icon name="alertCircle" size={14} color="var(--red)" style={{ flexShrink: 0, marginTop: 1 }} />
                             <span>
                               {aiError}
@@ -5319,7 +5319,7 @@ export const LandedCostPage: React.FC = () => {
                         )}
 
                         <button type="button" onClick={runAi} disabled={aiPending}
-                          style={{ width: '100%', padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 14, cursor: aiPending ? 'default' : 'pointer', opacity: aiPending ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px color-mix(in srgb, var(--teal) 25%, transparent)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                          style={{ width: '100%', padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 14, cursor: aiPending ? 'default' : 'pointer', opacity: aiPending ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px var(--teal-m)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                           <Icon name="sparkle" size={14} color="#fff" />
                           {aiPending ? 'Analysing…' : aiError ? 'Retry AI Analysis' : 'Run AI Analysis'}
                         </button>
@@ -5328,7 +5328,7 @@ export const LandedCostPage: React.FC = () => {
 
                     {/* HS Tariff summary box */}
                     {hsSelected && (
-                      <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px', background: 'var(--surface, rgba(255,255,255,0.03))', fontSize: 13 }}>
+                      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '18px 20px', background: 'rgba(255,255,255,0.03)', fontSize: 13 }}>
                         <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 13.5, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Icon name="clipboardList" size={16} color="var(--teal)" /> Tariff Details
                         </div>
@@ -5349,7 +5349,7 @@ export const LandedCostPage: React.FC = () => {
                     {/* Warnings & assumptions — structured, not buried in prose, so
                         nothing that matters gets missed scanning the page. */}
                     {(result.warnings.length > 0 || result.assumptions.length > 0) && (
-                      <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', background: 'var(--card-bg, var(--white))', fontSize: 12.5 }}>
+                      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', background: 'var(--card-bg, var(--white))', fontSize: 12.5 }}>
                         <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 13, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Icon name="alertCircle" size={15} color="var(--ink3)" /> Assumptions &amp; Warnings
                         </div>
@@ -5401,20 +5401,20 @@ export const LandedCostPage: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                   {/* Quick-read summary stats */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
-                    <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
+                    <div style={{ padding: '12px 14px', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
                       <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Line Items</div>
                       <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{multiResult.items.length}</div>
                     </div>
-                    <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
+                    <div style={{ padding: '12px 14px', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
                       <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Effective Statutory Rate</div>
                       <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{multiResult.totals.effective_statutory_rate_pct.toFixed(1)}%</div>
                     </div>
-                    <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
+                    <div style={{ padding: '12px 14px', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
                       <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Landed Multiplier</div>
                       <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{multiResult.totals.landed_multiplier.toFixed(2)}×</div>
                     </div>
                     {multiResult.chargeable_weight_kg != null && (
-                      <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
+                      <div style={{ padding: '12px 14px', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
                         <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Chargeable Weight</div>
                         <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{multiResult.chargeable_weight_kg.toFixed(0)} kg</div>
                       </div>
@@ -5422,8 +5422,8 @@ export const LandedCostPage: React.FC = () => {
                   </div>
 
                   {/* Per-item table */}
-                  <div style={{ border: '1px solid var(--teal)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 4px 20px color-mix(in srgb, var(--teal) 8%, transparent)' }}>
-                    <div style={{ padding: '16px 22px', background: 'color-mix(in srgb, var(--teal) 10%, transparent)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <div style={{ border: '1px solid var(--teal)', borderRadius: 'var(--card-radius)', overflow: 'hidden', boxShadow: '0 4px 20px var(--teal-l)' }}>
+                    <div style={{ padding: '16px 22px', background: 'var(--teal-l)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <Icon name="package" size={18} color="var(--teal)" />
                       <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Per-Item Breakdown</span>
                       <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>— select a line to amend it</span>
@@ -5435,7 +5435,7 @@ export const LandedCostPage: React.FC = () => {
                     <div className="lcp-tscroll">
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 720 }}>
                       <thead>
-                        <tr style={{ background: 'var(--surface, rgba(255,255,255,0.03))' }}>
+                        <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
                           {['#', 'Description', 'HS Code', 'Qty', 'CIF (TZS)', 'Duty', 'VAT', 'Other', 'Landed Total'].map(h => (
                             <th key={h} style={{ textAlign: h === 'Description' ? 'left' : 'right', padding: '8px 12px', color: 'var(--ink3)', fontWeight: 700, fontSize: 10.5, textTransform: 'uppercase', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                           ))}
@@ -5517,7 +5517,7 @@ export const LandedCostPage: React.FC = () => {
                   )}
 
                   {/* VAT incl/excl */}
-                  <div style={{ padding: '12px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--teal) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 20%, transparent)' }}>
+                  <div style={{ padding: '12px 14px', borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal-m)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5 }}>
                       <span style={{ color: 'var(--ink2)' }}>Total incl. VAT</span>
                       <strong style={{ color: 'var(--ink)' }}>TZS {fmt(multiResult.totals.total)}</strong>
@@ -5530,7 +5530,7 @@ export const LandedCostPage: React.FC = () => {
 
                   {/* Warnings & assumptions */}
                   {(multiResult.warnings.length > 0 || multiResult.assumptions.length > 0) && (
-                    <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', background: 'var(--card-bg, var(--white))', fontSize: 12.5 }}>
+                    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', background: 'var(--card-bg, var(--white))', fontSize: 12.5 }}>
                       <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 13, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Icon name="alertCircle" size={15} color="var(--ink3)" /> Assumptions &amp; Warnings
                         <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 500, color: 'var(--ink3)' }}>
@@ -5625,7 +5625,7 @@ export const LandedCostPage: React.FC = () => {
                 return (
                   <div key={i}
                     onClick={() => !isMulti && recallHistory(h)}
-                    style={{ padding: '12px 14px', background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)', borderRadius: 10, cursor: isMulti ? 'default' : 'pointer', fontSize: 12.5, opacity: isMulti ? 0.7 : 1 }}
+                    style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: isMulti ? 'default' : 'pointer', fontSize: 12.5, opacity: isMulti ? 0.7 : 1 }}
                     onMouseEnter={e => { if (!isMulti) e.currentTarget.style.borderColor = 'var(--teal)'; }}
                     onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
                     <div style={{ fontWeight: 700, color: 'var(--teal)' }}>{isMulti ? 'Multi-item' : `HS ${h.hs_code}`}</div>

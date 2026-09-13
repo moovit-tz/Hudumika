@@ -105,17 +105,17 @@ export function OnsiteMonitoring() {
 
       {loading ? (
         <div className="onsite-card">
-          <p style={{ color: 'var(--ink-muted)' }}>Loading monitors…</p>
+          <p style={{ color: 'var(--ink3)' }}>Loading monitors…</p>
         </div>
       ) : error ? (
         <div className="onsite-card">
-          <p style={{ color: '#ef4444' }}>Error: {error}</p>
+          <p style={{ color: 'var(--red)' }}>Error: {error}</p>
         </div>
       ) : checks.length === 0 ? (
         <div className="onsite-card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-          <Icon name="activity" size={48} style={{ color: 'var(--ink-muted)', margin: '0 auto 1rem auto' }} />
+          <Icon name="activity" size={48} style={{ color: 'var(--ink3)', margin: '0 auto 1rem auto' }} />
           <h3>No synthetic probes created yet</h3>
-          <p style={{ color: 'var(--ink-muted)', marginBottom: '1.5rem' }}>
+          <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Add your site or API endpoint URL to track 30-day uptime SLAs.
           </p>
           <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
@@ -148,11 +148,11 @@ export function OnsiteMonitoring() {
                         {c.method}
                       </span>
                     </td>
-                    <td style={{ fontWeight: 600, color: c.uptime_30d == null ? 'var(--ink-muted)' : Number(c.uptime_30d) >= 99 ? 'var(--green)' : '#ef4444' }}>
+                    <td style={{ fontWeight: 600, color: c.uptime_30d == null ? 'var(--ink3)' : Number(c.uptime_30d) >= 99 ? 'var(--green)' : 'var(--red)' }}>
                       {c.uptime_30d != null ? `${c.uptime_30d}%` : 'Not measured yet'}
                       {/* The measurement's own timestamp, so a stale figure is
                           visibly stale rather than quietly current. */}
-                      <div style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--ink-muted)' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--ink3)' }}>
                         {(c as any).last_checked_at
                           ? `checked ${new Date((c as any).last_checked_at).toLocaleString()}`
                           : 'never checked'}
@@ -163,7 +163,7 @@ export function OnsiteMonitoring() {
                         {c.status}
                       </span>
                       {(c as any).last_error && (
-                        <div style={{ fontSize: '0.75rem', color: '#ef4444', maxWidth: 260 }}>{(c as any).last_error}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--red)', maxWidth: 260 }}>{(c as any).last_error}</div>
                       )}
                     </td>
                     <td>
@@ -171,7 +171,7 @@ export function OnsiteMonitoring() {
                         <button className="btn btn-sm btn-secondary" disabled={running === c.id} onClick={() => handleRun(c.id)}>
                           <Icon name="refresh" size={14} /> {running === c.id ? 'Checking…' : 'Run now'}
                         </button>
-                        <button className="btn btn-sm btn-ghost" style={{ color: '#ef4444' }} onClick={() => handleDelete(c.id, c.name)}>
+                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(c.id, c.name)}>
                           <Icon name="trash2" size={14} />
                         </button>
                       </div>

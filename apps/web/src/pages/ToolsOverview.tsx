@@ -155,7 +155,7 @@ function SettingsNavItem({ icon, label, sub, to }: { icon: IconName; label: stri
       style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', boxSizing: 'border-box', padding: '10px 16px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left', textDecoration: 'none', color: 'inherit' }}
       onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg)'}
       onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}>
-      <div style={{ width: 30, height: 30, borderRadius: 7, background: 'rgba(100,116,139,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'rgba(100,116,139,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Icon name={icon} size={13} color="var(--ink3)" />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -225,29 +225,29 @@ export const ToolsOverview: React.FC = () => {
       {/* ── Row 1: KPI Cards ── */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
         <KpiCard
-          icon="users" iconBg="rgba(8,145,178,0.1)" iconColor="var(--teal)"
+          icon="users" iconBg="var(--teal-l)" iconColor="var(--teal)"
           value={hr.total_staff} label="Total Staff"
           sub={`${hr.active_staff} active, ${hr.on_leave} on leave`}
           subUp={hr.active_staff >= hr.total_staff * 0.7}barColor="var(--teal)"
           to="/nexushr/employees"
         />
         <KpiCard
-          icon="check" iconBg="rgba(16,185,129,0.1)" iconColor="var(--green)"
+          icon="check" iconBg="var(--green-l)" iconColor="var(--green)"
           value={hr.today_present} label="Present Today"
           sub={`${attendanceRate}% attendance rate`}
           subUp={attendanceRate >= 70}barColor="var(--green)"
           to="/nexushr/attendance"
         />
         <KpiCard
-          icon="calendar" iconBg="rgba(245,158,11,0.12)" iconColor="#f59e0b"
+          icon="calendar" iconBg="var(--gold-l)" iconColor="var(--gold)"
           value={hr.pending_leaves} label="Pending Leave Requests"
           sub={`${hr.on_leave} currently on leave`}
-          subUp={hr.pending_leaves === 0}barColor="#f59e0b"
+          subUp={hr.pending_leaves === 0}barColor="var(--gold)"
           to="/nexushr/leaves"
         />
         <KpiCard
           icon="bell"
-          iconBg={support.unread > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)'}
+          iconBg={support.unread > 0 ? 'var(--red-l)' : 'var(--green-l)'}
           iconColor={support.unread > 0 ? 'var(--red)' : 'var(--green)'}
           value={support.unread} label="Unread Notifications"
           sub={`${support.total_notifications} total in system`}
@@ -271,7 +271,7 @@ export const ToolsOverview: React.FC = () => {
         />
         <StatusCard
           label="Notifications Read" value={`${support.total_notifications - support.unread} / ${support.total_notifications}`}
-          pct={readRate} color="#7c3aed" icon="bell"
+          pct={readRate} color="var(--purple)" icon="bell"
         />
       </div>
 
@@ -284,14 +284,14 @@ export const ToolsOverview: React.FC = () => {
         {/* HRM Dashboard */}
         <ModuleSummaryCard
           icon="briefcase" title="HRM Dashboard"
-          color="var(--teal)" bg="rgba(20,184,166,0.05)"
+          color="var(--teal)" bg="var(--teal-l)"
           to="/nexushr"
         >
           <StatGrid stats={[
             { label: 'Total Staff',    value: hr.total_staff,    sub: `${staffActivePct}% active`,              color: 'var(--teal)' },
             { label: 'Present Today',  value: hr.today_present,  sub: `${attendanceRate}% rate`,                color: 'var(--green)' },
             { label: 'On Leave',       value: hr.on_leave,       sub: hr.on_leave > 0 ? 'Currently away' : 'None away' },
-            { label: 'Pending Leaves', value: hr.pending_leaves, sub: hr.pending_leaves > 0 ? 'Needs review' : 'All clear', color: hr.pending_leaves > 0 ? '#f59e0b' : undefined },
+            { label: 'Pending Leaves', value: hr.pending_leaves, sub: hr.pending_leaves > 0 ? 'Needs review' : 'All clear', color: hr.pending_leaves > 0 ? 'var(--gold)' : undefined },
           ]} />
           <ProgressFooter label="Today's Attendance" value={`${attendanceRate}%`} pct={attendanceRate} color="var(--teal)" />
         </ModuleSummaryCard>
@@ -299,35 +299,35 @@ export const ToolsOverview: React.FC = () => {
         {/* Carbon Credits */}
         <ModuleSummaryCard
           icon="leaf" title="Carbon Credits"
-          color="#059669" bg="#ecfdf5"
+          color="var(--green)" bg="var(--green-l)"
           to="/carbon-credits"
         >
           <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', gap: 12 }}>
-             <Icon name="award" size={32} color="#059669" />
+             <Icon name="award" size={32} color="var(--green)" />
              <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Track your company's carbon footprint offsets and view certification.</div>
           </div>
-          <ProgressFooter label="Offset Tracking" value="Active" pct={100} color="#059669" />
+          <ProgressFooter label="Offset Tracking" value="Active" pct={100} color="var(--green)" />
         </ModuleSummaryCard>
 
         {/* Support */}
         <ModuleSummaryCard
           icon="headphones" title="Support"
-          color="#7c3aed" bg="rgba(124,58,237,0.05)"
+          color="var(--purple)" bg="var(--purple-l)"
           to="/support/tickets"
         >
           <StatGrid stats={[
             { label: 'Notifications',  value: support.total_notifications, sub: 'Total in system' },
             { label: 'Unread',         value: support.unread, sub: support.unread > 0 ? 'Action needed' : 'All read', color: support.unread > 0 ? 'var(--red)' : 'var(--green)' },
             { label: 'Read',           value: support.total_notifications - support.unread, sub: 'Viewed',            color: 'var(--green)' },
-            { label: 'Read Rate',      value: `${readRate}%`, sub: readRate >= 90 ? 'Excellent' : 'Needs attention',  color: '#7c3aed' },
+            { label: 'Read Rate',      value: `${readRate}%`, sub: readRate >= 90 ? 'Excellent' : 'Needs attention',  color: 'var(--purple)' },
           ]} />
-          <ProgressFooter label="Read Rate" value={`${readRate}%`} pct={readRate} color="#7c3aed" />
+          <ProgressFooter label="Read Rate" value={`${readRate}%`} pct={readRate} color="var(--purple)" />
         </ModuleSummaryCard>
 
         {/* Chat */}
         <ModuleSummaryCard
           icon="chatBubble" title="Chat"
-          color="var(--blue)" bg="rgba(37,99,235,0.05)"
+          color="var(--blue)" bg="var(--blue-l)"
           to="/chat"
         >
           <StatGrid stats={[
@@ -335,7 +335,7 @@ export const ToolsOverview: React.FC = () => {
             { label: 'This Month',     value: chat.this_month,                      sub: `${chatPct}% of avg` },
             { label: 'Files Shared',   value: files.total,                          sub: 'Via file manager'   },
             { label: 'Activity',       value: chatPct >= 80 ? 'High' : chatPct >= 40 ? 'Medium' : 'Low',
-              sub: 'vs. monthly avg',  color: chatPct >= 80 ? 'var(--green)' : chatPct >= 40 ? '#f59e0b' : 'var(--red)' },
+              sub: 'vs. monthly avg',  color: chatPct >= 80 ? 'var(--green)' : chatPct >= 40 ? 'var(--gold)' : 'var(--red)' },
           ]} />
           <ProgressFooter label="Monthly Message Volume" value={`${chatPct}% of avg`} pct={chatPct} color="var(--blue)" />
         </ModuleSummaryCard>

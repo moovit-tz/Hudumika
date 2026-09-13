@@ -81,9 +81,22 @@ const deploySchema = z.object({
   branch: z.string().max(200).optional(),
   commit_message: z.string().max(2000).optional(),
 });
+// Must match onsite_servers_provider_check exactly (209_onsite_core.sql).
+// Phase 5 (functional tracing): this used to be a bare z.string(), so any
+// caller who typed the provider's own real branding — "DigitalOcean",
+// "AWS", "GCP", "Azure" — hit the DB's case-sensitive CHECK constraint and
+// got a raw, unhandled 500 ("An unexpected error occurred"), reproduced
+// live. The shipped frontend avoids this today (OnsiteServers.tsx's own
+// <Select> only ever sends the exact lowercase values), but nothing stopped
+// a different caller from hitting it. Lowercased before validation so any
+// casing of a real provider name is accepted, not just the exact string.
+const SERVER_PROVIDERS = ['manual', 'digitalocean', 'hetzner', 'aws', 'gcp', 'azure', 'internal'] as const;
 const serverCreateSchema = z.object({
   name: z.string().trim().min(1).max(200),
-  provider: z.string().max(100).optional(),
+  provider: z.preprocess(
+    v => (typeof v === 'string' ? v.trim().toLowerCase() : v),
+    z.enum(SERVER_PROVIDERS),
+  ).optional(),
   region: z.string().max(100).optional(),
   ip_address: z.string().max(100).optional(),
   os: z.string().max(200).optional(),

@@ -162,10 +162,10 @@ export function BookingPublicPage() {
                           <button
                             key={s} type="button" onClick={() => setSelectedSlot(s)}
                             style={{
-                              padding: '10px 8px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                              padding: '10px 8px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                               border: `1px solid ${sel ? 'var(--teal)' : 'var(--border)'}`,
                               background: sel ? 'var(--teal)' : 'var(--white)', color: sel ? '#ffffff' : 'var(--ink)',
-                              transition: 'all 0.15s ease', boxShadow: sel ? '0 2px 8px rgba(13,148,136,0.25)' : 'none',
+                              transition: 'all 0.15s ease', boxShadow: sel ? '0 2px 8px var(--teal-m)' : 'none',
                             }}
                           >
                             {d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
@@ -183,17 +183,17 @@ export function BookingPublicPage() {
                     <Icon name="checkCircle" size={15} color="var(--teal)" />
                     <span>{new Date(selectedSlot).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                   </div>
-                  <input value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5 }} />
-                  <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Your email address" style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5 }} />
-                  <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Share anything that will help prepare for our meeting (optional)" rows={2} style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5, resize: 'none' }} />
+                  <input value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5 }} />
+                  <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Your email address" style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5 }} />
+                  <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Share anything that will help prepare for our meeting (optional)" rows={2} style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5, resize: 'none' }} />
                   {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
                   <button
                     type="button" onClick={handleBook} disabled={submitting || !name.trim() || !email.trim()}
                     style={{
-                      padding: '12px 20px', border: 'none', borderRadius: 10, cursor: submitting ? 'default' : 'pointer',
+                      padding: '12px 20px', border: 'none', borderRadius: 'var(--r)', cursor: submitting ? 'default' : 'pointer',
                       fontWeight: 700, fontSize: 14, background: 'var(--teal)', color: '#ffffff',
                       opacity: (submitting || !name.trim() || !email.trim()) ? 0.6 : 1, transition: 'all 0.15s ease',
-                      boxShadow: '0 2px 8px rgba(13,148,136,0.3)',
+                      boxShadow: '0 2px 8px var(--teal-m)',
                     }}
                   >
                     {submitting ? 'Confirming Booking…' : 'Confirm Meeting Booking'}

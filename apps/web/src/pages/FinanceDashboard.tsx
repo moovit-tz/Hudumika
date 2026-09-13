@@ -44,7 +44,7 @@ function fmtDate(d: string | null | undefined): string {
 function StatTile({ label, value, sub, tone = 'neutral' }: { label: string; value: string; sub?: string; tone?: 'neutral' | 'warning' | 'good' }) {
   const color = tone === 'warning' ? 'var(--red)' : tone === 'good' ? 'var(--green)' : 'var(--navy)';
   return (
-    <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 8, minWidth: 0 }}>
+    <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r)', minWidth: 0 }}>
       <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{label}</div>
       <div style={{ fontSize: 16, fontWeight: 800, color, letterSpacing: '-0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>{sub}</div>}
@@ -390,14 +390,14 @@ export const FinanceDashboard: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div onClick={() => navigate('/finance/accounts/aged-receivables')}
                 role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/finance/accounts/aged-receivables'); } }}
-                style={{ cursor: 'pointer', padding: '12px 14px', background: 'var(--bg)', borderRadius: 8 }}>
+                style={{ cursor: 'pointer', padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r)' }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Outstanding AR</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.3px' }}>{fmt(snapshot?.receivables?.total ?? 0, 'TZS')}</div>
                 <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 3 }}>{fmt(snapshot?.receivables?.overdue ?? 0, 'TZS')} overdue · {snapshot?.receivables?.count ?? 0} invoices</div>
               </div>
               <div onClick={() => navigate('/finance/accounts/aged-payables')}
                 role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/finance/accounts/aged-payables'); } }}
-                style={{ cursor: 'pointer', padding: '12px 14px', background: 'var(--bg)', borderRadius: 8 }}>
+                style={{ cursor: 'pointer', padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r)' }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Outstanding AP</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.3px' }}>{fmt(snapshot?.payables?.total ?? 0, 'TZS')}</div>
                 <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 3 }}>{fmt(snapshot?.payables?.overdue ?? 0, 'TZS')} overdue · {snapshot?.payables?.count ?? 0} bills</div>

@@ -72,7 +72,7 @@ export function CatalogPage() {
                 <div className="studio-group-label" style={{ margin: '0 0 8px' }}>{KIND_LABEL[kind]}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: 10 }}>
                   {rows.map(t => (
-                    <div key={t.id} style={{ border: '1px solid var(--border)', borderRadius: 11, padding: 13, background: 'var(--card-bg, var(--white))' }}>
+                    <div key={t.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 13, background: 'var(--card-bg, var(--white))' }}>
                       <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
                         <span style={{ width: 7, height: 7, borderRadius: 99, background: t.color }} />
                         <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: t.color }}>{t.appName}</span>
@@ -100,7 +100,7 @@ export function CatalogPage() {
         <TabsContent value="actions">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: 10, marginTop: 16 }}>
             {shownActions.map(a => (
-              <div key={a.id} style={{ border: '1px solid var(--border)', borderRadius: 11, padding: 13, background: 'var(--card-bg, var(--white))' }}>
+              <div key={a.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 13, background: 'var(--card-bg, var(--white))' }}>
                 <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
                   <span style={{ width: 7, height: 7, borderRadius: 99, background: a.color }} />
                   <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: a.color }}>{a.appName}</span>

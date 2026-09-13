@@ -21,7 +21,7 @@ export function FileCard({ item, selected, onClick, onDoubleClick, onContextMenu
   const isSheet = ['xlsx', 'xls', 'csv'].includes(item.type) || item.name.endsWith('.xlsx');
   const isDoc = ['doc', 'docx'].includes(item.type) || item.name.endsWith('.docx');
 
-  const badgeColor = isPdf ? '#ef4444' : isSheet ? '#10b981' : isDoc ? '#2563eb' : 'var(--teal)';
+  const badgeColor = isPdf ? 'var(--red)' : isSheet ? 'var(--green)' : isDoc ? 'var(--blue)' : 'var(--teal)';
   const badgeLabel = isPdf ? 'PDF' : isSheet ? 'SHEET' : isDoc ? 'DOC' : cfg.label.toUpperCase();
 
   return (
@@ -38,7 +38,7 @@ export function FileCard({ item, selected, onClick, onDoubleClick, onContextMenu
             display: 'flex',
             flexDirection: 'column',
             borderRadius: 14,
-            border: selected ? '2px solid #1a73e8' : '1px solid var(--border)',
+            border: selected ? '2px solid var(--cloud-blue)' : '1px solid var(--border)',
             background: selected ? 'rgba(26, 115, 232, 0.08)' : 'var(--card-bg)',
             overflow: 'hidden',
             cursor: 'pointer',

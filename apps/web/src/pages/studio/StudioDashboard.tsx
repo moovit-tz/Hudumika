@@ -85,7 +85,7 @@ export function StudioDashboard() {
 
   if (error) {
     return (
-      <div style={{ padding: 30, color: 'var(--red)', background: 'rgba(239,68,68,0.08)', borderRadius: 12, border: '1px solid var(--border)' }}>
+      <div style={{ padding: 30, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
         <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Failed to load Studio</div>
         <div style={{ fontSize: 13 }}>{error}</div>
       </div>
@@ -124,7 +124,7 @@ export function StudioDashboard() {
           <div style={{ maxWidth: 680 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <div style={{
-                width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.15)',
+                width: 32, height: 32, borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.15)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)'
               }}>
                 <Icon name="sparkle" size={18} color="#ffffff" />
@@ -174,7 +174,7 @@ export function StudioDashboard() {
               size="sm"
               onClick={() => navigate('/studio/new')}
               style={{
-                background: '#ffffff', color: 'var(--navy)', border: 'none',
+                background: '#ffffff', color: '#0e1f3d', border: 'none',
                 fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
               }}
             >
@@ -189,7 +189,7 @@ export function StudioDashboard() {
         
         {/* Workflows Total Card */}
         <div className="studio-card-interactive" style={{
-          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14,
+          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
           padding: '20px 22px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -208,7 +208,7 @@ export function StudioDashboard() {
 
         {/* Active Automations Card */}
         <div className="studio-card-interactive" style={{
-          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14,
+          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
           padding: '20px 22px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -225,7 +225,7 @@ export function StudioDashboard() {
 
         {/* Total Runs Card */}
         <div className="studio-card-interactive" style={{
-          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14,
+          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
           padding: '20px 22px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -242,7 +242,7 @@ export function StudioDashboard() {
 
         {/* Building Blocks / Unrunnable Status */}
         <div className="studio-card-interactive" style={{
-          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14,
+          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
           padding: '20px 22px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -264,11 +264,11 @@ export function StudioDashboard() {
       {/* ── Active Draft Mode Warning Banner ──────────────────────────── */}
       {stats.workflows.active === 0 && stats.workflows.total > 0 && (
         <div style={{
-          padding: '14px 18px', borderRadius: 12, background: 'var(--blue-l)', border: '1px solid var(--blue-m)',
+          padding: '14px 18px', borderRadius: 'var(--r)', background: 'var(--blue-l)', border: '1px solid var(--blue)',
           fontSize: 13, color: 'var(--ink2)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12,
-          boxShadow: '0 2px 6px rgba(37,99,235,0.05)'
+          boxShadow: '0 2px 6px var(--blue-l)'
         }}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(37,99,235,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Icon name="info" size={16} color="var(--blue)" />
           </div>
           <div style={{ flex: 1, lineHeight: 1.45 }}>
@@ -284,7 +284,7 @@ export function StudioDashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 20, alignItems: 'start' }} className="studio-dash-grid">
         
         {/* ── LEFT COLUMN: Recent Execution Runs ─────────────────────── */}
-        <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <Icon name="clock" size={17} color="var(--teal)" />
@@ -371,7 +371,7 @@ export function StudioDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           
           {/* 1. Run Outcomes Distribution */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="barChart2" size={16} color="var(--purple)" />
               <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>Outcomes • Last 30 Days</span>
@@ -389,8 +389,8 @@ export function StudioDashboard() {
                         <Badge variant={VARIANT[status] ?? 'gray'}>{status}</Badge>
                         <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{n} runs <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>({pct}%)</span></span>
                       </div>
-                      <div style={{ height: 7, borderRadius: 4, background: 'var(--border)', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 4, background: barColor, transition: 'width 0.5s ease' }} />
+                      <div style={{ height: 7, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 'var(--r-sm)', background: barColor, transition: 'width 0.5s ease' }} />
                       </div>
                     </div>
                   );
@@ -400,7 +400,7 @@ export function StudioDashboard() {
           </div>
 
           {/* 2. Automations By App */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="grid" size={16} color="var(--blue)" />
               <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>Automations By Workspace App</span>
@@ -411,7 +411,7 @@ export function StudioDashboard() {
                   key={a.app}
                   onClick={() => navigate(a.app === '__unregistered__' ? '/studio/workflows' : `/studio/workflows?app=${a.app}`)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8,
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 'var(--r)',
                     fontSize: 13, cursor: 'pointer', transition: 'background 0.12s'
                   }}
                   onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg)'}
@@ -427,7 +427,7 @@ export function StudioDashboard() {
           </div>
 
           {/* 3. Clearance Stage Workflows */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="layers" size={16} color="var(--teal)" />
@@ -441,7 +441,7 @@ export function StudioDashboard() {
               <div
                 onClick={() => navigate('/studio/clearance')}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8,
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 'var(--r)',
                   fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', background: 'var(--bg)'
                 }}
               >
@@ -453,7 +453,7 @@ export function StudioDashboard() {
               <div
                 onClick={() => navigate('/studio/clearance/new')}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8,
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 'var(--r)',
                   fontSize: 13, fontWeight: 600, color: 'var(--teal)', cursor: 'pointer', background: 'var(--teal-l)'
                 }}
               >

@@ -143,7 +143,7 @@ export function OvertimePage() {
       />
 
       {notice && (
-        <div style={{ margin: '0 0 14px', padding: '11px 14px', borderRadius: 8, fontSize: 13,
+        <div style={{ margin: '0 0 14px', padding: '11px 14px', borderRadius: 'var(--r)', fontSize: 13,
                       background: 'var(--green-l)', border: '1px solid var(--green)', color: 'var(--ink)' }}>
           {notice}
         </div>
@@ -183,13 +183,13 @@ export function OvertimePage() {
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Hours</label>
             <input value={fHours} onChange={e => setFHours(e.target.value)} type="number" step="0.5" min="0.5" max="12"
-              style={{ width: 90, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8,
+              style={{ width: 90, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)',
                        fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <div style={{ flex: 1, minWidth: 180 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Reason</label>
             <input value={fReason} onChange={e => setFReason(e.target.value)} placeholder="Why was the extra time needed?"
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8,
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)',
                        fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <Button type="submit">Submit</Button>
@@ -210,7 +210,7 @@ export function OvertimePage() {
           { label: 'At double time', value: String(Math.round(holidayHours * 10) / 10), tone: 'var(--blue)' },
         ].map(m => (
           <div key={m.label} style={{
-            background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10,
+            background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
             padding: '12px 16px', minWidth: 150, borderLeft: `3px solid ${m.tone}`,
           }}>
             <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--ink)' }}>{m.value}</div>

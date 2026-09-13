@@ -59,19 +59,19 @@ export const TrackingDashboard: React.FC = () => {
     .slice(0, 5);
 
   const kpis = [
-    { label: 'Vehicles moving', value: activeSummary.vehicles.moving, icon: 'compass', color: '#10b981', link: '/tracking/map' },
-    { label: 'Vehicles stopped', value: activeSummary.vehicles.stopped, icon: 'mapPin', color: 'var(--gold)', link: '/tracking/map' },
-    { label: 'Vehicles offline', value: activeSummary.vehicles.offline, icon: 'alertTriangle', color: 'var(--ink3)', link: '/tracking/vehicles' },
-    { label: 'In maintenance', value: activeSummary.vehicles.in_maintenance, icon: 'clipboardList', color: '#6366f1', link: '/tracking/maintenance' },
-    { label: 'Documents expiring (30d)', value: activeSummary.expiring_documents, icon: 'shield', color: 'var(--red)', link: '/tracking/documents' },
-    { label: 'Reminders due (30d)', value: activeSummary.pending_reminders, icon: 'bell', color: 'var(--gold)', link: '/tracking/reminders' },
+    { label: 'Vehicles moving', value: activeSummary.vehicles.moving, icon: 'compass', color: 'var(--green)', bg: 'var(--green-l)', link: '/tracking/map' },
+    { label: 'Vehicles stopped', value: activeSummary.vehicles.stopped, icon: 'mapPin', color: 'var(--gold)', bg: 'var(--gold-l)', link: '/tracking/map' },
+    { label: 'Vehicles offline', value: activeSummary.vehicles.offline, icon: 'alertTriangle', color: 'var(--ink3)', bg: 'var(--bg)', link: '/tracking/vehicles' },
+    { label: 'In maintenance', value: activeSummary.vehicles.in_maintenance, icon: 'clipboardList', color: 'var(--purple)', bg: 'var(--purple-l)', link: '/tracking/maintenance' },
+    { label: 'Documents expiring (30d)', value: activeSummary.expiring_documents, icon: 'shield', color: 'var(--red)', bg: 'var(--red-l)', link: '/tracking/documents' },
+    { label: 'Reminders due (30d)', value: activeSummary.pending_reminders, icon: 'bell', color: 'var(--gold)', bg: 'var(--gold-l)', link: '/tracking/reminders' },
   ];
 
   const fleetStatusData = {
     labels: ['Moving', 'Stopped', 'In maintenance', 'Offline'],
     datasets: [{
       data: [activeSummary.vehicles.moving, activeSummary.vehicles.stopped, activeSummary.vehicles.in_maintenance, activeSummary.vehicles.offline],
-      backgroundColor: ['#10b981', 'var(--gold)', '#6366f1', '#94a3b8'],
+      backgroundColor: ['#10b981', '#9a6700', '#6366f1', '#94a3b8'],
       borderWidth: 0,
     }],
   };
@@ -90,7 +90,7 @@ export const TrackingDashboard: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
         {kpis.map(k => (
           <Link key={k.label} to={k.link} style={{ ...cardStyle, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 11, background: k.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 'var(--r)', background: k.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name={k.icon as any} size={18} color={k.color} />
             </div>
             <div>
@@ -166,7 +166,7 @@ export const TrackingDashboard: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {activeSummary.recent_alerts.map(a => (
               <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-                <Icon name="alertTriangle" size={14} color="#dc2626" />
+                <Icon name="alertTriangle" size={14} color="var(--red)" />
                 <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{a.message}</div>
                 <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(a.created_at).toLocaleTimeString()}</div>
               </div>

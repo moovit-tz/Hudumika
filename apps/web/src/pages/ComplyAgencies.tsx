@@ -7,6 +7,7 @@ import type { CompAgencyDirectoryEntry } from '@hudumika/types';
 import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
+import { Button } from '../components/ui/button.js';
 
 type Agency = CompAgencyDirectoryEntry;
 
@@ -77,9 +78,7 @@ export function ComplyAgencies() {
                       : <span className="comply-badge comply-badge--draft">{PORTAL_TYPE_LABEL[ag.portal_type]}</span>}
                   </td>
                   <td onClick={e => e.stopPropagation()}>
-                    <Link to="/complyos/applications" className="comply-btn-secondary comply-btn-sm">
-                      Apply
-                    </Link>
+                    <Button asChild variant="outline" size="xs"><Link to="/complyos/applications">Apply</Link></Button>
                   </td>
                 </tr>
               ))}
@@ -118,16 +117,14 @@ export function ComplyAgencies() {
                   <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Obligations</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {selected.obligations.map(o => (
-                      <div key={o} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                      <div key={o} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                         <Icon name="fileText" size={13} />
                         <span style={{ fontSize: 13, color: 'var(--ink)' }}>{o}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-                <Link to="/complyos/applications" className="comply-btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setSelected(null)}>
-                  <Icon name="plus" size={13} /> Start Application
-                </Link>
+                <Button asChild size="sm" style={{ alignSelf: 'flex-start' }}><Link to="/complyos/applications" onClick={() => setSelected(null)}><Icon name="plus" size={13} /> Start Application</Link></Button>
               </div>
             </>
           )}

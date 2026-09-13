@@ -102,7 +102,7 @@ export function HuduBIEntityExplorer() {
                 const m = MATCH_LABEL[h.matched_via] ?? { label: h.matched_via, variant: 'info' as const };
                 return (
                   <div key={h.record_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < resolution.hits.length - 1 ? '1px solid var(--bg)' : 'none' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Icon name="stamp" size={16} color="var(--teal)" strokeWidth={1.75} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>

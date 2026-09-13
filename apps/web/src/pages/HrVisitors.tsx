@@ -80,7 +80,7 @@ export const HrVisitors: React.FC = () => {
   const present = visitors?.filter(v => !v.checked_out_at) ?? [];
   const past = visitors?.filter(v => v.checked_out_at) ?? [];
 
-  const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' };
+  const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' };
 
   return (
     <div>
@@ -138,7 +138,7 @@ export const HrVisitors: React.FC = () => {
           {visitors !== null && present.length === 0 && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>Nobody checked in right now.</div>}
           {present.map((v, i, arr) => (
             <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="user" size={16} color="var(--green)" />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -147,9 +147,9 @@ export const HrVisitors: React.FC = () => {
                   {v.purpose ? `${v.purpose} — ` : ''}{v.host_name ? `visiting ${v.host_name} — ` : ''}since {fmtTime(v.checked_in_at)}
                 </div>
               </div>
-              <span style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink3)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 8px' }}>{v.badge_code}</span>
+              <span style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink3)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '3px 8px' }}>{v.badge_code}</span>
               <button type="button" onClick={() => checkOut(v)}
-                style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>
+                style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '6px 12px', cursor: 'pointer' }}>
                 Check out
               </button>
             </div>

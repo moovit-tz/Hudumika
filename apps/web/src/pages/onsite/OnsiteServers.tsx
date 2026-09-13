@@ -103,17 +103,17 @@ export function OnsiteServers() {
 
       {loading ? (
         <div className="onsite-card">
-          <p style={{ color: 'var(--ink-muted)' }}>Loading server list…</p>
+          <p style={{ color: 'var(--ink3)' }}>Loading server list…</p>
         </div>
       ) : error ? (
         <div className="onsite-card">
-          <p style={{ color: '#ef4444' }}>Error: {error}</p>
+          <p style={{ color: 'var(--red)' }}>Error: {error}</p>
         </div>
       ) : servers.length === 0 ? (
         <div className="onsite-card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-          <Icon name="monitor" size={48} style={{ color: 'var(--ink-muted)', margin: '0 auto 1rem auto' }} />
+          <Icon name="monitor" size={48} style={{ color: 'var(--ink3)', margin: '0 auto 1rem auto' }} />
           <h3>No servers connected</h3>
-          <p style={{ color: 'var(--ink-muted)', marginBottom: '1.5rem' }}>
+          <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Add your cloud VPS or bare metal server to track whether it's reachable. Live CPU/RAM/disk usage needs an agent installed on the box, which isn't available yet.
           </p>
           <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
@@ -139,7 +139,7 @@ export function OnsiteServers() {
                   <tr key={s.id}>
                     <td>
                       <div style={{ fontWeight: 600 }}>{s.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>{s.os || 'Linux'}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>{s.os || 'Linux'}</div>
                     </td>
                     <td className="onsite-mono">{s.ip_address || '—'}</td>
                     <td>
@@ -154,7 +154,7 @@ export function OnsiteServers() {
                       <span className={`onsite-badge ${(STATUS_META[s.status] ?? STATUS_META.unknown).badge}`}>
                         {(STATUS_META[s.status] ?? STATUS_META.unknown).label}
                       </span>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted)', marginTop: '0.2rem' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--ink3)', marginTop: '0.2rem' }}>
                         {s.last_checked_at ? `Checked ${new Date(s.last_checked_at).toLocaleString()}` : 'Never checked'}
                       </div>
                     </td>
@@ -169,7 +169,7 @@ export function OnsiteServers() {
                           <Icon name="refresh" size={14} className={checking === s.id ? 'onsite-spin' : ''} />
                         </button>
                       )}
-                      <button className="btn btn-sm btn-ghost" style={{ color: '#ef4444' }} onClick={() => handleDelete(s.id, s.name)}>
+                      <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(s.id, s.name)}>
                         <Icon name="trash2" size={14} />
                       </button>
                     </td>

@@ -47,6 +47,16 @@ export async function productRoutes(fastify: FastifyInstance) {
   // price for comes back with that price already substituted into sale_price
   // (and flagged), so any line-item picker that knows its customer prices the
   // catalog correctly with no per-line logic of its own.
+  // HUD-0024 continuation: internal tenant-business data (finance ledgers,
+  // fleet ops, HR, identity/access admin, or tenant configuration) with only
+  // an entitlement gate — reachable end-to-end by a CUSTOMER JWT (confirmed
+  // live before this fix). Not customer-portal data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
+
   fastify.get('/', async (request) => {
     const user = request.user;
     const { search, status, customer_id } = request.query as { search?: string; status?: string; customer_id?: string };

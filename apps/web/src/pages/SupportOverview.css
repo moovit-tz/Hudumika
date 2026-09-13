@@ -98,7 +98,7 @@
 
 .sov-kpi {
   background: var(--white);
-  border-radius: var(--r-md, 12px);
+  border-radius: var(--r);
   padding: 16px 18px;
   border: 1px solid var(--border);
   box-shadow: var(--elev-sm);
@@ -153,7 +153,7 @@
 
 .sov-card {
   background: var(--white);
-  border-radius: var(--r-md, 12px);
+  border-radius: var(--r);
   padding: 18px 20px;
   border: 1px solid var(--border);
   box-shadow: var(--elev-sm);

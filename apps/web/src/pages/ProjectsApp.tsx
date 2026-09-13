@@ -121,10 +121,10 @@ const PROJECT_STATUS_META: Record<string, { label: string; variant: 'gray' | 'br
 };
 
 const HEALTH_STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  on_track: { label: 'ON TRACK', color: '#15803d', bg: '#dcfce7' },
-  at_risk: { label: 'AT RISK', color: '#b45309', bg: '#fef3c7' },
-  critical: { label: 'CRITICAL', color: '#b91c1c', bg: '#fee2e2' },
-  completed: { label: 'COMPLETED', color: '#0f766e', bg: '#ccfbf1' },
+  on_track: { label: 'ON TRACK', color: 'var(--green)', bg: 'var(--green-l)' },
+  at_risk: { label: 'AT RISK', color: 'var(--gold)', bg: 'var(--gold-l)' },
+  critical: { label: 'CRITICAL', color: 'var(--red)', bg: 'var(--red-l)' },
+  completed: { label: 'COMPLETED', color: 'var(--teal)', bg: 'var(--teal-l)' },
 };
 
 const MILESTONE_STATUS_META: Record<string, { label: string; variant: 'gray' | 'brand' | 'success' }> = {
@@ -147,13 +147,13 @@ const TASK_STATUS_META: Record<TaskStatus, { label: string; variant: 'gray' | 'b
   completed: { label: 'Completed', variant: 'success' },
 };
 const TASK_PRIORITY_META: Record<TaskPriority, { label: string; color: string; bg: string }> = {
-  low: { label: 'Low', color: '#64748b', bg: '#f1f5f9' },
-  medium: { label: 'Medium', color: 'var(--gold)', bg: '#fef3c7' },
-  high: { label: 'High', color: '#ea580c', bg: '#ffedd5' },
+  low: { label: 'Low', color: 'var(--ink3)', bg: 'var(--bg-subtle)' },
+  medium: { label: 'Medium', color: 'var(--gold)', bg: 'var(--gold-l)' },
+  high: { label: 'High', color: 'var(--gold)', bg: 'var(--gold-l)' },
   urgent: { label: 'Urgent', color: 'var(--red)', bg: 'var(--red-l)' },
 };
 const STATUS_BAR_COLOR: Record<TaskStatus, string> = {
-  none: 'var(--ink4)', in_progress: 'var(--teal)', in_review: 'var(--gold)', waiting: 'var(--blue)', completed: 'var(--green)',
+  none: 'var(--ink3)', in_progress: 'var(--teal)', in_review: 'var(--gold)', waiting: 'var(--blue)', completed: 'var(--green)',
 };
 function dayDiff(a: Date, b: Date): number { return Math.round((b.getTime() - a.getTime()) / 86400000); }
 
@@ -175,8 +175,8 @@ function ProgressBar({ done, total, color }: { done: number; total: number; colo
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 3, transition: 'width 0.2s' }} />
+      <div style={{ flex: 1, height: 6, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 'var(--r-sm)', transition: 'width 0.2s' }} />
       </div>
       <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, flexShrink: 0 }}>{done}/{total}</span>
     </div>
@@ -690,7 +690,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em' }}>
+                <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 'var(--r-sm)', letterSpacing: '0.06em' }}>
                   Hudumika Project OS
                 </span>
                 <span style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600 }}>Enterprise Edition</span>
@@ -721,10 +721,10 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
               onClick={() => setAppViewMode('command_center')}
               style={{
                 padding: '8px 16px',
-                borderRadius: 8,
+                borderRadius: 'var(--r)',
                 border: 'none',
-                background: appViewMode === 'command_center' ? 'var(--teal)' : 'transparent',
-                color: appViewMode === 'command_center' ? '#ffffff' : 'var(--ink2)',
+                background: appViewMode === 'command_center' ? 'hsl(var(--primary))' : 'transparent',
+                color: appViewMode === 'command_center' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -740,10 +740,10 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
               onClick={() => setAppViewMode('portfolios')}
               style={{
                 padding: '8px 16px',
-                borderRadius: 8,
+                borderRadius: 'var(--r)',
                 border: 'none',
-                background: appViewMode === 'portfolios' ? 'var(--teal)' : 'transparent',
-                color: appViewMode === 'portfolios' ? '#ffffff' : 'var(--ink2)',
+                background: appViewMode === 'portfolios' ? 'hsl(var(--primary))' : 'transparent',
+                color: appViewMode === 'portfolios' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -759,10 +759,10 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
               onClick={() => setAppViewMode('projects_list')}
               style={{
                 padding: '8px 16px',
-                borderRadius: 8,
+                borderRadius: 'var(--r)',
                 border: 'none',
-                background: appViewMode === 'projects_list' ? 'var(--teal)' : 'transparent',
-                color: appViewMode === 'projects_list' ? '#ffffff' : 'var(--ink2)',
+                background: appViewMode === 'projects_list' ? 'hsl(var(--primary))' : 'transparent',
+                color: appViewMode === 'projects_list' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -778,10 +778,10 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
               onClick={() => setAppViewMode('resources')}
               style={{
                 padding: '8px 16px',
-                borderRadius: 8,
+                borderRadius: 'var(--r)',
                 border: 'none',
-                background: appViewMode === 'resources' ? 'var(--teal)' : 'transparent',
-                color: appViewMode === 'resources' ? '#ffffff' : 'var(--ink2)',
+                background: appViewMode === 'resources' ? 'hsl(var(--primary))' : 'transparent',
+                color: appViewMode === 'resources' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -823,7 +823,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                 onClick={() => setListStatusFilter('all')}
                 style={{
                   padding: '6px 14px',
-                  borderRadius: 8,
+                  borderRadius: 'var(--r)',
                   border: `1px solid ${listStatusFilter === 'all' ? 'var(--teal)' : 'var(--border)'}`,
                   background: 'var(--white)',
                   cursor: 'pointer',
@@ -841,7 +841,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                   onClick={() => setListStatusFilter((prev) => (prev === k ? 'all' : k))}
                   style={{
                     padding: '6px 14px',
-                    borderRadius: 8,
+                    borderRadius: 'var(--r)',
                     border: `1px solid ${listStatusFilter === k ? 'var(--teal)' : 'var(--border)'}`,
                     background: 'var(--white)',
                     cursor: 'pointer',
@@ -878,7 +878,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                         textAlign: 'left',
                         background: 'var(--white)',
                         border: '1px solid var(--border)',
-                        borderRadius: 14,
+                        borderRadius: 'var(--r-lg)',
                         padding: 20,
                         cursor: 'pointer',
                         display: 'flex',
@@ -896,7 +896,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                         <span
                           onClick={(e) => togglePin(p, e)}
                           title={p.is_pinned ? 'Unpin' : 'Pin'}
-                          style={{ display: 'flex', cursor: 'pointer', color: p.is_pinned ? 'var(--gold)' : 'var(--ink4)' }}
+                          style={{ display: 'flex', cursor: 'pointer', color: p.is_pinned ? 'var(--gold)' : 'var(--ink3)' }}
                         >
                           <Icon name="bookmark" size={15} duotone={p.is_pinned} />
                         </span>
@@ -909,7 +909,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                             fontSize: 10,
                             fontWeight: 800,
                             padding: '2px 8px',
-                            borderRadius: 4,
+                            borderRadius: 'var(--r-sm)',
                             color: healthMeta.color,
                             background: healthMeta.bg,
                             letterSpacing: '0.04em',
@@ -923,7 +923,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                               fontSize: 10,
                               fontWeight: 700,
                               padding: '2px 8px',
-                              borderRadius: 4,
+                              borderRadius: 'var(--r-sm)',
                               color: 'var(--ink3)',
                               background: 'var(--bg-subtle)',
                               textTransform: 'uppercase',
@@ -960,7 +960,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                       )}
 
                       {p.contract_value && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, background: 'var(--bg-subtle)', padding: '6px 10px', borderRadius: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, background: 'var(--bg-subtle)', padding: '6px 10px', borderRadius: 'var(--r-sm)' }}>
                           <span style={{ color: 'var(--ink3)' }}>Contract Value:</span>
                           <strong style={{ color: 'var(--teal)' }}>
                             {p.currency} {Number(p.contract_value).toLocaleString()}
@@ -1046,7 +1046,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
               {selected.name}
             </h1>
             {selected.ref && (
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg-subtle)', padding: '2px 8px', borderRadius: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg-subtle)', padding: '2px 8px', borderRadius: 'var(--r-sm)' }}>
                 {selected.ref}
               </span>
             )}
@@ -1055,7 +1055,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                 fontSize: 10.5,
                 fontWeight: 800,
                 padding: '2px 8px',
-                borderRadius: 4,
+                borderRadius: 'var(--r-sm)',
                 color: healthMeta.color,
                 background: healthMeta.bg,
                 letterSpacing: '0.04em',
@@ -1185,14 +1185,14 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
               <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                 {/* Executive Progress & Schedule Health */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 16 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Work Package Completion</div>
                     <div style={{ fontSize: 11.5, color: 'var(--ink3)', margin: '2px 0 8px' }}>
                       {detail.task_done_count} / {detail.task_count} Work Packages
                     </div>
                     <ProgressBar done={detail.task_done_count} total={detail.task_count} color="var(--green)" />
                   </div>
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 16 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Schedule Elapsed</div>
                     <div style={{ fontSize: 11.5, color: 'var(--ink3)', margin: '2px 0 8px' }}>
                       {detail.days_left ?? '—'} Days Left / {detail.days_total ?? '—'} Total
@@ -1313,7 +1313,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
               {KANBAN_COLUMNS.map(col => {
                 const c = taskStatusCounts[col.status] || { total: 0, mine: 0 };
                 return (
-                  <div key={col.status} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
+                  <div key={col.status} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px' }}>
                     <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{col.title}</div>
                     <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{c.total}</div>
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>My Tasks: {c.mine}</div>
@@ -1362,10 +1362,10 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                 {KANBAN_COLUMNS.map(col => {
                   const tasksInCol = sortedTasks.filter(t => (t.completed || t.status === 'completed' ? 'completed' : t.status) === col.status);
                   return (
-                    <div key={col.status} style={{ background: 'var(--bg-subtle)', borderRadius: 12, padding: 12, minHeight: 300 }}>
+                    <div key={col.status} style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--r-lg)', padding: 12, minHeight: 300 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink2)' }}>{col.title}</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, background: 'var(--white)', padding: '2px 6px', borderRadius: 4, color: 'var(--ink3)' }}>{tasksInCol.length}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, background: 'var(--white)', padding: '2px 6px', borderRadius: 'var(--r-sm)', color: 'var(--ink3)' }}>{tasksInCol.length}</span>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {tasksInCol.map(t => (
@@ -1375,7 +1375,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                             style={{
                               background: 'var(--white)',
                               border: '1px solid var(--border)',
-                              borderRadius: 8,
+                              borderRadius: 'var(--r)',
                               padding: 12,
                               cursor: 'pointer',
                               boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
@@ -1419,7 +1419,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                   {ganttRows.map((r, idx) => {
                     if (r.type === 'milestone') {
                       return (
-                        <div key={`ms-${idx}`} style={{ height: 24, fontSize: 11.5, fontWeight: 800, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 4 }}>
+                        <div key={`ms-${idx}`} style={{ height: 24, fontSize: 11.5, fontWeight: 800, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 'var(--r-sm)' }}>
                           {r.ms ? `Milestone: ${r.ms.name}` : 'Unassigned Tasks'}
                         </div>
                       );
@@ -1435,9 +1435,9 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                               width: geo.width,
                               height: 22,
                               top: 6,
-                              borderRadius: 4,
+                              borderRadius: 'var(--r-sm)',
                               background: STATUS_BAR_COLOR[r.task.completed ? 'completed' : r.task.status],
-                              color: '#ffffff',
+                              color: 'hsl(var(--primary-foreground))',
                               fontSize: 11,
                               fontWeight: 600,
                               padding: '2px 6px',
@@ -1498,14 +1498,14 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
               {(projectFiles || []).map((f) => (
-                <div key={f.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }}>
+                <div key={f.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Icon name="fileText" size={20} style={{ color: 'var(--teal)' }} />
                     <span style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {f.name}
                     </span>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--ink4)', marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>
                     Uploaded: {new Date(f.created_at).toLocaleDateString()}
                   </div>
                 </div>
@@ -1529,10 +1529,10 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {(discussions || []).map((d) => (
-                <div key={d.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }}>
+                <div key={d.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <strong style={{ fontSize: 13 }}>{d.author_name}</strong>
-                    <span style={{ fontSize: 11, color: 'var(--ink4)' }}>{new Date(d.created_at).toLocaleString()}</span>
+                    <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(d.created_at).toLocaleString()}</span>
                   </div>
                   <p style={{ fontSize: 13.5, color: 'var(--ink)', margin: 0 }}>{d.content}</p>
                 </div>
@@ -1555,7 +1555,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {(projectTickets || []).map((t) => (
-                <div key={t.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={t.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--teal)', marginRight: 8 }}>{t.ref_number}</span>
                     <span style={{ fontWeight: 600, fontSize: 13.5 }}>{t.subject}</span>
@@ -1606,7 +1606,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
               {(projectActivity || []).map((a) => (
                 <div key={a.id} style={{ fontSize: 13, color: 'var(--ink2)', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
                   <strong style={{ color: 'var(--ink)' }}>{a.actor_name}</strong> {describeProjectActivity(a)}
-                  <span style={{ fontSize: 11, color: 'var(--ink4)', marginLeft: 8 }}>{new Date(a.created_at).toLocaleString()}</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink3)', marginLeft: 8 }}>{new Date(a.created_at).toLocaleString()}</span>
                 </div>
               ))}
             </div>
@@ -1621,7 +1621,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
               {(members || []).map((m) => (
-                <div key={m.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div key={m.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <PersonAvatar name={m.name} size={36} />
                     <div>

@@ -156,7 +156,7 @@ export function CarrierContractsPage() {
                   {shopResults.map((r, i) => (
                     <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 'var(--r)', background: i === 0 ? 'var(--teal-l)' : 'var(--bg)', border: i === 0 ? '1px solid var(--teal-m)' : '1px solid var(--border)' }}>
                       {i === 0 && <Badge variant="brand">Cheapest</Badge>}
-                      <PersonAvatar userId={r.carrier_id} kind="carriers" name={r.carrier_name ?? ''} size={22} style={{ borderRadius: 6 }} />
+                      <PersonAvatar userId={r.carrier_id} kind="carriers" name={r.carrier_name ?? ''} size={22} style={{ borderRadius: 'var(--r-sm)'}} />
                       <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.carrier_name}</span>
                       <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)', fontWeight: 700 }}>{r.currency} {Number(r.buy_rate).toFixed(2)}</span>
                       {r.transit_days != null && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{r.transit_days} days transit</span>}
@@ -241,7 +241,7 @@ export function CarrierContractsPage() {
                   <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-                        <PersonAvatar userId={c.carrier_id} kind="carriers" name={c.carrier_name ?? ''} size={26} style={{ borderRadius: 6 }} />
+                        <PersonAvatar userId={c.carrier_id} kind="carriers" name={c.carrier_name ?? ''} size={26} style={{ borderRadius: 'var(--r-sm)'}} />
                         <span>{c.carrier_name || '—'}{c.contract_reference && <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{c.contract_reference}</div>}</span>
                       </span>
                     </td>

@@ -6,6 +6,7 @@ import type { CompBrelaSearchHistoryEntry } from '@hudumika/types';
 import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
+import { Button } from '../components/ui/button.js';
 
 function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString('en-GB', {
@@ -31,12 +32,12 @@ export function ComplyBrelaHistory() {
         subtitle="Every BRELA search run by your team, with what it found."
         actions={
         <div className="comply-action-row">
-          <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh">
+          <Button type="button" variant="outline" size="icon" onClick={refresh} title="Refresh" aria-label="Refresh BRELA history">
             <Icon name="refresh" size={13} />
-          </button>
-          <button type="button" className="comply-btn-primary" onClick={() => navigate('/complyos/brela-search')}>
+          </Button>
+          <Button type="button" size="sm" onClick={() => navigate('/complyos/brela-search')}>
             <Icon name="search" size={14} /> New Search
-          </button>
+          </Button>
         </div>
         }
       />

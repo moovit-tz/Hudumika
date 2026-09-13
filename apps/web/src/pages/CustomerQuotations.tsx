@@ -4,6 +4,8 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
+import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
 
 /* ── Types ── */
 type QuoteStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CONVERTED' | 'EXPIRED';
@@ -43,12 +45,12 @@ interface Quote {
 
 /* ── Status config ── */
 const STATUS_CFG: Record<QuoteStatus, { label: string; color: string; bg: string }> = {
-  DRAFT:     { label: 'Draft',     color: 'var(--ink2)', bg: '#f1f5f9' },
+  DRAFT:     { label: 'Draft',     color: 'var(--ink2)', bg: 'var(--bg)' },
   PENDING:   { label: 'Pending',   color: 'var(--gold)', bg: 'var(--gold-l)' },
   APPROVED:  { label: 'Accepted',  color: 'var(--green)', bg: 'var(--green-l)' },
   REJECTED:  { label: 'Rejected',  color: 'var(--red)', bg: 'var(--red-l)' },
-  CONVERTED: { label: 'Converted', color: '#0891b2', bg: '#ecfeff' },
-  EXPIRED:   { label: 'Expired',   color: 'var(--ink3)', bg: '#f3f4f6' },
+  CONVERTED: { label: 'Converted', color: 'var(--blue)', bg: 'var(--blue-l)' },
+  EXPIRED:   { label: 'Expired',   color: 'var(--ink3)', bg: 'var(--bg)' },
 };
 
 /* ── helpers ── */
@@ -94,10 +96,9 @@ function RejectModal({ quote, onClose, onReject }: {
             rows={3}
             style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
           />
-          <button type="button" title="Confirm rejection" onClick={() => onReject(reason.trim())}
-            style={{ width: '100%', padding: '14px', background: 'var(--red)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+          <Button type="button" variant="destructive" size="lg" title="Confirm rejection" onClick={() => onReject(reason.trim())} className="w-full">
             Reject Quote
-          </button>
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
@@ -116,7 +117,7 @@ function AcceptModal({ quote, onClose, onAccept }: {
         <div style={{ padding: '20px 20px 36px' }}>
           <div style={{ width: 40, height: 4, background: 'var(--border)', borderRadius: 99, margin: '0 auto 20px' }} />
           <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--green-l)', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="checkCircle" size={28} color="#059669" />
+            <Icon name="checkCircle" size={28} color="var(--green)" />
           </div>
           <div style={{ textAlign: 'center', marginBottom: 20 }}>
             <SheetTitle style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginBottom: 8, fontFamily: 'var(--font)', textAlign: 'center' }}>Accept this quote?</SheetTitle>
@@ -127,14 +128,12 @@ function AcceptModal({ quote, onClose, onAccept }: {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button type="button" title="Cancel" onClick={onClose}
-              style={{ flex: 1, padding: '13px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+            <Button type="button" variant="outline" size="lg" title="Cancel" onClick={onClose} style={{ flex: 1 }}>
               Cancel
-            </button>
-            <button type="button" title="Accept quote" onClick={onAccept}
-              style={{ flex: 1, padding: '13px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+            </Button>
+            <Button type="button" size="lg" title="Accept quote" onClick={onAccept} style={{ flex: 1 }}>
               Yes, Accept
-            </button>
+            </Button>
           </div>
         </div>
       </SheetContent>
@@ -200,8 +199,8 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
       <div style={{ padding: '20px 16px 0' }}>
         {/* Expiry warning */}
         {expiring && canAct && (
-          <div style={{ background: 'var(--gold-l)', border: '1px solid #fde68a', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="alertTriangle" size={16} color="#d97706" />
+          <div style={{ background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="alertTriangle" size={16} color="var(--gold)" />
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gold)' }}>
               Expires {fmtDate(quote.valid_until)} — accept before it lapses
             </span>
@@ -209,13 +208,13 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
         )}
 
         {/* Summary card */}
-        <div style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)', borderRadius: 14, padding: '20px', marginBottom: 20, color: '#fff' }}>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>Total Amount</div>
+        <div style={{ background: 'hsl(var(--primary))', borderRadius: 'var(--r)', padding: '20px', marginBottom: 20, color: 'hsl(var(--primary-foreground))' }}>
+          <div style={{ fontSize: 12, color: 'hsl(var(--primary-foreground) / 0.7)', marginBottom: 4 }}>Total Amount</div>
           <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 8 }}>
             {fmtAmt(quote.total_amount, quote.currency)}
           </div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>{quote.title}</div>
-          <div style={{ marginTop: 12, display: 'flex', gap: 16, fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
+          <div style={{ fontSize: 13, color: 'hsl(var(--primary-foreground) / 0.8)', lineHeight: 1.5 }}>{quote.title}</div>
+          <div style={{ marginTop: 12, display: 'flex', gap: 16, fontSize: 12, color: 'hsl(var(--primary-foreground) / 0.7)' }}>
             <span>{quote.origin_port} → {quote.destination_port}</span>
             {quote.valid_until && <span>Valid until {fmtDate(quote.valid_until)}</span>}
           </div>
@@ -224,8 +223,8 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
         {/* Rejection reason */}
         {quote.status === 'REJECTED' && quote.rejection_reason && (
           <div style={{ background: 'var(--red-l)', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 10 }}>
-            <Icon name="x" size={16} color="#dc2626" />
-            <span style={{ fontSize: 13, color: '#7f1d1d' }}><strong>Rejection reason:</strong> {quote.rejection_reason}</span>
+            <Icon name="x" size={16} color="var(--red)" />
+            <span style={{ fontSize: 13, color: 'var(--red)' }}><strong>Rejection reason:</strong> {quote.rejection_reason}</span>
           </div>
         )}
 
@@ -301,16 +300,15 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
         {canAct ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button type="button" title="Reject this quote" onClick={() => setRejecting(true)} disabled={saving}
-                style={{ flex: 1, padding: 'var(--ds-btn-py-lg) 0', border: '1.5px solid #dc2626', borderRadius: 'var(--r)', background: '#fff', color: 'var(--red)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                <Icon name="x" size={15} color="#dc2626" />
+              <Button type="button" variant="outline" size="lg" title="Reject this quote" onClick={() => setRejecting(true)} disabled={saving}
+                style={{ flex: 1, borderColor: 'var(--red)', color: 'var(--red)' }}>
+                <Icon name="x" size={15} />
                 Reject
-              </button>
-              <button type="button" title="Accept this quote" onClick={() => setAccepting(true)} disabled={saving}
-                style={{ flex: 2, padding: 'var(--ds-btn-py-lg) 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                <Icon name="checkCircle" size={15} color="#fff" />
+              </Button>
+              <Button type="button" size="lg" title="Accept this quote" onClick={() => setAccepting(true)} disabled={saving} style={{ flex: 2 }}>
+                <Icon name="checkCircle" size={15} />
                 {saving ? 'Saving…' : 'Accept Quote'}
-              </button>
+              </Button>
             </div>
             <Link to="/support/tickets" title="Request changes via support"
               style={{ width: '100%', boxSizing: 'border-box', padding: '11px 0', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
@@ -328,7 +326,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
             {quote.status === 'EXPIRED' && (
               <Link to="/support/tickets" title="Request a new quote"
                 style={{ flex: 2, padding: '12px 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
-                <Icon name="refresh" size={15} color="#fff" />
+                <Icon name="refresh" size={15} />
                 Request New Quote
               </Link>
             )}
@@ -337,7 +335,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
       </div>
 
       {toast && (
-        <div style={{ position: 'fixed', bottom: 160, left: 16, right: 16, background: 'var(--ink)', color: '#fff', borderRadius: 'var(--r)', padding: '12px 16px', fontSize: 13, fontWeight: 600, zIndex: 400, textAlign: 'center', boxShadow: 'var(--elev-lg)' }}>
+        <div style={{ position: 'fixed', bottom: 160, left: 16, right: 16, background: 'var(--ink)', color: 'var(--white)', borderRadius: 'var(--r)', padding: '12px 16px', fontSize: 13, fontWeight: 600, zIndex: 400, textAlign: 'center', boxShadow: 'var(--elev-lg)' }}>
           {toast}
         </div>
       )}
@@ -431,7 +429,7 @@ export const CustomerQuotations: React.FC = () => {
     <div style={{ fontFamily: 'var(--font)', paddingBottom: 20 }}>
       {/* Header */}
       <div style={{ padding: '20px 16px 0' }}>
-        <h2 style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>Quotations</h2>
+        <PageHeader crumbs={['Workspace', 'Quotations']} titlePlain="Your" titleEm="quotations" />
         <p style={{ margin: '0 0 16px', fontSize: 13, color: pendingCount > 0 ? 'var(--gold)' : 'var(--ink3)' }}>
           {loading ? 'Loading…' : pendingCount > 0 ? `${pendingCount} pending your action` : `${quotes.length} quote${quotes.length !== 1 ? 's' : ''}`}
         </p>
@@ -464,9 +462,9 @@ export const CustomerQuotations: React.FC = () => {
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your quotations</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
-            <button type="button" onClick={load} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+            <Button type="button" onClick={load}>
               Retry
-            </button>
+            </Button>
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>

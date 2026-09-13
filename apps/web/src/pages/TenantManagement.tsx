@@ -60,7 +60,7 @@ export const TenantManagement: React.FC = () => {
           placeholder="Filter companies..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', width: '100%', maxWidth: '300px' }}
+          style={{ padding: '8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', width: '100%', maxWidth: '300px' }}
         />
       </div>
       <button
@@ -70,7 +70,7 @@ export const TenantManagement: React.FC = () => {
           color: 'hsl(var(--primary-foreground))',
           border: 'none',
           padding: 'var(--ds-btn-py) 16px',
-          borderRadius: '4px',
+          borderRadius: 'var(--r-sm)',
           cursor: 'pointer',
           marginBottom: '16px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
       >

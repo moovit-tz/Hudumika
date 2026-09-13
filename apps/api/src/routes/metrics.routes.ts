@@ -38,6 +38,15 @@ const createKpiTargetSchema = z.object({
 export async function metricsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('hudubi'));
+  // HUD-0024 continuation: matches HUD-0033's HuduBI finding — cross-
+  // cutting BI/KPI data reachable by any entitled role, including CUSTOMER;
+  // the file's own MGMT_ROLES gradient (restricted metrics, alert/KPI
+  // writes) is preserved as-is, this only adds the customer-portal floor.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // GET /v1/metrics/definitions — the catalog. A 'restricted' metric
   // (financial/employee domain) is filtered out server-side for a caller

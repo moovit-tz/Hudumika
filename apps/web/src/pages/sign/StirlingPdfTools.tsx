@@ -102,7 +102,7 @@ function triggerDownload(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13, boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
 export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, embedded }: StirlingPdfToolsProps) {
@@ -323,7 +323,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
               <>
                 <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.5 }}>
                   These tools run against a self-hosted Stirling-PDF instance (free, MIT-licensed, github.com/Stirling-Tools/Stirling-PDF).
-                  Run it with <code style={{ background: 'var(--bg)', padding: '1px 5px', borderRadius: 4 }}>docker run -p 8080:8080 docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest</code>{' '}
+                  Run it with <code style={{ background: 'var(--bg)', padding: '1px 5px', borderRadius: 'var(--r-sm)'}}>docker run -p 8080:8080 docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest</code>{' '}
                   and point the platform at its endpoint below.
                 </div>
                 <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 8 }}>
@@ -332,7 +332,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                     placeholder="http://localhost:8080"
                     value={urlDraft}
                     onChange={e => setUrlDraft(e.target.value)}
-                    style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13 }}
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13 }}
                   />
                   <Button variant="default" onClick={saveBaseUrl} disabled={savingUrl}>
                     {savingUrl ? 'Saving…' : 'Save Endpoint'}
@@ -349,7 +349,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
           <div style={{ maxWidth: embedded ? '100%' : 960, margin: embedded ? 0 : '0 auto', display: 'flex', flexDirection: 'column', gap: embedded ? 18 : 24 }}>
             {!embedded && (
               <div style={{ fontSize: 13, color: 'var(--ink3)' }}>
-                Connected to Stirling-PDF at <code style={{ background: 'var(--bg)', padding: '1px 6px', borderRadius: 4 }}>{baseUrl}</code>. Pick a tool to run on <strong>{fileName}</strong>:
+                Connected to Stirling-PDF at <code style={{ background: 'var(--bg)', padding: '1px 6px', borderRadius: 'var(--r-sm)'}}>{baseUrl}</code>. Pick a tool to run on <strong>{fileName}</strong>:
               </div>
             )}
 
@@ -362,13 +362,13 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                       key={t.key}
                       onClick={() => t.outputMode === 'organizer' ? setShowOrganizer(true) : setActiveTool(t.key)}
                       style={{
-                        padding: embedded ? '8px 10px' : 14, borderRadius: 10, border: `1px solid ${activeTool === t.key ? 'var(--teal)' : 'var(--border)'}`,
+                        padding: embedded ? '8px 10px' : 14, borderRadius: 'var(--r)', border: `1px solid ${activeTool === t.key ? 'var(--teal)' : 'var(--border)'}`,
                         background: activeTool === t.key ? 'var(--teal-l)' : 'var(--white)', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', gap: embedded ? 2 : 6, transition: 'all 0.15s ease'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: embedded ? 22 : 28, height: embedded ? 22 : 28, borderRadius: 6, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)', flexShrink: 0 }}>
+                        <div style={{ width: embedded ? 22 : 28, height: embedded ? 22 : 28, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)', flexShrink: 0 }}>
                           <Icon name={t.icon} size={embedded ? 12 : 14} />
                         </div>
                         <span style={{ fontWeight: 700, fontSize: embedded ? 12.5 : 13, color: 'var(--ink)' }}>{t.label}</span>
@@ -381,7 +381,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
             ))}
 
             {active && (
-              <div style={{ padding: embedded ? 14 : 20, borderRadius: 12, border: '1px solid var(--teal)', background: 'var(--white)', display: 'flex', flexDirection: 'column', gap: embedded ? 10 : 14, position: 'sticky', bottom: 0, boxShadow: 'var(--elev-lg)' }}>
+              <div style={{ padding: embedded ? 14 : 20, borderRadius: 'var(--r)', border: '1px solid var(--teal)', background: 'var(--white)', display: 'flex', flexDirection: 'column', gap: embedded ? 10 : 14, position: 'sticky', bottom: 0, boxShadow: 'var(--elev-lg)' }}>
                 <div style={{ fontWeight: 700, fontSize: embedded ? 13 : 14, color: 'var(--teal)' }}>
                   Configure {active.label}
                   {active.outputMode === 'download' && <div style={{ fontWeight: 500, fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>Downloads a file, doesn’t change the envelope’s document</div>}

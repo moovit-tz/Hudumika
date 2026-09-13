@@ -315,7 +315,7 @@ export function PettiDashboard() {
           <div style={{ maxWidth: 680 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <div style={{
-                width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.15)',
+                width: 32, height: 32, borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.15)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)'
               }}>
                 <Icon name="wallet" size={18} color="#ffffff" />
@@ -340,8 +340,8 @@ export function PettiDashboard() {
               type="button"
               onClick={() => setDepositModalOpen(true)}
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8,
-                background: '#ffffff', color: 'var(--navy)', border: 'none',
+                display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 'var(--r)',
+                background: '#ffffff', color: '#0e1f3d', border: 'none',
                 fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
               }}
             >
@@ -352,7 +352,7 @@ export function PettiDashboard() {
               type="button"
               onClick={() => setRequestModalOpen(true)}
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8,
+                display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 'var(--r)',
                 background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: '#ffffff', border: 'none',
                 fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(5,150,105,0.25)'
               }}
@@ -365,7 +365,7 @@ export function PettiDashboard() {
                 type="button"
                 onClick={() => setTransferModalOpen(true)}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8,
+                  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 'var(--r)',
                   background: 'rgba(255,255,255,0.15)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)',
                   fontSize: 13, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)'
                 }}
@@ -375,7 +375,7 @@ export function PettiDashboard() {
             )}
 
             <Link to="/petti/wallets" style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8,
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 'var(--r)',
               background: 'rgba(255,255,255,0.15)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)',
               fontSize: 13, fontWeight: 600, textDecoration: 'none', backdropFilter: 'blur(4px)'
             }}>
@@ -423,7 +423,7 @@ export function PettiDashboard() {
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>The payment gateway this workspace has connected for mobile-money deposits</div>
 
         {gatewayStatus.configured ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
             <FeaturedIcon variant={gatewayStatus.chargeSupported ? 'success' : 'warning'} size="md"><Icon name="creditCard" size={18} /></FeaturedIcon>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{gatewayStatus.label}</div>
@@ -436,7 +436,7 @@ export function PettiDashboard() {
             <Link to="/workspace/settings?s=payment-gateways" className="btn btn-secondary btn-sm">Manage</Link>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg)', border: '1px dashed var(--border2)', borderRadius: 10, padding: '14px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg)', border: '1px dashed var(--border2)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
             <FeaturedIcon variant="gray" size="md"><Icon name="creditCard" size={18} /></FeaturedIcon>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>No payment gateway connected</div>
@@ -466,7 +466,7 @@ export function PettiDashboard() {
                 const isApprovedReadyDisburse = w.status === 'approved';
 
                 return (
-                  <div key={w.id} style={{ padding: '14px', background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                  <div key={w.id} style={{ padding: '14px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                       <div>
                         <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>
@@ -580,7 +580,7 @@ export function PettiDashboard() {
                 type="number" required min="1" step="any"
                 value={depositAmount} onChange={e => setDepositAmount(e.target.value)}
                 placeholder="e.g. 500000"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5 }}
               />
             </div>
 
@@ -611,7 +611,7 @@ export function PettiDashboard() {
                   type="tel" required
                   value={depositPhone} onChange={e => setDepositPhone(e.target.value)}
                   placeholder="e.g. 0712345678"
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
                 />
                 <p style={{ margin: '5px 0 0 0', fontSize: 11, color: 'var(--ink3)' }}>A {gatewayStatus.label} payment request will be pushed to this number.</p>
               </div>
@@ -623,7 +623,7 @@ export function PettiDashboard() {
                 type="text"
                 value={depositRef} onChange={e => setDepositRef(e.target.value)}
                 placeholder="e.g. MPESA-REF-904821"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
               />
             </div>
 
@@ -633,7 +633,7 @@ export function PettiDashboard() {
                 type="text"
                 value={depositNote} onChange={e => setDepositNote(e.target.value)}
                 placeholder="e.g. Weekly replenishment for site operations"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
               />
             </div>
 
@@ -670,7 +670,7 @@ export function PettiDashboard() {
                 type="number" required min="1" step="any"
                 value={requestAmount} onChange={e => setRequestAmount(e.target.value)}
                 placeholder="e.g. 75000"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5 }}
               />
             </div>
 
@@ -692,7 +692,7 @@ export function PettiDashboard() {
                 type="text" required
                 value={requestPurpose} onChange={e => setRequestPurpose(e.target.value)}
                 placeholder="e.g. Emergency fuel for delivery van"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
               />
             </div>
 
@@ -702,7 +702,7 @@ export function PettiDashboard() {
                 type="text"
                 value={requestPayee} onChange={e => setRequestPayee(e.target.value)}
                 placeholder="e.g. Shell Station Mwenge"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
               />
             </div>
 
@@ -749,7 +749,7 @@ export function PettiDashboard() {
                 type="number" required min="1" step="any"
                 value={transferAmount} onChange={e => setTransferAmount(e.target.value)}
                 placeholder="e.g. 200000"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5 }}
               />
             </div>
 
@@ -759,7 +759,7 @@ export function PettiDashboard() {
                 type="text"
                 value={transferNote} onChange={e => setTransferNote(e.target.value)}
                 placeholder="e.g. Rebalance operational funds"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
               />
             </div>
 

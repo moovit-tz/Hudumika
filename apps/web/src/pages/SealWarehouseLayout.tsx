@@ -384,7 +384,7 @@ export function SealWarehouseLayout() {
           gap: 16,
           marginBottom: 24,
         }}>
-          <div className="seal-card" style={{ padding: '18px 20px', borderRadius: 14 }}>
+          <div className="seal-card" style={{ padding: '18px 20px' }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: bandColor(data.overallOccupancyPct), lineHeight: 1.1 }}>
               {data.overallOccupancyPct}%
             </div>
@@ -393,7 +393,7 @@ export function SealWarehouseLayout() {
             </div>
           </div>
 
-          <div className="seal-card" style={{ padding: '18px 20px', borderRadius: 14 }}>
+          <div className="seal-card" style={{ padding: '18px 20px' }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>
               {data.occupiedSlots} <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink3)' }}>/ {data.totalSlots}</span>
             </div>
@@ -402,7 +402,7 @@ export function SealWarehouseLayout() {
             </div>
           </div>
 
-          <div className="seal-card" style={{ padding: '18px 20px', borderRadius: 14 }}>
+          <div className="seal-card" style={{ padding: '18px 20px' }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>
               {data.remainingSlots}
             </div>
@@ -411,7 +411,7 @@ export function SealWarehouseLayout() {
             </div>
           </div>
 
-          <div className="seal-card" style={{ padding: '18px 20px', borderRadius: 14 }}>
+          <div className="seal-card" style={{ padding: '18px 20px' }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>
               {data.lotCount.toLocaleString()}
             </div>
@@ -421,7 +421,7 @@ export function SealWarehouseLayout() {
           </div>
 
           {data.volumeCapacityCbm > 0 && (
-            <div className="seal-card" style={{ padding: '18px 20px', borderRadius: 14 }}>
+            <div className="seal-card" style={{ padding: '18px 20px' }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: bandColor(Math.round((data.volumeUsedCbm / data.volumeCapacityCbm) * 100)), lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {formatVolumeDisplay(data.volumeUsedCbm)} / {formatVolumeDisplay(data.volumeCapacityCbm)}
               </div>
@@ -463,7 +463,7 @@ export function SealWarehouseLayout() {
 
         {viewMode === '2d' && floor && (
           <div style={{ display: 'grid', gridTemplateColumns: selectedLoc && !isMobile ? '1fr 320px' : '1fr', gap: 20 }}>
-            <div className="seal-card" style={{ padding: 24, borderRadius: 14 }}>
+            <div className="seal-card" style={{ padding: 24 }}>
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -499,7 +499,7 @@ export function SealWarehouseLayout() {
                             style={{
                               border: `2px solid ${bandColor(loc.occupancyPct)}`,
                               background: bandBg(loc.occupancyPct),
-                              borderRadius: 12,
+                              borderRadius: 'var(--r)',
                               padding: '14px 12px',
                               textAlign: 'center',
                               position: 'relative',
@@ -535,7 +535,7 @@ export function SealWarehouseLayout() {
 
             {/* Selected Location Inspector Drawer */}
             {selectedLoc && (
-              <div className="seal-card" style={{ padding: 20, borderRadius: 14, border: '1px solid var(--border)' }}>
+              <div className="seal-card" style={{ padding: 20, border: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--bg)' }}>
                   <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: 'var(--ink)' }}>{selectedLoc.code} Rack Details</h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -636,12 +636,12 @@ export function SealWarehouseLayout() {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 340, overflowY: 'auto', paddingRight: 4 }}>
                       {selectedLoc.tiers.map(t => (
-                        <div key={t.tier} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: 10 }}>
+                        <div key={t.tier} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 10 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                             <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
                               <Icon name="layers" size={12} style={{ color: 'var(--seal)' }} /> Tier {t.tier}
                             </span>
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 6, background: t.lots.length > 0 ? 'var(--green-l)' : 'var(--bg)', color: t.lots.length > 0 ? 'var(--green)' : 'var(--ink3)' }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--r-sm)', background: t.lots.length > 0 ? 'var(--green-l)' : 'var(--bg)', color: t.lots.length > 0 ? 'var(--green)' : 'var(--ink3)' }}>
                               {t.lots.length} {t.lots.length === 1 ? 'item' : 'items'}
                             </span>
                           </div>
@@ -651,8 +651,8 @@ export function SealWarehouseLayout() {
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {t.lots.map(lot => (
-                                <div key={lot.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                                  <div style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--blue-l)', color: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                                <div key={lot.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 10px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                                  <div style={{ width: 22, height: 22, borderRadius: 'var(--r-sm)', background: 'var(--blue-l)', color: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                                     <Icon name="package" size={12} />
                                   </div>
                                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -660,7 +660,7 @@ export function SealWarehouseLayout() {
                                       {lot.description}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                                      <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', padding: '1px 6px', borderRadius: 4 }}>
+                                      <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', padding: '1px 6px', borderRadius: 'var(--r-sm)'}}>
                                         Qty: {lot.qtyOnHand} {lot.uom}
                                       </span>
                                     </div>

@@ -7,6 +7,7 @@ import { Icon } from '../../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Checkbox } from '../../components/ui/checkbox.js';
 import { useMediaQuery } from '../../hooks/useMediaQuery.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { apiFetch } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { MGMT_ROLES } from '../../lib/permissions.js';
@@ -263,7 +264,7 @@ export const BlissAutomations: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 380px', gap: 20 }}>
         <SectionCard title="Active Automation Workflows">
           {loading ? (
-            <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+            <SectionLoading />
           ) : rules.length === 0 ? (
             <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No automation rules yet.</div>
           ) : (
@@ -290,9 +291,9 @@ export const BlissAutomations: React.FC = () => {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, fontSize: 11.5, fontFamily: 'var(--mono)', flexWrap: 'wrap' }}>
-                      <span style={{ background: 'var(--bg)', padding: '2px 8px', borderRadius: 4, color: 'var(--teal)' }}>{d.trigger}</span>
-                      <span style={{ background: 'var(--bg)', padding: '2px 8px', borderRadius: 4, color: '#2563eb' }}>{d.condition}</span>
-                      <span style={{ background: 'var(--bg)', padding: '2px 8px', borderRadius: 4, color: '#047857' }}>{d.action}</span>
+                      <span style={{ background: 'var(--bg)', padding: '2px 8px', borderRadius: 'var(--r-sm)', color: 'var(--teal)' }}>{d.trigger}</span>
+                      <span style={{ background: 'var(--bg)', padding: '2px 8px', borderRadius: 'var(--r-sm)', color: 'var(--blue)' }}>{d.condition}</span>
+                      <span style={{ background: 'var(--bg)', padding: '2px 8px', borderRadius: 'var(--r-sm)', color: 'var(--green)' }}>{d.action}</span>
                     </div>
                   </div>
                 );
@@ -309,18 +310,18 @@ export const BlissAutomations: React.FC = () => {
               const d = describeRule(selectedRule, agents);
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ border: '2px dashed var(--teal)', borderRadius: 'var(--r)', padding: 14, background: 'rgba(13, 148, 136, 0.05)' }}>
+                  <div style={{ border: '2px dashed var(--teal)', borderRadius: 'var(--r)', padding: 14, background: 'var(--teal-l)' }}>
                     <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase', marginBottom: 4 }}>1. WHEN (Trigger)</div>
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{d.trigger}</div>
                   </div>
                   <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>↓</div>
-                  <div style={{ border: '2px dashed #2563eb', borderRadius: 'var(--r)', padding: 14, background: 'rgba(37, 99, 235, 0.05)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#2563eb', textTransform: 'uppercase', marginBottom: 4 }}>2. IF (Condition)</div>
+                  <div style={{ border: '2px dashed var(--blue)', borderRadius: 'var(--r)', padding: 14, background: 'var(--blue-l)' }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--blue)', textTransform: 'uppercase', marginBottom: 4 }}>2. IF (Condition)</div>
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{d.condition}</div>
                   </div>
                   <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>↓</div>
-                  <div style={{ border: '2px dashed #047857', borderRadius: 'var(--r)', padding: 14, background: 'rgba(4, 120, 87, 0.05)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#047857', textTransform: 'uppercase', marginBottom: 4 }}>3. THEN (Action)</div>
+                  <div style={{ border: '2px dashed var(--green)', borderRadius: 'var(--r)', padding: 14, background: 'var(--green-l)' }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--green)', textTransform: 'uppercase', marginBottom: 4 }}>3. THEN (Action)</div>
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{d.action}</div>
                   </div>
                   <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />

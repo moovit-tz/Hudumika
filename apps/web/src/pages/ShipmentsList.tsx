@@ -344,7 +344,7 @@ export const ShipmentsList: React.FC = () => {
       {/* -- action bar -- */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0',borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--white)' }}>
         <Link to="/shipments/new"
-          style={{ padding: '11px 22px', fontSize: 14, fontWeight: 700, borderRadius: 10, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7, textDecoration: 'none' }}>
+          style={{ padding: '11px 22px', fontSize: 14, fontWeight: 700, borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7, textDecoration: 'none' }}>
           <Icon name="plus" size={14} strokeWidth={2.5} /> New Shipment
         </Link>
         <button type="button" onClick={() => exportCsv(shipments)}
@@ -500,7 +500,7 @@ export const ShipmentsList: React.FC = () => {
                     data: stageDist.map(s => s.count || 1),
                     backgroundColor: STAGE_COLORS,
                     borderWidth: 2,
-                    borderColor: 'var(--white)',
+                    borderColor: '#fff',
                   }],
                 }}
                 options={donutOptions}
@@ -510,7 +510,7 @@ export const ShipmentsList: React.FC = () => {
               {stageDist.map((s, i) => (
                 <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: STAGE_COLORS[i], flexShrink: 0 }} />
+                    <div style={{ width: 8, height: 8, borderRadius: 'var(--r-sm)', background: STAGE_COLORS[i], flexShrink: 0 }} />
                     <span style={{ color: 'var(--ink2)' }}>{s.name}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -640,7 +640,7 @@ export const ShipmentsList: React.FC = () => {
                     <td style={{ padding: '8px 8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{
-                          width: 24, height: 24, borderRadius: 6, background: 'hsl(var(--primary))',
+                          width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'hsl(var(--primary))',
                           color: 'hsl(var(--primary-foreground))', fontSize: 10, fontWeight: 700,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           flexShrink: 0,
@@ -660,8 +660,8 @@ export const ShipmentsList: React.FC = () => {
                     </td>
                     <td style={{ padding: '8px 8px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
-                        <div style={{ width: 60, height: 5, borderRadius: 3, background: 'var(--border)', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct(c.count, shipments.length)}%`, background: 'var(--teal)', borderRadius: 3 }} />
+                        <div style={{ width: 60, height: 5, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct(c.count, shipments.length)}%`, background: 'var(--teal)', borderRadius: 'var(--r-sm)' }} />
                         </div>
                         <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{pct(c.count, shipments.length)}%</span>
                       </div>

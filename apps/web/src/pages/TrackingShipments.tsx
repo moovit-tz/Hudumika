@@ -35,11 +35,11 @@ const CROSSING_STATUS_COLOR: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, { bg: string; fg: string; dot: string }> = {
-  PLANNED:     { bg: '#f1f5f9', fg: '#475569', dot: '#94a3b8' },
-  IN_PROGRESS: { bg: 'var(--green-l)', fg: 'var(--green)', dot: '#10b981' },
-  COMPLETED:   { bg: 'var(--blue-l)', fg: '#2563eb', dot: '#3b82f6' },
-  CANCELLED:   { bg: 'var(--red-l)', fg: 'var(--red)', dot: '#ef4444' },
-  DELAYED:     { bg: 'var(--gold-l)', fg: 'var(--gold)', dot: '#f59e0b' },
+  PLANNED:     { bg: 'hsl(var(--muted))', fg: 'hsl(var(--muted-foreground))', dot: 'hsl(var(--muted-foreground))' },
+  IN_PROGRESS: { bg: 'var(--green-l)', fg: 'var(--green)', dot: 'var(--green)' },
+  COMPLETED:   { bg: 'var(--blue-l)', fg: 'var(--blue)', dot: 'var(--blue)' },
+  CANCELLED:   { bg: 'var(--red-l)', fg: 'var(--red)', dot: 'var(--red)' },
+  DELAYED:     { bg: 'var(--gold-l)', fg: 'var(--gold)', dot: 'var(--gold)' },
 };
 
 export const TrackingShipments: React.FC = () => {
@@ -174,16 +174,16 @@ export const TrackingShipments: React.FC = () => {
               placeholder="Search" 
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ padding: '8px 16px 8px 34px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, width: 220, outline: 'none' }}
+              style={{ padding: '8px 16px 8px 34px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13, width: 220, outline: 'none' }}
             />
           </div>
-          <Link to="/tracking/shipments/new" style={{ padding: '9px 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Link to="/tracking/shipments/new" style={{ padding: '9px 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="plus" size={14} /> New Trip
           </Link>
         </div>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)' }}>
+      <div style={{ background: '#fff', borderRadius: 'var(--r)', border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)' }}>
         {/* Filters */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -194,7 +194,7 @@ export const TrackingShipments: React.FC = () => {
                 ))}
               </TabsList>
             </Tabs>
-            <button style={{ padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: '#fff', color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button style={{ padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name="filter" size={12} /> Filter
             </button>
           </div>
@@ -273,7 +273,7 @@ export const TrackingShipments: React.FC = () => {
                 {expandedTrip === s.id && (
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
                     <td colSpan={7} style={{ padding: '20px' }}>
-                      <div style={{ background: '#fff', padding: 20, borderRadius: 8, border: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
+                      <div style={{ background: '#fff', padding: 20, borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
                         <div>
                           <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 16px 0', color: 'var(--ink)' }}>Trip Details</h3>
                           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '12px 0', fontSize: 13 }}>
@@ -329,7 +329,7 @@ export const TrackingShipments: React.FC = () => {
                           })()}
                         </div>
                       </div>
-                      <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', marginTop: 16, padding: 20, borderRadius: 8, border: '1px solid var(--border)' }}>
+                      <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', marginTop: 16, padding: 20, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                           <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: 'var(--ink)' }}>Border Crossings</h3>
                           <button type="button" onClick={() => setAddingCrossing(a => a === s.id ? null : s.id)}
@@ -363,7 +363,7 @@ export const TrackingShipments: React.FC = () => {
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             {crossings[s.id].map(c => (
-                              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6 }}>
+                              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)'}}>
                                 <span><strong>{c.border_name}</strong> · {c.country_from} → {c.country_to}</span>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                   <span style={{ color: CROSSING_STATUS_COLOR[c.status] ?? 'var(--ink3)', fontWeight: 700 }}>{c.status}</span>

@@ -616,7 +616,7 @@
   background: var(--white);
   border: 1px solid var(--border);
   padding: 4px;
-  border-radius: var(--r-md, 12px);
+  border-radius: var(--r);
   overflow-x: auto;
   scrollbar-width: none;
   margin-top: 14px;

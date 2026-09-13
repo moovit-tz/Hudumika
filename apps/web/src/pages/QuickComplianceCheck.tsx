@@ -53,7 +53,7 @@ function ComplyOSPromoCard() {
         {COMPLYOS_PITCH.map(p => (
           <div key={p.highlight} style={{
             display: 'flex', alignItems: 'center', gap: 12,
-            padding: '10px 12px', borderRadius: 10,
+            padding: '10px 12px', borderRadius: 'var(--r)',
             background: 'var(--teal-l)',
             border: '1px solid var(--teal-m)',
           }}>
@@ -229,7 +229,7 @@ export const QuickComplianceCheck: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'minmax(280px, 380px) 1fr', gap: 24, alignItems: 'start' }}>
         {/* LEFT: input card + ComplyOS cross-sell */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 24, boxShadow: 'var(--elev-lg)' }}>
+        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 24, boxShadow: 'var(--elev-lg)' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="shield" size={18} color="var(--teal)" /> Shipment Details
           </div>
@@ -257,12 +257,12 @@ export const QuickComplianceCheck: React.FC = () => {
               )}
 
               {hsResults.length > 0 && !hsSelected && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, zIndex: 1000, boxShadow: 'var(--elev-lg)', overflow: 'hidden', marginTop: 6, maxHeight: 260, overflowY: 'auto' }}>
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', zIndex: 1000, boxShadow: 'var(--elev-lg)', overflow: 'hidden', marginTop: 6, maxHeight: 260, overflowY: 'auto' }}>
                   {hsResults.map(r => (
                     <div key={r.code} onClick={() => { setHs(r.code); setHsSelected(r); setHsResults([]); }}
                       role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setHs(r.code); setHsSelected(r); setHsResults([]); } }}
                       style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface, rgba(255,255,255,0.06))')}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}>
                       <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{r.code}</span>
                       <span style={{ color: 'var(--ink2)' }}> — {r.description}</span>
@@ -300,7 +300,7 @@ export const QuickComplianceCheck: React.FC = () => {
             </div>
 
             {error && (
-              <div style={{ padding: '10px 14px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--red)' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--red)' }}>
                 {error}
               </div>
             )}
@@ -319,14 +319,14 @@ export const QuickComplianceCheck: React.FC = () => {
         {/* RIGHT: results */}
         <div>
           {!sortedChecks && !loading && (
-            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px dashed var(--border)', borderRadius: 16, padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
-              <Icon name="shield" size={28} color="var(--ink4)" style={{ display: 'block', margin: '0 auto 12px' }} />
+            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px dashed var(--border)', borderRadius: 'var(--card-radius)', padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
+              <Icon name="shield" size={28} color="var(--ink3)" style={{ display: 'block', margin: '0 auto 12px' }} />
               <div style={{ fontSize: 13.5 }}>Enter an HS code and origin, then run the check.</div>
             </div>
           )}
 
           {loading && (
-            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
+            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
               <Icon name="sliders" size={28} color="var(--teal)" style={{ display: 'block', margin: '0 auto 12px', animation: 'ds-spin 1.2s linear infinite' }} />
               <div style={{ fontSize: 13.5 }}>Checking compliance requirements…</div>
             </div>
@@ -334,14 +334,14 @@ export const QuickComplianceCheck: React.FC = () => {
 
           {sortedChecks && !loading && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'color-mix(in srgb, var(--teal) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 22%, transparent)', borderRadius: 12, fontSize: 13, color: 'var(--ink2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--ink2)' }}>
                 <Icon name="info" size={16} color="var(--teal)" />
                 <span><strong>{requiredCount}</strong> of {sortedChecks.length} checks require action for HS {hsSelected?.code ?? hs} from {ORIGIN_GROUPS.flatMap(g => g.options).find(o => o.code === origin)?.name ?? origin}.</span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {sortedChecks.map(c => (
-                  <div key={c.key} style={{ display: 'flex', gap: 14, padding: 16, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12 }}>
+                  <div key={c.key} style={{ display: 'flex', gap: 14, padding: 16, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
                     <FeaturedIcon variant={iconVariant(c.color)} size="sm" shape="square">
                       <Icon name={c.required ? 'alertTriangle' : 'checkCircle'} size={16} />
                     </FeaturedIcon>

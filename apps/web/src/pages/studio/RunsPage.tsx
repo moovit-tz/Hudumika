@@ -65,14 +65,14 @@ export function RunsPage() {
       {loading && <SectionLoading />}
 
       {!loading && visible.length === 0 && (
-        <div style={{ padding: 40, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12, color: 'var(--ink3)', fontSize: 13 }}>
+        <div style={{ padding: 40, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 'var(--card-radius)', color: 'var(--ink3)', fontSize: 13 }}>
           <Icon name="clock" size={22} color="var(--ink3)" />
           <div style={{ marginTop: 8 }}>No runs recorded yet.</div>
           <div style={{ fontSize: 12, marginTop: 4 }}>Open a workflow and use <strong>Dry run</strong> — it executes the graph without performing any action.</div>
         </div>
       )}
 
-      <div style={{ border: visible.length ? '1px solid var(--border)' : 'none', borderRadius: 12, overflow: 'hidden', background: 'var(--card-bg, var(--white))' }}>
+      <div style={{ border: visible.length ? '1px solid var(--border)' : 'none', borderRadius: 'var(--card-radius)', overflow: 'hidden', background: 'var(--card-bg, var(--white))' }}>
         {visible.map(r => (
           <div key={r.id} className="studio-step" style={{ gridTemplateColumns: '96px 1fr auto', cursor: 'pointer' }}
                onClick={() => navigate(`/studio/w/${r.workflow_id}`)}>

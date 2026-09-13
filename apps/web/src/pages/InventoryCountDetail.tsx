@@ -109,12 +109,12 @@ export function InventoryCountDetail() {
       </div>
 
       {session.status === 'open' && uncountedLines > 0 && (
-        <div className="inv-empty" style={{ marginBottom: 16, textAlign: 'left', padding: '12px 16px', background: 'var(--gold-l)', borderRadius: 8, color: 'var(--gold)' }}>
+        <div className="inv-empty" style={{ marginBottom: 16, textAlign: 'left', padding: '12px 16px', background: 'var(--gold-l)', borderRadius: 'var(--r)', color: 'var(--gold)' }}>
           {uncountedLines} line(s) still need a counted quantity before this count can be posted.
         </div>
       )}
       {session.status === 'open' && uncountedLines === 0 && varianceLines > 0 && (
-        <div className="inv-empty" style={{ marginBottom: 16, textAlign: 'left', padding: '12px 16px', background: 'var(--bg)', borderRadius: 8 }}>
+        <div className="inv-empty" style={{ marginBottom: 16, textAlign: 'left', padding: '12px 16px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
           {varianceLines} line(s) have a variance — posting will create a real correction movement for each.
         </div>
       )}

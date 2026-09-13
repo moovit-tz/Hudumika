@@ -47,7 +47,7 @@ export function HuduBIDataSources() {
           <SectionCard title="Connected sources">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
               {sources.map(s => (
-                <div key={s.name} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div key={s.name} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Icon name="layers" size={18} color="var(--teal)" />
@@ -78,8 +78,8 @@ export function HuduBIDataSources() {
                   {breakdown.map(r => (
                     <div key={r.table} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <span style={{ fontSize: 13, color: 'var(--ink)', width: 160, flexShrink: 0 }}>{TABLE_LABELS[r.table] || r.table}</span>
-                      <div style={{ flex: 1, height: 7, borderRadius: 4, background: 'var(--bg)', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${Math.round((r.records / max) * 100)}%`, background: 'var(--teal)', borderRadius: 4 }} />
+                      <div style={{ flex: 1, height: 7, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${Math.round((r.records / max) * 100)}%`, background: 'var(--teal)', borderRadius: 'var(--r-sm)'}} />
                       </div>
                       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', minWidth: 48, textAlign: 'right' }}>{r.records.toLocaleString()}</span>
                     </div>

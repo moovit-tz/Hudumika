@@ -180,12 +180,12 @@ export const FinanceExpenseNew: React.FC = () => {
           <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, border: '1.5px dashed var(--border)', borderRadius: 'var(--r)', cursor: 'pointer', background: 'var(--bg)' }}>
             {attachment ? (
               <>
-                <img src={attachment} alt="Attachment" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} />
+                <img src={attachment} alt="Attachment" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 'var(--r-sm)'}} />
                 <div style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--teal)' }}>File attached! Click to change.</div>
               </>
             ) : (
               <>
-                <div style={{ width: 40, height: 40, borderRadius: 4, background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="upload" size={16} /></div>
+                <div style={{ width: 40, height: 40, borderRadius: 'var(--r-sm)', background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="upload" size={16} /></div>
                 <div style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--ink3)' }}>Click to upload receipt image (PNG, JPG)</div>
               </>
             )}

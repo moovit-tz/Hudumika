@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { Button } from '../components/ui/button.js';
 import { MetricsRow, type MetricCardProps } from '../components/MetricCard.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface LeaveBalance {
   code: string;
@@ -37,14 +38,14 @@ interface MyDoc {
 }
 
 const cardStyle: React.CSSProperties = {
-  background: 'var(--card-bg, #ffffff)',
+  background: 'var(--card-bg, var(--white))',
   border: '1px solid var(--border)',
-  borderRadius: 14,
+  borderRadius: 'var(--r)',
   padding: 20,
   display: 'flex',
   flexDirection: 'column',
   gap: 16,
-  boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+  boxShadow: 'var(--elev-sm)',
 };
 
 const labelStyle: React.CSSProperties = {
@@ -153,6 +154,12 @@ export function MyHubPage() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 50 }}>
+      <PageHeader
+        crumbs={['NexusHR', 'My hub']}
+        titlePlain="My employee"
+        titleEm="hub"
+        subtitle="Your attendance, leave, payslips, documents, and workplace updates in one place."
+      />
       {/* 📊 KPI Row */}
       <MetricsRow cards={metrics} />
 
@@ -164,7 +171,7 @@ export function MyHubPage() {
           <div style={cardStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
                   <Icon name="clock" size={17} />
                 </div>
                 <div>
@@ -184,7 +191,7 @@ export function MyHubPage() {
                 { title: 'Lunch Break', time: '01:00 PM', status: '1 Hour', color: 'var(--teal)' },
                 { title: 'Expected Out', time: '05:00 PM', status: 'Scheduled', color: 'hsl(var(--primary))' },
               ].map((s, idx) => (
-                <div key={idx} style={{ background: 'var(--bg)', borderRadius: 10, padding: 14, border: '1px solid var(--border)' }}>
+                <div key={idx} style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: 14, border: '1px solid var(--border)' }}>
                   <div style={labelStyle}>{s.title}</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: s.color, marginTop: 4, fontFamily: 'var(--mono)' }}>{s.time}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{s.status}</div>
@@ -197,7 +204,7 @@ export function MyHubPage() {
           <div style={cardStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
                   <Icon name="calendar" size={17} />
                 </div>
                 <div>
@@ -219,10 +226,10 @@ export function MyHubPage() {
                 {balances.map(b => {
                   const pct = b.entitled > 0 ? Math.min(100, Math.round((b.remaining / b.entitled) * 100)) : 0;
                   return (
-                    <div key={b.code} style={{ background: 'var(--bg)', borderRadius: 10, padding: 14, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div key={b.code} style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: 14, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{b.name || b.code}</span>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 6px', borderRadius: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 6px', borderRadius: 'var(--badge-radius)' }}>
                           {pct}% Available
                         </span>
                       </div>
@@ -243,7 +250,7 @@ export function MyHubPage() {
           <div style={cardStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)' }}>
                   <Icon name="dollarSign" size={17} />
                 </div>
                 <div>
@@ -258,7 +265,7 @@ export function MyHubPage() {
 
             {latestSlip ? (
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, alignItems: 'center' }}>
-                <div style={{ background: 'var(--bg)', borderRadius: 12, padding: 18, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: 18, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div>
                     <div style={labelStyle}>Net Take-Home Pay</div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--green)', fontFamily: 'var(--mono)', marginTop: 2 }}>
@@ -273,10 +280,10 @@ export function MyHubPage() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'stretch' }}>
-                  <Button onClick={() => navigate('/nexushr/my-payslips')} style={{ height: 42, fontWeight: 700, fontSize: 13 }}>
+                  <Button onClick={() => navigate('/nexushr/my-payslips')} style={{ fontWeight: 700, fontSize: 13 }}>
                     <Icon name="download" size={14} /> Download PDF
                   </Button>
-                  <Button variant="outline" onClick={() => navigate(`/nexushr/staff/${user?.id}`)} style={{ height: 38, fontSize: 12 }}>
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/nexushr/staff/${user?.id}`)} style={{ fontSize: 12 }}>
                     Payment Details
                   </Button>
                 </div>
@@ -315,7 +322,7 @@ export function MyHubPage() {
                     alignItems: 'center',
                     gap: 8,
                     padding: '10px 12px',
-                    borderRadius: 8,
+                    borderRadius: 'var(--r-sm)',
                     background: 'var(--bg)',
                     border: '1px solid var(--border)',
                     color: 'var(--ink)',
@@ -354,7 +361,7 @@ export function MyHubPage() {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '8px 10px',
-                      borderRadius: 6,
+                      borderRadius: 'var(--r-sm)',
                       background: 'var(--bg)',
                       border: '1px solid var(--border)',
                     }}

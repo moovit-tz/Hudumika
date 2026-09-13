@@ -13,6 +13,7 @@ import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import './ComplyOS.css';
+import { Button } from '../components/ui/button.js';
 
 type Filter = 'all' | 'active' | 'expiring' | 'expired';
 
@@ -143,15 +144,15 @@ export function ComplyVault() {
             {certs.filter(c => c.status === 'expired').length} expired </>}
         actions={
         <div className="comply-action-row">
-          <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh certificates">
+          <Button type="button" variant="outline" size="icon" onClick={refresh} title="Refresh certificates" aria-label="Refresh certificates">
             <Icon name="refresh" size={13} />
-          </button>
-          <button type="button" className="comply-btn-secondary" onClick={handleExportAll} disabled={visible.length === 0}>
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={handleExportAll} disabled={visible.length === 0}>
             <Icon name="download" size={13} /> Export All
-          </button>
-          <button type="button" className="comply-btn-primary" onClick={() => navigate('/complyos/vault/new')}>
+          </Button>
+          <Button type="button" size="sm" onClick={() => navigate('/complyos/vault/new')}>
             <Icon name="plus" size={14} /> Add Certificate
-          </button>
+          </Button>
         </div>
         }
       />
@@ -218,34 +219,37 @@ export function ComplyVault() {
                 </div>
               </div>
               <div className="comply-cert-card-foot">
-                <button
+                <Button
                   type="button"
                   title="View certificate"
-                  className="comply-btn-secondary"
+                  variant="outline"
+                  size="xs"
                   onClick={e => { e.stopPropagation(); setSelected(cert); }}
                 >
                   <Icon name="eye" size={14} /> View
-                </button>
+                </Button>
                 {cert.document_url && (
-                  <button
+                  <Button
                     type="button"
                     title="Download certificate"
-                    className="comply-btn-secondary"
+                    variant="outline"
+                    size="xs"
                     onClick={e => { e.stopPropagation(); handleDownload(cert); }}
                   >
                     <Icon name="download" size={14} /> Download
-                  </button>
+                  </Button>
                 )}
                 {(cert.status === 'expiring' || cert.status === 'expired') && (
-                  <button
+                  <Button
                     type="button"
                     title="Start renewal workflow"
-                    className="comply-btn-primary comply-cert-renew"
+                    className="comply-cert-renew"
+                    size="xs"
                     disabled={renewing === cert.id}
                     onClick={e => handleRenew(e, cert.id)}
                   >
                     {renewing === cert.id ? '…' : 'Renew'}
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -275,19 +279,20 @@ export function ComplyVault() {
                     </td>
                     <td onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                        <button type="button" title="View certificate" className="comply-btn-secondary" onClick={() => setSelected(cert)}>
+                        <Button type="button" title="View certificate" variant="outline" size="xs" onClick={() => setSelected(cert)}>
                           <Icon name="eye" size={14} /> View
-                        </button>
+                        </Button>
                         {(cert.status === 'expiring' || cert.status === 'expired') && (
-                          <button
+                          <Button
                             type="button"
                             title="Start renewal workflow"
-                            className="comply-btn-primary comply-cert-renew"
+                            className="comply-cert-renew"
+                            size="xs"
                             disabled={renewing === cert.id}
                             onClick={e => handleRenew(e, cert.id)}
                           >
                             {renewing === cert.id ? '…' : 'Renew'}
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </td>
@@ -344,28 +349,30 @@ export function ComplyVault() {
               )}
               <div className="comply-action-row">
                 {selected.document_url && (
-                  <a href={selected.document_url} target="_blank" rel="noreferrer" className="comply-btn-primary">
+                  <Button asChild size="sm"><a href={selected.document_url} target="_blank" rel="noreferrer">
                     <Icon name="download" size={13} /> Download PDF
-                  </a>
+                  </a></Button>
                 )}
-                <button type="button" className="comply-btn-secondary" onClick={() => handleShare(selected)}>
+                <Button type="button" variant="outline" size="sm" onClick={() => handleShare(selected)}>
                   <Icon name="copy" size={13} /> Share
-                </button>
+                </Button>
                 {(selected.status === 'expiring' || selected.status === 'expired') && (
-                  <button
+                  <Button
                     type="button"
-                    className="comply-btn-secondary comply-btn-secondary--comply"
+                    variant="outline"
+                    size="sm"
+                    style={{ color: 'var(--comply)', borderColor: 'var(--comply-edge)' }}
                     disabled={renewing === selected.id}
                     onClick={e => handleRenew(e, selected.id)}
                   >
                     <Icon name="refresh" size={13} />
                     {renewing === selected.id ? 'Starting…' : 'Start Renewal'}
-                  </button>
+                  </Button>
                 )}
                 {selected.status !== 'revoked' && (
-                  <button type="button" className="comply-btn-secondary" style={{ color: 'var(--red)' }} disabled={revoking} onClick={() => handleRevoke(selected)}>
+                  <Button type="button" variant="outline" size="sm" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} disabled={revoking} onClick={() => handleRevoke(selected)}>
                     <Icon name="trash" size={13} color="var(--red)" /> {revoking ? 'Revoking…' : 'Revoke'}
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>

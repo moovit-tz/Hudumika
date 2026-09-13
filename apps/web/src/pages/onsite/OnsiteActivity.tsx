@@ -67,18 +67,18 @@ export function OnsiteActivity() {
 
       {loading ? (
         <div className="onsite-card">
-          <p style={{ color: 'var(--ink-muted)' }}>Loading audit log…</p>
+          <p style={{ color: 'var(--ink3)' }}>Loading audit log…</p>
         </div>
       ) : forbidden ? (
         <div className="onsite-card">
-          <p style={{ color: 'var(--ink-muted)', padding: '1rem 0', margin: 0 }}>
+          <p style={{ color: 'var(--ink3)', padding: '1rem 0', margin: 0 }}>
             You don't have permission to view this workspace's audit feed — it's restricted to SUPER_ADMIN, ADMIN and TENANT_ADMIN.
           </p>
         </div>
       ) : (
         <div className="onsite-card">
           {activities.length === 0 ? (
-            <p style={{ color: 'var(--ink-muted)', padding: '1rem 0', margin: 0 }}>
+            <p style={{ color: 'var(--ink3)', padding: '1rem 0', margin: 0 }}>
               No audit events logged yet.
             </p>
           ) : (
@@ -86,13 +86,13 @@ export function OnsiteActivity() {
               {activities.map((a) => (
                 <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: '0.5rem', background: 'var(--bg-subtle, #f8fafc)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <Icon name="clock" size={16} style={{ color: 'var(--ink-muted)' }} />
+                    <Icon name="clock" size={16} style={{ color: 'var(--ink3)' }} />
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{describe(a)}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>By: {a.actor_name || 'System'}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>By: {a.actor_name || 'System'}</div>
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>
                     {new Date(a.created_at).toLocaleString()}
                   </div>
                 </div>

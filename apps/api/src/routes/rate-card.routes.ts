@@ -17,6 +17,16 @@ export async function rateCardRoutes(fastify: FastifyInstance) {
   // GET /v1/rate-card/icd-operators/search?q= — search the global ICD
   // directory (Tools -> Reference -> ICD) so a tenant can attach a rate
   // card to a real licensed operator instead of typing a freeform name.
+  // HUD-0024 continuation: internal tenant-business data (finance ledgers,
+  // fleet ops, HR, identity/access admin, or tenant configuration) with only
+  // an entitlement gate — reachable end-to-end by a CUSTOMER JWT (confirmed
+  // live before this fix). Not customer-portal data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
+
   fastify.get('/icd-operators/search', async (req: FastifyRequest) => {
     const { q } = req.query as { q?: string };
     const data = await rateCardService.searchIcdOperators(q ?? '');

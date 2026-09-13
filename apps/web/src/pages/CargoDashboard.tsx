@@ -59,8 +59,8 @@ function ReliabilityBadge({ pct }: { pct: number | null }) {
 function RankedBar({ value, max, color }: { value: number; max: number; color: string }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
-    <div style={{ width: '100%', height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
-      <div style={{ width: `${pct}%`, height: '100%', borderRadius: 3, background: color }} />
+    <div style={{ width: '100%', height: 6, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
+      <div style={{ width: `${pct}%`, height: '100%', borderRadius: 'var(--r-sm)', background: color }} />
     </div>
   );
 }

@@ -104,11 +104,11 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
 
         {/* Margin & Tax row */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-          <div style={{ padding: '10px 12px', background: margin !== null && margin > 0 ? 'var(--green-l)' : 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
+          <div style={{ padding: '10px 12px', background: margin !== null && margin > 0 ? 'var(--green-l)' : 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', textAlign: 'center' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Margin</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: margin !== null && margin > 0 ? 'var(--green)' : 'var(--ink3)' }}>{margin !== null ? `${margin}%` : '—'}</div>
           </div>
-          <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', textAlign: 'center' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Tax</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{product.taxRate}%</div>
             {/* The rate alone does not say which treatment it is. A 0% item may
@@ -139,7 +139,7 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
         {product.description && (
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Description</div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, background: 'var(--bg)', padding: '10px 12px', borderRadius: 8 }}>{product.description}</div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, background: 'var(--bg)', padding: '10px 12px', borderRadius: 'var(--r)'}}>{product.description}</div>
           </div>
         )}
       </div>
@@ -191,7 +191,7 @@ function ProductForm({ product, onSave, onClose }: {
       {children}
     </div>
   );
-  const inp: React.CSSProperties = { padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)', outline: 'none', width: '100%', boxSizing: 'border-box' };
+  const inp: React.CSSProperties = { padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)', outline: 'none', width: '100%', boxSizing: 'border-box' };
   const sel: React.CSSProperties = { ...inp, cursor: 'pointer' };
 
   return (

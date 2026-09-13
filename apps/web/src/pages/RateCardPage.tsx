@@ -53,7 +53,7 @@ async function searchIcdOperators(q: string): Promise<PickerItem[]> {
 
 const th: React.CSSProperties = { padding: '9px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--ink2)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' };
 const td: React.CSSProperties = { padding: '9px 12px', borderBottom: '1px solid var(--border)', verticalAlign: 'middle', fontSize: 13 };
-const editInput: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '5px 7px', borderRadius: 6, border: '1px solid var(--teal)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'var(--font)' };
+const editInput: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '5px 7px', borderRadius: 'var(--r-sm)', border: '1px solid var(--teal)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'var(--font)' };
 
 export const RateCardPage: React.FC = () => {
   const { user } = useAuth();
@@ -209,7 +209,7 @@ export const RateCardPage: React.FC = () => {
                       ) : (
                         Number(row.rate_amount) > 0
                           ? <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{row.rate_currency} {Number(row.rate_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          : <span style={{ color: 'var(--ink4)' }}>Not set</span>
+                          : <span style={{ color: 'var(--ink3)' }}>Not set</span>
                       )}
                     </td>
                     {/* Minimum charge — only meaningful for rates quoted per
@@ -222,7 +222,7 @@ export const RateCardPage: React.FC = () => {
                       ) : (
                         row.min_charge != null && Number(row.min_charge) > 0
                           ? <span style={{ color: 'var(--ink2)' }}>{row.rate_currency} {Number(row.min_charge).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          : <span style={{ color: 'var(--ink4)' }}>—</span>
+                          : <span style={{ color: 'var(--ink3)' }}>—</span>
                       )}
                     </td>
                     <td style={td}>
@@ -251,7 +251,7 @@ export const RateCardPage: React.FC = () => {
                 );
               })}
               {rows.length === 0 && (
-                <tr><td colSpan={canEdit ? 6 : 5} style={{ ...td, textAlign: 'center', color: 'var(--ink4)' }}>No items yet</td></tr>
+                <tr><td colSpan={canEdit ? 6 : 5} style={{ ...td, textAlign: 'center', color: 'var(--ink3)' }}>No items yet</td></tr>
               )}
             </tbody>
           </table>
@@ -344,7 +344,7 @@ export const RateCardPage: React.FC = () => {
 
                 {canEdit && (
                   addingExtra ? (
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: 12, border: '1px dashed var(--border)', borderRadius: 10 }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: 12, border: '1px dashed var(--border)', borderRadius: 'var(--r)' }}>
                       <Select value={extraDraft.category} onValueChange={v => setExtraDraft(d => ({ ...d, category: v as any }))}>
                         <SelectTrigger style={{ width: 118, height: 30, minHeight: 30, fontSize: 12.5 }}><SelectValue /></SelectTrigger>
                         <SelectContent>

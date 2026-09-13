@@ -499,7 +499,7 @@ export const OndiPersonalActivity: React.FC = () => {
                   className="opa-progress-bar-fill"
                   style={{
                     width: `${stats.successRate}%`,
-                    background: stats.successRate >= 95 ? 'var(--green, #10b981)' : stats.successRate >= 80 ? 'var(--gold, #f59e0b)' : 'var(--red, #ef4444)',
+                    background: stats.successRate >= 95 ? 'var(--green)' : stats.successRate >= 80 ? 'var(--gold)' : 'var(--red)',
                   }}
                 />
               </div>
@@ -970,12 +970,12 @@ export const OndiPersonalActivity: React.FC = () => {
                         style={{
                           background:
                             getEventCategory(selectedEvent) === 'failure'
-                              ? 'var(--red-l, rgba(239, 68, 68, 0.1))'
-                              : 'var(--green-l, rgba(16, 185, 129, 0.1))',
+                              ? 'var(--red-l)'
+                              : 'var(--green-l)',
                           color:
                             getEventCategory(selectedEvent) === 'failure'
-                              ? 'var(--red, #ef4444)'
-                              : 'var(--green, #059669)',
+                              ? 'var(--red)'
+                              : 'var(--green)',
                           fontWeight: 600,
                         }}
                       >

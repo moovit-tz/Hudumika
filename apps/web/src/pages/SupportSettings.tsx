@@ -290,8 +290,8 @@ export const SupportSettings: React.FC = () => {
   // a message nothing actually delivered).
   const integrations: { name: string; icon: IconName; color: string; desc: string; to: string; connected: boolean | null }[] = [
     { name: 'WhatsApp', icon: 'whatsapp', color: '#25D366', desc: 'Meta Cloud API credentials, message templates and the inbound webhook.', to: '/bliss/whatsapp', connected: chStatus.whatsapp },
-    { name: 'Email', icon: 'mail', color: '#0569e3', desc: 'IMAP mailbox that turns incoming email into tickets.', to: '/workspace/settings?s=email', connected: chStatus.email },
-    { name: 'SMS', icon: 'smartphone', color: '#8b5cf6', desc: 'Gateway credentials, sender IDs and priority order — managed in the SMS app.', to: '/sms/gateways', connected: chStatus.sms },
+    { name: 'Email', icon: 'mail', color: 'var(--blue)', desc: 'IMAP mailbox that turns incoming email into tickets.', to: '/workspace/settings?s=email', connected: chStatus.email },
+    { name: 'SMS', icon: 'smartphone', color: 'var(--purple)', desc: 'Gateway credentials, sender IDs and priority order — managed in the SMS app.', to: '/sms/gateways', connected: chStatus.sms },
   ];
 
   return (

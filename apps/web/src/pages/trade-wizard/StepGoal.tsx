@@ -121,7 +121,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                   fontWeight: isActive ? 700 : 500,
                   cursor: 'pointer',
                   border: `1.5px solid ${isActive ? 'var(--teal)' : 'var(--border)'}`,
-                  background: isActive ? 'color-mix(in srgb, var(--teal) 12%, transparent)' : 'var(--card-bg, var(--white))',
+                  background: isActive ? 'var(--teal-l)' : 'var(--card-bg, var(--white))',
                   color: isActive ? 'var(--teal)' : 'var(--ink2)',
                   transition: 'all 0.15s ease', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
               >
@@ -164,7 +164,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                 onMouseEnter={e => {
                   e.currentTarget.style.borderColor = 'var(--teal)';
                   e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 8px 24px color-mix(in srgb, var(--teal) 15%, transparent)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px var(--teal-m)';
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.borderColor = 'var(--border)';
@@ -177,7 +177,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                     <Badge variant={p.kind === 'IMPORT' ? 'brand' : p.kind === 'EXPORT' ? 'success' : 'gray'} style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px' }}>
                       {p.kind}
                     </Badge>
-                    {!p.has_detail && <span style={{ fontSize: 10, color: 'var(--ink4)', fontStyle: 'italic' }}>Overview</span>}
+                    {!p.has_detail && <span style={{ fontSize: 10, color: 'var(--ink3)', fontStyle: 'italic' }}>Overview</span>}
                   </div>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.4, marginBottom: 6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {p.name}
@@ -213,7 +213,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                   borderRadius: 'var(--r)',
                   border: '1px solid var(--border)',
                   background: 'var(--card-bg, var(--white))',
-                  color: currentPage === 1 ? 'var(--ink4)' : 'var(--ink)',
+                  color: currentPage === 1 ? 'var(--ink3)' : 'var(--ink)',
                   fontSize: 13,
                   fontWeight: 600,
                   cursor: currentPage === 1 ? 'default' : 'pointer',
@@ -263,7 +263,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                   borderRadius: 'var(--r)',
                   border: '1px solid var(--border)',
                   background: 'var(--card-bg, var(--white))',
-                  color: currentPage >= totalPages ? 'var(--ink4)' : 'var(--ink)',
+                  color: currentPage >= totalPages ? 'var(--ink3)' : 'var(--ink)',
                   fontSize: 13,
                   fontWeight: 600,
                   cursor: currentPage >= totalPages ? 'default' : 'pointer',

@@ -85,10 +85,10 @@ const STATUS_CFG: Record<BillStatus, { label: string; color: string; bg: string 
 const CAT_CFG: Record<BillCat, { label: string; color: string }> = {
   FREIGHT:      { label: 'Freight',        color: 'var(--blue)'   },
   CUSTOMS:      { label: 'Customs',        color: 'var(--navy)'   },
-  PORT:         { label: 'Port Charges',   color: 'var(--orange)' },
+  PORT:         { label: 'Port Charges',   color: 'var(--red)'    },
   TRANSPORT:    { label: 'Transport',      color: 'var(--gold)'   },
   WAREHOUSE:    { label: 'Warehouse',      color: 'var(--green)'  },
-  INSURANCE:    { label: 'Insurance',      color: '#6e40c9'       },
+  INSURANCE:    { label: 'Insurance',      color: 'var(--purple)' },
   PROFESSIONAL: { label: 'Professional',   color: 'var(--teal)'   },
   UTILITIES:    { label: 'Utilities',      color: 'var(--ink2)'   },
   OTHER:        { label: 'Other',          color: 'var(--ink3)'   },
@@ -246,7 +246,7 @@ function PayModal({ bill, onPay, onClose }: {
         </div>
         <div style={{ marginBottom:14 }}><label style={lbl}>Reference / Transaction ID</label><input type="text" title="Reference" placeholder="e.g. TRX-CRDB-20260625-001" value={ref} onChange={e => setRef(e.target.value)} style={{ ...inp, fontFamily:'var(--mono)', fontSize:12 }} /></div>
         <div style={{ marginBottom:20 }}><label style={lbl}>Note (optional)</label><input type="text" title="Note" placeholder="Payment note…" value={note} onChange={e => setNote(e.target.value)} style={inp} /></div>
-        <div style={{ background:'var(--teal-l)', borderRadius:9, padding:'11px 14px', marginBottom:20, display:'flex', justifyContent:'space-between', fontSize:13 }}>
+        <div style={{ background:'var(--teal-l)', borderRadius: 'var(--r)', padding:'11px 14px', marginBottom:20, display:'flex', justifyContent:'space-between', fontSize:13 }}>
           <span style={{ color:'var(--ink2)' }}>After this payment</span>
           <span style={{ fontWeight:800, color: amount >= balance ? 'var(--green)' : 'var(--gold)' }}>{amount >= balance ? '✓ Fully Paid' : `${fmt(balance - amount, bill.currency)} remaining`}</span>
         </div>
@@ -350,7 +350,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
   function removeLine(k:string) { setF(p => ({ ...p, lines: p.lines.filter(l => l._key !== k) })); }
 
   const totals = calcTotals(f.lines);
-  const inp: React.CSSProperties = { width:'100%', padding:'8px 11px', border:'1px solid var(--border)', borderRadius:7, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)', fontFamily:'inherit' };
+  const inp: React.CSSProperties = { width:'100%', padding:'8px 11px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)', fontFamily:'inherit' };
   const lbl: React.CSSProperties = { fontSize:11.5, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:4 };
   const sec: React.CSSProperties = { fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:10 };
 
@@ -411,7 +411,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
                   <tr key={ln._key} style={{ borderBottom: i < f.lines.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td style={{ padding:'7px 10px', minWidth:200 }}>
                       <input type="text" title="Description" placeholder="Service description…" value={ln.description} onChange={e => updateLine(ln._key, 'description', e.target.value)}
-                        style={{ width:'100%', padding:'6px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:12, outline:'none', boxSizing:'border-box' as const }} />
+                        style={{ width:'100%', padding:'6px 8px', border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize:12, outline:'none', boxSizing:'border-box' as const }} />
                     </td>
                     <td style={{ padding:'7px 8px' }}>
                       <Select value={ln.category} onValueChange={v => updateLine(ln._key, 'category', v as BillCat)}>
@@ -423,11 +423,11 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
                     </td>
                     <td style={{ padding:'7px 6px' }}>
                       <input type="number" title="Qty" value={ln.qty} min={1} step={1} onChange={e => updateLine(ln._key, 'qty', parseFloat(e.target.value)||1)}
-                        style={{ width:60, padding:'6px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:12, outline:'none', textAlign:'right' }} />
+                        style={{ width:60, padding:'6px 8px', border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize:12, outline:'none', textAlign:'right' }} />
                     </td>
                     <td style={{ padding:'7px 6px' }}>
                       <input type="number" title="Unit price" value={ln.unit_price} min={0} step={0.01} onChange={e => updateLine(ln._key, 'unit_price', parseFloat(e.target.value)||0)}
-                        style={{ width:90, padding:'6px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:12, outline:'none', textAlign:'right' }} />
+                        style={{ width:90, padding:'6px 8px', border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize:12, outline:'none', textAlign:'right' }} />
                     </td>
                     {/* A treatment, not a bare rate. On a purchase the treatment is
                         what decides whether the tax is claimable at all — a blocked
@@ -646,7 +646,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
               <span style={{ fontFamily:'var(--mono)', fontSize:18, fontWeight:800, color:'var(--teal)' }}>{bill.bill_number}</span>
               <StatusBadge status={bill.status} />
-              {bill.recurring_id && <span style={{ fontSize:11, fontWeight:700, color:'#6e40c9', background:'#f3eeff', padding:'2px 8px', borderRadius: 'var(--r)' }}>Recurring</span>}
+              {bill.recurring_id && <span style={{ fontSize:11, fontWeight:700, color:'var(--purple)', background:'var(--purple-l)', padding:'2px 8px', borderRadius: 'var(--r)' }}>Recurring</span>}
             </div>
             <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:2 }}>{bill.supplier_name}</div>
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Billed {fmtDate(bill.bill_date)} · Due {fmtDate(bill.due_date)}{over ? ` — ${daysOverdue(bill.due_date)} days overdue` : ''}</div>
@@ -656,7 +656,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             {(bill.status === 'POSTED'||bill.status === 'PARTIAL'||bill.status === 'OVERDUE') && <button type="button" title="Record payment" onClick={onPay} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="dollarSign" size={13} /> Pay</button>}
             <button type="button" title="Edit bill" onClick={onEdit} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="edit" size={13} /> Edit</button>
             <button type="button" title="Print bill" onClick={() => window.print()} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="printer" size={13} /></button>
-            {bill.status !== 'VOID' && bill.status !== 'PAID' && <button type="button" title="Void bill" onClick={onVoid} style={{ padding:'var(--ds-btn-py) 10px', border:'1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r)', background:'rgba(239,68,68,0.04)', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Void</button>}
+            {bill.status !== 'VOID' && bill.status !== 'PAID' && <button type="button" title="Void bill" onClick={onVoid} style={{ padding:'var(--ds-btn-py) 10px', border:'1px solid var(--red)', borderRadius: 'var(--r)', background:'var(--red-l)', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Void</button>}
           </div>
         </div>
         {over && <Banner variant="error" className="mt-3">Payment overdue by {daysOverdue(bill.due_date)} days. Balance: {fmt(balance, bill.currency)}</Banner>}
@@ -723,7 +723,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
               </div>
             )}
           </div>
-          {bill.notes && <div style={{ marginTop:18, padding:'13px 15px', background:'var(--bg)', borderRadius:9, fontSize:13, color:'var(--ink2)', lineHeight:1.6 }}><strong style={{ color:'var(--ink)' }}>Notes:</strong> {bill.notes}</div>}
+          {bill.notes && <div style={{ marginTop:18, padding:'13px 15px', background:'var(--bg)', borderRadius: 'var(--r)', fontSize:13, color:'var(--ink2)', lineHeight:1.6 }}><strong style={{ color:'var(--ink)' }}>Notes:</strong> {bill.notes}</div>}
 
           {/* Activity Log */}
           <div style={{ marginTop:24 }}>
@@ -795,7 +795,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             <input
               type="text" placeholder="RCTVNUM from supplier's receipt" value={efdInput}
               onChange={e => setEfdInput(e.target.value)}
-              style={{ width:'100%', padding:'7px 9px', borderRadius:6, border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink)', fontSize:12.5, fontFamily:'var(--mono)', outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}
+              style={{ width:'100%', padding:'7px 9px', borderRadius: 'var(--r-sm)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink)', fontSize:12.5, fontFamily:'var(--mono)', outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}
             />
             <button type="button" onClick={runVerify} disabled={!efdInput.trim() || efdChecking}
               style={{ width:'100%', padding:'var(--ds-btn-py) 0', borderRadius:'var(--r)', border:'none', background: efdChecking ? 'var(--ink3)' : 'hsl(var(--primary))', color: efdChecking ? 'var(--white)' : 'hsl(var(--primary-foreground))', fontSize:13, fontWeight:700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -1199,7 +1199,7 @@ export const Bills: React.FC = () => {
                   placeholder="Search bill # or supplier…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
               <button
@@ -1270,7 +1270,7 @@ export const Bills: React.FC = () => {
                               onMouseLeave={e => (e.currentTarget.style.background = over && bal>0 ? 'rgba(239,68,68,0.02)' : '')}>
                               <td style={{ padding:'11px 14px' }}>
                                 <div style={{ fontFamily:'var(--mono)', fontSize:12, fontWeight:700, color:'var(--teal)' }}>{b.bill_number}</div>
-                                {b.recurring_id && <div style={{ fontSize:10, color:'#6e40c9', fontWeight:600, marginTop:2 }}>↻ Recurring</div>}
+                                {b.recurring_id && <div style={{ fontSize:10, color:'var(--purple)', fontWeight:600, marginTop:2 }}>↻ Recurring</div>}
                               </td>
                               <td style={{ padding:'11px 14px' }}>
                                 <div style={{ fontWeight:600, color:'var(--ink)' }}>{b.supplier_name}</div>

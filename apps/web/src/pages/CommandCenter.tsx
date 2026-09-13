@@ -331,12 +331,12 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
                       {ship.has_dangerous_goods && (
                         <span
                           title="Carries a dangerous-goods declaration"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.02em', flexShrink: 0 }}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', borderRadius: 'var(--r-sm)', padding: '1px 5px', letterSpacing: '0.02em', flexShrink: 0 }}
                         >
                           <Icon name="alertTriangle" size={9} color="var(--gold)" /> DG
                         </span>
                       )}
-                      <span style={{ marginLeft: 'auto', fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.04em' }}>
+                      <span style={{ marginLeft: 'auto', fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderRadius: 'var(--r-sm)', padding: '1px 5px', letterSpacing: '0.04em' }}>
                         {TYPE_SHORT[ship.type as string] || ship.type}
                       </span>
                     </div>

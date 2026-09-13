@@ -755,7 +755,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
             {methods?.length === 0 && !showAddForm && <div style={{ padding: '14px 0', fontSize: 12.5, color: 'var(--ink3)' }}>No payment methods yet — add one below.</div>}
             {methods?.map((m) => (
               <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ width: 52, height: 36, borderRadius: 6, background: m.is_default ? 'var(--navy2)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 52, height: 36, borderRadius: 'var(--r-sm)', background: m.is_default ? 'var(--navy2)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name={m.type === 'petti_wallet' ? 'wallet' : m.type === 'mobile_money' ? 'smartphone' : 'creditCard'} size={18} strokeWidth={1.75} style={{ color: m.is_default ? '#fff' : 'var(--ink3)' } as React.CSSProperties} />
                 </div>
                 <div style={{ flex: 1 }}>
@@ -1278,8 +1278,8 @@ function ReportsTab() {
               <div style={{ fontSize: 10.5, color: 'var(--gold)', fontWeight: 600, marginBottom: 6 }}>Approaching this month's limit</div>
             )}
             {usage && usage.limit !== null && (
-              <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ width: `${Math.min(100, (usage.used / usage.limit) * 100)}%`, height: '100%', background: usageBarColor(usage.used, usage.limit, 'var(--teal)'), borderRadius: 2 }} />
+              <div style={{ height: 4, background: 'var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(100, (usage.used / usage.limit) * 100)}%`, height: '100%', background: usageBarColor(usage.used, usage.limit, 'var(--teal)'), borderRadius: 'var(--r-sm)' }} />
               </div>
             )}
           </div>
@@ -1465,7 +1465,7 @@ function SupportTab() {
                           <div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
                               {thread.messages.map((m: any) => (
-                                <div key={m.id} style={{ fontSize: 12.5, padding: '8px 10px', borderRadius: 8, background: m.is_platform_staff ? 'var(--teal-l)' : 'var(--white)', border: '1px solid var(--border)' }}>
+                                <div key={m.id} style={{ fontSize: 12.5, padding: '8px 10px', borderRadius: 'var(--r)', background: m.is_platform_staff ? 'var(--teal-l)' : 'var(--white)', border: '1px solid var(--border)' }}>
                                   <div style={{ fontWeight: 700, marginBottom: 2 }}>{m.author_name}{m.is_platform_staff ? ' · Hudumika Support' : ''}</div>
                                   <div style={{ color: 'var(--ink2)' }}>{m.content}</div>
                                   <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 4 }}>{new Date(m.created_at).toLocaleString()}</div>
@@ -1605,7 +1605,7 @@ export const Subscription: React.FC = () => {
         subtitle={`${tenantName} — ${planLabel} Plan · Account & Billing Management`}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ padding: '5px 12px', borderRadius: 'var(--badge-radius)', background: tenant?.active ? 'var(--green-l, #ecfdf5)' : 'var(--red-l, #fef2f2)', color: tenant?.active ? 'var(--green, #10b981)' : 'var(--red, #ef4444)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, border: '1px solid currentColor' }}>
+            <div style={{ padding: '5px 12px', borderRadius: 'var(--badge-radius)', background: tenant?.active ? 'var(--green-l)' : 'var(--red-l)', color: tenant?.active ? 'var(--green)' : 'var(--red)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, border: '1px solid currentColor' }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
               {tenant?.active ? 'ACTIVE' : 'INACTIVE'}
             </div>

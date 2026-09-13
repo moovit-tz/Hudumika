@@ -462,7 +462,7 @@ export const SupportKB: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
             {categories.map(c => (
               <div key={c.id} style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', padding: 16, boxShadow: 'var(--elev)', display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 10, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+                <div style={{ width: 42, height: 42, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
                   <Icon name="folder" size={20} />
                 </div>
                 <div>
@@ -484,7 +484,7 @@ export const SupportKB: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ background: 'linear-gradient(135deg, var(--purple-l) 0%, var(--teal-l) 100%)', borderRadius: 'var(--r-lg)', border: '1px solid var(--purple)', padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--purple-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--purple)' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--purple-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--purple)' }}>
                   <Icon name="sparkle" size={22} />
                 </div>
                 <div>

@@ -57,7 +57,7 @@ export const OndiAccessReviews: React.FC = () => {
         subtitle="Periodically re-confirm role grants, reattest entitlement compliance, and revoke stale access."
         actions={!showNew ? (
           <button type="button" onClick={() => setShowNew(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 8, padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px var(--teal-m)' }}>
             <Icon name="plus" size={15} /> New Campaign
           </button>
         ) : undefined}
@@ -107,13 +107,13 @@ export const OndiAccessReviews: React.FC = () => {
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <input value={name} onChange={e => setName(e.target.value)}
-                style={{ flex: 1, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' }} />
+                style={{ flex: 1, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' }} />
               <button type="button" disabled={creating || !name.trim()} onClick={create}
-                style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', opacity: creating ? 0.6 : 1, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+                style={{ padding: '8px 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', opacity: creating ? 0.6 : 1, whiteSpace: 'nowrap', boxShadow: '0 2px 8px var(--teal-m)' }}>
                 {creating ? 'Starting…' : 'Start Campaign'}
               </button>
               <button type="button" onClick={() => setShowNew(false)}
-                style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer' }}>
+                style={{ padding: '8px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer' }}>
                 Cancel
               </button>
             </div>
@@ -129,7 +129,7 @@ export const OndiAccessReviews: React.FC = () => {
           const pct = c.total > 0 ? Math.round((decided / c.total) * 100) : 100;
           return (
             <Link key={c.id} to={`/ondi/access-reviews/${c.id}`} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', textDecoration: 'none', color: 'inherit' }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: c.status === 'completed' ? 'var(--green-l)' : 'var(--teal-l, #ecfeff)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 'var(--r)', background: c.status === 'completed' ? 'var(--green-l)' : 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name={c.status === 'completed' ? 'checkCircle' : 'userCheck'} size={18} color={c.status === 'completed' ? 'var(--green)' : 'var(--teal)'} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -148,8 +148,8 @@ export const OndiAccessReviews: React.FC = () => {
                   <span>Progress</span>
                   <span>{pct}%</span>
                 </div>
-                <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${pct}%`, background: c.revoked > 0 ? 'var(--gold)' : 'var(--green)', borderRadius: 3, transition: 'width 0.3s ease' }} />
+                <div style={{ height: 6, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, background: c.revoked > 0 ? 'var(--gold)' : 'var(--green)', borderRadius: 'var(--r-sm)', transition: 'width 0.3s ease' }} />
                 </div>
               </div>
               <Icon name="chevronRight" size={16} color="var(--ink3)" />
@@ -230,23 +230,23 @@ export const OndiAccessReviewDetail: React.FC = () => {
         subtitle={campaign?.status === 'completed' ? 'This review campaign is complete.' : 'Approve to keep a grant intact, or revoke to remove access immediately.'}
         actions={campaign?.status === 'active' ? (
           <button type="button" onClick={complete}
-            style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+            style={{ padding: '8px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
             Complete Campaign
           </button>
         ) : undefined}
       />
 
       {pending.length > 0 && campaign?.status === 'active' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
           <Checkbox checked={selected.size === pending.length && pending.length > 0} onCheckedChange={toggleAll} />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{selected.size > 0 ? `${selected.size} grants selected` : `Select all ${pending.length} pending grants`}</span>
           <div style={{ flex: 1 }} />
           <button type="button" disabled={selected.size === 0 || busy} onClick={() => decideBulk('approved')}
-            style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }}>
+            style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', padding: '6px 14px', cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }}>
             Approve Selected
           </button>
           <button type="button" disabled={selected.size === 0 || busy} onClick={() => decideBulk('revoked')}
-            style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }}>
+            style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', padding: '6px 14px', cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }}>
             Revoke Selected
           </button>
         </div>
@@ -270,16 +270,16 @@ export const OndiAccessReviewDetail: React.FC = () => {
                 <span className={`ondi-status-pill ${item.decision === 'approved' ? 'success' : 'error'}`}>
                   {item.decision === 'approved' ? 'Approved' : 'Revoked'}
                 </span>
-                {item.decided_by_name && <div style={{ fontSize: 11, color: 'var(--ink4)', marginTop: 3 }}>by {item.decided_by_name}</div>}
+                {item.decided_by_name && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>by {item.decided_by_name}</div>}
               </div>
             ) : campaign?.status === 'active' ? (
               <div style={{ display: 'flex', gap: 8 }}>
                 <button type="button" onClick={() => decideOne(item.id, 'approved')}
-                  style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 6, padding: '6px 14px', cursor: 'pointer' }}>
+                  style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', padding: '6px 14px', cursor: 'pointer' }}>
                   Approve
                 </button>
                 <button type="button" onClick={() => decideOne(item.id, 'revoked')}
-                  style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 6, padding: '6px 14px', cursor: 'pointer' }}>
+                  style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', padding: '6px 14px', cursor: 'pointer' }}>
                   Revoke
                 </button>
               </div>

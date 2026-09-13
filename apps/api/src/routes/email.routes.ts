@@ -83,6 +83,19 @@ function sampleInbox(tenantName: string) {
 export async function emailRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('email'));
+  // HUD-0034: Email is an internal staff app — the frontend hard-routes
+  // CUSTOMER/ORG accounts to their own dedicated portal shells and never
+  // renders /email/*, but nothing stopped a CUSTOMER JWT from hitting this
+  // API directly (proven live: GET /v1/emails returned 200 and auto-seeded
+  // a personal mailbox for a CUSTOMER account; POST /v1/email/send passed
+  // every check and reached the usage gate). A customer account should not
+  // get a mailbox on the tenant's internal mail app, let alone be able to
+  // send mail that appears to come from the tenant's own address.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // GET /v1/emails?folder=inbox|sent|drafts|spam|trash|starred&search=
   fastify.get('/', async (request: any) => {
@@ -204,6 +217,12 @@ export async function emailRoutes(fastify: FastifyInstance) {
 export async function emailSendRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('email'));
+  // HUD-0034 — see emailRoutes above; same file-boundary gap, separate plugin.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // POST /v1/email/send
   fastify.post('/send', async (request: any, reply) => {

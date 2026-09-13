@@ -183,7 +183,7 @@ export const OndiKyc: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">OCR Inspection Engine</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#ecfeff', color: 'var(--teal)' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--teal-l)', color: 'var(--teal)' }}>
               <Icon name="shield" size={18} />
             </div>
           </div>
@@ -296,7 +296,7 @@ export const OndiKyc: React.FC = () => {
                             style={{
                               fontSize: 12,
                               fontWeight: 700,
-                              borderRadius: 6,
+                              borderRadius: 'var(--r-sm)',
                               padding: '6px 14px',
                               border: isSelected ? '1px solid var(--teal)' : '1px solid var(--border)',
                               cursor: 'pointer',
@@ -338,7 +338,7 @@ export const OndiKyc: React.FC = () => {
         {selectedRow ? (
           <div className="ondi-drawer" style={{ flex: '0 0 380px', minWidth: 320 }}>
             {/* Drawer Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-soft)', paddingBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <PersonAvatar userId={selectedRow.user_id} name={selectedRow.user_name} size={40} />
                 <div>
@@ -359,7 +359,7 @@ export const OndiKyc: React.FC = () => {
               height: 220,
               background: 'var(--bg)',
               border: '1px solid var(--border)',
-              borderRadius: 10,
+              borderRadius: 'var(--r)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -389,9 +389,9 @@ export const OndiKyc: React.FC = () => {
               flexDirection: 'column',
               gap: 12,
               background: 'var(--bg)',
-              borderRadius: 10,
+              borderRadius: 'var(--r)',
               padding: 16,
-              border: '1px solid var(--border-soft)',
+              border: '1px solid var(--border)',
               fontSize: 12.5
             }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>
@@ -403,22 +403,22 @@ export const OndiKyc: React.FC = () => {
                 <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{DOC_LABEL[selectedRow.document_type]}</span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-soft)', paddingTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
                 <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>Extracted Full Name</span>
                 <span style={{ fontWeight: 700, color: 'var(--ink)', textAlign: 'right' }}>{selectedRow.extracted_full_name || '—'}</span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-soft)', paddingTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
                 <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>Date of Birth</span>
                 <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{selectedRow.extracted_dob || '—'}</span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-soft)', paddingTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
                 <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>Document Number</span>
                 <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{selectedRow.extracted_document_number || '—'}</span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-soft)', paddingTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
                 <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>MRZ Checksum Result</span>
                 <span>
                   {selectedRow.mrz_valid === null ? (
@@ -433,7 +433,7 @@ export const OndiKyc: React.FC = () => {
             </div>
 
             {/* Decisions Footer */}
-            <div style={{ display: 'flex', gap: 12, marginTop: 'auto', borderTop: '1px solid var(--border-soft)', paddingTop: 16 }}>
+            <div style={{ display: 'flex', gap: 12, marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
               <button
                 type="button"
                 onClick={() => reject(selectedRow)}
@@ -441,10 +441,10 @@ export const OndiKyc: React.FC = () => {
                 style={{
                   flex: 1,
                   padding: '10px 16px',
-                  border: '1px solid #fecaca',
+                  border: '1px solid var(--red)',
                   background: 'var(--red-l)',
                   color: 'var(--red)',
-                  borderRadius: 8,
+                  borderRadius: 'var(--r)',
                   fontWeight: 700,
                   cursor: 'pointer',
                   fontSize: 13,
@@ -464,12 +464,12 @@ export const OndiKyc: React.FC = () => {
                   border: 'none',
                   background: 'var(--teal)',
                   color: '#fff',
-                  borderRadius: 8,
+                  borderRadius: 'var(--r)',
                   fontWeight: 700,
                   cursor: 'pointer',
                   fontSize: 13,
                   opacity: busyId === selectedRow.id ? 0.6 : 1,
-                  boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)',
+                  boxShadow: '0 2px 8px var(--teal-m)',
                   transition: 'all 0.15s ease'
                 }}
               >
@@ -483,7 +483,7 @@ export const OndiKyc: React.FC = () => {
             minWidth: 280,
             background: 'var(--white)',
             border: '1px solid var(--border)',
-            borderRadius: 'var(--r-md, 12px)',
+            borderRadius: 'var(--r)',
             padding: 24,
             display: 'flex',
             flexDirection: 'column',

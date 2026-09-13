@@ -605,7 +605,7 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
               <Icon name="eye" size={13} /> {product.status === 'active' ? 'Set Inactive' : 'Set Active'}
             </button>
             <button type="button" title="Delete service" onClick={onDelete}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r)', background: 'rgba(239,68,68,0.04)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--red)' }}>
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid var(--red)', borderRadius: 'var(--r)', background: 'var(--red-l)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--red)' }}>
               <Icon name="trash" size={13} /> Delete
             </button>
           </div>
@@ -866,9 +866,9 @@ export const ProductsServices: React.FC = () => {
               value={tariffQuery}
               onChange={e => setTariffQuery(e.target.value)}
               placeholder="Search clause, item, category…"
-              style={{ width: '100%', boxSizing: 'border-box', height: 34, padding: '0 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, marginBottom: 10 }}
+              style={{ width: '100%', boxSizing: 'border-box', height: 34, padding: '0 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, marginBottom: 10 }}
             />
-            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
+            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--r)'}}>
               {tariffLoading && <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Searching…</div>}
               {!tariffLoading && tariffResults.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>No tariff items match.</div>}
               {!tariffLoading && tariffResults.map(r => (
@@ -940,7 +940,7 @@ export const ProductsServices: React.FC = () => {
             </Select>
 
             {/* Status Segmented Buttons */}
-            <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', padding: 3, borderRadius: 8, border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', padding: 3, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
               {(['ALL', 'active', 'inactive'] as const).map(s => (
                 <button key={s} type="button" title={`Status: ${s}`} onClick={() => { setStatusFilter(s); setPage(1); }}
                   style={{

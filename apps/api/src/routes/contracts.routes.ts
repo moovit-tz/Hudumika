@@ -50,6 +50,15 @@ const commentCreateSchema = z.object({ content: z.string().trim().min(1).max(500
 export async function contractsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('projects'));
+  // HUD-0024 continuation: the file's own header comment already says this
+  // is meant to be "tenant-wide visibility for any staff user" — CUSTOMER
+  // was never staff, but nothing enforced that, so a customer-portal account
+  // could read every contract in the tenant (subject, value, full content).
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // ── List + stats + charts ────────────────────────────────────────────
   fastify.get('/', async (request) => {

@@ -110,7 +110,7 @@ export const AIChat: React.FC = () => {
         )}
         {!restoring && messages.length === 0 && (
           <div style={{ textAlign: 'center', paddingTop: 40, color: 'var(--ink3)' }}>
-            <Icon name="sparkle" size={32} color="#6d28d9" />
+            <Icon name="sparkle" size={32} color="var(--purple)" />
             <div style={{ marginTop: 12, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Ask about your shipments, customers, or receivables</div>
             <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
               {SUGGESTIONS.map(s => (
@@ -126,14 +126,14 @@ export const AIChat: React.FC = () => {
               {m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
                   {m.toolCalls.map((tc, ti) => (
-                    <span key={ti} style={{ fontSize: 10.5, fontWeight: 600, color: '#6d28d9', background: 'var(--purple-l)', padding: '3px 8px', borderRadius: 'var(--badge-radius)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <Icon name="checkCircle" size={10} color="#6d28d9" /> {TOOL_LABELS[tc.name] ?? tc.name}
+                    <span key={ti} style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--purple)', background: 'var(--purple-l)', padding: '3px 8px', borderRadius: 'var(--badge-radius)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Icon name="checkCircle" size={10} color="var(--purple)" /> {TOOL_LABELS[tc.name] ?? tc.name}
                     </span>
                   ))}
                 </div>
               )}
               <div style={{
-                padding: '11px 15px', borderRadius: m.role === 'user' ? '12px 12px 2px 12px' : '2px 12px 12px 12px',
+                padding: '11px 15px', borderRadius: m.role === 'user' ? `var(--r) var(--r) var(--r-sm) var(--r)` : `var(--r-sm) var(--r) var(--r) var(--r)`,
                 background: m.role === 'user' ? 'var(--teal)' : 'var(--white)',
                 color: m.role === 'user' ? '#fff' : 'var(--ink)',
                 border: m.role === 'user' ? 'none' : '1px solid var(--border)',
@@ -147,7 +147,7 @@ export const AIChat: React.FC = () => {
 
         {sending && (
           <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 14 }}>
-            <div style={{ padding: '11px 15px', borderRadius: '2px 12px 12px 12px', background: 'var(--white)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--ink3)' }}>
+            <div style={{ padding: '11px 15px', borderRadius: `var(--r-sm) var(--r) var(--r) var(--r)`, background: 'var(--white)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--ink3)' }}>
               Thinking…
             </div>
           </div>

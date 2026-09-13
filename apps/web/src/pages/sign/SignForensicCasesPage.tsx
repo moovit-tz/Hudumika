@@ -295,7 +295,7 @@ function CaseListView() {
                 key={i}
                 style={{
                   height: 56,
-                  borderRadius: 10,
+                  borderRadius: 'var(--r)',
                   background: 'var(--border)',
                   opacity: 0.35,
                   animation: 'pulse 1.4s ease-in-out infinite',
@@ -316,11 +316,11 @@ function CaseListView() {
               textAlign: 'center',
               padding: 32,
               background: 'var(--white)',
-              borderRadius: 12,
+              borderRadius: 'var(--r)',
               border: '1px dashed var(--border)',
             }}
           >
-            <div style={{ width: 52, height: 52, borderRadius: 12, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 52, height: 52, borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="shield" size={26} />
             </div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
@@ -408,7 +408,7 @@ function CaseListView() {
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                       <Badge variant={verdict.variant}>{verdict.label}</Badge>
-                      <span style={{ fontFamily: 'monospace', fontSize: 11.5, background: 'var(--bg)', padding: '3px 8px', borderRadius: 4, border: '1px solid var(--border)' }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: 11.5, background: 'var(--bg)', padding: '3px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                         #{c.verification_code}
                       </span>
                     </div>
@@ -516,7 +516,7 @@ function CaseDetailView({ id }: { id: string }) {
     return (
       <div className="sfc-page-root" style={{ alignItems: 'center', justifyContent: 'center', minHeight: 360 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: 'var(--ink3)' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="refresh" size={20} />
           </div>
           <span style={{ fontWeight: 600 }}>Loading forensic investigation…</span>
@@ -529,7 +529,7 @@ function CaseDetailView({ id }: { id: string }) {
     return (
       <div className="sfc-page-root" style={{ alignItems: 'center', justifyContent: 'center', minHeight: 380 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
-          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--red-l)', color: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 'var(--r)', background: 'var(--red-l)', color: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="xCircle" size={32} />
           </div>
           <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>Case Not Found</div>
@@ -580,7 +580,7 @@ function CaseDetailView({ id }: { id: string }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderRadius: 4,
+                    borderRadius: 'var(--r-sm)',
                   }}
                 >
                   <Icon name="x" size={18} />

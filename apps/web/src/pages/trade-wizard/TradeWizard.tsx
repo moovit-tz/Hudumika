@@ -78,12 +78,12 @@ export function TradeWizard() {
             gap: 8,
             padding: '7px 16px',
             borderRadius: 'var(--badge-radius)',
-            background: quotaExhausted ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'color-mix(in srgb, var(--teal) 10%, transparent)',
-            border: `1.5px solid ${quotaExhausted ? 'color-mix(in srgb, var(--red) 30%, transparent)' : 'color-mix(in srgb, var(--teal) 30%, transparent)'}`,
+            background: quotaExhausted ? 'var(--red-l)' : 'var(--teal-l)',
+            border: `1.5px solid ${quotaExhausted ? 'var(--red)' : 'var(--teal-m)'}`,
             color: quotaExhausted ? 'var(--red)' : 'var(--teal)',
             fontWeight: 700,
             fontSize: 12.5,
-            boxShadow: '0 2px 10px color-mix(in srgb, var(--teal) 12%, transparent)'
+            boxShadow: '0 2px 10px var(--teal-l)'
           }}>
             <Icon name={quotaExhausted ? 'alertTriangle' : 'sparkle'} size={14} color={quotaExhausted ? 'var(--red)' : 'var(--teal)'} />
             <span>{usage.limit === null ? 'Unlimited searches on your plan' : `${usage.used} of ${usage.limit} searches used this month`}</span>
@@ -101,7 +101,7 @@ export function TradeWizard() {
         padding: '16px 28px',
         background: 'var(--card-bg, var(--white))',
         border: '1px solid var(--border)',
-        borderRadius: 16,
+        borderRadius: 'var(--r-lg)',
         marginTop: 8,
         marginBottom: 18,
         boxShadow: 'var(--elev-lg)'
@@ -134,10 +134,10 @@ export function TradeWizard() {
                   fontSize: 12.5,
                   fontWeight: 800,
                   flexShrink: 0,
-                  background: isActive ? 'var(--teal)' : isDone ? 'color-mix(in srgb, var(--teal) 15%, transparent)' : 'var(--surface, rgba(255,255,255,0.05))',
+                  background: isActive ? 'var(--teal)' : isDone ? 'var(--teal-l)' : 'rgba(255,255,255,0.05)',
                   border: `1.5px solid ${isActive || isDone ? 'var(--teal)' : 'var(--border)'}`,
-                  color: isActive ? '#ffffff' : isDone ? 'var(--teal)' : 'var(--ink3)',
-                  boxShadow: isActive ? '0 0 12px color-mix(in srgb, var(--teal) 35%, transparent)' : 'none',
+                  color: isActive ? 'var(--white)' : isDone ? 'var(--teal)' : 'var(--ink3)',
+                  boxShadow: isActive ? '0 0 12px var(--teal-m)' : 'none',
                   transition: 'all 0.2s ease'
                 }}>
                   {isDone ? <Icon name="check" size={14} color="var(--teal)" strokeWidth={3} /> : i + 1}
@@ -150,7 +150,7 @@ export function TradeWizard() {
                 </div>
               </div>
               {i < STEP_ITEMS.length - 1 && (
-                <div style={{ flex: isMobile ? '0 0 32px' : 1, height: 2, background: i + 1 < step ? 'var(--teal)' : 'var(--border)', margin: '0 20px', borderRadius: 2 }} />
+                <div style={{ flex: isMobile ? '0 0 32px' : 1, height: 2, background: i + 1 < step ? 'var(--teal)' : 'var(--border)', margin: '0 20px', borderRadius: 'var(--r-sm)' }} />
               )}
             </React.Fragment>
           );
@@ -162,7 +162,7 @@ export function TradeWizard() {
         
         {/* LEFT SIDEBAR: "What do you want to do?" Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 20, boxShadow: 'var(--elev-lg)' }}>
+          <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, boxShadow: 'var(--elev-lg)' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 14 }}>
               What do you want to do?
             </div>
@@ -180,7 +180,7 @@ export function TradeWizard() {
                   padding: 'var(--ds-btn-py) 14px',
                   borderRadius: 'var(--r)',
                   border: `1.5px solid ${draft.kind === null ? 'var(--teal)' : 'var(--border)'}`,
-                  background: draft.kind === null ? 'color-mix(in srgb, var(--teal) 12%, transparent)' : 'var(--surface, rgba(255,255,255,0.03))',
+                  background: draft.kind === null ? 'var(--teal-l)' : 'rgba(255,255,255,0.03)',
                   cursor: 'pointer',
                   textAlign: 'left',
                   transition: 'all 0.15s ease', minHeight: 'var(--ctl-h)', lineHeight: 1.25}}
@@ -210,7 +210,7 @@ export function TradeWizard() {
                       padding: 'var(--ds-btn-py) 14px',
                       borderRadius: 'var(--r)',
                       border: `1.5px solid ${isSelected ? 'var(--teal)' : 'var(--border)'}`,
-                      background: isSelected ? 'color-mix(in srgb, var(--teal) 12%, transparent)' : 'var(--card-bg, var(--white))',
+                      background: isSelected ? 'var(--teal-l)' : 'var(--card-bg, var(--white))',
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'all 0.15s ease', minHeight: 'var(--ctl-h)', lineHeight: 1.25}}
@@ -230,7 +230,7 @@ export function TradeWizard() {
 
           {/* Active Selected Procedure Card */}
           {draft.procedure && (
-            <div style={{ background: 'color-mix(in srgb, var(--teal) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 22%, transparent)', borderRadius: 14, padding: '14px 16px', fontSize: 12.5, color: 'var(--ink)' }}>
+            <div style={{ background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r-lg)', padding: '14px 16px', fontSize: 12.5, color: 'var(--ink)' }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>
                 Selected Procedure
               </div>
@@ -243,19 +243,19 @@ export function TradeWizard() {
         {/* RIGHT MAIN WORKSPACE PANEL */}
         <div>
           {reopening ? (
-            <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)', background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16 }}>
+            <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)', background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
               <Icon name="refresh" size={24} color="var(--teal)" className="tw-spin" style={{ display: 'block', margin: '0 auto 12px' }} />
               <div style={{ fontSize: 13 }}>Loading procedure detail…</div>
               <style>{`@keyframes tw-spin { to { transform: rotate(360deg); } } .tw-spin { animation: tw-spin 1s linear infinite; }`}</style>
             </div>
           ) : quotaExhausted && step === 1 ? (
-            <div style={{ padding: 32, textAlign: 'center', background: 'var(--red-l)', border: '1px solid var(--red-l)', borderRadius: 16 }}>
+            <div style={{ padding: 32, textAlign: 'center', background: 'var(--red-l)', border: '1px solid var(--red-l)', borderRadius: 'var(--r-lg)' }}>
               <Icon name="alertTriangle" size={24} color="var(--red)" />
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginTop: 10 }}>Monthly search limit reached</div>
               <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 4 }}>You've used all {usage!.limit} Trade Compliance Wizard searches included on your plan this month. Upgrade your plan for more searches.</div>
             </div>
           ) : (
-            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 24, boxShadow: 'var(--elev-lg)' }}>
+            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 24, boxShadow: 'var(--elev-lg)' }}>
               {step === 1 && <StepGoal {...stepProps} />}
               {step === 2 && <StepPrecheck {...stepProps} />}
               {step === 3 && <StepResults {...stepProps} />}

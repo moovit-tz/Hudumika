@@ -51,6 +51,14 @@ export async function sealExaminationRoutes(fastify: FastifyInstance) {
   // Tied to the declaration lifecycle, now worked from ClearOS's Ops
   // Command — same reasoning as seal-declarations.routes.ts.
   fastify.addHook('preHandler', requireAnyEntitlement(['seal', 'clearos']));
+  // HUD-0024 continuation: sibling of seal.routes.ts and its 8 already-fixed
+  // siblings (HUD-0031) — this file was missed by that sweep. Customs
+  // examination findings are not customer-portal data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   fastify.get('/examinations', async (request: any, reply) => {
     try {

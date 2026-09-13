@@ -667,10 +667,10 @@ export const Leads: React.FC = () => {
                 {/* KPI cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, alignContent: 'start' }}>
                   {[
-                    { label: 'Pipeline Value',   value: fmtValue(sel.value),   icon: 'dollarSign' as IconName, color: '#2563eb', bg: 'var(--blue-l)' },
+                    { label: 'Pipeline Value',   value: fmtValue(sel.value),   icon: 'dollarSign' as IconName, color: 'var(--blue)', bg: 'var(--blue-l)' },
                     { label: 'Days in Pipeline', value: `${days} days`,         icon: 'timer'      as IconName, color: 'var(--gold)', bg: 'var(--gold-l)' },
                     { label: 'Priority',         value: priCfg.label,           icon: 'alertCircle'as IconName, color: priCfg.color, bg: priCfg.bg },
-                    { label: 'Lead Source',      value: sel.source,             icon: 'target'     as IconName, color: '#0d9488', bg: '#ccfbf1' },
+                    { label: 'Lead Source',      value: sel.source,             icon: 'target'     as IconName, color: 'var(--teal)', bg: 'var(--teal-l)' },
                   ].map(kpi => (
                     <div key={kpi.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                       <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: kpi.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -890,7 +890,7 @@ export const Leads: React.FC = () => {
                 <SectionCard collapsible={false} padded={false}>
                   {linkedFiles.map((f: any, i: number) => (
                     <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < linkedFiles.length - 1 ? '1px solid var(--bg)' : 'none' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon name="file" size={16} color="var(--ink3)" strokeWidth={1.75} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>

@@ -554,7 +554,7 @@ export const OndiPersonalDevices: React.FC = () => {
                 background: 'var(--bg)',
                 border: '1px solid var(--border)',
                 padding: '6px 14px',
-                borderRadius: '6px',
+                borderRadius: 'var(--r-sm)',
                 fontSize: 12.5,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -699,7 +699,7 @@ export const OndiPersonalDevices: React.FC = () => {
                           style={{
                             width: 36,
                             height: 36,
-                            borderRadius: 10,
+                            borderRadius: 'var(--r)',
                             background: d.is_current ? 'var(--green-l)' : 'var(--bg)',
                             color: d.is_current ? 'var(--green)' : 'var(--ink)',
                             display: 'flex',
@@ -778,7 +778,7 @@ export const OndiPersonalDevices: React.FC = () => {
                             border: '1px solid var(--red)',
                             color: 'var(--red)',
                             padding: '6px 12px',
-                            borderRadius: '6px',
+                            borderRadius: 'var(--r-sm)',
                             fontSize: 12,
                             fontWeight: 600,
                             cursor: 'pointer',
@@ -870,7 +870,7 @@ export const OndiPersonalDevices: React.FC = () => {
                             fontSize: 13.5,
                             padding: '6px 10px',
                             border: '1.5px solid var(--teal)',
-                            borderRadius: 6,
+                            borderRadius: 'var(--r-sm)',
                           }}
                           placeholder="Enter recognizable device label"
                         />
@@ -885,7 +885,7 @@ export const OndiPersonalDevices: React.FC = () => {
                             background: 'hsl(var(--primary))',
                             border: 'none',
                             padding: '6px 12px',
-                            borderRadius: 6,
+                            borderRadius: 'var(--r-sm)',
                             cursor: 'pointer',
                           }}
                         >
@@ -991,7 +991,7 @@ export const OndiPersonalDevices: React.FC = () => {
                   style={{
                     background: 'var(--teal-l)',
                     border: '1px solid var(--teal)',
-                    borderRadius: 10,
+                    borderRadius: 'var(--r)',
                     padding: '12px 14px',
                     display: 'flex',
                     alignItems: 'center',
@@ -1002,7 +1002,7 @@ export const OndiPersonalDevices: React.FC = () => {
                     style={{
                       width: 32,
                       height: 32,
-                      borderRadius: 8,
+                      borderRadius: 'var(--r)',
                       background: 'var(--teal-l)',
                       color: 'var(--teal)',
                       display: 'flex',
@@ -1079,7 +1079,7 @@ export const OndiPersonalDevices: React.FC = () => {
               style={{
                 width: 48,
                 height: 48,
-                borderRadius: 12,
+                borderRadius: 'var(--r)',
                 background: 'var(--red-l)',
                 color: 'var(--red)',
                 display: 'flex',
@@ -1103,7 +1103,7 @@ export const OndiPersonalDevices: React.FC = () => {
               style={{
                 background: 'var(--green-l)',
                 border: '1px solid var(--green)',
-                borderRadius: 8,
+                borderRadius: 'var(--r)',
                 padding: '10px 12px',
                 fontSize: 12,
                 color: 'var(--green)',

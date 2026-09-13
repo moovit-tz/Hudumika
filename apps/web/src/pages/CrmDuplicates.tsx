@@ -28,7 +28,7 @@ function DupGroup<T extends { id: string; created_at: string }>({
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{renderLabel(item)}</div>
             <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{renderSub(item)}</div>
           </div>
-          {primaryId === item.id && <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--teal-deep)', textTransform: 'uppercase' }}>Keep</span>}
+          {primaryId === item.id && <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--teal-d)', textTransform: 'uppercase' }}>Keep</span>}
         </label>
       ))}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>

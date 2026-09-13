@@ -69,7 +69,7 @@ export function AlertHost() {
             where the nesting needs to read. */}
         <div
           className="relative flex flex-col gap-4 rounded-2xl p-4"
-          style={{ border: '1px solid var(--border)', background: 'var(--surface, var(--bg))' }}
+          style={{ border: '1px solid var(--border)', background: 'var(--bg)' }}
         >
           <DialogPrimitive.Close
             // focus-visible, not focus: Radix moves focus here when the dialog

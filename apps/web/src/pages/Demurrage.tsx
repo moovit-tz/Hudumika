@@ -54,9 +54,9 @@ interface Summary {
 
 type ViewMode = 'dashboard' | 'containers' | 'tariffs' | 'calculator';
 
-const cardPad: React.CSSProperties = { background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', padding: 24 };
+const cardPad: React.CSSProperties = { background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 24 };
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)' };
-const fieldInput: React.CSSProperties = { width: '100%', boxSizing: 'border-box', marginTop: 4, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--font)' };
+const fieldInput: React.CSSProperties = { width: '100%', boxSizing: 'border-box', marginTop: 4, padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--font)' };
 
 function EmptyState({ icon, title, sub, size = 'md' }: { icon: any; title: string; sub?: string; size?: 'md' | 'lg' }) {
   return (
@@ -314,7 +314,7 @@ export const Demurrage: React.FC = () => {
               <SectionCard title="Carrier Breakdown">
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
                   {Object.entries(summary.by_carrier).map(([carrier, data]) => (
-                    <div key={carrier} style={{ padding: 14, background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                    <div key={carrier} style={{ padding: 14, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                       <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 4 }}>{carrier}</div>
                       <div style={{ fontSize: 12, color: 'var(--ink2)' }}>
                         {data.count} containers · {formatCurrency(data.cost)}
@@ -588,12 +588,12 @@ export const Demurrage: React.FC = () => {
                       { label: 'Free Days', value: calcResult.free_days, color: 'var(--green)' },
                       { label: 'Demurrage Days', value: calcResult.demurrage_days, color: calcResult.demurrage_days > 0 ? 'var(--red)' : 'var(--green)' },
                     ].map((item, i) => (
-                      <div key={i} style={{ padding: 14, background: 'var(--bg)', borderRadius: 10, textAlign: 'center' }}>
+                      <div key={i} style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--r)', textAlign: 'center' }}>
                         <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, marginBottom: 4 }}>{item.label}</div>
                         <div style={{ fontSize: 22, fontWeight: 800, color: item.color, fontVariantNumeric: 'tabular-nums' }}>{item.value}</div>
                       </div>
                     ))}
-                    <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 10, textAlign: 'center' }}>
+                    <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--r)', textAlign: 'center' }}>
                       <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, marginBottom: 6 }}>Tariff Found</div>
                       <div style={{ display: 'flex', justifyContent: 'center' }}>
                         <Badge variant={calcResult.tariff_found ? 'success' : 'gray'}>
@@ -604,7 +604,7 @@ export const Demurrage: React.FC = () => {
                     </div>
                   </div>
                   <div style={{
-                    marginTop: 20, padding: 20, borderRadius: 10, textAlign: 'center',
+                    marginTop: 20, padding: 20, borderRadius: 'var(--r)', textAlign: 'center',
                     background: calcResult.demurrage_cost > 0 ? 'var(--red-l)' : 'var(--green-l)',
                     border: `1px solid ${calcResult.demurrage_cost > 0 ? 'var(--red-l)' : 'var(--green-l)'}`,
                   }}>

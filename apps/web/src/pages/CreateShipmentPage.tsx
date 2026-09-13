@@ -609,7 +609,7 @@ export function CreateShipmentPage() {
       {/* Main Content */}
       <div className="create-shipment-main">
         <div className="create-shipment-header">
-          <Link to="/clearos/ops" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--white)', width: 'fit-content' }}>
+          <Link to="/clearos/ops" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', width: 'fit-content' }}>
             <Icon name="chevronLeft" size={14} /> Back to Operations
           </Link>
         </div>
@@ -781,7 +781,7 @@ export function CreateShipmentPage() {
                     separate creation process. A linked draft declaration is
                     created together with the shipment on submit. */}
                 {natureOfGoods === 'dangerous' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 18, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 18, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Icon name="alertTriangle" size={16} color="var(--gold)" />
                       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Dangerous goods — extra requirements</span>
@@ -915,7 +915,7 @@ export function CreateShipmentPage() {
             {/* Step 4: Confirm */}
             {currentStep === 4 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                <div style={{ padding: 24, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12 }}>
+                <div style={{ padding: 24, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
                   <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginBottom: 6 }}>{createForm.goods_desc || '—'}</h3>
                   <div style={{ fontSize: 14, color: 'var(--ink2)', fontWeight: 600, marginBottom: 20 }}>
                     {customers.find(c => c.id === createForm.customer_id)?.name || 'Unknown Customer'} · {createForm.type.replace('_', ' ')}

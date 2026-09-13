@@ -52,7 +52,7 @@ function StatusBadge({ status }: { status: string }) {
   if (s === 'paid') { bg = 'var(--green)'; color = 'hsl(var(--green-foreground))'; }
   else if (s === 'unpaid') { bg = 'var(--red)'; color = 'hsl(var(--red-foreground))'; }
   else if (s === 'partial') { bg = 'var(--gold)'; color = 'hsl(var(--gold-foreground))'; }
-  else if (s === 'draft') { bg = '#e2e8f0'; color = 'var(--ink2)'; }
+  else if (s === 'draft') { bg = 'hsl(var(--muted))'; color = 'hsl(var(--muted-foreground))'; }
   return (
     <span style={{
       display: 'inline-block',
@@ -207,7 +207,7 @@ export function AccountsQuery() {
               {REPORT_TYPES.map(rt => (
                 <label key={rt.value} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-                  borderRadius: 7, cursor: 'pointer',
+                  borderRadius: 'var(--r)', cursor: 'pointer',
                   background: reportType === rt.value ? 'rgba(var(--teal-rgb, 0,128,128), 0.08)' : 'transparent',
                   border: `1.5px solid ${reportType === rt.value ? 'var(--teal)' : 'transparent'}`,
                   transition: 'all 0.12s',
@@ -260,8 +260,8 @@ export function AccountsQuery() {
                     style={{
                       padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 20,
                       border: `1.5px solid ${status === s ? 'var(--teal)' : 'var(--border)'}`,
-                      background: status === s ? 'var(--teal)' : 'var(--white)',
-                      color: status === s ? '#fff' : 'var(--ink)',
+                      background: status === s ? 'hsl(var(--primary))' : 'var(--white)',
+                      color: status === s ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
                       fontSize: 12, fontWeight: 600, cursor: 'pointer',
                       fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
                   >
@@ -289,7 +289,7 @@ export function AccountsQuery() {
                   onChange={e => setCustomerFilter(e.target.value)}
                   style={{
                     width: '100%', boxSizing: 'border-box', padding: '7px 10px 7px 28px',
-                    border: '1.5px solid var(--border)', borderRadius: 7,
+                    border: '1.5px solid var(--border)', borderRadius: 'var(--r)',
                     fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)',
                     background: 'var(--bg)',
                   }}
@@ -479,10 +479,10 @@ export function AccountsQuery() {
                     return (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ width: 70, fontSize: 12, color: 'var(--ink3)', textAlign: 'right', flexShrink: 0 }}>{fmtMonth(r.month)}</div>
-                        <div style={{ flex: 1, background: 'var(--bg)', borderRadius: 4, height: 22, overflow: 'hidden' }}>
+                        <div style={{ flex: 1, background: 'var(--bg)', borderRadius: 'var(--r-sm)', height: 22, overflow: 'hidden' }}>
                           <div style={{
                             width: `${pct}%`, height: '100%', background: barColor,
-                            borderRadius: 4, transition: 'width 0.4s ease',
+                            borderRadius: 'var(--r-sm)', transition: 'width 0.4s ease',
                             minWidth: pct > 0 ? 4 : 0,
                           }} />
                         </div>

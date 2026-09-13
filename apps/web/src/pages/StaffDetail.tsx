@@ -89,7 +89,7 @@ function hhmm(mins: number): string {
 
 /** Soft-tint status pill, on the same semantic colours as the rest of the app. */
 function StatusChip({ value }: { value?: string | null }) {
-  if (!value) return <span style={{ color: 'var(--ink4)' }}>—</span>;
+  if (!value) return <span style={{ color: 'var(--ink3)' }}>—</span>;
   const v = String(value).toUpperCase();
   const tone =
     /VERIFIED|APPROVED|RESOLVED|CLOSED|ACTIVE|COMPLETE/.test(v) ? { bg: 'var(--green-l)', fg: 'var(--green)' }
@@ -116,9 +116,9 @@ const PAY_METHOD_LABEL: Record<string, string> = {
 const MOBILE_MONEY_PROVIDERS = ['M-Pesa', 'Tigo Pesa', 'Airtel Money', 'HaloPesa', 'T-Pesa'];
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  ACTIVE:   { bg: 'rgba(16,185,129,.12)',  color: 'var(--green)', label: 'Active'   },
-  INACTIVE: { bg: 'rgba(148,163,184,.12)', color: 'var(--ink3)',  label: 'Inactive' },
-  ON_LEAVE: { bg: 'rgba(245,158,11,.12)',  color: 'var(--gold)',      label: 'On Leave' },
+  ACTIVE:   { bg: 'var(--green-l)',        color: 'var(--green)', label: 'Active'   },
+  INACTIVE: { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))',  label: 'Inactive' },
+  ON_LEAVE: { bg: 'var(--gold-l)',         color: 'var(--gold)',      label: 'On Leave' },
 };
 
 function FieldItem({ label, value }: { label: string; value?: string | null }) {
@@ -126,7 +126,7 @@ function FieldItem({ label, value }: { label: string; value?: string | null }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
       <div style={{ fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 13, color: isMissing ? 'var(--ink4)' : 'var(--ink)', fontWeight: isMissing ? 400 : 500 }}>
+      <div style={{ fontSize: 13, color: isMissing ? 'var(--ink3)' : 'var(--ink)', fontWeight: isMissing ? 400 : 500 }}>
         {value || 'Not set'}
       </div>
     </div>
@@ -160,7 +160,7 @@ function ActionLink({ label, onClick }: { label: string, onClick?: () => void })
 }
 
 const inputSt: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 7,
+  width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)',
   fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)',
   boxSizing: 'border-box',
 };
@@ -286,7 +286,7 @@ function SignatureTab({ isSelf, stamps, loading, onChanged }: {
   }
 
   if (loading) {
-    return <SectionLoading style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }} />;
+    return <SectionLoading style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }} />;
   }
 
   return (
@@ -309,14 +309,14 @@ function SignatureTab({ isSelf, stamps, loading, onChanged }: {
       )}
 
       {stamps.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
+        <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
           {isSelf ? 'You have no saved signature yet — add one above to use it when signing documents in Hudumika eSign.' : 'This person has no saved signature.'}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
           {stamps.map(s => (
-            <div key={s.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ height: 70, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div key={s.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ height: 70, background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                 <img src={s.image_data} alt={s.label ?? 'Signature'} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               </div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{formatDate(s.created_at)}</div>
@@ -994,7 +994,7 @@ export const StaffDetail: React.FC = () => {
           tabDenied ? (
             // Refusal is its own state. Showing "no payslips" to someone who is
             // merely not allowed to look would be a quiet lie.
-            <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
+            <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
               <Icon name="lock" size={28} color="var(--border)" />
               <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>Pay details are restricted</div>
               <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)' }}>{tabDenied}</div>
@@ -1087,7 +1087,7 @@ export const StaffDetail: React.FC = () => {
             way. "You may not look" and "there is nothing here" are different
             answers; rendering an empty table for the first is a quiet lie. */}
         {tabDenied && tab !== 'Payroll' && tab !== 'Profile' && (
-          <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
+          <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
             <Icon name="lock" size={28} color="var(--border)" />
             <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>This tab could not be shown</div>
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)' }}>{tabDenied}</div>
@@ -1256,7 +1256,7 @@ export const StaffDetail: React.FC = () => {
               {(tabRows.Permissions?.capabilities ?? []).map((c: any) => (
                 <div key={c.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
                   <span style={{ fontSize: 13, color: 'var(--ink2)' }}>{c.label}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: c.granted ? 'var(--green)' : 'var(--ink4)' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: c.granted ? 'var(--green)' : 'var(--ink3)' }}>
                     {c.granted ? 'Allowed' : 'Not allowed'}
                   </span>
                 </div>
@@ -1268,7 +1268,7 @@ export const StaffDetail: React.FC = () => {
         {/* Withheld on purpose, and says so — an empty table here would read as
             "this person has nothing on", which is a different claim. */}
         {WITHHELD_TABS[tab] && (
-          <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
+          <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
             <Icon name="lock" size={32} color="var(--border)" />
             <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>Not shown here</div>
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)', maxWidth: 460, margin: '6px auto 0' }}>
@@ -1278,7 +1278,7 @@ export const StaffDetail: React.FC = () => {
         )}
 
         {tab !== 'Profile' && !LIVE_TABS[tab] && !WITHHELD_TABS[tab] && (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
+          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
             <Icon name="clock" size={32} color="var(--border)" />
             <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>The {tab} module is coming soon</div>
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)' }}>No endpoint backs this tab yet.</div>
@@ -1559,7 +1559,7 @@ export const StaffDetail: React.FC = () => {
             </DialogBody>
 
             <DialogFooter style={{ padding: '16px 24px', gap: 12, background: 'var(--bg)' }}>
-              <button type="button" onClick={() => setIsEditing(false)} className="btn btn-secondary" style={{ padding: '10px 20px', borderRadius: 8 }}>Cancel</button>
+              <button type="button" onClick={() => setIsEditing(false)} className="btn btn-secondary" style={{ padding: '10px 20px', borderRadius: 'var(--r)'}}>Cancel</button>
               <button type="button" onClick={handleSave} disabled={saving} className="btn btn-primary">
                 {saving ? 'Saving...' : 'Save Profile'}
               </button>

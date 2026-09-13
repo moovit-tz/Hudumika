@@ -176,8 +176,8 @@ export const FinanceCashFlow: React.FC = () => {
                   <span style={{ fontSize: 11, color: 'var(--ink2)' }}>{s.label}</span>
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)' }}>{s.pct}%</span>
                 </div>
-                <div style={{ height: 6, borderRadius: 3, background: 'var(--border)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${s.pct}%`, background: s.color, borderRadius: 3 }} />
+                <div style={{ height: 6, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${s.pct}%`, background: s.color, borderRadius: 'var(--r-sm)' }} />
                 </div>
               </div>
             ))}

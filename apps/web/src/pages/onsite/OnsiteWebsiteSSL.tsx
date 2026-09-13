@@ -94,7 +94,7 @@ export function OnsiteWebsiteSSL() {
                           <>
                             {new Date(c.expires_at).toLocaleDateString()}
                             {days !== null && (
-                              <div style={{ fontSize: '0.75rem', color: days <= 30 ? '#ef4444' : 'var(--ink3)' }}>
+                              <div style={{ fontSize: '0.75rem', color: days <= 30 ? 'var(--red)' : 'var(--ink3)' }}>
                                 {days < 0 ? `${Math.abs(days)} days ago` : `in ${days} days`}
                               </div>
                             )}

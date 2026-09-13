@@ -182,7 +182,7 @@ export function SmsCompose() {
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 6 }}>{body.length} characters · {countSegments(body)} segment{countSegments(body) === 1 ? '' : 's'}</div>
 
           {result && (
-            <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, fontSize: 13, background: result.success ? 'var(--green-l)' : 'var(--red-l)', color: result.success ? 'var(--green)' : 'var(--red)' }}>
+            <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 'var(--r)', fontSize: 13, background: result.success ? 'var(--green-l)' : 'var(--red-l)', color: result.success ? 'var(--green)' : 'var(--red)' }}>
               {result.message}
             </div>
           )}

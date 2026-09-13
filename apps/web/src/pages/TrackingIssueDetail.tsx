@@ -142,8 +142,8 @@ export const TrackingIssueDetail: React.FC = () => {
             <span style={labelStyle}>Vehicle</span>
             <Link to={`/tracking/vehicles/${issue.vehicle_id}`} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'var(--ink)', fontWeight: 700 }}>
               {issue.vehicle_photo_url
-                ? <img src={issue.vehicle_photo_url} alt="" style={{ width: 24, height: 24, borderRadius: 6, objectFit: 'cover' }} />
-                : <div style={{ width: 24, height: 24, borderRadius: 6, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="truck" size={13} color="var(--teal)" /></div>}
+                ? <img src={issue.vehicle_photo_url} alt="" style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', objectFit: 'cover' }} />
+                : <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="truck" size={13} color="var(--teal)" /></div>}
               {issue.vehicle_name}
             </Link>
           </div>
@@ -183,7 +183,7 @@ export const TrackingIssueDetail: React.FC = () => {
             </div>
 
             <form onSubmit={postComment} style={{ marginTop: 24, display: 'flex', gap: 8 }}>
-              <input type="text" placeholder="Add a comment..." value={commentText} onChange={e => setCommentText(e.target.value)} style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, fontFamily: 'var(--font)' }} />
+              <input type="text" placeholder="Add a comment..." value={commentText} onChange={e => setCommentText(e.target.value)} style={{ flex: 1, padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13, fontFamily: 'var(--font)' }} />
               <button type="submit" disabled={!commentText.trim()} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: '0 16px', borderRadius: 'var(--r)', fontWeight: 600, cursor: 'pointer', opacity: !commentText.trim() ? 0.6 : 1 }}>Post</button>
             </form>
           </SectionCard>

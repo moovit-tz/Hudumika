@@ -123,7 +123,7 @@ export function WorkflowNew() {
       </div>
 
       {chosen && Object.keys(chosen.samplePayload).length > 0 && (
-        <div style={{ padding: '11px 14px', borderRadius: 10, background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--teal-l))', fontSize: 12, color: 'var(--ink2)', marginBottom: 18 }}>
+        <div style={{ padding: '11px 14px', borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', fontSize: 12, color: 'var(--ink2)', marginBottom: 18 }}>
           Steps in this workflow will be able to use{' '}
           {Object.keys(chosen.samplePayload).map(k => <code key={k} style={{ marginRight: 7 }}>{`{{payload.${k}}}`}</code>)}
           {chosen.entityType && <> — plus the full <strong>{chosen.entityType}</strong> record loaded by {chosen.appName}.</>}

@@ -74,17 +74,17 @@ export function OnsiteProjects() {
 
       {loading ? (
         <div className="onsite-card">
-          <p style={{ color: 'var(--ink-muted)' }}>Loading projects…</p>
+          <p style={{ color: 'var(--ink3)' }}>Loading projects…</p>
         </div>
       ) : error ? (
         <div className="onsite-card">
-          <p style={{ color: '#ef4444' }}>Error: {error}</p>
+          <p style={{ color: 'var(--red)' }}>Error: {error}</p>
         </div>
       ) : projects.length === 0 ? (
         <div className="onsite-card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-          <Icon name="folder" size={48} style={{ color: 'var(--ink-muted)', margin: '0 auto 1rem auto' }} />
+          <Icon name="folder" size={48} style={{ color: 'var(--ink3)', margin: '0 auto 1rem auto' }} />
           <h3>No projects created yet</h3>
-          <p style={{ color: 'var(--ink-muted)', marginBottom: '1.5rem' }}>
+          <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Create a project to group your domains, servers, and applications together.
           </p>
           <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
@@ -97,14 +97,14 @@ export function OnsiteProjects() {
             <div key={p.id} className="onsite-card" style={{ borderLeft: `4px solid ${p.color || '#4361ee'}` }}>
               <div className="onsite-card-header">
                 <h3 className="onsite-card-title">{p.name}</h3>
-                <button className="btn btn-sm btn-ghost" style={{ color: '#ef4444' }} onClick={() => handleDeleteProject(p.id, p.name)}>
+                <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDeleteProject(p.id, p.name)}>
                   <Icon name="trash2" size={14} />
                 </button>
               </div>
-              <p style={{ fontSize: '0.875rem', color: 'var(--ink-muted)', margin: 0 }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ink3)', margin: 0 }}>
                 {p.description || 'No description provided.'}
               </p>
-              <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', marginTop: '0.5rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--ink3)', marginTop: '0.5rem' }}>
                 Created {new Date(p.created_at).toLocaleDateString()}
               </div>
             </div>

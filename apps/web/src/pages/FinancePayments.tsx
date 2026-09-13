@@ -57,7 +57,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
         {/* Total Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, padding: 20, background: '#f8fafc', borderRadius: 'var(--r)', border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, padding: 20, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>{payment.direction === 'in' ? 'Amount Received' : 'Amount Paid'}</div>
             <div style={{ fontSize: 24, fontWeight: 800, color: payment.direction === 'in' ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--mono)', lineHeight: 1 }}>{payment.direction === 'in' ? '+' : '−'}{fmt(payment.amount, (payment.currency || 'TZS') as any)}</div>
@@ -72,13 +72,13 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 24 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>{payment.direction === 'in' ? 'Linked Invoice' : 'Linked Bill'}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--blue)', background: 'var(--blue-l)', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--blue)', background: 'var(--blue-l)', padding: '4px 8px', borderRadius: 'var(--r-sm)', display: 'inline-block' }}>
               {payment.document_number}
             </div>
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>{payment.direction === 'in' ? 'Linked Client' : 'Linked Supplier'}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--green)', background: 'var(--green-l)', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--green)', background: 'var(--green-l)', padding: '4px 8px', borderRadius: 'var(--r-sm)', display: 'inline-block' }}>
               {payment.party_name || 'Unknown'}
             </div>
           </div>
@@ -106,7 +106,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         {payment.note && (
           <div style={{ marginTop: 24 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 8 }}>Internal Note</div>
-            <div style={{ padding: 16, background: 'var(--gold-l)', border: '1px solid #fef3c7', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--gold)', lineHeight: 1.5 }}>
+            <div style={{ padding: 16, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--gold)', lineHeight: 1.5 }}>
               {payment.note}
             </div>
           </div>
@@ -193,7 +193,7 @@ export const FinancePayments: React.FC = () => {
             allFiles.find(f => f.type === 'folder' && !f.is_trash && f.name === name && f.parent_id === parentId);
 
           let clientFolder = findFolder(clientName, null);
-          if (!clientFolder) clientFolder = await apiFetch('/v1/files/folder', { method: 'POST', body: JSON.stringify({ name: clientName, parent_id: null, color: '#6366f1' }) });
+          if (!clientFolder) clientFolder = await apiFetch('/v1/files/folder', { method: 'POST', body: JSON.stringify({ name: clientName, parent_id: null, color: 'var(--purple)' }) });
 
           let blFolder = findFolder(blNumber, clientFolder.id);
           if (!blFolder) blFolder = await apiFetch('/v1/files/folder', { method: 'POST', body: JSON.stringify({ name: blNumber, parent_id: clientFolder.id, color: 'var(--gold)' }) });
@@ -400,7 +400,7 @@ export const FinancePayments: React.FC = () => {
                       width: '100%',
                       padding: '8px 12px 8px 32px',
                       border: '1px solid var(--border)',
-                      borderRadius: 8,
+                      borderRadius: 'var(--r)',
                       fontSize: 13,
                       fontFamily: 'var(--font)',
                       background: 'var(--white)',
@@ -445,7 +445,7 @@ export const FinancePayments: React.FC = () => {
                           style={{ flexShrink: 0, width: 20, height: 20, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: p.direction === 'in' ? 'var(--green-l)' : 'var(--red-l)', color: p.direction === 'in' ? 'var(--green)' : 'var(--red)' }}>
                           <Icon name={p.direction === 'in' ? 'arrowDown' : 'arrowUp'} size={12} strokeWidth={2.5} />
                         </span>
-                        <span style={{ background: p.direction === 'in' ? 'var(--blue-l)' : 'var(--gold-l)', color: p.direction === 'in' ? 'var(--blue)' : 'var(--gold)', padding: '3px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
+                        <span style={{ background: p.direction === 'in' ? 'var(--blue-l)' : 'var(--gold-l)', color: p.direction === 'in' ? 'var(--blue)' : 'var(--gold)', padding: '3px 8px', borderRadius: 'var(--r-sm)', fontSize: 12, fontWeight: 600 }}>
                           {p.document_number}
                         </span>
                       </div>

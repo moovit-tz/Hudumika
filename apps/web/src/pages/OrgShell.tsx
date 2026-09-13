@@ -159,10 +159,10 @@ const TABS = [
 ];
 
 const TICKET_STATUS_STYLE: Record<string, { color: string; bg: string; label: string }> = {
-  OPEN:        { label: 'Open',        color: '#0891b2', bg: '#ecfeff' },
+  OPEN:        { label: 'Open',        color: 'var(--blue)', bg: 'var(--blue-l)' },
   IN_PROGRESS: { label: 'In Progress', color: 'var(--gold)', bg: 'var(--gold-l)' },
   RESOLVED:    { label: 'Resolved',    color: 'var(--green)', bg: 'var(--green-l)' },
-  CLOSED:      { label: 'Closed',      color: 'var(--ink2)', bg: '#f3f4f6' },
+  CLOSED:      { label: 'Closed',      color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted))' },
 };
 
 function fmtTime(iso: string) {
@@ -403,7 +403,7 @@ export const OrgShell: React.FC = () => {
           </div>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{selectedTicket.subject}</div>
           {selectedTicket.description && (
-            <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 8, background: 'var(--bg)', borderRadius: 8, padding: '8px 10px' }}>{selectedTicket.description}</div>
+            <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 8, background: 'var(--bg)', borderRadius: 'var(--r)', padding: '8px 10px' }}>{selectedTicket.description}</div>
           )}
         </div>
 
@@ -451,7 +451,7 @@ export const OrgShell: React.FC = () => {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="globe" size={16} color="#fff" />
           </div>
           <div>
@@ -628,7 +628,7 @@ export const OrgShell: React.FC = () => {
                     const ft = fileTypeStyle(d.type);
                     return (
                       <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredDocuments.length - 1 ? '1px solid var(--bg)' : 'none' }}>
-                        <div style={{ width: 34, height: 34, borderRadius: 8, background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Icon name={ft.icon} size={16} color={ft.color} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -642,12 +642,12 @@ export const OrgShell: React.FC = () => {
                         </span>
                         {d.can_manage_sharing && (
                           <button type="button" title="Manage sharing" onClick={() => setShareDoc(d)}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 8, color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }}>
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }}>
                             <Icon name="users" size={15} />
                           </button>
                         )}
                         <button type="button" title="Download" onClick={() => downloadDoc(d)}
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 8, color: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }}>
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', color: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }}>
                           <Icon name="download" size={15} />
                         </button>
                       </div>
@@ -855,7 +855,7 @@ export const OrgShell: React.FC = () => {
                       {s.role}
                     </span>
                     <button type="button" title="Remove access" disabled={shareBusy} onClick={() => removeShare(i)}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, background: 'none', border: 'none', borderRadius: 6, color: 'var(--red)', cursor: shareBusy ? 'default' : 'pointer', flexShrink: 0, opacity: shareBusy ? 0.5 : 1 }}>
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, background: 'none', border: 'none', borderRadius: 'var(--r-sm)', color: 'var(--red)', cursor: shareBusy ? 'default' : 'pointer', flexShrink: 0, opacity: shareBusy ? 0.5 : 1 }}>
                       <Icon name="x" size={14} />
                     </button>
                   </div>

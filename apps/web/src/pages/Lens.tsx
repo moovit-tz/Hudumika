@@ -297,7 +297,7 @@ export function Lens() {
                 flex: '0 0 280px', height: '100%',
                 background: over === col.status ? 'var(--teal-l)' : 'var(--bg)',
                 border: `1px solid ${over === col.status ? 'var(--teal)' : 'var(--border)'}`,
-                borderRadius: '10px', transition: 'background .12s, border-color .12s',
+                borderRadius: 'var(--r)', transition: 'background .12s, border-color .12s',
               }}>
               <div style={{ padding: '12px 14px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>
@@ -309,7 +309,7 @@ export function Lens() {
               </div>
 
               {col.over_wip && (
-                <div style={{ margin: '0 10px', padding: '6px 12px', fontSize: 11, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 4, flexShrink: 0 }}>
+                <div style={{ margin: '0 10px', padding: '6px 12px', fontSize: 11, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 'var(--r-sm)', flexShrink: 0 }}>
                   Over {col.wip_limit} limit — finish something first.
                 </div>
               )}
@@ -323,7 +323,7 @@ export function Lens() {
                     onClick={() => open(card.ref)}
                     style={{
                       background: 'var(--white)',
-                      borderRadius: 8, padding: '10px 12px', cursor: 'grab',
+                      borderRadius: 'var(--r)', padding: '10px 12px', cursor: 'grab',
                       opacity: dragging?.id === card.id ? 0.5 : 1,
                       boxShadow: '0 1px 2px rgba(0,0,0,0.06), 0 1px 1px rgba(0,0,0,0.04)',
                     }}>

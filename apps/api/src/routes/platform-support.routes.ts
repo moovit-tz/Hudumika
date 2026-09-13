@@ -27,6 +27,15 @@ function authorName(user: { name?: string | null; email?: string | null }): stri
 // previously rendered as 4 hardcoded fake tickets with no submit path at all.
 export default async function platformSupportRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // HUD-0024 continuation: this is the tenant's own conversation with
+  // Hudumika platform support (billing/technical issues) — not customer-
+  // portal data. No role check at all meant any CUSTOMER JWT could read
+  // every ticket the tenant has ever filed with the platform.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   fastify.get('/tickets', async (request) => {
     const user = request.user;

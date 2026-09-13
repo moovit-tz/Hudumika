@@ -184,7 +184,7 @@ export function CarriersPage() {
               {dirResults.map(d => {
                 const already = ownNames.has(`${d.name.toLowerCase()}__${d.mode}`);
                 return (
-                  <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+                  <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
                     <FeaturedIcon variant="gray" size="sm" shape="circle"><Icon name={MODE_ICON[d.mode] ?? 'ship'} size={14} /></FeaturedIcon>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
@@ -274,7 +274,7 @@ export function CarriersPage() {
                 <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-                      <PersonAvatar userId={c.id} kind="carriers" name={c.name} size={26} style={{ borderRadius: 6 }} />
+                      <PersonAvatar userId={c.id} kind="carriers" name={c.name} size={26} style={{ borderRadius: 'var(--r-sm)'}} />
                       {c.name}
                     </span>
                   </td>

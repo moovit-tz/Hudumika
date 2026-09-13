@@ -276,7 +276,7 @@ export function SealCompartmentDetail() {
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
                 {zones.map(z => (
-                  <div key={z.id} style={{ padding: 14, borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                  <div key={z.id} style={{ padding: 14, borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{z.name}</div>
                     <div className="seal-mono" style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{z.code} · {z.zone_type}</div>
                   </div>

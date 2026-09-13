@@ -12,6 +12,14 @@ import { EMAIL_TEMPLATE_DEFAULTS, EMAIL_TEMPLATE_VARS } from '../config/email-te
  */
 export async function emailTemplatesRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // HUD-0034: writes already required MGMT roles, but GET / had no check at
+  // all beyond authentication — any CUSTOMER JWT could read every one of the
+  // tenant's transactional email templates (proven live, 200).
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // GET / — every known template_key, merged with the tenant's own override
   // (if any) so the UI never has to reason about "does a row exist" itself.

@@ -131,7 +131,7 @@ export function PettiDeposit() {
                   type="number" required min="1" step="any"
                   value={amount} onChange={e => setAmount(e.target.value)}
                   placeholder="e.g. 500000"
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14 }}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 14 }}
                 />
               </div>
             </div>
@@ -143,7 +143,7 @@ export function PettiDeposit() {
                   type="tel" required
                   value={payerMsisdn} onChange={e => setPayerMsisdn(e.target.value)}
                   placeholder="e.g. 0712345678"
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5 }}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5 }}
                 />
                 <p style={{ margin: '5px 0 0 0', fontSize: 11, color: 'var(--ink3)' }}>A {gatewayStatus.label} payment request will be pushed to this number.</p>
               </div>
@@ -156,7 +156,7 @@ export function PettiDeposit() {
                   type="text"
                   value={reference} onChange={e => setReference(e.target.value)}
                   placeholder="e.g. MPESA-REF-890214"
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
                 />
               </div>
 
@@ -166,7 +166,7 @@ export function PettiDeposit() {
                   type="text"
                   value={note} onChange={e => setNote(e.target.value)}
                   placeholder="e.g. Monthly replenishment"
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
                 />
               </div>
             </div>

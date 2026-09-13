@@ -69,6 +69,16 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
   // GET /v1/tax-codes
   // Defaults to what a document may actually use today: active, and inside its
   // effective window. `?all=1` is the management view.
+  // HUD-0024 continuation: internal tenant-business data (finance ledgers,
+  // fleet ops, HR, identity/access admin, or tenant configuration) with only
+  // an entitlement gate — reachable end-to-end by a CUSTOMER JWT (confirmed
+  // live before this fix). Not customer-portal data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
+
   fastify.get('/', async (request) => {
     const user = request.user;
     const { all, jurisdiction, scope } = request.query as { all?: string; jurisdiction?: string; scope?: string };

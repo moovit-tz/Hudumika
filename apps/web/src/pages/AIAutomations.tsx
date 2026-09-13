@@ -333,7 +333,7 @@ export function AIAutomations() {
 
           {aiOpen && (
             <div className="aia-ai-panel">
-              <div className="aia-ai-panel-title"><Icon name="sparkle" size={14} color="#ec4899" /> Describe your automation</div>
+              <div className="aia-ai-panel-title"><Icon name="sparkle" size={14} color="var(--purple)" /> Describe your automation</div>
               <textarea
                 className="aia-ai-textarea"
                 placeholder='e.g. "When a shipment clears customs, notify the client and assign a delivery driver"'
@@ -405,7 +405,7 @@ export function AIAutomations() {
             <MiniMap
               nodeColor={(node) => {
                 if (node.type === 'triggerNode') return 'var(--bg)';
-                if (node.type === 'statusNode' && node.data.status === 'success') return '#10b981';
+                if (node.type === 'statusNode' && node.data.status === 'success') return 'var(--green)';
                 return 'var(--white)';
               }}
               maskColor="rgba(100, 116, 139, 0.25)"

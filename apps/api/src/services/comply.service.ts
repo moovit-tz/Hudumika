@@ -1,3 +1,4 @@
+import { sql } from 'kysely';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { getAdapter } from '../integrations/comply-agencies.js';
 import { MinioIntegration } from '../integrations/minio.js';
@@ -161,7 +162,18 @@ export class ComplyService {
         agency_class:   r.agency_class as any,
         issued_date:    r.issued_date ? toISODate(r.issued_date) : null,
         expiry_date:    r.expiry_date ? toISODate(r.expiry_date) : null,
-        status:         certStatus(r.expiry_date) as any,
+        // HUD-0066: certStatus(expiry_date) unconditionally overwrote the
+        // real stored status — the only lifecycle-exit this record type has
+        // (revokeCertificate sets status='revoked') became permanently
+        // invisible: a revoked certificate always displayed as active/
+        // expiring/expired based on its date alone, even when explicitly
+        // filtered by ?status=revoked (confirmed live: the WHERE clause
+        // reads the real column correctly, but every returned row's own
+        // `status` field still said "active"). The date-derived label is
+        // only meaningful while a certificate is in its normal 'active'
+        // state; any other real stored status (currently just 'revoked')
+        // is itself the more specific, correct thing to show.
+        status:         r.status === 'active' ? certStatus(r.expiry_date) : r.status as any,
         document_url:   r.document_url,
         external_ref:   r.external_ref,
         auto_renew:     r.auto_renew,
@@ -471,7 +483,12 @@ export class ComplyService {
       const rows = await trx
         .selectFrom('comply_renewals as r')
         .innerJoin('comply_certificates as c', 'c.id', 'r.cert_id')
-        .leftJoin('users as u', 'u.id', 'r.approved_by')
+        // comply_renewals.approved_by is text, not uuid — a bare `'u.id',
+        // 'r.approved_by'` join fails every call ("operator does not exist:
+        // uuid = text"), with or without any approved renewals in the table,
+        // since Postgres rejects the comparison at plan time. Cast explicitly
+        // rather than widening users.id.
+        .leftJoin('users as u', (join) => join.on(sql<boolean>`u.id = r.approved_by::uuid`))
         .select([
           'r.id', 'r.cert_id', 'c.name as cert_name', 'c.agency_code',
           'r.status', 'r.trigger', 'r.triggered_at', 'r.approved_by', 'u.name as approved_by_name',
@@ -980,6 +997,25 @@ export class ComplyService {
         .where('id', '=', certId)
         .where('tenant_id', '=', tenantId)
         .execute();
+
+      // HUD-0055: a changed expiry date is this codebase's own established
+      // signal that a real-world renewal happened (see the reminder-stage
+      // reset just above, and comply-renewal.job.ts's identical comment) —
+      // but nothing ever moved the matching comply_renewals row out of
+      // pending_review/approved/submitted, so startRenewal's "already
+      // active" guard blocked every subsequent renewal cycle for that
+      // certificate forever. Closing the loop here, at the one place that
+      // actually observes "the renewal is done," rather than adding a
+      // separate submit/complete endpoint nothing calls yet.
+      if (input.expiry_date !== undefined) {
+        await trx
+          .updateTable('comply_renewals')
+          .set({ status: 'completed', completed_at: new Date() })
+          .where('cert_id', '=', certId)
+          .where('tenant_id', '=', tenantId)
+          .where('status', 'in', ['pending_review', 'approved', 'submitted'])
+          .execute();
+      }
     });
   }
 

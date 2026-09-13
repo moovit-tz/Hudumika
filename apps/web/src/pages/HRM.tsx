@@ -85,28 +85,28 @@ function Avatar({ name, size = 32, src, userId }: { name: string; size?: number;
 }
 
 const S: Record<string, { bg: string; color: string; label: string }> = {
-  ACTIVE:     { bg:'rgba(16,185,129,.12)',  color:'var(--green)', label:'Active'     },
-  INACTIVE:   { bg:'rgba(148,163,184,.12)', color:'var(--ink3)',  label:'Inactive'   },
-  ON_LEAVE:   { bg:'rgba(245,158,11,.12)',  color:'var(--gold)',  label:'On Leave'   },
-  APPROVED:   { bg:'rgba(59,130,246,.12)',  color:'var(--blue)',  label:'Approved'   },
-  REJECTED:   { bg:'rgba(239,68,68,.12)',   color:'var(--red)',   label:'Rejected'   },
-  PENDING:    { bg:'rgba(245,158,11,.12)',  color:'var(--gold)',  label:'Pending'    },
-  CANCELLED:  { bg:'rgba(148,163,184,.12)', color:'var(--ink3)', label:'Cancelled'  },
-  PAID:       { bg:'rgba(16,185,129,.12)',  color:'var(--green)', label:'Paid'       },
-  PROCESSING: { bg:'rgba(59,130,246,.12)',  color:'var(--blue)',  label:'Processing' },
-  PRESENT:    { bg:'rgba(16,185,129,.12)',  color:'var(--green)', label:'Present'    },
-  ABSENT:     { bg:'rgba(239,68,68,.12)',   color:'var(--red)',   label:'Absent'     },
-  LATE:       { bg:'rgba(245,158,11,.12)',  color:'var(--gold)',  label:'Late'       },
-  HALF_DAY:   { bg:'rgba(59,130,246,.12)',  color:'var(--blue)',  label:'Half Day'   },
-  SUCCESS:    { bg:'rgba(16,185,129,.12)',  color:'var(--green)', label:'Success'    },
-  FAILED:     { bg:'rgba(239,68,68,.12)',   color:'var(--red)',   label:'Failed'     },
-  EXPIRED:    { bg:'rgba(148,163,184,.12)', color:'var(--ink3)', label:'Expired'    },
-  ACCEPTED:   { bg:'rgba(16,185,129,.12)',  color:'var(--green)', label:'Accepted'   },
+  ACTIVE:     { bg:'var(--green-l)',  color:'var(--green)', label:'Active'     },
+  INACTIVE:   { bg:'hsl(var(--muted))', color:'hsl(var(--muted-foreground))',  label:'Inactive'   },
+  ON_LEAVE:   { bg:'var(--gold-l)',  color:'var(--gold)',  label:'On Leave'   },
+  APPROVED:   { bg:'var(--blue-l)',  color:'var(--blue)',  label:'Approved'   },
+  REJECTED:   { bg:'var(--red-l)',   color:'var(--red)',   label:'Rejected'   },
+  PENDING:    { bg:'var(--gold-l)',  color:'var(--gold)',  label:'Pending'    },
+  CANCELLED:  { bg:'hsl(var(--muted))', color:'hsl(var(--muted-foreground))', label:'Cancelled'  },
+  PAID:       { bg:'var(--green-l)',  color:'var(--green)', label:'Paid'       },
+  PROCESSING: { bg:'var(--blue-l)',  color:'var(--blue)',  label:'Processing' },
+  PRESENT:    { bg:'var(--green-l)',  color:'var(--green)', label:'Present'    },
+  ABSENT:     { bg:'var(--red-l)',   color:'var(--red)',   label:'Absent'     },
+  LATE:       { bg:'var(--gold-l)',  color:'var(--gold)',  label:'Late'       },
+  HALF_DAY:   { bg:'var(--blue-l)',  color:'var(--blue)',  label:'Half Day'   },
+  SUCCESS:    { bg:'var(--green-l)',  color:'var(--green)', label:'Success'    },
+  FAILED:     { bg:'var(--red-l)',   color:'var(--red)',   label:'Failed'     },
+  EXPIRED:    { bg:'hsl(var(--muted))', color:'hsl(var(--muted-foreground))', label:'Expired'    },
+  ACCEPTED:   { bg:'var(--green-l)',  color:'var(--green)', label:'Accepted'   },
 };
 
 function Badge({ status }: { status: string }) {
   const c = S[status] ?? { bg:'var(--bg)', color:'var(--ink2)', label: status };
-  return <span style={{ padding:'2px 10px', borderRadius:20, fontSize:11, fontWeight:700, background:c.bg, color:c.color, whiteSpace:'nowrap' }}>{c.label}</span>;
+  return <span style={{ padding:'2px 10px', borderRadius:'var(--badge-radius)', fontSize:11, fontWeight:700, background:c.bg, color:c.color, whiteSpace:'nowrap' }}>{c.label}</span>;
 }
 
 /**
@@ -227,11 +227,11 @@ export function EmployeesPage() {
   const ROLE_COLORS: Record<string, { bg: string; color: string }> = {
     Manager:      { bg: 'var(--purple-l)', color: 'var(--purple)' },
     Officer:      { bg: 'var(--teal-l)', color: 'var(--teal)' },
-    Finance:      { bg: 'rgba(16,185,129,.12)', color: 'var(--green)' },
+    Finance:      { bg: 'var(--green-l)', color: 'var(--green)' },
     'Tenant Admin': { bg: 'var(--purple-l)', color: 'var(--purple)' },
   };
   function roleColor(role: string) { return ROLE_COLORS[role] || { bg: 'var(--bg)', color: 'var(--ink3)' }; }
-  function statusBar(s: EmpStatus) { return s === 'ACTIVE' ? '#10b981' : s === 'ON_LEAVE' ? 'var(--gold)' : 'var(--ink3)'; }
+  function statusBar(s: EmpStatus) { return s === 'ACTIVE' ? 'var(--green)' : s === 'ON_LEAVE' ? 'var(--gold)' : 'var(--ink3)'; }
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -308,8 +308,8 @@ export function EmployeesPage() {
                   <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--ink)', marginBottom: 2 }}>{e.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, marginBottom: 8 }}>{e.designation}</div>
                   <div style={{ display: 'flex', gap: 5, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
-                    <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--ink3)', fontWeight: 600 }}>{e.dept}</span>
-                    <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, background: rCol.bg, color: rCol.color, fontWeight: 700 }}>{e.role}</span>
+                    <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--ink3)', fontWeight: 600 }}>{e.dept}</span>
+                    <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 'var(--r-sm)', background: rCol.bg, color: rCol.color, fontWeight: 700 }}>{e.role}</span>
                     <Badge status={e.status} />
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)', display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -356,7 +356,7 @@ export function EmployeesPage() {
                   </TD>
                   <TD muted>{e.dept}</TD>
                   <TD>{e.designation}</TD>
-                  <TD><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: rCol.bg, color: rCol.color, fontWeight: 700 }}>{e.role}</span></TD>
+                  <TD><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', background: rCol.bg, color: rCol.color, fontWeight: 700 }}>{e.role}</span></TD>
                   <TD muted>{new Date(e.hireDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</TD>
                   <TD><Badge status={e.status} /></TD>
                 </tr>
@@ -538,10 +538,10 @@ export function RolesPage() {
           {/* Filter */}
           <div style={{ marginBottom:16, maxWidth:340 }}>
             <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter modules—"
-              style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius:8, fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', background:'var(--white)', boxSizing:'border-box' as const }} />
+              style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', background:'var(--white)', boxSizing:'border-box' as const }} />
           </div>
 
-          <div style={{ background:'var(--white)', borderRadius:10, border:'1px solid var(--border)', overflow:'hidden', marginBottom:24 }}>
+          <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden', marginBottom:24 }}>
             <div style={{ overflowX:'auto' }}>
               <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
                 <thead>
@@ -602,7 +602,7 @@ export function RolesPage() {
           <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginBottom: 24 }}>
             {ACTIONS.map(a => (
               <div key={a} style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <div style={{ width:12, height:12, borderRadius:3, background:ACTION_COLORS[a] }} />
+                <div style={{ width:12, height:12, borderRadius: 'var(--r-sm)', background:ACTION_COLORS[a] }} />
                 <span style={{ fontSize:12, color:'var(--ink2)', fontWeight:600 }}>{a.charAt(0).toUpperCase() + a.slice(1)}</span>
               </div>
             ))}
@@ -620,12 +620,12 @@ export function RolesPage() {
           return (
             <div key={key} onClick={() => setSelected(isActive ? null : key)}
               role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(isActive ? null : key); } }}
-              style={{ background:'var(--white)', borderRadius:10, border:`2px solid ${isActive ? meta.color : 'var(--border)'}`,
+              style={{ background:'var(--white)', borderRadius: 'var(--r)', border:`2px solid ${isActive ? meta.color : 'var(--border)'}`,
                 padding:20, cursor:'pointer', transition:'all 0.15s',
                 boxShadow: isActive ? '0 4px 20px rgba(0,0,0,0.08)' : '0 1px 4px rgba(0,0,0,0.04)',
               }}>
               <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14 }}>
-                <div style={{ width:44, height:44, borderRadius:10, background:meta.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <div style={{ width:44, height:44, borderRadius: 'var(--r)', background:meta.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                   <Icon name="shield" size={22} color={meta.color} strokeWidth={1.8} />
                 </div>
                 <div style={{ flex:1 }}>
@@ -642,15 +642,15 @@ export function RolesPage() {
                   <span style={{ fontSize:11, color:'var(--ink3)' }}>Access level</span>
                   <span style={{ fontSize:11, fontWeight:700, color:meta.color }}>{pct}%</span>
                 </div>
-                <div style={{ height:5, borderRadius:3, background:'var(--border)' }}>
-                  <div style={{ height:'100%', width:`${pct}%`, background:meta.color, borderRadius:3, transition:'width 0.5s' }} />
+                <div style={{ height:5, borderRadius: 'var(--r-sm)', background:'var(--border)' }}>
+                  <div style={{ height:'100%', width:`${pct}%`, background:meta.color, borderRadius: 'var(--r-sm)', transition:'width 0.5s' }} />
                 </div>
               </div>
               <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
                 {RESOURCES.slice(0,4).map(r => {
                   const hasView = isAllowed(key, r, 'view');
                   return (
-                    <span key={r} style={{ fontSize:10, padding:'2px 7px', borderRadius:5, fontWeight:600,
+                    <span key={r} style={{ fontSize:10, padding:'2px 7px', borderRadius: 'var(--r-sm)', fontWeight:600,
                       background: hasView ? meta.bg : 'var(--bg)',
                       color: hasView ? meta.color : 'var(--ink3)' }}>
                       {RESOURCE_LABELS[r]}
@@ -665,10 +665,10 @@ export function RolesPage() {
 
       {/* Permission matrix for selected role */}
       {selected && selMeta && (
-        <div style={{ background:'var(--white)', borderRadius:10, border:`1px solid var(--border)`, overflow:'hidden', marginBottom:24 }}>
+        <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:`1px solid var(--border)`, overflow:'hidden', marginBottom:24 }}>
           <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:12,
             background: selMeta.bg }}>
-            <div style={{ width:34, height:34, borderRadius:8, background:selMeta.bg, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <div style={{ width:34, height:34, borderRadius: 'var(--r)', background:selMeta.bg, display:'flex', alignItems:'center', justifyContent:'center' }}>
               <Icon name="shield" size={17} color={selMeta.color} />
             </div>
             <div>
@@ -730,7 +730,7 @@ export function RolesPage() {
       )}
 
       {/* Users table */}
-      <div style={{ background:'var(--white)', borderRadius:10, border:'1px solid var(--border)', overflow:'hidden' }}>
+      <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
         <div style={{ padding:'12px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Staff by Role</span>
           <Link to="/nexushr/employees"
@@ -745,13 +745,13 @@ export function RolesPage() {
             const pct = Math.round((count / Math.max(1, Object.values(userCounts).reduce((a,b) => a+b, 0))) * 100);
             return (
               <div key={key} style={{ display:'flex', alignItems:'center', gap:14, padding:'9px 18px', borderBottom:'1px solid var(--border)' }}>
-                <div style={{ width:32, height:32, borderRadius:8, background:meta.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <div style={{ width:32, height:32, borderRadius: 'var(--r)', background:meta.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                   <Icon name="shield" size={15} color={meta.color} />
                 </div>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)', marginBottom:3 }}>{meta.label}</div>
-                  <div style={{ height:4, borderRadius:2, background:'var(--border)' }}>
-                    <div style={{ height:'100%', width:`${pct}%`, background:meta.color, borderRadius:2 }} />
+                  <div style={{ height:4, borderRadius: 'var(--r-sm)', background:'var(--border)' }}>
+                    <div style={{ height:'100%', width:`${pct}%`, background:meta.color, borderRadius: 'var(--r-sm)'}} />
                   </div>
                 </div>
                 <span style={{ fontSize:13, fontWeight:800, color:meta.color, minWidth:24, textAlign:'right' }}>{count}</span>
@@ -797,7 +797,7 @@ function StampAccessCard() {
   }
 
   return (
-    <div style={{ background:'var(--white)', borderRadius:10, border:'1px solid var(--border)', padding:20, marginTop:24 }}>
+    <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', padding:20, marginTop:24 }}>
       <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Who can apply the eSign stamp</div>
       <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:14 }}>
         Only these roles can apply the company stamp directly (Hudumika eSign, and any other app using the shared stamp API). Anyone else sees a "Request stamping" option instead, which tags a real person below to approve it.
@@ -838,7 +838,7 @@ function StampRequestsCard() {
   const pending = (requests ?? []).filter(r => r.status === 'pending');
 
   return (
-    <div style={{ background:'var(--white)', borderRadius:10, border:'1px solid var(--border)', padding:20, marginTop:16 }}>
+    <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', padding:20, marginTop:16 }}>
       <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Stamp requests</div>
       <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:14 }}>People without direct stamp access who have tagged you as their approver.</div>
       {requests === null ? (
@@ -848,7 +848,7 @@ function StampRequestsCard() {
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
           {pending.map(r => (
-            <div key={r.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 12px', border:'1px solid var(--border)', borderRadius:8 }}>
+            <div key={r.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)'}}>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:13, color:'var(--ink)' }}>{r.note || r.target_ref || 'Stamp requested'}</div>
                 <div style={{ fontSize:11.5, color:'var(--ink3)' }}>{new Date(r.created_at).toLocaleString()}</div>
@@ -913,7 +913,7 @@ export function DeleteRequestsPage() {
             </div>
             <div style={{ flex: 1, minWidth: 200 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Reason</label>
-              <input name="reason" placeholder="e.g. Resigned from company" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+              <input name="reason" placeholder="e.g. Resigned from company" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
             </div>
             <PrimaryBtn label="Submit Request" type="submit" />
           </form>
@@ -955,7 +955,7 @@ function DeptForm({ staff, initial, onCancel, onSubmit }: {
       }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 180 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Department Name</label>
-          <input name="name" required defaultValue={initial?.name} placeholder="e.g. Operations" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+          <input name="name" required defaultValue={initial?.name} placeholder="e.g. Operations" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
         </div>
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Head</label>
@@ -1091,7 +1091,7 @@ export function TeamsPage() {
           }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 180 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Team Name</label>
-              <input name="name" required placeholder="e.g. Finance Team" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+              <input name="name" required placeholder="e.g. Finance Team" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Team Lead</label>
@@ -1161,7 +1161,7 @@ export function ActivityLogsPage() {
             <tr key={l.id} style={{ borderBottom:'1px solid var(--border)' }}>
               <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={l.user_name || '?'} size={24} />{l.user_name || 'Unknown'}</div></TD>
               <TD>{l.action}</TD>
-              <TD><span style={{ fontSize:11, padding:'2px 8px', borderRadius:4, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--ink2)' }}>{l.module}</span></TD>
+              <TD><span style={{ fontSize:11, padding:'2px 8px', borderRadius: 'var(--r-sm)', background:'var(--bg)', border:'1px solid var(--border)', color:'var(--ink2)' }}>{l.module}</span></TD>
               <TD muted>{new Date(l.created_at).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</TD>
             </tr>
           ))}
@@ -1242,12 +1242,12 @@ function LeaveTypeCard({ t, onSaved }: { t: any; onSaved: () => void }) {
   };
 
   return (
-    <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:12, padding:16, display:'flex', flexDirection:'column', gap:12, opacity: active ? 1 : 0.72 }}>
+    <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', padding:16, display:'flex', flexDirection:'column', gap:12, opacity: active ? 1 : 0.72 }}>
       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-        <span style={{ width:10, height:10, borderRadius:3, background: leaveTypeColor(t.code), flexShrink:0 }} />
+        <span style={{ width:10, height:10, borderRadius: 'var(--r-sm)', background: leaveTypeColor(t.code), flexShrink:0 }} />
         <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', fontFamily:'var(--mono)' }}>{t.code}</span>
-        {t.statutory && <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:10, background:'var(--blue-l)', color:'var(--blue)' }}>STATUTORY</span>}
-        {t.applies_to && t.applies_to !== 'ALL' && <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:10, background:'var(--purple-l)', color:'var(--purple)' }}>{t.applies_to}</span>}
+        {t.statutory && <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius: 'var(--r)', background:'var(--blue-l)', color:'var(--blue)' }}>STATUTORY</span>}
+        {t.applies_to && t.applies_to !== 'ALL' && <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius: 'var(--r)', background:'var(--purple-l)', color:'var(--purple)' }}>{t.applies_to}</span>}
       </div>
 
       <div><label style={ltLabel}>Name</label><input style={ltInput} value={name} onChange={e => setName(e.target.value)} /></div>
@@ -1302,10 +1302,10 @@ function LeaveTypesConfig({ types, onReload }: { types: any[]; onReload: () => v
           <Icon name="download" size={14} /> {gen ? 'Generating…' : 'Generate statutory types'}
         </button>
       </div>
-      {genMsg && <div style={{ fontSize:12.5, color:'var(--ink2)', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px' }}>{genMsg}</div>}
+      {genMsg && <div style={{ fontSize:12.5, color:'var(--ink2)', background:'var(--bg)', border:'1px solid var(--border)', borderRadius: 'var(--r)', padding:'8px 12px' }}>{genMsg}</div>}
 
       {types.length === 0 ? (
-        <div style={{ background:'var(--white)', border:'1px dashed var(--border)', borderRadius:12, padding:'40px 20px', textAlign:'center' }}>
+        <div style={{ background:'var(--white)', border:'1px dashed var(--border)', borderRadius: 'var(--r)', padding:'40px 20px', textAlign:'center' }}>
           <div style={{ fontSize:14, fontWeight:700, color:'var(--navy)', marginBottom:6 }}>No leave types configured</div>
           <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Generate the statutory set to start, then adjust the days and rules per type.</div>
         </div>
@@ -1389,10 +1389,10 @@ export function LeavesPage() {
   };
 
   const getLeaveTypeColor = (t: string) => {
-    if (t.includes('Casual')) return '#10b981';
-    if (t.includes('Maternity') || t.includes('Medical')) return '#8b5cf6';
-    if (t.includes('Paternity')) return '#f59e0b';
-    return '#3b82f6';
+    if (t.includes('Casual')) return 'var(--green)';
+    if (t.includes('Maternity') || t.includes('Medical')) return 'var(--purple)';
+    if (t.includes('Paternity')) return 'var(--gold)';
+    return 'var(--blue)';
   };
 
   return (
@@ -1400,10 +1400,10 @@ export function LeavesPage() {
       {/* 🌟 Header Bar matching WorkDo Image 3 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <div style={{ fontSize: 12, color: '#3b82f6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <span>Dashboard</span> <span style={{ color: '#94a3b8' }}>/</span> <span style={{ color: '#64748b' }}>Leaves</span>
+          <div style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span>Dashboard</span> <span style={{ color: 'var(--ink3)' }}>/</span> <span style={{ color: 'var(--ink2)' }}>Leaves</span>
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', margin: 0 }}>
             Leaves
           </h1>
         </div>
@@ -1411,7 +1411,7 @@ export function LeavesPage() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <Button
             onClick={() => setShowNew(v => !v)}
-            style={{ height: 38, background: '#3b82f6', color: '#fff', fontWeight: 700, borderRadius: 8, padding: '0 16px', fontSize: 13, border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px rgba(59,130,246,0.3)' }}
+            style={{ height: 38, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, borderRadius: 'var(--r)', padding: '0 16px', fontSize: 13, border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px hsl(var(--primary) / 0.3)' }}
           >
             <Icon name="plus" size={15} /> Add Leave
           </Button>
@@ -1425,15 +1425,15 @@ export function LeavesPage() {
           Leaves 04", with Pending Requests falling back to a literal || 3. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
         {[
-          { title: 'On leave today', count: String(leaveSummary?.on_leave_today ?? '—'), color: '#2563eb' },
-          { title: `Approved (${summaryYear})`, count: String(leaveSummary?.approved_count ?? '—'), color: '#f59e0b' },
-          { title: `Days taken (${summaryYear})`, count: String(leaveSummary?.days_taken_ytd ?? '—'), color: '#06b6d4' },
-          { title: 'Pending requests', count: String(leaveSummary?.pending_count ?? leaves.filter(l => l.status === 'PENDING').length), color: '#f97316' },
+          { title: 'On leave today', count: String(leaveSummary?.on_leave_today ?? '—'), color: 'var(--blue)' },
+          { title: `Approved (${summaryYear})`, count: String(leaveSummary?.approved_count ?? '—'), color: 'var(--gold)' },
+          { title: `Days taken (${summaryYear})`, count: String(leaveSummary?.days_taken_ytd ?? '—'), color: 'var(--teal)' },
+          { title: 'Pending requests', count: String(leaveSummary?.pending_count ?? leaves.filter(l => l.status === 'PENDING').length), color: 'var(--purple)' },
         ].map((k, i) => (
-          <div key={i} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+          <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>{k.title}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>{k.count}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)' }}>{k.title}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{k.count}</div>
             </div>
             <div style={{ width: 44, height: 44, borderRadius: '50%', border: `4px solid ${k.color}`, borderTopColor: 'transparent', transform: 'rotate(-45deg)' }} />
           </div>
@@ -1441,24 +1441,24 @@ export function LeavesPage() {
       </div>
 
       {/* 📋 Main Data Table Container (WorkDo Leaves Style) */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         {/* Table Filter Controls Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Employee's Leave</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Employee's Leave</span>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ position: 'relative', width: 220 }}>
-              <Icon name="search" size={14} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+              <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="text"
                 placeholder="Search..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                style={{ width: '100%', height: 34, paddingLeft: 30, paddingRight: 10, borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12.5, outline: 'none', background: '#f8fafc' }}
+                style={{ width: '100%', height: 34, paddingLeft: 30, paddingRight: 10, borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 12.5, outline: 'none', background: '#f8fafc' }}
               />
             </div>
 
-            <Button variant="outline" size="sm" onClick={downloadLeavesCsv} style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)' }}>
+            <Button variant="outline" size="sm" onClick={downloadLeavesCsv} style={{ height: 34, fontSize: 12, borderRadius: 'var(--r)', borderColor: 'var(--border)' }}>
               Download Report
             </Button>
 
@@ -1478,25 +1478,25 @@ export function LeavesPage() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#f0f5ff', borderBottom: '1px solid #e2e8f0' }}>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Name ⇅</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Leave Type ⇅</th>
+              <tr style={{ background: '#f0f5ff', borderBottom: '1px solid var(--border)' }}>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Name ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Leave Type ⇅</th>
                 {/* Department column removed — /v1/hr/staff hardcodes dept:
                     '' (no user→department assignment exists anywhere in the
                     schema), so this rendered the fixed string "Software
                     Engineering" for every row. Same root cause, same fix, as
                     the earlier Payroll department column removal. */}
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Days ⇅</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Start ⇅</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>End ⇅</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Status ⇅</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#334155' }}>Action ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Days ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Start ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>End ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Status ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Action ⇅</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: 30, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                  <td colSpan={7} style={{ padding: 30, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
                     No leave applications found.
                   </td>
                 </tr>
@@ -1508,34 +1508,34 @@ export function LeavesPage() {
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <PersonAvatar name={l.emp} size={30} userId={l.userId} />
-                          <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{l.emp}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{l.emp}</span>
                         </div>
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: getLeaveTypeColor(l.type) }}>
                         {l.type}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
+                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
                         {l.days} Days
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#475569' }}>
+                      <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink2)' }}>
                         {l.from}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#475569' }}>
+                      <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink2)' }}>
                         {l.to}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: st.bg, color: st.color }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--r-sm)', background: st.bg, color: st.color }}>
                           {st.text} ∨
                         </span>
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                         {l.status === 'PENDING' ? (
                           <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                            <Button size="sm" onClick={() => handleStatus(l.id, 'APPROVED')} style={{ height: 26, fontSize: 11, background: '#2563eb', color: '#fff', padding: '0 8px' }}>Approve</Button>
-                            <Button size="sm" variant="outline" onClick={() => handleStatus(l.id, 'REJECTED')} style={{ height: 26, fontSize: 11, borderColor: '#ef4444', color: '#ef4444', padding: '0 8px' }}>Reject</Button>
+                            <Button size="sm" onClick={() => handleStatus(l.id, 'APPROVED')} style={{ height: 26, fontSize: 11, padding: '0 8px' }}>Approve</Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleStatus(l.id, 'REJECTED')} style={{ height: 26, fontSize: 11, padding: '0 8px' }}>Reject</Button>
                           </div>
                         ) : (
-                          <Icon name="moreHorizontal" size={18} color="#94a3b8" style={{ cursor: 'pointer' }} />
+                          <Icon name="moreHorizontal" size={18} color="var(--ink3)" style={{ cursor: 'pointer' }} />
                         )}
                       </td>
                     </tr>
@@ -1547,15 +1547,15 @@ export function LeavesPage() {
         </div>
 
         {/* Pagination Footer */}
-        <div style={{ padding: '12px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#64748b' }}>
+        <div style={{ padding: '12px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--ink2)' }}>
           <span>Showing 1 to {rows.length} of {leaves.length} entries</span>
           <div style={{ display: 'flex', gap: 4 }}>
-            <button style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>«</button>
-            <button style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>‹</button>
-            <button style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 700 }}>1</button>
-            <button style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>2</button>
-            <button style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>›</button>
-            <button style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>»</button>
+            <button style={{ padding: '4px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer' }}>«</button>
+            <button style={{ padding: '4px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer' }}>‹</button>
+            <button style={{ padding: '4px 10px', borderRadius: 'var(--r-sm)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700 }}>1</button>
+            <button style={{ padding: '4px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer' }}>2</button>
+            <button style={{ padding: '4px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer' }}>›</button>
+            <button style={{ padding: '4px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer' }}>»</button>
           </div>
         </div>
       </div>
@@ -1684,10 +1684,10 @@ export function AttendancePage() {
       {/* 🌟 Header Bar matching WorkDo Image 1 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <div style={{ fontSize: 12, color: '#3b82f6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <span>Dashboard</span> <span style={{ color: '#94a3b8' }}>/</span> <span style={{ color: '#64748b' }}>Attendance</span>
+          <div style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span>Dashboard</span> <span style={{ color: 'var(--ink3)' }}>/</span> <span style={{ color: 'var(--ink2)' }}>Attendance</span>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', margin: 0 }}>
             Today, {date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
           </h1>
         </div>
@@ -1695,7 +1695,7 @@ export function AttendancePage() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <Button
             onClick={() => { setBulkEmpIds([]); setShowBulk(true); }}
-            style={{ height: 38, background: '#3b82f6', color: '#fff', fontWeight: 700, borderRadius: 8, padding: '0 16px', fontSize: 13, border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px rgba(59,130,246,0.3)' }}
+            style={{ height: 38, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, borderRadius: 'var(--r)', padding: '0 16px', fontSize: 13, border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px hsl(var(--primary) / 0.3)' }}
           >
             <Icon name="plus" size={15} /> Add Employee
           </Button>
@@ -1705,10 +1705,10 @@ export function AttendancePage() {
       {/* 📊 Top Charts & KPI Row (Attendance Rate + Employee Type Donut) */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
         {/* Left Card: real daily Present/Late/Absent for the visible month */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Attendance rate — {date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</span>
-            <Button variant="outline" size="sm" onClick={downloadAttendanceCsv} style={{ height: 32, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)' }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Attendance rate — {date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</span>
+            <Button variant="outline" size="sm" onClick={downloadAttendanceCsv} style={{ height: 32, fontSize: 12, borderRadius: 'var(--r)', borderColor: 'var(--border)' }}>
               Download report
             </Button>
           </div>
@@ -1723,71 +1723,71 @@ export function AttendancePage() {
               return (
                 <div key={d.day} title={`${d.day}: ${d.present} present, ${d.late} late, ${d.absent} absent`}
                   style={{ flex: '1 0 auto', minWidth: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
-                  <div style={{ width: 8, borderRadius: 3, overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', height: `${Math.max(scale, 2)}px` }}>
-                    <div style={{ height: `${h1}px`, background: '#2563eb' }} />
-                    <div style={{ height: `${h2}px`, background: '#f97316' }} />
-                    <div style={{ height: `${h3}px`, background: '#94a3b8' }} />
+                  <div style={{ width: 8, borderRadius: 'var(--r-sm)', overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', height: `${Math.max(scale, 2)}px` }}>
+                    <div style={{ height: `${h1}px`, background: 'var(--green)' }} />
+                    <div style={{ height: `${h2}px`, background: 'var(--gold)' }} />
+                    <div style={{ height: `${h3}px`, background: 'var(--ink3)' }} />
                   </div>
-                  <span style={{ fontSize: 9, color: '#94a3b8' }}>{d.day}</span>
+                  <span style={{ fontSize: 9, color: 'var(--ink3)' }}>{d.day}</span>
                 </div>
               );
             })}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12, color: '#64748b' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb' }} /> Present</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f97316' }} /> Late</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#94a3b8' }} /> Absent</span>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12, color: 'var(--ink2)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--green)' }} /> Present</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--gold)' }} /> Late</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--ink3)' }} /> Absent</span>
           </div>
         </div>
 
         {/* Right Card: real status breakdown for the same month — replaces a
             donut that hardcoded 800 Onsite / 105 Remote / 301 Hybrid against
             a field ("work location") that doesn't exist anywhere in the schema. */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Attendance status</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Attendance status</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', margin: '20px 0' }}>
             <svg width="180" height="100" viewBox="0 0 180 100">
-              <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="#e2e8f0" strokeWidth="22" strokeLinecap="round" />
-              <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="#2563eb" strokeWidth="22" strokeLinecap="round"
+              <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="var(--border)" strokeWidth="22" strokeLinecap="round" />
+              <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="var(--green)" strokeWidth="22" strokeLinecap="round"
                 strokeDasharray={`${(presentPct / 100) * 220} 220`} />
             </svg>
             <div style={{ position: 'absolute', bottom: 10, textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>{presentPct}%</div>
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>Present</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>{presentPct}%</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Present</div>
             </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: 14, fontSize: 12, fontWeight: 600, flexWrap: 'wrap' }}>
-            <span style={{ color: '#2563eb' }}>● {statusCounts.Present} <span style={{ color: '#64748b', fontWeight: 400 }}>Present</span></span>
-            <span style={{ color: '#f97316' }}>● {statusCounts.Late} <span style={{ color: '#64748b', fontWeight: 400 }}>Late</span></span>
-            <span style={{ color: '#94a3b8' }}>● {statusCounts.Absent} <span style={{ color: '#64748b', fontWeight: 400 }}>Absent</span></span>
+            <span style={{ color: 'var(--green)' }}>● {statusCounts.Present} <span style={{ color: 'var(--ink2)', fontWeight: 400 }}>Present</span></span>
+            <span style={{ color: 'var(--gold)' }}>● {statusCounts.Late} <span style={{ color: 'var(--ink2)', fontWeight: 400 }}>Late</span></span>
+            <span style={{ color: 'var(--ink3)' }}>● {statusCounts.Absent} <span style={{ color: 'var(--ink2)', fontWeight: 400 }}>Absent</span></span>
           </div>
         </div>
       </div>
 
       {/* 📋 Main Data Table Container (WorkDo Style) */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         {/* Table Filter Controls Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Employee Attendance</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Employee Attendance</span>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ position: 'relative', width: 220 }}>
-              <Icon name="search" size={14} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+              <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="text"
                 placeholder="Search..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                style={{ width: '100%', height: 34, paddingLeft: 30, paddingRight: 10, borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12.5, outline: 'none', background: '#f8fafc' }}
+                style={{ width: '100%', height: 34, paddingLeft: 30, paddingRight: 10, borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 12.5, outline: 'none', background: '#f8fafc' }}
               />
             </div>
 
-            <Button variant="outline" size="sm" style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)' }}>
+            <Button variant="outline" size="sm" style={{ height: 34, fontSize: 12, borderRadius: 'var(--r)', borderColor: 'var(--border)' }}>
               Download Report
             </Button>
 
@@ -1805,16 +1805,16 @@ export function AttendancePage() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
             <thead>
-              <tr style={{ background: '#f0f5ff', borderBottom: '1px solid #e2e8f0' }}>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155', width: 180, position: 'sticky', left: 0, background: '#f0f5ff', zIndex: 5 }}>
+              <tr style={{ background: '#f0f5ff', borderBottom: '1px solid var(--border)' }}>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', width: 180, position: 'sticky', left: 0, background: '#f0f5ff', zIndex: 5 }}>
                   Employee Name ⇅
                 </th>
                 {days.slice(0, 31).map(d => (
-                  <th key={d.toISOString()} style={{ padding: '8px 4px', textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#475569', minWidth: 30 }}>
+                  <th key={d.toISOString()} style={{ padding: '8px 4px', textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', minWidth: 30 }}>
                     {d.getDate()}
                   </th>
                 ))}
-                <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#334155', minWidth: 80 }}>
+                <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', minWidth: 80 }}>
                   Leave
                 </th>
               </tr>
@@ -1822,22 +1822,22 @@ export function AttendancePage() {
             <tbody>
               {filteredEmps.length === 0 ? (
                 <tr>
-                  <td colSpan={33} style={{ padding: 30, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                  <td colSpan={33} style={{ padding: 30, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
                     No staff records found for this period.
                   </td>
                 </tr>
               ) : (
                 filteredEmps.map(emp => (
                   <tr key={emp.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 16px', position: 'sticky', left: 0, background: '#fff', zIndex: 4, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <td style={{ padding: '10px 16px', position: 'sticky', left: 0, background: 'var(--white)', zIndex: 4, display: 'flex', alignItems: 'center', gap: 10 }}>
                       <PersonAvatar name={emp.name} size={28} userId={emp.id} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{emp.name}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{emp.name}</span>
                     </td>
                     {days.slice(0, 31).map(d => {
                       const dStr = getDayFormat(d);
                       const rec = records.find(r => r.employeeId === emp.id && r.date === dStr);
                       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-                      let bg = '#fff';
+                      let bg = 'var(--white)';
                       let symbol = 'P';
                       if (isWeekend) { bg = 'var(--bg)'; symbol = 'W'; }
                       else if (rec?.status === 'Late') { bg = 'var(--gold-l)'; symbol = 'L'; }
@@ -1849,7 +1849,7 @@ export function AttendancePage() {
                         </td>
                       );
                     })}
-                    <td style={{ textAlign: 'center', padding: '10px 16px', fontSize: 12, fontWeight: 600, color: '#475569' }}>
+                    <td style={{ textAlign: 'center', padding: '10px 16px', fontSize: 12, fontWeight: 600, color: 'var(--ink2)' }}>
                       2 Days
                     </td>
                   </tr>
@@ -1872,19 +1872,19 @@ export function AttendancePage() {
               return (
                 <>
                   <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--blue-l)', color: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="calendar" size={20} /></div>
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--blue-l)', color: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="calendar" size={20} /></div>
                     <div><div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase' }}>Working Days</div><div style={{ fontSize: 20, fontWeight: 800 }}>{wDays}</div></div>
                   </div>
                   <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--green-l)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={20} /></div>
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--green-l)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={20} /></div>
                     <div><div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase' }}>Days Present</div><div style={{ fontSize: 20, fontWeight: 800 }}>{p}</div></div>
                   </div>
                   <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--gold-l)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="clock" size={20} /></div>
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--gold-l)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="clock" size={20} /></div>
                     <div><div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase' }}>Late</div><div style={{ fontSize: 20, fontWeight: 800 }}>{l}</div></div>
                   </div>
                   <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--red-l)', color: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={20} /></div>
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--red-l)', color: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={20} /></div>
                     <div><div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase' }}>Absent</div><div style={{ fontSize: 20, fontWeight: 800 }}>{a}</div></div>
                   </div>
                 </>
@@ -1913,7 +1913,7 @@ export function AttendancePage() {
                     <TD bold>{d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}</TD>
                     <TD>
                       {a ? (
-                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: a.status === 'Present' ? 'var(--green-l)' : a.status === 'Late' ? 'var(--gold-l)' : 'var(--red-l)', color: a.status === 'Present' ? 'var(--green)' : a.status === 'Late' ? 'var(--gold)' : 'var(--red)', fontWeight: 700 }}>
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', background: a.status === 'Present' ? 'var(--green-l)' : a.status === 'Late' ? 'var(--gold-l)' : 'var(--red-l)', color: a.status === 'Present' ? 'var(--green)' : a.status === 'Late' ? 'var(--gold)' : 'var(--red)', fontWeight: 700 }}>
                           {a.status}
                         </span>
                       ) : (
@@ -2036,10 +2036,10 @@ interface AttDeviceSyncLog {
 }
 
 const DEVICE_STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  online:       { bg: 'rgba(16,185,129,.12)', color: 'var(--green)', label: 'Online' },
-  offline:      { bg: 'rgba(148,163,184,.15)', color: 'var(--ink3)', label: 'Offline' },
-  unregistered: { bg: 'rgba(148,163,184,.15)', color: 'var(--ink3)', label: 'Awaiting first sync' },
-  error:        { bg: 'rgba(239,68,68,.12)',  color: 'var(--red)',  label: 'Error' },
+  online:       { bg: 'var(--green-l)', color: 'var(--green)', label: 'Online' },
+  offline:      { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', label: 'Offline' },
+  unregistered: { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', label: 'Awaiting first sync' },
+  error:        { bg: 'var(--red-l)',  color: 'var(--red)',  label: 'Error' },
 };
 function DeviceStatusBadge({ status }: { status: string }) {
   const s = DEVICE_STATUS_STYLE[status] ?? DEVICE_STATUS_STYLE.unregistered;
@@ -2149,7 +2149,7 @@ export function DevicesPage() {
             <div style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
               {justRegistered ? (
                 <div>
-                  <div style={{ padding: 14, borderRadius: 'var(--r)', background: 'rgba(16,185,129,.10)', border: '1px solid rgba(16,185,129,.3)', marginBottom: 18, fontSize: 12.5, color: 'var(--ink)' }}>
+                  <div style={{ padding: 14, borderRadius: 'var(--r)', background: 'var(--green-l)', border: '1px solid var(--green)', marginBottom: 18, fontSize: 12.5, color: 'var(--ink)' }}>
                     <strong>{justRegistered.name}</strong> is registered. Enter these into the physical unit's own menu (Comm → Cloud Server / ADMS) — the push token is shown only this once.
                   </div>
                   {([
@@ -2159,7 +2159,7 @@ export function DevicesPage() {
                   ] as const).map(([label, val]) => (
                     <div key={label} style={{ marginBottom: 14 }}>
                       <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{label}</label>
-                      <div style={{ padding: '9px 12px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)', fontFamily: 'var(--mono)', fontSize: 12.5, wordBreak: 'break-all' }}>{val}</div>
+                      <div style={{ padding: '9px 12px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', fontFamily: 'var(--mono)', fontSize: 12.5, wordBreak: 'break-all' }}>{val}</div>
                     </div>
                   ))}
                   <button type="button" className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} onClick={() => setShowRegister(false)}>Done</button>
@@ -2312,7 +2312,7 @@ function DeviceManageDrawer({ device, staff, onClose, onDeviceChanged }: {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {enrollments.map(e => (
-                  <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                     <PersonAvatar userId={e.user_id} name={e.user_name} size={26} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{e.user_name}</div>
@@ -2333,7 +2333,7 @@ function DeviceManageDrawer({ device, staff, onClose, onDeviceChanged }: {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {events.slice(0, 30).map(ev => (
-                  <div key={ev.id} style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid var(--border)', background: ev.user_id ? 'transparent' : 'rgba(245,158,11,.06)' }}>
+                  <div key={ev.id} style={{ padding: '7px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: ev.user_id ? 'transparent' : 'var(--gold-l)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                       <div style={{ fontSize: 12.5, color: 'var(--ink)' }}>
                         {ev.user_name ?? <span style={{ color: 'var(--gold)', fontWeight: 700 }}>Unmatched PIN {ev.external_pin}</span>}
@@ -2369,7 +2369,7 @@ function DeviceManageDrawer({ device, staff, onClose, onDeviceChanged }: {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {syncLogs.map(log => (
-                  <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '6px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                     <span style={{ color: 'var(--ink)' }}>{new Date(log.started_at).toLocaleString()}</span>
                     <span style={{ color: log.status === 'error' ? 'var(--red)' : 'var(--ink3)' }}>
                       {log.records_matched}/{log.records_received} matched{log.status === 'error' ? ` — ${log.error}` : ''}
@@ -2558,9 +2558,9 @@ export function ShiftsPage() {
                     <Popover key={dStr} open={activeCell?.empId === emp.id && activeCell.date === dStr} onOpenChange={o => { if (!o) setActiveCell(null); }}>
                       <PopoverAnchor asChild>
                         <td onClick={() => setActiveCell({ empId: emp.id, date: dStr })} style={{ padding: 4, borderRight: '1px solid var(--border)', cursor: 'pointer', verticalAlign: 'top' }}>
-                          <div style={{ minHeight: 46, borderRadius: 6, border: '1px dashed transparent', padding: 6, transition: 'border 0.2s', ...((!sType) ? { ':hover': { borderColor: 'var(--border)' } } : {}) } as any}>
+                          <div style={{ minHeight: 46, borderRadius: 'var(--r-sm)', border: '1px dashed transparent', padding: 6, transition: 'border 0.2s', ...((!sType) ? { ':hover': { borderColor: 'var(--border)' } } : {}) } as any}>
                             {sType ? (
-                              <div style={{ background: `${sType.color}15`, border: `1px solid ${sType.color}40`, borderRadius: 4, padding: '4px 6px' }}>
+                              <div style={{ background: `${sType.color}15`, border: `1px solid ${sType.color}40`, borderRadius: 'var(--r-sm)', padding: '4px 6px' }}>
                                 <div style={{ fontSize: 10, fontWeight: 800, color: sType.color, marginBottom: 2 }}>{sType.name}</div>
                                 <div style={{ fontSize: 9, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{sType.startTime} - {sType.endTime}</div>
                               </div>
@@ -2582,7 +2582,7 @@ export function ShiftsPage() {
                               setActiveCell(null);
                               try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: st.id, date: dStr }) }); loadAssignments(); } catch { /**/ }
                             }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} className="hover-bg">
-                              <div style={{ width: 10, height: 10, borderRadius: 2, background: st.color }} />
+                              <div style={{ width: 10, height: 10, borderRadius: 'var(--r-sm)', background: st.color }} />
                               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)' }}>{st.name}</span>
                             </button>
                           ))}
@@ -2785,7 +2785,7 @@ export function HolidaysPage() {
             </div>
             <div style={{ flex: 1, minWidth: 180 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Holiday Name</label>
-              <input name="name" required placeholder="e.g. Founders Day" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+              <input name="name" required placeholder="e.g. Founders Day" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Type</label>
@@ -2805,7 +2805,7 @@ export function HolidaysPage() {
 
       {syncNote && (
         <div style={{
-          margin: '0 0 16px', padding: '12px 16px', borderRadius: 8, fontSize: 13,
+          margin: '0 0 16px', padding: '12px 16px', borderRadius: 'var(--r)', fontSize: 13,
           background: syncNote.ok ? 'var(--green-l)' : 'var(--gold-l)',
           border: `1px solid ${syncNote.ok ? 'var(--green)' : 'var(--gold)'}`,
           color: 'var(--ink)',
@@ -2841,12 +2841,12 @@ export function HolidaysPage() {
                       // Said plainly, because someone will plan around it: the
                       // date follows a moon sighting and can move by a day.
                       <span title="Date follows the sighting of the moon and may shift by a day" style={{
-                        marginLeft:8, fontSize:10.5, fontWeight:700, padding:'1px 6px', borderRadius:4,
+                        marginLeft:8, fontSize:10.5, fontWeight:700, padding:'1px 6px', borderRadius: 'var(--r-sm)',
                         background:'var(--gold-l)', color:'var(--gold)',
                       }}>PROVISIONAL</span>
                     )}
                   </TD>
-                  <TD><span style={{ fontSize:11, padding:'2px 8px', borderRadius:4, background: h.type==='Public'?'rgba(59,130,246,.12)':'rgba(124,58,237,.12)', color: h.type==='Public'?'var(--blue)':'var(--purple)', fontWeight:700 }}>{h.type}</span></TD>
+                  <TD><span style={{ fontSize:11, padding:'2px 8px', borderRadius: 'var(--r-sm)', background: h.type==='Public'?'var(--blue-l)':'var(--purple-l)', color: h.type==='Public'?'var(--blue)':'var(--purple)', fontWeight:700 }}>{h.type}</span></TD>
                   <TD right>{h.id && <ActionBtn label="Delete" color="var(--red)" onClick={() => handleDelete(h.id!)} />}</TD>
                 </tr>
               ))}
@@ -2874,7 +2874,7 @@ function DesigForm({ depts, initial, onCancel, onSubmit }: {
       }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 180 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Title</label>
-          <input name="title" required defaultValue={initial?.title} placeholder="e.g. Senior Officer" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+          <input name="title" required defaultValue={initial?.title} placeholder="e.g. Senior Officer" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
         </div>
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Department</label>
@@ -3067,9 +3067,9 @@ export function PayrollPage() {
   }), { net: 0, deductions: 0, employerCost: 0 });
   const yearGrandTotal = Math.max(1, yearTotals.net + yearTotals.deductions + yearTotals.employerCost);
   const donutSlices = [
-    { label: 'Net pay', value: yearTotals.net, color: '#2563eb' },
-    { label: 'Employee deductions', value: yearTotals.deductions, color: '#f97316' },
-    { label: 'Employer contributions', value: yearTotals.employerCost, color: '#10b981' },
+    { label: 'Net pay', value: yearTotals.net, color: 'var(--blue)' },
+    { label: 'Employee deductions', value: yearTotals.deductions, color: 'var(--gold)' },
+    { label: 'Employer contributions', value: yearTotals.employerCost, color: 'var(--green)' },
   ].map(s => ({ ...s, pct: Math.round((s.value / yearGrandTotal) * 100) }));
   let donutCursor = 0;
   const donutGradient = donutSlices.map(s => {
@@ -3100,10 +3100,10 @@ export function PayrollPage() {
       {/* 🌟 Header Bar matching WorkDo Image 4 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <div style={{ fontSize: 12, color: '#3b82f6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <span>Dashboard</span> <span style={{ color: '#94a3b8' }}>/</span> <span style={{ color: '#64748b' }}>Payroll</span>
+          <div style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span>Dashboard</span> <span style={{ color: 'var(--ink3)' }}>/</span> <span style={{ color: 'var(--ink2)' }}>Payroll</span>
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', margin: 0 }}>
             Payroll
           </h1>
         </div>
@@ -3112,14 +3112,14 @@ export function PayrollPage() {
           <Button
             variant="secondary"
             onClick={() => setShowSettings(true)}
-            style={{ height: 38, borderRadius: 8, padding: '0 14px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{ height: 38, borderRadius: 'var(--r)', padding: '0 14px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <Icon name="sliders" size={15} /> Statutory rates
           </Button>
           <Button
             onClick={createRun}
             disabled={busy === 'create'}
-            style={{ height: 38, background: '#3b82f6', color: '#fff', fontWeight: 700, borderRadius: 8, padding: '0 16px', fontSize: 13, border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px rgba(59,130,246,0.3)' }}
+            style={{ height: 38, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, borderRadius: 'var(--r)', padding: '0 16px', fontSize: 13, border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px hsl(var(--primary) / 0.3)' }}
           >
             <Icon name="plus" size={15} /> Add Payroll
           </Button>
@@ -3135,9 +3135,9 @@ export function PayrollPage() {
           percentages didn't even sum to 100. */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
         {/* Left Card: Payroll Summary Bar Chart */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Payroll Summary</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Payroll Summary</span>
             {availableYears.length > 0 && (
               <Select value={String(effectiveYear)} onValueChange={v => setPayrollYear(Number(v))}>
                 <SelectTrigger style={{ height: 30, borderRadius: 'var(--r-sm)', fontSize: 11.5 }}><SelectValue /></SelectTrigger>
@@ -3149,7 +3149,7 @@ export function PayrollPage() {
           </div>
 
           {yearRuns.length === 0 ? (
-            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 13 }}>
+            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 13 }}>
               No calculated payroll runs for {effectiveYear} yet.
             </div>
           ) : (
@@ -3159,73 +3159,73 @@ export function PayrollPage() {
                 const heightPct = (total / maxRunTotal) * 100;
                 return (
                   <div key={r.id} title={`${payMoney(total)} total cost`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
-                    <div style={{ width: 16, borderRadius: 3, overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', height: `${heightPct}%`, maxHeight: '100%' }}>
-                      <div style={{ height: total > 0 ? `${(net / total) * 100}%` : '0%', background: '#2563eb' }} />
-                      <div style={{ height: total > 0 ? `${(other / total) * 100}%` : '0%', background: '#f97316' }} />
+                    <div style={{ width: 16, borderRadius: 'var(--r-sm)', overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', height: `${heightPct}%`, maxHeight: '100%' }}>
+                      <div style={{ height: total > 0 ? `${(net / total) * 100}%` : '0%', background: 'var(--blue)' }} />
+                      <div style={{ height: total > 0 ? `${(other / total) * 100}%` : '0%', background: 'var(--gold)' }} />
                     </div>
-                    <span style={{ fontSize: 10, color: '#64748b' }}>{MONTH_ABBR[r.period_month - 1]}</span>
+                    <span style={{ fontSize: 10, color: 'var(--ink2)' }}>{MONTH_ABBR[r.period_month - 1]}</span>
                   </div>
                 );
               })}
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12, color: '#64748b' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb' }} /> Net pay</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f97316' }} /> Deductions &amp; employer cost</span>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12, color: 'var(--ink2)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--blue)' }} /> Net pay</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--gold)' }} /> Deductions &amp; employer cost</span>
           </div>
         </div>
 
         {/* Right Card: Company Pay Donut Chart */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Company Pay — {effectiveYear}</span>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Company Pay — {effectiveYear}</span>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', margin: '14px 0' }}>
             <div style={{
               width: 100, height: 100, borderRadius: '50%',
-              background: yearGrandTotal > 1 ? `conic-gradient(${donutGradient})` : '#e2e8f0',
+              background: yearGrandTotal > 1 ? `conic-gradient(${donutGradient})` : 'var(--border)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <div style={{ width: 62, height: 62, borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>{yearRuns.reduce((s, r) => s + payNum(r.employee_count), 0)}</span>
-                <span style={{ fontSize: 8, color: '#94a3b8' }}>Employees paid</span>
+              <div style={{ width: 62, height: 62, borderRadius: '50%', background: 'var(--white)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{yearRuns.reduce((s, r) => s + payNum(r.employee_count), 0)}</span>
+                <span style={{ fontSize: 8, color: 'var(--ink3)' }}>Employees paid</span>
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5, fontWeight: 600 }}>
               {donutSlices.map(s => (
                 <span key={s.label} style={{ color: s.color }}>
-                  ● {s.pct}% <span style={{ color: '#64748b', fontWeight: 400 }}>{s.label}</span>
+                  ● {s.pct}% <span style={{ color: 'var(--ink2)', fontWeight: 400 }}>{s.label}</span>
                 </span>
               ))}
             </div>
           </div>
 
-          <Button variant="outline" size="sm" onClick={downloadPayslipsCsv} disabled={filteredSlips.length === 0} style={{ height: 32, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)', width: '100%' }}>
+          <Button variant="outline" size="sm" onClick={downloadPayslipsCsv} disabled={filteredSlips.length === 0} style={{ height: 32, fontSize: 12, borderRadius: 'var(--r)', borderColor: 'var(--border)', width: '100%' }}>
             Download Report
           </Button>
         </div>
       </div>
 
       {/* 📋 Main Data Table Container (WorkDo Payroll Style) */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         {/* Table Filter Controls Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Payroll List</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Payroll List</span>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ position: 'relative', width: 220 }}>
-              <Icon name="search" size={14} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+              <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="text"
                 placeholder="Search..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                style={{ width: '100%', height: 34, paddingLeft: 30, paddingRight: 10, borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12.5, outline: 'none', background: '#f8fafc' }}
+                style={{ width: '100%', height: 34, paddingLeft: 30, paddingRight: 10, borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 12.5, outline: 'none', background: '#f8fafc' }}
               />
             </div>
 
-            <Button variant="outline" size="sm" onClick={downloadPayslipsCsv} disabled={filteredSlips.length === 0} style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)' }}>
+            <Button variant="outline" size="sm" onClick={downloadPayslipsCsv} disabled={filteredSlips.length === 0} style={{ height: 34, fontSize: 12, borderRadius: 'var(--r)', borderColor: 'var(--border)' }}>
               Download Report
             </Button>
           </div>
@@ -3235,18 +3235,18 @@ export function PayrollPage() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#f0f5ff', borderBottom: '1px solid #e2e8f0' }}>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Name</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Total Salary</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Over Time</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Status</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#334155' }}>Action</th>
+              <tr style={{ background: '#f0f5ff', borderBottom: '1px solid var(--border)' }}>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Name</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Total Salary</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Over Time</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Status</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {filteredSlips.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: 30, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                  <td colSpan={5} style={{ padding: 30, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
                     No payroll slips found in this run.
                   </td>
                 </tr>
@@ -3259,17 +3259,17 @@ export function PayrollPage() {
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <PersonAvatar name={p.name} size={30} userId={p.user_id} />
-                          <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{p.name}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{p.name}</span>
                         </div>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#0f172a', fontFamily: 'var(--mono)' }}>
+                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>
                         {payMoney(p.gross_pay)}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#475569', fontFamily: 'var(--mono)' }}>
+                      <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>
                         {ot > 0 ? payMoney(ot) : '—'}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: st.bg, color: st.color }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--r-sm)', background: st.bg, color: st.color }}>
                           {st.label}
                         </span>
                       </td>
@@ -3277,7 +3277,7 @@ export function PayrollPage() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                              <Icon name="moreHorizontal" size={18} color="#94a3b8" />
+                              <Icon name="moreHorizontal" size={18} color="var(--ink3)" />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -3297,7 +3297,7 @@ export function PayrollPage() {
         {/* Every loaded payslip for this run renders above — nothing is
             truncated, so this states that plainly rather than pairing it
             with a page-number control that has no second page to go to. */}
-        <div style={{ padding: '12px 20px', borderTop: '1px solid #f1f5f9', fontSize: 12, color: '#64748b' }}>
+        <div style={{ padding: '12px 20px', borderTop: '1px solid #f1f5f9', fontSize: 12, color: 'var(--ink2)' }}>
           Showing all {filteredSlips.length} of {payslips.length} entries
         </div>
       </div>
@@ -3477,16 +3477,16 @@ function PayComponentsModal({ onClose }: { onClose: () => void }) {
             <div>
               <div style={ltLabel}>Current components</div>
               {components.length === 0 ? (
-                <div style={{ fontSize:12.5, color:'var(--ink3)', background:'var(--bg)', border:'1px dashed var(--border)', borderRadius:8, padding:'12px' }}>
+                <div style={{ fontSize:12.5, color:'var(--ink3)', background:'var(--bg)', border:'1px dashed var(--border)', borderRadius: 'var(--r)', padding:'12px' }}>
                   None yet. A run will skip this person until a basic-pay component is set.
                 </div>
               ) : (
                 <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                   {components.map(c => (
-                    <div key={c.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', border:'1px solid var(--border)', borderRadius:8, background:'var(--card-sunken)' }}>
+                    <div key={c.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--card-sunken)' }}>
                       <span style={{ width:8, height:8, borderRadius:'50%', background: isEarn(c.direction) ? 'var(--green)' : 'var(--red)', flexShrink:0 }} />
                       <span style={{ fontSize:13, fontWeight:600, color:'var(--ink)', flex:1 }}>{c.name}
-                        {c.taxable && <span style={{ marginLeft:8, fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:8, background:'var(--gold-l)', color:'var(--gold)' }}>TAXABLE</span>}
+                        {c.taxable && <span style={{ marginLeft:8, fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius: 'var(--r)', background:'var(--gold-l)', color:'var(--gold)' }}>TAXABLE</span>}
                       </span>
                       <span style={{ fontSize:11, color:'var(--ink3)' }}>from {String(c.effective_from).slice(0,10)}</span>
                       <span style={{ fontSize:13, fontFamily:'var(--mono)', fontWeight:700, color: isEarn(c.direction) ? 'var(--ink)' : 'var(--red)' }}>{isEarn(c.direction) ? '' : '−'}{payMoney(c.amount)}</span>
@@ -3552,7 +3552,7 @@ export function MyPayslipsPage() {
       {loading ? (
         <PageLoading />
       ) : slips.length === 0 ? (
-        <div style={{ background:'var(--white)', border:'1px dashed var(--border)', borderRadius:12, padding:'48px 20px', textAlign:'center' }}>
+        <div style={{ background:'var(--white)', border:'1px dashed var(--border)', borderRadius: 'var(--r)', padding:'48px 20px', textAlign:'center' }}>
           <div style={{ fontSize:14, fontWeight:700, color:'var(--navy)', marginBottom:6 }}>No payslips yet</div>
           <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Once a payroll run that includes you is approved, your payslip appears here.</div>
         </div>
@@ -3629,7 +3629,7 @@ export function AnnouncementsPage() {
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 200 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Title</label>
-                <input name="title" required placeholder="e.g. Office closed for public holiday" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+                <input name="title" required placeholder="e.g. Office closed for public holiday" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Category</label>
@@ -3656,7 +3656,7 @@ export function AnnouncementsPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Message</label>
-              <textarea name="body" required rows={4} placeholder="Write the announcement..." style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const, resize: 'vertical' }} />
+              <textarea name="body" required rows={4} placeholder="Write the announcement..." style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const, resize: 'vertical' }} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <PrimaryBtn label="Post" icon="send" type="submit" />
@@ -3670,7 +3670,7 @@ export function AnnouncementsPage() {
           <div key={a.id} style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', padding:20 }}>
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, marginBottom:10 }}>
               <div>
-                <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:4, background:catBg[a.category]||'var(--bg)', color:catColor[a.category]||'var(--ink2)', marginRight:8 }}>{a.category}</span>
+                <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius: 'var(--r-sm)', background:catBg[a.category]||'var(--bg)', color:catColor[a.category]||'var(--ink2)', marginRight:8 }}>{a.category}</span>
                 <span style={{ fontSize:11, color:'var(--ink3)' }}>Visible to: {a.audience}</span>
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
@@ -3766,7 +3766,7 @@ export function HrmDashboard() {
       {/* ── SmartHR Admin Welcome & Action Header Banner ──────────────── */}
       <div style={{
         background: 'hsl(var(--primary))',
-        borderRadius: 14,
+        borderRadius: 'var(--r-lg)',
         padding: '24px 28px',
         color: 'hsl(var(--primary-foreground))',
         marginBottom: 24,
@@ -3788,7 +3788,7 @@ export function HrmDashboard() {
                   Welcome back, {user?.name || 'Admin'}!
                 </h1>
                 <span style={{
-                  fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 12,
+                  fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r)',
                   background: 'hsl(var(--primary-foreground) / 0.2)', color: 'hsl(var(--primary-foreground))', backdropFilter: 'blur(4px)',
                   textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap'
                 }}>
@@ -3803,7 +3803,7 @@ export function HrmDashboard() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <Link to="/nexushr/clock-in" style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r)',
               background: 'hsl(var(--primary-foreground) / 0.15)', color: 'hsl(var(--primary-foreground))', border: '1px solid hsl(var(--primary-foreground) / 0.25)',
               fontSize: 13, fontWeight: 600, textDecoration: 'none', transition: 'all 0.15s'
             }}>
@@ -3811,7 +3811,7 @@ export function HrmDashboard() {
             </Link>
 
             <Link to="/nexushr/employees" style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r)',
               background: 'var(--white)', color: 'hsl(var(--primary))', border: 'none',
               fontSize: 13, fontWeight: 700, textDecoration: 'none', boxShadow: 'var(--elev-sm)'
             }}>
@@ -3819,9 +3819,9 @@ export function HrmDashboard() {
             </Link>
 
             <button type="button" onClick={genInsights} disabled={aiLoading} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
-              background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', color: '#ffffff', border: 'none',
-              fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(124,58,237,0.3)'
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r)',
+              background: 'var(--purple)', color: 'var(--white)', border: 'none',
+              fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px var(--purple)'
             }}>
               <Icon name="sparkle" size={15} /> {aiLoading ? 'Analysing…' : 'AI Digest'}
             </button>
@@ -3842,7 +3842,7 @@ export function HrmDashboard() {
         >
           <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: aiErr || aiDigest ? 12 : 0 }}>Real-time automated audit across staffing, leave trends, and payroll.</div>
           {aiErr && (
-            <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--red)', background: 'rgba(239,68,68,0.08)', borderRadius: 8, padding: '10px 14px' }}>
+            <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 'var(--r)', padding: '10px 14px' }}>
               {aiErr}
             </div>
           )}
@@ -3851,7 +3851,7 @@ export function HrmDashboard() {
               {aiDigest.split('\n').filter(l => l.trim()).map((line, i) => {
                 const clean = line.replace(/^[-*•]\s*/, '');
                 return (
-                  <div key={i} style={{ display: 'flex', gap: 10, fontSize: 13, color: 'var(--ink)', lineHeight: 1.5, background: 'var(--bg)', padding: '8px 12px', borderRadius: 6 }}>
+                  <div key={i} style={{ display: 'flex', gap: 10, fontSize: 13, color: 'var(--ink)', lineHeight: 1.5, background: 'var(--bg)', padding: '8px 12px', borderRadius: 'var(--r-sm)'}}>
                     <span style={{ color: 'var(--purple)', fontWeight: 800 }}>•</span>
                     <span>{clean}</span>
                   </div>
@@ -3867,7 +3867,7 @@ export function HrmDashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
         {kpis.map(k => (
           <Link key={k.label} to={k.path} style={{
-            background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)',
+            background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)',
             padding: '18px 20px', cursor: 'pointer', transition: 'all 0.2s ease', textDecoration: 'none', color: 'inherit',
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
             boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
@@ -3882,7 +3882,7 @@ export function HrmDashboard() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k.label}</span>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: k.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: k.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name={k.icon} size={18} color={k.color} />
               </div>
             </div>
@@ -3898,11 +3898,11 @@ export function HrmDashboard() {
       {nextHoliday && (
         <div style={{
           background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))',
-          borderRadius: 12, padding: '16px 22px', marginBottom: 24,
+          borderRadius: 'var(--r)', padding: '16px 22px', marginBottom: 24,
           display: 'flex', alignItems: 'center', gap: 16, boxShadow: 'var(--elev)',
         }}>
           <div style={{
-            width: 44, height: 44, borderRadius: 10, background: 'hsl(var(--primary-foreground) / 0.15)',
+            width: 44, height: 44, borderRadius: 'var(--r)', background: 'hsl(var(--primary-foreground) / 0.15)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
             <Icon name="sun" size={22} />
@@ -3924,7 +3924,7 @@ export function HrmDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* 1. Today's Attendance Overview */}
-          <div style={{ background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="check" size={16} color="var(--green)" />
@@ -3947,21 +3947,21 @@ export function HrmDashboard() {
                         {row.val} <span style={{ color: 'var(--ink3)', fontWeight: 400, fontSize: 12 }}>({pct}%)</span>
                       </span>
                     </div>
-                    <div style={{ height: 8, borderRadius: 4, background: 'var(--border)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: row.color, borderRadius: 4, transition: 'width 0.6s ease' }} />
+                    <div style={{ height: 8, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: row.color, borderRadius: 'var(--r-sm)', transition: 'width 0.6s ease' }} />
                     </div>
                   </div>
                 );
               })}
 
-              <div style={{ marginTop: 16, padding: '14px 18px', background: 'var(--bg)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ marginTop: 16, padding: '14px 18px', background: 'var(--bg)', borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)' }}>Workforce Attendance Rate</div>
                   <div style={{ fontSize: 24, fontWeight: 800, color: attRate >= 70 ? 'var(--green)' : 'var(--red)' }}>{attRate}%</div>
                 </div>
                 <div style={{
                   padding: '6px 14px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 700,
-                  background: attRate >= 70 ? 'rgba(5,150,105,0.12)' : 'rgba(225,29,72,0.12)',
+                  background: attRate >= 70 ? 'var(--green-l)' : 'var(--red-l)',
                   color: attRate >= 70 ? 'var(--green)' : 'var(--red)'
                 }}>
                   {attRate >= 70 ? 'Optimal Presence' : 'Attention Needed'}
@@ -3971,7 +3971,7 @@ export function HrmDashboard() {
           </div>
 
           {/* 2. Department Breakdown */}
-          <div style={{ background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="building" size={16} color="var(--purple)" />
@@ -3992,8 +3992,8 @@ export function HrmDashboard() {
                       <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ width: 10, height: 10, borderRadius: '50%', background: col, flexShrink: 0 }} />
                         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', flex: 1 }}>{d.name}</span>
-                        <div style={{ width: 110, height: 6, borderRadius: 3, background: 'var(--border)', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: col, borderRadius: 3 }} />
+                        <div style={{ width: 110, height: 6, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: col, borderRadius: 'var(--r-sm)'}} />
                         </div>
                         <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', minWidth: 40, textAlign: 'right' }}>
                           {d.employees} <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>({pct}%)</span>
@@ -4007,7 +4007,7 @@ export function HrmDashboard() {
           </div>
 
           {/* 3. Recent Security & System Activity Logs */}
-          <div style={{ background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="activity" size={16} color="var(--blue)" />
@@ -4041,7 +4041,7 @@ export function HrmDashboard() {
           </div>
 
           {/* 4. Upcoming Interviews */}
-          <div style={{ background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="userPlus" size={16} color="var(--purple)" />
@@ -4071,7 +4071,7 @@ export function HrmDashboard() {
                             {iv.interviewer_name ? ` · with ${iv.interviewer_name}` : ''}
                           </div>
                         </div>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 10, background: m.bg, color: m.color, whiteSpace: 'nowrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 'var(--r)', background: m.bg, color: m.color, whiteSpace: 'nowrap' }}>
                           <Icon name={m.icon} size={10} /> {m.label}
                         </span>
                       </div>
@@ -4088,7 +4088,7 @@ export function HrmDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* 1. Payroll Runs Widget */}
-          <div style={{ background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="dollarSign" size={16} color="var(--green)" />
@@ -4104,10 +4104,10 @@ export function HrmDashboard() {
                 const st = RUN_STATUS_STYLE[latest.status] ?? RUN_STATUS_STYLE.DRAFT;
                 return (
                   <>
-                    <div style={{ padding: '16px', background: 'var(--bg)', borderRadius: 10, marginBottom: 12, border: '1px solid var(--border)' }}>
+                    <div style={{ padding: '16px', background: 'var(--bg)', borderRadius: 'var(--r)', marginBottom: 12, border: '1px solid var(--border)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{latest.name}</span>
-                        <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 9px', borderRadius: 12, background: st.bg, color: st.fg, textTransform: 'uppercase' }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--r)', background: st.bg, color: st.fg, textTransform: 'uppercase' }}>
                           {String(latest.status).replace('_',' ')}
                         </span>
                       </div>
@@ -4125,7 +4125,7 @@ export function HrmDashboard() {
                             <span style={{ fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>
                               {(Number(r.total_net || 0) / 1_000_000).toFixed(1)}M
                             </span>
-                            <span style={{ fontSize: 9.5, fontWeight: 700, padding: '2px 7px', borderRadius: 8, background: rs.bg, color: rs.fg, textTransform: 'uppercase' }}>
+                            <span style={{ fontSize: 9.5, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--r)', background: rs.bg, color: rs.fg, textTransform: 'uppercase' }}>
                               {String(r.status).replace('_',' ')}
                             </span>
                           </div>
@@ -4139,7 +4139,7 @@ export function HrmDashboard() {
           </div>
 
           {/* 2. Pending Leave Requests */}
-          <div style={{ background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="calendar" size={16} color="var(--gold)" />
@@ -4153,12 +4153,12 @@ export function HrmDashboard() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {pendingLeaves.map((l: any, idx: number) => (
-                    <div key={l.id || idx} style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div key={l.id || idx} style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{l.user_name || l.employee_name || 'Staff Member'}</div>
                         <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{l.leave_type || 'Annual Leave'} • {l.start_date || 'Upcoming'}</div>
                       </div>
-                      <Link to="/nexushr/leaves" style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: 'var(--teal-l)', color: 'var(--teal)', textDecoration: 'none' }}>
+                      <Link to="/nexushr/leaves" style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', color: 'var(--teal)', textDecoration: 'none' }}>
                         Review
                       </Link>
                     </div>
@@ -4169,7 +4169,7 @@ export function HrmDashboard() {
           </div>
 
           {/* 3. Upcoming Holidays */}
-          <div style={{ background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="sun" size={16} color="var(--teal)" />
@@ -4185,7 +4185,7 @@ export function HrmDashboard() {
                   {holidays.map((h: any, idx: number) => (
                     <div key={h.id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: idx < holidays.length - 1 ? '1px solid var(--border)' : 'none' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Icon name="sun" size={14} color="var(--teal)" />
                         </div>
                         <div>
@@ -4193,7 +4193,7 @@ export function HrmDashboard() {
                           <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{h.date || h.start_date}</div>
                         </div>
                       </div>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: 'var(--bg)', color: 'var(--ink2)' }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink2)' }}>
                         Holiday
                       </span>
                     </div>
@@ -4204,7 +4204,7 @@ export function HrmDashboard() {
           </div>
 
           {/* 4. Latest Announcements */}
-          <div style={{ background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="volume2" size={16} color="var(--ink3)" />
@@ -4232,7 +4232,7 @@ export function HrmDashboard() {
                             {a.body}
                           </div>
                           <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: catBg[a.category] || 'var(--bg)', color: catColor[a.category] || 'var(--ink2)' }}>
+                            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r-sm)', background: catBg[a.category] || 'var(--bg)', color: catColor[a.category] || 'var(--ink2)' }}>
                               {a.category || 'General'}
                             </span>
                             {a.author_name && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>By {a.author_name}</span>}
@@ -4250,7 +4250,7 @@ export function HrmDashboard() {
       </div>
 
       {/* ── SmartHR HR Hub Quick Modules Grid Section ───────────────────── */}
-      <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '20px 24px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--card-radius)', border: '1px solid var(--border)', padding: '20px 24px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>SmartHR Management Hub</h3>
@@ -4279,7 +4279,7 @@ export function HrmDashboard() {
             <Link key={m.path} to={m.path}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
-                background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10,
+                background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
                 cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none', transition: 'all 0.15s ease'
               }}
               onMouseEnter={e => {
@@ -4292,7 +4292,7 @@ export function HrmDashboard() {
                 (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
                 (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
               }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: m.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: m.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name={m.icon} size={15} color={m.color} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.25 }}>{m.label}</span>
@@ -4304,4 +4304,3 @@ export function HrmDashboard() {
     </div>
   );
 }
-

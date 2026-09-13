@@ -418,7 +418,7 @@
 
 .dd-route-status.transit {
   background: var(--blue-l, rgba(37, 99, 235, 0.12));
-  color: var(--blue, #2563eb);
+  color: var(--blue);
   border: 1px solid var(--blue-m, rgba(147, 197, 253, 0.5));
 }
 

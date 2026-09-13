@@ -120,7 +120,7 @@ function OrgPersonNode({ id, data, selected }: NodeProps<FlowNode>) {
     <div style={{
       width: NODE_WIDTH,
       background: '#ffffff',
-      borderRadius: 12,
+      borderRadius: 'var(--r)',
       border: `2px solid ${selected ? d.color : 'rgba(0,0,0,0.08)'}`,
       boxShadow: selected
         ? `0 0 0 3px ${d.color}33, 0 10px 30px rgba(0,0,0,0.14)`
@@ -154,7 +154,7 @@ function OrgPersonNode({ id, data, selected }: NodeProps<FlowNode>) {
             </div>
           )}
           {d.department && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, padding: '1px 7px', borderRadius: 4, background: `${d.color}12`, color: d.color, fontSize: 10, fontWeight: 700 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, padding: '1px 7px', borderRadius: 'var(--r-sm)', background: `${d.color}12`, color: d.color, fontSize: 10, fontWeight: 700 }}>
               <span>•</span> {d.department}
             </div>
           )}
@@ -172,7 +172,7 @@ function OrgPersonNode({ id, data, selected }: NodeProps<FlowNode>) {
         fontSize: 10.5,
       }}>
         {d.sub_reports_count > 0 ? (
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink2)', background: 'rgba(0,0,0,0.06)', padding: '2px 8px', borderRadius: 10 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink2)', background: 'rgba(0,0,0,0.06)', padding: '2px 8px', borderRadius: 'var(--r)'}}>
             +{d.sub_reports_count} report{d.sub_reports_count !== 1 ? 's' : ''}
           </span>
         ) : (
@@ -246,8 +246,8 @@ function toFlow(apiNodes: OrgNode[], onAddChild?: (id: string) => void): { nodes
       target: n.id,
       type: 'smoothstep',
       animated: false,
-      style: { stroke: '#94a3b8', strokeWidth: 2 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#64748b', width: 14, height: 14 },
+      style: { stroke: 'var(--ink3)', strokeWidth: 2 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--ink2)', width: 14, height: 14 },
     }));
 
   return { nodes, edges };
@@ -325,7 +325,7 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
     }}>
       {/* Drawer Header */}
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: form.color + '18',
+        <div style={{ width: 40, height: 40, borderRadius: 'var(--r)', background: form.color + '18',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name="user" size={18} color={form.color} />
         </div>
@@ -343,7 +343,7 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px' }}>
         {/* Link Staff Member */}
         {staffList.length > 0 && (
-          <div style={{ marginBottom: 18, padding: 12, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+          <div style={{ marginBottom: 18, padding: 12, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
               Link to Staff Directory Member
             </label>
@@ -376,7 +376,7 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
           <div key={key} style={{ marginBottom: 14 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>{label}</label>
             <input value={form[key]} onChange={set(key)} placeholder={placeholder}
-              style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', fontSize: 13, borderRadius: 7,
+              style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', fontSize: 13, borderRadius: 'var(--r)',
                 border: '1px solid var(--border)', fontFamily: 'var(--font)', color: 'var(--ink)',
                 background: 'var(--bg)', outline: 'none' }} />
           </div>
@@ -401,7 +401,7 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {directReports.map(r => (
-                <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--bg)', borderRadius: 6, fontSize: 12 }}>
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--bg)', borderRadius: 'var(--r-sm)', fontSize: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: r.data.color }} />
                     <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{r.data.label}</span>
@@ -656,7 +656,7 @@ export const OrgChart: React.FC = () => {
 
       {/* ── Error banner ── */}
       {error && (
-        <div style={{ padding: '9px 20px', background: 'rgba(239,68,68,0.08)', borderBottom: '1px solid rgba(239,68,68,0.2)',
+        <div style={{ padding: '9px 20px', background: 'var(--red-l)', borderBottom: '1px solid var(--red)',
           display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, zIndex: 5 }}>
           <Icon name="alertCircle" size={14} color="var(--red)" />
           <span style={{ fontSize: 12.5, color: 'var(--red)', flex: 1 }}>{error}</span>
@@ -697,17 +697,17 @@ export const OrgChart: React.FC = () => {
           maxZoom={2}
           defaultEdgeOptions={{
             type: 'smoothstep',
-            style: { stroke: '#94a3b8', strokeWidth: 2 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#64748b', width: 14, height: 14 },
+            style: { stroke: 'var(--ink3)', strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--ink2)', width: 14, height: 14 },
           }}
           style={{ background: '#f8fafc' }}
           proOptions={{ hideAttribution: true }}
         >
-          <Background color="#cbd5e1" gap={24} size={1.5} />
-          <Controls style={{ boxShadow: 'var(--elev)', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }} />
+          <Background color="var(--border)" gap={24} size={1.5} />
+          <Controls style={{ boxShadow: 'var(--elev)', borderRadius: 'var(--r)', overflow: 'hidden', border: '1px solid var(--border)' }} />
           <MiniMap
             nodeColor={(n) => (n.data as any).color ?? '#0891b2'}
-            style={{ borderRadius: 10, border: '1px solid var(--border)', background: 'var(--white)' }}
+            style={{ borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)' }}
             pannable
             zoomable
           />
@@ -720,7 +720,7 @@ export const OrgChart: React.FC = () => {
                 <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                   Filter Department
                 </span>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', background: 'rgba(8,145,178,0.1)', padding: '1px 6px', borderRadius: 4 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 'var(--r-sm)'}}>
                   {nodes.length} Nodes
                 </span>
               </div>
@@ -739,7 +739,7 @@ export const OrgChart: React.FC = () => {
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {Object.entries(DEPT_COLORS).slice(0, 5).map(([dept, color]) => (
-                  <div key={dept} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ink2)', padding: '2px 6px', borderRadius: 4, background: `${color}12` }}>
+                  <div key={dept} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ink2)', padding: '2px 6px', borderRadius: 'var(--r-sm)', background: `${color}12` }}>
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
                     {dept}
                   </div>
@@ -791,7 +791,7 @@ export const OrgChart: React.FC = () => {
 
             {/* Import from Staff selector */}
             {staffList.length > 0 && (
-              <div style={{ marginBottom: 14, padding: 12, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+              <div style={{ marginBottom: 14, padding: 12, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', display: 'block', marginBottom: 6 }}>
                   Quick Import from Employee Directory
                 </label>
@@ -834,7 +834,7 @@ export const OrgChart: React.FC = () => {
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>{label}</label>
                 <input value={addForm[key]} onChange={e => setAddForm(f => ({ ...f, [key]: e.target.value }))}
                   placeholder={placeholder}
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 11px', fontSize: 13, borderRadius: 7,
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 11px', fontSize: 13, borderRadius: 'var(--r)',
                     border: '1px solid var(--border)', fontFamily: 'var(--font)', color: 'var(--ink)',
                     background: 'var(--bg)', outline: 'none' }} />
               </div>

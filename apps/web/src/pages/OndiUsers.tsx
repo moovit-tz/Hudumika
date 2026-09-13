@@ -58,7 +58,7 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
     }
   }
 
-  const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' as const };
+  const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' as const };
 
   return (
     <div className="ondi-modal-backdrop" onClick={onClose}>
@@ -87,10 +87,10 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
               </SelectContent>
             </Select>
           </div>
-          {error && <div style={{ fontSize: 12, color: 'var(--red)', background: 'var(--red-l)', padding: '8px 12px', borderRadius: 6 }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: 'var(--red)', background: 'var(--red-l)', padding: '8px 12px', borderRadius: 'var(--r-sm)'}}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
-            <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-            <button type="submit" disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+            <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+            <button type="submit" disabled={saving} style={{ padding: '8px 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, boxShadow: '0 2px 8px var(--teal-m)' }}>
               {saving ? 'Sending…' : 'Send Invitation'}
             </button>
           </div>
@@ -255,7 +255,7 @@ export const OndiUsers: React.FC = () => {
         subtitle="Manage seated members, assigned administrative roles, and pending tenant invitations."
         actions={canManage ? (
           <button type="button" onClick={() => setShowInvite(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 8, padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px var(--teal-m)' }}>
             <Icon name="userPlus" size={15} /> Invite User
           </button>
         ) : undefined}
@@ -299,10 +299,10 @@ export const OndiUsers: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Join Requests</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#eff6ff', color: '#1d4ed8' }}><Icon name="userCheck" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--blue-l)', color: 'var(--blue)' }}><Icon name="userCheck" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#1d4ed8' }}>{joinRequests.length}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--blue)' }}>{joinRequests.length}</span>
             <span className="ondi-kpi-sub">auto-domain requests</span>
           </div>
         </div>
@@ -362,7 +362,7 @@ export const OndiUsers: React.FC = () => {
               />
 
               <button type="button" onClick={exportCSV}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }}>
                 <Icon name="download" size={14} /> Export CSV
               </button>
             </div>
@@ -394,7 +394,7 @@ export const OndiUsers: React.FC = () => {
                       </td>
                       <td style={{ fontWeight: 700, color: 'var(--ink)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <PersonAvatar userId={u.id} name={u.name} size={32} style={{ border: '1px solid var(--border-soft)' }} />
+                          <PersonAvatar userId={u.id} name={u.name} size={32} style={{ border: '1px solid var(--border)' }} />
                           {u.name}
                         </div>
                       </td>
@@ -406,7 +406,7 @@ export const OndiUsers: React.FC = () => {
                         </span>
                       </td>
                       <td>
-                        <span style={{ fontSize: 11.5, fontWeight: 700, background: 'var(--bg)', border: '1px solid var(--border-soft)', padding: '3px 8px', borderRadius: 6, color: 'var(--ink)' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, background: 'var(--bg)', border: '1px solid var(--border)', padding: '3px 8px', borderRadius: 'var(--r-sm)', color: 'var(--ink)' }}>
                           {u.role}
                         </span>
                       </td>
@@ -414,7 +414,7 @@ export const OndiUsers: React.FC = () => {
                       <td style={{ textAlign: 'right' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6, borderRadius: 6 }}>
+                            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6, borderRadius: 'var(--r-sm)'}}>
                               <Icon name="moreVertical" size={16} />
                             </button>
                           </DropdownMenuTrigger>
@@ -446,7 +446,7 @@ export const OndiUsers: React.FC = () => {
       {/* ── Tab 2: Invites Table ─────────────────────────────────────────────── */}
       {activeTab === 'invites' && (
         <SectionCard padded={false}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-soft)', fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
             Pending Invitations ({invites.length})
           </div>
 
@@ -468,7 +468,7 @@ export const OndiUsers: React.FC = () => {
                   return (
                     <tr key={i.id}>
                       <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{i.email}</td>
-                      <td><span style={{ fontSize: 11.5, fontWeight: 700, background: 'var(--bg)', border: '1px solid var(--border-soft)', padding: '3px 8px', borderRadius: 6 }}>{i.role}</span></td>
+                      <td><span style={{ fontSize: 11.5, fontWeight: 700, background: 'var(--bg)', border: '1px solid var(--border)', padding: '3px 8px', borderRadius: 'var(--r-sm)'}}>{i.role}</span></td>
                       <td>
                         <span className={`ondi-status-pill ${statusClass}`}>
                           <span className="ondi-status-dot" />
@@ -512,7 +512,7 @@ export const OndiUsers: React.FC = () => {
       {/* ── Tab 3: Join Requests ─────────────────────────────────────────────── */}
       {activeTab === 'join-requests' && canManage && (
         <SectionCard padded={false}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-soft)' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Auto-Domain Join Requests ({joinRequests.length})</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
               People who registered with an email on this workspace's domain requesting account access.
@@ -535,7 +535,7 @@ export const OndiUsers: React.FC = () => {
                   <tr key={r.id}>
                     <td style={{ fontWeight: 700, color: 'var(--ink)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <PersonAvatar name={r.name} size={30} style={{ border: '1px solid var(--border-soft)' }} />
+                        <PersonAvatar name={r.name} size={30} style={{ border: '1px solid var(--border)' }} />
                         {r.name}
                       </div>
                     </td>
@@ -545,7 +545,7 @@ export const OndiUsers: React.FC = () => {
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+                            <button type="button" style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
                               Approve as…
                             </button>
                           </DropdownMenuTrigger>
@@ -558,7 +558,7 @@ export const OndiUsers: React.FC = () => {
                           </DropdownMenuContent>
                         </DropdownMenu>
                         <button type="button" onClick={() => denyJoinRequest(r.id)}
-                          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red)', borderRadius: 6, padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+                          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red)', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
                           Deny
                         </button>
                       </div>

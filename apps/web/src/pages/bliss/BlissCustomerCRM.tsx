@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/button.js';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { Icon } from '../../components/Icon.js';
 import { useMediaQuery } from '../../hooks/useMediaQuery.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { apiFetch } from '../../lib/api.js';
 
 /** Real customer directory — this used to be 3 hand-invented records with
@@ -114,7 +115,7 @@ export const BlissCustomerCRM: React.FC = () => {
             <input className="input-field" placeholder="Search customers..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <div style={{ maxHeight: 600, overflowY: 'auto' }}>
-            {loading && <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>}
+            {loading && <SectionLoading />}
             {!loading && customers.length === 0 && (
               <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No customers found.</div>
             )}
@@ -230,7 +231,7 @@ export const BlissCustomerCRM: React.FC = () => {
                       <div>
                         <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Recent Tickets</h4>
                         {ticketsLoading ? (
-                          <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading…</div>
+                          <SectionLoading size={16} style={{ padding: '10px 0' }} />
                         ) : tickets.length === 0 ? (
                           <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No conversations yet.</div>
                         ) : (
@@ -248,7 +249,7 @@ export const BlissCustomerCRM: React.FC = () => {
                   )}
 
                   {activeTab === 'tickets' && (
-                    ticketsLoading ? <div style={{ textAlign: 'center', padding: 30, color: 'var(--ink3)', fontSize: 13 }}>Loading…</div> :
+                    ticketsLoading ? <SectionLoading /> :
                     tickets.length === 0 ? <div style={{ textAlign: 'center', padding: 30, color: 'var(--ink3)', fontSize: 13 }}>No tickets for this customer.</div> : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {tickets.map(t => (
@@ -265,7 +266,7 @@ export const BlissCustomerCRM: React.FC = () => {
                   )}
 
                   {activeTab === 'shipments' && (
-                    shipmentsLoading ? <div style={{ textAlign: 'center', padding: 30, color: 'var(--ink3)', fontSize: 13 }}>Loading…</div> :
+                    shipmentsLoading ? <SectionLoading /> :
                     shipments.length === 0 ? <div style={{ textAlign: 'center', padding: 30, color: 'var(--ink3)', fontSize: 13 }}>No shipments for this customer.</div> : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {shipments.map(s => (

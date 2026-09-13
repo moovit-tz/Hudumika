@@ -94,7 +94,7 @@ export const TrackingAssignments: React.FC = () => {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 12 }}>
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink3)' }}>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink3)' }}>
             <Icon name="search" size={14} /> Search
           </div>
           <button style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -108,14 +108,14 @@ export const TrackingAssignments: React.FC = () => {
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', width: 140, textAlign: 'center' }}>{formatDate(currentDate)}</div>
             <button onClick={nextDay} aria-label="Next day" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="chevronRight" size={16} /></button>
           </div>
-          <div style={{ display: 'flex', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
             <button style={{ padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--bg)', border: 'none', borderRight: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>Today</button>
             <button style={{ padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--white)', border: 'none', fontSize: 12, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>Day <Icon name="chevronDown" size={10} /></button>
           </div>
         </div>
       </div>
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
           <div style={{ width: 250, padding: '12px 16px', fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', borderRight: '1px solid var(--border)' }}>Vehicles</div>
           <div style={{ flex: 1, display: 'flex' }}>
@@ -135,7 +135,7 @@ export const TrackingAssignments: React.FC = () => {
               return (
                 <div key={v.id} style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
                   <div style={{ width: 250, padding: '16px', borderRight: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Icon name="truck" size={20} color="var(--ink3)" />
                     </div>
                     <div>
@@ -154,7 +154,7 @@ export const TrackingAssignments: React.FC = () => {
                       const textColors = ['#3730a3', '#065f46', '#9d174d', '#92400e'];
                       const cIdx = j % colors.length;
                       return (
-                        <div key={a.id} style={{ position: 'relative', zIndex: 1, marginLeft: 20 + (j*100), background: colors[cIdx], borderRadius: 6, padding: '8px 12px', minWidth: 200, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div key={a.id} style={{ position: 'relative', zIndex: 1, marginLeft: 20 + (j*100), background: colors[cIdx], borderRadius: 'var(--r-sm)', padding: '8px 12px', minWidth: 200, display: 'flex', flexDirection: 'column', gap: 4 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: textColors[cIdx] }}>
                             <PersonAvatar userId={a.driver_id} kind="drivers" name={a.driver_name} size={18} />
                             {a.driver_name}
@@ -204,12 +204,12 @@ const AddAssignmentModal = ({ onClose, onSave }: { onClose: () => void, onSave: 
     }
   };
 
-  const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' };
+  const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' };
   const labelStyle = { display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 };
 
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
-      <DialogContent hideClose className="max-w-100 gap-0" style={{ borderRadius: 12, padding: 24 }}>
+      <DialogContent hideClose className="max-w-100 gap-0" style={{ borderRadius: 'var(--r)', padding: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <DialogTitle style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>Add Assignment</DialogTitle>
           <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>

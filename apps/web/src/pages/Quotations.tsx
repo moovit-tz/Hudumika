@@ -128,12 +128,12 @@ const SERVICE_GROUPS: { label: string; items: ServiceItem[] }[] = [
 // -- Constants -----------------------------------------------------------------
 
 const STATUS_CFG: Record<StatusKey, { bg: string; color: string; label: string }> = {
-  DRAFT:     { bg: 'rgba(100,116,139,0.1)', color: 'var(--ink2)',        label: 'Draft'     },
-  PENDING:   { bg: 'rgba(245,158,11,0.12)', color: 'var(--gold)',    label: 'Pending'   },
-  APPROVED:  { bg: 'rgba(16,185,129,0.12)', color: 'var(--green)',   label: 'Approved'  },
-  REJECTED:  { bg: 'rgba(239,68,68,0.1)',   color: 'var(--red)',     label: 'Rejected'  },
-  CONVERTED: { bg: 'rgba(59,130,246,0.12)', color: 'var(--blue)',    label: 'Converted' },
-  EXPIRED:   { bg: 'rgba(107,114,128,0.1)', color: 'var(--ink2)',        label: 'Expired'   },
+  DRAFT:     { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))',        label: 'Draft'     },
+  PENDING:   { bg: 'var(--gold-l)', color: 'var(--gold)',    label: 'Pending'   },
+  APPROVED:  { bg: 'var(--green-l)', color: 'var(--green)',   label: 'Approved'  },
+  REJECTED:  { bg: 'var(--red-l)',   color: 'var(--red)',     label: 'Rejected'  },
+  CONVERTED: { bg: 'var(--blue-l)', color: 'var(--blue)',    label: 'Converted' },
+  EXPIRED:   { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))',        label: 'Expired'   },
 };
 
 const CATEGORIES = ['FREIGHT','CLEARANCE','HANDLING','TRANSPORT','DUTY','INSURANCE','OTHER'];
@@ -279,14 +279,14 @@ function printQuote(q: Quote) {
 
   const rowsHtml = lines.map((l,i)=>`
     <tr style="border-bottom:1px solid #e2e8f0">
-      <td style="padding:8px 10px;color:var(--ink3);font-size:12px">${i+1}</td>
+      <td style="padding:8px 10px;color:#94a3b8;font-size:12px">${i+1}</td>
       <td style="padding:8px 10px">
         <div style="font-weight:600;font-size:13px">${l.description}</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:2px">${CAT_LABEL[l.category]??l.category}</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px">${CAT_LABEL[l.category]??l.category}</div>
       </td>
       <td style="padding:8px 10px;text-align:right;font-size:13px">${l.quantity}</td>
       <td style="padding:8px 10px;text-align:right;font-size:13px">${fmt(l.unit_price,q.currency)}</td>
-      <td style="padding:8px 10px;text-align:right;font-size:12px;color:var(--ink3)">${l.tax_rate}%</td>
+      <td style="padding:8px 10px;text-align:right;font-size:12px;color:#94a3b8">${l.tax_rate}%</td>
       <td style="padding:8px 10px;text-align:right;font-size:13px;font-weight:700">${fmt(l.line_total,q.currency)}</td>
     </tr>`).join('');
 
@@ -339,7 +339,7 @@ function printQuote(q: Quote) {
     <div class="box">
       <div class="box-lbl">Bill To</div>
       <div class="box-val">${q.customer_name}</div>
-      ${q.customer_company?`<div style="font-size:12px;color:var(--ink2);margin-bottom:8px">${q.customer_company}</div>`:''}
+      ${q.customer_company?`<div style="font-size:12px;color:#64748b;margin-bottom:8px">${q.customer_company}</div>`:''}
       ${q.customer_email?`<div class="box-row"><span>Email</span><span>${q.customer_email}</span></div>`:''}
       ${q.customer_phone?`<div class="box-row"><span>Phone</span><span>${q.customer_phone}</span></div>`:''}
     </div>
@@ -362,7 +362,7 @@ function printQuote(q: Quote) {
   </table>
   <div class="totals-wrap"><div class="totals">
     <div class="trow"><span>Subtotal</span><span>${fmt(q.subtotal,q.currency)}</span></div>
-    <div class="trow"><span style="color:var(--ink3)">Tax</span><span style="color:var(--ink3)">${fmt(q.tax_amount,q.currency)}</span></div>
+    <div class="trow"><span style="color:#94a3b8">Tax</span><span style="color:#94a3b8">${fmt(q.tax_amount,q.currency)}</span></div>
     <div class="trow"><span>Total</span><span>${fmt(q.total_amount,q.currency)}</span></div>
   </div></div>
   ${q.notes?`<div class="section"><h4>Notes</h4><p>${q.notes}</p></div>`:''}
@@ -405,7 +405,7 @@ function ContactSelector({ customers, leads, value, onChange }: {
   const selected = allOptions.find(c=>c.id===value);
 
   const tabS = (active:boolean): React.CSSProperties => ({
-    flex:1, padding:'7px', border:'none', borderRadius:6, cursor:'pointer', fontWeight:600, fontSize:12,
+    flex:1, padding:'7px', border:'none', borderRadius: 'var(--r-sm)', cursor:'pointer', fontWeight:600, fontSize:12,
     background:active?'var(--white)':'transparent', color:active?'var(--ink)':'var(--ink3)',
     boxShadow:active?'0 1px 4px rgba(0,0,0,0.08)':'none',
   });
@@ -417,7 +417,7 @@ function ContactSelector({ customers, leads, value, onChange }: {
           role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o=>!o); } }}
           style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', cursor:'pointer', background:'var(--white)', minHeight:'var(--ctl-h)', boxSizing:'border-box' as const }}>
           {selected
-            ? <><Av name={selected.label} size={22}/><div><span style={{ fontSize:13, fontWeight:600 }}>{selected.label}</span>{selected.company&&<span style={{ fontSize:11, color:'var(--ink3)', marginLeft:6 }}>{selected.company}</span>}</div><span style={{ marginLeft:4, fontSize:10, background: selected.type==='lead'?'var(--gold-l)':'var(--teal-l)', color:selected.type==='lead'?'var(--gold)':'var(--teal)', borderRadius:4, padding:'2px 6px', fontWeight:700 }}>{selected.type==='lead'?'LEAD':'CLIENT'}</span></>
+            ? <><Av name={selected.label} size={22}/><div><span style={{ fontSize:13, fontWeight:600 }}>{selected.label}</span>{selected.company&&<span style={{ fontSize:11, color:'var(--ink3)', marginLeft:6 }}>{selected.company}</span>}</div><span style={{ marginLeft:4, fontSize:10, background: selected.type==='lead'?'var(--gold-l)':'var(--teal-l)', color:selected.type==='lead'?'var(--gold)':'var(--teal)', borderRadius: 'var(--r-sm)', padding:'2px 6px', fontWeight:700 }}>{selected.type==='lead'?'LEAD':'CLIENT'}</span></>
             : <span style={{ fontSize:13, color:'var(--ink3)' }}>Select customer or lead...</span>
           }
           <Icon name="chevronDown" size={14} style={{ marginLeft:'auto', color:'var(--ink3)' } as React.CSSProperties}/>
@@ -427,7 +427,7 @@ function ContactSelector({ customers, leads, value, onChange }: {
         onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
         <div style={{ padding:'10px 10px 8px' }}>
           <input type="text" title="Search contacts" placeholder="Search..." value={q} onChange={e=>setQ(e.target.value)} autoFocus
-            style={{ width:'100%', padding:'7px 10px', border:'1px solid var(--border)', borderRadius:6, fontSize:13, outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}/>
+            style={{ width:'100%', padding:'7px 10px', border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize:13, outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}/>
           <div style={{ display:'flex', gap:4, background:'var(--bg)', borderRadius: 'var(--r)', padding:3 }}>
             <button type="button" title="Show customers" onClick={()=>setTab('customers')} style={tabS(tab==='customers')}>Customers ({custOptions.length})</button>
             <button type="button" title="Show leads" onClick={()=>setTab('leads')} style={tabS(tab==='leads')}>Leads ({leadOptions.length})</button>
@@ -446,7 +446,7 @@ function ContactSelector({ customers, leads, value, onChange }: {
                     <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{c.label}</div>
                     <div style={{ fontSize:11, color:'var(--ink3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.sub}</div>
                   </div>
-                  <span style={{ fontSize:10, background:c.type==='lead'?'var(--gold-l)':'var(--teal-l)', color:c.type==='lead'?'var(--gold)':'var(--teal)', borderRadius:4, padding:'2px 6px', fontWeight:700, flexShrink:0 }}>{c.type==='lead'?'LEAD':'CLIENT'}</span>
+                  <span style={{ fontSize:10, background:c.type==='lead'?'var(--gold-l)':'var(--teal-l)', color:c.type==='lead'?'var(--gold)':'var(--teal)', borderRadius: 'var(--r-sm)', padding:'2px 6px', fontWeight:700, flexShrink:0 }}>{c.type==='lead'?'LEAD':'CLIENT'}</span>
                 </div>
               ))
           }
@@ -472,7 +472,7 @@ function ServicePicker({ onSelect }: {
     <div style={{ width:480, display:'flex', flexDirection:'column', maxHeight:400 }}>
       <div style={{ padding:'10px 12px', borderBottom:'1px solid var(--border)' }}>
         <input type="text" title="Search services" placeholder="Search freight services..." value={q} onChange={e=>setQ(e.target.value)} autoFocus
-          style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius:7, fontSize:13, outline:'none', boxSizing:'border-box' as const }}/>
+          style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', boxSizing:'border-box' as const }}/>
       </div>
       <div style={{ overflowY:'auto', flex:1, padding:'8px 0' }}>
         {groups.map(g=>{
@@ -528,7 +528,7 @@ function LineItemsEditor({ lines, currency, onChange }: {
   }
 
   const {subtotal,tax,total} = calcTotals(lines);
-  const inpS: React.CSSProperties = { padding:'7px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:12.5, width:'100%', outline:'none', background:'var(--white)', boxSizing:'border-box' as const };
+  const inpS: React.CSSProperties = { padding:'7px 8px', border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize:12.5, width:'100%', outline:'none', background:'var(--white)', boxSizing:'border-box' as const };
 
   return (
     <div style={{ position:'relative' }}>
@@ -806,7 +806,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
             <div style={{ padding:16, display:'flex', alignItems:'center', gap:12 }}>
               {docLogoSrc
                 ? <img src={docLogoSrc} alt={co.name} style={{ height:36, maxWidth:100, objectFit:'contain' }}/>
-                : <div style={{ width:40, height:36, background:'hsl(var(--primary))', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', color:'hsl(var(--primary-foreground))', fontWeight:800, fontSize:11 }}>LOGO</div>
+                : <div style={{ width:40, height:36, background:'hsl(var(--primary))', borderRadius: 'var(--r-sm)', display:'flex', alignItems:'center', justifyContent:'center', color:'hsl(var(--primary-foreground))', fontWeight:800, fontSize:11 }}>LOGO</div>
               }
               <div>
                 <div style={{ fontSize:13, fontWeight:700 }}>{co.name}</div>
@@ -947,7 +947,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
                   </div>
                 )}
                 {quote.rejection_reason&&(
-                  <div style={{ marginTop:14, padding:'10px 14px', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r)', fontSize:13, color:'var(--red)' }}>
+                  <div style={{ marginTop:14, padding:'10px 14px', background:'var(--red-l)', border:'1px solid var(--red)', borderRadius: 'var(--r)', fontSize:13, color:'var(--red)' }}>
                     <strong>Rejection reason: </strong>{quote.rejection_reason}
                   </div>
                 )}
@@ -972,7 +972,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
                             <td style={{ padding:'10px 14px', color:'var(--ink3)', width:36 }}>{i+1}</td>
                             <td style={{ padding:'10px 14px', fontWeight:600 }}>{l.description}</td>
                             <td style={{ padding:'10px 14px' }}>
-                              <span style={{ padding:'2px 8px', background:'var(--bg)', borderRadius:4, fontSize:11, fontWeight:600, color:'var(--ink2)' }}>{CAT_LABEL[l.category]??l.category}</span>
+                              <span style={{ padding:'2px 8px', background:'var(--bg)', borderRadius: 'var(--r-sm)', fontSize:11, fontWeight:600, color:'var(--ink2)' }}>{CAT_LABEL[l.category]??l.category}</span>
                             </td>
                             <td style={{ padding:'10px 14px', textAlign:'right' }}>{l.quantity}</td>
                             <td style={{ padding:'10px 14px', textAlign:'right' }}>{fmt(l.unit_price,quote.currency)}</td>
@@ -1050,11 +1050,11 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
                 <div style={{ borderTop:'1px solid var(--border)', paddingTop:8, marginTop:4, display:'flex', flexDirection:'column', gap:8 }}>
                   {quote.status==='DRAFT'&&<button type="button" title="Submit" onClick={()=>act('submit',()=>onStatusChange('PENDING'))} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--gold)', color:'hsl(var(--gold-foreground))', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="send" size={14}/>{busy==='submit'?'Submitting...':'Submit for Approval'}</button>}
                   {quote.status==='PENDING'&&<><button type="button" title="Approve" onClick={()=>act('approve',()=>onStatusChange('APPROVED'))} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--green)', color:'hsl(var(--green-foreground))', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="checkCircle" size={14}/>{busy==='approve'?'Approving...':'Approve'}</button>
-                  <button type="button" title="Reject" onClick={()=>setShowReject(true)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'1px solid rgba(239,68,68,0.25)', borderRadius: 'var(--r)', background:'rgba(239,68,68,0.06)', color:'var(--red)', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="xCircle" size={14}/>Reject</button></>}
+                  <button type="button" title="Reject" onClick={()=>setShowReject(true)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'1px solid var(--red)', borderRadius: 'var(--r)', background:'var(--red-l)', color:'var(--red)', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="xCircle" size={14}/>Reject</button></>}
                   {quote.status==='APPROVED'&&<button type="button" title="Convert to Shipment" onClick={()=>act('convert',onConvert)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--navy)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="ship" size={14}/>{busy==='convert'?'Converting...':'Convert to Shipment'}</button>}
                 </div>
 
-                <button type="button" title="Delete" onClick={()=>act('delete',onDelete)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:9, border:'1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r)', background:'none', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:12, marginTop:4 }}>
+                <button type="button" title="Delete" onClick={()=>act('delete',onDelete)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:9, border:'1px solid var(--red)', borderRadius: 'var(--r)', background:'none', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:12, marginTop:4 }}>
                   <Icon name="trash" size={13}/> {busy==='delete'?'Deleting...':'Delete Quotation'}
                 </button>
               </div>
@@ -1218,10 +1218,10 @@ export const Quotations: React.FC = () => {
         <div style={{ display:'flex', gap:6, flexWrap: 'wrap' }}>
           {STATUS_TABS.map(t=>(
             <button key={t.key} type="button" title={`Filter: ${t.label}`} onClick={()=>setFilter(t.key)}
-              style={{ padding:'7px 16px', fontSize:12.5, fontWeight:700, border:'1px solid var(--border)', borderRadius:20, cursor:'pointer', transition:'all 0.15s ease', background:filter===t.key?'hsl(var(--primary))':'var(--white)', color:filter===t.key?'hsl(var(--primary-foreground))':'var(--ink2)', boxShadow:filter===t.key?'0 2px 8px rgba(14,31,61,0.25)':'none' }}>
+              style={{ padding:'7px 16px', fontSize:12.5, fontWeight:700, border:'1px solid var(--border)', borderRadius:20, cursor:'pointer', transition:'all 0.15s ease', background:filter===t.key?'hsl(var(--primary))':'var(--white)', color:filter===t.key?'hsl(var(--primary-foreground))':'var(--ink2)', boxShadow:filter===t.key?'0 2px 8px hsl(var(--primary) / 0.25)':'none' }}>
               {t.label}
               {t.key!=='ALL'&&quotes.filter(q=>q.status===t.key).length>0&&(
-                <span style={{ marginLeft:6, background:filter===t.key?'rgba(255,255,255,0.25)':'var(--border)', borderRadius: 10, padding:'1px 6px', fontSize:10, fontWeight:700 }}>{quotes.filter(q=>q.status===t.key).length}</span>
+                <span style={{ marginLeft:6, background:filter===t.key?'rgba(255,255,255,0.25)':'var(--border)', borderRadius: 'var(--r)', padding:'1px 6px', fontSize:10, fontWeight:700 }}>{quotes.filter(q=>q.status===t.key).length}</span>
               )}
             </button>
           ))}
@@ -1230,7 +1230,7 @@ export const Quotations: React.FC = () => {
           <div style={{ position:'relative', minWidth:220 }}>
             <Icon name="search" size={14} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--ink3)' } as React.CSSProperties}/>
             <input type="search" placeholder="Search quotes, customers..." value={search} onChange={e=>setSearch(e.target.value)}
-              style={{ width:'100%', paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid var(--border)', borderRadius: 8, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const }}/>
+              style={{ width:'100%', paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const }}/>
           </div>
           <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="download" size={13}/> Export CSV

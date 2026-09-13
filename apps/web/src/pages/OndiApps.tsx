@@ -247,7 +247,7 @@ export const OndiApps: React.FC = () => {
             </div>
           </div>
           <div className="oa-kpi-body">
-            <div className="oa-kpi-val" style={{ color: 'var(--green, #10b981)' }}>
+            <div className="oa-kpi-val" style={{ color: 'var(--green)' }}>
               {firstPartyCount}
             </div>
             <div className="oa-kpi-sub">First-party platform apps</div>
@@ -262,7 +262,7 @@ export const OndiApps: React.FC = () => {
             </div>
           </div>
           <div className="oa-kpi-body">
-            <div className="oa-kpi-val" style={{ color: 'var(--purple, #8b5cf6)' }}>
+            <div className="oa-kpi-val" style={{ color: 'var(--purple)' }}>
               {thirdPartyCount}
             </div>
             <div className="oa-kpi-sub">Third-party integrations</div>

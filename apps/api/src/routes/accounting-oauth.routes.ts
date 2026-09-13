@@ -2,8 +2,10 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { encryptSecret } from '../services/onsite-secrets.service.js';
 import { getAdapter, isProviderConfigured, type AccountingProvider } from '../services/accounting-integration.service.js';
+import { requireRole } from '../middleware/rbac.js';
 
 const PROVIDERS: AccountingProvider[] = ['QUICKBOOKS', 'XERO'];
+const ACCOUNTING_SETTINGS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
 
 /** Must be byte-identical between the /authorize redirect and the /callback
  *  token exchange (OAuth spec requirement) — same approach as mail-oauth.routes.ts. */
@@ -35,7 +37,11 @@ export async function accountingOAuthRoutes(fastify: FastifyInstance) {
     // GET /:provider/authorize — returns the authorize URL as JSON (this
     // app keeps its JWT in localStorage, not a cookie, so the route the
     // browser navigates to directly can't itself be auth-gated).
-    fastify.get(`/${provider}/authorize`, { preHandler: fastify.authenticate }, async (request, reply) => {
+    // HUD-0024 continuation: same shape as mail-oauth.routes.ts's own gap
+    // (HUD-0034) — the signed state carries only tenantId, so any
+    // authenticated user could otherwise complete this with their own
+    // QuickBooks/Xero account and hijack the tenant's accounting sync.
+    fastify.get(`/${provider}/authorize`, { preHandler: [fastify.authenticate, requireRole(...ACCOUNTING_SETTINGS_ROLES)] }, async (request, reply) => {
       if (!isProviderConfigured(provider)) {
         return reply.status(400).send({ error: `${provider} is not configured on this platform yet — no Client ID/Secret is set.` });
       }

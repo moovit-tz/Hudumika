@@ -84,7 +84,7 @@ export const FinanceExpenseCategories: React.FC = () => {
             {adding && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input type="color" title="Pick category colour" value={newColor} onChange={e => setNewColor(e.target.value)}
-                  style={{ width: 32, height: 32, padding: 0, border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer' }} />
+                  style={{ width: 32, height: 32, padding: 0, border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer' }} />
                 <input className="input-field" placeholder="Category name" autoFocus value={newName}
                   onChange={e => setNewName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') doAdd(); if (e.key === 'Escape') setAdding(false); }}

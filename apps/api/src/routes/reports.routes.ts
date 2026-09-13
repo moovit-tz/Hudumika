@@ -1,9 +1,18 @@
 import type { FastifyInstance } from 'fastify';
 import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
+import { requireRole } from '../middleware/rbac.js';
+
+// Same set invoices.routes.ts/products.routes.ts already trust with the
+// underlying sales_invoices/supplier_bills tables this file reads.
+const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'] as const;
 
 export async function reportsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // HUD-0024 continuation: this had no role check at all — any authenticated
+  // user, including CUSTOMER, could pull the tenant's whole revenue/expense
+  // journal and financial summary.
+  fastify.addHook('preHandler', requireRole(...FIN_ROLES));
 
   // GET /v1/reports/journal?date_from=&date_to=
   fastify.get('/journal', async (req) => {

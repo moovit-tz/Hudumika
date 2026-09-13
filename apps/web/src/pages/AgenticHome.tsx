@@ -220,7 +220,7 @@ export const AgenticHome: React.FC = () => {
             </TabsList>
           </Tabs>
           <div className="ah-header-search">
-            <Icon name="search" size={13} color="var(--ink4)" />
+            <Icon name="search" size={13} color="var(--ink3)" />
             <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search…" />
             {searchFlat.length > 0 && (
               <div className="ah-search-dropdown">

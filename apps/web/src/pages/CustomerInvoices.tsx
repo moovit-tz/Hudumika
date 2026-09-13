@@ -12,6 +12,8 @@ import {
   invoiceTotals, STATUS_STYLE, mapApiInvoice, fmtTZS,
 } from './Billing.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
+import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
 
 /* ── helpers ── */
 function fmtDate(str?: string | null) {
@@ -43,11 +45,11 @@ function InvoiceCard({ inv, onClick }: { inv: Invoice; onClick: () => void }) {
     <button type="button" title={`Open ${inv.id}`} onClick={onClick} style={{
       display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer',
       background: 'var(--white)',
-      border: `1px solid ${isOverdue ? '#fca5a5' : 'var(--border)'}`,
+      border: `1px solid ${isOverdue ? 'var(--red)' : 'var(--border)'}`,
       borderLeft: `4px solid ${st.color}`,
       borderRadius: 'var(--r)', padding: '16px',
       fontFamily: 'var(--font)',
-      boxShadow: isOverdue ? '0 0 0 1px #fca5a5' : 'none',
+      boxShadow: isOverdue ? '0 0 0 1px var(--red)' : 'none',
     }}>
       {/* Row 1: id + badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -104,11 +106,10 @@ function DisputeModal({ inv, onClose, onSubmit }: {
             rows={4}
             style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
           />
-          <button type="button" title="Submit dispute" onClick={() => { if (reason.trim()) onSubmit(reason.trim()); }}
-            disabled={!reason.trim()}
-            style={{ width: '100%', padding: '14px', background: reason.trim() ? 'var(--red)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 15, fontWeight: 700, cursor: reason.trim() ? 'pointer' : 'default', fontFamily: 'var(--font)' }}>
+          <Button type="button" variant="destructive" size="lg" title="Submit dispute" onClick={() => { if (reason.trim()) onSubmit(reason.trim()); }}
+            disabled={!reason.trim()} className="w-full">
             Submit Dispute
-          </button>
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
@@ -160,7 +161,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
             <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink)' }}>{co.name}</div>
           )}
           {inv.traStatus === 'submitted' && inv.traAckCode === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: '#e6f4ea', marginLeft: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--green-l)', marginLeft: 'auto' }}>
               <QRCodeSVG value={inv.traQrUrl!} size={60} level="M" />
               <div style={{ fontSize: 9, color: 'var(--ink3)', textAlign: 'center', lineHeight: 1.4 }}>
                 <div style={{ fontWeight: 700, color: 'var(--green)' }}>TRA Verified</div>
@@ -171,19 +172,19 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
         </div>
 
         {/* Summary card */}
-        <div style={{ background: 'linear-gradient(135deg, #0b7264 0%, #14b8a6 100%)', borderRadius: 14, padding: '20px', marginBottom: 20, color: '#fff' }}>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
+        <div style={{ background: 'hsl(var(--primary))', borderRadius: 'var(--r)', padding: '20px', marginBottom: 20, color: 'hsl(var(--primary-foreground))' }}>
+          <div style={{ fontSize: 12, color: 'hsl(var(--primary-foreground) / 0.7)', marginBottom: 4 }}>
             {inv.status === 'Paid' ? 'Amount Paid' : inv.status === 'Partial' ? 'Balance Due' : 'Amount Due'}
           </div>
           <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 12 }}>
             {fmtTZS(inv.status === 'Paid' ? grandTotalTZS : bal)}
           </div>
-          <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>
+          <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'hsl(var(--primary-foreground) / 0.75)' }}>
             <span>Issued: {fmtDate(inv.billDate)}</span>
             {inv.dueDate && <span>Due: {fmtDate(inv.dueDate)}</span>}
           </div>
           {inv.status === 'Partial' && inv.received > 0 && (
-            <div style={{ marginTop: 8, fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
+            <div style={{ marginTop: 8, fontSize: 12, color: 'hsl(var(--primary-foreground) / 0.7)' }}>
               Received: {fmtTZS(inv.received)} · Outstanding: {fmtTZS(bal)}
             </div>
           )}
@@ -208,9 +209,9 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
 
         {/* Carbon segment — live from the linked shipment, not a tradeable credit */}
         {inv.shipmentCarbon && (
-          <div style={{ background: 'var(--green-l)', borderRadius: 'var(--r)', border: '1px solid #a7f3d0', padding: 16, marginBottom: 16 }}>
+          <div style={{ background: 'var(--green-l)', borderRadius: 'var(--r)', border: '1px solid var(--green)', padding: 16, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-              <Icon name="globe" size={13} color="#059669" />
+              <Icon name="globe" size={13} color="var(--green)" />
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em' }}>CARBON FOOTPRINT</span>
             </div>
             <div style={{ display: 'flex', gap: 20 }}>
@@ -299,15 +300,15 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
         )}
 
         {/* Grand total */}
-        <div style={{ background: 'var(--teal)', borderRadius: 'var(--r)', padding: '16px', marginBottom: 20 }}>
+        <div style={{ background: 'hsl(var(--primary))', borderRadius: 'var(--r)', padding: '16px', marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>Grand Total</span>
-            <span style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{fmtTZS(grandTotalTZS)}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--primary-foreground) / 0.85)' }}>Grand Total</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: 'hsl(var(--primary-foreground))' }}>{fmtTZS(grandTotalTZS)}</span>
           </div>
           {inv.received > 0 && (
             <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>Balance due</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{fmtTZS(bal)}</span>
+              <span style={{ fontSize: 12, color: 'hsl(var(--primary-foreground) / 0.75)' }}>Balance due</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--primary-foreground))' }}>{fmtTZS(bal)}</span>
             </div>
           )}
         </div>
@@ -315,22 +316,21 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
 
       {/* Action bar — fixed at bottom */}
       <div style={{ position: 'fixed', bottom: 70, left: 0, right: 0, padding: '12px 16px', background: 'var(--white)', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, zIndex: 50 }}>
-        <button type="button" title="Download PDF" onClick={handlePrint}
-          style={{ flex: 1, padding: 'var(--ds-btn-py) 0', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-          <Icon name="download" size={15} color="var(--ink2)" />
+        <Button type="button" variant="outline" title="Download PDF" onClick={handlePrint} style={{ flex: 1 }}>
+          <Icon name="download" size={15} />
           Download
-        </button>
+        </Button>
         <Link to="/support/tickets" title="Get support for this invoice"
           style={{ flex: 1, padding: '11px 0', border: '1.5px solid var(--teal)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--teal)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none', boxSizing: 'border-box' }}>
           <Icon name="headphones" size={15} color="var(--teal)" />
           Support
         </Link>
         {inv.status !== 'Paid' && inv.status !== 'Credited' && (
-          <button type="button" title="Dispute this invoice" onClick={() => setDisputing(true)}
-            style={{ flex: 1, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'var(--red-l)', color: 'var(--red)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="alertCircle" size={15} color="#dc2626" />
+          <Button type="button" variant="outline" title="Dispute this invoice" onClick={() => setDisputing(true)}
+            style={{ flex: 1, borderColor: 'var(--red)', color: 'var(--red)' }}>
+            <Icon name="alertCircle" size={15} />
             Dispute
-          </button>
+          </Button>
         )}
       </div>
 
@@ -379,7 +379,7 @@ export const CustomerInvoices: React.FC = () => {
     <div style={{ fontFamily: 'var(--font)', paddingBottom: 20 }}>
       {/* Header */}
       <div style={{ padding: '20px 16px 0' }}>
-        <h2 style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>Invoices</h2>
+        <PageHeader crumbs={['Workspace', 'Billing']} titlePlain="Your" titleEm="invoices" />
         <p style={{ margin: '0 0 16px', fontSize: 13, color: overdue > 0 ? 'var(--red)' : 'var(--ink3)' }}>
           {loading ? 'Loading…' : unpaid > 0 ? `${unpaid} invoice${unpaid !== 1 ? 's' : ''} outstanding` : `${invoices.length} invoice${invoices.length !== 1 ? 's' : ''}`}
         </p>
@@ -424,9 +424,9 @@ export const CustomerInvoices: React.FC = () => {
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your invoices</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
-            <button type="button" onClick={load} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+            <Button type="button" onClick={load}>
               Retry
-            </button>
+            </Button>
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>

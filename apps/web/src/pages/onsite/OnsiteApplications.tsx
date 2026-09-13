@@ -120,17 +120,17 @@ export function OnsiteApplications() {
 
       {loading ? (
         <div className="onsite-card">
-          <p style={{ color: 'var(--ink-muted)' }}>Loading applications…</p>
+          <p style={{ color: 'var(--ink3)' }}>Loading applications…</p>
         </div>
       ) : error ? (
         <div className="onsite-card">
-          <p style={{ color: '#ef4444' }}>Error: {error}</p>
+          <p style={{ color: 'var(--red)' }}>Error: {error}</p>
         </div>
       ) : apps.length === 0 ? (
         <div className="onsite-card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-          <Icon name="terminal" size={48} style={{ color: 'var(--ink-muted)', margin: '0 auto 1rem auto' }} />
+          <Icon name="terminal" size={48} style={{ color: 'var(--ink3)', margin: '0 auto 1rem auto' }} />
           <h3>No applications deployed yet</h3>
-          <p style={{ color: 'var(--ink-muted)', marginBottom: '1.5rem' }}>
+          <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Connect a Git repository or upload code to build and deploy your application.
           </p>
           <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
@@ -161,7 +161,7 @@ export function OnsiteApplications() {
                         </Link>
                       </div>
                       {app.repo_url && (
-                        <div className="onsite-mono" style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>
+                        <div className="onsite-mono" style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>
                           {app.repo_url}
                         </div>
                       )}
@@ -171,13 +171,13 @@ export function OnsiteApplications() {
                         {app.runtime}
                       </span>
                     </td>
-                    <td className="onsite-mono">{app.current_version || <span style={{ color: 'var(--ink-muted)' }}>Never deployed</span>}</td>
+                    <td className="onsite-mono">{app.current_version || <span style={{ color: 'var(--ink3)' }}>Never deployed</span>}</td>
                     <td>
                       <span className={`onsite-badge ${app.status}`}>
                         {app.status}
                       </span>
                     </td>
-                    <td style={{ color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>
+                    <td style={{ color: 'var(--ink3)', fontSize: '0.8125rem' }}>
                       {app.last_deployed_at ? new Date(app.last_deployed_at).toLocaleString() : 'Never'}
                     </td>
                     <td>
@@ -191,7 +191,7 @@ export function OnsiteApplications() {
                         <button className="btn btn-sm btn-ghost" onClick={() => handleClone(app.id, app.name)} title="Clone">
                           <Icon name="copy" size={14} />
                         </button>
-                        <button className="btn btn-sm btn-ghost" style={{ color: '#ef4444' }} onClick={() => handleDelete(app.id, app.name)}>
+                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(app.id, app.name)}>
                           <Icon name="trash2" size={14} />
                         </button>
                       </div>

@@ -7,6 +7,7 @@ import { useComplyRenewals } from '../hooks/useComply.js';
 import type { CompRenewal, CompRenewalStatus } from '@hudumika/types';
 import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
+import { Button } from '../components/ui/button.js';
 
 /* ── Constants ─────────────────────────────────────────────────────────────── */
 
@@ -121,10 +122,10 @@ export function ComplyWorkflows() {
         subtitle="Certificate renewal automation — review, approve and track submissions."
         actions={
         <div className="comply-action-row">
-          <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh">
+          <Button type="button" variant="outline" size="sm" onClick={refresh} title="Refresh">
             <Icon name="refresh" size={14} />
             Refresh
-          </button>
+          </Button>
         </div>
         }
       />
@@ -237,24 +238,25 @@ export function ComplyWorkflows() {
                 {/* Actions */}
                 <div className="wf-row-actions" onClick={e => e.stopPropagation()}>
                   {r.status === 'pending_review' && (
-                    <button
+                    <Button
                       type="button"
-                      className="comply-btn-primary comply-btn-sm"
+                      size="xs"
                       title="Approve renewal"
                       disabled={approving}
                       onClick={() => handleApprove(r.id)}
                     >
                       Approve
-                    </button>
+                    </Button>
                   )}
-                  <button
+                  <Button
                     type="button"
-                    className="comply-btn-secondary comply-btn-sm"
+                    variant="outline"
+                    size="xs"
                     title="View details"
                     onClick={() => openDetail(r)}
                   >
                     <Icon name="eye" size={13} />
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
@@ -358,17 +360,17 @@ export function ComplyWorkflows() {
             {/* Footer */}
             {selected.status === 'pending_review' && (
               <div className="comply-panel-foot">
-                <button type="button" className="comply-btn-secondary" onClick={closeDrawer}>
+                <Button type="button" variant="outline" size="sm" onClick={closeDrawer}>
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="comply-btn-primary"
+                  size="sm"
                   disabled={approving}
                   onClick={() => handleApprove(selected.id)}
                 >
                   {approving ? 'Approving…' : 'Approve Renewal'}
-                </button>
+                </Button>
               </div>
             )}
 

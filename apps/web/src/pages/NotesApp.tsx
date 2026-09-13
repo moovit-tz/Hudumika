@@ -474,7 +474,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
 
                   {/* Drawings or Attached Images Thumbnail Previews */}
                   {drawing && (
-                    <div style={{ position: 'relative', width: 120, height: 80, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                    <div style={{ position: 'relative', width: 120, height: 80, borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--border)' }}>
                       <img src={drawing} alt="Sketch" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       <button
                         type="button"
@@ -489,7 +489,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                   {images.length > 0 && (
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {images.map((img, idx) => (
-                        <div key={idx} style={{ position: 'relative', width: 80, height: 80, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                        <div key={idx} style={{ position: 'relative', width: 80, height: 80, borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--border)' }}>
                           <NoteImage src={img} alt="Attachment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           <button
                             type="button"
@@ -650,12 +650,12 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
 
           {/* Trash Header Banner */}
           {activeFilter === 'trash' && (
-            <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <span style={{ fontSize: 13.5, color: 'var(--ink2)' }}>Notes in Trash are deleted after 30 days.</span>
               <button
                 type="button"
                 className="notes-done-btn"
-                style={{ background: '#dc2626' }}
+                style={{ background: 'var(--red)' }}
                 onClick={() => {
                   emptyTrash();
                   showAlert('Trash emptied.');
@@ -743,7 +743,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {editingNote.canEdit && (
                   <span style={{
-                    fontSize: 11.5, color: editorSaveState === 'error' ? 'var(--sign-red, #dc2626)' : 'var(--ink3)',
+                    fontSize: 11.5, color: editorSaveState === 'error' ? 'var(--red)' : 'var(--ink3)',
                     display: 'flex', alignItems: 'center', gap: 4, minWidth: 0, whiteSpace: 'nowrap',
                     opacity: editorSaveState === 'idle' ? 0 : 1, transition: 'opacity 0.15s',
                   }}>
@@ -1005,14 +1005,14 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
 
         {/* Drawing thumbnail */}
         {note.drawing && (
-          <div style={{ height: 100, borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)' }}>
+          <div style={{ height: 100, borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)' }}>
             <img src={note.drawing} alt="Sketch" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
         )}
 
         {/* Image attachments thumbnail gallery */}
         {note.images.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: note.images.length > 1 ? '1fr 1fr' : '1fr', gap: 4, height: 100, borderRadius: 6, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: note.images.length > 1 ? '1fr 1fr' : '1fr', gap: 4, height: 100, borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
             {note.images.slice(0, 2).map((img, i) => (
               <NoteImage key={i} src={img} alt="Attachment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ))}
@@ -1274,7 +1274,7 @@ const CategoryPicker: React.FC<{
           <button
             type="button"
             className="notes-icon-btn"
-            style={{ width: '100%', borderRadius: 6, justifyContent: 'flex-start', gap: 8, padding: '6px 8px', fontSize: 13, color: !value.subjectType ? 'var(--ink)' : 'var(--ink3)', fontWeight: !value.subjectType ? 700 : 500 }}
+            style={{ width: '100%', borderRadius: 'var(--r-sm)', justifyContent: 'flex-start', gap: 8, padding: '6px 8px', fontSize: 13, color: !value.subjectType ? 'var(--ink)' : 'var(--ink3)', fontWeight: !value.subjectType ? 700 : 500 }}
             onClick={() => { onChange({ subjectType: null, subjectId: null }); onOpenChange(false); }}
           >
             <Icon name="minusCircle" size={15} /> None
@@ -1284,7 +1284,7 @@ const CategoryPicker: React.FC<{
               key={c.id}
               type="button"
               className="notes-icon-btn"
-              style={{ width: '100%', borderRadius: 6, justifyContent: 'flex-start', gap: 8, padding: '6px 8px', fontSize: 13, color: value.subjectType === c.id ? 'var(--ink)' : 'var(--ink3)', fontWeight: value.subjectType === c.id ? 700 : 500 }}
+              style={{ width: '100%', borderRadius: 'var(--r-sm)', justifyContent: 'flex-start', gap: 8, padding: '6px 8px', fontSize: 13, color: value.subjectType === c.id ? 'var(--ink)' : 'var(--ink3)', fontWeight: value.subjectType === c.id ? 700 : 500 }}
               onClick={() => {
                 // Switching category always clears any previously-picked
                 // record — an invoice id means nothing once the category
@@ -1508,7 +1508,7 @@ const SharePanel: React.FC<{
             onClick={() => setVisibility(v)}
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-              padding: '8px 6px', borderRadius: 8, cursor: 'pointer',
+              padding: '8px 6px', borderRadius: 'var(--r)', cursor: 'pointer',
               border: `1px solid ${visibility === v ? 'var(--teal)' : 'var(--border)'}`,
               background: visibility === v ? 'color-mix(in srgb, var(--teal) 10%, transparent)' : 'transparent',
               color: visibility === v ? 'var(--teal)' : 'var(--ink2)',
@@ -1648,7 +1648,7 @@ const HistoryPanel: React.FC<{
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 280, overflowY: 'auto' }}>
           {revisions.map(rev => (
-            <div key={rev.id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}>
+            <div key={rev.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)', minWidth: 0 }}>
                   {rev.changedBy && peopleById[rev.changedBy] ? (

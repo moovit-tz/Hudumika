@@ -211,7 +211,7 @@ export function OnsiteDomains() {
       {/* Toast Notification */}
       {toastMsg && (
         <div className="onsite-toast">
-          <Icon name="checkCircle" size={18} style={{ color: '#10b981' }} />
+          <Icon name="checkCircle" size={18} style={{ color: 'var(--green)' }} />
           <span>{toastMsg}</span>
         </div>
       )}

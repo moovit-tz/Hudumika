@@ -41,13 +41,13 @@ interface DashboardKPIs {
 // Map markers
 const customMarkerGreen = new L.DivIcon({
   className: 'custom-div-icon',
-  html: `<div style="background-color:#059669; width:16px; height:16px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
+  html: `<div style="background-color:var(--green); width:16px; height:16px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
   iconSize: [16, 16],
   iconAnchor: [8, 8]
 });
 const customMarkerRed = new L.DivIcon({
   className: 'custom-div-icon',
-  html: `<div style="background-color:#dc2626; width:16px; height:16px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
+  html: `<div style="background-color:var(--red); width:16px; height:16px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
   iconSize: [16, 16],
   iconAnchor: [8, 8]
 });
@@ -197,7 +197,7 @@ export const TrackingVehicles: React.FC = () => {
         </div>
       </div>
       {loadError && (
-        <div style={{ padding: '10px 16px', margin: '0 0 16px', background: 'var(--red-l, #fef2f2)', color: 'var(--red, #b91c1c)', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600 }}>
+        <div style={{ padding: '10px 16px', margin: '0 0 16px', background: 'var(--red-l)', color: 'var(--red)', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600 }}>
           {loadError}
         </div>
       )}
@@ -237,7 +237,7 @@ export const TrackingVehicles: React.FC = () => {
                 <span style={{width: 8, height: 8, borderRadius: '50%', background: 'var(--green)'}}></span> On schedule
               </div>
               <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
-                <span style={{width: 8, height: 8, borderRadius: '50%', background: '#f97316'}}></span> Delayed
+                <span style={{width: 8, height: 8, borderRadius: '50%', background: 'var(--gold)'}}></span> Delayed
               </div>
               <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
                 <span style={{width: 8, height: 8, borderRadius: '50%', background: 'var(--red)'}}></span> Issue
@@ -295,18 +295,18 @@ export const TrackingVehicles: React.FC = () => {
                       <div className={`trk-vcard-badge ${badgeClass}`}>{status}</div>
                     </div>
                     
-                    <div className="trk-vcard-img-container" style={{height: 140, marginBottom: 16, borderRadius: 8}}>
+                    <div className="trk-vcard-img-container" style={{height: 140, marginBottom: 16, borderRadius: 'var(--r)'}}>
                       {v.photo_url ? (
                         <img
                           src={v.photo_url}
                           alt={v.name}
                           className="trk-vcard-img"
-                          style={{objectFit: 'cover', width: '100%', height: '100%', borderRadius: 8}}
+                          style={{objectFit: 'cover', width: '100%', height: '100%', borderRadius: 'var(--r)'}}
                         />
                       ) : (
                         // No stock photo of an unrelated truck stands in here — it
                         // would read as a real photo of this specific vehicle.
-                        <div style={{ width: '100%', height: '100%', borderRadius: 8, background: 'var(--bg-subtle, #f1f5f9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: '100%', height: '100%', borderRadius: 'var(--r)', background: 'var(--bg-subtle, #f1f5f9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Icon name="truck" size={32} style={{ color: 'var(--ink3)' }} />
                         </div>
                       )}

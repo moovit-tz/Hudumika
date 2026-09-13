@@ -213,7 +213,7 @@
 .dev-product-card:hover {
   transform: translateY(-2px);
   border-color: var(--teal);
-  box-shadow: var(--elev-md);
+  box-shadow: var(--elev);
 }
 
 .dev-product-top {
@@ -257,8 +257,8 @@
 }
 
 .dev-mode-hybrid {
-  background: var(--purple-l, #f3e8ff);
-  color: var(--purple, #7e22ce);
+  background: var(--purple-l);
+  color: var(--purple);
 }
 
 /* ── Code & Snippets Box ── */

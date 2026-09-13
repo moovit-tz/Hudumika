@@ -78,6 +78,12 @@ const LABEL_COLORS: Record<Label, string> = {
   HR:        'var(--green)',
   Urgent:    'var(--red)',
 };
+const LABEL_BG_COLORS: Record<Label, string> = {
+  Finance:   'var(--blue-l)',
+  Shipments: 'var(--teal-l)',
+  HR:        'var(--green-l)',
+  Urgent:    'var(--red-l)',
+};
 
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
@@ -494,7 +500,7 @@ export const EmailApp: React.FC = () => {
                   <div className="em-row-star" onClick={ev => toggleStar(email.id, ev)}
                     role="button" tabIndex={0} aria-label={email.starred ? 'Unstar' : 'Star'}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleStar(email.id, e as any); } }}>
-                    <Icon name="star" size={16} color={email.starred ? '#f4b400' : 'var(--border)'} />
+                    <Icon name="star" size={16} color={email.starred ? 'var(--gold)' : 'var(--border)'} />
                   </div>
                   <PersonAvatar userId={email.from.userId} name={email.from.name} size={24} style={{ marginRight: 8, flexShrink: 0 }} />
                   <div className={`em-row-sender${!email.read ? ' em-row-sender--bold' : ''}`}>
@@ -505,7 +511,7 @@ export const EmailApp: React.FC = () => {
                     <span className="em-row-snip"> — {email.snippet}</span>
                   </div>
                   {email.labels.length > 0 && !isMobile && (
-                    <span className="em-row-label" style={{ background: `color-mix(in srgb, ${LABEL_COLORS[email.labels[0]]} 14%, transparent)`, color: LABEL_COLORS[email.labels[0]] }}>
+                    <span className="em-row-label" style={{ background: LABEL_BG_COLORS[email.labels[0]], color: LABEL_COLORS[email.labels[0]] }}>
                       {email.labels[0]}
                     </span>
                   )}
@@ -514,8 +520,8 @@ export const EmailApp: React.FC = () => {
                       className="em-row-label"
                       title={email.deliveryStatus === 'failed' ? 'Delivery failed — will retry automatically' : 'Queued for delivery'}
                       style={{
-                        background: email.deliveryStatus === 'failed' ? 'var(--red-l, #fef2f2)' : 'var(--gold-l, #fffbeb)',
-                        color: email.deliveryStatus === 'failed' ? 'var(--red, #dc2626)' : 'var(--gold, #b45309)',
+                        background: email.deliveryStatus === 'failed' ? 'var(--red-l)' : 'var(--gold-l)',
+                        color: email.deliveryStatus === 'failed' ? 'var(--red)' : 'var(--gold)',
                       }}
                     >
                       {email.deliveryStatus === 'failed' ? 'Failed' : 'Pending'}
@@ -563,7 +569,7 @@ export const EmailApp: React.FC = () => {
               <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => archiveEmail(selectedEmail.id)} title="Delete"><Icon name="trash" size={16} /></button>
               <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => markUnread(selectedEmail.id)} title="Mark unread"><Icon name="mail" size={16} /></button>
               <button type="button" className={`em-icon-btn em-icon-btn--ghost${selectedEmail.starred ? ' em-icon-btn--starred' : ''}`} onClick={e => toggleStar(selectedEmail.id, e)} title={selectedEmail.starred ? 'Unstar' : 'Star'}>
-                <Icon name="star" size={16} color={selectedEmail.starred ? '#f4b400' : undefined} />
+                <Icon name="star" size={16} color={selectedEmail.starred ? 'var(--gold)' : undefined} />
               </button>
               <div style={{ flex: 1 }} />
               <button type="button" className="em-icon-btn em-icon-btn--primary" onClick={aiSummarise} disabled={aiLoading}>
@@ -576,7 +582,7 @@ export const EmailApp: React.FC = () => {
               <h2 className="em-detail-subject">
                 {selectedEmail.subject}
                 {selectedEmail.labels.map(l => (
-                  <span key={l} className="em-label-chip" style={{ background: `color-mix(in srgb, ${LABEL_COLORS[l]} 12%, transparent)`, color: LABEL_COLORS[l] }}>{l}</span>
+                  <span key={l} className="em-label-chip" style={{ background: LABEL_BG_COLORS[l], color: LABEL_COLORS[l] }}>{l}</span>
                 ))}
               </h2>
 
@@ -619,7 +625,7 @@ export const EmailApp: React.FC = () => {
                     <div className="em-detail-from-right">
                       <span className="em-detail-from-date">{fmtDateLong(selectedEmail.date)}</span>
                       <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={e => toggleStar(selectedEmail.id, e)}>
-                        <Icon name="star" size={16} color={selectedEmail.starred ? '#f4b400' : 'var(--border)'} />
+                        <Icon name="star" size={16} color={selectedEmail.starred ? 'var(--gold)' : 'var(--border)'} />
                       </button>
                     </div>
                   </div>

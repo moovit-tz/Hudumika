@@ -202,7 +202,7 @@ export function ComplyTraExtract() {
                     value={tin}
                     onChange={e => setTin(e.target.value)}
                     disabled={status !== 'idle'}
-                    style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8 }}
+                    style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}
                   />
                 </div>
 
@@ -401,7 +401,7 @@ export function ComplyTraExtract() {
               {/* Tab 3: TCC */}
               {activeTab === 'tcc' && (
                 <div style={{ display: 'flex', gap: 24 }}>
-                  <div style={{ width: 140, height: 140, border: '4px solid #DCFCE7', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--green-l)', color: '#166534', flexShrink: 0 }}>
+                  <div style={{ width: 140, height: 140, border: '4px solid var(--green)', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--green-l)', color: 'var(--green)', flexShrink: 0 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>TCC Status</div>
                     <div style={{ fontSize: 18, fontWeight: 900 }}>Compliant</div>
                   </div>
@@ -421,7 +421,7 @@ export function ComplyTraExtract() {
                         <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)', width: 140 }}>Certificate Ref</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.tcc.reference}</td></tr>
                         <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)' }}>Date of Issue</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.tcc.issued_date}</td></tr>
                         <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)' }}>Expiry Date</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.tcc.expiry_date}</td></tr>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)' }}>TRA Status</td><td style={{ padding: '8px 0', color: '#166534', fontWeight: 700 }}>{resultData.tcc.status}</td></tr>
+                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)' }}>TRA Status</td><td style={{ padding: '8px 0', color: 'var(--green)', fontWeight: 700 }}>{resultData.tcc.status}</td></tr>
                       </tbody>
                     </table>
                   </div>
@@ -450,7 +450,7 @@ export function ComplyTraExtract() {
                           <td style={{ padding: '12px', color: 'var(--ink2)' }}>{hist.return_type}</td>
                           <td style={{ padding: '12px', color: 'var(--ink3)' }}>{hist.filed_date}</td>
                           <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>{hist.tax_due.toLocaleString()} TZS</td>
-                          <td style={{ padding: '12px', textAlign: 'right', color: '#166534' }}>{hist.tax_paid.toLocaleString()} TZS</td>
+                          <td style={{ padding: '12px', textAlign: 'right', color: 'var(--green)' }}>{hist.tax_paid.toLocaleString()} TZS</td>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
                             <span className={`comply-badge comply-badge--${hist.status === 'Assessed' ? 'active' : 'pending'}`}>
                               {hist.status}

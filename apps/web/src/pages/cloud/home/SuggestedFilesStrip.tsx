@@ -23,7 +23,7 @@ function SuggestedFileCard({ item, onOpen, menuHandlers }: { item: CloudFile; on
   const isPdf = item.type === 'pdf' || item.name.endsWith('.pdf');
   const isSheet = ['xlsx', 'xls', 'csv'].includes(item.type) || item.name.endsWith('.xlsx');
   const isDoc = ['doc', 'docx'].includes(item.type) || item.name.endsWith('.docx');
-  const badgeColor = isPdf ? '#ef4444' : isSheet ? '#10b981' : isDoc ? '#2563eb' : 'var(--teal)';
+  const badgeColor = isPdf ? 'var(--red)' : isSheet ? 'var(--green)' : isDoc ? 'var(--blue)' : 'var(--teal)';
   const badgeLabel = isPdf ? 'PDF' : isSheet ? 'SHEET' : isDoc ? 'DOC' : item.type.toUpperCase();
 
   // This card used to always render DocThumbnail's generic mockup letterhead

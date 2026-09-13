@@ -163,7 +163,7 @@ export const TrackingMaintenance: React.FC = () => {
                   role={cell.thisMonth && hasEvents ? 'button' : undefined} tabIndex={cell.thisMonth && hasEvents ? 0 : undefined}
                   onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && cell.thisMonth && hasEvents) { e.preventDefault(); setSelectedDate(cell.key); } }}
                   style={{
-                    minHeight: 68, borderRadius: 7, padding: '6px 6px',
+                    minHeight: 68, borderRadius: 'var(--r)', padding: '6px 6px',
                     background: selectedDate === cell.key ? 'var(--teal-l)' : isToday(cell.key) && cell.thisMonth ? 'var(--bg)' : 'transparent',
                     border: isToday(cell.key) && cell.thisMonth ? '1px solid var(--teal)' : '1px solid transparent',
                     opacity: cell.thisMonth ? 1 : 0.35,
@@ -172,12 +172,12 @@ export const TrackingMaintenance: React.FC = () => {
                   <div style={{ fontSize: 11.5, fontWeight: isToday(cell.key) ? 800 : 600, color: 'var(--ink)' }}>{cell.day}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 3 }}>
                     {done.length > 0 && (
-                      <div style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 4, padding: '1px 5px', background: 'rgba(22,163,74,0.14)', color: 'var(--green)' }}>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 'var(--r-sm)', padding: '1px 5px', background: 'var(--green-l)', color: 'var(--green)' }}>
                         {done.length} done
                       </div>
                     )}
                     {due.length > 0 && (
-                      <div style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 4, padding: '1px 5px', background: 'rgba(202,138,4,0.14)', color: 'var(--gold)' }}>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 'var(--r-sm)', padding: '1px 5px', background: 'var(--gold-l)', color: 'var(--gold)' }}>
                         {due.length} due
                       </div>
                     )}

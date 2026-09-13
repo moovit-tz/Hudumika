@@ -839,9 +839,9 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                         onChange={v => updateTodo(todo.id, { reminder: v })}
                         open={openReminderTodoId === todo.id}
                         onOpenChange={o => setOpenReminderTodoId(o ? todo.id : null)}
-                        triggerStyle={{ background: 'none', border: 'none', cursor: 'pointer', color: todo.reminder ? 'var(--teal)' : 'var(--ink4)', display: 'flex', padding: 2 }}
+                        triggerStyle={{ background: 'none', border: 'none', cursor: 'pointer', color: todo.reminder ? 'var(--teal)' : 'var(--ink3)', display: 'flex', padding: 2 }}
                       />
-                      <button type="button" onClick={() => deleteTodo(todo.id)} style={{ background: 'none', border: 'none', color: 'var(--ink4)', cursor: 'pointer', display: 'flex', padding: 2 }}>
+                      <button type="button" onClick={() => deleteTodo(todo.id)} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', padding: 2 }}>
                         <Icon name="trash" size={13} />
                       </button>
                     </div>
@@ -986,7 +986,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                             </div>
                           </button>
                           <Tip label={c.type === 'dm' ? 'Remove conversation' : 'Leave / delete channel'}>
-                            <button type="button" onClick={e => handleLeaveOrDeleteChannel(e, c)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex', alignItems: 'center', padding: '0 10px', flexShrink: 0 }}>
+                            <button type="button" onClick={e => handleLeaveOrDeleteChannel(e, c)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', alignItems: 'center', padding: '0 10px', flexShrink: 0 }}>
                               <Icon name="moreVertical" size={14} />
                             </button>
                           </Tip>
@@ -1086,7 +1086,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                         {n.title && <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</div>}
                         <div style={{ fontSize: 12, color: 'var(--ink2)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{n.content || 'Empty note'}</div>
                       </div>
-                      <button type="button" onClick={e => { e.preventDefault(); handleDeleteNote(n.id); }} style={{ background: 'none', border: 'none', color: 'var(--ink4)', cursor: 'pointer', display: 'flex', padding: 2, flexShrink: 0 }}>
+                      <button type="button" onClick={e => { e.preventDefault(); handleDeleteNote(n.id); }} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', padding: 2, flexShrink: 0 }}>
                         <Icon name="trash" size={13} />
                       </button>
                     </a>

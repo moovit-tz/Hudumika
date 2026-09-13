@@ -84,7 +84,7 @@ export const TrackingTrailers: React.FC = () => {
       </div>
 
       {loadError && (
-        <div style={{ padding: '10px 16px', marginBottom: 16, background: 'var(--red-l, #fef2f2)', color: 'var(--red, #b91c1c)', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600 }}>
+        <div style={{ padding: '10px 16px', marginBottom: 16, background: 'var(--red-l)', color: 'var(--red)', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600 }}>
           {loadError}
         </div>
       )}

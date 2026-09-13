@@ -40,7 +40,7 @@ export function WizardVerticalStepBar({ steps, current, setStep }: StepBarProps)
               <div style={{
                 width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 13, fontWeight: 700, flexShrink: 0,
-                background: isActive ? 'var(--teal)' : isDone ? 'color-mix(in srgb, var(--teal) 15%, transparent)' : 'var(--surface, rgba(255,255,255,0.05))',
+                background: isActive ? 'var(--teal)' : isDone ? 'color-mix(in srgb, var(--teal) 15%, transparent)' : 'rgba(255,255,255,0.05)',
                 border: `1.5px solid ${isActive || isDone ? 'var(--teal)' : 'var(--border)'}`,
                 color: isActive ? '#fff' : isDone ? 'var(--teal)' : 'var(--ink3)',
                 boxShadow: isActive ? '0 0 14px color-mix(in srgb, var(--teal) 35%, transparent)' : 'none',
@@ -81,7 +81,7 @@ export function WizardHorizontalStepBar({ steps, current, setStep }: StepBarProp
                 <div style={{
                   width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700, flexShrink: 0,
-                  background: isActive ? 'var(--teal)' : isDone ? 'color-mix(in srgb, var(--teal) 15%, transparent)' : 'var(--surface, rgba(255,255,255,0.05))',
+                  background: isActive ? 'var(--teal)' : isDone ? 'color-mix(in srgb, var(--teal) 15%, transparent)' : 'rgba(255,255,255,0.05)',
                   border: `1.5px solid ${isActive || isDone ? 'var(--teal)' : 'var(--border)'}`,
                   color: isActive ? '#fff' : isDone ? 'var(--teal)' : 'var(--ink3)',
                 }}>
@@ -205,7 +205,7 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
         {hint && (
           <span title={hint} style={{ display: 'inline-flex', flexShrink: 0, cursor: 'help' }}>
-            <Icon name="info" size={11} color="var(--ink4)" />
+            <Icon name="info" size={11} color="var(--ink3)" />
           </span>
         )}
       </label>

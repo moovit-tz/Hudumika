@@ -142,9 +142,9 @@ export const CarbonCreditsPage: React.FC = () => {
       <div style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
         {/* KPI Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-          <div style={{ background: 'var(--white)', padding: 24, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ background: 'var(--white)', padding: 24, borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--green-l)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--green-l)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="leaf" size={18} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)' }}>TOTAL CREDITS SAVED</span>
@@ -155,9 +155,9 @@ export const CarbonCreditsPage: React.FC = () => {
             <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Metric tonnes of CO₂ equivalent avoided.</div>
           </div>
 
-          <div style={{ background: 'var(--white)', padding: 24, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ background: 'var(--white)', padding: 24, borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: '#f1f5f9', color: 'var(--ink2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: '#f1f5f9', color: 'var(--ink2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="cloudRain" size={18} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)' }}>TOTAL CO₂ EMISSIONS</span>
@@ -168,9 +168,9 @@ export const CarbonCreditsPage: React.FC = () => {
             <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Metric tonnes of CO₂ emitted from shipments.</div>
           </div>
 
-          <div style={{ background: 'var(--white)', padding: 24, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ background: 'var(--white)', padding: 24, borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--gold-l)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--gold-l)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="package" size={18} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)' }}>OFFSET SHIPMENTS</span>
@@ -208,7 +208,7 @@ export const CarbonCreditsPage: React.FC = () => {
                     <td style={{ padding: '12px 20px', fontWeight: 600, color: 'var(--teal)' }}>{r.waybill}</td>
                     <td style={{ padding: '12px 20px', color: 'var(--ink)' }}>{r.origin} → {r.destination}</td>
                     <td style={{ padding: '12px 20px', textAlign: 'center' }}>
-                      <span style={{ background: 'var(--bg)', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>{r.mode}</span>
+                      <span style={{ background: 'var(--bg)', padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>{r.mode}</span>
                     </td>
                     <td style={{ padding: '12px 20px', textAlign: 'right', color: 'var(--ink2)' }}>{r.distance_km.toLocaleString()} km</td>
                     <td style={{ padding: '12px 20px', textAlign: 'right', color: 'var(--ink)' }}>{r.co2_emissions_kg.toLocaleString()} kg</td>

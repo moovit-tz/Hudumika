@@ -274,7 +274,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
             <input
               type="search" placeholder="Search envelopes..." value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px 8px 34px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 12px 8px 34px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
 
@@ -289,7 +289,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
         {loading ? (
           <div className={viewMode === 'grid' ? 'sign-envelope-grid' : 'sign-envelope-list'}>
             {Array.from({ length: viewMode === 'grid' ? 6 : 8 }).map((_, i) => (
-              <div key={i} style={{ height: viewMode === 'grid' ? 116 : 46, borderRadius: 8, background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
+              <div key={i} style={{ height: viewMode === 'grid' ? 116 : 46, borderRadius: 'var(--r)', background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -363,7 +363,7 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
 
   return (
     <Dialog open onOpenChange={o => !o && onClose()}>
-      <DialogContent className="sm:max-w-140 max-h-[85vh] overflow-y-auto" style={{ padding: 24, borderRadius: 10 }}>
+      <DialogContent className="sm:max-w-140 max-h-[85vh] overflow-y-auto" style={{ padding: 24, borderRadius: 'var(--r)'}}>
         <DialogHeader>
           <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
             <Icon name="share" size={16} style={{ color: 'var(--teal)' }} />
@@ -443,7 +443,7 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
                 {env.recipients.map(r => {
                   const rLink = `${origin}/sign/public/${r.token}`;
                   return (
-                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12.5 }}>
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12.5 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{r.name}</div>
                         <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{r.email}</div>
@@ -463,11 +463,11 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
           {env.verification_code && (
             <div style={{ paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
               <a href={whatsappUrl} target="_blank" rel="noreferrer"
-                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '8px 14px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, textDecoration: 'none' }}>
-                <Icon name="messageSquare" size={14} style={{ color: '#10b981' }} /> WhatsApp Share
+                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '8px 14px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, textDecoration: 'none' }}>
+                <Icon name="messageSquare" size={14} style={{ color: 'var(--green)' }} /> WhatsApp Share
               </a>
               <a href={mailtoUrl}
-                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '8px 14px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, textDecoration: 'none' }}>
+                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '8px 14px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, textDecoration: 'none' }}>
                 <Icon name="mail" size={14} style={{ color: 'var(--teal)' }} /> Email Share
               </a>
             </div>
@@ -511,7 +511,7 @@ function BillEnvelopeModal({ env, onClose, onBilled }: { env: EnvelopeWithRecipi
 
   return (
     <Dialog open onOpenChange={o => !o && onClose()}>
-      <DialogContent className="sm:max-w-110" style={{ padding: 24, borderRadius: 10 }}>
+      <DialogContent className="sm:max-w-110" style={{ padding: 24, borderRadius: 'var(--r)'}}>
         <DialogHeader>
           <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
             <Icon name="invoice" size={16} style={{ color: 'var(--teal)' }} />
@@ -846,7 +846,7 @@ export function SignEnvelopeDetail() {
       {env.previous_version && (
         <div onClick={() => navigate(`/sign/envelope/${env.previous_version!.id}`)}
           role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/sign/envelope/${env.previous_version!.id}`); } }}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--teal-l)', border: '1px solid var(--teal)', borderRadius: 12, padding: '12px 18px', fontSize: 13, color: 'var(--ink)' }}>
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--teal-l)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', padding: '12px 18px', fontSize: 13, color: 'var(--ink)' }}>
           <Icon name="gitBranch" size={16} style={{ color: 'var(--teal)', flexShrink: 0 } as React.CSSProperties} />
           <span>This is Version {env.version_number}, amended from <strong>Version {env.previous_version.version_number} — {env.previous_version.title}</strong></span>
           <Icon name="chevronRight" size={14} style={{ marginLeft: 'auto', color: 'var(--teal)' } as React.CSSProperties} />
@@ -855,7 +855,7 @@ export function SignEnvelopeDetail() {
       {env.next_version && (
         <div onClick={() => navigate(`/sign/envelope/${env.next_version!.id}`)}
           role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/sign/envelope/${env.next_version!.id}`); } }}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12, padding: '12px 18px', fontSize: 13, color: 'var(--ink)' }}>
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '12px 18px', fontSize: 13, color: 'var(--ink)' }}>
           <Icon name="gitBranch" size={16} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
           <span>This signed document is unchanged, but it’s been superseded by <strong>Version {env.next_version.version_number}</strong> ({env.next_version.status})</span>
           <Icon name="chevronRight" size={14} style={{ marginLeft: 'auto', color: 'var(--gold)' } as React.CSSProperties} />
@@ -882,7 +882,7 @@ export function SignEnvelopeDetail() {
                 {env.file_name || env.title}
               </span>
               {env.file_name && (
-                <span style={{ fontSize: 10, fontWeight: 800, background: '#1e293b', color: '#94a3b8', padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase' }}>
+                <span style={{ fontSize: 10, fontWeight: 800, background: '#1e293b', color: '#94a3b8', padding: '2px 6px', borderRadius: 'var(--r-sm)', textTransform: 'uppercase' }}>
                   {env.file_name.split('.').pop() || 'PDF'}
                 </span>
               )}
@@ -909,7 +909,7 @@ export function SignEnvelopeDetail() {
           <div style={{ padding: 20, background: 'var(--bg)', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 480 }}>
             <div ref={previewPaneRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
               <div style={{
-                width: previewW, height: previewH, maxWidth: '100%', background: '#ffffff', borderRadius: 8,
+                width: previewW, height: previewH, maxWidth: '100%', background: '#ffffff', borderRadius: 'var(--r)',
                 overflow: 'hidden', boxShadow: '0 12px 36px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative'
               }}>
@@ -942,7 +942,7 @@ export function SignEnvelopeDetail() {
 
           {/* Void / Decline Reason Banner */}
           {(env.status === 'voided' || env.status === 'declined') && env.void_reason && (
-            <div style={{ background: 'var(--sign-red-l)', border: '1px solid var(--sign-red)', borderRadius: 14, padding: '16px 20px', boxShadow: '0 2px 8px rgba(239,68,68,0.06)' }}>
+            <div style={{ background: 'var(--sign-red-l)', border: '1px solid var(--sign-red)', borderRadius: 'var(--card-radius)', padding: '16px 20px', boxShadow: '0 2px 8px var(--sign-red-l)' }}>
               <div style={{ fontSize: 11.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--sign-red)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon name="xCircle" size={14} /> {env.status === 'declined' ? 'Envelope Declined' : 'Envelope Voided'}
               </div>
@@ -1051,7 +1051,7 @@ export function SignEnvelopeDetail() {
                   // whole row wraps onto a second line — actions included —
                   // once it runs out of room, on any width, not just below
                   // a mobile breakpoint.
-                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, rowGap: 8, padding: '10px 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', flexWrap: 'wrap' }}>
+                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, rowGap: 8, padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', flexWrap: 'wrap' }}>
                     <Tip label={`${r.name} — ${r.email}`}>
                       <PersonAvatar userId={r.user_id ?? r.matched_user_id ?? undefined} name={r.name} size={30} />
                     </Tip>
@@ -1095,7 +1095,7 @@ export function SignEnvelopeDetail() {
               // wrapping group, or a long reason growing this row taller
               // pushes past the single-line-height the trailing badges
               // assumed and overlaps them the same way.
-              <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, rowGap: 8, padding: '12px 14px', borderRadius: 10, background: r.is_certifier ? 'var(--blue-l)' : 'var(--bg)', border: `1px solid ${r.is_certifier ? 'var(--blue)' : 'var(--border)'}`, flexWrap: 'wrap' }}>
+              <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, rowGap: 8, padding: '12px 14px', borderRadius: 'var(--r)', background: r.is_certifier ? 'var(--blue-l)' : 'var(--bg)', border: `1px solid ${r.is_certifier ? 'var(--blue)' : 'var(--border)'}`, flexWrap: 'wrap' }}>
                 <Tip label={`${r.name} — ${r.email}`}>
                   <PersonAvatar userId={r.user_id ?? r.matched_user_id ?? undefined} name={r.name} size={38} />
                 </Tip>
@@ -1163,7 +1163,7 @@ export function SignEnvelopeDetail() {
                         <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span>{new Date(ev.created_at).toLocaleString()}</span>
                           {ev.ip_address && (
-                            <span style={{ background: 'var(--white)', padding: '1px 6px', borderRadius: 4, border: '1px solid var(--border)', fontSize: 10.5, fontFamily: 'var(--mono)' }}>
+                            <span style={{ background: 'var(--white)', padding: '1px 6px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 10.5, fontFamily: 'var(--mono)' }}>
                               IP: {ev.ip_address}
                             </span>
                           )}
@@ -1281,7 +1281,7 @@ export function SignAllDocuments() {
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} style={{ height: 46, borderRadius: 8, background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
+              <div key={i} style={{ height: 46, borderRadius: 'var(--r)', background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
             ))}
           </div>
         ) : filtered.length === 0 ? (

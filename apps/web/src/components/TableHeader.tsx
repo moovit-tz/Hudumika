@@ -8,14 +8,11 @@ interface TableHeaderProps {
 export const TableHeader: React.FC<TableHeaderProps> = ({ sortBy, setSortBy }) => {
   const headers = [
     { label: '', className: 'th-urgency' },
-    { label: 'Ref Number', className: 'th-ref', field: 'created' as const },
-    { label: 'Type', className: 'th-type' },
-    { label: 'Cargo Description', className: 'th-desc' },
-    { label: 'Stage Progress', className: 'th-stage' },
-    { label: 'Status', className: 'th-status' },
-    { label: 'Officer', className: 'th-officer' },
-    { label: 'Days', className: 'th-days', field: 'days' as const },
-    { label: '', className: 'th-arrow' },
+    { label: 'Customer', className: 'th-ref', field: 'created' as const },
+    { label: 'Segment & Location', className: 'th-type' },
+    { label: 'Demurrage Risk', className: 'th-desc' },
+    { label: 'Action Needed', className: 'th-stage' },
+    { label: 'Active Cases', className: 'th-status' },
   ];
 
   return (

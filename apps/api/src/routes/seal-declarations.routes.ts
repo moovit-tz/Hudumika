@@ -84,6 +84,14 @@ function mapDeclaration(row: any) {
 export async function sealDeclarationRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireAnyEntitlement(['seal', 'clearos']));
+  // HUD-0024 continuation: sibling of seal.routes.ts and its 8 already-fixed
+  // siblings (HUD-0031) — this file was missed by that sweep. Customs
+  // declaration/duty data is not customer-portal data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
 
   // Minimal, read-only lot picker for the declaration builder — deliberately
   // not the full seal.routes.ts GET /lots (which stays 'seal'-only, since it

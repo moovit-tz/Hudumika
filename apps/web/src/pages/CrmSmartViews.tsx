@@ -5,6 +5,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 type EntityType = 'lead' | 'deal' | 'customer';
 type FieldSpec = { kind: 'text' | 'uuid' | 'bool' | 'date' | 'num' | 'label'; col?: string; ops: string[] };
@@ -157,7 +158,7 @@ export function CrmSmartViews() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 300px) 1fr', gap: 20 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {views === null ? <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+          {views === null ? <SectionLoading />
             : views.length === 0 ? <div style={{ color: 'var(--ink3)', fontSize: 13, fontStyle: 'italic' }}>No saved {entity} views yet.</div>
             : views.map(v => (
               <div key={v.id} onClick={() => setSelected(v)}
@@ -169,7 +170,7 @@ export function CrmSmartViews() {
                 <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>{v.rules.map(fmtRule).join(v.match_type === 'any' ? '  ·  or  ·  ' : '  ·  and  ·  ')}</div>
                 <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
                   <button type="button" onClick={e => { e.stopPropagation(); setEditing({ id: v.id, name: v.name, match_type: v.match_type, rules: v.rules }); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal-deep)', fontSize: 11, fontWeight: 600, padding: 0 }}>Edit</button>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal-d)', fontSize: 11, fontWeight: 600, padding: 0 }}>Edit</button>
                   <button type="button" onClick={e => { e.stopPropagation(); remove(v); }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 11, fontWeight: 600, padding: 0 }}>Delete</button>
                 </div>
@@ -190,7 +191,7 @@ export function CrmSmartViews() {
                 {results.length} {entity}{results.length === 1 ? '' : 's'}
               </div>
               {results.slice(0, 200).map((row: any) => (
-                <div key={row.id} style={{ padding: '9px 14px', borderBottom: '1px solid var(--border-soft)', fontSize: 12.5, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <div key={row.id} style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 12.5, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                   <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{row.company || row.name}</span>
                   <span className="mono" style={{ color: 'var(--ink3)' }}>{row.stage || row.account_status || ''}</span>
                 </div>

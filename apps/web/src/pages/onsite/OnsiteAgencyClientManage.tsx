@@ -43,9 +43,9 @@ export function OnsiteAgencyClientManage() {
     return (
       <div className="onsite-page">
         <div className="onsite-card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-          <Icon name="alertCircle" size={40} style={{ color: 'var(--ink-muted)', margin: '0 auto 1rem auto' }} />
+          <Icon name="alertCircle" size={40} style={{ color: 'var(--ink3)', margin: '0 auto 1rem auto' }} />
           <h3>Client not found</h3>
-          <p style={{ color: 'var(--ink-muted)', marginBottom: '1.5rem' }}>
+          <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             This tenant isn't currently attached to your agency.
           </p>
           <Link to="/onsite/agency/clients" className="btn btn-secondary">Back to clients</Link>
@@ -125,7 +125,7 @@ function BillingSection({ base }: { base: string }) {
           <SectionLoading />
         ) : !customer ? (
           <div style={{ textAlign: 'center', padding: '1.5rem 1rem' }}>
-            <p style={{ color: 'var(--ink-muted)', marginBottom: '1rem' }}>
+            <p style={{ color: 'var(--ink3)', marginBottom: '1rem' }}>
               Bill this client for work beyond your bundle — design, retainers, extra services.
             </p>
             <button className="btn btn-primary" disabled={linking} onClick={handleLink}>
@@ -133,7 +133,7 @@ function BillingSection({ base }: { base: string }) {
             </button>
           </div>
         ) : invoices.length === 0 ? (
-          <p style={{ color: 'var(--ink-muted)', padding: '1rem' }}>No invoices yet — use "Create invoice" above.</p>
+          <p style={{ color: 'var(--ink3)', padding: '1rem' }}>No invoices yet — use "Create invoice" above.</p>
         ) : (
           <div className="onsite-table-wrapper">
             <table className="onsite-table">
@@ -182,7 +182,7 @@ function DomainsSection({ base }: { base: string }) {
         {loading ? (
           <SectionLoading />
         ) : domains.length === 0 ? (
-          <p style={{ color: 'var(--ink-muted)', padding: '1rem' }}>No domains attached yet.</p>
+          <p style={{ color: 'var(--ink3)', padding: '1rem' }}>No domains attached yet.</p>
         ) : (
           <div className="onsite-table-wrapper">
             <table className="onsite-table">
@@ -303,7 +303,7 @@ function DnsPanel({ base, domainId }: { base: string; domainId: string }) {
       {loading ? (
         <SectionLoading />
       ) : records.length === 0 ? (
-        <p style={{ color: 'var(--ink-muted)' }}>No records yet.</p>
+        <p style={{ color: 'var(--ink3)' }}>No records yet.</p>
       ) : (
         <table className="onsite-table">
           <thead><tr><th>Name</th><th>Type</th><th>Value</th><th>TTL</th><th></th></tr></thead>
@@ -315,7 +315,7 @@ function DnsPanel({ base, domainId }: { base: string; domainId: string }) {
                 <td className="onsite-mono">{r.value}</td>
                 <td>{r.ttl}</td>
                 <td style={{ textAlign: 'right' }}>
-                  <button className="btn btn-sm btn-ghost" style={{ color: '#ef4444' }} onClick={() => handleDelete(r.id)}>
+                  <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(r.id)}>
                     <Icon name="trash2" size={14} />
                   </button>
                 </td>
@@ -432,7 +432,7 @@ function DeploymentsSection({ base }: { base: string }) {
         {loading ? (
           <SectionLoading />
         ) : apps.length === 0 ? (
-          <p style={{ color: 'var(--ink-muted)', padding: '1rem' }}>No applications registered yet.</p>
+          <p style={{ color: 'var(--ink3)', padding: '1rem' }}>No applications registered yet.</p>
         ) : (
           <div className="onsite-table-wrapper">
             <table className="onsite-table">
@@ -569,7 +569,7 @@ function MonitoringSection({ base }: { base: string }) {
         {loading ? (
           <SectionLoading />
         ) : checks.length === 0 ? (
-          <p style={{ color: 'var(--ink-muted)', padding: '1rem' }}>No health checks yet.</p>
+          <p style={{ color: 'var(--ink3)', padding: '1rem' }}>No health checks yet.</p>
         ) : (
           <div className="onsite-table-wrapper">
             <table className="onsite-table">

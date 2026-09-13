@@ -75,7 +75,7 @@ function toDateInput(v: string | null): string {
 
 const fldStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 5 };
 const lblStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px' };
-const inpStyle: React.CSSProperties = { padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13.5, boxSizing: 'border-box', width: '100%', fontFamily: 'var(--font)' };
+const inpStyle: React.CSSProperties = { padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13.5, boxSizing: 'border-box', width: '100%', fontFamily: 'var(--font)' };
 
 export const ShipmentEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -328,7 +328,7 @@ export const ShipmentEdit: React.FC = () => {
       <div className="create-shipment-main">
         {isMobile && (
           <div className="create-shipment-header">
-            <Link to={`/clearos/clearance/${id}`} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 8, background: '#fff', width: 'fit-content' }}>
+            <Link to={`/clearos/clearance/${id}`} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: '#fff', width: 'fit-content' }}>
               <Icon name="chevronLeft" size={14} /> Back
             </Link>
           </div>
@@ -396,14 +396,14 @@ export const ShipmentEdit: React.FC = () => {
                     here but locked; view or re-print it from the Overview
                     tab, which is now the only place it renders. */}
                 {existingDg?.status === 'issued' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 10, fontSize: 12.5, color: 'var(--ink)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink)' }}>
                     <Icon name="checkCircle" size={15} color="var(--green)" />
                     A dangerous goods declaration for this shipment has already been issued and can no longer be edited here — view or print it from the Overview tab.
                   </div>
                 )}
 
                 {natureOfGoods === 'dangerous' && existingDg?.status !== 'issued' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 18, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 18, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)'}}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Icon name="alertTriangle" size={16} color="var(--gold)" />
                       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Dangerous goods — extra requirements</span>
@@ -542,7 +542,7 @@ export const ShipmentEdit: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
             {currentStep === 4 ? (
               <button type="button" onClick={handleDelete} disabled={deleting}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid rgba(220,38,38,0.3)', background: 'rgba(220,38,38,0.06)', color: 'var(--red)', fontSize: 13, fontWeight: 700, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--red)', background: 'var(--red-l)', color: 'var(--red)', fontSize: 13, fontWeight: 700, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 <Icon name="trash" size={14} /> {deleting ? 'Deleting…' : 'Delete'}
               </button>
             ) : (

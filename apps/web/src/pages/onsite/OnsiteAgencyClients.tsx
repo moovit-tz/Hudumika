@@ -62,17 +62,17 @@ export function OnsiteAgencyClients() {
 
       {loading ? (
         <div className="onsite-card">
-          <p style={{ color: 'var(--ink-muted)' }}>Loading clients…</p>
+          <p style={{ color: 'var(--ink3)' }}>Loading clients…</p>
         </div>
       ) : error ? (
         <div className="onsite-card">
-          <p style={{ color: '#ef4444' }}>Error: {error}</p>
+          <p style={{ color: 'var(--red)' }}>Error: {error}</p>
         </div>
       ) : clients.length === 0 ? (
         <div className="onsite-card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-          <Icon name="users" size={48} style={{ color: 'var(--ink-muted)', margin: '0 auto 1rem auto' }} />
+          <Icon name="users" size={48} style={{ color: 'var(--ink3)', margin: '0 auto 1rem auto' }} />
           <h3>No clients yet</h3>
-          <p style={{ color: 'var(--ink-muted)', marginBottom: '1.5rem' }}>
+          <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Set up hosting for your first client. They get their own account and login — billed under your package until they detach.
           </p>
           <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
@@ -111,7 +111,7 @@ export function OnsiteAgencyClients() {
                           </Link>
                           <button
                             className="btn btn-sm btn-ghost"
-                            style={{ color: '#ef4444' }}
+                            style={{ color: 'var(--red)' }}
                             disabled={releasing === c.tenant_id}
                             onClick={() => handleRelease(c)}
                           >
@@ -245,7 +245,7 @@ function NewClientModal({ onClose, onCreated }: { onClose: () => void; onCreated
               onChange={(e) => setAdminEmail(e.target.value)}
               required
             />
-            <span style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>
               We'll email them an activation link. They'll manage their own login from there.
             </span>
           </div>

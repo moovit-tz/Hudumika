@@ -39,7 +39,7 @@ export interface StudioNodeData {
 const RUN_BADGE: Record<string, { label: string; color: string; bg: string }> = {
   SUCCESS:   { label: 'Ran',       color: 'var(--green)',  bg: 'var(--green-l)' },
   FAILED:    { label: 'Failed',    color: 'var(--red)',    bg: 'var(--red-l)' },
-  SKIPPED:   { label: 'Skipped',   color: 'var(--ink3)',   bg: 'var(--surface-2, rgba(0,0,0,.04))' },
+  SKIPPED:   { label: 'Skipped',   color: 'var(--ink3)',   bg: 'rgba(0,0,0,.04)' },
   SIMULATED: { label: 'Simulated', color: 'var(--blue)',   bg: 'var(--blue-l)' },
 };
 

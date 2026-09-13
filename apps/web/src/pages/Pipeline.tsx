@@ -216,7 +216,7 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
           {deal && <CustomFieldsPanel entityType="deal" subjectId={deal.id} heading="Custom Fields" />}
 
           {deal && (
-            <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 14, marginTop: 4 }}>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Activity</div>
                 <div style={{ display: 'flex', gap: 6 }}>

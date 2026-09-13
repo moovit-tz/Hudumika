@@ -291,7 +291,7 @@ function CaseDetailModal({ caseId, onClose, onChanged }: { caseId: string; onClo
               {item.notes.length === 0 ? (
                 <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No notes yet.</div>
               ) : item.notes.map(n => (
-                <div key={n.id} style={{ padding: '8px 10px', background: 'var(--bg)', borderRadius: 8 }}>
+                <div key={n.id} style={{ padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r)' }}>
                   <div style={{ fontSize: 12.5, color: 'var(--ink)' }}>{n.note}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>{n.author_name ?? '—'} · {new Date(n.created_at).toLocaleString()}</div>
                 </div>

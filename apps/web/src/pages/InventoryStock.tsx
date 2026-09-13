@@ -258,7 +258,7 @@ export function InventoryStock() {
                             ) : (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 {movements.map(m => (
-                                  <div key={m.id} style={{ fontSize: 12.5, padding: '8px 10px', background: 'var(--white)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                                  <div key={m.id} style={{ fontSize: 12.5, padding: '8px 10px', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                                     <strong>{m.movementType}</strong> {m.qtyDelta > 0 ? '+' : ''}{m.qtyDelta}
                                     {m.fromLocationCode && <> from {m.fromLocationCode}</>}
                                     {m.toLocationCode && <> to {m.toLocationCode}</>}

@@ -121,7 +121,7 @@ export function RecordActivity({ entityType, entityId, limit = 50, emptyText }: 
                 ? <PersonLink userId={r.actor_id} name={r.actor_name ?? 'Unknown'} size={20} />
                 // Not "System": an older row simply never recorded who did it,
                 // and claiming a background job did is a different assertion.
-                : <span style={{ fontSize: 12, color: 'var(--ink4)' }}>No-one recorded</span>}
+                : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>No-one recorded</span>}
             </div>
 
             {details(r.payload).length > 0 && (

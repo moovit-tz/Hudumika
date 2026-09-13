@@ -177,10 +177,10 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
       {/* Industry Header Banner */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #064e3b 0%, #0f766e 100%)',
-          borderRadius: 14,
+          background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, var(--teal) 100%)',
+          borderRadius: 'var(--r-lg)',
           padding: '20px 24px',
-          color: '#ffffff',
+          color: 'hsl(var(--primary-foreground))',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -199,7 +199,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                 letterSpacing: '0.08em',
                 background: 'rgba(255,255,255,0.2)',
                 padding: '2px 8px',
-                borderRadius: 4,
+                borderRadius: 'var(--r-sm)',
               }}
             >
               Enterprise Industry Pack
@@ -225,7 +225,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
           <Button
             size="sm"
             onClick={() => setShowAddModal(true)}
-            style={{ background: '#ffffff', color: '#064e3b', fontWeight: 700, border: 'none' }}
+            style={{ background: 'var(--white)', color: 'hsl(var(--primary))', fontWeight: 700, border: 'none' }}
           >
             <Icon name="plus" size={15} style={{ marginRight: 6 }} />
             Add {subTab.toUpperCase().replace('_', ' ')} Record
@@ -242,10 +242,10 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
               onClick={() => setSubTab('boq')}
               style={{
                 padding: '8px 16px',
-                borderRadius: 8,
+                borderRadius: 'var(--r)',
                 border: 'none',
-                background: subTab === 'boq' ? 'var(--teal)' : 'var(--white)',
-                color: subTab === 'boq' ? '#ffffff' : 'var(--ink2)',
+                background: subTab === 'boq' ? 'hsl(var(--primary))' : 'var(--white)',
+                color: subTab === 'boq' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -261,10 +261,10 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
               onClick={() => setSubTab('rfis')}
               style={{
                 padding: '8px 16px',
-                borderRadius: 8,
+                borderRadius: 'var(--r)',
                 border: 'none',
-                background: subTab === 'rfis' ? 'var(--teal)' : 'var(--white)',
-                color: subTab === 'rfis' ? '#ffffff' : 'var(--ink2)',
+                background: subTab === 'rfis' ? 'hsl(var(--primary))' : 'var(--white)',
+                color: subTab === 'rfis' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -280,10 +280,10 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
               onClick={() => setSubTab('site_diary')}
               style={{
                 padding: '8px 16px',
-                borderRadius: 8,
+                borderRadius: 'var(--r)',
                 border: 'none',
-                background: subTab === 'site_diary' ? 'var(--teal)' : 'var(--white)',
-                color: subTab === 'site_diary' ? '#ffffff' : 'var(--ink2)',
+                background: subTab === 'site_diary' ? 'hsl(var(--primary))' : 'var(--white)',
+                color: subTab === 'site_diary' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -304,10 +304,10 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
               onClick={() => setSubTab('bom')}
               style={{
                 padding: '8px 16px',
-                borderRadius: 8,
+                borderRadius: 'var(--r)',
                 border: 'none',
-                background: subTab === 'bom' ? 'var(--teal)' : 'var(--white)',
-                color: subTab === 'bom' ? '#ffffff' : 'var(--ink2)',
+                background: subTab === 'bom' ? 'hsl(var(--primary))' : 'var(--white)',
+                color: subTab === 'bom' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -325,10 +325,10 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
               onClick={() => setSubTab('units')}
               style={{
                 padding: '8px 16px',
-                borderRadius: 8,
+                borderRadius: 'var(--r)',
                 border: 'none',
-                background: subTab === 'units' ? 'var(--teal)' : 'var(--white)',
-                color: subTab === 'units' ? '#ffffff' : 'var(--ink2)',
+                background: subTab === 'units' ? 'hsl(var(--primary))' : 'var(--white)',
+                color: subTab === 'units' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -346,10 +346,10 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
               onClick={() => setSubTab('logframe')}
               style={{
                 padding: '8px 16px',
-                borderRadius: 8,
+                borderRadius: 'var(--r)',
                 border: 'none',
-                background: subTab === 'logframe' ? 'var(--teal)' : 'var(--white)',
-                color: subTab === 'logframe' ? '#ffffff' : 'var(--ink2)',
+                background: subTab === 'logframe' ? 'hsl(var(--primary))' : 'var(--white)',
+                color: subTab === 'logframe' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -367,10 +367,10 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
               onClick={() => setSubTab('sprints')}
               style={{
                 padding: '8px 16px',
-                borderRadius: 8,
+                borderRadius: 'var(--r)',
                 border: 'none',
-                background: subTab === 'sprints' ? 'var(--teal)' : 'var(--white)',
-                color: subTab === 'sprints' ? '#ffffff' : 'var(--ink2)',
+                background: subTab === 'sprints' ? 'hsl(var(--primary))' : 'var(--white)',
+                color: subTab === 'sprints' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -421,7 +421,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                             <td style={{ padding: '12px 14px', fontWeight: 700 }}>{data.item_no || '1.01'}</td>
                             <td style={{ padding: '12px 14px' }}>
                               <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{data.description}</div>
-                              <div style={{ fontSize: 11, color: 'var(--ink4)' }}>Created: {new Date(r.created_at).toLocaleDateString()}</div>
+                              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Created: {new Date(r.created_at).toLocaleDateString()}</div>
                             </td>
                             <td style={{ textAlign: 'center', padding: '12px 14px', color: 'var(--ink3)' }}>{data.unit}</td>
                             <td style={{ textAlign: 'right', padding: '12px 14px', fontWeight: 600 }}>{Number(data.quantity || 0).toLocaleString()}</td>
@@ -462,7 +462,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                         style={{
                           background: 'var(--white)',
                           border: '1px solid var(--border)',
-                          borderRadius: 10,
+                          borderRadius: 'var(--r)',
                           padding: 16,
                           display: 'flex',
                           flexDirection: 'column',
@@ -476,7 +476,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                           </Badge>
                         </div>
                         <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--ink)' }}>{data.subject}</div>
-                        <div style={{ fontSize: 13, color: 'var(--ink2)', background: 'var(--bg-subtle)', padding: 10, borderRadius: 6 }}>
+                        <div style={{ fontSize: 13, color: 'var(--ink2)', background: 'var(--bg-subtle)', padding: 10, borderRadius: 'var(--r-sm)' }}>
                           {data.question}
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11.5, color: 'var(--ink3)' }}>
@@ -510,7 +510,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                         style={{
                           background: 'var(--white)',
                           border: '1px solid var(--border)',
-                          borderRadius: 12,
+                          borderRadius: 'var(--r-lg)',
                           padding: 18,
                           boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                         }}
@@ -523,11 +523,11 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                           <Badge variant="brand">{data.weather}</Badge>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 14 }}>
-                          <div style={{ background: 'var(--bg-subtle)', padding: 12, borderRadius: 8 }}>
+                          <div style={{ background: 'var(--bg-subtle)', padding: 12, borderRadius: 'var(--r)' }}>
                             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Manpower ({data.manpower_count} Total)</div>
                             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginTop: 4 }}>{data.trades}</div>
                           </div>
-                          <div style={{ background: 'var(--bg-subtle)', padding: 12, borderRadius: 8 }}>
+                          <div style={{ background: 'var(--bg-subtle)', padding: 12, borderRadius: 'var(--r)' }}>
                             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Active Heavy Machinery</div>
                             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginTop: 4 }}>{data.equipment_active}</div>
                           </div>
@@ -537,7 +537,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                           <div style={{ fontSize: 13.5, color: 'var(--ink)', marginTop: 2 }}>{data.work_completed}</div>
                         </div>
                         {data.delays_incidents && (
-                          <div style={{ fontSize: 12.5, color: '#b91c1c', background: '#fef2f2', padding: '8px 12px', borderRadius: 6 }}>
+                          <div style={{ fontSize: 12.5, color: 'var(--red)', background: 'var(--red-l)', padding: '8px 12px', borderRadius: 'var(--r-sm)' }}>
                             <strong>Incidents / Health & Safety:</strong> {data.delays_incidents}
                           </div>
                         )}
@@ -600,7 +600,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                       style={{
                         background: 'var(--white)',
                         border: '1px solid var(--border)',
-                        borderRadius: 10,
+                        borderRadius: 'var(--r)',
                         padding: 16,
                       }}
                     >
@@ -616,7 +616,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                         {currency} {Number(d.price || 0).toLocaleString()}
                       </div>
                       {d.buyer_name && (
-                        <div style={{ fontSize: 12, color: 'var(--ink2)', background: 'var(--bg-subtle)', padding: 8, borderRadius: 6, marginTop: 8 }}>
+                        <div style={{ fontSize: 12, color: 'var(--ink2)', background: 'var(--bg-subtle)', padding: 8, borderRadius: 'var(--r-sm)', marginTop: 8 }}>
                           Buyer: <strong>{d.buyer_name}</strong>
                         </div>
                       )}
@@ -639,7 +639,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                       style={{
                         background: 'var(--white)',
                         border: '1px solid var(--border)',
-                        borderRadius: 10,
+                        borderRadius: 'var(--r)',
                         padding: 16,
                       }}
                     >
@@ -649,19 +649,19 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, fontSize: 13, marginTop: 12 }}>
                         <div>
-                          <div style={{ fontSize: 11, color: 'var(--ink4)', fontWeight: 700 }}>INDICATOR</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 700 }}>INDICATOR</div>
                           <div style={{ fontWeight: 600 }}>{d.indicator}</div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 11, color: 'var(--ink4)', fontWeight: 700 }}>BASELINE / TARGET</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 700 }}>BASELINE / TARGET</div>
                           <div>{d.baseline} → <strong style={{ color: 'var(--teal)' }}>{d.target}</strong></div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 11, color: 'var(--ink4)', fontWeight: 700 }}>VERIFICATION MEANS</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 700 }}>VERIFICATION MEANS</div>
                           <div>{d.verification_source}</div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 11, color: 'var(--ink4)', fontWeight: 700 }}>CRITICAL ASSUMPTIONS</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 700 }}>CRITICAL ASSUMPTIONS</div>
                           <div>{d.assumptions}</div>
                         </div>
                       </div>
@@ -676,20 +676,20 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
           {subTab === 'sprints' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 16 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>DEPLOYMENT FREQUENCY</div>
                   <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--teal)', marginTop: 4 }}>Daily (Elite)</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink4)', marginTop: 2 }}>2.4 production builds / day</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>2.4 production builds / day</div>
                 </div>
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 16 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>LEAD TIME FOR CHANGES</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#2563eb', marginTop: 4 }}>3.2 Hours</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink4)', marginTop: 2 }}>Commit to deploy pipeline</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--blue)', marginTop: 4 }}>3.2 Hours</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Commit to deploy pipeline</div>
                 </div>
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 16 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>CHANGE FAILURE RATE</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#16a34a', marginTop: 4 }}>0.8%</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink4)', marginTop: 2 }}>Automated rollbacks & health checks</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--green)', marginTop: 4 }}>0.8%</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Automated rollbacks & health checks</div>
                 </div>
               </div>
 
@@ -734,7 +734,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
           <div
             style={{
               background: 'var(--white)',
-              borderRadius: 14,
+              borderRadius: 'var(--r-lg)',
               width: '100%',
               maxWidth: 580,
               padding: 24,

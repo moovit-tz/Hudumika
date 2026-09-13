@@ -5,6 +5,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 type EntityType = 'lead' | 'deal' | 'customer';
 type FieldType = 'text' | 'number' | 'date' | 'select' | 'checkbox';
@@ -83,7 +84,7 @@ export function CrmCustomFields() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {defs === null ? <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+        {defs === null ? <SectionLoading />
           : defs.length === 0 ? <div style={{ color: 'var(--ink3)', fontSize: 13, fontStyle: 'italic' }}>No custom fields on {entity}s yet.</div>
           : defs.map(f => (
             <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 14px' }}>

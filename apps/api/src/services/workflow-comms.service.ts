@@ -5,6 +5,7 @@ import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { NotificationService } from './notification.service.js';
 import { SmsService } from './sms.service.js';
 import { attachCommOutcomes, settleQueuedComm, type CommOutcome } from './workflow-runs.service.js';
+import { assertPublicHttpUrl } from '../lib/ssrf-guard.js';
 import type { AutoComm } from '@hudumika/types';
 
 /**
@@ -210,6 +211,12 @@ export async function sendOneComm(tenantId: string, shipmentId: string, comm: Au
       const url = settings?.workflow_webhook_url;
       if (!url) return { success: false, error: 'No workflow_webhook_url configured for this tenant' };
       try {
+        // HUD-0024 continuation (Phase 6, SSRF): this URL is whatever a
+        // tenant admin typed into Settings — without this, a workflow
+        // stage transition was a way to make the server itself issue an
+        // authenticated-looking POST to an internal address of the
+        // admin's choosing on every run.
+        await assertPublicHttpUrl(url);
         const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

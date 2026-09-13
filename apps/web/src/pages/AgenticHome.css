@@ -91,7 +91,7 @@
 .ah-agent-link { font-size: 12px; font-weight: 600; color: var(--teal); text-decoration: none; white-space: nowrap; }
 .ah-agent-link:hover { text-decoration: underline; }
 
-.ah-empty-row { padding: 20px 18px; text-align: center; color: var(--ink4); font-size: 12.5px; }
+.ah-empty-row { padding: 20px 18px; text-align: center; color: var(--ink3); font-size: 12.5px; }
 
 .ah-task-row { display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-top: 1px solid var(--border); }
 .ah-task-row:first-child { border-top: none; }

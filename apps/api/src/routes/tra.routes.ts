@@ -40,6 +40,16 @@ export async function traRoutes(fastify: FastifyInstance) {
 
   // ── GET /v1/tra/config ──────────────────────────────────────────────────────
   // Returns current TRA VFD configuration status for the tenant.
+  // HUD-0024 continuation: internal tenant-business data (finance ledgers,
+  // fleet ops, HR, identity/access admin, or tenant configuration) with only
+  // an entitlement gate — reachable end-to-end by a CUSTOMER JWT (confirmed
+  // live before this fix). Not customer-portal data.
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  });
+
   fastify.get('/config', async (request) => {
     const user = request.user as any;
     const config = await TRAService.getConfig(user.tenant_id);
@@ -63,14 +73,23 @@ export async function traRoutes(fastify: FastifyInstance) {
         environment = 'test',
       } = traRegisterSchema.parse(request.body);
 
-      // Determine PFX path: either provided directly or look in uploads
-      let resolvedPfxPath = pfx_path;
+      // Phase 6 (path traversal / file access): `pfx_path` used to be taken
+      // from the request body and handed straight to fs.existsSync/
+      // readFileSync with no validation at all — any ADMIN-tier caller could
+      // point it at an arbitrary absolute path on the server's filesystem
+      // (existence-probe at minimum; a readable PKCS12 file anywhere the
+      // process can read would have gone further). POST /upload-cert always
+      // writes to this exact tenant-scoped location, under this exact name,
+      // so /register never needs to trust a client-supplied path at all —
+      // it looks up the tenant's own uploaded cert directly. `pfx_path` is
+      // still accepted in the request shape (frontend compatibility) but is
+      // no longer read for anything.
+      const uploadDir = path.join(process.cwd(), 'uploads', 'tra', user.tenant_id);
+      const resolvedPfxPath = ['.pfx', '.p12']
+        .map(ext => path.join(uploadDir, `cert${ext}`))
+        .find(p => fs.existsSync(p));
       if (!resolvedPfxPath) {
-        return reply.status(400).send({ error: 'pfx_path is required. Upload the .pfx file first via POST /v1/tra/upload-cert' });
-      }
-
-      if (!fs.existsSync(resolvedPfxPath)) {
-        return reply.status(400).send({ error: `PFX file not found at: ${resolvedPfxPath}` });
+        return reply.status(400).send({ error: 'No certificate on file for this tenant. Upload the .pfx or .p12 file first via POST /v1/tra/upload-cert.' });
       }
 
       const result = await TRAService.register(

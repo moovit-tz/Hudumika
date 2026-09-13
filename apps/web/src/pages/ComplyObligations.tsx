@@ -12,6 +12,7 @@ import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
 import { showConfirm } from '../lib/confirm.js';
+import { Button } from '../components/ui/button.js';
 
 type Filter = 'all' | 'active' | 'pending' | 'expired' | 'not-started';
 
@@ -93,15 +94,13 @@ export function ComplyObligations() {
             {obligations.filter(o => !o.mandatory).length} optional across {Object.keys(groups).length} agencies </>}
         actions={
         <div className="comply-action-row">
-          <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh obligations">
+          <Button type="button" variant="outline" size="icon" onClick={refresh} title="Refresh obligations" aria-label="Refresh obligations">
             <Icon name="refresh" size={13} />
-          </button>
-          <button type="button" className="comply-btn-secondary" onClick={() => navigate('/complyos/obligations/new')}>
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => navigate('/complyos/obligations/new')}>
             <Icon name="plus" size={14} /> Add Obligation
-          </button>
-          <Link to="/complyos/applications" className="comply-btn-primary">
-            <Icon name="plus" size={14} /> New Application
-          </Link>
+          </Button>
+          <Button asChild size="sm"><Link to="/complyos/applications"><Icon name="plus" size={14} /> New Application</Link></Button>
         </div>
         }
       />
@@ -177,18 +176,16 @@ export function ComplyObligations() {
                   <span className={`comply-badge ${statusBadgeClass(o.status)}`}>{statusLabel(o.status)}</span>
                   {(o.status === 'not-started' || o.status === 'expired' || o.status === 'pending') && (
                     <>
-                      <Link to="/complyos/applications" className="comply-btn-primary comply-btn-sm">
-                        Apply
-                      </Link>
-                      <button type="button" className="comply-btn-secondary comply-btn-sm" disabled={busyId === o.id} onClick={() => handleFulfil(o)} title="Mark as fulfilled">
+                      <Button asChild size="xs"><Link to="/complyos/applications">Apply</Link></Button>
+                      <Button type="button" variant="outline" size="xs" disabled={busyId === o.id} onClick={() => handleFulfil(o)} title="Mark as fulfilled" aria-label="Mark as fulfilled">
                         <Icon name="check" size={12} />
-                      </button>
+                      </Button>
                     </>
                   )}
-                  <button type="button" title="Delete obligation" disabled={busyId === o.id} onClick={() => handleDelete(o)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                  <Button type="button" variant="ghost" size="xs" title="Delete obligation" disabled={busyId === o.id} onClick={() => handleDelete(o)}
+                    style={{ color: 'var(--ink3)' }} aria-label="Delete obligation">
                     <Icon name="trash" size={13} />
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}

@@ -74,7 +74,7 @@ export function OrgVerificationPanel() {
     <div style={{
       background: 'var(--white)',
       border: '1px solid var(--border)',
-      borderRadius: 'var(--r-md, 12px)',
+      borderRadius: 'var(--r)',
       overflow: 'hidden',
       width: '100%',
       boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
@@ -83,7 +83,7 @@ export function OrgVerificationPanel() {
       {/* Panel Header */}
       <div style={{
         padding: '20px 24px',
-        borderBottom: '1px solid var(--border-soft)',
+        borderBottom: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -164,7 +164,7 @@ export function OrgVerificationPanel() {
 
             {/* Extracted Details Table / Data Grid */}
             <div style={{
-              border: '1px solid var(--border-soft)',
+              border: '1px solid var(--border)',
               borderRadius: 10,
               padding: 20,
               background: 'var(--bg)',
@@ -237,7 +237,7 @@ export function OrgVerificationPanel() {
               gap: 12,
               padding: 16,
               background: 'var(--bg)',
-              border: '1px solid var(--border-soft)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               fontSize: 13,
               color: 'var(--ink3)'

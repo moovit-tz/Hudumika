@@ -66,7 +66,7 @@ export function OnsiteTransfers() {
           Transfer to Onsite
         </button>
 
-        <button className="btn btn-ghost" style={{ fontSize: '0.8125rem', color: '#673de6', fontWeight: 600 }} onClick={() => setShowModal(true)}>
+        <button className="btn btn-ghost" style={{ fontSize: '0.8125rem', color: 'hsl(var(--primary))', fontWeight: 600 }} onClick={() => setShowModal(true)}>
           Move to another account
         </button>
       </div>

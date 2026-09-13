@@ -972,7 +972,7 @@ export const BlissWhatsApp: React.FC = () => {
                 maxWidth: '82%',
                 background: 'var(--card-bg, var(--white))',
                 padding: '8px 12px',
-                borderRadius: '0 10px 10px 10px',
+                borderRadius: `0 var(--r) var(--r) var(--r)`,
                 boxShadow: 'var(--elev-sm)',
                 fontSize: 12.5,
                 color: 'var(--ink)',
@@ -989,7 +989,7 @@ export const BlissWhatsApp: React.FC = () => {
                 maxWidth: '85%',
                 background: 'var(--teal-l)',
                 padding: '10px 12px',
-                borderRadius: '10px 0 10px 10px',
+                borderRadius: `var(--r) 0 var(--r) var(--r)`,
                 boxShadow: 'var(--elev-sm)',
                 fontSize: 12.5,
                 color: 'var(--ink)',
@@ -1013,7 +1013,7 @@ export const BlissWhatsApp: React.FC = () => {
 
             {/* Bottom Fake Input Bar */}
             <div style={{ background: 'var(--card-bg, var(--white))', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--border)' }}>
-              <div style={{ flex: 1, background: 'var(--card-sunken)', borderRadius: 20, padding: '6px 14px', fontSize: 12, color: 'var(--ink3)', border: '1px solid var(--border)' }}>
+              <div style={{ flex: 1, background: 'var(--card-sunken)', borderRadius: 'var(--r)', padding: '6px 14px', fontSize: 12, color: 'var(--ink3)', border: '1px solid var(--border)' }}>
                 Message
               </div>
               <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--teal)', color: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
