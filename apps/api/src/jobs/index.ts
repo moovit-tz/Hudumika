@@ -19,6 +19,8 @@ import { runCloudTrashExpiryJob } from './cloud-trash-expiry.job.js';
 import { runOnsiteBackupJob } from './onsite-backup.job.js';
 import { runMailOutboxJob } from './mail-outbox.job.js';
 import { runImapTicketIngestJob } from './imap-ticket-ingest.job.js';
+import { runImapEmailIngestJob } from './imap-email-ingest.job.js';
+import { runScheduledEmailSendJob } from './scheduled-email-send.job.js';
 import { runSanctionsSyncJob } from './sanctions-sync.job.js';
 import { runDailyShipmentReportJob } from './daily-shipment-report.job.js';
 import { runSignExpiryJob } from './sign-expiry.job.js';
@@ -91,6 +93,8 @@ export const JOB_REGISTRY: { name: string; schedule: string; fallbackOnly?: bool
   { name: 'Mail Outbox Sweep', schedule: 'Every 1 minute' },
   { name: 'SMS Outbox Sweep', schedule: 'Every 1 minute' },
   { name: 'IMAP Ticket Ingest', schedule: 'Every 3 minutes' },
+  { name: 'IMAP Email Ingest', schedule: 'Every 3 minutes' },
+  { name: 'Scheduled Email Send / Undo Window', schedule: 'Every 15 seconds' },
   { name: 'Meeting Duration Limit Sweep', schedule: 'Every 1 minute' },
   { name: 'Digital Execution Seal — Forensic Verify Queue', schedule: 'Every 10 seconds' },
   { name: 'Digital Execution Seal — Forensic Job Cleanup', schedule: 'Every hour' },
@@ -109,6 +113,8 @@ let sealAnchorQueue: Queue | null = null;
 let declarationAnchorQueue: Queue | null = null;
 let mailOutboxQueue: Queue | null = null;
 let imapTicketQueue: Queue | null = null;
+let imapEmailQueue: Queue | null = null;
+let scheduledEmailSendQueue: Queue | null = null;
 let smsOutboxQueue: Queue | null = null;
 let meetingDurationQueue: Queue | null = null;
 let signForensicVerifyQueue: Queue | null = null;
@@ -222,6 +228,8 @@ function startBullMQ(): void {
     declarationAnchorQueue = track(new Queue('declaration-ledger-anchor', { connection: redisConnection as any }));
     mailOutboxQueue = track(new Queue('mail-outbox', { connection: redisConnection as any }));
     imapTicketQueue = track(new Queue('imap-ticket-ingest', { connection: redisConnection as any }));
+    imapEmailQueue = track(new Queue('imap-email-ingest', { connection: redisConnection as any }));
+    scheduledEmailSendQueue = track(new Queue('scheduled-email-send', { connection: redisConnection as any }));
     meetingDurationQueue = track(new Queue('meeting-duration-limit', { connection: redisConnection as any }));
     smsOutboxQueue = track(new Queue('sms-outbox', { connection: redisConnection as any }));
     signForensicVerifyQueue = track(new Queue('sign-forensic-verify', { connection: redisConnection as any }));
@@ -411,6 +419,36 @@ function startBullMQ(): void {
       async (job) => {
         if (job.name === 'sweep') {
           await runImapTicketIngestJob();
+        }
+      },
+      { connection: redisConnection as any }
+    ));
+
+    // Worker for IMAP-to-Email ingestion — each user's own opted-in
+    // personal mailbox (user_email_accounts), not the tenant-wide support
+    // inbox the ticket-ingest worker above polls. Same 3-min cadence, its
+    // own queue for the same "keeps inbound-mail latency independent of
+    // the ticket worker's own load" reasoning.
+    track(new Worker(
+      'imap-email-ingest',
+      async (job) => {
+        if (job.name === 'sweep') {
+          await runImapEmailIngestJob();
+        }
+      },
+      { connection: redisConnection as any }
+    ));
+
+    // Worker for the scheduled-send / undo-send sweep — its own queue, 15s
+    // cadence: the default undo window is only 10s, so this needs finer
+    // resolution than even the 1-min "needs to go out promptly" group above,
+    // or a message would sit well past its own undo deadline before it
+    // actually gets sent.
+    track(new Worker(
+      'scheduled-email-send',
+      async (job) => {
+        if (job.name === 'sweep') {
+          await runScheduledEmailSendJob();
         }
       },
       { connection: redisConnection as any }
@@ -613,6 +651,14 @@ function startBullMQ(): void {
       repeat: { every: 3 * 60 * 1000 } // Every 3 minutes — inbound support replies via email
     }).catch(console.error);
 
+    imapEmailQueue.add('sweep', {}, {
+      repeat: { every: 3 * 60 * 1000 } // Every 3 minutes — same cadence as imap-ticket-ingest above
+    }).catch(console.error);
+
+    scheduledEmailSendQueue.add('sweep', {}, {
+      repeat: { every: 15 * 1000 } // Every 15 seconds — finer than the default 10s undo window needs
+    }).catch(console.error);
+
     meetingDurationQueue.add('sweep', {}, {
       repeat: { every: 60 * 1000 } // Every 1 minute — same "needs to go promptly" reasoning as mail/SMS outbox
     }).catch(console.error);
@@ -642,6 +688,7 @@ function startIntervalFallback(): void {
   runGpswoxSyncJob().catch(console.error);
   runWorkflowCommQueueJob().catch(console.error);
   runMailOutboxJob().catch(console.error);
+  runScheduledEmailSendJob().catch(console.error);
   runSmsOutboxJob().catch(console.error);
   runMeetingDurationLimitJob().catch(console.error);
   runSignForensicVerifyJob().catch(console.error);
@@ -854,6 +901,20 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runImapTicketIngestJob().catch(console.error);
   }, 3 * 60 * 1000);
+
+  // IMAP-to-Email ingest — same 3-minute cadence and \Seen-guarded safe-
+  // rerun reasoning as the ticket ingest above, one opted-in mailbox per
+  // user instead of one shared tenant inbox.
+  setInterval(() => {
+    runImapEmailIngestJob().catch(console.error);
+  }, 3 * 60 * 1000);
+
+  // Scheduled-send / undo-send sweep — every 15 seconds, safe to also run
+  // immediately on startup (below): each row is claimed by its own
+  // folder='scheduled' check and flips to 'sent' or 'drafts' exactly once.
+  setInterval(() => {
+    runScheduledEmailSendJob().catch(console.error);
+  }, 15 * 1000);
 
   // Meeting duration limit sweep — every 1 minute, same cadence and
   // safe-to-rerun reasoning as mail/SMS outbox: each meeting is only ever

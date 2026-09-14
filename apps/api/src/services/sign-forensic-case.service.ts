@@ -116,6 +116,10 @@ export async function openForensicCase(
     forensicJobId: string | null; outcome: CompareOutcome;
     canonicalBytes: Buffer | null; canonicalFilename: string;
     uploadedBytes: Buffer; uploadedFilename: string; uploadedMediaType: string;
+    /** An opener's optional note (e.g. why a clean-verdict job is being
+     *  turned into a permanent record) — folded into this same 'opened'
+     *  custody event's own detail, not a second HUD-0080 duplicate row. */
+    note?: string;
   },
   openedBy: { id: string | null; name: string | null },
   ipAddress?: string | null,
@@ -157,7 +161,10 @@ export async function openForensicCase(
   await recordAnalysisRun(db, input.tenantId, caseRow.id, input.outcome, openedBy);
 
   await recordCustodyEvent(db, input.tenantId, caseRow.id, 'opened', openedBy,
-    { verification_code: input.verificationCode, content_verdict: input.outcome.content_verdict, evidence_count: entries.length + 1 },
+    {
+      verification_code: input.verificationCode, content_verdict: input.outcome.content_verdict, evidence_count: entries.length + 1,
+      ...(input.note ? { note: input.note } : {}),
+    },
     ipAddress);
 
   return caseRow.id;

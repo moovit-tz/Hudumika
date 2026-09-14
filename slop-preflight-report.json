@@ -4,13 +4,13 @@
     "clean": 278,
     "accent": {
       "filesWithRawAccentColor": 84,
-      "filesWithOffPaletteHue": 69,
-      "totalRawInstances": 674,
+      "filesWithOffPaletteHue": 68,
+      "totalRawInstances": 673,
       "totalPaletteInstances": 231,
       "byHue": {
         "teal/cyan": 80,
         "green": 65,
-        "blue": 395,
+        "blue": 394,
         "red": 56,
         "gold/orange": 59,
         "pink/magenta": 6,
@@ -20,7 +20,7 @@
     },
     "radius": {
       "filesWithRawRadius": 155,
-      "totalInstances": 515,
+      "totalInstances": 509,
       "distinctValues": [
         0,
         0.375,
@@ -2244,14 +2244,6 @@
       "accentHits": [],
       "radiusHits": [
         {
-          "value": 16,
-          "line": 843
-        },
-        {
-          "value": 16,
-          "line": 847
-        },
-        {
           "value": 5,
           "line": 975
         }
@@ -2698,10 +2690,6 @@
       "path": "D:\\Apps\\Hudumika\\apps\\web\\src\\pages\\cloud\\home\\SuggestedFilesStrip.tsx",
       "accentHits": [],
       "radiusHits": [
-        {
-          "value": 14,
-          "line": 43
-        },
         {
           "value": 5,
           "line": 62
@@ -4312,120 +4300,116 @@
         {
           "value": "#0ea5e9",
           "bucket": "blue",
-          "line": 441,
+          "line": 438,
           "inPalette": true
         },
         {
           "value": "#b91c1c",
           "bucket": "red",
-          "line": 3332,
+          "line": 3329,
           "inPalette": false
         },
         {
           "value": "#047857",
           "bucket": "green",
-          "line": 3334,
+          "line": 3331,
           "inPalette": false
         },
         {
           "value": "rgba(37,99,235)",
           "bucket": "blue",
-          "line": 4025,
+          "line": 4022,
           "inPalette": true
         },
         {
           "value": "rgba(100,116,139)",
           "bucket": "blue",
-          "line": 4273,
+          "line": 4270,
           "inPalette": true
         }
       ],
       "radiusHits": [
         {
           "value": 5,
-          "line": 349
+          "line": 553
         },
         {
           "value": 5,
-          "line": 556
+          "line": 1202
         },
         {
           "value": 5,
-          "line": 1205
+          "line": 1435
         },
         {
           "value": 5,
-          "line": 1438
+          "line": 1735
         },
         {
           "value": 5,
-          "line": 1738
+          "line": 1736
         },
         {
           "value": 5,
-          "line": 1739
+          "line": 1737
         },
         {
           "value": 5,
-          "line": 1740
+          "line": 1872
         },
         {
           "value": 5,
-          "line": 1875
+          "line": 1876
         },
         {
           "value": 5,
-          "line": 1879
+          "line": 1880
         },
         {
           "value": 5,
-          "line": 1883
+          "line": 1884
         },
         {
           "value": 5,
-          "line": 1887
+          "line": 3171
         },
         {
           "value": 5,
-          "line": 3174
+          "line": 3172
         },
         {
           "value": 5,
-          "line": 3175
+          "line": 3182
         },
         {
           "value": 5,
-          "line": 3185
+          "line": 3186
         },
         {
           "value": 5,
-          "line": 3189
+          "line": 3484
         },
         {
           "value": 5,
-          "line": 3487
+          "line": 3776
         },
         {
           "value": 5,
-          "line": 3779
+          "line": 3990
         },
         {
           "value": 5,
-          "line": 3993
+          "line": 4022
         },
         {
           "value": 5,
-          "line": 4025
-        },
-        {
-          "value": 5,
-          "line": 4225
+          "line": 4222
         }
       ],
       "gradientHits": [
         {
           "kind": "conic",
-          "line": 3186
+          "line": 3183
         }
       ],
       "intentDupes": []
@@ -9842,14 +9826,6 @@
         {
           "value": 5,
           "line": 214
-        },
-        {
-          "value": 5,
-          "line": 357
-        },
-        {
-          "value": 5,
-          "line": 431
         }
       ],
       "gradientHits": [],
@@ -10775,12 +10751,6 @@
           "value": "#0891b2",
           "bucket": "teal/cyan",
           "line": 222,
-          "inPalette": false
-        },
-        {
-          "value": "#94a3b8",
-          "bucket": "blue",
-          "line": 413,
           "inPalette": false
         }
       ],

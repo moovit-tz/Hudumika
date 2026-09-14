@@ -945,12 +945,25 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     const memberIds = await withTenant(user.tenant_id, async (trx) => {
       const group = await trx.selectFrom('ondi_org_groups').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!group) return null;
+      // role_id is caller-supplied and only FK-checked against the global
+      // ondi_org_roles table (migration 378), with no tenant filter of its
+      // own — same cross-tenant id-smuggling shape as the member/host checks
+      // elsewhere in this file. RLS on ondi_org_roles happens to stop the
+      // resulting grant from ever actually resolving to a permission (the
+      // role row itself is invisible to hasOrgPermission's join once
+      // attached to another tenant's group), but it still leaves a dangling
+      // cross-tenant row here and in ondi_org_role_members below — reject it
+      // up front instead.
+      const role = await trx.selectFrom('ondi_org_roles').select('id')
+        .where('id', '=', role_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!role) return 'role_not_found' as const;
       await trx.insertInto('ondi_org_group_roles').values({ tenant_id: user.tenant_id, group_id: id, role_id })
         .onConflict(oc => oc.columns(['group_id', 'role_id']).doNothing()).execute();
       const rows = await trx.selectFrom('ondi_org_group_members').select('user_id').where('group_id', '=', id).execute();
       return rows.map(r => r.user_id);
     });
     if (memberIds === null) { reply.status(404); return { error: 'Not found' }; }
+    if (memberIds === 'role_not_found') { reply.status(404); return { error: 'Role not found in this organization.' }; }
     await syncGroupRoleGrants(user.tenant_id, id, memberIds);
     await recordAuthEvent(user.tenant_id, user.sub, 'org_group_role_attached', { metadata: { group_id: id, role_id } });
     reply.status(201);
@@ -1765,10 +1778,23 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     }).parse(req.body);
 
     const badgeCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-    const created = await withTenant(user.tenant_id, trx => trx.insertInto('ondi_visitors').values({
-      tenant_id: user.tenant_id, name: body.name, company: body.company || null, purpose: body.purpose || null,
-      host_user_id: body.host_user_id || null, badge_code: badgeCode, created_by: user.sub,
-    }).returningAll().executeTakeFirstOrThrow());
+    const created = await withTenant(user.tenant_id, async (trx) => {
+      // host_user_id is caller-supplied and only FK-checked against the
+      // global `users` table (migration 372) — with no tenant filter of its
+      // own, any valid user id anywhere on the platform would otherwise be
+      // accepted and stored here. Same tenant-membership check as
+      // POST /org/groups/:id/members above, applied to visitor check-in.
+      if (body.host_user_id) {
+        const host = await trx.selectFrom('users').select('id')
+          .where('id', '=', body.host_user_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!host) return 'host_not_found' as const;
+      }
+      return trx.insertInto('ondi_visitors').values({
+        tenant_id: user.tenant_id, name: body.name, company: body.company || null, purpose: body.purpose || null,
+        host_user_id: body.host_user_id || null, badge_code: badgeCode, created_by: user.sub,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
+    if (created === 'host_not_found') { reply.status(404); return { error: 'Host is not a member of this organization.' }; }
     reply.status(201);
     return created;
   });

@@ -3073,6 +3073,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
       if (!entry) throw Object.assign(new Error('Entry not found'), { statusCode: 404 });
+      // Stopping someone else's active clock session is a manager action, same
+      // "own data or manager role" boundary as /clock-in/timesheet/submit above —
+      // a plain staff account previously had no ownership check here at all.
+      if (entry.user_id !== user.sub && !TS_MANAGER_ROLES.includes(user.role)) {
+        throw Object.assign(new Error('You can only stop your own time entry'), { statusCode: 403 });
+      }
 
       // A shift that ran past the statutory maximum working day was not ended
       // by anyone — recording `now - started_at` would have written 650 hours
@@ -3100,6 +3106,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
+      const entry = await trx.selectFrom('hr_time_entries').select(['user_id'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!entry) throw Object.assign(new Error('Entry not found'), { statusCode: 404 });
+      if (entry.user_id !== user.sub && !TS_MANAGER_ROLES.includes(user.role)) {
+        throw Object.assign(new Error('You can only acknowledge your own time entry'), { statusCode: 403 });
+      }
       return trx.updateTable('hr_time_entries')
         .set({ last_ack_at: new Date(), updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
@@ -3111,6 +3123,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
+      const entry = await trx.selectFrom('hr_time_entries').select(['user_id'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!entry) throw Object.assign(new Error('Entry not found'), { statusCode: 404 });
+      if (entry.user_id !== user.sub && !TS_MANAGER_ROLES.includes(user.role)) {
+        throw Object.assign(new Error('You can only extend your own time entry'), { statusCode: 403 });
+      }
       return trx.updateTable('hr_time_entries')
         .set({ is_full_day: true, is_extended: true, last_ack_at: new Date(), updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
@@ -3241,6 +3259,32 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .executeTakeFirst();
       if (!staff) throw Object.assign(new Error('Staff not found'), { statusCode: 404 });
 
+      // The real reporting line, resolved from Org Chart — distinct from
+      // profile.reports_to (a free-typed field on the profile screen, never
+      // connected to the actual chart). Walks org_chart_nodes.parent_id up
+      // from this person's own node past any unlinked placeholder roles
+      // (a seeded "COO" with no user_id, say) until it finds the nearest
+      // ancestor that IS a real person, capped at 20 hops so a corrupt
+      // parent_id cycle can't loop forever.
+      const orgChartManager = await (async () => {
+        const ownNode = await trx.selectFrom('org_chart_nodes').select(['parent_id'])
+          .where('tenant_id', '=', user.tenant_id).where('user_id', '=', id).executeTakeFirst();
+        let parentId = ownNode?.parent_id ?? null;
+        for (let hop = 0; parentId && hop < 20; hop++) {
+          const node: { user_id: string | null; parent_id: string | null; label: string } | undefined =
+            await trx.selectFrom('org_chart_nodes').select(['user_id', 'parent_id', 'label'])
+              .where('tenant_id', '=', user.tenant_id).where('id', '=', parentId).executeTakeFirst();
+          if (!node) return null;
+          if (node.user_id) {
+            const manager = await trx.selectFrom('users').select(['id', 'name', 'email'])
+              .where('id', '=', node.user_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+            return manager ? { id: manager.id, name: manager.name || manager.email } : { id: node.user_id, name: node.label };
+          }
+          parentId = node.parent_id;
+        }
+        return null;
+      })();
+
       const today = new Date().toISOString().split('T')[0];
       const [leaveSummary, attendanceSummary, recentLeaves, onLeaveNow] = await Promise.all([
         trx.selectFrom('hr_leaves').select((eb) => eb.fn.count<number>('id').as('c'))
@@ -3262,6 +3306,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
       return {
         ...staff,
+        org_chart_manager: orgChartManager,
         status: !staff.active ? 'INACTIVE' : Number(onLeaveNow?.c ?? 0) > 0 ? 'ON_LEAVE' : 'ACTIVE',
         // The real hire date if one has been entered, and only then the row's
         // creation date. These are not interchangeable: the leave cycle is

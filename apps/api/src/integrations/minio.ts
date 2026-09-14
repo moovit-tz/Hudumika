@@ -95,6 +95,20 @@ export class MinioIntegration {
     return { storageKey, size: fileBuffer.length };
   }
 
+  /** Email compose attachments — `tenants/{t}/email/{userId}/{unique}`, same
+   *  timestamp-prefixed collision-avoidance as uploadHrDocument. Read back
+   *  via MinioIntegration.readFile at send time (mail.service.ts) the same
+   *  way an attachmentStorageKey already works for daily-shipment-report. */
+  static async uploadEmailAttachment(
+    tenantId: string, userId: string, filename: string, fileBuffer: Buffer,
+  ): Promise<{ storageKey: string; size: number }> {
+    const unique = `${Date.now()}-${clean(filename) || 'attachment'}`;
+    const storageKey = `tenants/${tenantId}/email/${userId}/${unique}`;
+    await objectStore.put(storageKey, fileBuffer);
+    console.log(`🗄️ Storage: Email attachment saved — ${storageKey}`);
+    return { storageKey, size: fileBuffer.length };
+  }
+
   static async uploadKycDocument(
     tenantId: string, userId: string, filename: string, fileBuffer: Buffer,
   ): Promise<{ storageKey: string; size: number }> {

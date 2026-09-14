@@ -840,11 +840,11 @@ export const Chat: React.FC = () => {
           <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* Profile Card */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: 'var(--card-sunken)', borderRadius: 16, padding: 18, border: '1px solid var(--border2)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: 'var(--card-sunken)', borderRadius: 'var(--card-radius)', padding: 18, border: '1px solid var(--border2)' }}>
             {activeCh.type === 'dm' ? (
               <PersonAvatar userId={activeCh.other_user_id} name={activeCh.name} size={64} />
             ) : (
-              <div style={{ width: 64, height: 64, borderRadius: 16, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 64, height: 64, borderRadius: 'var(--card-radius)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name={activeCh.type === 'channel' ? 'hash' : 'users'} size={26} />
               </div>
             )}

@@ -5333,6 +5333,9 @@ export interface Database {
   email_messages: EmailMessagesTable;
   email_templates: EmailTemplatesTable;
   email_outbox: EmailOutboxTable;
+  user_email_accounts: UserEmailAccountsTable;
+  email_labels: EmailLabelsTable;
+  email_quick_templates: EmailQuickTemplatesTable;
   shipment_report_shares: ShipmentReportSharesTable;
   transit_route_rates: TransitRouteRatesTable;
   petti_wallets: PettiWalletsTable;
@@ -7621,11 +7624,12 @@ export interface EmailMessagesTable {
   id: Generated<string>;
   tenant_id: string;
   user_id: string;
-  folder: Generated<'inbox' | 'sent' | 'drafts' | 'spam' | 'trash'>;
+  folder: Generated<'inbox' | 'sent' | 'drafts' | 'spam' | 'trash' | 'scheduled' | 'archive'>;
   from_name: Generated<string>;
   from_email: Generated<string>;
   to_addresses: Generated<any>;
   cc_addresses: Generated<any>;
+  bcc_addresses: Generated<any>;
   subject: Generated<string>;
   body: Generated<string>;
   snippet: Generated<string>;
@@ -7633,8 +7637,64 @@ export interface EmailMessagesTable {
   starred: Generated<boolean>;
   labels: Generated<any>;
   has_attachment: Generated<boolean>;
+  /** Legacy single-attachment trio (migration 460) — still readable for any
+   *  pre-461 row, no longer written by new code. Use `attachments` instead. */
+  attachment_storage_key: string | null;
+  attachment_filename: string | null;
+  attachment_size: number | null;
+  attachments: Generated<any>;
+  thread_id: string;
+  in_reply_to: string | null;
+  message_id: string | null;
+  in_reply_to_message_id: string | null;
+  references_ids: Generated<any>;
+  read_receipt_requested: Generated<boolean>;
+  read_receipt_confirmed_at: Date | null;
+  scheduled_at: Date | null;
+  /** Set when scheduled-email-send.job.ts's deferred send fails — the row
+   *  bounces back to 'drafts' with this populated rather than vanishing. */
+  send_error: string | null;
   outbox_id: string | null;
   created_at: Generated<Date>;
+}
+
+export interface EmailLabelsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  name: string;
+  color: Generated<string>;
+  created_at: Generated<Date>;
+}
+
+export interface EmailQuickTemplatesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  name: string;
+  subject: Generated<string>;
+  body: Generated<string>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface UserEmailAccountsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  imap_enabled: Generated<boolean>;
+  imap_host: string | null;
+  imap_port: Generated<number>;
+  imap_user: string | null;
+  imap_pass: string | null;
+  imap_encryption: Generated<'ssl' | 'tls' | 'none'>;
+  imap_mark_as_read: Generated<boolean>;
+  signature: Generated<string>;
+  spam_blocklist: Generated<any>;
+  last_synced_at: Date | null;
+  last_sync_error: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface EmailTemplatesTable {

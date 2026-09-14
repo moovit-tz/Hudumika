@@ -40,7 +40,7 @@ function SuggestedFileCard({ item, onOpen, menuHandlers }: { item: CloudFile; on
       style={{
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: 14,
+        borderRadius: 'var(--card-radius)',
         border: '1px solid var(--border)',
         background: 'var(--card-bg)',
         padding: 0,

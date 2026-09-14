@@ -344,10 +344,7 @@ export function EmployeesPage() {
                   onMouseLeave={ev => (ev.currentTarget.style.background = '')}>
                   <TD>
                     <Link to={'/nexushr/staff/' + e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}>
-                      <div style={{ position: 'relative', flexShrink: 0 }}>
-                        <Avatar name={e.name} size={34} userId={e.id} />
-                        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: statusBar(e.status), border: '2px solid var(--white)' }} />
-                      </div>
+                      <Avatar name={e.name} size={34} userId={e.id} />
                       <div>
                         <div style={{ fontWeight: 700, color: 'var(--ink)', fontSize: 13 }}>{e.name}</div>
                         <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{e.email}</div>

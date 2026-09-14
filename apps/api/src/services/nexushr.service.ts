@@ -37,6 +37,12 @@ export class NexusHRService {
         .select(['id as user_id', 'name', 'email', 'role', 'active', 'hire_date',
                  'basic_salary', 'pay_currency'])
         .where('tenant_id', '=', tenantId)
+        // HUD-0072 (org-chart.routes.ts sync-staff): a CUSTOMER-portal login
+        // isn't part of the company's staff — without this filter every
+        // customer contact showed up here as a person with "no contract on
+        // file", which is meaningless for an account that was never
+        // employment-eligible in the first place.
+        .where('role', '!=', 'CUSTOMER')
         .orderBy('name', 'asc')
         .execute();
 
@@ -994,6 +1000,7 @@ export class NexusHRService {
       const responses = ids.length
         ? await trx.selectFrom('hr_survey_responses')
             .select(['instance_id', 'user_id'])
+            .where('tenant_id', '=', tenantId)
             .where('instance_id', 'in', ids)
             .execute()
         : [];
@@ -1089,6 +1096,7 @@ export class NexusHRService {
 
       const responses = await trx.selectFrom('hr_survey_responses')
         .select(['id', 'answers', 'user_id', 'created_at'])
+        .where('tenant_id', '=', tenantId)
         .where('instance_id', '=', instanceId)
         .execute();
 

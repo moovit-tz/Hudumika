@@ -93,9 +93,17 @@ export async function computeAndPostFxRevaluation(tenantId: string, periodDate: 
     // balance already computes to ~0 below); 'Credited' is excluded for
     // real correctness — its own lines still sum to a nonzero total even
     // once a separate credit_notes record has economically settled it.
+    // HUD-0076: 'Draft' is excluded for the same real-correctness reason —
+    // invoices.routes.ts's own POST / only posts to the GL `if (inv.status
+    // !== 'Draft' && grandTotal > 0)`, so a Draft invoice has never touched
+    // the real `1100` balance at all. Live-confirmed this was previously
+    // missing: a Draft invoice with zero journal entries still got revalued
+    // and posted a real phantom gain straight to `1100`/`5202` — inflating
+    // the real Accounts Receivable balance for a receivable that was never
+    // actually posted there.
     const invoices = await trx.selectFrom('sales_invoices').selectAll()
       .where('tenant_id', '=', tenantId).where('currency', '!=', reportingCcy)
-      .where('status', 'not in', ['Paid', 'Credited']).execute();
+      .where('status', 'not in', ['Draft', 'Paid', 'Credited']).execute();
     const invoiceIds = invoices.map(i => i.id);
     const invLines = invoiceIds.length
       ? await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', 'in', invoiceIds).execute() : [];
@@ -115,9 +123,13 @@ export async function computeAndPostFxRevaluation(tenantId: string, periodDate: 
       if (openFc > 0.01) arSubjects.push({ subjectType: 'AR_INVOICE', subjectId: inv.id, currency: inv.currency, openBalanceFc: openFc, glAccountCode: '1100' });
     }
 
+    // HUD-0076: same bug, same fix, on the AP side — bills.routes.ts only
+    // posts to the GL `if (bill.status === 'POSTED')`; a bill still in
+    // 'DRAFT' or 'PENDING_APPROVAL' has never touched the real `2000`
+    // balance either.
     const bills = await trx.selectFrom('supplier_bills').selectAll()
       .where('tenant_id', '=', tenantId).where('currency', '!=', reportingCcy)
-      .where('status', 'not in', ['VOID']).execute();
+      .where('status', 'not in', ['DRAFT', 'PENDING_APPROVAL', 'VOID']).execute();
     const apSubjects: RevaluationSubject[] = [];
     for (const bill of bills) {
       const openFc = Number(bill.total) - Number(bill.paid_amount);

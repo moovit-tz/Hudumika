@@ -352,10 +352,7 @@ export const SupportTeam: React.FC = () => {
                       <tr key={a.id} style={{ borderTop: '1px solid var(--border)' }}>
                         <td style={{ padding: '12px 14px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ position: 'relative' }}>
-                              <PersonAvatar name={a.name} userId={a.id} size={36} />
-                              <span style={{ position: 'absolute', right: -1, bottom: -1, width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--white)', background: a.isOnline ? 'var(--green)' : 'var(--ink3)' }} />
-                            </div>
+                            <PersonAvatar name={a.name} userId={a.id} size={36} />
                             <div>
                               <div style={{ fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
                                 {a.name}
@@ -426,10 +423,7 @@ export const SupportTeam: React.FC = () => {
                   <div key={a.id} style={{ background: 'var(--card-bg, var(--white))', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 16, boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ position: 'relative' }}>
-                          <PersonAvatar name={a.name} userId={a.id} size={42} />
-                          <span style={{ position: 'absolute', right: -1, bottom: -1, width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--white)', background: a.isOnline ? 'var(--green)' : 'var(--ink3)' }} />
-                        </div>
+                        <PersonAvatar name={a.name} userId={a.id} size={42} />
                         <div>
                           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
                             {a.name}

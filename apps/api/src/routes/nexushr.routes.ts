@@ -254,7 +254,13 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/document-requirements', async (request: any, reply) => {
+  // Every other /documents* route in this file is MGMT-only, and the
+  // frontend route wraps the whole HrDocuments.tsx page (this is its only
+  // caller) in <RequireRoles roles={MGMT_ROLES}>. This one had no
+  // preHandler at all, so any authenticated non-CUSTOMER role could read it
+  // directly — a frontend-only gate, not a real boundary. Matched to the
+  // rest of the file.
+  fastify.get('/document-requirements', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       return await NexusHRService.getDocumentRequirements(request.user.tenant_id);
     } catch (err: any) {
@@ -332,7 +338,9 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       }
     });
 
-  fastify.get('/documents/templates', async (request: any, reply) => {
+  // Same gap as /document-requirements above — its only caller is the
+  // MGMT-gated HrDocuments.tsx page, but this had no backend preHandler.
+  fastify.get('/documents/templates', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getDocumentTemplates(tenantId);

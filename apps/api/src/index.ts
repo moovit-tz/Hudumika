@@ -125,6 +125,9 @@ import { nexusHRRoutes } from './routes/nexushr.routes.js';
 import { contactsRoutes } from './routes/contacts.routes.js';
 import { contactsSyncRoutes } from './routes/contacts-sync.routes.js';
 import { emailRoutes, emailSendRoutes } from './routes/email.routes.js';
+import { emailReceiptRoutes } from './routes/email-receipt.routes.js';
+import { emailAccountRoutes } from './routes/email-account.routes.js';
+import { emailMetaRoutes } from './routes/email-meta.routes.js';
 import { emailTemplatesRoutes } from './routes/email-templates.routes.js';
 import { complyRoutes } from './routes/comply.routes.js';
 import { sealRoutes } from './routes/seal.routes.js';
@@ -608,6 +611,11 @@ export async function registerApp() {
     await server.register(contactsSyncRoutes, { prefix: '/v1/contacts' });
     await server.register(emailRoutes, { prefix: '/v1/emails' });
     await server.register(emailSendRoutes, { prefix: '/v1/email' });
+    // Public — no fastify.authenticate hook, mirrors landedCostShareRoutes
+    // below: a mail client fetches this pixel with no Hudumika session.
+    await server.register(emailReceiptRoutes, { prefix: '/v1/email' });
+    await server.register(emailAccountRoutes, { prefix: '/v1/email/account' });
+    await server.register(emailMetaRoutes, { prefix: '/v1/email' });
     await server.register(emailTemplatesRoutes, { prefix: '/v1/email-templates' });
     await server.register(complyRoutes, { prefix: '/v1/comply' });
     await server.register(sealRoutes, { prefix: '/v1/seal' });

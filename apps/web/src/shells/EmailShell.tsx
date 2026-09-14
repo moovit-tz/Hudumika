@@ -12,12 +12,14 @@ const NAV: SidebarSection[] = [
   {
     title: 'MAIL',
     items: [
-      { label: 'Inbox',   icon: 'mail',        path: '/email',          exact: true },
-      { label: 'Starred', icon: 'star',        path: '/email/starred'               },
-      { label: 'Sent',    icon: 'send',        path: '/email/sent'                  },
-      { label: 'Drafts',  icon: 'fileText',    path: '/email/drafts'                },
-      { label: 'Spam',    icon: 'alertCircle', path: '/email/spam'                  },
-      { label: 'Trash',   icon: 'trash',       path: '/email/trash'                 },
+      { label: 'Inbox',     icon: 'mail',        path: '/email',           exact: true },
+      { label: 'Starred',   icon: 'star',        path: '/email/starred'                },
+      { label: 'Sent',      icon: 'send',        path: '/email/sent'                   },
+      { label: 'Scheduled', icon: 'clock',       path: '/email/scheduled'              },
+      { label: 'Drafts',    icon: 'fileText',    path: '/email/drafts'                 },
+      { label: 'Archive',   icon: 'folder',      path: '/email/archive'                },
+      { label: 'Spam',      icon: 'alertCircle', path: '/email/spam'                   },
+      { label: 'Trash',     icon: 'trash',       path: '/email/trash'                  },
     ],
   },
   {
@@ -60,7 +62,9 @@ export function EmailShell() {
               <Route index           element={<EmailApp />} />
               <Route path="starred"  element={<EmailApp />} />
               <Route path="sent"     element={<EmailApp />} />
+              <Route path="scheduled" element={<EmailApp />} />
               <Route path="drafts"   element={<EmailApp />} />
+              <Route path="archive"  element={<EmailApp />} />
               <Route path="spam"     element={<EmailApp />} />
               <Route path="trash"    element={<EmailApp />} />
               <Route path="templates" element={<EmailTemplates />} />

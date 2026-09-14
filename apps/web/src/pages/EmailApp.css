@@ -262,19 +262,32 @@
   color: #0b57d0;
   border-bottom-color: #0b57d0;
 }
-.em-bulk-delete {
+.em-bulk-actions {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
-  color: #d93025;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 12px;
-  font-family: var(--font);
 }
+.em-bulk-count {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-right: 4px;
+  white-space: nowrap;
+}
+.em-bulk-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: none;
+  color: var(--ink3);
+  cursor: pointer;
+}
+.em-bulk-btn:hover { background: var(--border-soft, var(--border)); color: var(--ink); }
+.em-bulk-btn--danger:hover { background: var(--red-l); color: var(--red); }
 
 .em-rows {
   flex: 1;
@@ -1006,3 +1019,314 @@
     width: 260px;
   }
 }
+
+/* ── Thread count badge ──────────────────────────────────────────────── */
+.em-thread-badge {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink3);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 6px;
+  line-height: 16px;
+}
+
+/* ── Attachment chips (compose/reply picker + detail-view download) ─── */
+.em-attach-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  max-width: 100%;
+  margin: 6px 0;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--ink2);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--font);
+}
+.em-attach-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+.em-attach-chip-size { color: var(--ink3); flex-shrink: 0; }
+.em-attach-chip-error { color: var(--red); flex-shrink: 0; }
+.em-attach-chip-remove {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--ink3);
+  cursor: pointer;
+  padding: 2px;
+  flex-shrink: 0;
+}
+.em-attach-chip-remove:hover { color: var(--ink); }
+.em-attach-chip--download {
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 600;
+}
+.em-attach-chip--download:hover { background: var(--border-soft, var(--border)); }
+
+/* ── Read receipt checkbox / status ──────────────────────────────────── */
+.em-compose-receipt-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--ink2);
+  padding: 8px 0;
+  cursor: pointer;
+  font-family: var(--font);
+}
+.em-receipt-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--ink3);
+  margin-top: 4px;
+}
+.em-compose-savestate {
+  font-size: 11.5px;
+  color: var(--ink3);
+  font-family: var(--font);
+}
+
+/* ── Email account settings modal ────────────────────────────────────── */
+.em-settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+.em-settings-modal {
+  width: min(480px, calc(100vw - 32px));
+  max-height: min(720px, calc(100vh - 64px));
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: var(--elev-lg, 0 12px 40px rgba(0,0,0,.25));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.em-settings-hdr {
+  display: flex;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.em-settings-hdr .em-compose-title { flex: 1; }
+.em-settings-body {
+  padding: 4px 18px 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.em-settings-section {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.em-settings-section:first-child { border-top: none; padding-top: 0; }
+.em-settings-section-hdr {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+  font-family: var(--font);
+}
+.em-settings-hint {
+  font-size: 11.5px;
+  color: var(--ink3);
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+.em-settings-error { color: var(--red); }
+.em-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+.em-settings-input {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: var(--bg);
+}
+.em-settings-select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: var(--font);
+}
+.em-settings-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: var(--font);
+  resize: vertical;
+  box-sizing: border-box;
+}
+.em-blocklist-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.em-settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+[data-theme="dark"] .em-settings-overlay { background: rgba(0,0,0,.55); }
+
+/* ── Multi-attachment list (compose/reply/detail) ────────────────────── */
+.em-attach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0;
+}
+
+/* ── Scheduled-folder row badge + banner ─────────────────────────────── */
+.em-row-label--scheduled {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--gold-l);
+  color: var(--gold);
+}
+.em-scheduled-banner {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--ink2);
+  background: var(--gold-l);
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Undo-send toast ──────────────────────────────────────────────────── */
+.em-undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--ink);
+  color: var(--white);
+  padding: 10px 16px;
+  border-radius: var(--r);
+  box-shadow: var(--elev-lg, 0 8px 28px rgba(0,0,0,.3));
+  z-index: 1200;
+  font-size: 13px;
+}
+.em-undo-toast .em-text-btn { color: var(--teal-l, var(--teal)); font-weight: 700; }
+
+/* ── Merged conversation (thread) view ───────────────────────────────── */
+.em-thread-view { margin: 6px 0 10px; }
+.em-thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.em-thread-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+.em-thread-item:last-child { border-bottom: none; }
+.em-thread-item:hover { background: var(--bg); }
+.em-thread-item--active { background: var(--teal-l); }
+.em-thread-item-folder {
+  text-transform: uppercase;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--ink3);
+  flex-shrink: 0;
+  width: 52px;
+}
+.em-thread-item-from { font-weight: 600; color: var(--ink); flex-shrink: 0; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.em-thread-item-snip { flex: 1; color: var(--ink3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.em-thread-item-date { flex-shrink: 0; color: var(--ink3); }
+
+/* ── Read-receipt honesty disclaimer ─────────────────────────────────── */
+.em-receipt-disclaimer { color: var(--ink3); font-size: 10.5px; margin-left: 2px; }
+
+/* ── Quick-reply template picker ─────────────────────────────────────── */
+.em-template-picker {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  min-width: 180px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--elev, 0 6px 20px rgba(0,0,0,.15));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+}
+.em-template-picker-item {
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: none;
+  font-size: 12.5px;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font);
+}
+.em-template-picker-item:hover { background: var(--bg); }
+
+/* ── Label / quick-reply management (Settings modal) ─────────────────── */
+.em-label-manage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.em-label-manage-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.em-label-manage-row .em-settings-input { flex: 1; }
+.em-settings-success { color: var(--green); font-size: 11.5px; }

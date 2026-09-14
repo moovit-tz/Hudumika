@@ -15,9 +15,9 @@ and the running API (`localhost:3001`), not just source reading.
 | Severity | Open | Fixed (verified) | Total |
 |----------|-----:|-----------------:|------:|
 | CRITICAL | 0 | 8 | 8 |
-| HIGH | 8 | 32 | 40 |
-| MEDIUM | 8 | 1 | 9 |
-| LOW | 9 | 0 | 9 |
+| HIGH | 8 | 35 | 43 |
+| MEDIUM | 9 | 2 | 11 |
+| LOW | 9 | 1 | 10 |
 
 *This session added: HUD-0053 (Studio `tasks.create_task` crash), HUD-0055's `GET /renewals`
 uuid/text join crash, and HUD-0060's supplier-bill line-schema mismatch (silent zero-value lines,
@@ -28,8 +28,16 @@ fixed on explicit user follow-up in the same session); HUD-0057 (demurrage `liab
 cross-customer quotation-approval authorization bypass to CRITICAL/Fixed (a real IDOR any customer
 could exploit against any other customer's confidential quote — rated at this arc's top severity
 band alongside the original HUD-0025-family findings) and its `user.id`-vs-`.sub` attribution bug,
-HUD-0066's ComplyOS revoked-certificate status-masking bug, and HUD-0067's budget-vs-actuals
-void/reversal double-counting bug to HIGH/Fixed; HUD-0032 re-rated
+HUD-0066's ComplyOS revoked-certificate status-masking bug, HUD-0067's budget-vs-actuals
+void/reversal double-counting bug, and HUD-0070's Store CUSTOMER-portal marketplace-submission
+authorization gap, HUD-0073's attendance-device `push_token` secret-leak (the sole credential
+authenticating the unauthenticated biometric-device push endpoint, readable by every staff role),
+and HUD-0076's FX-revaluation phantom-gain/loss-on-unposted-documents bug to HIGH/Fixed; HUD-0072's
+org-chart sync-staff CUSTOMER-account data-correctness bug to MEDIUM/Fixed; HUD-0077's supplier
+"blocked" status having zero enforcement anywhere to MEDIUM/Open; HUD-0080's duplicate forensic-case
+'opened' custody-log rows to LOW/Fixed; a concurrent session's own HIGH fix to org-chart's
+unrestricted-PII-read `GET /` gap noted as an addendum to HUD-0072 rather than a new entry (see
+that entry's own addendum for detail); HUD-0032 re-rated
 LOW→HIGH/Open after Phase 5 confirmed comprehensive, whole-module schema drift rather than one
 endpoint's bug (Project OS, left for its owning team's concurrent rebuild); HUD-0052's noted
 withdrawal-cancel-path gap and HUD-0062's zero-amount disposal journal line to LOW/Open. The
@@ -65,7 +73,7 @@ Mandatory quality gates:
 | CI meaningful | **PASS** — `ci.yml` gates on typecheck, fresh-DB migrate, API tests against that fresh DB, and full build; proven locally end to end | HUD-0006 |
 | Test coverage of critical workflows | **FAIL** — 11 API test files, 0 web test files for 195 routes / 153 services | HUD-0005 |
 | Database migrations reproduce prod | **PASS** — fresh-DB proof: 474/474 migrations apply clean; full schema diff vs. live = 0 table/column/RLS mismatches | HUD-0009 |
-| Production build | **PASS** — `npm run build` (types/ui/api/web) now succeeds; was broken (HUD-0020) | HUD-0020 |
+| Production build | **PASS** — `apps/api`'s `tsc --noEmit` briefly regressed (`email.routes.ts:390`) after a concurrent session's own commits (`07d8c1ce`, `9036a0c0`) landed mid-arc, unrelated to any change here (confirmed via `git log`/`git status`); resolved on its own by the next check (HUD-0076), presumably by that same concurrent session finishing its own work — clean again as of this journey | HUD-0020, HUD-0074, HUD-0076 |
 | API survives a dropped DB connection | **PASS** — was FAIL, crashed the whole process on a live connection drop during this audit | HUD-0021 |
 
 ---
@@ -1218,6 +1226,647 @@ Mandatory quality gates:
   (a planning record with a genuine hard-delete path, unlike posted financial documents); the
   retest bill was voided via `POST /v1/bills/:id/void`, not hard-deleted, per the platform's
   standard immutable-once-posted rule. Usage counter restored to 500/500 and confirmed.
+
+### HUD-0068 — Phase 5: FinOps GL period close/reopen/lock (MONTH + YEAR, with real CIT accrual) traced live · CLEAN
+- **Category:** Functional correctness (Phase 5, twenty-seventh journey).
+- **Trace (MONTH period lifecycle):** created a real `MONTH` `gl_periods` row for an isolated,
+  never-touched month (Nov 2026 — confirmed via Postgres to have zero pre-existing GL activity, so
+  the test couldn't disturb any real historical figures) → posted a real manual journal entry
+  dated inside it (succeeds, period open) → `POST /:id/close` (correctly returns
+  `closing_entry_id: null` for a MONTH period — no closing entries, just a lock — plus a real trial
+  balance snapshot whose `period_debit` for the touched account exactly matched the entry just
+  posted) → attempted a second posting dated inside the now-closed period and got refused with the
+  exact expected message naming the period, live-confirming `GLService.post()`'s single
+  chokepoint check (not a per-route guard) actually blocks every posting path, not just the one
+  tested → confirmed `FINANCE` is correctly refused `POST /:id/reopen` (`403`, "requires one of
+  [SUPER_ADMIN, ADMIN, TENANT_ADMIN]") while `TENANT_ADMIN` succeeds, with the supplied reason
+  persisted and the original `closed_at`/`closed_by` preserved as history rather than erased →
+  confirmed the previously-refused posting now succeeds again. **Delete boundary, both directions**:
+  a fresh period that was never closed hard-deleted cleanly via `DELETE /:id`; the Nov period
+  (closed once, then reopened) was correctly and permanently refused deletion — `409`, "A period
+  that has ever been closed cannot be deleted" — confirming the guard checks `closed_at` (a fact
+  that never un-happens) rather than current `status`.
+- **Trace (YEAR period lifecycle, with real corporate-income-tax accrual folded into the close):**
+  posted two isolated real journal entries in a disjoint, zero-activity year (2019 — confirmed via
+  Postgres) — 1,000,000 TZS revenue (`4000`) and 400,000 TZS expense (`5001`) — then created and
+  closed a `YEAR` `gl_periods` row spanning them. Hand-verified the *entire* chain end to end
+  before checking the API's own numbers: no tenant-specific `cit_rates` row exists, so the 30%
+  `STANDARD` `REFERENCE_DEFAULT` rate applies; zero `fixed_assets` exist for this tenant at all, so
+  book/tax depreciation are both zero; accounting profit = taxable income = 1,000,000 − 400,000 =
+  600,000; tax liability = 600,000 × 30% = **180,000**. Confirmed the persisted `cit_returns` row
+  matched exactly (`accounting_profit`/`taxable_income`: 600,000.00, `rate_pct`: 30.000,
+  `rate_source`: REFERENCE_DEFAULT, `tax_liability`: 180,000.00, `status`: ACCRUED) and that
+  `accrueCitReturn`'s own Dr `5950`/Cr `2400` accrual entry posted *before* the closing trial
+  balance was pulled — live-confirmed by checking the snapshot itself, which correctly showed
+  `5950` Income Tax Expense with `period_debit: 180,000`, meaning the tax accrual was itself folded
+  into the same-period closing sweep rather than left post-tax-blind. Read the actual posted
+  closing journal entry line-by-line and it matched the hand-computed expectation exactly: Dr
+  `4000` 1,000,000 (closing revenue) / Cr `5001` 400,000 (closing expense) / Cr `5950` 180,000
+  (closing the tax expense too) / Cr `3100` Retained Earnings 420,000 (the true *after-tax* net
+  income: 1,000,000 − 400,000 − 180,000) — balanced to the shilling on both sides.
+- **Came back clean — no code changes needed.** Every mechanism traced (the single-chokepoint
+  closed-period guard in `GLService.post()`, the MONTH-vs-YEAR closing-entry branch, the
+  reopen-is-a-new-fact-not-an-erasure history model, the ever-closed-blocks-delete-forever rule,
+  and the CIT-accrual-before-closing-snapshot ordering that makes retained earnings reflect true
+  after-tax income) worked exactly as its own code comments describe. `tsc --noEmit` clean, full
+  suite green (11 files / 105 tests), `check:triggers` OK, API healthy throughout.
+- **Test-artifact handling:** all four 2019 journal entries (the two test postings, the CIT
+  accrual, and the closing entry) were voided via the real `POST /v1/finance/journal-entries/:id/
+  void` — each reversal posts dated today, outside the closed 2019 period, so no reopen was needed
+  first. The isolated FY2019 `gl_periods` row itself is now a permanent historical record (closed
+  periods can never be hard-deleted, by design — the same rule verified above) and was left in
+  place, clearly named `HUD-0068 isolated FY2019`. The Nov 2026 MONTH period was left reopened
+  (its own test already exercised the full close→reject→reopen→resume cycle). The throwaway Dec
+  2026 period was already hard-deleted as part of the delete-boundary test above. Usage counter
+  restored to 500/500 and confirmed.
+
+### HUD-0069 — Phase 5: FinOps withholding tax (rate → bill deduction → certificate → remittance) journey traced live · CLEAN
+- **Category:** Functional correctness (Phase 5, twenty-eighth journey).
+- **Trace:** created a real tenant WHT rate (5%, `PROFESSIONAL_SERVICES`, `RESIDENT`) → created a
+  real bill (1,000,000 TZS, one line tagged with that rate) → paid it in **two** installments
+  (600,000 then 400,000) specifically to test the code's own claim that a bill withholds its total
+  WHT once across installments, not once per payment. Hand-verified before checking the API:
+  `billTotalWht` = 1,000,000 × 5% = 50,000; payment 1 (60% of the bill) should withhold
+  `min(50,000, round(50,000×0.6))` = 30,000; payment 2's *remaining* cap is `50,000 − 30,000` =
+  20,000, and `round(50,000×0.4))` = 20,000, so payment 2 withholds exactly 20,000 — summing to
+  the full 50,000, never double-withheld. The API returned `wht_deducted: 30000` then `20000`,
+  matching exactly, and the two persisted `wht_deductions` rows (each tied to its own
+  `bill_payment_id`) confirmed it wasn't a response-only figure. Read every journal line directly
+  from Postgres and hand-verified both payments' 3-line postings: payment 1 — Dr `2000` (AP)
+  600,000 / Cr `1010` (Bank) 570,000 / Cr `2300` (WHT Payable) 30,000; payment 2 — Dr `2000`
+  400,000 / Cr `1010` 380,000 / Cr `2300` 20,000 — each balanced, `2300`'s two credits summing to
+  exactly the 50,000 total liability.
+- **Certificate:** issued a real certificate for one deduction (`POST .../certificate`), confirmed
+  re-issuing it is genuinely idempotent (identical `certificate_number` and `certificate_issued_at`
+  on the second call, not a new one), then fetched and read the actual PDF with `pdftotext` rather
+  than trusting the `200` alone — every figure on it was real and correct: the right supplier name,
+  the right bill reference, the right payment date, gross 400,000 / rate 5.00% / withheld 20,000 /
+  net 380,000, all matching the underlying deduction row exactly.
+- **Remittance:** batched both deductions into one `PENDING` remittance for the period covering
+  both payment dates — `total_amount: 50,000`, `deduction_count: 2`, both correct — then confirmed
+  a second remittance attempt for the same period is correctly refused (`400`, nothing left
+  unremitted, since both deductions are now tagged to the first batch). Paid the remittance and
+  hand-verified its own journal entry: Dr `2300` (clearing the withholding-tax liability) 50,000 /
+  Cr `1010` (cash to TRA) 50,000 — netting `2300`'s balance back to exactly zero across the whole
+  lifecycle (credited 30,000+20,000 at payment time, debited 50,000 at remittance time). Confirmed
+  a second payment attempt on the same remittance is correctly refused (`409`, "already been
+  paid").
+- **Came back clean — no code changes needed.** Every mechanism traced (proportional-and-capped
+  per-installment withholding, idempotent certificate issuance, a real branded PDF, remittance
+  batch eligibility filtering, and the remittance-payment GL posting) worked exactly as its own
+  code comments describe. `tsc --noEmit` clean, full suite green (11 files / 105 tests),
+  `check:triggers` OK, API healthy throughout.
+- **Test-artifact handling:** the WHT rate could not be hard-deleted once referenced by the bill
+  line — confirmed live (`409`, "already used on one or more bill lines... set an effective_to
+  date instead") — so it was retired via `PATCH .../rates/:id` with `effective_to` set to today,
+  exactly the remediation the API's own error message names, rather than left silently orphaned.
+  The bill itself was **left as a real, completed PAID record** rather than voided: by the time
+  this trace finished, its WHT had already been both deducted and remitted to the (simulated) tax
+  authority — reversing the bill at that point is a real, unusual accounting edge case (money
+  already paid out to TRA doesn't come back by reversing the underlying bill) that this golden path
+  wasn't testing and wasn't going to manufacture just to exercise a delete path; the bill, its
+  payments, its WHT deductions, its certificate and its remittance are all clearly labeled
+  `HUD-0069` in every human-readable field. Usage counter restored to 500/500 and confirmed.
+
+### HUD-0070 — Phase 5: Store marketplace-app journey traced live · real HIGH authorization gap found+fixed (CUSTOMER-portal accounts could submit into the platform-wide review queue); also corrects the platform overview's mischaracterization of what this app is
+- **Category:** Functional correctness + authorization (Phase 5, twenty-ninth journey).
+- **Discovery, before tracing the golden path:** `store.routes.ts` (`/v1/store`) is the entirety of
+  the "Store" app's backend — confirmed by grepping every `apiFetch` call in `Store.tsx` (browse/
+  install/uninstall), `StoreAdmin.tsx` (the SUPER_ADMIN approval queue) and
+  `StoreDeveloperPortal.tsx`, all of which call only `/v1/store/*`. It is a **software/integrations
+  marketplace** on a single platform-wide `marketplace_apps` table (`dbPlatform`, not tenant-
+  scoped): a signed-in user submits an app, a `SUPER_ADMIN` approves or rejects it, and approved
+  apps become installable per-tenant. This is a materially different thing from "B2B procurement &
+  equipment marketplace" — the slogan this arc's own `hudumika-overview.html` had been carrying for
+  "Store" — so that description was corrected as part of this journey's own artifact sync (see
+  below), the same kind of evidence-grounded correction as Projects' 85%→52% re-rating.
+- **Trace:** submitted a real app listing as a `JUNIOR` staff account → `SUPER_ADMIN` saw it in the
+  admin queue (confirmed a non-`SUPER_ADMIN` staff account is correctly refused that same endpoint,
+  `403`) → approved it → confirmed it now appears in the public `GET /apps` catalog with
+  `status: "approved"` → confirmed a role outside `STORE_MGMT_ROLES` is correctly refused
+  `POST /installed` (`403`) → a `TENANT_ADMIN` installed it → confirmed it shows in
+  `GET /installed` → uninstalled it → confirmed it's gone. Separately submitted a second app and
+  rejected it, confirming a rejected app never appears in the public catalog (the `WHERE status =
+  'approved'` filter holds). Every step of the intended lifecycle worked exactly as designed.
+- **Evidence (real HIGH bug found):** before running the golden path, tested `POST /apps` (app
+  submission) with a real `CUSTOMER`-role JWT — the identity of a *tenant's own customer*, using
+  their customer portal, not a platform developer. It succeeded, `200`, creating a real row in the
+  platform-wide review queue with `developer_id` set to that customer's own user id. This file's own
+  header comment documents that an earlier pass already fixed this exact class of gap for
+  `POST/DELETE /installed` (`STORE_MGMT_ROLES`, "any authenticated user, CUSTOMER included, could
+  install/uninstall a marketplace app for the whole tenant") — `POST /apps` was the one mutating
+  route in the file that pass missed. Not a tenant-isolation leak (nothing reaches a real user until
+  a human `SUPER_ADMIN` approves it) but a clear role-boundary violation matching the platform-wide
+  "CUSTOMER accounts blocked from internal-business surfaces" convention enforced everywhere else on
+  this platform, including two other routes in this exact file — rated HIGH rather than CRITICAL for
+  that reason (bounded by the human approval gate, but a customer account submitting an
+  attacker-controlled `webhook_url` for review, per this file's own comment about approved apps with
+  webhooks receiving domain events, is a real risk if a reviewer doesn't realize the submitter wasn't
+  a real developer).
+- **Fix:** added the same "HUD-0024 continuation" CUSTOMER-block `preHandler` already used platform-
+  wide to `POST /apps` specifically (not the whole file — `GET /apps` and `GET /installed` are
+  deliberately readable by any authenticated role, including CUSTOMER, and were already correct).
+- **Re-test, live:** replayed the exact original reproduction — the same CUSTOMER JWT now gets `403:
+  "Not available for this account type."` A `JUNIOR` staff account immediately after, same request
+  shape, still succeeds `200`, proving the fix is scoped to the role, not accidentally blocking
+  everyone. `tsc --noEmit` clean, full suite green (11 files / 105 tests), `check:triggers` OK, API
+  healthy throughout.
+- **Test-artifact handling:** `marketplace_apps` has **no delete endpoint anywhere in the API** —
+  confirmed by reading the entire route file. The pre-fix CUSTOMER-submitted probe row, the
+  legitimate approved-then-uninstalled test app, and the rejected test app were all left in place,
+  each clearly labeled `HUD-0070` in every human-readable field, consistent with this arc's rule for
+  a record type with no real delete path. Usage counter restored to 500/500 and confirmed.
+
+### HUD-0071 — Phase 5: FinOps deferred tax (fixed-asset timing differences, IAS 12) journey traced live · CLEAN
+- **Category:** Functional correctness (Phase 5, thirtieth journey).
+- **Trace:** created a real backdated fixed asset (24,000,000 TZS, `IT_EQUIPMENT` — Tanzania Income
+  Tax Act Class 1, 37.5% reducing-balance — acquired exactly 2 years before the test date) with zero
+  book depreciation ever posted against it (this platform's fixed-asset depreciation runs only via a
+  scheduled job with no manual "run now" API route — a known, already-documented gap — so a
+  brand-new asset's `bookNBV` is genuinely `cost − salvage − 0` regardless of how old its
+  `acquisition_date` is set to, which is exactly the real, honest state this trace computed against,
+  not a fabrication). Hand-verified before checking the API: at the first test date (exactly 1 whole
+  year after acquisition), `taxNBV` = 24,000,000 × (1 − 0.375)¹ = 15,000,000; `bookNBV` = 24,000,000
+  (unchanged); temporary difference = 9,000,000 (book > tax → taxable → a Deferred Tax
+  **Liability**, per IAS 12's sign convention) × the tenant's real 30% reference-default CIT rate
+  (already confirmed in HUD-0068) → target DTL = 2,700,000. The API's `POST /compute` response matched every one
+  of these figures exactly, and the actual posted journal entry (read straight from Postgres) was
+  Dr `5951` (Deferred Tax Expense) / Cr `2450` (Deferred Tax Liability), both 2,700,000, balanced.
+- **Idempotency:** re-ran `/compute` with the *same* `as_of_date` and confirmed both `deltaDta` and
+  `deltaDtl` correctly came back `0` with the *same* `journal_entry_id` as the first call (the
+  `ON CONFLICT ... COALESCE` correctly preserved it rather than nulling it out) — and confirmed
+  directly against Postgres that no second journal entry was ever created, not just trusting the
+  response.
+- **Incremental movement (the most sophisticated part of this feature):** re-ran `/compute` a full
+  year later (3 years post-acquisition) and hand-verified the new target: `taxNBV` = 24,000,000 ×
+  0.625² = 9,375,000; temporary difference = 14,625,000; target DTL = 4,387,500. The API returned
+  `deltaDtl: 1,687,500` (the *movement* from the prior 2,700,000 target to the new 4,387,500 one,
+  not the full new balance again) and posted a *second*, separate journal entry for exactly that
+  incremental amount — confirmed live that the cumulative `2450` balance across both entries
+  (2,700,000 + 1,687,500) landed exactly on 4,387,500, proving `computeAndPostDeferredTax` genuinely
+  reads the *live* ledger balance as its "prior" figure on each call rather than trusting its own
+  last computation row, exactly as its own header comment claims.
+- **Came back clean — no code changes needed.**
+- **A self-caught non-bug in my own verification, not a platform bug:** my first cleanup-verification
+  query filtered `WHERE je.status != 'VOIDED'` when summing the `2450`/`5951` accounts after voiding
+  both test entries — the exact same wrong pattern already found and fixed as HUD-0067 — and it
+  produced the same *kind* of misleading nonzero balance HUD-0067 would have. Caught before reporting
+  anything: re-summed with no status filter (matching `GLService.trialBalance`'s correct approach)
+  and confirmed both accounts net to exactly zero across all four entries (two originals, two
+  reversals). Not a new finding — a reminder that the HUD-0067 lesson applies to ad-hoc verification
+  scripts just as much as to product code.
+- **Test-artifact handling:** both deferred-tax journal entries were voided via the real
+  `POST /journal-entries/:id/void`. The fixed asset itself was hard-deleted via the real
+  `DELETE /v1/fixed-assets/:id` — legitimate here because no depreciation had ever posted against it
+  (per `fixed-assets.routes.ts`'s own documented rule, confirmed in HUD-0062), which also correctly
+  reversed its acquisition entry. Usage counter restored to 500/500 and confirmed. `tsc --noEmit`
+  clean, full suite green (11 files / 105 tests), `check:triggers` OK, API healthy throughout.
+
+### HUD-0072 — Phase 5: Ondi/NexusHR org chart journey traced live · real MEDIUM data-correctness bug found+fixed (sync-staff added the tenant's own CUSTOMER-portal accounts into the internal staff hierarchy)
+- **Category:** Functional correctness / data correctness (Phase 5, thirty-first journey).
+- **Trace:** the dev tenant already carried a real 7-node demo hierarchy (CEO→COO/CFO→four
+  managers) seeded by an earlier session's own use of `POST /reset`. Ran `POST /sync-staff` (the
+  real "import company staff" action) and confirmed it correctly added every real staff user not
+  already present, parented to the existing top node.
+- **Evidence (real MEDIUM bug found):** the synced result included **two `CUSTOMER`-role accounts**
+  ("Sample Contact", "Aliko Dangote Jr" — real customer-portal identities for this tenant's own
+  clients) inserted as staff nodes with `job_title: "CUSTOMER"`. Root cause: the `staffUsers` query
+  in `sync-staff` selected every row from `users` for the tenant with **no role filter at all** —
+  the handler's own name and comment ("import/sync company staff") describe a staff-only action,
+  but nothing in the code enforced that. Not a security/tenancy issue (no cross-tenant data, no
+  unauthorized access — the bug is a data-*correctness* one: a tenant's own customers get
+  mis-classified as members of the company's org structure), but real and reachable: any
+  `MANAGER`/`ADMIN`/`TENANT_ADMIN` clicking "Sync Staff" in the real `OrgChart.tsx` UI today gets
+  this exact result on any tenant with active customer-portal accounts.
+- **Fix:** added `.where('role', '!=', 'CUSTOMER')` to the `staffUsers` query — the same
+  CUSTOMER-exclusion convention this codebase already applies platform-wide, here used for data
+  correctness rather than access control.
+- **Re-test, live:** removed the two polluted nodes via the real `DELETE /:id`, then re-ran
+  `POST /sync-staff` — the two `CUSTOMER` accounts correctly did **not** reappear, while all seven
+  real staff accounts (JUNIOR/SENIOR/MANAGER/FINANCE/SALES/TENANT_ADMIN) were still present, proving
+  the fix is scoped to the one role, not a blanket exclusion.
+- **Rest of the golden path — clean:** a `JUNIOR` account (no `org_chart.manage` permission, not in
+  the coarse role list) was correctly refused node creation (`403`); a `MANAGER` successfully
+  created a real child node and a grandchild under it; **the delete-and-reparent guard was
+  live-verified to actually work**, not just read from the code — deleting the middle node correctly
+  moved the grandchild's `parent_id` to the deleted node's *own* parent (Head of Logistics),
+  live-confirmed against the returned row, rather than orphaning it or leaving a dangling reference.
+  Deleting a node is correctly restricted to a narrower role set (`ADMIN`/`TENANT_ADMIN`/
+  `SUPER_ADMIN` — `MANAGER` can create/update but not delete, confirmed live as a `403`) than
+  create/update/`bulk-positions`, a deliberate and reasonable asymmetry, not a bug. `bulk-positions`
+  correctly updated a node's coordinates in one call. A `CUSTOMER` JWT was correctly refused even
+  `GET /org-chart` entirely (`403`), confirming the file's existing CUSTOMER-block hook still works.
+- **A standing gap, reconfirmed rather than rediscovered — not newly filed:** grepped every
+  reference to `org_chart_nodes` outside this file and confirmed the org chart remains a
+  **standalone visualization/directory feature with no other module consuming it** — NexusHR's own
+  legacy `GET /org-chart` route is now just a `410` redirect notice, not a real integration. The
+  2026-08-22 finding that "no org-chart/manager resolution exists anywhere" (referenced in Petti's
+  approval-workflow design) is therefore still accurate even though org-chart itself is now a real,
+  working feature — nothing elsewhere on the platform resolves "who is this person's manager" from
+  it. Not filed as a new issue since it was already known; recorded here as reconfirmed evidence.
+- **Test-artifact handling:** the real synced staff nodes were left in place (they are correct,
+  genuine state — the tenant's actual staff, not test data). The manually-created test team-lead and
+  grandchild nodes were both deleted via the real `DELETE /:id`. Usage counter restored to 500/500
+  and confirmed. `tsc --noEmit` clean, full suite green (11 files / 105 tests), `check:triggers` OK,
+  API healthy throughout.
+- **Addendum (2026-09-14, journey 39) — a real HIGH gap this trace missed, found and fixed by a
+  concurrent session:** this journey's own RBAC checks covered create/update/delete/bulk-positions
+  but never questioned whether `GET /org-chart` itself needed gating — "any non-CUSTOMER role can
+  browse" was accepted as the platform's usual convention without weighing what this specific list
+  actually returns: every staff member's real name, job title, department, **email, and phone
+  number**, not the more anodyne data most "browse freely" lists expose. A concurrent session found
+  exactly that (its own new code comment: "any authenticated non-CUSTOMER role... could read every
+  staff member's name, title, department, email and phone straight from the API — a frontend-only
+  gate, not a real boundary") and added the same `requireRoleOrOrgPermission(ORG_CHART_MANAGE, ...)`
+  gate the rest of the file already uses. Live-reconfirmed here: a `JUNIOR` JWT is now correctly
+  refused (`403`). Not this session's fix — recorded for completeness and as a self-correction: a
+  "browse vs. mutate" RBAC check needs to weigh what fields a list actually exposes, not just
+  whether *a* role gate exists on the mutating siblings.
+
+### HUD-0073 — Phase 5: NexusHR biometric attendance-device journey traced live · real HIGH secret-leak bug found+fixed (`push_token` — the sole credential authenticating the unauthenticated device-push endpoint — was readable by every staff role) + a genuinely sophisticated punch→session→attendance pipeline confirmed CLEAN
+- **Category:** Functional correctness + a real credential-exposure bug (Phase 5, thirty-second
+  journey).
+- **Trace (the real pipeline — CLEAN):** registered a real device (`POST /`, real
+  `serial_number`/`push_token`/`serverUrl` generated) → enrolled a real staff user against PIN
+  `1001` → used `POST /:id/simulate-punch` (a route built specifically because no physical device
+  exists to test against — it drives the *exact same* `recordDevicePunches()` pipeline a genuine
+  device push uses, not a separate fake path) to fire two punches a few seconds apart → read the
+  resulting `hr_clock_sessions` row directly from Postgres: `source: 'DEVICE'`, correct
+  `clock_in_at`/`clock_out_at`, `status: 'COMPLETED'` — confirming the "unreliable status code"
+  fallback (device sends no real in/out state, so punches pair sequentially by index) actually
+  works, not just the documented-but-untested "reliable status" branch. Confirmed the *same* real
+  `hr_attendance` sync every other clock-in source uses also fired (`method: 'BIOMETRIC'`,
+  `status: 'PRESENT'`, matching times) — this is genuinely the same pipeline as a web/manual
+  clock-in, not a parallel system. Simulated a punch on an **unenrolled** PIN and confirmed it
+  correctly lands as an orphan (`user_id: null`, `matched: 0`, `processed: false`) rather than
+  being silently dropped or mis-attributed. Assigned the orphan to a real employee via
+  `PATCH .../assign` and confirmed it both creates a real enrollment for future punches **and**
+  reprocesses that specific historical punch into a real session (`status: 'ACTIVE'`, no
+  `clock_out_at`/`worked_minutes` for a lone unpaired punch — correct). RBAC confirmed live: a
+  `JUNIOR` is correctly refused every mutation (register/enroll/simulate) but can still browse the
+  device list, matching the platform's established "browse freely, mutate restricted" convention.
+- **Evidence (real HIGH bug found):** `GET /` (the authenticated device list, open to any
+  non-CUSTOMER staff role) used `.selectAll()`, live-confirmed to include the device's real
+  `push_token` in the response to a plain `JUNIOR` JWT with zero device-management permission.
+  `device-ingest.routes.ts`'s own header comment explains exactly what this token is: the *sole*
+  shared secret (alongside the equally-readable `serial_number`) authenticating the genuinely
+  unauthenticated (no JWT — a biometric terminal can't carry one) `/iclock` push endpoint, compared
+  with a deliberate constant-time check specifically to resist guessing. `attendance-devices.
+  routes.ts`'s own registration comment already states the token is "returned once... not
+  retrievable again after this" — `GET /` (and `PATCH /:id`, which used `.returningAll()` on an
+  update) directly contradicted that. Impact: any authenticated staff member of the tenant,
+  regardless of role, could read both values needed to fully impersonate the physical device and
+  push fabricated attendance punches for any of its enrolled employees — clocking someone in or out
+  at will, fabricating overtime, or hiding an absence, in a system whose entire purpose is
+  trustworthy time-and-attendance record-keeping. Confirmed via the frontend (`HRM.tsx`) that
+  `push_token` is only ever read from the one-time `POST /` registration response, never from the
+  device list — the leak served no UI purpose.
+- **Fix:** both `GET /` and `PATCH /:id` now select an explicit safe column list excluding
+  `push_token` (`DEVICE_SAFE_COLUMNS`), leaving `POST /`'s one-time reveal untouched.
+  `DELETE /:id` was checked and found already safe despite its own `.returningAll()` — it responds
+  `204 No Content` with `null`, so the fetched row (needed internally for the activity-log message)
+  never reaches the client.
+- **Re-test, live:** the same `JUNIOR` JWT's `GET /` response no longer contains a `push_token` key
+  at all (confirmed by key-presence check, not just eyeballing); a `PATCH` by a `TENANT_ADMIN`
+  confirmed the same for the update response. `tsc --noEmit` clean, full suite green (11 files /
+  105 tests), `check:triggers` OK, API healthy throughout.
+- **Test-artifact handling:** both test enrollments and the device itself were deleted via the real
+  API (`DELETE /:id/enrollments/:enrollmentId`, `DELETE /:id`) — device deletion correctly cascaded
+  the raw `attendance_device_events` rows (0 remaining) but, exactly as intended, left the two
+  *derived* `hr_clock_sessions` rows in place: these are now real attendance history independent of
+  whether the originating device still exists, the same "delete the source, keep the posted record"
+  boundary already established for bank statements vs. GL entries (HUD-0064). `hr_clock_sessions`
+  has no delete endpoint anywhere in `hr.routes.ts` — left in place as a record type with no real
+  delete path, consistent with this arc's rule. Usage counter restored to 500/500 and confirmed.
+
+### HUD-0074 — Phase 5: NexusHR overtime journey traced live · CLEAN, including a live-demonstrated race-condition guard
+- **Category:** Functional correctness (Phase 5, thirty-third journey).
+- **Trace:** set a real basic salary (1,500,000 TZS) on a real staff user via the real
+  `PATCH /v1/hr/staff/:id` endpoint (this tenant had no user with a salary set at all, so the
+  successful payable-amount path had never been exercised with real data before). Confirmed all
+  four pre-write validations live: a claim exceeding 12 hours in a single day is refused (`400`);
+  a claim dated in the future is refused (`400`); a second claim on a date that already has one is
+  refused with the exact existing claim's id (`409`); and — the load-bearing one — the day's overtime
+  *kind* (and therefore its rate) is derived from the tenant's real holiday calendar, not accepted
+  from the request: an ordinary weekday claim correctly came back `NORMAL`/1.5x, a Saturday claim
+  correctly came back `REST_DAY`/2.0x, with no way for the caller to request the cheaper rate for a
+  day it doesn't apply to.
+- **The rolling four-week statutory cap (50 hours) — the most interesting part of this journey:**
+  built up five real approved claims across a cluster of dates (12+12+12+12+2 = 48 then 50 hours)
+  and hand-verified the API's own `remaining_in_window` figure at every step (47→38→26→14→2→0),
+  each matching a fresh independent hand-calculation, not just trusting the running total. Confirmed
+  the boundary is enforced exactly, not approximately: a claim for 5 hours when only 2 remained was
+  refused with the precise remaining figure quoted back (`"48 already approved, so 2 remain and 5
+  were claimed"`); a claim for exactly the remaining 2 hours succeeded.
+- **Live-demonstrated the exact race condition the code's own header comment names** ("re-checked at
+  approval, not only at claim: other claims may have been approved in between, and it is approval
+  that spends the allowance"): with 48 hours already approved (2 remaining), created **two separate
+  PENDING claims**, each independently valid at claim-time against that same remaining-2 pool (one
+  on a Saturday, one on a Sunday, 2 hours each — both correctly priced at the 2.0x rest-day rate).
+  Approved the first, bringing the total to exactly 50. Attempted to approve the second — **correctly
+  refused** (`409`, "50 already approved, so 0 remain and 2 were claimed"), even though it had been
+  perfectly valid at the moment it was submitted. This is a genuine, deliberately-designed safeguard
+  against a real double-spend race, verified with an actual two-pending-claims scenario rather than
+  just trusted from reading the code.
+- **Also confirmed live:** rejecting a claim without a `decision_note` is refused (`400`, "a reason
+  is required"); rejecting one with a note correctly clears `approved_by`; a `JUNIOR` viewing another
+  user's overtime via `?user_id=` is correctly refused (`403`) while their own unfiltered view
+  correctly shows only their own records; `GET /overtime/payable`'s hourly-rate and amount math was
+  hand-verified against every one of six approved claims — `1,500,000 ÷ 26 ÷ 8 = 7,211.54`/hour, then
+  `× hours × multiplier` for each — and matched the API's own figures to the cent on every row,
+  including the mixed 1.5x/2.0x rates in the same period.
+- **Came back clean — no code changes needed.**
+- **Test-artifact handling:** every test claim was cleaned up via a real, previously-undocumented
+  mechanism confirmed live: an approver can transition an already-`APPROVED` claim to `CANCELLED`
+  (clearing `approved_by`/`approved_at`), which is the genuine cleanup path for this record type —
+  used to cancel all six approved claims rather than leaving them in the tenant's real overtime
+  ledger. The one rejected claim (from the race-condition test) was left as a real `REJECTED` record,
+  since rejection is itself a legitimate terminal state, not test pollution. The test user's
+  `basic_salary` was reverted to its original `null` via the same real `PATCH` endpoint used to set
+  it. Usage counter restored to 500/500 and confirmed. No code changed, so the standard
+  `tsc`/`vitest`/`check:triggers` re-verification was run anyway as a sanity check and passed —
+  except for one unrelated `tsc` finding, noted below rather than investigated further, since it
+  falls outside this journey and outside code this session has touched.
+- **An unrelated, pre-existing observation, not investigated further:** `apps/api`'s `tsc --noEmit`
+  now fails on `email.routes.ts:390` (`Type 'string' is not assignable to type` a template-literal
+  UUID type) — confirmed via `git status`/`git log` that this file was never touched by this audit
+  session; it arrived via two commits (`07d8c1ce`, `9036a0c0`) made by a different, concurrent
+  session's own in-progress feature work sometime during this session's Phase 5 work (that same
+  process appears to have also committed this session's own then-uncommitted `budgets.routes.ts`
+  fix, HUD-0067, alongside its changes — confirmed present and correct in the current `HEAD`). Not
+  fixed here: it is unrelated to this journey, outside this session's own working set, and touching
+  a concurrent session's still-evolving commit without being asked is exactly the kind of
+  cross-session collision this codebase's own memory already warns about avoiding.
+
+### HUD-0075 — Phase 5: Calendar public booking-page journey traced live · CLEAN
+- **Category:** Functional correctness (Phase 5, thirty-fourth journey) — the first this arc to
+  exercise a genuinely unauthenticated public surface end to end (no JWT anywhere in the request).
+- **Trace:** created a real booking page for a real staff member (30-min slots, 15-min buffer,
+  09:00–12:00 weekday hours, 14-day window) via the authenticated `POST /v1/tasks/booking-pages` →
+  fetched it publicly via `GET /v1/booking-public/:slug` with **no Authorization header at all** and
+  confirmed the response correctly strips `tenantId`/`userId` (only `hostName` and display fields
+  reach the public) → `GET .../slots?date=...` for a real weekday returned exactly the 6
+  hand-computed 30-minute slots between 09:00 and 12:00. Confirmed both boundary cases return an
+  empty array rather than an error: a weekend date (not in the page's `workingDays`) and a date past
+  the 14-day booking window.
+- **The buffer logic — the most subtle part of this feature, verified exactly:** created a real
+  30-minute calendar event on the host's own calendar (10:00–10:30) via the authenticated
+  `POST /v1/tasks/events`, then re-fetched the public slots for that day. Hand-calculated that the
+  15-minute buffer extends the busy window to 09:45–10:45, which should knock out not just the
+  10:00 slot but also the adjacent 09:30 and 10:30 slots — the API returned exactly `[09:00, 11:00,
+  11:30]`, matching precisely.
+- **The real booking + double-booking race guard:** booked the 11:00 slot as a genuinely anonymous
+  public caller (name/email only, no auth) and confirmed a real `calendar_events` row was created on
+  the host's calendar with the correct title (`"... with Aisha Kimaro"`), correct guest JSON, and
+  `booking_page_id` traceability back to the page — plus a real notification for the host. Then
+  immediately attempted to book the **exact same slot** again as a different caller — correctly
+  refused (`409`, "That time was just booked by someone else"), confirming the code's own claim that
+  it re-checks the slot at booking time, not just page-load time, actually holds.
+- **Also confirmed live:** a nonexistent slug correctly 404s; creating a second booking page with an
+  already-taken slug is correctly refused (`409`).
+- **Came back clean — no code changes needed.** `tsc --noEmit` clean (aside from the unrelated,
+  already-noted HUD-0074 regression), full suite green (11 files / 105 tests), `check:triggers` OK,
+  API healthy throughout.
+- **Test-artifact handling:** both calendar events (the booked slot and the blocking meeting) and
+  the booking page itself were deleted via their real `DELETE` endpoints; confirmed the public page
+  correctly 404s once deleted. Usage counter restored to 500/500 and confirmed.
+
+### HUD-0076 — Phase 5: FinOps period-end FX revaluation journey traced live · real HIGH bug found+fixed (unposted Draft/DRAFT/PENDING_APPROVAL documents were revalued anyway, posting a phantom gain/loss straight onto the real AR/AP balance)
+- **Category:** Functional correctness / financial reporting integrity (Phase 5, thirty-fifth
+  journey).
+- **Trace:** created a real USD sales invoice and a real USD supplier bill (both open, unpaid,
+  against a TZS-reporting tenant). Self-caught a test-setup mistake before it became a false
+  finding: the first invoice attempt used the wrong field names (`lines`/`customer_name` instead of
+  the real `items`/`client_name`), which Zod silently dropped, producing a real invoice with **zero**
+  line items and a `0.00` total — correctly excluded from revaluation by the `openFc > 0.01` check.
+  Confirmed via Postgres before assuming a bug, voided the empty invoice, and recreated it correctly.
+  Ran the *first-ever* revaluation for both real subjects and confirmed the documented "clean
+  baseline" design: `comparisonRate === currentRate`, `gainLoss: 0`, no journal entry posted — this
+  module deliberately never trusts either document type's own stored `exchange_rate` field as a
+  first comparison rate (a real correction the code's own header comment documents finding during
+  implementation research, not assumed at design time).
+- **Evidence (real HIGH bug found):** the first "real" revaluation run (a later date, a different
+  real fetched USD/TZS rate) reported `subjectsRevalued: 3` and a `totalGain` that didn't match
+  either of my two real subjects' hand-computed gains. Investigated rather than assumed: a
+  **pre-existing Draft invoice already in this tenant** (`INV-0009`, USD, 1550 open) was being
+  revalued as a third subject. Confirmed directly against Postgres that this Draft invoice has
+  **zero journal entries of any kind** — `invoices.routes.ts`'s own `POST /` only posts to the GL
+  `if (inv.status !== 'Draft' && grandTotal > 0)`, so a Draft invoice has never touched the real
+  `1100` Accounts Receivable balance at all. Yet the revaluation module posted a real
+  5,223.50 TZS debit to `1100` / credit to `5202` (FX Gain) for it anyway — a phantom gain on a
+  receivable that does not exist in the ledger, silently inflating the real AR balance and P&L with
+  no underlying transaction to justify it. Checked the AP side too: `bills.routes.ts` only posts to
+  the GL `if (bill.status === 'POSTED')`, so a bill sitting in `DRAFT` or `PENDING_APPROVAL` has the
+  identical unposted-phantom-balance exposure — same bug, same root cause, on the other ledger side.
+  Real, reachable impact: any tenant that keeps some invoices/bills in an unfinalized state while
+  running a completely normal month-end FX revaluation — not an edge case, an everyday workflow —
+  gets its real AR/AP balances silently corrupted by a gain/loss that was never actually earned or
+  incurred.
+- **Fix:** added `'Draft'` to the invoice exclusion list and `'DRAFT'`/`'PENDING_APPROVAL'` to the
+  bill exclusion list in `fx-revaluation.service.ts`'s subject-selection queries, matching each
+  document type's own real GL-posting condition exactly (not a guess — read straight from
+  `invoices.routes.ts`/`bills.routes.ts`'s own posting `if` statements).
+- **Re-test, live:** voided the tainted combined journal entry (it mixed the phantom Draft-invoice
+  lines with my two legitimate subjects' correct lines in one entry) and cleared the three
+  contaminated `fx_revaluations` tracking rows for that period_date, then re-ran the exact same
+  revaluation fresh with the fix active: `subjectsRevalued: 2` (the Draft invoice correctly excluded
+  this time), `totalGain`/`totalLoss` matching my hand-computed real-subject figures exactly, and
+  the resulting journal entry read back from Postgres containing **only** the two real subjects'
+  four lines — no trace of the phantom Draft-invoice posting. Re-confirmed the already-documented
+  same-date-doesn't-double-post guard still holds (a same-date re-run correctly posted zero further
+  movement, confirmed only one non-voided entry exists for that date). `tsc --noEmit` clean, full
+  suite green (11 files / 105 tests), `check:triggers` OK, API healthy throughout.
+- **Test-artifact handling:** the tainted revaluation entry, the clean re-posted revaluation entry,
+  the test bill, and the test invoice were all voided/reversed via their respective real API `/void`
+  endpoints — each is a posted financial document under this platform's standard immutable-once-
+  posted rule. The two contaminated `fx_revaluations` tracking rows (a supplementary audit table
+  with no delete endpoint anywhere in the API) were cleared directly as a narrowly-scoped correction
+  of this session's own erroneous test run, not a bypass of any real feature. The pre-existing Draft
+  invoice (`INV-0009`) was left untouched — it predates this session, has zero GL impact, and is not
+  this session's artifact to clean up. Usage counter restored to 500/500 and confirmed.
+
+### HUD-0077 — Phase 5: Suppliers journey traced live · CRUD CLEAN; a real MEDIUM design-level gap found (a supplier marked "blocked" has zero enforcement anywhere), documented, not fixed
+- **Category:** Functional correctness (Phase 5, thirty-sixth journey) + a MEDIUM finding (master
+  severity model's design-gap bucket, same shape as HUD-0057's demurrage-liability finding).
+- **Trace (CRUD — clean):** created a real supplier with full contact/category/payment-terms
+  fields → confirmed a `JUNIOR` can browse/search the directory (search correctly matches on
+  `name`, `contact_name`, *and* `email`, live-verified with a contact-name-only query) but is
+  correctly refused creation (`403`) → updated fields via `PATCH`, persisted correctly → soft-deleted
+  via `DELETE` (`TENANT_ADMIN`-tier) and confirmed the record still exists afterward with
+  `status: 'inactive'` rather than being removed — the documented "mirrors the customers convention"
+  soft-delete, verified live rather than assumed from the comment.
+- **Evidence (real MEDIUM design gap found):** grepped every reference to `'blocked'` platform-wide
+  and confirmed the supplier `status` enum's `blocked` value is set and read **only** inside
+  `suppliers.routes.ts` itself — nothing in `bills.routes.ts`, purchase orders, or anywhere else
+  that transacts with a supplier ever checks it. Live-confirmed the real consequence: set a test
+  supplier's status to `blocked` (with a realistic note, "fraud investigation in progress"), then
+  created and **posted** a real 500,000 TZS bill against that exact supplier — it succeeded, `201`,
+  with a real GL entry, no warning, no refusal, nothing anywhere in the response indicating the
+  supplier was blocked. A "Blocked" status that provides zero actual protection against further
+  transactions is, today, a purely cosmetic label — the same shape of gap as HUD-0057's demurrage
+  `liable_party` (a real column, a real enum value, a real UI affordance, and no code path anywhere
+  that acts on it). Not fixed on the spot: whether blocking should hard-refuse a bill outright, only
+  warn, or require an explicit override-with-reason is a product decision this trace can't make
+  unilaterally, matching this arc's standing rule for design-level gaps.
+- **Came back otherwise clean — no code changes needed.** `tsc --noEmit` clean, full suite green
+  (11 files / 105 tests), `check:triggers` OK, API healthy throughout (no code changed this
+  journey, so this was a sanity re-run rather than a required gate).
+- **Test-artifact handling:** the test bill was voided via the real `POST /:id/void` (it posted a
+  real GL entry). The test supplier was restored to `active` then soft-deleted via the real
+  `DELETE /:id` — left as a genuine `inactive` record, consistent with the platform's own
+  soft-delete convention for this record type, rather than force-removed around it. Usage counter
+  restored to 500/500 and confirmed.
+
+### HUD-0078 — Phase 5: Email app journey traced live, independently verifying a concurrent session's own just-finished completion pass · CLEAN across every feature exercised
+- **Category:** Functional correctness (Phase 5, thirty-seventh journey) — the first this arc
+  deliberately triggered by a *different session's* own self-reported work, verified independently
+  rather than taken on faith (per the standing "verify from live evidence, not another session's
+  self-assessment" discipline this arc already applies to code-derived claims).
+- **Context:** a concurrent session's own new memory entry claims a "100% completion" pass on Email
+  (real threading, scheduled/undo-send, multi-attachment, full-text search, custom labels,
+  quick-reply templates, bulk actions, IMAP test-connection) — the same session whose commits
+  briefly regressed this arc's own `tsc --noEmit` at journey 33 (HUD-0074) before self-resolving by
+  journey 35 (HUD-0076). Confirmed via the filesystem this is real, substantial work before tracing
+  it — three new migrations (460–462, "email_app_completeness/100pct/polish"), a real scheduled-send
+  job wired into the dev server's actual job scheduler (`setInterval`, every 15 seconds), and a real
+  IMAP ingest job — not just a claim.
+- **Trace (undo-send):** sent a real message (default 10-second undo window, confirmed in the
+  response) and confirmed it lands in the `scheduled` folder. Self-caught a false alarm along the
+  way: a first attempt to verify-then-undo came back empty from `GET /?folder=scheduled` — instead
+  of assuming a bug, reasoned through it and confirmed live with a second, faster-executed message:
+  the first one had simply already been picked up by the real 15-second delivery sweep in the
+  several seconds of real wall-clock time between my own tool calls (the job only requires
+  `scheduled_at <= now()`, genuinely 10 seconds after send, which my own round-trip latency had
+  already exceeded) — not a folder-filter bug. Confirmed `DELETE /:id` is what "Undo" actually is
+  (no separate cancel endpoint, matching the code's own comment), and confirmed live that deleting a
+  message still in `scheduled` genuinely prevents the real send — the delivery job's own query
+  requires the row to still exist with `folder='scheduled'`, so a deleted row is structurally
+  unreachable to it, not just "hopefully" cancelled by a soft flag.
+- **Trace (real delivery, read receipts, threading, search, labels — all clean):** sent a second
+  message with `requestReadReceipt: true`, waited for the real 15-second sweep, and confirmed via
+  Postgres it transitioned to `folder: 'sent'` with a real `message_id`/`outbox_id` — genuine
+  delivery through the same `MailService.sendNow` infrastructure already confirmed working in
+  HUD-0075's booking-confirmation emails. Hit the actual receipt-pixel endpoint unauthenticated (as
+  a real recipient's mail client would) and confirmed it returns a real `image/gif` and stamps
+  `read_receipt_confirmed_at` with a real timestamp. Replied to the sent message via `inReplyTo` and
+  confirmed `GET /thread/:threadId` correctly returned both messages together, spanning the `sent`
+  and `scheduled` folders — the documented "across all folders" behavior, verified rather than
+  assumed. Ran a full-text search for a deliberately stemmed term ("deliveri") against a body
+  containing "Delivery" and got real Postgres `tsvector`/English-stemming matches, not a substring
+  scan. Created a real custom label, assigned it via `PATCH .../:id`, and confirmed via a fresh
+  `GET` that it actually persisted (the `PATCH` response itself is a bare `{success:true}`, not the
+  updated row — verified the real effect rather than trusting the ack). Bulk-archived a message via
+  `POST /bulk` and confirmed the folder move.
+- **Came back clean across every feature exercised — no code changes needed.** `tsc --noEmit`
+  clean, full suite green (11 files / 105 tests), `check:triggers` OK, API healthy throughout.
+- **Test-artifact handling:** both real test messages and the test label were deleted via their
+  real `DELETE` endpoints — email messages have a genuine, unrestricted hard-delete (no
+  void/immutability convention for this record type, unlike the financial documents traced
+  elsewhere this arc). Usage counter restored to 500/500 and confirmed.
+- **Not re-rated in this pass:** this trace covers a representative slice, not all 11 claimed gaps
+  (IMAP test-connection and quick-reply templates specifically weren't exercised) — real enough to
+  retire the "take the other session's word for it" uncertainty, not exhaustive enough alone to
+  justify a specific new percentage in `hudumika-overview.html` without checking those remaining
+  claims too. Recorded here as strong positive evidence for whenever that file is next re-synced.
+
+### HUD-0079 — Phase 5: Notes journey traced live · CLEAN across a genuinely sophisticated per-note ACL, optimistic-locking, and legal-hold feature set
+- **Category:** Functional correctness (Phase 5, thirty-eighth journey).
+- **Trace (visibility & sharing — the real per-note ACL, all verified live):** created a `private`
+  note as one user and confirmed a second, unrelated user (i) never sees it in their own list at
+  all and (ii) is refused (`403`) attempting to `PATCH` it directly by id, having guessed or been
+  handed the URL. Created a `shared` note naming that same second user with `view`-only permission
+  and confirmed live: they can see it (`canEdit: false` in the response, matching reality) but a
+  content edit is correctly refused (`403`); upgraded their permission to `edit` and confirmed the
+  same content edit now succeeds, correctly attributing `updatedBy` to them and `isOwner: false`.
+  Confirmed, in both the view-only and edit states, that the *same* non-creator collaborator is
+  still refused changing `visibility`/`shares` itself — a real, deliberately separate permission
+  ("Only this note's creator can change who it's shared with"), matching Google Keep's own
+  ownership-vs-editing distinction the code comment names, verified rather than assumed from it.
+- **Optimistic locking — the one place this app's own design says silent clobbering actually
+  matters:** after the collaborator's edit changed the note's `updated_at`, had the *original*
+  creator attempt an update carrying the note's *stale*, pre-edit `expectedUpdatedAt`. Correctly
+  refused with a `409`/`NOTE_CONFLICT` carrying the note's genuine current state (the collaborator's
+  edit, correctly reflected) — real, usable conflict data a client could build a merge UI from, not
+  a bare error.
+- **Revision history — verified both directions actually preserve everything:** confirmed the
+  collaborator's edit created a real revision snapshotting the *original* content, correctly
+  attributed to the *original* author (not "now", not the editor) — exactly the subtlety the code's
+  own comment calls out. Restored that old revision and confirmed **a second new revision was
+  created snapshotting the collaborator's edit before it was overwritten** — read the full revision
+  list afterward and found both the original and the collaborator's version intact, nothing lost
+  across two real content changes and one restore.
+- **Legal hold:** set it on a note, trashed the note, and confirmed permanent delete is refused
+  (`403`, "on legal hold and cannot be permanently deleted") — then confirmed it *also* survives a
+  bulk `POST /empty-trash` sweep (the note was still fetchable afterward), not just the single-note
+  delete path. Removing the hold and deleting again succeeded cleanly.
+- **Also confirmed live:** a `CUSTOMER` JWT is correctly refused the entire app (`403`).
+- **Came back clean — no code changes needed.** `tsc --noEmit` clean, full suite green (11 files /
+  105 tests), `check:triggers` OK, API healthy throughout.
+- **Test-artifact handling:** both test notes were permanently deleted via the real `DELETE /:id`
+  once legal hold was cleared — notes have a genuine, unrestricted hard-delete once not on hold (no
+  void/immutability convention for this record type). Usage counter restored to 500/500 and
+  confirmed.
+
+### HUD-0080 — Phase 5: Sign forensic case-management journey traced live (a previously-flagged untested gap from HUD-0045) · real LOW bug found+fixed (duplicate 'opened' custody-log rows) in an otherwise genuinely rigorous chain-of-custody system
+- **Category:** Functional correctness (Phase 5, thirty-ninth journey) — specifically closing a gap
+  HUD-0045 flagged as "not exercised" (the forensic-case investigation tooling).
+- **Setup, all real:** built a real PDF via `pdf-lib`, created and sent a real Sign envelope, signed
+  it through the actual public token endpoint, and confirmed real completion — `stamp_applied:
+  true`, a real `anchor_hash`. Downloaded the actual stamped PDF and submitted it to
+  `POST /verify/compare` (a genuinely public, unauthenticated endpoint) against its own verification
+  code: got back a live-computed `EXACT_MATCH` with matching SHA-256 hashes and a verified seal
+  signature — not a canned response.
+- **Manual case-opening from a clean verdict (a real documented use case — "a compliance officer
+  wants a permanent record"):** opened a case from that clean job as a `TENANT_ADMIN`. Confirmed the
+  evidence manifest holds real, independently-hashed canonical/uploaded/manifest files (canonical
+  and uploaded hashes matching each other, correctly reflecting the exact-match verdict).
+- **Chain of custody — the entire reason this module exists — verified property by property:**
+  confirmed a `GET` on the case is itself logged as a `'viewed'` custody event; because the route
+  fetches the audit log *before* recording its own view, that view doesn't appear in its own
+  response — confirmed this isn't a bug by re-fetching immediately after, where it correctly
+  appeared. Confirmed an evidence download is logged as `'exported'` with the correct filename and
+  evidence id.
+- **Evidence (real LOW bug found):** the same case-open call above produced **two** `'opened'`
+  custody rows at the identical millisecond when a `note` was supplied — one from
+  `openForensicCase()`'s own internal logging (real `evidence_count`/`verdict`/`verification_code`
+  detail) and a second, redundant one the route handler fired immediately after purely to attach the
+  note. For a chain-of-custody log whose entire regulatory purpose (the file's own §45/§50 citations)
+  is to be an accurate, non-redundant record of what actually happened, splitting one real action
+  into two identically-timestamped rows is a genuine (if minor) correctness defect — not a security
+  or data-loss issue, but exactly the kind of thing that reads as confusing or suspicious to anyone
+  auditing the log later.
+- **Fix:** added an optional `note` parameter to `openForensicCase()` itself, folded into the same
+  internal `'opened'` custody event's own `detail` object; the route handler now passes it straight
+  through instead of firing a second event afterward.
+- **Re-test, live:** opened a fresh case with a note using the fixed code and confirmed exactly one
+  `'opened'` row, with the note correctly merged into the same detail object alongside
+  `evidence_count`/`content_verdict`/`verification_code`.
+- **Auto-open, re-analysis versioning, and reporting — all confirmed clean and real:** submitted a
+  deliberately tampered document (a re-created PDF missing the original's real signature/certificate
+  page) and got back a live-computed `DOCUMENT_MISMATCH` — real structural findings ("canonical has
+  2 pages, uploaded has 1"), a real hash mismatch, genuine PDF metadata comparison. Confirmed this
+  non-clean verdict was **auto-opened as a case by the system itself**
+  (`opened_by_name: 'System — Digital Execution Seal verification'`) with zero manual action, exactly
+  matching `sign-forensic-verify.job.ts`'s documented design. Re-ran `POST .../reanalyze` against the
+  case's own already-stored evidence (no new upload) and got the identical verdict back as a new,
+  separately-numbered run (2, alongside auto-open's own run 1) — the original run was never
+  overwritten. Generated the formal PDF report via `POST .../report` and confirmed it was stored as
+  its own durable evidence row, correctly appended to the manifest without disturbing the original
+  entries. Transitioned the case `open → reviewing → resolved`, correctly stamping `resolved_by`/
+  `resolved_at`/`resolution_note` only on the terminal transition.
+- **Also confirmed live:** a `JUNIOR` JWT is correctly refused the entire forensics module (`403`,
+  `DOCUMENT_ADMIN_ROLES` only — `SUPER_ADMIN`/`ADMIN`/`TENANT_ADMIN`).
+- **Came back otherwise clean.** `tsc --noEmit` clean, full suite green (11 files / 105 tests),
+  `check:triggers` OK, API healthy throughout.
+- **Test-artifact handling:** every record this journey touched is permanently un-deletable by
+  design, confirmed rather than assumed — a **completed** Sign envelope explicitly cannot be voided
+  (`"Completed envelopes cannot be voided"`, live-confirmed as the same rule that blocks a fresh
+  attempt), and forensic evidence/custody rows have no delete endpoint anywhere in the API at all
+  (the service's own header comment: "Nothing here ever updates an evidence row once inserted" /
+  "append-only, same reasoning" — a deliberate forensic/legal-record design, not an oversight). Left
+  in place, every title/filename/note clearly labeled `HUD-0080`. Usage counter restored to 500/500
+  and confirmed (needed re-lowering once mid-journey after a real prior-journey usage tally caught
+  up with the monthly cap).
 
 ### HUD-0049 — Phase 5: Support ticket lifecycle traced live · mostly CLEAN; one LOW completeness gap noted, not fixed
 - **Category:** Functional correctness (Phase 5, seventh journey) + a LOW finding (master

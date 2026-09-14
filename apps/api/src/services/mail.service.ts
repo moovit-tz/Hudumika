@@ -15,6 +15,13 @@ interface EnqueueInput {
    *  needs to exist by then, not at enqueue time. */
   attachmentStorageKey?: string;
   attachmentFilename?: string;
+  /** Multiple attachments — sendNow only (Email compose's own multi-file
+   *  picker). Merged with attachmentStorageKey above if both are given,
+   *  rather than the single field becoming dead once this exists. */
+  attachments?: { storageKey: string; filename: string }[];
+  /** Real RFC 5322 threading — see EmailIntegration.sendEmail's own doc. */
+  inReplyToMessageId?: string | null;
+  referencesMessageIds?: string[];
 }
 
 interface SendResult {
@@ -22,6 +29,10 @@ interface SendResult {
   simulated: boolean;
   error?: string;
   outboxId: string;
+  /** The real Message-ID nodemailer's transport assigned this send —
+   *  scheduled-email-send.job.ts stores it on the email_messages row so a
+   *  later reply threads against it for real. */
+  messageId?: string;
 }
 
 /**
@@ -73,10 +84,20 @@ export const MailService = {
 
   /** Sends already-built subject/bodyHtml synchronously — see class doc for when to reach for this over enqueue(). */
   async sendNow(tenantId: string, input: EnqueueInput): Promise<SendResult> {
-    const attachments = input.attachmentStorageKey
-      ? await (async () => { const content = await MinioIntegration.readFile(input.attachmentStorageKey!); return content ? [{ filename: input.attachmentFilename || 'attachment', content }] : undefined; })()
-      : undefined;
-    const result = await EmailIntegration.sendEmail({ to: input.to, subject: input.subject, bodyHtml: input.bodyHtml, cc: input.cc, tenantId, attachments });
+    const keys = [
+      ...(input.attachmentStorageKey ? [{ storageKey: input.attachmentStorageKey, filename: input.attachmentFilename || 'attachment' }] : []),
+      ...(input.attachments ?? []),
+    ];
+    const loaded = await Promise.all(keys.map(async k => {
+      const content = await MinioIntegration.readFile(k.storageKey);
+      return content ? { filename: k.filename, content } : null;
+    }));
+    const attachments = loaded.filter((a): a is { filename: string; content: Buffer } => a !== null);
+    const result = await EmailIntegration.sendEmail({
+      to: input.to, subject: input.subject, bodyHtml: input.bodyHtml, cc: input.cc, tenantId,
+      attachments: attachments.length ? attachments : undefined,
+      inReplyToMessageId: input.inReplyToMessageId, referencesMessageIds: input.referencesMessageIds,
+    });
     const outboxId = await withTenant(tenantId, async (trx) => {
       const row = await trx.insertInto('email_outbox').values({
         tenant_id: tenantId, to_address: input.to,
@@ -92,7 +113,7 @@ export const MailService = {
       }).returning('id').executeTakeFirstOrThrow();
       return row.id;
     });
-    return { success: result.success, simulated: !!result.simulated, error: result.error, outboxId };
+    return { success: result.success, simulated: !!result.simulated, error: result.error, outboxId, messageId: result.messageId };
   },
 
   /** Renders templateKey via MailTemplateService, then sends synchronously.

@@ -89,7 +89,19 @@ export const storeRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /v1/store/apps (Submit new app)
-  app.post('/apps', async (request, reply) => {
+  // HUD-0070: the only mutating route in this file the earlier CUSTOMER-block
+  // pass (see STORE_MGMT_ROLES above) missed — a CUSTOMER-portal account of
+  // any tenant could submit a listing straight into the platform-wide
+  // marketplace review queue, live-confirmed. This isn't a tenant-isolation
+  // leak (marketplace_apps is genuinely platform-level, and nothing reaches
+  // a real user until a SUPER_ADMIN approves it), but a tenant's own
+  // customer-portal account has no business acting as a marketplace
+  // developer — same convention as every other CUSTOMER-block in this file.
+  app.post('/apps', { preHandler: async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') {
+      return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+  } }, async (request, reply) => {
     const schema = z.object({
       name: z.string(),
       developer_name: z.string(),

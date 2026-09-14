@@ -118,17 +118,20 @@ export async function signForensicsRoutes(fastify: FastifyInstance) {
       const canonicalBytes = envelope.stamped_file_url ? await MinioIntegration.readFile(envelope.stamped_file_url) : null;
 
       const outcome = job.result as unknown as CompareOutcome;
+      // HUD-0080: `note` used to fire its own separate 'opened' custody
+      // event right after openForensicCase()'s own internal one — two
+      // identically-timestamped 'opened' rows for one real action, which a
+      // forensic chain-of-custody log (this file's whole reason for
+      // existing) should never contain. Passed through as part of the same
+      // call instead, so a note-bearing open produces exactly one row.
       const caseId = await openForensicCase(trx, {
         tenantId: tid, envelopeId: envelope.id, verificationCode: job.verification_code,
         forensicJobId: job.id, outcome,
         canonicalBytes, canonicalFilename: `${envelope.title} — canonical.pdf`,
         uploadedBytes, uploadedFilename: `upload.${job.media_type === 'application/pdf' ? 'pdf' : job.media_type.split('/')[1] || 'bin'}`,
         uploadedMediaType: job.media_type,
+        note,
       }, { id: userId(req), name: userName(req) }, req.ip);
-
-      if (note) {
-        await recordCustodyEvent(trx, tid, caseId, 'opened', { id: userId(req), name: userName(req) }, { note }, req.ip);
-      }
 
       reply.status(201);
       return { case_id: caseId };

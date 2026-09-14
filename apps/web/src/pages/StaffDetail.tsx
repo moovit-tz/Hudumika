@@ -69,6 +69,12 @@ interface StaffData {
   // to read (and which nothing else in the app ever wrote to for real).
   department_id?: string | null;
   designation_id?: string | null;
+  // The real reporting line, resolved server-side from Org Chart
+  // (org_chart_nodes.parent_id) — distinct from `reports_to` above, which is
+  // still a free-typed profile field nothing else in the app ever reads.
+  // null when this person (or their whole ancestor chain) isn't placed in
+  // the chart yet.
+  org_chart_manager?: { id: string; name: string } | null;
 }
 
 // Shared, so this page agrees with the header above it and with every other app.
@@ -806,6 +812,10 @@ export const StaffDetail: React.FC = () => {
                   <FieldItem label="Designation" value={staff.designation} />
                   <FieldItem label="Department" value={staff.dept} />
                   <FieldItem label="Reports To" value={staff.reports_to} />
+                  <FieldItem
+                    label="Reports To (Org Chart)"
+                    value={staff.org_chart_manager ? staff.org_chart_manager.name : 'Not placed in Org Chart'}
+                  />
                   <FieldItem label="Employment Type" value={staff.employment_type} />
                   <FieldItem label="Joining Date" value={formatDate(staff.hireDate)} />
                 </div>

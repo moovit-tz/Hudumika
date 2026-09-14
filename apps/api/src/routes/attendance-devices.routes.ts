@@ -44,10 +44,22 @@ export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // HUD-0073: was `.selectAll()`, live-confirmed leaking `push_token` — the
+  // *only* secret authenticating the unauthenticated device-facing /iclock
+  // push endpoint (device-ingest.routes.ts) — to every authenticated
+  // non-CUSTOMER staff member, including a JUNIOR with no device-management
+  // permission at all. Combined with the equally-readable `serial_number` on
+  // the same row, that's everything needed to impersonate the physical
+  // device and inject fabricated attendance punches for any of its enrolled
+  // employees. The frontend (HRM.tsx) only ever reads `push_token` from the
+  // one-time POST /registration response, never from this list, matching
+  // this route's own comment that it's "shown once... not retrievable again."
+  const DEVICE_SAFE_COLUMNS = ['id', 'tenant_id', 'provider', 'name', 'serial_number', 'location', 'status', 'last_heartbeat_at', 'last_sync_at', 'created_by', 'created_at', 'updated_at'] as const;
+
   fastify.get('/', async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, (trx) =>
-      trx.selectFrom('attendance_devices').selectAll()
+      trx.selectFrom('attendance_devices').select(DEVICE_SAFE_COLUMNS)
         .where('tenant_id', '=', user.tenant_id)
         .orderBy('created_at', 'desc').execute()
     );
@@ -82,9 +94,11 @@ export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
     if (body.location !== undefined) updates.location = body.location;
 
     return withTenant(user.tenant_id, async (trx) => {
+      // HUD-0073: same push_token leak as GET / — a name/location rename has
+      // no legitimate reason to hand the secret back either.
       const row = await trx.updateTable('attendance_devices').set(updates)
         .where('id', '=', req.params.id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirst();
+        .returning(DEVICE_SAFE_COLUMNS).executeTakeFirst();
       if (!row) return reply.status(404).send({ error: 'Device not found' });
       return row;
     });

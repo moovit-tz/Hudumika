@@ -36,7 +36,15 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/', async (req) => {
+  // Every other route in this file (create/update/delete/sync/reset) is
+  // gated on org_chart.manage — there is no separate "view" permission
+  // (org-rbac.ts) — and the frontend route itself wraps OrgChart.tsx in
+  // <RequireRoles roles={MGMT_ROLES} permissions={['org_chart.manage']}>.
+  // This GET had no preHandler at all, so any authenticated non-CUSTOMER
+  // role (JUNIOR, SALES, SENIOR, FINANCE…) could read every staff member's
+  // name, title, department, email and phone straight from the API — a
+  // frontend-only gate, not a real boundary. Matched to the rest of the file.
+  fastify.get('/', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_CHART_MANAGE, 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) =>
       trx.selectFrom('org_chart_nodes')
@@ -48,10 +56,25 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
   });
 
   // POST /org-chart — create a node
-  fastify.post('/', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_CHART_MANAGE, 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
+  fastify.post('/', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_CHART_MANAGE, 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
+      // user_id (-> users) and parent_id (-> org_chart_nodes) are both plain
+      // global FKs (migration 011, no tenant column in the constraint), so a
+      // caller-supplied id from another tenant would otherwise attach fine —
+      // same cross-tenant id-smuggling shape as ondi.routes.ts's visitor
+      // host_user_id fix.
+      if (body.user_id) {
+        const owner = await trx.selectFrom('users').select('id')
+          .where('id', '=', body.user_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!owner) { reply.status(404); return { error: 'That person is not in this workspace.' }; }
+      }
+      if (body.parent_id) {
+        const parent = await trx.selectFrom('org_chart_nodes').select('id')
+          .where('id', '=', body.parent_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!parent) { reply.status(404); return { error: 'Parent node not found in this workspace.' }; }
+      }
       return trx.insertInto('org_chart_nodes').values({
         tenant_id:    user.tenant_id,
         user_id:      body.user_id      ?? null,
@@ -71,11 +94,21 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
   });
 
   // PATCH /org-chart/:id — update node (position, label, etc.)
-  fastify.patch('/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_CHART_MANAGE, 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
+  fastify.patch('/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_CHART_MANAGE, 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
+      if (body.user_id) {
+        const owner = await trx.selectFrom('users').select('id')
+          .where('id', '=', body.user_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!owner) { reply.status(404); return { error: 'That person is not in this workspace.' }; }
+      }
+      if (body.parent_id) {
+        const parent = await trx.selectFrom('org_chart_nodes').select('id')
+          .where('id', '=', body.parent_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!parent) { reply.status(404); return { error: 'Parent node not found in this workspace.' }; }
+      }
       const update: Record<string, any> = { updated_at: new Date() };
       const fields = ['label','job_title','department','email','phone','avatar_color','parent_id','position_x','position_y','node_type','color','user_id'];
       for (const f of fields) if (body[f] !== undefined) update[f] = body[f] ?? null;
@@ -133,9 +166,16 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
   fastify.post('/sync-staff', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_CHART_MANAGE, 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
+      // HUD-0072: this previously pulled every user row with no role filter,
+      // live-confirmed to add the tenant's own CUSTOMER-portal accounts into
+      // the internal staff hierarchy (job_title: "CUSTOMER") — a customer
+      // isn't part of the company's org structure. Same CUSTOMER-exclusion
+      // convention this codebase already applies everywhere else, applied
+      // here to data correctness rather than access control.
       const staffUsers = await trx.selectFrom('users')
         .select(['id', 'name', 'email', 'role'])
         .where('tenant_id', '=', user.tenant_id)
+        .where('role', '!=', 'CUSTOMER')
         .execute();
 
       const existingNodes = await trx.selectFrom('org_chart_nodes')

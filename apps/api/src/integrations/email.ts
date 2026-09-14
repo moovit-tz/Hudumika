@@ -91,6 +91,14 @@ export class EmailIntegration {
     tenantId?: string;
     cc?: string[];
     attachments?: { filename: string; content: Buffer }[];
+    /** Real RFC 5322 threading — set from the parent message's own stored
+     *  message_id (email.routes.ts) so a reply sent through Hudumika
+     *  threads correctly in the recipient's own mail client, and so an
+     *  inbound reply to it carries a References header
+     *  imap-email-ingest.job.ts can match on instead of only the subject
+     *  fallback. */
+    inReplyToMessageId?: string | null;
+    referencesMessageIds?: string[];
   }): Promise<{ success: boolean; messageId?: string; error?: string; simulated?: boolean }> {
     try {
       let emailConfig: any = null;
@@ -211,6 +219,8 @@ export class EmailIntegration {
         subject: input.subject,
         html: input.bodyHtml,
         attachments: input.attachments,
+        inReplyTo: input.inReplyToMessageId ?? undefined,
+        references: input.referencesMessageIds?.length ? input.referencesMessageIds : undefined,
       });
 
       console.log(`✉️ Email sent successfully to ${input.to}. Message ID: ${info.messageId}`);
