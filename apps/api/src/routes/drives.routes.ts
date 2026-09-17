@@ -66,6 +66,9 @@ export async function drivesRoutes(fastify: FastifyInstance) {
   });
 
   // PATCH /:id — rename a drive
+  // HUD-0097 (addendum): crashed on a wrong/stale id, and the local catch
+  // mapped it to a 400 (implying a bad request body) instead of a 404 —
+  // multi-line-chain miss from the original sweep.
   fastify.patch('/:id', async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
@@ -75,7 +78,8 @@ export async function drivesRoutes(fastify: FastifyInstance) {
       return await withTenant(user.tenant_id, async (trx) => {
         const row = await trx.updateTable('cloud_drives').set({ name: name.trim(), updated_at: new Date() })
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-          .returningAll().executeTakeFirstOrThrow();
+          .returningAll().executeTakeFirst();
+        if (!row) return reply.status(404).send({ error: 'Drive not found' });
         return row;
       });
     } catch (err: any) {

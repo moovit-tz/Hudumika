@@ -330,7 +330,10 @@ export async function trackingRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/vehicles/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  // HUD-0097 (addendum): both PATCH routes below crashed on a wrong/stale
+  // id instead of 404ing — multi-line-chain misses from the original
+  // sweep, found by hand while tracing this file.
+  fastify.patch('/vehicles/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = vehiclePatchSchema.parse(req.body);
@@ -343,9 +346,11 @@ export async function trackingRoutes(fastify: FastifyInstance) {
       'out_of_service_odometer', 'lifecycle_notes',
     ]);
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.updateTable('vehicles').set({ ...patch, updated_at: new Date() } as any)
+      const updated = await trx.updateTable('vehicles').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow();
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Vehicle not found' });
+      return updated;
     });
   });
 
@@ -401,16 +406,18 @@ export async function trackingRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/geofences/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.patch('/geofences/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = geofencePatchSchema.parse(req.body);
     const patch = pick(body, ['name', 'center_lat', 'center_lon', 'radius_km', 'zone_type', 'active']);
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('geofences').set({ ...patch, updated_at: new Date() } as any)
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('geofences').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
-    );
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Geofence not found' });
+      return updated;
+    });
   });
 
   fastify.delete('/geofences/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {

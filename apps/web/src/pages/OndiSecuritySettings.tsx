@@ -31,6 +31,7 @@ interface RecoveryContact {
 interface RecoveryRequest {
   id: string;
   status: string;
+  token: string;
   requested_at: string;
   cooldown_ends_at: string | null;
   requester_name: string;
@@ -350,6 +351,16 @@ export const OndiSecuritySettings: React.FC = () => {
   async function declineRecoveryRequest(id: string) {
     try { await apiFetch(`/v1/security/recovery-requests/${id}/decline`, { method: 'POST' }); await reloadRecovery(); }
     catch (err: any) { showAlert(err.message); }
+  }
+
+  // HUD-0112: the requester has, by definition, lost both password and email
+  // access — the platform has no channel of its own to reach them, so the
+  // contact is the one who has to relay this link back out of band (a call,
+  // a chat message, in person).
+  function copyRecoveryLink(token: string) {
+    const url = `${window.location.origin}/recovery?token=${token}`;
+    navigator.clipboard.writeText(url);
+    showAlert("Recovery link copied — send it to them however you'd normally reach them (call, chat, in person).", { variant: 'success' });
   }
 
   // ── Active Sessions ──
@@ -1087,6 +1098,9 @@ export const OndiSecuritySettings: React.FC = () => {
                           <Button variant="outline" size="sm" onClick={() => declineRecoveryRequest(r.id)}>
                             Decline
                           </Button>
+                          <Button variant="outline" size="sm" onClick={() => copyRecoveryLink(r.token)} title="Copy the link they'll need to check status and set a new password">
+                            <Icon name="copy" size={13} /> Copy Link
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -1102,9 +1116,20 @@ export const OndiSecuritySettings: React.FC = () => {
                     {otherRequests.slice(0, 3).map((r) => (
                       <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
                         <span style={{ fontSize: 12.5, color: 'var(--ink)' }}>{r.requester_name}</span>
-                        <Badge variant={r.status === 'approved' ? 'success' : r.status === 'completed' ? 'success' : r.status === 'declined' ? 'error' : 'gray'}>
-                          {r.status}{r.status === 'approved' && r.cooldown_ends_at ? ` · cooldown until ${fmtDateTime(r.cooldown_ends_at)}` : ''}
-                        </Badge>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {r.status === 'approved' && (
+                            <button
+                              type="button"
+                              onClick={() => copyRecoveryLink(r.token)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 600 }}
+                            >
+                              <Icon name="copy" size={12} /> Copy link
+                            </button>
+                          )}
+                          <Badge variant={r.status === 'approved' ? 'success' : r.status === 'completed' ? 'success' : r.status === 'declined' ? 'error' : 'gray'}>
+                            {r.status}{r.status === 'approved' && r.cooldown_ends_at ? ` · cooldown until ${fmtDateTime(r.cooldown_ends_at)}` : ''}
+                          </Badge>
+                        </div>
                       </div>
                     ))}
                   </div>

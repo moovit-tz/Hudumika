@@ -5,7 +5,7 @@
 // Architecture Decision 3: Sole Pricing Authority & Marketplace Metering
 
 import crypto from 'crypto';
-import { db } from '../db/client.js';
+import { db, dbPlatform } from '../db/client.js';
 import type {
   DeveloperAccount,
   DeveloperOrganization,
@@ -27,6 +27,44 @@ import type {
 } from '@hudumika/types';
 
 export class DeveloperService {
+  /* ════════════════════════════════════════════════════════════════════════
+     0. ACCESS CONTROL — every account-/project-scoped route below takes its
+     id straight from the URL. HUD-0117: none of them ever verified the
+     caller owns (or is an active member of) that account before reading or
+     mutating it — confirmed live with two accounts in two different
+     tenants: account B could list account A's projects, read its real
+     prepaid billing balance, and mint a brand-new, unrestricted-scope
+     PRODUCTION API credential against A's own project. Developer accounts
+     are deliberately not tenant-scoped (see this file's header — Individual
+     vs Organization, not Hudumika tenants), so RLS/withTenant give no
+     protection here at all; this check is the only boundary that exists.
+     ════════════════════════════════════════════════════════════════════════ */
+
+  /** Throws a 404 (not 403) on any account the caller doesn't own or belong
+   *  to, deliberately not distinguishing "doesn't exist" from "not yours" —
+   *  same enumeration-safety convention this codebase already uses for
+   *  cross-user resource ownership elsewhere (e.g. recovery-requests). */
+  static async assertAccountAccess(accountId: string, userId: string): Promise<void> {
+    const owned = await db.selectFrom('developer_accounts').select('id')
+      .where('id', '=', accountId).where('owner_user_id', '=', userId).executeTakeFirst();
+    if (owned) return;
+    const membership = await db.selectFrom('developer_org_members').select('id')
+      .where('developer_account_id', '=', accountId).where('user_id', '=', userId)
+      .where('status', '=', 'active').executeTakeFirst();
+    if (membership) return;
+    throw Object.assign(new Error('Developer account not found.'), { statusCode: 404 });
+  }
+
+  /** Resolves a project to its owning account and applies the same check —
+   *  returns the account id so callers that also need it don't re-query. */
+  static async assertProjectAccess(projectId: string, userId: string): Promise<string> {
+    const project = await db.selectFrom('dev_projects').select('developer_account_id')
+      .where('id', '=', projectId).executeTakeFirst();
+    if (!project) throw Object.assign(new Error('Project not found.'), { statusCode: 404 });
+    await this.assertAccountAccess(project.developer_account_id, userId);
+    return project.developer_account_id;
+  }
+
   /* ════════════════════════════════════════════════════════════════════════
      1. DEVELOPER ACCOUNTS & ORGANIZATIONS
      ════════════════════════════════════════════════════════════════════════ */
@@ -314,9 +352,18 @@ export class DeveloperService {
     targetEmail: string,
     role: OrgMemberRole
   ): Promise<DeveloperOrgMember> {
-    const user = await db.selectFrom('users').select(['id', 'name', 'email']).where('email', '=', targetEmail.toLowerCase().trim()).executeTakeFirst();
+    // HUD-0117: this used to query the bare, RLS-restricted `db` singleton
+    // with no tenant context — RLS's own policy has nothing to match
+    // against outside withTenant(), so it silently returned zero rows for
+    // every real user regardless of email, making this feature completely
+    // non-functional. Developer accounts are deliberately not tenant-scoped
+    // (a member can be any Hudumika user in any tenant), so the fix is
+    // dbPlatform — the same "look this email up across every tenant"
+    // pattern auth.routes.ts/onboarding.service.ts already use for the
+    // exact same pre-tenant-context problem.
+    const user = await dbPlatform.selectFrom('users').select(['id', 'name', 'email']).where('email', '=', targetEmail.toLowerCase().trim()).executeTakeFirst();
     if (!user) {
-      throw new Error(`User with email "${targetEmail}" does not exist on Hudumika. They must register first.`);
+      throw Object.assign(new Error(`User with email "${targetEmail}" does not exist on Hudumika. They must register first.`), { statusCode: 400 });
     }
 
     const [row] = await db

@@ -155,7 +155,7 @@ function sealOrClauses(eb: any, sealIds: { lotIds: string[]; consignmentIds: str
  *  quietly drift apart on who's allowed to read what — this closes a real
  *  gap where the list already included SEAL-linked files but the download
  *  route's own ownership check had never been extended to match. */
-async function canCustomerAccessFile(
+export async function canCustomerAccessFile(
   trx: Transaction<Database>, tenantId: string, cid: string | null,
   file: { entity_type: string | null; entity_id: string | null; id: string },
 ): Promise<boolean> {

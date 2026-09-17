@@ -116,17 +116,21 @@ export async function sealDocumentRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // HUD-0097 (addendum): crashed on a wrong/stale id instead of 404ing —
+  // multi-line-chain miss from the original sweep.
   fastify.patch('/documents/:id', async (request: any, reply) => {
     const b = documentPatchSchema.parse(request.body);
     try {
-      return await withTenant(request.user.tenant_id, trx =>
+      const row = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_documents').set({
           status: b.status, notes: b.notes ?? undefined,
           verified_by: b.status === 'VERIFIED' ? request.user.sub : undefined,
           verified_at: b.status === 'VERIFIED' ? new Date() : undefined,
         }).where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
-          .returningAll().executeTakeFirstOrThrow()
+          .returningAll().executeTakeFirst()
       );
+      if (!row) return reply.status(404).send({ error: 'Document not found' });
+      return row;
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }

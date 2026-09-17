@@ -576,7 +576,13 @@ export async function callsRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const m = await trx.selectFrom('bliss_meetings').selectAll().where('tenant_id', '=', user.tenant_id).where('join_code', '=', code).executeTakeFirst();
       if (!m) return reply.status(404).send({ error: 'No meeting found for that code' });
-      return m;
+      // HUD-0120: this used to return the full row including password_hash —
+      // reachable by any non-customer staff member holding the join code
+      // (which is the whole point of a join code: it's meant to be shared
+      // with participants), not just the host. GET /meetings/:id and PATCH
+      // already strip this same field; this route was the one miss.
+      const { password_hash, ...rest } = m as any;
+      return { ...rest, hasPassword: !!password_hash };
     });
   });
 
@@ -629,7 +635,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
       }
       if (!joinCode) return reply.status(500).send({ error: 'Could not generate a join code — try again' });
       const isInstant = !scheduledAt;
-      return trx.insertInto('bliss_meetings').values({
+      const created = await trx.insertInto('bliss_meetings').values({
         tenant_id: user.tenant_id, host_id: user.sub, title, join_code: joinCode, kind,
         status: isInstant ? 'ACTIVE' : 'SCHEDULED',
         scheduled_at: scheduledAt, started_at: isInstant ? new Date() : null,
@@ -642,6 +648,15 @@ export async function callsRoutes(fastify: FastifyInstance) {
         guest_join_enabled: !!b.guest_join_enabled,
         max_duration_minutes: maxDurationMinutes,
       }).returningAll().executeTakeFirstOrThrow();
+      // HUD-0120: same fix as GET /meetings/by-code/:code above — this used
+      // to return the freshly-inserted row via .returningAll() unstripped,
+      // so the host's own create-meeting response carried the real
+      // password_hash back to the browser for no reason (they already know
+      // the plaintext they just typed; the hash should never leave the
+      // server at all, matching every sibling meeting-read route's own
+      // hasPassword-only convention).
+      const { password_hash: _ph, ...rest } = created as any;
+      return { ...rest, hasPassword: !!created.password_hash };
     });
   });
 
@@ -692,7 +707,9 @@ export async function callsRoutes(fastify: FastifyInstance) {
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('host_id', '=', user.sub).where('status', '=', 'SCHEDULED')
         .returningAll().executeTakeFirst();
       if (!updated) return reply.status(404).send({ error: 'No cancellable scheduled meeting found, or you are not its host' });
-      return updated;
+      // HUD-0120: same fix as the other meeting-mutation routes in this file.
+      const { password_hash, ...rest } = updated as any;
+      return { ...rest, hasPassword: !!password_hash };
     });
   });
 
@@ -745,7 +762,13 @@ export async function callsRoutes(fastify: FastifyInstance) {
         }).execute(),
       ]);
       const iceServers = await resolveIceServers(user.tenant_id);
-      return { meeting: updatedMeeting, iceServers, role: isHost ? 'HOST' : 'PARTICIPANT' };
+      // HUD-0120: this handed the real password_hash to EVERY participant on
+      // EVERY successful join (not just the host, and not just when a
+      // meeting had a password) — the highest-reach instance of the same
+      // leak fixed elsewhere in this file, since joining is the one route
+      // every attendee of every call actually hits.
+      const { password_hash, ...meetingSafe } = updatedMeeting as any;
+      return { meeting: { ...meetingSafe, hasPassword: !!password_hash }, iceServers, role: isHost ? 'HOST' : 'PARTICIPANT' };
     });
   });
 
@@ -771,7 +794,14 @@ export async function callsRoutes(fastify: FastifyInstance) {
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('host_id', '=', user.sub).where('status', '!=', 'ENDED')
         .executeTakeFirst();
       if (!owned) return reply.status(404).send({ error: 'Meeting not found, or you are not its host' });
-      return endMeetingRow(trx, user.tenant_id, id, 'host');
+      const ended = await endMeetingRow(trx, user.tenant_id, id, 'host');
+      if (!ended) return reply.status(404).send({ error: 'Meeting not found, or you are not its host' });
+      // HUD-0120: same fix as GET/POST/by-code above — endMeetingRow()
+      // returns the full row (it's also called from the auto-end-on-
+      // duration-limit background job, which has no HTTP response to worry
+      // about), but this route's own response reached a real client.
+      const { password_hash, ...rest } = ended as any;
+      return { ...rest, hasPassword: !!password_hash };
     });
   });
 
@@ -1602,7 +1632,23 @@ export async function callsPublicRoutes(fastify: FastifyInstance) {
     const row = await dbPlatform.selectFrom('bliss_meeting_waiting_room').selectAll()
       .where('meeting_id', '=', id).where('guest_token', '=', guestToken).executeTakeFirst();
     if (!row) return reply.status(404).send({ error: 'Not found' });
+    // HUD-0120: this used to re-mint a brand-new guest session (a new
+    // bliss_meeting_participants row + a new guest JWT) on every single
+    // poll that saw status==='ADMITTED', not just the first — a real,
+    // easily-triggered bug for a polling-based endpoint (a network retry, a
+    // double-click, or React effects firing twice all reproduce it live),
+    // silently multiplying a single guest into several duplicate attendance
+    // records. Fixed with an atomic claim: only the caller that actually
+    // flips PENDING's terminal ADMITTED state to JOINED gets to mint;
+    // everyone else (including two truly concurrent pollers) sees the
+    // already-decided state instead of minting again.
+    if (row.status === 'JOINED') return { status: 'ADMITTED' };
     if (row.status !== 'ADMITTED') return { status: row.status };
+    const claimed = await dbPlatform.updateTable('bliss_meeting_waiting_room')
+      .set({ status: 'JOINED' })
+      .where('id', '=', row.id).where('status', '=', 'ADMITTED')
+      .returningAll().executeTakeFirst();
+    if (!claimed) return { status: 'ADMITTED' };
     const meeting = await dbPlatform.selectFrom('bliss_meetings').selectAll().where('id', '=', id).executeTakeFirst();
     if (!meeting) return reply.status(404).send({ error: 'Meeting not found' });
     const joined = await mintGuestSession(fastify, reply, meeting, row.user_name);

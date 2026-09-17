@@ -1,5 +1,6 @@
 import { withTenant } from '../db/client.js';
 import { decryptJson } from '../services/onsite-secrets.service.js';
+import { normalizePhone } from '../lib/phone.js';
 
 interface GatewayRow {
   id: string; provider: string; label: string; credentials: string; sender_id: string | null;
@@ -60,8 +61,15 @@ export class SmsIntegration {
    */
   static async sendSms(tenantId: string, to: string, message: string): Promise<SendResult> {
     return withTenant(tenantId, async (trx) => {
-      const optedOut = await trx.selectFrom('sms_opt_outs').select('id')
-        .where('tenant_id', '=', tenantId).where('phone', '=', to).executeTakeFirst();
+      // Matched on the normalized form (last 9 digits), not the raw string —
+      // an exact-string match let "+255700111222" opted out one way get
+      // messaged again as "255700111222" or "0700111222", live-reproduced
+      // and fixed as HUD-0125.
+      const normalizedTo = normalizePhone(to);
+      const optedOut = normalizedTo
+        ? await trx.selectFrom('sms_opt_outs').select('id')
+            .where('tenant_id', '=', tenantId).where('phone_normalized', '=', normalizedTo).executeTakeFirst()
+        : undefined;
       if (optedOut) {
         console.log(`📱 [SMS blocked — opted out] to=${to}`);
         return { success: false, error: 'This recipient has opted out of SMS and cannot be messaged.' };

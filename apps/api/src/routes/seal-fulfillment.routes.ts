@@ -187,17 +187,26 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
   // Real ledger effect via SealService.recordMovement (movement_type='pick')
   // — this is the only place a fulfillment line's picked_qty and a lot's
   // qty_on_hand both change, together, in the same transaction.
+  // HUD-0097: none of the six order/request lookups below (by
+  // request.params.id or the pick line's own b.lineId) checked existence
+  // before executeTakeFirstOrThrow() — a wrong/stale id crashed with "no
+  // result" and the surrounding catch reported it as a 422 (implying a
+  // semantically invalid request), not the 404 a missing order/request
+  // actually is. Same pattern already found and fixed as HUD-0089/0092/0094
+  // and HUD-0096/HUD-0097's inventory-counts.routes.ts instance.
   fastify.post('/fulfillment-orders/:id/pick', async (request: any, reply) => {
     const b = fulfillmentPickSchema.parse(request.body);
     try {
       const result = await withTenant(request.user.tenant_id, async trx => {
         const order = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
+          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+        if (!order) return { notFound: 'order' as const };
         if (order.status === 'dispatched' || order.status === 'cancelled') {
           throw new Error(`Cannot pick against a ${order.status} order.`);
         }
         const line = await trx.selectFrom('seal_fulfillment_lines').selectAll()
-          .where('tenant_id', '=', request.user.tenant_id).where('id', '=', b.lineId).where('order_id', '=', order.id).executeTakeFirstOrThrow();
+          .where('tenant_id', '=', request.user.tenant_id).where('id', '=', b.lineId).where('order_id', '=', order.id).executeTakeFirst();
+        if (!line) return { notFound: 'line' as const };
 
         const remaining = Number(line.requested_qty) - Number(line.picked_qty);
         if (b.qty > remaining) throw new Error(`Cannot pick ${b.qty} — only ${remaining} remains requested on this line.`);
@@ -225,6 +234,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
 
         return updatedLine;
       });
+      if (result && 'notFound' in result) return reply.status(404).send({ error: `Fulfillment ${result.notFound} not found` });
       return mapLine(result);
     } catch (err: any) {
       return reply.status(422).send({ error: err.message });
@@ -237,12 +247,14 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
     try {
       const order = await withTenant(request.user.tenant_id, async trx => {
         const o = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
+          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+        if (!o) return null;
         if (o.status !== 'picked') throw new Error(`Cannot confirm packing — order is ${o.status}, not fully picked yet.`);
         await trx.updateTable('seal_fulfillment_lines').set({ packed: true }).where('order_id', '=', o.id).execute();
         return trx.updateTable('seal_fulfillment_orders').set({ status: 'packed', packed_at: new Date() })
           .where('id', '=', o.id).returningAll().executeTakeFirstOrThrow();
       });
+      if (!order) return reply.status(404).send({ error: 'Fulfillment order not found' });
       return mapOrder(order);
     } catch (err: any) {
       return reply.status(422).send({ error: err.message });
@@ -258,7 +270,8 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
     try {
       const order = await withTenant(request.user.tenant_id, async trx => {
         const o = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
+          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+        if (!o) return null;
         if (o.status !== 'packed') throw new Error(`Cannot dispatch — order is ${o.status}, not packed yet.`);
         const lines = await trx.selectFrom('seal_fulfillment_lines').selectAll().where('order_id', '=', o.id).execute();
         for (const line of lines) {
@@ -280,6 +293,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
 
         return dispatched;
       });
+      if (!order) return reply.status(404).send({ error: 'Fulfillment order not found' });
       return mapOrder(order);
     } catch (err: any) {
       return reply.status(422).send({ error: err.message });
@@ -294,11 +308,13 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
     try {
       const order = await withTenant(request.user.tenant_id, async trx => {
         const o = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
+          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+        if (!o) return null;
         if (o.status !== 'draft') throw new Error(`Cannot cancel — order is ${o.status}; stock has already been picked against it.`);
         return trx.updateTable('seal_fulfillment_orders').set({ status: 'cancelled' })
           .where('id', '=', o.id).returningAll().executeTakeFirstOrThrow();
       });
+      if (!order) return reply.status(404).send({ error: 'Fulfillment order not found' });
       return mapOrder(order);
     } catch (err: any) {
       return reply.status(422).send({ error: err.message });
@@ -344,7 +360,8 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
     try {
       const result = await withTenant(request.user.tenant_id, async trx => {
         const reqRow = await trx.selectFrom('seal_dispatch_requests').selectAll()
-          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
+          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+        if (!reqRow) return null;
         if (reqRow.status !== 'PENDING') throw new Error(`This request is already ${reqRow.status.toLowerCase()}.`);
 
         if (b.status === 'REJECTED') {
@@ -376,6 +393,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
           .set({ status: 'APPROVED', decided_by: request.user.sub, decided_at: new Date(), fulfillment_order_id: order.id })
           .where('id', '=', reqRow.id).returningAll().executeTakeFirstOrThrow();
       });
+      if (!result) return reply.status(404).send({ error: 'Dispatch request not found' });
       return mapDispatchRequest(result);
     } catch (err: any) {
       return reply.status(422).send({ error: err.message });

@@ -120,10 +120,13 @@ export async function inventoryTasksRoutes(fastify: FastifyInstance) {
       if (b.dueDate !== undefined) patch.due_date = b.dueDate ? new Date(b.dueDate) : null;
       if (b.note !== undefined) patch.note = b.note;
       if (b.title !== undefined) patch.title = b.title.trim();
+      // HUD-0097 (addendum): crashed on a wrong/stale id instead of
+      // 404ing — multi-line-chain miss from the original sweep.
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('inventory_tasks').set(patch).where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirst()
       );
+      if (!row) return reply.status(404).send({ error: 'Task not found' });
       return mapTask(row);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });

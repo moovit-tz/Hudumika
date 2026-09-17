@@ -1,0 +1,189 @@
+.be-wrap { display: flex; flex-direction: column; gap: 4px; }
+
+.be-block {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+}
+.be-block:hover { border-color: var(--border); background: var(--bg); }
+.be-block-editing { border-color: var(--teal); background: var(--white); }
+.be-block-editing:hover { border-color: var(--teal); }
+
+.be-block-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+.be-block:hover .be-block-controls { opacity: 1; }
+.be-block-controls button {
+  width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; border-radius: 4px;
+  color: var(--ink3); cursor: pointer;
+}
+.be-block-controls button:hover:not(:disabled) { background: var(--surface2); color: var(--ink); }
+.be-block-controls button:disabled { opacity: 0.3; cursor: default; }
+.be-block-editing .be-block-controls { opacity: 1; }
+.be-block-controls .be-done-btn { color: var(--teal); }
+.be-block-controls .be-done-btn:hover { background: var(--teal-l); }
+
+.be-block-body { flex: 1; min-width: 0; }
+
+.be-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--white);
+  outline: none;
+  box-sizing: border-box;
+}
+.be-input:focus { border-color: var(--teal); }
+.be-text { resize: vertical; line-height: 1.6; }
+.be-quote { font-style: italic; border-left: 3px solid var(--teal); resize: vertical; }
+
+/* §6 — Bold/Italic buttons for the paragraph/quote text fields (BlockContent's
+   TextFormatToolbar). Small and understated — this sits above a plain
+   textarea, not a full rich-text toolbar. */
+.be-format-toolbar { display: flex; gap: 4px; margin-bottom: 6px; }
+.be-format-toolbar button {
+  width: 24px; height: 22px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--white);
+  color: var(--ink2); font-size: 12px; cursor: pointer;
+}
+.be-format-toolbar button:hover { border-color: var(--teal); color: var(--teal); }
+.be-format-toolbar button:disabled { opacity: 0.5; cursor: default; }
+/* §50 — the Rewrite button carries an icon + label, so it can't share
+   Bold/Italic's fixed 24px square. */
+.be-format-toolbar button:last-child:not(:only-child) { width: auto; padding: 0 8px; font-size: 11px; }
+
+.be-heading-row { display: flex; gap: 8px; align-items: center; }
+.be-select {
+  border: 1px solid var(--border); border-radius: var(--r-sm); padding: 6px 8px;
+  font-size: 12px; font-family: var(--mono); background: var(--white); color: var(--ink);
+}
+
+.be-stack { display: flex; flex-direction: column; gap: 8px; }
+
+.be-image-preview { max-width: 240px; max-height: 160px; border-radius: var(--r-sm); border: 1px solid var(--border); object-fit: cover; }
+
+.be-checkbox { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink2); }
+
+.be-list-row { display: flex; align-items: center; gap: 8px; }
+.be-list-marker { width: 20px; text-align: right; color: var(--ink3); font-size: 12.5px; flex-shrink: 0; }
+.be-list-row button { background: none; border: none; color: var(--ink3); cursor: pointer; display: flex; }
+.be-list-row button:hover { color: var(--red); }
+
+.be-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+
+.be-empty-hint { font-size: 12.5px; color: var(--ink3); font-style: italic; padding: 8px 0; }
+
+/* The canvas's "at rest" view of one block (CollapsedBlock in BlockEditor.tsx)
+   — its real rendered form, click to open the inline editor. */
+.be-canvas-block { cursor: text; border-radius: var(--r-sm); padding: 4px 6px; margin: -4px -6px; }
+.be-canvas-block:hover { background: var(--surface2); }
+.be-canvas-inner { display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.6; color: var(--ink); }
+.be-canvas-inner p, .be-canvas-inner ul, .be-canvas-inner ol { margin: 0; }
+.be-canvas-inner h2 { font-size: 19px; font-weight: 700; margin: 0; }
+.be-canvas-inner h3 { font-size: 16px; font-weight: 700; margin: 0; }
+.be-canvas-inner blockquote { margin: 0; padding-left: 14px; border-left: 3px solid var(--teal); font-style: italic; color: var(--ink2); }
+.be-canvas-btn {
+  display: inline-block; align-self: flex-start; padding: 9px 18px; border-radius: var(--r-sm);
+  background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 600; font-size: 13.5px; text-decoration: none; pointer-events: none;
+}
+.be-canvas-empty { cursor: pointer; font-size: 13px; color: var(--ink3); font-style: italic; padding: 8px 6px; }
+.be-canvas-chip {
+  cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 12px; border-radius: var(--r-sm); border: 1px dashed var(--border);
+  font-size: 12.5px; color: var(--ink2); background: var(--surface2);
+}
+
+/* Live preview (BlockPreview.tsx) as it renders inside the admin app — same
+   component the real public site uses, themed to the admin's own tokens
+   rather than the public site's --lp-* palette. */
+.block-preview { display: flex; flex-direction: column; gap: 14px; font-size: 14px; line-height: 1.65; color: var(--ink); }
+.block-preview p, .block-preview ul, .block-preview ol { margin: 0; }
+.block-preview h2 { font-size: 19px; font-weight: 700; margin: 0; }
+.block-preview h3 { font-size: 16px; font-weight: 700; margin: 0; }
+.block-preview blockquote { margin: 0; padding-left: 14px; border-left: 3px solid var(--teal); font-style: italic; color: var(--ink2); }
+.block-preview hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+.block-preview-btn {
+  display: inline-block; align-self: flex-start; padding: 9px 18px; border-radius: var(--r-sm);
+  background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 600; font-size: 13.5px; text-decoration: none;
+}
+.block-preview-empty { font-size: 12.5px; color: var(--ink3); font-style: italic; padding: 16px 0; }
+
+.be-add-row { position: relative; }
+.be-add-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: none; border: none; cursor: pointer;
+  font-size: 11.5px; color: var(--ink3); padding: 4px 2px;
+  opacity: 0; transition: opacity 0.12s ease;
+}
+.be-block:hover .be-add-btn, .be-add-row:has(.be-picker) .be-add-btn { opacity: 1; color: var(--teal); }
+
+.be-picker {
+  position: absolute; z-index: 20; top: 100%; left: 0; margin-top: 4px;
+  background: var(--white); border: 1px solid var(--border); border-radius: var(--r);
+  box-shadow: var(--elev, 0 6px 20px rgba(0,0,0,0.12));
+  display: flex; flex-direction: column; padding: 4px; min-width: 160px;
+}
+.be-picker button {
+  display: flex; align-items: center; gap: 10px;
+  background: none; border: none; text-align: left; cursor: pointer;
+  padding: 7px 10px; border-radius: var(--r-sm); font-size: 13px; color: var(--ink);
+}
+.be-picker button:hover { background: var(--teal-l); color: var(--teal-deep, var(--teal)); }
+.be-picker-glyph {
+  width: 20px; text-align: center; font-family: var(--mono); font-weight: 700; color: var(--ink3); flex-shrink: 0;
+}
+
+/* §30-31 — the canvas's own read-only view of a 'form' block (BlockPreview's
+   FormBlockRenderer with interactive=false, via CollapsedBlock's generic
+   fallback) — same class names OneSitePublic.css styles for the real
+   submittable version, admin tokens instead of the public site's. */
+.be-canvas-inner .block-preview-form { display: flex; flex-direction: column; gap: 10px; }
+.be-canvas-inner .block-preview-form-field { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ink2); }
+.be-canvas-inner .block-preview-form-field input,
+.be-canvas-inner .block-preview-form-field textarea,
+.be-canvas-inner .block-preview-form-field select {
+  padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--r-sm);
+  font-size: 13px; font-family: var(--font); background: var(--bg); color: var(--ink3);
+}
+.be-canvas-inner .block-preview-form-label-note { font-size: 11px; color: var(--ink3); font-style: italic; margin: 0 0 2px; }
+.be-canvas-inner .block-preview-experiment-static { border: 1px dashed var(--border); border-radius: var(--r-sm); padding: 8px 10px; }
+
+/* §34 — Personalization. The disclosure badge shows only in the admin
+   canvas/preview (never the real public site, which just applies the rule
+   silently) — see BlockPreview.tsx's own comment on why. */
+.block-preview-personalized { display: flex; flex-direction: column; gap: 6px; }
+.block-preview-personalized-badge {
+  display: inline-flex; align-self: flex-start; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 700; color: var(--teal-deep, var(--teal));
+  background: var(--teal-l); border-radius: 999px; padding: 2px 9px;
+}
+.be-personalize-toggle {
+  display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+  background: none; border: none; cursor: pointer; margin-top: 6px;
+  font-size: 11.5px; color: var(--ink3);
+}
+.be-personalize-toggle:hover { color: var(--teal); }
+.be-personalize {
+  margin-top: 8px; padding: 10px 12px; border: 1px dashed var(--border); border-radius: var(--r-sm);
+  display: flex; flex-direction: column; gap: 8px; background: var(--surface2);
+}
+.be-personalize-hdr { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; font-weight: 700; color: var(--ink2); }
+.be-personalize-hdr span { display: inline-flex; align-items: center; gap: 5px; }
+.be-personalize-hdr button { background: none; border: none; cursor: pointer; color: var(--red, #c0392b); font-size: 11px; }
+.be-personalize-note { margin: 0; font-size: 10.5px; color: var(--ink3); font-style: italic; }

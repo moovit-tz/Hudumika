@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -500,7 +501,7 @@ function QuoteModal({
         {/* Modal header */}
         <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--white)', zIndex: 2 }}>
           <DialogTitle style={{ fontWeight: 700, fontSize: 15 }}>{isEdit ? 'Edit Quotation' : 'New Quotation'}</DialogTitle>
-          <button type="button" title="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+          <button type="button" title="Close quotation editor" aria-label="Close quotation editor" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
             <Icon name="x" size={18} />
           </button>
         </div>
@@ -647,7 +648,7 @@ function QuoteModal({
                         </td>
                         <td style={{ padding: '4px 4px' }}>
                           {lines.length > 1 && (
-                            <button type="button" title="Remove line" onClick={() => removeLine(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }}>
+                            <button type="button" title="Remove line" aria-label={`Remove line ${idx + 1}`} onClick={() => removeLine(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }}>
                               <Icon name="x" size={14} />
                             </button>
                           )}
@@ -776,9 +777,9 @@ export const Sales: React.FC = () => {
           titleEm="pipeline"
           subtitle="Track quotations from draft to conversion."
           actions={
-            <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }} onClick={openCreate}>
+            <Button type="button" size="sm" onClick={openCreate}>
               <Icon name="plus" size={15} /> New Quotation
-            </button>
+            </Button>
           }
         />
       </div>
@@ -847,6 +848,7 @@ export const Sales: React.FC = () => {
                         <button
                           type="button"
                           title="Edit"
+                          aria-label={`Edit quotation ${q.quote_number}`}
                           onClick={() => openEdit(q)}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 3 }}
                         >
@@ -855,6 +857,7 @@ export const Sales: React.FC = () => {
                         <button
                           type="button"
                           title="Delete"
+                          aria-label={`Delete quotation ${q.quote_number}`}
                           onClick={() => openDelete(q)}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 3 }}
                         >

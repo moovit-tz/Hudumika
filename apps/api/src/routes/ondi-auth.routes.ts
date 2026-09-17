@@ -222,17 +222,26 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
     await redisClient.set(otpKey(user.id), code, 'EX', OTP_TTL_SECONDS);
     await redisClient.del(otpAttemptsKey(user.id));
 
+    // HUD-0111: a real send failure (no gateway configured, provider outage,
+    // etc.) used to surface as a distinct 502, telling an unauthenticated
+    // caller a phone number IS registered whenever delivery happens to fail —
+    // exactly the enumeration leak this route's own comment above says it
+    // fixed for the "no match" case. /magic-link/request already gets this
+    // right (a mail-send failure is swallowed, same generic response either
+    // way) — mirror that here instead of leaving OTP the odd one out twice.
     const result = await SmsService.sendNow(user.tenant_id, user.id, {
       to: phone,
       body: `${code} is your Hudumika sign-in code. It expires in 5 minutes. Never share this code.`,
       sourceApp: 'ondi',
-    });
-    if (!result.success) {
-      return reply.status(502).send({ error: result.error || 'Could not send the SMS code. Try again shortly.' });
-    }
+    }).catch((err: any) => ({ success: false, error: err?.message, id: '' }) as any);
 
+    // otp_issued fires either way — the code itself was generated and
+    // stored above regardless of transport outcome; a real delivery failure
+    // is still visible internally via the metadata and via sms_messages'
+    // own status column, just never surfaced to the unauthenticated caller.
     await recordAuthEvent(user.tenant_id, user.id, 'otp_issued', {
       ip: request.ip, userAgent: String(request.headers['user-agent'] || ''),
+      metadata: { delivered: result.success, ...(result.success ? {} : { reason: result.error }) },
     });
     return { success: true, message: 'If that number is registered, a sign-in code was sent by SMS.' };
   });

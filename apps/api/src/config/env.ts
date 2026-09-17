@@ -89,7 +89,17 @@ const envSchema = z.object({
    *  not an internet client that guessed a real vehicle IMEI. Optional for
    *  the same reason as META_APP_SECRET above. */
   GPSWOX_WEBHOOK_SECRET: z.string().optional(),
-  
+  /** Shared secret Africa's Talking/Twilio must send back (as ?token=) on every
+   *  SMS delivery-status/inbound-message callback — same reasoning as
+   *  GPSWOX_WEBHOOK_SECRET above: neither provider signs these callbacks, and
+   *  the value that resolves which tenant a callback belongs to (a sender ID)
+   *  is public by design (it's literally what every SMS recipient sees as the
+   *  "from"), not a secret. Without this, anyone who has ever received one SMS
+   *  from a tenant could forge a "STOP" reply for an arbitrary victim phone
+   *  number and permanently opt them out of that tenant's SMS — found and
+   *  fixed live (HUD-0125). Optional for the same reason as GPSWOX/META above. */
+  SMS_WEBHOOK_SECRET: z.string().optional(),
+
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_USER: z.string().default('your-email@domain.com'),

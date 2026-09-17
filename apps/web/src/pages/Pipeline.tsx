@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle } from '../components/ui/dialog.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
@@ -300,12 +301,13 @@ export function Pipeline() {
 
   return (
     <div style={{ padding: '20px 0 40px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <PageHeader crumbs={['CRM']} titlePlain="Sales" titleEm="pipeline" subtitle="Every deal, its stage, and who owns it — dragged, not just listed." />
-        <button type="button" className="btn btn-primary btn-sm" style={{ marginTop: 24 }} onClick={() => setModalDeal(null)}>
-          <Icon name="plus" size={14} /> New deal
-        </button>
-      </div>
+      <PageHeader
+        crumbs={['CRM', 'Pipeline']}
+        titlePlain="Sales"
+        titleEm="pipeline"
+        subtitle="Every deal, its stage, and who owns it — dragged, not just listed."
+        actions={<Button size="sm" onClick={() => setModalDeal(null)}><Icon name="plus" size={14} /> New deal</Button>}
+      />
 
       {metrics && (
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '18px 0 24px' }}>

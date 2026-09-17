@@ -147,8 +147,11 @@ export async function sealEquipmentRoutes(fastify: FastifyInstance) {
       if (b.notes !== undefined) patch.notes = b.notes;
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_equipment').set(patch).where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirst()
       );
+      // HUD-0092: same "wrong/stale id crashes as a raw 500" bug already
+      // found and fixed platform-wide in consignments.routes.ts (HUD-0089).
+      if (!row) return reply.status(404).send({ error: 'Equipment not found' });
       return mapEquipment(row);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
@@ -182,6 +185,13 @@ export async function sealEquipmentRoutes(fastify: FastifyInstance) {
     const b = maintenanceRecordCreateSchema.parse(request.body);
     try {
       const result = await withTenant(request.user.tenant_id, async trx => {
+        // HUD-0092: a wrong/stale/foreign equipment id used to fall straight
+        // into the FK constraint and crash with a raw 500 that leaked the
+        // constraint's internal name — same class of bug as HUD-0089.
+        const existing = await trx.selectFrom('seal_equipment').select('id')
+          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+        if (!existing) return null;
+
         const record = await trx.insertInto('seal_equipment_maintenance_records').values({
           tenant_id: request.user.tenant_id,
           equipment_id: request.params.id,
@@ -204,6 +214,7 @@ export async function sealEquipmentRoutes(fastify: FastifyInstance) {
 
         return { record, equipment };
       });
+      if (!result) return reply.status(404).send({ error: 'Equipment not found' });
       return { record: mapMaintenanceRecord(result.record), equipment: mapEquipment(result.equipment) };
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });

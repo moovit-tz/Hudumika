@@ -4125,6 +4125,7 @@ export interface SmsOptOutsTable {
   id: Generated<string>;
   tenant_id: string;
   phone: string;
+  phone_normalized: string | null;
   reason: Generated<string>; // 'stop_keyword' | 'manual'
   note: string | null;
   created_by: string | null;
@@ -4695,6 +4696,10 @@ export interface SignEnvelopesTable {
   // real Bliss meeting.
   meeting_url: string | null;
   bliss_meeting_id: string | null;
+  // Migration 463 — real Postgres full-text search over title/message/
+  // file_name/matter_reference, replacing GET /envelopes' old in-memory
+  // substring filter.
+  search_vector: Generated<unknown>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -5469,9 +5474,32 @@ export interface Database {
   comply_brela_search_history: ComplyBrelaSearchHistoryTable;
   comply_license_catalog: ComplyLicenseCatalogTable;
   // CMS (platform pages + OneSite tenant pages)
+  cms_sites: CmsSitesTable;
+  cms_site_settings: CmsSiteSettingsTable;
   cms_pages: CmsPagesTable;
   cms_posts: CmsPostsTable;
   cms_comments: CmsCommentsTable;
+  cms_media: CmsMediaTable;
+  cms_content_models: CmsContentModelsTable;
+  cms_content_fields: CmsContentFieldsTable;
+  cms_content_entries: CmsContentEntriesTable;
+  cms_components: CmsComponentsTable;
+  cms_revisions: CmsRevisionsTable;
+  cms_nav_items: CmsNavItemsTable;
+  cms_webhooks: CmsWebhooksTable;
+  cms_role_capabilities: CmsRoleCapabilitiesTable;
+  cms_saved_filters: CmsSavedFiltersTable;
+  cms_forms: CmsFormsTable;
+  cms_form_submissions: CmsFormSubmissionsTable;
+  cms_pageview_daily: CmsPageviewDailyTable;
+  cms_experiments: CmsExperimentsTable;
+  cms_workflow_states: CmsWorkflowStatesTable;
+  cms_workflow_transitions: CmsWorkflowTransitionsTable;
+  cms_approvals: CmsApprovalsTable;
+  cms_releases: CmsReleasesTable;
+  cms_release_items: CmsReleaseItemsTable;
+  cms_content_comments: CmsContentCommentsTable;
+  cms_translation_groups: CmsTranslationGroupsTable;
   // TRA VFD Integration
   tra_vfd_config: TraVfdConfigTable;
   // Customs Intelligence Suite
@@ -9009,15 +9037,47 @@ export interface ComplyLicenseCatalogTable {
   created_at:           Generated<Date>;
 }
 
+export interface CmsSitesTable {
+  id:          Generated<string>;
+  tenant_id:   string;
+  slug:        string;
+  name:        string;
+  domain:      string | null;
+  is_default:  Generated<boolean>;
+  settings:    Generated<any>;
+  created_at:  Generated<Date>;
+  updated_at:  Generated<Date>;
+}
+
+export interface CmsSiteSettingsTable {
+  tenant_id:   string;
+  site_title:  Generated<string>;
+  tagline:     Generated<string>;
+  logo_url:    Generated<string>;
+  favicon_url: Generated<string>;
+  accent_color: Generated<string>;
+  updated_at:  Generated<Date>;
+}
+
 export interface CmsPagesTable {
   id:               Generated<string>;
   tenant_id:        string | null; // null = Hudumika platform page
+  site_id:          string | null;
   slug:             string;
   title:            string;
   content:          Generated<string>;
-  status:           Generated<string>; // draft | published
+  status:           Generated<string>; // draft | published | scheduled | trash
   seo_description:  string | null;
+  canonical_url:    string | null;
+  noindex:          Generated<boolean>;
+  og_image:         string | null;
   author_id:        string | null;
+  publish_at:       Date | null;
+  trashed_at:       Date | null;
+  locale:           Generated<string>;
+  translation_group_id: Generated<string>;
+  search_vector:    Generated<unknown>;
+  template:         Generated<string>; // 'standard' | 'full-width' | 'landing' — §11
   created_at:       Generated<Date>;
   updated_at:       Generated<Date>;
 }
@@ -9025,12 +9085,23 @@ export interface CmsPagesTable {
 export interface CmsPostsTable {
   id:          Generated<string>;
   tenant_id:   string;
+  site_id:     string | null;
+  slug:        string;
   title:       string;
   content:     Generated<string>;
-  status:      Generated<string>; // draft | published | trash
+  status:      Generated<string>; // draft | published | scheduled | trash
   author_id:   string | null;
   category:    string | null;
   tags:        string | null;
+  seo_description: string | null;
+  canonical_url: string | null;
+  noindex:     Generated<boolean>;
+  og_image:    string | null;
+  publish_at:  Date | null;
+  trashed_at:  Date | null;
+  locale:      Generated<string>;
+  translation_group_id: Generated<string>;
+  search_vector: Generated<unknown>;
   created_at:  Generated<Date>;
   updated_at:  Generated<Date>;
 }
@@ -9044,6 +9115,274 @@ export interface CmsCommentsTable {
   content:     string;
   status:      Generated<string>; // approved | pending | spam
   created_at:  Generated<Date>;
+}
+
+export interface CmsMediaTable {
+  id:             Generated<string>;
+  tenant_id:      string;
+  site_id:        string | null;
+  filename:       string;
+  storage_key:    string;
+  mime_type:      string;
+  size:           number;
+  uploaded_by:    string | null;
+  folder:         string | null;
+  tags:           string | null;
+  thumbnail_key:  string | null;
+  created_at:     Generated<Date>;
+}
+
+// Migration 465 — the no-code Content Model Builder, additive alongside
+// cms_pages/cms_posts (see that migration's own header comment).
+export interface CmsContentModelsTable {
+  id:          Generated<string>;
+  tenant_id:   string;
+  key:         string;
+  name:        string;
+  name_plural: string;
+  description: string | null;
+  icon:        Generated<string>;
+  created_by:  string | null;
+  created_at:  Generated<Date>;
+  updated_at:  Generated<Date>;
+}
+
+export interface CmsContentFieldsTable {
+  id:          Generated<string>;
+  tenant_id:   string;
+  model_id:    string;
+  key:         string;
+  label:       string;
+  field_type:  string;
+  required:    Generated<boolean>;
+  help_text:   string | null;
+  config:      Generated<any>;
+  sort_order:  Generated<number>;
+  created_at:  Generated<Date>;
+  updated_at:  Generated<Date>;
+}
+
+export interface CmsContentEntriesTable {
+  id:              Generated<string>;
+  tenant_id:       string;
+  site_id:         string | null;
+  model_id:        string;
+  slug:            string;
+  title:           Generated<string>;
+  status:          Generated<string>; // draft | published | scheduled | trash
+  data:            Generated<any>;
+  seo_description: string | null;
+  author_id:       string | null;
+  publish_at:      Date | null;
+  locale:          Generated<string>;
+  translation_group_id: Generated<string>;
+  search_vector:   Generated<unknown>;
+  created_at:      Generated<Date>;
+  updated_at:      Generated<Date>;
+}
+
+export interface CmsComponentsTable {
+  id:          Generated<string>;
+  tenant_id:   string;
+  key:         string;
+  name:        string;
+  blocks:      Generated<any>;
+  created_by:  string | null;
+  created_at:  Generated<Date>;
+  updated_at:  Generated<Date>;
+}
+
+export interface CmsNavItemsTable {
+  id:         Generated<string>;
+  tenant_id:  string;
+  site_id:    string | null;
+  label:      string;
+  target:     string;
+  parent_id:  string | null;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface CmsWebhooksTable {
+  id:         Generated<string>;
+  tenant_id:  string;
+  url:        string;
+  secret:     string;
+  events:     Generated<any>;
+  enabled:    Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface CmsRoleCapabilitiesTable {
+  id:          Generated<string>;
+  tenant_id:   string;
+  role:        string;
+  area:        string; // 'pages' | 'posts' | 'comments' | 'media' | 'content' | 'settings' | 'workflow' | 'releases' | 'approvals' | 'sites'
+  can_view:    Generated<boolean>;
+  can_manage:  Generated<boolean>;
+  can_publish: Generated<boolean>;
+  updated_by:  string | null;
+  created_at:  Generated<Date>;
+  updated_at:  Generated<Date>;
+}
+
+export interface CmsSavedFiltersTable {
+  id:         Generated<string>;
+  tenant_id:  string;
+  model_id:   string;
+  name:       string;
+  status:     string | null;
+  search:     string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface CmsFormsTable {
+  id:              Generated<string>;
+  tenant_id:       string;
+  key:             string;
+  name:            string;
+  fields:          unknown; // JSONB CmsFormField[]
+  success_message: string | null;
+  notify_email:    string | null;
+  created_by:      string | null;
+  created_at:      Generated<Date>;
+  updated_at:      Generated<Date>;
+}
+
+export interface CmsFormSubmissionsTable {
+  id:         Generated<string>;
+  tenant_id:  string;
+  form_id:    string;
+  data:       unknown; // JSONB Record<string, unknown>
+  created_at: Generated<Date>;
+}
+
+export interface CmsPageviewDailyTable {
+  id:            Generated<string>;
+  tenant_id:     string;
+  resource_type: string; // 'page' | 'post' | 'entry'
+  resource_id:   string;
+  day:           string; // DATE, YYYY-MM-DD
+  count:         Generated<number>;
+}
+
+export interface CmsExperimentsTable {
+  id:               Generated<string>;
+  tenant_id:        string;
+  key:              string;
+  name:             string;
+  status:           Generated<string>; // running | stopped
+  variant_a_blocks: unknown; // JSONB CmsBlock[]
+  variant_b_blocks: unknown; // JSONB CmsBlock[]
+  variant_a_views:  Generated<number>;
+  variant_b_views:  Generated<number>;
+  created_by:       string | null;
+  created_at:       Generated<Date>;
+  updated_at:       Generated<Date>;
+}
+
+export interface CmsRevisionsTable {
+  id:            Generated<string>;
+  tenant_id:     string;
+  resource_type: string; // 'page' | 'post' | 'entry'
+  resource_id:   string;
+  snapshot:      Generated<any>;
+  author_id:     string | null;
+  created_at:    Generated<Date>;
+}
+
+// ── Phase 3 Enterprise CMS Tables ──────────────────────────────────────────
+
+export interface CmsWorkflowStatesTable {
+  id:           Generated<string>;
+  tenant_id:    string;
+  site_id:      string | null;
+  slug:         string;
+  name:         string;
+  color:        Generated<string>;
+  sort_order:   Generated<number>;
+  is_initial:   Generated<boolean>;
+  is_published: Generated<boolean>;
+  created_at:   Generated<Date>;
+  updated_at:   Generated<Date>;
+}
+
+export interface CmsWorkflowTransitionsTable {
+  id:                Generated<string>;
+  tenant_id:         string;
+  site_id:           string | null;
+  from_state_id:     string;
+  to_state_id:       string;
+  name:              string | null;
+  allowed_roles:     Generated<any>; // JSONB string[]
+  requires_approval: Generated<boolean>;
+  created_at:        Generated<Date>;
+}
+
+export interface CmsApprovalsTable {
+  id:            Generated<string>;
+  tenant_id:     string;
+  resource_type: string; // 'page' | 'post' | 'entry'
+  resource_id:   string;
+  assigned_to:   string; // user sub
+  assigned_by:   string | null;
+  status:        Generated<string>; // 'pending' | 'approved' | 'rejected' | 'cancelled'
+  due_date:      Date | null;
+  decision_at:   Date | null;
+  decision_note: string | null;
+  created_at:    Generated<Date>;
+  updated_at:    Generated<Date>;
+}
+
+export interface CmsReleasesTable {
+  id:           Generated<string>;
+  tenant_id:    string;
+  site_id:      string | null;
+  name:         string;
+  description:  string | null;
+  status:       Generated<string>; // 'draft' | 'scheduled' | 'published' | 'archived'
+  publish_at:   Date | null;
+  published_at: Date | null;
+  created_by:   string | null;
+  created_at:   Generated<Date>;
+  updated_at:   Generated<Date>;
+}
+
+export interface CmsReleaseItemsTable {
+  id:            Generated<string>;
+  tenant_id:     string;
+  release_id:    string;
+  resource_type: string; // 'page' | 'post' | 'entry'
+  resource_id:   string;
+  target_status: Generated<string>;
+  created_at:    Generated<Date>;
+}
+
+export interface CmsContentCommentsTable {
+  id:            Generated<string>;
+  tenant_id:     string;
+  resource_type: string; // 'page' | 'post' | 'entry'
+  resource_id:   string;
+  author_id:     string;
+  parent_id:     string | null;
+  content:       string;
+  block_id:      string | null;
+  resolved:      Generated<boolean>;
+  resolved_by:   string | null;
+  resolved_at:   Date | null;
+  created_at:    Generated<Date>;
+  updated_at:    Generated<Date>;
+}
+
+export interface CmsTranslationGroupsTable {
+  id:            Generated<string>;
+  tenant_id:     string;
+  resource_type: string;
+  created_at:    Generated<Date>;
 }
 
 export interface ComplyObligationsTable {

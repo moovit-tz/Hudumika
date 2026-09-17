@@ -2,6 +2,7 @@
 // belongs to one staff member (working hours/days, slot duration, how far
 // ahead it's bookable); booking one creates a real calendar_events row on
 // that person's own calendar, the same as if they'd added it themselves.
+import { sql } from 'kysely';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { NotificationService } from './notification.service.js';
 import { MailService } from './mail.service.js';
@@ -216,9 +217,21 @@ export async function createBooking(
     const start = new Date(slotStartIso);
     const end = new Date(start.getTime() + page.durationMinutes * 60_000);
 
-    // Re-check the slot at booking time, not just when the page was loaded
-    // — two people can't be looking at the same page at once and both win
-    // the same slot.
+    // HUD-0122: this comment already correctly identified the risk ("two
+    // people can't be looking at the same page at once and both win the
+    // same slot") but the check-then-insert below it had no lock behind it
+    // — under Postgres's default READ COMMITTED isolation, two truly
+    // concurrent bookings both run this SELECT before either's INSERT
+    // commits, both see no conflict, and both succeed. Live-reproduced with
+    // two genuinely parallel requests for the same slot: two separate
+    // calendar_events rows were created for the same host at the identical
+    // time, both bookers received a real "confirmed" email. Same advisory-
+    // lock pattern already used for this exact class of race elsewhere
+    // (hr.routes.ts's leave-overlap guard, audit-chain.ts's own hash-chain
+    // append) — serializes on the host, since the conflict check itself
+    // scans that host's whole calendar, not one specific slot.
+    await sql`SELECT pg_advisory_xact_lock(hashtext(${page.tenantId}), hashtext(${'booking:' + page.userId}))`.execute(trx);
+
     const conflict = await trx.selectFrom('calendar_events').select('id')
       .where('tenant_id', '=', page.tenantId).where('user_id', '=', page.userId)
       .where('start_at', '<', end).where('end_at', '>', start)

@@ -150,20 +150,32 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // HUD-0097: neither the session nor the line was checked to exist before
+  // its executeTakeFirstOrThrow() — a wrong/stale id crashed with "no
+  // result" and this route's own catch reported it as a 422 (implying a
+  // semantically invalid request), not the 404 a missing session/line
+  // actually is. Same pattern already found and fixed as HUD-0089/0092/0094
+  // (consignments/SEAL equipment/SEAL automation) and HUD-0096 (HuduBI
+  // widgets, a 400 mismapping of the identical bug) — reusing this file's
+  // own existing "return null from the trx, 404 outside it" convention
+  // (see POST /count-sessions above) rather than inventing a new one.
   fastify.patch('/count-sessions/:id/lines/:lineId', async (request: any, reply) => {
     const b = lineCountSchema.parse(request.body);
     try {
       const row = await withTenant(request.user.tenant_id, async trx => {
         const session = await trx.selectFrom('inventory_count_sessions').select('status')
           .where('tenant_id', '=', request.user.tenant_id)
-          .where('id', '=', request.params.id).executeTakeFirstOrThrow();
+          .where('id', '=', request.params.id).executeTakeFirst();
+        if (!session) return { notFound: 'session' as const };
         if (session.status !== 'open') throw new Error(`Cannot record a count — session is ${session.status}.`);
-        return trx.updateTable('inventory_count_lines').set({
+        const updated = await trx.updateTable('inventory_count_lines').set({
           counted_qty: String(b.countedQty), counted_at: new Date(), counted_by: request.user.sub,
         }).where('tenant_id', '=', request.user.tenant_id)
           .where('id', '=', request.params.lineId).where('session_id', '=', request.params.id)
-          .returningAll().executeTakeFirstOrThrow();
+          .returningAll().executeTakeFirst();
+        return updated ?? { notFound: 'line' as const };
       });
+      if (row && 'notFound' in row) return reply.status(404).send({ error: `Count ${row.notFound} not found` });
       return mapLine(row);
     } catch (err: any) {
       return reply.status(422).send({ error: err.message });
@@ -184,7 +196,8 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
         // to its own stock ledger.
         const session = await trx.selectFrom('inventory_count_sessions').selectAll()
           .where('tenant_id', '=', request.user.tenant_id)
-          .where('id', '=', request.params.id).executeTakeFirstOrThrow();
+          .where('id', '=', request.params.id).executeTakeFirst();
+        if (!session) return null;
         if (session.status !== 'open') throw new Error(`Cannot post — session is ${session.status}.`);
 
         const lines = await trx.selectFrom('inventory_count_lines')
@@ -214,6 +227,7 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
           .where('id', '=', session.id).returningAll().executeTakeFirstOrThrow();
         return { posted, corrections };
       });
+      if (!result) return reply.status(404).send({ error: 'Count session not found' });
       return { ...mapSession(result.posted), correctionsApplied: result.corrections };
     } catch (err: any) {
       return reply.status(422).send({ error: err.message });
@@ -225,12 +239,14 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
       const row = await withTenant(request.user.tenant_id, async trx => {
         const session = await trx.selectFrom('inventory_count_sessions').select('status')
           .where('tenant_id', '=', request.user.tenant_id)
-          .where('id', '=', request.params.id).executeTakeFirstOrThrow();
+          .where('id', '=', request.params.id).executeTakeFirst();
+        if (!session) return null;
         if (session.status !== 'open') throw new Error(`Cannot cancel — session is ${session.status}.`);
         return trx.updateTable('inventory_count_sessions').set({ status: 'cancelled' })
           .where('tenant_id', '=', request.user.tenant_id)
           .where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow();
       });
+      if (!row) return reply.status(404).send({ error: 'Count session not found' });
       return mapSession(row);
     } catch (err: any) {
       return reply.status(422).send({ error: err.message });

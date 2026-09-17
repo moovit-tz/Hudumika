@@ -102,10 +102,13 @@ export async function sealExaminationRoutes(fastify: FastifyInstance) {
         patch.outcome = b.outcome;
         patch.completed_at = new Date();
       }
+      // HUD-0097 (addendum): crashed on a wrong/stale id instead of
+      // 404ing — multi-line-chain miss from the original sweep.
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_examinations').set(patch).where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirst()
       );
+      if (!row) return reply.status(404).send({ error: 'Examination not found' });
       return mapExamination(row);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });

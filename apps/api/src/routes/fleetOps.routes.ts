@@ -301,22 +301,28 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.patch('/drivers/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  // HUD-0097 (addendum): the five PATCH routes below (drivers, vendors,
+  // trips, maintenance, parts) crashed on a wrong/stale id instead of
+  // 404ing — multi-line-chain misses from the original sweep, found by
+  // hand while tracing this file.
+  fastify.patch('/drivers/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as Partial<{
       name: string; phone: string; license_number: string; license_expiry: string;
       employee_id: string; assigned_vehicle_id: string; status: string;
     }>;
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('drivers').set({
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('drivers').set({
         ...body,
         license_expiry: body.license_expiry ? new Date(body.license_expiry) : undefined,
         updated_at: new Date(),
       } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
-    );
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Driver not found' });
+      return updated;
+    });
   });
 
   fastify.delete('/drivers/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
@@ -422,16 +428,18 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.patch('/vendors/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.patch('/vendors/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = vendorPatchSchema.parse(req.body);
     const patch = pick(body, ['name', 'vendor_type', 'phone', 'email', 'address', 'notes', 'active']);
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('vehicle_vendors').set({ ...patch, updated_at: new Date() } as any)
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('vehicle_vendors').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
-    );
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Vendor not found' });
+      return updated;
+    });
   });
 
   fastify.delete('/vendors/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
@@ -624,7 +632,7 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
         if (blocker) return reply.status(400).send({ error: blocker });
       }
 
-      return trx.updateTable('trips').set({
+      const updated = await trx.updateTable('trips').set({
         ...body,
         scheduled_start: body.scheduled_start ? new Date(body.scheduled_start) : undefined,
         scheduled_end: body.scheduled_end ? new Date(body.scheduled_end) : undefined,
@@ -633,7 +641,12 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
         updated_at: new Date(),
       } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow();
+        .returningAll().executeTakeFirst();
+      // Only reachable when body.status !== 'IN_PROGRESS' — that branch
+      // above already checked existence. A bad id with any other patch
+      // body used to crash here instead of 404ing.
+      if (!updated) return reply.status(404).send({ error: 'Trip not found.' });
+      return updated;
     });
   });
 
@@ -779,7 +792,7 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.patch('/maintenance/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.patch('/maintenance/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as Partial<{
@@ -787,15 +800,17 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
       cost: number; odometer_km: number; service_date: string;
       next_due_date: string; next_due_odometer: number; status: string;
     }>;
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('maintenance_records').set({
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('maintenance_records').set({
         ...body,
         service_date: body.service_date ? new Date(body.service_date) : undefined,
         next_due_date: body.next_due_date ? new Date(body.next_due_date) : undefined,
       } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
-    );
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Maintenance record not found' });
+      return updated;
+    });
   });
 
   fastify.delete('/maintenance/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
@@ -836,16 +851,18 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.patch('/parts/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.patch('/parts/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = partPatchSchema.parse(req.body);
     const patch = pick(body, ['part_name', 'part_number', 'category', 'quantity', 'unit_cost', 'reorder_level', 'vendor_id']);
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('parts_stock').set({ ...patch, updated_at: new Date() } as any)
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('parts_stock').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
-    );
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Part not found' });
+      return updated;
+    });
   });
 
   fastify.delete('/parts/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {

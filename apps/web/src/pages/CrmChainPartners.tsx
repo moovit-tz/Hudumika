@@ -201,6 +201,8 @@ export function CrmChainPartners() {
               {search && (
                 <button
                   type="button"
+                  title="Clear search"
+                  aria-label="Clear partner search"
                   onClick={() => setSearch('')}
                   style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, display: 'flex', alignItems: 'center' }}
                 >

@@ -1,7 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
-import { SealAnchorService, NothingToAnchor } from '../services/seal-anchor.service.js';
+import { SealAnchorService, NothingToAnchor, AnchorNotFound } from '../services/seal-anchor.service.js';
 
 // External ledger anchoring (Phase 3) — HTTP surface over
 // SealAnchorService. Any SEAL-entitled user may trigger "Anchor Now"
@@ -69,6 +69,7 @@ export async function sealLedgerAnchorRoutes(fastify: FastifyInstance) {
       );
       return mapAnchor(anchor);
     } catch (err: any) {
+      if (err instanceof AnchorNotFound) return reply.status(404).send({ error: err.message });
       return reply.status(500).send({ error: err.message });
     }
   });

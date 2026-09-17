@@ -99,16 +99,21 @@ export async function trailersRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.patch('/transporters/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  // HUD-0097 (addendum): all three PATCH routes below crashed on a
+  // wrong/stale id instead of 404ing — multi-line-chain misses from the
+  // original sweep, found by hand while tracing this file.
+  fastify.patch('/transporters/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = transporterPatchSchema.parse(req.body);
     const patch = pick(body, ['name', 'contact_name', 'phone', 'email', 'contract_ref', 'rate_notes', 'status', 'notes']);
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('transporters').set({ ...patch, updated_at: new Date() } as any)
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('transporters').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
-    );
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Transporter not found' });
+      return updated;
+    });
   });
 
   fastify.delete('/transporters/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
@@ -206,16 +211,18 @@ export async function trailersRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/trailers/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.patch('/trailers/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = trailerPatchSchema.parse(req.body);
     const patch = pick(body, ['name', 'registration_number', 'vin', 'trailer_type', 'capacity_kg', 'axles', 'ownership', 'transporter_id', 'status', 'notes']);
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('trailers').set({ ...patch, updated_at: new Date() } as any)
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('trailers').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
-    );
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Trailer not found' });
+      return updated;
+    });
   });
 
   fastify.delete('/trailers/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
@@ -257,20 +264,22 @@ export async function trailersRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.patch('/trailer-documents/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.patch('/trailer-documents/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = trailerDocPatchSchema.parse(req.body);
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('trailer_documents').set({
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('trailer_documents').set({
         ...body,
         issued_date: body.issued_date ? new Date(body.issued_date) : undefined,
         expiry_date: body.expiry_date ? new Date(body.expiry_date) : undefined,
         updated_at: new Date(),
       } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
-    );
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Trailer document not found' });
+      return updated;
+    });
   });
 
   fastify.delete('/trailer-documents/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {

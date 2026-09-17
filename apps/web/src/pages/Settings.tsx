@@ -1805,7 +1805,7 @@ const MODULE_CATALOG: Record<string, ModuleCatalogEntry> = {
   notes:        { name: 'Notes',         desc: 'Shared team notes, checklists, documents & sketches.',            category: 'Productivity & Cloud', color: '#fbbc04' },
   store:        { name: 'Store',         desc: 'B2B procurement, equipment marketplace & catalog.',              category: 'Productivity & Cloud', color: '#8b5cf6' },
   onsite:       { name: 'Onsite',        desc: 'Domains, DNS, hosting, deployments & cloud infra.',               category: 'Infrastructure & Admin', color: '#0f172a' },
-  onesite:      { name: 'oneSite',       desc: 'Content management, landing page & company intranet.',            category: 'Infrastructure & Admin', color: '#06b6d4' },
+  onesite:      { name: 'CMS',           desc: 'Content management, landing page & company intranet.',            category: 'Infrastructure & Admin', color: '#06b6d4' },
   ondi:         { name: 'Ondi',          desc: 'Single sign-on, identity verification & biometric security.',     category: 'Infrastructure & Admin', color: '#4253d1' },
   workspace:    { name: 'Workspace Admin', desc: 'Organization settings, branding & platform configuration.',      category: 'Infrastructure & Admin', color: '#64748b' },
 };

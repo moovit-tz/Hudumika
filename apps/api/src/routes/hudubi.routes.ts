@@ -29,7 +29,12 @@ const STAGE_LABELS: Record<string, string> = {
 const MODE_LABELS: Record<string, string> = {
   SEA_FCL: 'Sea (FCL)', SEA_LCL: 'Sea (LCL)', AIR: 'Air', ROAD: 'Road', RAIL: 'Rail',
 };
-const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(s);
+// HUD-0127: was only checking the first two groups (8-4), so a crafted id
+// with a valid-looking prefix but an invalid tail still reached the
+// customers.id UUID column unguarded and crashed with a raw Postgres 22P02 —
+// the full, anchored pattern already established for exactly this purpose
+// elsewhere (ai.routes.ts's own UUID_RE).
+const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
 export async function hudubiRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -245,6 +250,9 @@ export async function hudubiRoutes(fastify: FastifyInstance) {
 
   fastify.patch('/widgets/:id', async (req: any, reply) => {
     const { id } = req.params as { id: string };
+    // HUD-0127: a malformed id reached the UUID column unguarded and leaked
+    // Postgres's own "invalid input syntax for type uuid" text to the client.
+    if (!isUuid(id)) return reply.status(404).send({ error: 'Widget not found' });
     const body = z.object({
       name: z.string().trim().min(1).max(200).optional(),
       chartType: z.enum(['number', 'bar', 'line', 'table']).optional(),
@@ -254,12 +262,15 @@ export async function hudubiRoutes(fastify: FastifyInstance) {
     try {
       return await updateWidget(req.user.tenant_id, id, body);
     } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
+      // HUD-0096: a not-found widget is a 404, not a 400 — matches
+      // GET /widgets/:id/data's own existing mapping for the identical error.
+      return reply.status(err.message === 'Widget not found' ? 404 : 400).send({ error: err.message });
     }
   });
 
   fastify.delete('/widgets/:id', async (req: any, reply) => {
     const { id } = req.params as { id: string };
+    if (!isUuid(id)) return reply.status(404).send({ error: 'Widget not found' });
     try {
       await deleteWidget(req.user.tenant_id, id);
       return { ok: true };
@@ -270,6 +281,7 @@ export async function hudubiRoutes(fastify: FastifyInstance) {
 
   fastify.get('/widgets/:id/data', async (req: any, reply) => {
     const { id } = req.params as { id: string };
+    if (!isUuid(id)) return reply.status(404).send({ error: 'Widget not found' });
     try {
       return await getWidgetData(req.user.tenant_id, id);
     } catch (err: any) {
@@ -282,6 +294,10 @@ export async function hudubiRoutes(fastify: FastifyInstance) {
   // in semantic_entities, starting with Sign. ──────────────────────────────
   fastify.get('/entities/customer/:id', async (req: any, reply) => {
     const { id } = req.params as { id: string };
+    // HUD-0127: a malformed id reached the customers.id UUID column
+    // unguarded and crashed with a raw Postgres 22P02, surfaced as a bare
+    // 500 — a bad id is a 404, not an internal error.
+    if (!isUuid(id)) return reply.status(404).send({ error: 'Customer not found' });
     const result = await resolveCustomerAcrossApps(req.user.tenant_id, id);
     if (!result) return reply.status(404).send({ error: 'Customer not found' });
     return result;

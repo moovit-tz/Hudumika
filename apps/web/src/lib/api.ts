@@ -171,11 +171,11 @@ async function doFetch(path: string, options: RequestInit = {}): Promise<Respons
   return response;
 }
 
-export async function apiFetch(path: string, options: RequestInit = {}) {
+export async function apiFetch<T = any>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await doFetch(path, options);
   // 204 No Content (e.g. a DELETE) has no body — response.json() would throw
   // "Unexpected end of JSON input" on it, so return null for an empty response.
-  if (response.status === 204) return null;
+  if (response.status === 204) return null as T;
   return response.json();
 }
 

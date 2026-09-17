@@ -109,6 +109,20 @@ export class MinioIntegration {
     return { storageKey, size: fileBuffer.length };
   }
 
+  /** CMS media library — an uploaded image/asset a tenant's page/post editor
+   *  or Customize (logo/favicon) references. Served back publicly (no auth)
+   *  via GET /v1/cms/public/media/:id, since it has to render on a genuinely
+   *  public tenant site, not just inside the authenticated admin. */
+  static async uploadCmsMedia(
+    tenantId: string, filename: string, fileBuffer: Buffer,
+  ): Promise<{ storageKey: string; size: number }> {
+    const unique = `${Date.now()}-${clean(filename) || 'media'}`;
+    const storageKey = `tenants/${tenantId}/cms-media/${unique}`;
+    await objectStore.put(storageKey, fileBuffer);
+    console.log(`🗄️ Storage: CMS media saved — ${storageKey}`);
+    return { storageKey, size: fileBuffer.length };
+  }
+
   static async uploadKycDocument(
     tenantId: string, userId: string, filename: string, fileBuffer: Buffer,
   ): Promise<{ storageKey: string; size: number }> {

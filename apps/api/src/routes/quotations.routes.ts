@@ -162,13 +162,17 @@ export async function quotationRoutes(app: FastifyInstance) {
         updateData.total_amount = subtotal + totalTax;
       }
 
+      // HUD-0097 (addendum): never checked the quotation existed — a bad id
+      // crashed instead of 404ing. Multi-line-chain miss from the original
+      // sweep.
       const quote = await trx
         .updateTable('quotations')
         .set(updateData)
         .where('id', '=', id)
         .where('tenant_id', '=', tenantId)
         .returningAll()
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+      if (!quote) return reply.code(404).send({ error: 'Quotation not found' });
 
       // Replace lines if provided
       if (body.lines !== undefined) {

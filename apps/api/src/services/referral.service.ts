@@ -10,23 +10,10 @@
  * honest pattern invoice_payments already uses platform-wide.
  */
 import { dbPlatform } from '../db/client.js';
+import { normalizePhone } from '../lib/phone.js';
 
 /** Flat commission rate — 10% of the referred tenant's first payment. */
 const COMMISSION_RATE = 0.10;
-
-/**
- * Last 9 digits only, digits stripped of everything else. Catches the same
- * number reformatted as +255712345678 / 0712345678 / 712345678 — the exact
- * gap contacts.service.ts's own exact-string getDuplicates() leaves open,
- * and the one a self-referral would actually exploit (same phone, different
- * formatting, different tenant).
- */
-function normalizePhone(raw: string | null | undefined): string | null {
-  if (!raw) return null;
-  const digits = raw.replace(/\D/g, '');
-  if (digits.length < 9) return null;
-  return digits.slice(-9);
-}
 
 /**
  * Does the referred tenant's signup phone match anything the referring

@@ -1,7 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
-import { DeclarationAnchorService, NothingToAnchor } from '../services/declaration-anchor.service.js';
+import { DeclarationAnchorService, NothingToAnchor, AnchorNotFound } from '../services/declaration-anchor.service.js';
 
 // External ledger anchoring for ClearOS's declaration_events chain — HTTP
 // surface over DeclarationAnchorService. Any ClearOS-entitled user may
@@ -70,6 +70,7 @@ export async function declarationLedgerAnchorRoutes(fastify: FastifyInstance) {
       );
       return mapAnchor(anchor);
     } catch (err: any) {
+      if (err instanceof AnchorNotFound) return reply.status(404).send({ error: err.message });
       return reply.status(500).send({ error: err.message });
     }
   });

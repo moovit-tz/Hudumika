@@ -88,16 +88,21 @@ export async function warehouseRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.patch('/warehouse/locations/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  // HUD-0097 (addendum): all four routes below crashed on a wrong/stale id
+  // instead of 404ing (no prior existence check) — a multi-line-chain miss
+  // from the original sweep, found by hand while tracing this file.
+  fastify.patch('/warehouse/locations/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = locationPatchSchema.parse(req.body);
     const patch = pick(body, ['code', 'name', 'zone', 'capacity_units', 'active']);
-    return withTenant(user.tenant_id, async (trx) =>
+    const updated = await withTenant(user.tenant_id, async (trx) =>
       trx.updateTable('warehouse_locations').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
+        .returningAll().executeTakeFirst()
     );
+    if (!updated) return reply.status(404).send({ error: 'Location not found' });
+    return updated;
   });
 
   fastify.delete('/warehouse/locations/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
@@ -139,34 +144,40 @@ export async function warehouseRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.patch('/warehouse/dock-appointments/:id/check-in', async (req) => {
+  fastify.patch('/warehouse/dock-appointments/:id/check-in', async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    return withTenant(user.tenant_id, async (trx) =>
+    const updated = await withTenant(user.tenant_id, async (trx) =>
       trx.updateTable('warehouse_dock_appointments').set({ status: 'CHECKED_IN', updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
+        .returningAll().executeTakeFirst()
     );
+    if (!updated) return reply.status(404).send({ error: 'Dock appointment not found' });
+    return updated;
   });
 
-  fastify.patch('/warehouse/dock-appointments/:id/complete', async (req) => {
+  fastify.patch('/warehouse/dock-appointments/:id/complete', async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    return withTenant(user.tenant_id, async (trx) =>
+    const updated = await withTenant(user.tenant_id, async (trx) =>
       trx.updateTable('warehouse_dock_appointments').set({ status: 'COMPLETED', updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
+        .returningAll().executeTakeFirst()
     );
+    if (!updated) return reply.status(404).send({ error: 'Dock appointment not found' });
+    return updated;
   });
 
-  fastify.patch('/warehouse/dock-appointments/:id/cancel', async (req) => {
+  fastify.patch('/warehouse/dock-appointments/:id/cancel', async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    return withTenant(user.tenant_id, async (trx) =>
+    const updated = await withTenant(user.tenant_id, async (trx) =>
       trx.updateTable('warehouse_dock_appointments').set({ status: 'CANCELLED', updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
+        .returningAll().executeTakeFirst()
     );
+    if (!updated) return reply.status(404).send({ error: 'Dock appointment not found' });
+    return updated;
   });
 
   fastify.delete('/warehouse/dock-appointments/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {

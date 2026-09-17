@@ -21,7 +21,7 @@ export const APP_META: Record<string, { name: string; desc: string; icon: IconNa
   calendar:     { name: 'Calendar',      desc: 'Shared scheduling across the workspace.',                        icon: 'calendar' },
   tasks:        { name: 'Tasks',         desc: 'Assignments and to-dos across apps.',                            icon: 'checkCircle' },
   store:        { name: 'Store',         desc: 'B2B procurement and equipment marketplace.',                     icon: 'shoppingCart' },
-  onesite:      { name: 'oneSite',       desc: 'Content management and company intranet.',                       icon: 'globe' },
+  onesite:      { name: 'CMS',           desc: 'Content management and company intranet.',                       icon: 'globe' },
   clearos:      { name: 'ClearOS',       desc: 'Customs clearance, declarations, shipment tracking.', icon: 'package' },
   finops:       { name: 'FinOps',        desc: 'Invoicing, bills, ledgers and financial reports.',     icon: 'dollarSign' },
   contacts:     { name: 'Contacts',      desc: 'Shared customer, vendor and partner contact directory.', icon: 'users' },

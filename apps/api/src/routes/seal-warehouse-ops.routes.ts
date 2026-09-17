@@ -117,14 +117,19 @@ export async function sealWarehouseOpsRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // HUD-0097 (addendum): a multi-line executeTakeFirstOrThrow() chain that
+  // this arc's original single-line grep sweep missed — same "wrong/stale
+  // id crashes instead of 404ing" pattern, found by hand while tracing this
+  // file's own golden path.
   fastify.patch('/containers/:id/yard-slot', async (request: any, reply) => {
     const b = yardSlotAssignSchema.parse(request.body);
     try {
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_containers').set({ yard_slot_id: b.yardSlotId ?? null })
           .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
-          .returningAll().executeTakeFirstOrThrow()
+          .returningAll().executeTakeFirst()
       );
+      if (!row) return reply.status(404).send({ error: 'Container not found' });
       return row;
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
@@ -155,8 +160,9 @@ export async function sealWarehouseOpsRoutes(fastify: FastifyInstance) {
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_containers').set({ vehicle_id: b.vehicleId ?? null })
           .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
-          .returningAll().executeTakeFirstOrThrow()
+          .returningAll().executeTakeFirst()
       );
+      if (!row) return reply.status(404).send({ error: 'Container not found' });
       return row;
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });

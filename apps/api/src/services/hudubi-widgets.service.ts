@@ -176,7 +176,7 @@ export async function createWidget(tenantId: string, userId: string, data: { nam
 }
 
 export async function updateWidget(tenantId: string, id: string, data: Partial<{ name: string; chartType: ChartType; filters: MetricFilters; sortOrder: number }>) {
-  return withTenant(tenantId, (trx) =>
+  const updated = await withTenant(tenantId, (trx) =>
     trx.updateTable('hudubi_widget_definitions')
       .set({
         ...(data.name !== undefined ? { name: data.name } : {}),
@@ -186,8 +186,14 @@ export async function updateWidget(tenantId: string, id: string, data: Partial<{
         updated_at: new Date(),
       })
       .where('id', '=', id).where('tenant_id', '=', tenantId)
-      .returningAll().executeTakeFirstOrThrow()
+      .returningAll().executeTakeFirst()
   );
+  // HUD-0096: was executeTakeFirstOrThrow() — a wrong/stale id crashed with
+  // "no result", which the route then reported as a 400 (implying a bad
+  // request body) instead of a 404. Matches getWidgetData's own existing
+  // "Widget not found" convention below, which the route already maps to 404.
+  if (!updated) throw new Error('Widget not found');
+  return updated;
 }
 
 export async function deleteWidget(tenantId: string, id: string) {

@@ -8,6 +8,7 @@
 // non-PDF file (a ZIP, an .xlsx/.docx/.pptx/.txt) that the frontend
 // downloads instead.
 import type { FastifyInstance } from 'fastify';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import {
   rotatePdf, mergePdfs, addWatermark, autoRedact, ocrPdf, compressPdf,
   cropPdf, editBookmarks, deletePages, rearrangePages, nUpPdf, resizePdf,
@@ -24,6 +25,12 @@ async function readUploadedFile(request: any): Promise<{ buffer: Buffer; fileNam
 
 export async function signPdfToolsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // Production-readiness audit HUD-0033: this file was missing
+  // requireEntitlement('sign') — a plan-metering gap (every route here is
+  // stateless, no persistence of its own), not a privacy/security one, but
+  // still meant a tenant without the Sign entitlement could use these tools
+  // for free.
+  fastify.addHook('preHandler', requireEntitlement('sign'));
 
   fastify.post('/rotate', async (request, reply) => {
     try {

@@ -676,10 +676,14 @@ export async function sealRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // HUD-0099: all three PATCH routes below crashed on a
+  // wrong/stale id instead of 404ing — multi-line-chain misses this
+  // arc's own sweep of this file had, ironically, listed but not actually
+  // checked beyond the one line already covered by the single-line pass.
   fastify.patch('/compartments/:id', async (request: any, reply) => {
     const b = compartmentPatchSchema.parse(request.body) as Record<string, any>;
     try {
-      return await withTenant(request.user.tenant_id, trx =>
+      const updated = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_compartments').set({
           code: b.code === undefined ? undefined : b.code,
           name: b.name === undefined ? undefined : b.name,
@@ -700,8 +704,10 @@ export async function sealRoutes(fastify: FastifyInstance) {
           logo_url: b.logoUrl === undefined ? undefined : b.logoUrl,
           updated_at: new Date(),
         }).where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirst()
       );
+      if (!updated) return reply.status(404).send({ error: 'Compartment not found' });
+      return updated;
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
@@ -869,10 +875,17 @@ export async function sealRoutes(fastify: FastifyInstance) {
       if (b.lengthM !== undefined) patch.length_m = b.lengthM != null ? String(b.lengthM) : null;
       if (b.widthM !== undefined) patch.width_m = b.widthM != null ? String(b.widthM) : null;
       if (b.heightM !== undefined) patch.height_m = b.heightM != null ? String(b.heightM) : null;
-      return await withTenant(request.user.tenant_id, trx =>
+      // HUD-0100: an all-undefined body left `patch` empty, and Kysely's
+      // set({}) emits `UPDATE ... SET WHERE ...` with no assignments —
+      // invalid SQL, so a caller who sent no recognized field got a raw
+      // 500 syntax error instead of a clean 400.
+      if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'No valid fields to update' });
+      const updated = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_locations').set(patch).where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirst()
       );
+      if (!updated) return reply.status(404).send({ error: 'Location not found' });
+      return updated;
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
@@ -1541,12 +1554,14 @@ export async function sealRoutes(fastify: FastifyInstance) {
   fastify.patch('/discrepancies/:id', async (request: any, reply) => {
     const b = discrepancyPatchSchema.parse(request.body);
     try {
-      return await withTenant(request.user.tenant_id, trx =>
+      const updated = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_discrepancies').set({
           status: b.status, resolution_note: b.resolutionNote ?? null,
         }).where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirst()
       );
+      if (!updated) return reply.status(404).send({ error: 'Discrepancy not found' });
+      return updated;
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }

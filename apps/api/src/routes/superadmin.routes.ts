@@ -404,11 +404,15 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   });
 
   // 4. PATCH /v1/superadmin/tenants/:id
+  // HUD-0097 (addendum): `before` was fetched but never checked before the
+  // update — a wrong/stale tenant id crashed instead of 404ing. A
+  // multi-line-chain miss from the original sweep.
   fastify.patch('/tenants/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = tenantPatchSchema.parse(request.body);
     const before = await dbPlatform.selectFrom('tenants').select(['name', 'plan', 'active'])
       .where('id', '=', id).executeTakeFirst();
+    if (!before) return reply.status(404).send({ error: 'Tenant not found' });
     const updates: any = { updated_at: new Date() };
     if (body.name !== undefined) updates.name = body.name;
     if (body.slug !== undefined) updates.slug = body.slug;

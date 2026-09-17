@@ -8,6 +8,8 @@ import { DeveloperService } from '../services/developer.service.js';
 import { DeveloperGatewayService } from '../services/developer-gateway.service.js';
 import type { EnvironmentType, OrgMemberRole } from '@hudumika/types';
 
+const ORG_MEMBER_ROLES: OrgMemberRole[] = ['OWNER', 'ADMIN', 'DEVELOPER', 'BILLING_ADMIN', 'SECURITY_ADMIN', 'VIEWER'];
+
 export const developerRoutes: FastifyPluginAsync = async fastify => {
   /* ════════════════════════════════════════════════════════════════════════
      1. LIVE API GATEWAY EXECUTION ENDPOINT (PUBLIC WITH API KEY)
@@ -129,21 +131,31 @@ export const developerRoutes: FastifyPluginAsync = async fastify => {
     // ── Org Members ──
     authScoped.get('/accounts/:id/members', async (request: FastifyRequest) => {
       const { id } = request.params as { id: string };
+      await DeveloperService.assertAccountAccess(id, request.user.sub);
       return DeveloperService.listOrgMembers(id);
     });
 
     authScoped.post('/accounts/:id/members', async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
       const user = request.user;
+      await DeveloperService.assertAccountAccess(id, user.sub);
       const body = request.body as { email: string; role: OrgMemberRole };
       if (!body.email || !body.role) {
         return reply.status(400).send({ error: 'Email and role are required.' });
+      }
+      // HUD-0117: an invalid role used to reach developer_org_members' own
+      // CHECK constraint unvalidated, surfacing as an opaque 500 (the global
+      // error handler deliberately masks raw driver errors) instead of
+      // telling the caller what a valid role actually is.
+      if (!ORG_MEMBER_ROLES.includes(body.role)) {
+        return reply.status(400).send({ error: `Invalid role. Must be one of: ${ORG_MEMBER_ROLES.join(', ')}.` });
       }
       return DeveloperService.addOrgMember(id, user.sub, body.email, body.role);
     });
 
     authScoped.delete('/accounts/:id/members/:memberId', async (request: FastifyRequest) => {
       const { id, memberId } = request.params as { id: string; memberId: string };
+      await DeveloperService.assertAccountAccess(id, request.user.sub);
       await DeveloperService.removeOrgMember(id, memberId);
       return { success: true };
     });
@@ -151,12 +163,14 @@ export const developerRoutes: FastifyPluginAsync = async fastify => {
     // ── Projects ──
     authScoped.get('/accounts/:id/projects', async (request: FastifyRequest) => {
       const { id } = request.params as { id: string };
+      await DeveloperService.assertAccountAccess(id, request.user.sub);
       return DeveloperService.listProjects(id);
     });
 
     authScoped.post('/accounts/:id/projects', async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
       const user = request.user;
+      await DeveloperService.assertAccountAccess(id, user.sub);
       const body = request.body as { name: string; description?: string; is_internal?: boolean };
       if (!body.name) {
         return reply.status(400).send({ error: 'Project name is required.' });
@@ -167,6 +181,7 @@ export const developerRoutes: FastifyPluginAsync = async fastify => {
     // ── Credentials ──
     authScoped.get('/projects/:id/credentials', async (request: FastifyRequest) => {
       const { id } = request.params as { id: string };
+      await DeveloperService.assertProjectAccess(id, request.user.sub);
       const { environment } = request.query as { environment?: EnvironmentType };
       return DeveloperService.listCredentials(id, environment);
     });
@@ -174,6 +189,7 @@ export const developerRoutes: FastifyPluginAsync = async fastify => {
     authScoped.post('/projects/:id/credentials', async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
       const user = request.user;
+      await DeveloperService.assertProjectAccess(id, user.sub);
       const body = request.body as {
         name: string;
         environment: EnvironmentType;
@@ -192,6 +208,7 @@ export const developerRoutes: FastifyPluginAsync = async fastify => {
 
     authScoped.post('/projects/:id/credentials/:credId/revoke', async (request: FastifyRequest) => {
       const { id, credId } = request.params as { id: string; credId: string };
+      await DeveloperService.assertProjectAccess(id, request.user.sub);
       const body = request.body as { reason?: string };
       await DeveloperService.revokeCredential(id, credId, body?.reason);
       return { success: true };
@@ -213,12 +230,14 @@ export const developerRoutes: FastifyPluginAsync = async fastify => {
     // ── Entitlements & Subscriptions ──
     authScoped.get('/projects/:id/entitlements', async (request: FastifyRequest) => {
       const { id } = request.params as { id: string };
+      await DeveloperService.assertProjectAccess(id, request.user.sub);
       const { environment } = request.query as { environment?: EnvironmentType };
       return DeveloperService.listProjectEntitlements(id, environment);
     });
 
     authScoped.post('/accounts/:id/subscribe', async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
+      await DeveloperService.assertAccountAccess(id, request.user.sub);
       const body = request.body as {
         project_id: string;
         environment: EnvironmentType;
@@ -228,6 +247,16 @@ export const developerRoutes: FastifyPluginAsync = async fastify => {
 
       if (!body.project_id || !body.environment || !body.api_product_id || !body.pricing_plan_id) {
         return reply.status(400).send({ error: 'Missing required subscription parameters.' });
+      }
+
+      // HUD-0117: subscribeAndEntitle bills accountId's own balance but writes
+      // the entitlement against whatever project_id the body names — without
+      // this, the account-ownership check above is not enough on its own,
+      // since a caller could pass their own real account id but a
+      // different account's real project id here.
+      const projectAccountId = await DeveloperService.assertProjectAccess(body.project_id, request.user.sub);
+      if (projectAccountId !== id) {
+        return reply.status(400).send({ error: 'That project does not belong to this developer account.' });
       }
 
       return DeveloperService.subscribeAndEntitle(
@@ -242,6 +271,7 @@ export const developerRoutes: FastifyPluginAsync = async fastify => {
     // ── Analytics & Telemetry ──
     authScoped.get('/projects/:id/analytics', async (request: FastifyRequest) => {
       const { id } = request.params as { id: string };
+      await DeveloperService.assertProjectAccess(id, request.user.sub);
       const { environment } = request.query as { environment?: EnvironmentType };
       return DeveloperService.getProjectAnalytics(id, environment);
     });
@@ -249,11 +279,13 @@ export const developerRoutes: FastifyPluginAsync = async fastify => {
     // ── Billing & Credits ──
     authScoped.get('/accounts/:id/billing', async (request: FastifyRequest) => {
       const { id } = request.params as { id: string };
+      await DeveloperService.assertAccountAccess(id, request.user.sub);
       return DeveloperService.getBillingOverview(id);
     });
 
     authScoped.post('/accounts/:id/billing/topup', async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
+      await DeveloperService.assertAccountAccess(id, request.user.sub);
       const body = request.body as { amount: number; currency?: string };
       if (!body.amount || body.amount <= 0) {
         return reply.status(400).send({ error: 'A positive top-up amount is required.' });

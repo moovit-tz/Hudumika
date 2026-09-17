@@ -32,6 +32,10 @@ const READABLE_ENTITIES = new Set([
   'ticket', 'task', 'document', 'hr_holidays', 'quotation', 'product',
   'onsite_domain', 'onsite_dns_record', 'onsite_application', 'onsite_deployment',
   'onsite_server', 'onsite_website', 'onsite_backup',
+  // §62 of the CMS master brief — page.created/published/trashed/restored/
+  // deleted etc. now actually emit (cms.service.ts / cms-content.service.ts),
+  // so their per-record trail can be read here for the first time.
+  'page', 'post', 'entry', 'media',
 ]);
 
 export async function activityRoutes(fastify: FastifyInstance) {

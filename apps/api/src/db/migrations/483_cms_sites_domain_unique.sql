@@ -1,0 +1,14 @@
+-- 483_cms_sites_domain_unique.sql
+-- §23 Multisite — cms_sites had a real UNIQUE(tenant_id, slug) constraint but
+-- none at all on `domain`, even though the whole point of a custom domain is
+-- that it names exactly one site platform-wide (a DNS A record can only ever
+-- point one physical domain at one tenant's site). Found live: /sites/resolve
+-- by domain used `.executeTakeFirst()` with no ORDER BY, so if two rows ever
+-- shared a domain — a real, previously-reachable state, not hypothetical —
+-- which one it resolved to was whatever order Postgres happened to return,
+-- silently routing a visitor to the wrong tenant's site.
+--
+-- Partial index (domain IS NOT NULL) since domain is optional — a site with
+-- no custom domain yet (routed only by /site/:tenantSlug) must stay allowed
+-- to coexist with every other domain-less site.
+CREATE UNIQUE INDEX IF NOT EXISTS cms_sites_domain_unique ON cms_sites (domain) WHERE domain IS NOT NULL;

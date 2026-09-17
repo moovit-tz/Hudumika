@@ -67,23 +67,28 @@ export async function fleetComplianceRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.patch('/documents/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  // HUD-0097 (addendum): all three PATCH routes below crashed on a
+  // wrong/stale id instead of 404ing — multi-line-chain misses from the
+  // original sweep, found by hand while tracing this file.
+  fastify.patch('/documents/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as Partial<{
       doc_type: string; doc_number: string; issued_date: string; expiry_date: string;
       file_url: string; notes: string;
     }>;
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('vehicle_documents').set({
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('vehicle_documents').set({
         ...body,
         issued_date: body.issued_date ? new Date(body.issued_date) : undefined,
         expiry_date: body.expiry_date ? new Date(body.expiry_date) : undefined,
         updated_at: new Date(),
       } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
-    );
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Document not found' });
+      return updated;
+    });
   });
 
   fastify.delete('/documents/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
@@ -127,19 +132,21 @@ export async function fleetComplianceRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.patch('/reminders/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.patch('/reminders/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as Partial<{ title: string; due_date: string; status: string; notes: string }>;
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('fleet_reminders').set({
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('fleet_reminders').set({
         ...body,
         due_date: body.due_date ? new Date(body.due_date) : undefined,
         updated_at: new Date(),
       } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
-    );
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Reminder not found' });
+      return updated;
+    });
   });
 
   fastify.delete('/reminders/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
@@ -206,13 +213,15 @@ export async function fleetComplianceRoutes(fastify: FastifyInstance) {
   // had no role check at all, so any authenticated user with tracking
   // access, including a role outside fleet staff entirely, could dismiss a
   // fleet alert.
-  fastify.patch('/alerts/:id/acknowledge', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.patch('/alerts/:id/acknowledge', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('fleet_alerts').set({ acknowledged: true })
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('fleet_alerts').set({ acknowledged: true })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
-    );
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Alert not found' });
+      return updated;
+    });
   });
 }

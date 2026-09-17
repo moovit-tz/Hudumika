@@ -5,6 +5,8 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import { SmsService } from '../services/sms.service.js';
 import { formatTemplate } from '../lib/template.js';
 import { encryptJson, decryptJson } from '../services/onsite-secrets.service.js';
+import { env } from '../config/env.js';
+import { normalizePhone } from '../lib/phone.js';
 
 const uuidSchema = z.string().uuid();
 const gatewaySchema = z.object({
@@ -598,7 +600,8 @@ export async function smsRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = z.object({ phone: z.string().trim().min(6).max(32), note: z.string().trim().max(500).nullable().optional() }).parse(request.body);
     const row = await withTenant(user.tenant_id, trx => trx.insertInto('sms_opt_outs').values({
-      tenant_id: user.tenant_id, phone: body.phone, reason: 'manual', note: body.note ?? null, created_by: user.sub,
+      tenant_id: user.tenant_id, phone: body.phone, phone_normalized: normalizePhone(body.phone),
+      reason: 'manual', note: body.note ?? null, created_by: user.sub,
     }).onConflict(oc => oc.columns(['tenant_id', 'phone']).doUpdateSet({ note: body.note ?? null }))
       .returningAll().executeTakeFirstOrThrow());
     reply.status(201);
@@ -632,6 +635,26 @@ export async function smsRoutes(fastify: FastifyInstance) {
  * only which tenant to run the status UPDATE inside withTenant() for.
  */
 export async function smsWebhookRoutes(fastify: FastifyInstance) {
+  // Neither Africa's Talking nor Twilio's classic status/inbound callbacks
+  // carry any request-signing scheme, and the value that resolves which
+  // tenant a callback belongs to (a registered sender ID) is public by
+  // design — it's literally what every SMS recipient sees as the "from".
+  // Without this, anyone who had ever received one SMS from a tenant could
+  // POST a forged "STOP" reply here for an arbitrary victim phone number and
+  // permanently opt them out of that tenant's SMS, with zero credentials —
+  // live-reproduced (HUD-0125) before this guard existed. Same shared-secret-
+  // as-?token= shape this codebase already uses for GPSWOX's own webhook
+  // (webhooks.routes.ts), for the same reason, and skipped (open) until a
+  // real secret is configured, same as GPSWOX/META.
+  fastify.addHook('preHandler', async (request, reply) => {
+    if (env.SMS_WEBHOOK_SECRET) {
+      const token = (request.query as any)?.token;
+      if (token !== env.SMS_WEBHOOK_SECRET) {
+        return reply.status(401).send({ error: 'Invalid webhook token' });
+      }
+    }
+  });
+
   // Both providers POST their callbacks as application/x-www-form-urlencoded
   // (Africa's Talking always; Twilio's default unless a JSON status callback
   // is separately configured) — Fastify's built-in parsers only cover JSON
@@ -717,7 +740,8 @@ async function registerInboundRoutes(fastify: FastifyInstance) {
       }).execute();
       if (keyword) {
         await trx.insertInto('sms_opt_outs').values({
-          tenant_id: gateway.tenant_id, phone: from, reason: 'stop_keyword', note: `Replied "${keyword}"`,
+          tenant_id: gateway.tenant_id, phone: from, phone_normalized: normalizePhone(from),
+          reason: 'stop_keyword', note: `Replied "${keyword}"`,
         }).onConflict(oc => oc.columns(['tenant_id', 'phone']).doNothing()).execute();
       }
     });
@@ -740,7 +764,8 @@ async function registerInboundRoutes(fastify: FastifyInstance) {
       }).execute();
       if (keyword) {
         await trx.insertInto('sms_opt_outs').values({
-          tenant_id: gateway.tenant_id, phone: from, reason: 'stop_keyword', note: `Replied "${keyword}"`,
+          tenant_id: gateway.tenant_id, phone: from, phone_normalized: normalizePhone(from),
+          reason: 'stop_keyword', note: `Replied "${keyword}"`,
         }).onConflict(oc => oc.columns(['tenant_id', 'phone']).doNothing()).execute();
       }
     });

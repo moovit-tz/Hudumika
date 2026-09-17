@@ -1,17 +1,26 @@
 /* ── CRM Brand & Theming ─────────────────────────────────────────── */
-.app-shell[data-crm] {}
+.app-shell[data-crm] {
+  --crm-section-gap: 24px;
+  --crm-panel-pad: 20px;
+}
+
+[data-crm="true"] .page-layout > main,
+[data-crm="true"] .page-layout-main {
+  min-width: 0;
+}
 
 /* ── CRM Layout & Cards ─────────────────────────────────────────── */
 .crm-card {
   background: var(--card-bg, var(--white));
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: var(--elev-sm);
+  border: var(--card-border);
+  border-radius: var(--r);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
 .crm-card-header {
-  padding: 14px 18px;
+  min-height: 60px;
+  padding: 14px var(--crm-panel-pad);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -19,16 +28,17 @@
 }
 
 .crm-card-title {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
-  color: var(--navy);
+  color: var(--ink);
 }
 
 .crm-toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
+  min-height: 60px;
+  padding: 10px var(--crm-panel-pad);
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
 }
@@ -41,23 +51,27 @@
 }
 
 .crm-table th {
-  padding: 10px 14px;
-  font-size: 11.5px;
-  font-weight: 600;
+  height: 42px;
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 700;
   color: var(--ink3);
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .crm-table td {
-  padding: 13px 14px;
+  height: 56px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   color: var(--ink);
 }
 
 .crm-table tr {
-  transition: background 0.1s;
+  transition: background-color 0.15s ease;
 }
 
 .crm-table tbody tr:hover {
@@ -67,8 +81,144 @@
 .crm-checkbox {
   cursor: pointer;
   accent-color: var(--teal);
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
+}
+
+/* Legacy CRM controls share the same density, shape, and focus behavior as
+   the live Hudumika primitives while the larger pages are migrated in place. */
+[data-crm="true"] .input-field,
+[data-crm="true"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+[data-crm="true"] textarea,
+[data-crm="true"] select {
+  min-height: var(--ctl-h);
+  border-color: var(--border);
+  border-radius: var(--r);
+  background: var(--card-bg, var(--white));
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 13px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+[data-crm="true"] textarea {
+  min-height: 88px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+[data-crm="true"] .input-field:hover,
+[data-crm="true"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
+[data-crm="true"] textarea:hover,
+[data-crm="true"] select:hover {
+  border-color: color-mix(in srgb, var(--teal) 45%, var(--border));
+}
+
+[data-crm="true"] .input-field:focus,
+[data-crm="true"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+[data-crm="true"] textarea:focus,
+[data-crm="true"] select:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 15%, transparent);
+  outline: none;
+}
+
+[data-crm="true"] input::placeholder,
+[data-crm="true"] textarea::placeholder {
+  color: var(--ink3);
+  opacity: 0.8;
+}
+
+[data-crm="true"] button,
+[data-crm="true"] [role="button"] {
+  font-family: var(--font);
+  letter-spacing: 0;
+}
+
+[data-crm="true"] button:focus-visible,
+[data-crm="true"] [role="button"]:focus-visible,
+[data-crm="true"] a:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+[data-crm="true"] button:disabled,
+[data-crm="true"] [role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+[data-crm="true"] .btn {
+  min-height: var(--ctl-h);
+  border-radius: var(--r);
+  font-weight: 600;
+  box-shadow: none;
+}
+
+[data-crm="true"] .btn-sm {
+  min-height: var(--ctl-h-sm);
+}
+
+[data-crm="true"] .btn-primary {
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--teal) 24%, transparent);
+}
+
+[data-crm="true"] .btn-secondary,
+[data-crm="true"] .btn-outline {
+  background: var(--card-bg, var(--white));
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+[data-crm="true"] .btn-secondary:hover,
+[data-crm="true"] .btn-outline:hover {
+  border-color: color-mix(in srgb, var(--teal) 45%, var(--border));
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+[data-crm="true"] .crm-card button[title],
+[data-crm="true"] .crm-toolbar button[title] {
+  min-width: var(--ctl-h-sm);
+  min-height: var(--ctl-h-sm);
+}
+
+[data-crm="true"] code {
+  border-radius: calc(var(--r) * 0.6);
+}
+
+@media (max-width: 768px) {
+  .app-shell[data-crm] {
+    --crm-section-gap: 20px;
+    --crm-panel-pad: 16px;
+  }
+
+  [data-crm="true"] .crm-toolbar {
+    align-items: stretch;
+  }
+
+  [data-crm="true"] .crm-toolbar > .input-field,
+  [data-crm="true"] .crm-toolbar > input,
+  [data-crm="true"] .crm-toolbar > [role="combobox"] {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-shell[data-crm] {
+    --crm-section-gap: 16px;
+    --crm-panel-pad: 14px;
+  }
+
+  .crm-card-header {
+    align-items: flex-start;
+    gap: 10px;
+    flex-direction: column;
+  }
+
+  .crm-table th,
+  .crm-table td {
+    padding-inline: 12px;
+  }
 }
 
 /* ── CRM Dark Mode Rules ────────────────────────────────────────── */
@@ -100,4 +250,3 @@
 [data-theme="dark"] .crm-toolbar {
   border-color: var(--border, #1f2937);
 }
-

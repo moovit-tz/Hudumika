@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Button } from '../components/ui/button.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
@@ -903,7 +904,7 @@ export const Leads: React.FC = () => {
                         style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
                         <Icon name="download" size={13} /> Download
                       </button>
-                      <button type="button" onClick={() => unlinkFile(f.id, f.name)} title="Remove from this lead (file stays in Drive)"
+                      <button type="button" onClick={() => unlinkFile(f.id, f.name)} title="Remove from this lead (file stays in Drive)" aria-label={`Remove ${f.name} from this lead`}
                         style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
                         <Icon name="x" size={13} />
                       </button>
@@ -1024,12 +1025,12 @@ export const Leads: React.FC = () => {
         subtitle={`${leads.length} leads · ${active.length} active · ${fmtValue(pipeline)} pipeline value · ${winRate}% win rate`}
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button type="button" onClick={() => exportLeadsCSV(filtered)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', fontSize: 13, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
+            <Button type="button" variant="outline" size="sm" onClick={() => exportLeadsCSV(filtered)}>
               <Icon name="download" size={14} strokeWidth={2} /> Export CSV
-            </button>
-            <button type="button" onClick={() => { setAddForm({ ...EMPTY_FORM }); setEditingId(null); setShowAdd(true); }} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 22px', fontSize: 14, fontWeight: 700, borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
+            </Button>
+            <Button type="button" size="sm" onClick={() => { setAddForm({ ...EMPTY_FORM }); setEditingId(null); setShowAdd(true); }}>
               <Icon name="plus" size={15} strokeWidth={2.5} color="hsl(var(--primary-foreground))" /> New Lead
-            </button>
+            </Button>
           </div>
         }
       />

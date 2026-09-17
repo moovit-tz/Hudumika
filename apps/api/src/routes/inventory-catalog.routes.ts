@@ -122,6 +122,9 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // HUD-0097 (addendum): both PATCH routes below crashed on a wrong/stale
+  // id (mapped to a bare 500 by the local catch) instead of 404ing —
+  // multi-line-chain misses from the original sweep.
   fastify.patch('/warehouses/:id', async (request: any, reply) => {
     const b = warehousePatchSchema.parse(request.body);
     try {
@@ -133,8 +136,9 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
         trx.updateTable('inventory_warehouses').set(patch)
           .where('id', '=', request.params.id)
           .where('tenant_id', '=', request.user.tenant_id)
-          .returningAll().executeTakeFirstOrThrow()
+          .returningAll().executeTakeFirst()
       );
+      if (!row) return reply.status(404).send({ error: 'Warehouse not found' });
       return mapWarehouse(row);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
@@ -239,8 +243,9 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
         trx.updateTable('inventory_items').set(patch)
           .where('id', '=', request.params.id)
           .where('tenant_id', '=', request.user.tenant_id)
-          .returningAll().executeTakeFirstOrThrow()
+          .returningAll().executeTakeFirst()
       );
+      if (!row) return reply.status(404).send({ error: 'Item not found' });
       return mapItem(row);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });

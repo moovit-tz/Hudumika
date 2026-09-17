@@ -963,13 +963,29 @@ export default async function securityRoutes(fastify: FastifyInstance) {
   // Recovery requests where the caller is the CONTACT being asked to vouch —
   // never the caller's own account (they'd need to be logged in to see this
   // page, which means they aren't actually locked out).
+  //
+  // HUD-0112: `token` is included here on purpose. RecoveryPage.tsx's own
+  // header comment describes the intended flow as "the link a contact would
+  // share back" to the still-locked-out requester — but nothing anywhere
+  // (this response, the approve response below, or the auth.recovery_request
+  // notification email) ever surfaced it, so a real recovery could never be
+  // completed by anyone: not the requester (whose /auth/recovery/request
+  // response is a generic ack with no token, by enumeration-safety design),
+  // not the contact (this endpoint dropped the column, and the email never
+  // mentioned it either). Live-verified end to end that the underlying
+  // approve → cooldown → complete → new-password-works chain is otherwise
+  // completely correct — the token itself is the only missing piece, and
+  // exposing it here is not a new privilege: it's already the sole bearer
+  // credential /auth/recovery/complete accepts (same trust model as a
+  // password-reset token), and this query is already scoped to exactly the
+  // one contact entitled to relay it.
   fastify.get('/recovery-requests', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => trx.selectFrom('ondi_recovery_requests')
       .innerJoin('ondi_recovery_contacts', 'ondi_recovery_contacts.id', 'ondi_recovery_requests.contact_id')
       .innerJoin('users', 'users.id', 'ondi_recovery_requests.user_id')
       .select([
-        'ondi_recovery_requests.id as id', 'ondi_recovery_requests.status as status',
+        'ondi_recovery_requests.id as id', 'ondi_recovery_requests.status as status', 'ondi_recovery_requests.token as token',
         'ondi_recovery_requests.requested_at as requested_at', 'ondi_recovery_requests.cooldown_ends_at as cooldown_ends_at',
         'users.name as requester_name', 'users.email as requester_email',
       ])
@@ -997,7 +1013,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
       const cooldownEndsAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       const updated = await trx.updateTable('ondi_recovery_requests')
         .set({ status: 'approved', responded_at: new Date(), cooldown_ends_at: cooldownEndsAt })
-        .where('id', '=', row.id).where('tenant_id', '=', user.tenant_id).returning(['id', 'status', 'cooldown_ends_at']).executeTakeFirstOrThrow();
+        .where('id', '=', row.id).where('tenant_id', '=', user.tenant_id).returning(['id', 'status', 'cooldown_ends_at', 'token']).executeTakeFirstOrThrow();
 
       await recordAuthEvent(user.tenant_id, user.sub, 'recovery_request_approved', { metadata: { request_id: row.id, for_user_id: row.user_id } });
       return updated;

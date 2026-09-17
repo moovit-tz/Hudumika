@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Button } from '../components/ui/button.js';
 import { Banner } from '../components/ui/alert.js';
 import { apiFetch } from '../lib/api.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -191,10 +192,10 @@ export const CustomerOnboarding: React.FC = () => {
           </SectionCard>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-            <Link to={backHref()} className="btn btn-secondary btn-sm">Cancel</Link>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+            <Button asChild type="button" variant="outline" size="sm"><Link to={backHref()}>Cancel</Link></Button>
+            <Button type="submit" size="sm" disabled={saving}>
               {saving ? 'Saving…' : returnTo ? 'Save & Continue' : 'Create Customer'}
-            </button>
+            </Button>
           </div>
 
         </div>

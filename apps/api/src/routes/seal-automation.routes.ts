@@ -185,8 +185,11 @@ export async function sealAutomationRoutes(fastify: FastifyInstance) {
       if (b.actionAssignee !== undefined) patch.action_assignee = b.actionAssignee;
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_automation_rules').set(patch).where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirst()
       );
+      // HUD-0094: same "wrong/stale id crashes as a raw 500" bug already
+      // found and fixed in this same SEAL cluster (HUD-0089, HUD-0092).
+      if (!row) return reply.status(404).send({ error: 'Automation rule not found' });
       return mapRule(row);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });

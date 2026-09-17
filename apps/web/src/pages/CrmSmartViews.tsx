@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Button } from '../components/ui/button.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
@@ -121,7 +122,7 @@ export function CrmSmartViews() {
 
   return (
     <div style={{ padding: '20px 0 40px' }}>
-      <PageHeader crumbs={['CRM']} titlePlain="Saved" titleEm="views" subtitle="A filter you name once and reopen forever — membership recomputed every time." />
+      <PageHeader crumbs={['CRM', 'Saved Views']} titlePlain="Saved" titleEm="views" subtitle="A filter you name once and reopen forever — membership recomputed every time." />
 
       <div style={{ display: 'flex', gap: 8, margin: '18px 0 20px' }}>
         {ENTITIES.map(e => (
@@ -130,10 +131,10 @@ export function CrmSmartViews() {
             {e}s
           </button>
         ))}
-        <button type="button" className="btn btn-secondary btn-sm" style={{ marginLeft: 'auto' }}
+        <Button type="button" variant="outline" size="sm" style={{ marginLeft: 'auto' }}
           onClick={() => setEditing({ name: '', match_type: 'all', rules: [{ field: catalog ? Object.keys(catalog[entity])[0] : 'stage', op: 'eq', value: '' }] })}>
           <Icon name="plus" size={13} /> New view
-        </button>
+        </Button>
       </div>
 
       {editing && catalog && (
@@ -150,8 +151,8 @@ export function CrmSmartViews() {
           </div>
           <RuleEditor entity={entity} catalog={catalog} rules={editing.rules} onChange={r => setEditing({ ...editing, rules: r })} />
           <div style={{ display: 'flex', gap: 10 }}>
-            <button type="button" className="btn btn-primary btn-sm" disabled={!editing.name.trim()} onClick={save}>{editing.id ? 'Save' : 'Create'}</button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(null)}>Cancel</button>
+            <Button type="button" size="sm" disabled={!editing.name.trim()} onClick={save}>{editing.id ? 'Save' : 'Create'}</Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setEditing(null)}>Cancel</Button>
           </div>
         </div>
       )}

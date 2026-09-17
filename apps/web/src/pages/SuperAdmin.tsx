@@ -2903,7 +2903,7 @@ const APP_LABELS: Record<string, string> = {
   ai: 'AI', clearos: 'ClearOS', cloud: 'Cloud', complyos: 'ComplyOS',
   contacts: 'Contacts', email: 'Email', finops: 'FinOps', ondi: 'Ondi',
   nexushr: 'NexusHR', tracking: 'Tracking', demurrage: 'Demurrage', cargotracker: 'CargoTracker',
-  petti: 'Petti', notes: 'Notes', sign: 'eSign', sms: 'SMS', onsite: 'Onsite', onesite: 'oneSite',
+  petti: 'Petti', notes: 'Notes', sign: 'eSign', sms: 'SMS', onsite: 'Onsite', onesite: 'CMS',
   inventory: 'Inventory',
   // Backfilled by migration 395 — these had real feature keys and
   // package_features grants (see ALL_FEATURE_KEYS) but never got an

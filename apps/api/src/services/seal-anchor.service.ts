@@ -10,6 +10,17 @@ export class NothingToAnchor extends Error {
   }
 }
 
+// HUD-0108: checkAnchorConfirmation below used executeTakeFirstOrThrow()
+// with no prior existence check — a wrong/stale anchor id crashed with a
+// raw 500 instead of a clean 404, the same "crash instead of 404" family
+// HUD-0097/0099 already found and fixed across dozens of other files.
+export class AnchorNotFound extends Error {
+  constructor() {
+    super('Anchor not found');
+    this.name = 'AnchorNotFound';
+  }
+}
+
 // Anchors a compartment's ledger checkpoint (SealService.buildCompartmentCheckpoint)
 // to Bitcoin via OpenTimestamps. Both the manual "Anchor Now" route and the
 // scheduled job call anchorCompartment — there is exactly one code path
@@ -41,7 +52,8 @@ export class SealAnchorService {
   /** Re-checks a pending anchor's proof against Bitcoin. Never marks an
    *  anchor confirmed unless OpenTimestamps itself reports a block. */
   static async checkAnchorConfirmation(trx: Transaction<Database>, tenantId: string, anchorId: string) {
-    const anchor = await trx.selectFrom('seal_ledger_anchors').selectAll().where('tenant_id', '=', tenantId).where('id', '=', anchorId).executeTakeFirstOrThrow();
+    const anchor = await trx.selectFrom('seal_ledger_anchors').selectAll().where('tenant_id', '=', tenantId).where('id', '=', anchorId).executeTakeFirst();
+    if (!anchor) throw new AnchorNotFound();
     if (anchor.status !== 'pending') return anchor;
 
     try {

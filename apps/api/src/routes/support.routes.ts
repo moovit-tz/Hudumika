@@ -865,6 +865,9 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
   });
 
   // 8. Assign ticket to a group
+  // HUD-0099: both routes below crashed on a wrong/stale
+  // ticket id instead of 404ing — multi-line-chain misses in a file
+  // this arc's own sweep had already partly fixed but not fully checked.
   fastify.patch<{ Params: { id: string }; Body: { group_id: string | null } }>('/tickets/:id/group', async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
@@ -874,7 +877,8 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
         .where('id', '=', request.params.id)
         .where('tenant_id', '=', user.tenant_id)
         .returningAll()
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Ticket not found' });
 
       reply.status(200);
       return updated;
@@ -892,6 +896,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
         .select(['tags', 'assigned_to'])
         .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
+      if (!before) return reply.status(404).send({ error: 'Ticket not found' });
 
       const updated = await trx
         .updateTable('support_tickets')
@@ -1322,6 +1327,9 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
     });
   });
 
+  // HUD-0097: neither route below checked existence first — a wrong/stale
+  // id crashed executeTakeFirstOrThrow() with "no result" instead of a
+  // clean 404. Same pattern already found and fixed as HUD-0089/0092/0094.
   fastify.patch<{
     Params: { id: string };
     Body: { name?: string; enabled?: boolean; config?: any };
@@ -1334,7 +1342,8 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
         ...(b.enabled !== undefined ? { enabled: b.enabled } : {}),
         ...(b.config !== undefined ? { config: JSON.stringify(b.config) } : {}),
         updated_at: new Date(),
-      }).where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+      }).where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
+      if (!rule) return reply.status(404).send({ error: 'Rule not found' });
       reply.status(200);
       return rule;
     });
@@ -1423,7 +1432,8 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
         if (request.body.status !== undefined) updates.status = request.body.status;
 
         const article = await trx.updateTable('knowledge_base').set(updates)
-          .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+          .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
+        if (!article) return reply.status(404).send({ error: 'Article not found' });
         return article;
       });
     }

@@ -30,7 +30,9 @@ import { runSignAnchorStampJob } from './sign-anchor-stamp.job.js';
 import { runNotesReminderJob } from './notes-reminder.job.js';
 import { runTaskReminderJob } from './task-reminder.job.js';
 import { runContactBirthdayReminderJob } from './contact-birthday-reminder.job.js';
+import { runCmsScheduledPublishJob } from './cms-scheduled-publish.job.js';
 import { runNotesPurgeJob } from './notes-purge.job.js';
+import { runCmsTrashPurgeJob } from './cms-trash-purge.job.js';
 import { runCalendarReminderJob } from './calendar-reminder.job.js';
 import { runCalendarExternalSyncJob } from './calendar-external-sync.job.js';
 import { runSmsOutboxJob } from './sms-outbox.job.js';
@@ -84,6 +86,7 @@ export const JOB_REGISTRY: { name: string; schedule: string; fallbackOnly?: bool
   { name: 'Calendar Reminders', schedule: 'Every 5 minutes' },
   { name: 'Calendar External Sync', schedule: 'Every 15 minutes' },
   { name: 'Contact Birthday Reminders', schedule: 'Daily at 08:00' },
+  { name: 'CMS Scheduled Publish', schedule: 'Every 5 minutes' },
   { name: 'GPSWOX Fleet Sync', schedule: 'Every 2 minutes' },
   { name: 'Workflow Auto-Comms', schedule: 'Every 2 minutes' },
   { name: 'SEAL Ledger Anchor (Bitcoin)', schedule: 'Daily' },
@@ -308,6 +311,10 @@ function startBullMQ(): void {
           await runCalendarExternalSyncJob();
         } else if (job.name === 'contact-birthday-reminder') {
           await runContactBirthdayReminderJob();
+        } else if (job.name === 'cms-scheduled-publish') {
+          await runCmsScheduledPublishJob();
+        } else if (job.name === 'cms-trash-purge') {
+          await runCmsTrashPurgeJob();
         }
       },
       { connection: redisConnection as any }
@@ -586,6 +593,10 @@ function startBullMQ(): void {
       repeat: { pattern: '30 2 * * *' } // Daily at 2:30 AM — permanently delete Notes Trash items past 30 days (unless on legal hold)
     }).catch(console.error);
 
+    reminderQueue.add('cms-trash-purge', {}, {
+      repeat: { pattern: '40 2 * * *' } // Daily at 2:40 AM — permanently delete CMS Pages/Posts Trash items past 30 days
+    }).catch(console.error);
+
     // Calendar reminders can be set as low as a few minutes before an
     // event — same 5-minute resolution reasoning as notes-reminder.
     reminderQueue.add('calendar-reminder', {}, {
@@ -606,6 +617,13 @@ function startBullMQ(): void {
     // re-firing the same day if this ever runs twice.
     reminderQueue.add('contact-birthday-reminder', {}, {
       repeat: { pattern: '0 8 * * *' } // Daily at 8:00 AM
+    }).catch(console.error);
+
+    // CMS scheduled publish — same 5-minute "set to the minute" resolution
+    // reasoning as notes/task/calendar reminders: a schedule picker lets a
+    // tenant pick a specific minute, so daily/hourly would defeat the point.
+    reminderQueue.add('cms-scheduled-publish', {}, {
+      repeat: { every: 5 * 60 * 1000 } // Every 5 minutes
     }).catch(console.error);
 
     gpswoxQueue.add('sync', {}, {
@@ -729,6 +747,11 @@ function startIntervalFallback(): void {
     runCalendarReminderJob().catch(console.error);
   }, 5 * 60 * 1000);
 
+  // CMS scheduled publish — same 5-minute resolution reasoning.
+  setInterval(() => {
+    runCmsScheduledPublishJob().catch(console.error);
+  }, 5 * 60 * 1000);
+
   // Contact birthday reminders — day-granularity, not minute-granularity;
   // every 6 hours is plenty, and birthday_notified_year (439) makes a
   // repeat call within the same day a safe no-op.
@@ -766,6 +789,7 @@ function startIntervalFallback(): void {
     runSignExpiryJob().catch(console.error);
     runSignReminderJob().catch(console.error);
     runNotesPurgeJob().catch(console.error);
+    runCmsTrashPurgeJob().catch(console.error);
     runRecurringDocumentsJob().catch(console.error);
     runTaskRecurrenceJob().catch(console.error);
     // Idempotent per (asset_id, period_date), so a daily fallback check is

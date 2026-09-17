@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import * as NotesService from '../services/notes.service.js';
-import { NoteForbiddenError, NoteConflictError } from '../services/notes.service.js';
+import { NoteForbiddenError, NoteConflictError, NoteNotFoundError } from '../services/notes.service.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 
 const checklistItemSchema = z.object({ id: z.string(), text: z.string(), completed: z.boolean() });
@@ -37,6 +37,9 @@ function sendNoteError(reply: any, err: any) {
   }
   if (err instanceof NoteConflictError) {
     return reply.status(409).send({ error: err.message, current: err.current, code: 'NOTE_CONFLICT' });
+  }
+  if (err instanceof NoteNotFoundError) {
+    return reply.status(404).send({ error: err.message });
   }
   return reply.status(400).send({ error: err.message });
 }
@@ -195,7 +198,7 @@ export async function notesRoutes(fastify: FastifyInstance) {
     try {
       return await NotesService.updateLabel(request.user.tenant_id, request.params.id, name);
     } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
+      return sendNoteError(reply, err);
     }
   });
 

@@ -119,10 +119,12 @@ export async function ondiRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'Only a SUPER_ADMIN can grant SUPER_ADMIN' });
     }
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.updateTable('users').set({ role, updated_at: new Date() })
+      const updated = await trx.updateTable('users').set({ role, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returning(['id', 'name', 'email', 'role'])
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'User not found' });
+      return updated;
     });
   });
 
@@ -138,7 +140,8 @@ export async function ondiRoutes(fastify: FastifyInstance) {
       const updated = await trx.updateTable('users').set({ active, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returning(['id', 'name', 'active'])
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+      if (!updated) throw Object.assign(new Error('User not found'), { statusCode: 404 });
 
       // hr.routes.ts's own /staff/:id/status already emits this same event
       // type for the NexusHR path — reusing it here (not a second event
@@ -256,14 +259,16 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/devices/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/devices/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const { trusted } = req.body as { trusted: boolean };
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.updateTable('hr_devices').set({ trusted })
+      const updated = await trx.updateTable('hr_devices').set({ trusted })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow();
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Device not found' });
+      return updated;
     });
   });
 
@@ -302,7 +307,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/sso-providers/:id', { preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
+  fastify.patch('/sso-providers/:id', { preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'), requireEntitlement('ondi.governance')] }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as { name?: string; config?: Record<string, any>; enabled?: boolean };
@@ -311,9 +316,11 @@ export async function ondiRoutes(fastify: FastifyInstance) {
       if (body.name !== undefined) updates.name = body.name;
       if (body.config !== undefined) updates.config = JSON.stringify(body.config);
       if (body.enabled !== undefined) updates.enabled = body.enabled;
-      return trx.updateTable('sso_providers').set(updates)
+      const updated = await trx.updateTable('sso_providers').set(updates)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow();
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'SSO provider not found' });
+      return updated;
     });
   });
 
@@ -388,7 +395,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     return created;
   });
 
-  fastify.patch('/oauth-clients/:id', { preHandler: [requireRole('SUPER_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
+  fastify.patch('/oauth-clients/:id', { preHandler: [requireRole('SUPER_ADMIN'), requireEntitlement('ondi.governance')] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const body = z.object({
       name: z.string().trim().min(1).max(100).optional(),
@@ -407,11 +414,13 @@ export async function ondiRoutes(fastify: FastifyInstance) {
       updates.client_secret_hash = body.client_secret ? hashPassword(body.client_secret) : null;
     }
 
-    return dbPlatform.updateTable('ondi_oauth_clients')
+    const updated = await dbPlatform.updateTable('ondi_oauth_clients')
       .set(updates)
       .where('id', '=', id)
       .returningAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
+    if (!updated) return reply.status(404).send({ error: 'OAuth client not found' });
+    return updated;
   });
 
   fastify.delete('/oauth-clients/:id', { preHandler: [requireRole('SUPER_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {

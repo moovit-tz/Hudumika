@@ -31,6 +31,7 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { createHash } from 'node:crypto';
+import { sql } from 'kysely';
 import { withTenant, dbPlatform } from '../db/client.js';
 import type { SignTemplate, UserRole } from '@hudumika/types';
 import { requireEntitlement } from '../middleware/entitlement.js';
@@ -274,6 +275,12 @@ export async function signRoutes(fastify: FastifyInstance) {
     const query = req.query as Record<string, string>;
     const status = query.status;
     const view = query.view; // 'inbox' | 'sent' | 'completed' | 'voided' | 'declined' | 'drafts' | 'all'
+    const search = query.search?.trim();
+    // Additive — omitted keeps the pre-existing "first 100, no paging"
+    // behavior so no existing caller breaks; a caller that wants page 2+
+    // just starts passing offset.
+    const limit = Math.min(Math.max(parseInt(query.limit ?? '100', 10) || 100, 1), 200);
+    const offset = Math.max(parseInt(query.offset ?? '0', 10) || 0, 0);
 
     // 'all' is the admin-only, tenant-wide view — every envelope any user
     // created, not just this request's own. Every other `view` value below
@@ -319,7 +326,15 @@ export async function signRoutes(fastify: FastifyInstance) {
       // 'documents' tab on that same customer record already uses.
       if (query.client_id) q = q.where('client_id', '=', query.client_id);
 
-      const envelopes = await q.orderBy('updated_at', 'desc').limit(100).execute();
+      // Real Postgres full-text search (migration 463's generated
+      // search_vector + GIN index) over title/message/file_name/
+      // matter_reference — replaces the old in-memory substring filter the
+      // frontend used to run over whatever page happened to be fetched.
+      if (search) {
+        q = q.where(sql<boolean>`search_vector @@ plainto_tsquery('english', ${search})`);
+      }
+
+      const envelopes = await q.orderBy('updated_at', 'desc').limit(limit).offset(offset).execute();
 
       // Attach recipient counts. id/user_id/email are what the list/grid
       // views' PersonAvatar calls need to resolve a real linked-user photo
@@ -769,6 +784,54 @@ export async function signRoutes(fastify: FastifyInstance) {
         actorName: userName(req), actorEmail: userEmail(req), note: body?.reason ?? undefined,
       });
       return reply.send({ ok: true });
+    });
+  });
+
+  // ── Bulk actions — void or remind many envelopes from one multi-select
+  // list action, instead of one request per row. Reuses the exact same
+  // ownership check, status guard, and event logging each single-item route
+  // above already does, per envelope — a bad id in the batch is skipped
+  // with its own reason rather than failing every other row in it.
+  fastify.post('/envelopes/bulk', async (req: FastifyRequest, reply: FastifyReply) => {
+    const tid = tenantId(req);
+    const body = req.body as { ids?: string[]; action?: 'void' | 'remind'; reason?: string };
+    const ids = Array.isArray(body?.ids) ? body.ids.slice(0, 200) : [];
+    if (!ids.length) return reply.status(400).send({ error: 'ids is required' });
+    if (body?.action !== 'void' && body?.action !== 'remind') {
+      return reply.status(400).send({ error: "action must be 'void' or 'remind'" });
+    }
+
+    return withTenant(tid, async (trx) => {
+      const results: { id: string; ok: boolean; error?: string }[] = [];
+
+      for (const id of ids) {
+        const envelope = await trx.selectFrom('sign_envelopes').selectAll()
+          .where('id', '=', id).where('tenant_id', '=', tid).executeTakeFirst();
+        if (!envelope) { results.push({ id, ok: false, error: 'Not found' }); continue; }
+        if (envelope.created_by !== userId(req) && !DOCUMENT_ADMIN_ROLES.includes(userRole(req))) {
+          results.push({ id, ok: false, error: "Only this document's owner or a tenant admin can do that." });
+          continue;
+        }
+
+        if (body.action === 'void') {
+          if (envelope.status === 'completed') { results.push({ id, ok: false, error: 'Completed envelopes cannot be voided' }); continue; }
+          await trx.updateTable('sign_envelopes').set({
+            status: 'voided', voided_at: new Date(), void_reason: body.reason ?? null,
+          }).where('id', '=', id).execute();
+          await logEvent(trx, id, tid, 'voided', { actorName: userName(req), actorEmail: userEmail(req), note: body.reason ?? undefined });
+        } else {
+          if (envelope.status !== 'sent') { results.push({ id, ok: false, error: 'Only sent envelopes can be reminded' }); continue; }
+          const recipients = await trx.selectFrom('sign_recipients').selectAll()
+            .where('envelope_id', '=', id).orderBy('sign_order', 'asc').execute();
+          const toNotify = recipientsToNotify(recipients, envelope.order_mode);
+          if (!toNotify.length) { results.push({ id, ok: false, error: 'No pending signers to remind' }); continue; }
+          await notifyRecipients(tid, envelope, toNotify, 'reminder');
+          await logEvent(trx, id, tid, 'reminded', { actorName: userName(req), actorEmail: userEmail(req), note: `Reminded ${toNotify.map(r => r.name).join(', ')}` });
+        }
+        results.push({ id, ok: true });
+      }
+
+      return reply.send({ results, succeeded: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok).length });
     });
   });
 

@@ -71,6 +71,19 @@ export default async function escalationsRoutes(fastify: FastifyInstance) {
     const d = body.data;
 
     return withTenant(user.tenant_id, async (trx) => {
+      // HUD-0084: channel_id carries a real FK to chat_channels — a stale
+      // frontend (a channel deleted between load and submit) or any other
+      // caller with a wrong id used to fall straight through to the insert
+      // and surface as a raw constraint violation, caught only by the
+      // generic top-level error handler ("An unexpected error occurred",
+      // a bare 500) — live-confirmed. Same "check the real reference before
+      // writing" guard hr-cases.routes.ts already uses for employee_id.
+      if (d.subjectType === 'CHAT') {
+        const channel = await trx.selectFrom('chat_channels').select('id')
+          .where('id', '=', d.channelId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!channel) return reply.status(404).send({ error: 'That channel no longer exists.' });
+      }
+
       const row = await trx.insertInto('case_escalations').values(
         d.subjectType === 'CHAT'
           ? {

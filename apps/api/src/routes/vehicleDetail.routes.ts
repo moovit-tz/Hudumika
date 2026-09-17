@@ -258,7 +258,12 @@ export async function vehicleDetailRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/issues/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  // HUD-0097: neither route below checked existence first — a wrong/stale
+  // id crashed executeTakeFirstOrThrow() with "no result" and, with no
+  // local try/catch here, fell straight through to the global error
+  // handler as a bare 500 instead of a clean 404. Same pattern already
+  // found and fixed as HUD-0089/0092/0094.
+  fastify.patch('/issues/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as Partial<{
@@ -266,8 +271,9 @@ export async function vehicleDetailRoutes(fastify: FastifyInstance) {
       assigned_to: string; due_date: string; due_odometer_km: number; source: string;
     }>;
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('vehicle_issues').select(['status']).where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirstOrThrow();
-      
+      const existing = await trx.selectFrom('vehicle_issues').select(['status']).where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Issue not found' });
+
       const payload: any = { ...body };
       if (body.due_date) payload.due_date = new Date(body.due_date);
       
@@ -293,13 +299,14 @@ export async function vehicleDetailRoutes(fastify: FastifyInstance) {
   // authenticated tenant user regardless of role could resolve or comment
   // on a fleet issue through these two, bypassing the restriction the
   // equivalent general-purpose endpoints enforce.
-  fastify.patch('/issues/:id/resolve', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.patch('/issues/:id/resolve', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as { resolved_odometer_km?: number };
     return withTenant(user.tenant_id, async (trx) => {
       const issue = await trx.selectFrom('vehicle_issues').select('vehicle_id')
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirstOrThrow();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!issue) return reply.status(404).send({ error: 'Issue not found' });
       let resolvedOdo = body.resolved_odometer_km;
       if (resolvedOdo == null) {
         const vehicle = await trx.selectFrom('vehicles').select('mileage_km')

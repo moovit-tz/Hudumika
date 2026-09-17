@@ -70,7 +70,12 @@ export const consignmentService = {
           'road_consignments.updated_at',
           'customers.name as customer_name',
         ])
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+      // HUD-0089: this and every other id-lookup/mutation in this file used
+      // to be executeTakeFirstOrThrow(), turning a plain wrong/stale/
+      // deleted id into a raw 500 ("no result") instead of a real 404 —
+      // live-confirmed across all six routes below.
+      if (!consignment) return null;
 
       const trips = await trx
         .selectFrom('consignment_trips')
@@ -190,7 +195,7 @@ export const consignmentService = {
         .where('id', '=', consignmentId)
         .where('tenant_id', '=', tenantId)
         .returningAll()
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
     });
   },
 
@@ -204,6 +209,13 @@ export const consignmentService = {
     vehicle?: string;
   }) {
     return withTenant(tenantId, async (trx) => {
+      // HUD-0089: confirm the consignment is real (and this tenant's) before
+      // inserting — this used to fall straight through to the FK constraint
+      // and surface as a raw 500 for a stale/wrong/foreign id.
+      const consignment = await trx.selectFrom('road_consignments').select('id')
+        .where('id', '=', consignmentId).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!consignment) return null;
+
       const existing = await trx
         .selectFrom('consignment_trips')
         .where('consignment_id', '=', consignmentId)
@@ -238,7 +250,7 @@ export const consignmentService = {
         .set(updateData)
         .where('id', '=', tripId)
         .returningAll()
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
     });
   },
 
@@ -253,6 +265,12 @@ export const consignmentService = {
     notes?: string;
   }) {
     return withTenant(tenantId, async (trx) => {
+      // HUD-0089: same existence check as addTrip — a foreign/stale
+      // consignment id used to hit the FK constraint and crash with a 500.
+      const consignment = await trx.selectFrom('road_consignments').select('id')
+        .where('id', '=', consignmentId).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!consignment) return null;
+
       return trx
         .insertInto('border_crossings')
         .values({
@@ -288,7 +306,7 @@ export const consignmentService = {
         .set(updateData)
         .where('id', '=', borderId)
         .returningAll()
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
     });
   },
 };

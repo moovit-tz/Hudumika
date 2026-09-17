@@ -16,8 +16,8 @@ and the running API (`localhost:3001`), not just source reading.
 |----------|-----:|-----------------:|------:|
 | CRITICAL | 0 | 8 | 8 |
 | HIGH | 8 | 35 | 43 |
-| MEDIUM | 9 | 2 | 11 |
-| LOW | 9 | 1 | 10 |
+| MEDIUM | 9 | 5 | 14 |
+| LOW | 9 | 4 | 13 |
 
 *This session added: HUD-0053 (Studio `tasks.create_task` crash), HUD-0055's `GET /renewals`
 uuid/text join crash, and HUD-0060's supplier-bill line-schema mismatch (silent zero-value lines,
@@ -35,7 +35,8 @@ authenticating the unauthenticated biometric-device push endpoint, readable by e
 and HUD-0076's FX-revaluation phantom-gain/loss-on-unposted-documents bug to HIGH/Fixed; HUD-0072's
 org-chart sync-staff CUSTOMER-account data-correctness bug to MEDIUM/Fixed; HUD-0077's supplier
 "blocked" status having zero enforcement anywhere to MEDIUM/Open; HUD-0080's duplicate forensic-case
-'opened' custody-log rows to LOW/Fixed; a concurrent session's own HIGH fix to org-chart's
+'opened' custody-log rows and HUD-0084's escalations bad-channel-id raw-500 (now a clean 404) to
+LOW/Fixed; a concurrent session's own HIGH fix to org-chart's
 unrestricted-PII-read `GET /` gap noted as an addendum to HUD-0072 rather than a new entry (see
 that entry's own addendum for detail); HUD-0032 re-rated
 LOW→HIGH/Open after Phase 5 confirmed comprehensive, whole-module schema drift rather than one
@@ -73,7 +74,7 @@ Mandatory quality gates:
 | CI meaningful | **PASS** — `ci.yml` gates on typecheck, fresh-DB migrate, API tests against that fresh DB, and full build; proven locally end to end | HUD-0006 |
 | Test coverage of critical workflows | **FAIL** — 11 API test files, 0 web test files for 195 routes / 153 services | HUD-0005 |
 | Database migrations reproduce prod | **PASS** — fresh-DB proof: 474/474 migrations apply clean; full schema diff vs. live = 0 table/column/RLS mismatches | HUD-0009 |
-| Production build | **PASS** — `apps/api`'s `tsc --noEmit` briefly regressed (`email.routes.ts:390`) after a concurrent session's own commits (`07d8c1ce`, `9036a0c0`) landed mid-arc, unrelated to any change here (confirmed via `git log`/`git status`); resolved on its own by the next check (HUD-0076), presumably by that same concurrent session finishing its own work — clean again as of this journey | HUD-0020, HUD-0074, HUD-0076 |
+| Production build | **REGRESSED (again)** — `apps/api`'s `tsc --noEmit` currently fails on `cms-content.routes.ts:154` (a required-vs-optional field type mismatch), confirmed via `git status` to be an untracked file belonging to a different, still-in-progress concurrent session's own CMS feature work (also touching `cms.routes.ts`/`cms.service.ts`/`packages/types/src/cms.ts`), not anything changed in this arc. This is the *second* time this exact shape of transient regression has appeared mid-arc from a concurrent session's own commits (see HUD-0074's `email.routes.ts` instance, which resolved on its own) — confirmed this session's own changed files typecheck cleanly in isolation each time. Left alone per the same cross-session-collision boundary | HUD-0020, HUD-0074, HUD-0076, HUD-0096 |
 | API survives a dropped DB connection | **PASS** — was FAIL, crashed the whole process on a live connection drop during this audit | HUD-0021 |
 
 ---
@@ -1867,6 +1868,2492 @@ Mandatory quality gates:
   in place, every title/filename/note clearly labeled `HUD-0080`. Usage counter restored to 500/500
   and confirmed (needed re-lowering once mid-journey after a real prior-journey usage tally caught
   up with the monthly cap).
+
+### HUD-0081 — Phase 5: FinOps dividends journey traced live · CLEAN, correctly feeds the statement of changes in equity
+- **Category:** Functional correctness (Phase 5, fortieth journey).
+- **Trace:** declared a real dividend (5,000,000 TZS) and hand-verified the resulting GL entry —
+  Dr `3100` (Retained Earnings) / Cr `2600` (Dividends Payable), both 5,000,000, balanced. Paid it
+  and hand-verified the second entry — Dr `2600` / Cr `1010` (Bank), clearing the liability exactly.
+  Confirmed a repeat payment attempt is correctly refused (`409`, "already been paid").
+- **Confirmed the whole reason this feature exists — the real equity-movement attribution report**
+  (`GET /v1/finance/equity-statement`, `GLService.statementOfChangesInEquity`): fetched the report
+  for the declaration/payment date and confirmed `3100`'s `dividends` column showed exactly
+  `-5,000,000`, correctly isolated from an unrelated `opening`/`other` pair of figures (+420,000 /
+  -420,000) that turned out to be real leftover activity from an earlier journey's (HUD-0068) void
+  cleanup landing on the same calendar day — not a bug, just two independent, correctly-net-zero-
+  over-time movements the report correctly kept separate from the dividend's own attribution. The
+  report matches a real journal entry to this table specifically by `journal_entry_id`/
+  `paid_journal_entry_id`, distinguishing a dividend movement from a period-close movement
+  (`fromNetIncome`) or anything else (`other`) — confirmed each bucket landed exactly where it
+  should.
+- **Also confirmed live:** a `CUSTOMER` JWT is correctly refused the entire app (`403`).
+- **Came back clean — no code changes needed.** Full suite green (11 files / 105 tests),
+  `check:triggers` OK, API healthy throughout (no code changed, so `tsc` re-verification wasn't
+  required, but was run anyway as a sanity check).
+- **Test-artifact handling:** dividends have no delete/void endpoint anywhere in the API — a
+  declared-and-paid dividend is left in place, clearly labeled `HUD-0081 test dividend declaration`
+  in every human-readable field, consistent with this arc's rule for a record type with no real
+  delete path. Usage counter restored to 500/500 and confirmed.
+
+### HUD-0082 — Phase 5: NexusHR disciplinary case-management journey traced live · CLEAN
+- **Category:** Functional correctness (Phase 5, forty-first journey).
+- **Trace:** created a real disciplinary case for a real employee (`verbal_warning`, `low`
+  severity) → confirmed it appears correctly on the list, filtered by `employee_id`, with both the
+  employee and the opener's real names resolved via join → added a real note and confirmed the full
+  detail view returns it with the correct author name attached.
+- **The status lifecycle — verified property by property:** `open → in_progress` correctly left
+  `resolved_at` null; `in_progress → resolved` (with a resolution note) correctly stamped
+  `resolved_at`; reopening (`resolved → open`) correctly **cleared** `resolved_at` back to null
+  rather than leaving a stale timestamp on an active case, exactly matching the route's own stated
+  design ("reopening clears it rather than leaving a stale timestamp").
+- **Also confirmed live:** a nonexistent case id 404s; creating a case against a nonexistent
+  `employee_id` is correctly refused (`404`, "Employee not found in this workspace"); an empty
+  `PATCH` body is correctly refused (`400`, "Nothing to update"); a `JUNIOR` is correctly refused
+  the entire module (`403`) — this file is `MGMT_ROLES`-only throughout, a deliberate scope decision
+  the file's own header comment explains (case data is manager/HR working material, not something
+  the subject of a case browses themselves — a real, harder question the file explicitly doesn't
+  attempt to answer).
+- **Came back clean — no code changes needed.** Full suite unaffected, `check:triggers` OK
+  (`hr.case_opened`/`hr.case_status_changed` both have real emitters and real subscribers), API
+  healthy throughout.
+- **Test-artifact handling:** `hr_cases`/`hr_case_notes` have no delete endpoint anywhere in the
+  API — a real disciplinary record is treated as permanent by design, not an oversight. Left in
+  place, clearly labeled `HUD-0082` in every human-readable field. Usage counter restored to
+  500/500 and confirmed.
+
+### HUD-0083 — Phase 5: Sign matters + jurisdiction-engine journey traced live · CLEAN
+- **Category:** Functional correctness (Phase 5, forty-second journey) — closing out the Sign
+  cluster's two remaining small, self-contained surfaces.
+- **Matters (a computed `GROUP BY` over `sign_envelopes.matter_reference`, deliberately not its own
+  table — "nothing here can drift from the envelopes themselves because it's computed from them on
+  every request"):** created two real envelopes sharing one matter reference, each with a different
+  real customer as `client_id`. `GET /matters` correctly aggregated them — `envelope_count: 2`,
+  `client_names` correctly listing both distinct customer names via `array_agg(DISTINCT ...)`.
+  `GET /matters/:reference/envelopes` correctly returned both. A nonexistent matter reference
+  correctly 404s. A `JUNIOR` is correctly refused the entire feature (`403`, "Only a tenant admin
+  can browse matters across every user's documents") — the same cross-user-disclosure gate as
+  `sign.routes.ts`'s own `DOCUMENT_ADMIN_ROLES`, mirrored here rather than loosened for this one
+  feature.
+- **Jurisdiction engine (platform-level legal reference data, `sign_jurisdiction_rules`, no
+  tenant_id):** `GET /jurisdiction-rules/mine` correctly resolved this tenant's own jurisdiction
+  server-side from `tenants.country` (`'TZ'`, set for real in HUD-0063) with no second round trip
+  needed, and returned real, specifically-cited Tanzanian statutory rules for all four execution
+  types (`NORMAL_SIGN`/`WITNESSED_SIGNATURE`/`AFFIDAVIT`/`NOTARIAL_CERTIFICATION`) — genuine
+  Electronic Transactions Act, CAP 442 R.E. 2022 section citations (s.6-7, s.10(a)-(b)), not
+  placeholder text. Confirmed the explicit `?jurisdiction=TZ` filter and the full unfiltered list
+  (16 rules total across all four EAC countries — KE/RW/TZ/UG) both return correctly.
+- **Came back clean — no code changes needed.** Full suite green (11 files / 105 tests),
+  `check:triggers` OK, API healthy throughout.
+- **Test-artifact handling:** both test envelopes were still `DRAFT` (never sent), so — unlike
+  HUD-0080's completed envelope — a real, unrestricted `DELETE /envelopes/:id` applied cleanly; both
+  were deleted. Usage counter restored to 500/500 and confirmed.
+
+### HUD-0084 — Phase 5: Bliss escalations journey traced live · real LOW bug found+fixed (a bad/deleted chat channel surfaced as a raw, unhelpful 500 instead of a clean 404)
+- **Category:** Functional correctness + error-handling quality (Phase 5, forty-third journey).
+- **Trace:** created a real `CASE` escalation and a real `CHAT` escalation (against a real chat
+  channel) as one `JUNIOR` staff member, then created a second `JUNIOR`'s own escalation. Confirmed
+  the "own-only visibility" rule live with two genuinely different accounts, not just one: each
+  `JUNIOR` sees only their own escalations, correctly excluding the other's — while a `SENIOR`
+  (a resolver-tier role) correctly sees every escalation from both. Confirmed a real notification
+  fan-out: every resolver-tier user in the tenant got a real notification row for each escalation
+  **except the escalator themselves**, even checked across two different escalators, matching the
+  code's own stated intent ("no point notifying yourself of your own action").
+- **Evidence (real LOW bug found):** submitting a `CHAT` escalation with a `channelId` that doesn't
+  exist (a genuinely plausible real scenario — a channel deleted between the frontend loading its
+  option list and the user submitting, not just a contrived test) produced a raw, unhelpful
+  `{"error":"An unexpected error occurred. Please try again."}` at a bare `500` — live-confirmed.
+  Root cause: `channel_id` carries a real foreign key to `chat_channels`, but the route never
+  checked the channel exists before attempting the insert, so a bad id fell through to a raw
+  Postgres constraint violation caught only by the generic top-level error handler. No data
+  integrity issue (the FK correctly prevented the bad write from ever landing) — a pure
+  error-message-quality gap, but the same class of gap this codebase explicitly guards against
+  elsewhere (e.g. `hr-cases.routes.ts`'s own `employee_id` existence check, HUD-0082).
+- **Fix:** added a real existence check (`chat_channels` by id + tenant) before the insert on the
+  `CHAT` branch, returning a clean `404: "That channel no longer exists."` instead.
+- **Re-test, live:** replayed the exact original reproduction — now a clean `404` instead of a bare
+  `500`; confirmed a real channel still succeeds afterward, proving the fix doesn't block the
+  legitimate path.
+- **Also confirmed live:** the one-step-at-a-time status machine (`PENDING → IN_PROGRESS →
+  RESOLVED`, no skipping) correctly stamps `resolved_at`/`resolved_by` only on the terminal
+  transition; a `JUNIOR` is correctly refused `PATCH .../advance` (`403`, not a resolver role); an
+  already-`RESOLVED` escalation correctly refuses a further advance (`409`, "Already resolved").
+- **Came back otherwise clean.** `tsc --noEmit` clean, full suite green (11 files / 105 tests),
+  `check:triggers` OK, API healthy throughout.
+- **Test-artifact handling:** this file has no delete endpoint anywhere in the API — every test
+  escalation was left in place, clearly labeled `HUD-0084` in every human-readable field. Usage
+  counter restored to 500/500 and confirmed.
+
+### HUD-0085 — Phase 5: AgencyHost referral commission journey traced live · CLEAN, including live self-referral fraud detection
+- **Category:** Functional correctness (Phase 5, forty-fourth journey).
+- **Setup:** created two real platform-level tenants via direct SQL (a legitimate, disclosed
+  setup step — `tenants` has no onboarding-flow shortcut this trace needed to reach), each with
+  `referred_by_tenant_id` pointing at the dev tenant, then called the actual exported
+  `computeAndRecordCommission()` service function directly (real code, real DB writes — not a
+  reimplementation) to simulate the real trigger point (`onboarding.service.ts`, right after a
+  referred tenant's first real payment) without needing a full payment-gateway round trip.
+- **Commission computation and self-referral fraud detection — verified property by property:**
+  Tenant A (a clean phone number) correctly produced a `pending` commission at exactly 10% of the
+  payment amount (`$100 → $10.00`). Tenant B was given a signup phone deliberately reformatted from
+  a real dev-tenant staff member's own phone (`+255712345672` → `0712345672` — same last 9 digits,
+  different formatting) and correctly came back `flagged`, with the exact real reason attached —
+  confirming the phone-normalization matching (last-9-digits, strips all non-digit characters)
+  genuinely catches a reformatted duplicate, not just an exact string match. **Idempotency
+  confirmed live**: calling the function a second time for Tenant A with a different amount and
+  transaction ref produced no second row and did not alter the first — the unique index on
+  `referred_tenant_id` correctly makes this a no-op, not a duplicate or a silent overwrite.
+- **Tenant-facing views:** `GET /my-link` correctly returned the dev tenant's real slug as its
+  referral code and a real, trusted signup URL; `GET /commissions` correctly showed both test
+  commissions with their referred-tenant names resolved via join.
+- **The full superadmin lifecycle — approve, an honest automatic-payout refusal, manual payout,
+  reject, and the already-decided guard, all confirmed live:** a `TENANT_ADMIN` is correctly
+  refused the platform-wide view (`403`, `SUPER_ADMIN` only); a `SUPER_ADMIN` sees both commissions
+  across tenants with both tenant names resolved. Approved Tenant A's commission (`decided_at`/
+  `decided_by` stamped) → attempted automatic payout, correctly refused (`409`) with an honest,
+  specific message ("No payout provider is connected yet... record the payout manually") rather
+  than a fake success — matches this codebase's established pattern of never claiming to have paid
+  out through a gateway that doesn't exist. Recorded a real manual payout (`status: 'paid'`,
+  `paid_at`/`payout_method` stamped); a second manual-payout attempt on the same commission
+  correctly refused (`404`, no longer `'approved'`). Rejected Tenant B's flagged commission
+  (`decided_at` stamped); attempting to decide either commission a second time — the rejected one
+  or the already-paid one — both correctly refused (`404`, "already decided").
+- **Came back clean — no code changes needed.** Full suite green (11 files / 105 tests),
+  `check:triggers` OK, API healthy throughout.
+- **Test-artifact handling:** both test tenants and their commission rows (created via direct SQL
+  as setup) were removed the same way — deleted the `referral_commissions` rows first (no cascade
+  FK), then the two tenant rows, confirmed zero remaining. No real tenant, user, or business data
+  was touched. Usage counter unaffected (this journey used no metered write endpoints).
+
+### HUD-0086 — Phase 5: HuduBI platform data-quality engine journey traced live · CLEAN, verified by deliberately planting real anomalies and watching the SQL logic actually catch them
+- **Category:** Functional correctness (Phase 5, forty-fifth journey) — the first this arc to
+  verify a diagnostic tool's own detection logic against deliberately-injected real defects, rather
+  than just exercising its happy path.
+- **Baseline (no injection needed):** a first `POST /run` (before planting anything) already came
+  back with real, live findings from this arc's own testing activity — three genuine
+  `duplicate_domain_events` findings and four genuine `domain_events_volume_anomaly` findings —
+  confirming the engine finds real signal in real data, not just in fixtures built for it.
+- **Deliberately planted three real anomalies via direct SQL (a disclosed, one-time setup step —
+  each row realistically shaped, not a synthetic fixture) and confirmed the checker's own SQL logic
+  detects every one, with the exact right sample id, count, and tenant attribution:**
+  a `domain_events` row timestamped 10 minutes in the future (`future_domain_events`); a
+  `stage_history` row whose `exited_at` precedes its `entered_at` (`stage_history_negative_
+  duration`); a `sign_certifiers` row marked `verified` with an `expiry_date` 30 days in the past
+  (`expired_verified_certifiers`). All three showed up correctly on the very next run, each finding
+  matching its planted row's real id exactly.
+- **A real, useful discovery about one check's actual reachability, found while planning the
+  test rather than by reading the code alone:** `metric_alert_rules.metric_key` carries a genuine
+  foreign key to `metric_definitions(metric_key)` — confirmed live by a failed insert — which means
+  `orphan_metric_alert_rules` can **never** fire for a rule created against a metric that never
+  existed (the FK physically prevents that row from ever being written); it can only fire for a
+  rule whose metric was later deprecated *after* the rule was created. The check's own description
+  ("monitor deprecated or non-existent metrics") is accurate, but only the "deprecated" half is
+  actually reachable in practice — not tested further here, since exercising it would require
+  temporarily deprecating a real, platform-wide (non-tenant-scoped) metric definition, a shared-
+  state change with a blast radius wider than this one check's coverage justified.
+- **The self-healing design — the whole reason each run is a fresh snapshot rather than a
+  maintained "resolved" flag — verified live, not just read from the comment:** after cleaning up
+  all three planted rows, the very next run correctly stopped reporting any of them, with zero
+  special handling needed to make that happen.
+- **Also confirmed live:** `GET /findings` returns exactly the latest run's rows, including the
+  planted ones while they existed; a `TENANT_ADMIN` is correctly refused the entire module (`403`,
+  `SUPER_ADMIN` only) — data quality here is an engineering concern about the platform's own
+  pipeline, not tenant-facing data.
+- **Came back clean — no code changes needed.** Full suite green (11 files / 105 tests),
+  `check:triggers` OK, API healthy throughout.
+- **Test-artifact handling:** all three planted rows were deleted via direct SQL (symmetric with
+  how they were created) before the final confirmation run. The `data_quality_findings` rows this
+  journey's three `POST /run` calls produced were deliberately left in place — this table is the
+  tool's own accumulating run history, not a business record subject to cleanup, and its whole
+  design (`getLatestFindings()` always reads the newest `run_id`) means the older runs are already
+  inert.
+
+### HUD-0087 — Phase 5: cross-app related-records lookup journey traced live · CLEAN, including a critical cross-tenant isolation check
+- **Category:** Functional correctness (Phase 5, forty-sixth journey).
+- **Trace:** the generalized "what's linked to this record" panel — one registry backing both
+  `shipment` and `customer` entity types, each relation a small independent real query (some by FK,
+  some by text-match on `ref_number`, one a two-table join). Fetched a real shipment with exactly
+  one real linked invoice and confirmed the response correctly included only that one relation —
+  then independently verified against Postgres that the three *other* shipment relations
+  (containers, tracker snapshots, trips) are genuinely empty for this shipment, confirming their
+  omission reflects real absence, not hidden or lost data. Fetched a real customer with two real
+  linked invoices (including a `Void`-status one, correctly still shown — a complete real history,
+  not filtered by status) and got both back correctly.
+- **The most important check — live cross-tenant isolation, not assumed from the code's own
+  `tenant_id` scoping:** looked up a real shipment id that genuinely belongs to a **different**
+  tenant and confirmed the API correctly returns `404: "Record not found"` rather than that
+  tenant's real linked-record data — the `resolve()` function's tenant scoping actually holds under
+  a real cross-tenant id, not just in the abstract.
+- **Also confirmed live:** an unknown entity type correctly 404s with a specific message naming it;
+  a valid entity type with a nonexistent id correctly 404s; a `CUSTOMER` JWT is correctly refused
+  the entire endpoint (`403`) — the file's own header comment already documents *why*: per-relation
+  resolution scopes by tenant only, not by ownership, which would otherwise let a customer enumerate
+  another customer's linked records by guessing an id, so the whole surface is blocked for that role
+  rather than adding a narrower ownership check per relation.
+- **Came back clean — no code changes needed.** This was a purely read-only journey (no data
+  created), so no cleanup or usage-counter restoration was needed. Full suite green (11 files / 105
+  tests), `check:triggers` OK, API healthy throughout.
+
+### HUD-0088 — Phase 5: NexusHR benefits administration journey traced live · CLEAN (no finding)
+- **Category:** Functional correctness (Phase 5, forty-seventh journey).
+- **Trace:** `hr-benefits.routes.ts` — plan lifecycle and enrollment lifecycle, both halves of the
+  self-vs-MGMT authorization split. `POST /plans` (a real benefit plan) → self-enrollment
+  (`POST /enrollments` as the employee) → a second employee attempted by a non-MGMT actor on
+  *another* employee's behalf (authorization boundary) → the same MGMT-for-someone-else
+  enrollment done correctly by a MANAGER → `GET /my-enrollments` (self) vs `GET /enrollments`
+  (MGMT-wide) → waive (`PATCH .../status` to `waived`) → re-enroll into the same plan → terminate
+  (`PATCH .../status` to `terminated`) → a non-MGMT actor attempting to change *another*
+  employee's enrollment status (second authorization boundary) → soft-delete (retire) the plan
+  (`DELETE /plans/:id`) → confirm history survives → attempt a brand-new enrollment into the
+  now-retired plan → `POST /plans` attempted by a JUNIOR (plan-creation RBAC gate).
+- **Result: every mechanism worked exactly as designed, including two easy-to-get-wrong details.**
+  Waiving an enrollment correctly left `terminated_at` as `null` — confirmed directly against
+  Postgres, not just the response — proving the handler only stamps that column for
+  `status: 'terminated'`, not any non-`enrolled` status generically (a plausible off-by-one this
+  code avoided). Re-enrolling into the same plan after waiving went through the route's real
+  `onConflict(['tenant_id','employee_id','plan_id']).doUpdateSet(...)` upsert — confirmed via a
+  direct SQL count that exactly **one** `hr_benefit_enrollments` row exists for that
+  employee/plan pair afterward, not a duplicate second row sitting alongside the waived one.
+  Both authorization boundaries (a non-MGMT employee enrolling or changing the status of someone
+  *other than themselves*) were correctly refused with `403`; the self-vs-MGMT split does not
+  leak into either direction. Soft-deleting the plan (`active = false`) correctly removed it from
+  `GET /plans`'s active list while both real enrollment rows — one `enrolled`, one `terminated` —
+  remained fully queryable and correctly attributed, proving the soft-delete exists specifically
+  to preserve enrollment history rather than cascade-deleting it. A fresh enrollment attempt
+  against the now-retired plan was correctly refused (`404: "Plan not found or no longer
+  offered."`). Plan creation is correctly gated to `SUPER_ADMIN`/`ADMIN`/`TENANT_ADMIN`/`MANAGER`
+  — a `JUNIOR` JWT was refused with `403` naming the required roles.
+- **No bug found.**
+- **Test-artifact handling:** enrollments have no hard-delete endpoint at all (matching the
+  platform-wide pattern for business records this arc has repeatedly confirmed) — both real
+  enrollments were left in a terminal `terminated` state, clearly attributable to `HUD-0088`; the
+  plan itself is left soft-deleted (`active = false`), which is itself the correct, working
+  cleanup mechanism, not a workaround. Usage counter restored to 500/500. No code changes this
+  pass.
+
+### HUD-0089 — Phase 5: Road consignments + warehouse dock-appointment journey traced live · found and fixed a real, file-wide MEDIUM bug
+- **Category:** Functional correctness (Phase 5, forty-eighth journey).
+- **Trace:** `consignments.routes.ts`/`consignment.service.ts` — create a road consignment → add a
+  trip → advance it `PENDING→IN_PROGRESS→COMPLETED` → add a border crossing → advance it to
+  `CLEARED` → advance the consignment itself `PENDING→DISPATCHED→DELIVERED`. Separately,
+  `warehouse.routes.ts` — create a location → create a dock appointment → check-in → complete →
+  occupancy heatmap.
+- **The golden path itself is clean.** Consignment numbers auto-generate correctly
+  (`RC-202609-0001`); advancing a trip to `IN_PROGRESS`/`COMPLETED` correctly stamps
+  `start_date`/`end_date`; advancing a border crossing to `CLEARED` correctly stamps `cleared_at`
+  *and* `documents_checked: true` together; advancing the consignment to `DISPATCHED`/`DELIVERED`
+  correctly stamps `dispatched_at`/`delivered_at`. Warehouse: a dock appointment correctly moves
+  `SCHEDULED→CHECKED_IN→COMPLETED`, and the occupancy heatmap correctly reported `0` for a fresh
+  location with no stock ever received against it (an honest zero, not a fabricated number).
+  Role gates verified live: consignment creation is refused to a `JUNIOR` (`OFFICER`/`MANAGER`+
+  only) while every operational transition (trip/border/status updates) is deliberately open to
+  any non-`CUSTOMER` staff role, matching the file's own design; `CUSTOMER` is correctly refused
+  the entire consignments and warehouse surfaces.
+- **Found and fixed a real MEDIUM bug, reaching across the whole file, not one route.** Every
+  id-lookup and id-based mutation in `consignment.service.ts` used `.executeTakeFirstOrThrow()` —
+  a plain wrong, stale, or deleted id crashed with a raw `500 {"message":"no result"}` instead of
+  a clean `404`, live-confirmed across all six affected routes: `GET /:id`, `PATCH /:id/status`,
+  `POST /:id/trips`, `PATCH /trips/:tripId/status`, `POST /:id/borders`,
+  `PATCH /borders/:borderId/status`. `POST /:id/trips` and `POST /:id/borders` were worse than a
+  clean throw — with no existence check on `consignmentId` before inserting, a foreign/stale id
+  fell straight into the table's real FK constraint and crashed the same way. **Verified this
+  wasn't a security gap first**: `consignment_trips` carries no `tenant_id` column at all (scoped
+  only transitively through `road_consignments` via its FK) and `updateTripStatus`/
+  `updateBorderStatus` filter by bare `id` with no explicit tenant clause in the query — read
+  `pg_policies` directly and confirmed real, correctly-scoped RLS policies exist on all three
+  tables (`consignment_trips`'s policy resolves through a `road_consignments` subquery,
+  `border_crossings`'s own `tenant_id` column is checked directly) with `FORCE ROW LEVEL SECURITY`
+  set — so a cross-tenant id was never able to read or mutate another tenant's row, only to crash
+  ugly instead of 404ing clean. Live-confirmed with a real second tenant's `TENANT_ADMIN` JWT
+  against this journey's own real trip/border/consignment ids: correctly refused with `404`, not
+  leaked data, both before and after the fix (only the status code around the refusal changed).
+  **Fixed** by switching every affected call to `.executeTakeFirst()` and adding an explicit
+  consignment-existence check to `addTrip`/`addBorderCrossing` (the same "check the reference
+  exists before writing" convention this arc already applied in HUD-0084), with each route handler
+  now translating a `null` result into a real `404`. Re-verified live: all six original crashing
+  reproductions now 404 cleanly with a specific message, while the real happy-path data created
+  earlier in the same run remained fully reachable and correct throughout.
+- **Aside, not a bug:** `GET /warehouse/*` refused with `403 PLAN_UPGRADE_REQUIRED` at the start of
+  this trace — the dev tenant's `growth` plan doesn't include `tracking.warehouse`. Granted a
+  temporary `tenant_settings.settings['enabled-apps']['tracking.warehouse'] = true` override (the
+  platform's own real per-tenant grant mechanism, `entitlement.ts`'s documented explicit-true
+  path) to exercise the golden path, then removed the key afterward, confirmed the override map is
+  back to `{}` exactly as it was found.
+- **Test-artifact handling:** the real consignment (`RC-202609-0001`, `DELIVERED`, clearly labeled
+  `HUD-0089 test cargo`) plus its one trip and one border crossing were left in place — this file
+  has no `DELETE` endpoint anywhere, matching the platform-wide no-hard-delete convention for
+  business records. The warehouse location and dock appointment both have real `DELETE` endpoints
+  and were fully removed. Usage counter restored to 500/500 (temporarily lowered mid-journey after
+  a shared-dev-tenant collision with concurrent real traffic pushed it to the cap; verified the
+  restore). Full suite green (11 files/105 tests), `tsc`/`check:triggers` clean.
+
+### HUD-0090 — Phase 5: NexusHR training & certification journey traced live · CLEAN (no finding)
+- **Category:** Functional correctness (Phase 5, forty-ninth journey).
+- **Trace:** `hr-training.routes.ts` — a course catalogue + enrollment lifecycle deliberately built
+  as "confirmed entirely absent in the audit" per the file's own header comment, so this is the
+  first live trace of it. Created a real certification course (12-month validity) and a plain
+  course → self-enrollment → duplicate-enrollment refusal → a non-MGMT actor attempting to enroll a
+  *different* employee (403) → MGMT correctly enrolling that other employee → enrollment into a
+  nonexistent course (404) → a non-MGMT actor attempting to record their own outcome (403,
+  MGMT-only) → MGMT completing the certification enrollment → MGMT failing the plain-course
+  enrollment → cancel boundaries (a completed enrollment refused cancellation, a non-owner/non-MGMT
+  actor refused cancelling someone else's, the actual owner succeeding) → the expiring-certifications
+  report → `GET /my-enrollments` (self) vs `GET /enrollments` (MGMT-wide, correctly refused to a
+  `JUNIOR`) → soft-delete (retire) both courses → confirmed enrollment history survives.
+- **Result: every mechanism worked exactly as designed, including the one genuinely computed
+  figure in the file.** Completing the certification enrollment stamped a `certificate_expiry_date`
+  of `2027-09-13`, matching an independent hand-computation of the exact same
+  `new Date(now.getFullYear(), now.getMonth()+12, now.getDate())` formula to the day — confirming
+  the snapshot-on-completion design (the expiry is stored on the enrollment itself, not
+  recalculated from the course's current `validity_months` later) actually holds. Failing the
+  *plain* course's enrollment correctly left `certificate_expiry_date: null` — the expiry math only
+  fires for `is_certification` courses, not unconditionally on every `COMPLETED`/`FAILED` outcome.
+  The expiring-certifications report (365-day horizon) correctly surfaced only the one real
+  completed certification (`days_left: 364`, `already_expired: false`) and correctly omitted both
+  the cancelled duplicate enrollment and the failed non-certification enrollment. Both authorization
+  boundaries (non-MGMT enrolling or cancelling *someone else's* enrollment) were correctly refused
+  with `403`; recording an outcome is correctly MGMT-only even for one's own enrollment. Retiring
+  both courses correctly removed them from the active catalogue while every enrollment row —
+  completed, failed, and cancelled alike — stayed fully queryable and correctly attributed.
+- **No bug found.**
+- **Test-artifact handling:** enrollments have no hard-delete endpoint (matching the same
+  no-hard-delete convention `hr-benefits.routes.ts` already established in HUD-0088) — all three
+  real enrollments were left in a terminal state (`COMPLETED`, `FAILED`, `CANCELLED`), clearly
+  attributable to `HUD-0090`; both courses left soft-deleted/retired. Usage counter restored to
+  500/500 (temporarily lowered for this journey's metered `POST` creates, verified restored). No
+  code changes this pass.
+
+### HUD-0091 — Phase 5: NexusHR onboarding/offboarding checklist journey traced live · CLEAN (no finding)
+- **Category:** Functional correctness (Phase 5, fiftieth journey).
+- **Trace:** `hr-checklists.routes.ts`/`hr-checklists.subscribers.ts` — the whole point of this
+  feature is that per-person checklists are never created directly through this route file, only
+  generated automatically by a subscriber reacting to real `user.joined`/`hr.staff_deactivated`
+  domain events. Rather than testing the subscriber's logic in isolation, drove it through the
+  actual production path end to end: set a real 4-item onboarding template → created a real
+  `hr_invitations` row and accepted it through the genuinely public, unauthenticated
+  `POST /auth/accept-invite` (the same endpoint every real new hire uses) → confirmed a real
+  onboarding checklist was auto-generated with all 4 items copied correctly → checked items off one
+  at a time, confirming the checklist stays `in_progress` through the first three and auto-completes
+  (with a real `completed_at` stamp) only on the fourth → unchecked one item and confirmed the
+  checklist auto-reopened (`completed_at` cleared) — a genuinely bidirectional status derivation, not
+  a one-way completion flag. Then set a real 3-item offboarding template and deactivated the same
+  employee through the actual `PATCH /v1/hr/staff/:id/status` endpoint (the real "someone left"
+  action any admin takes), confirming a *second*, independent offboarding checklist was correctly
+  auto-generated from the offboarding template — proving the subscriber correctly branches on event
+  type/checklist type, not just on "any HR lifecycle event."
+- **Result: every mechanism worked exactly as designed.** Checking off an item correctly attributed
+  `done_by`/`done_at` to the real acting user (a `MANAGER`, not the employee), matching the file's
+  own comment that a checklist can be worked by whoever's actually doing the onboarding tasks, not
+  only the new hire. All not-found paths were already correctly built: an unset template returns a
+  real empty list rather than a 404 (`{"type":"onboarding","items":[]}` — a template not yet created
+  is a legitimate, common state, not an error); an unknown checklist type is a clean `400`; a
+  nonexistent checklist or item is a clean `404` via `.executeTakeFirst()` (unlike HUD-0089's
+  `consignments.routes.ts`, every id-lookup in this file already does this correctly). Cross-tenant
+  isolation verified live with a real second tenant's JWT against this journey's own real checklist
+  id: correctly refused `404`, not leaked. The whole file is correctly `MGMT`-only (no
+  employee-self-service surface at all, by design — a `JUNIOR` and a `CUSTOMER` were both refused
+  every route).
+- **No bug found.**
+- **Test-artifact handling:** both templates were reverted to empty items via the real
+  `PUT /templates/:type` endpoint (symmetric with how they were created), restoring the tenant to
+  its original "no template configured" state. The one real new-hire user
+  (`c2317842-…`, "HUD-0091 New Hire") and both real checklists have no delete endpoint anywhere in
+  the schema — left in place, already in a natural terminal state (`active: false`, one checklist
+  `in_progress` with 3/4 items done, one `in_progress` with 0/3), clearly attributable by name. No
+  code changes this pass.
+
+### HUD-0092 — Phase 5: SEAL warehouse equipment & maintenance journey traced live · found and fixed a real MEDIUM bug (same family as HUD-0089)
+- **Category:** Functional correctness (Phase 5, fifty-first journey).
+- **Trace:** `seal-equipment.routes.ts` — warehouse plant/tooling maintenance tracking (forklifts,
+  scanners, racking, reefer/HVAC), deliberately distinct from Tracking/Fleet's `vehicles`. Created
+  three real equipment items with due dates 5 days out, 3 days overdue, and 90 days out → confirmed
+  the derived `alert`/`daysUntilServiceDue` fields computed correctly for all three (`due_soon`,
+  `overdue`, `null`) → set the overdue item to `out_of_service` and confirmed its alert switches to
+  `out_of_service` regardless of its due date (the file's own documented override) → logged a real
+  `repair` maintenance record resolving it back to `operational` with a new condition and due date →
+  confirmed the equipment's own `status`/`condition`/`last_service_date`/`next_service_due_date` all
+  updated atomically in the same transaction as the maintenance record insert, and the alert
+  correctly cleared to `null`.
+- **The golden path itself is clean and the derived-alert design is real.** All three alert states,
+  the `out_of_service` override, and the maintenance-record-as-source-of-truth cascade (the parent
+  row's watermarks are a cached projection of "the latest maintenance event," matching the file's
+  own comment comparing it to `seal_lots.storage_billed_through`) all worked exactly as designed.
+  `CUSTOMER` is correctly refused the whole surface.
+- **Found and fixed a real MEDIUM bug, same class as HUD-0089's consignments finding.**
+  `PATCH /equipment/:id` used `.executeTakeFirstOrThrow()`, so a wrong/stale/foreign id crashed with
+  a raw `500 {"error":"no result"}` instead of a `404`. `POST /equipment/:id/maintenance` was worse:
+  with no existence check on the equipment id before inserting, a bad id fell straight into the real
+  FK constraint and crashed with a raw `500` that leaked the constraint's internal name
+  (`seal_equipment_maintenance_records_equipment_id_fkey`) in the response body — both
+  live-confirmed. Both queries already carried an explicit `.where('tenant_id', '=', ...)` clause
+  (unlike HUD-0089's RLS-only-scoped tables), so this was purely a wrong-status-code/verbose-error
+  bug, not a tenant-isolation gap. **Fixed** by switching the `PATCH` to `.executeTakeFirst()` with
+  a `404` on a falsy result, and adding the same "check the reference exists before writing" guard
+  to the maintenance-record insert (matching HUD-0084's and HUD-0089's established convention).
+  Re-verified live: both original crashing reproductions now `404` cleanly with a real equipment id
+  still working correctly for both routes afterward.
+- **Test-artifact handling:** `seal_equipment` has no delete endpoint anywhere in the file — all
+  three test items were retired (`status: 'retired'`, a real terminal status in the enum) rather
+  than left `operational`, clearly labeled via their `HUD0092-*` asset tags. Usage counter restored
+  to 500/500 (temporarily lowered for this journey's metered creates, verified restored). Full suite
+  green (11 files/105 tests), `tsc`/`check:triggers` clean.
+
+### HUD-0093 — Phase 5: SEAL zone-occupancy sensor/camera journey traced live · CLEAN (no finding)
+- **Category:** Functional correctness (Phase 5, fifty-second journey).
+- **Trace:** `seal-sensors.routes.ts` — a real device registry + ingestion endpoint + live
+  WebSocket broadcast, honestly built with no physical sensor wired up yet (per the file's own
+  header comment). Registered a real occupancy sensor device → ingested a nonexistent `device_id`
+  (correctly refused `404`, already built right — no fix needed here, unlike the sibling
+  `seal-equipment.routes.ts` this same cluster's HUD-0092 fixed) → connected a real WebSocket client
+  to `/ws` (authenticated the same way a browser would, via the `Authorization: Bearer` fallback
+  `extractToken()` supports) → ingested three real readings **out of chronological order**
+  (`recorded_at` 10:00, then 12:00, then 11:00) to specifically stress the "latest by timestamp, not
+  by insertion order" claim.
+- **Result: every real-time mechanism worked exactly as designed.** All three ingests correctly
+  broadcast a real `seal.sensor_reading` WebSocket message to the connected client, tagged with the
+  correct device/compartment/reading-type/value — genuinely live, not a stub. The "current reading"
+  `DISTINCT ON` query correctly reported the *12:00* reading (value `7`) as latest, correctly
+  ignoring that the *11:00* reading (value `5`) was physically inserted last — proving the ordering
+  keys off `recorded_at`, not row-insertion order, exactly as the file's comment claims. The
+  readings-history endpoint correctly returned all three in descending chronological order.
+  `CUSTOMER` is correctly refused the whole surface.
+- **No bug found.** Unlike its sibling `seal-equipment.routes.ts` (HUD-0092, same cluster, same
+  session), this file's ingestion path already does the "check the device exists before writing"
+  guard correctly and returns a clean `404` — a useful same-cluster contrast confirming the
+  HUD-0092/HUD-0089 pattern isn't universal, just wherever `.executeTakeFirstOrThrow()` was used
+  carelessly.
+- **Test-artifact handling:** `seal_sensor_devices` has no delete/deactivate endpoint exposed in
+  this file — the one real test device (`HUD0093-OCC1`) was left in place, clearly labeled, along
+  with its three real readings. Usage counter restored to 500/500 (temporarily lowered for this
+  journey's metered device-creation, verified restored). No code changes this pass.
+
+### HUD-0094 — Phase 5: SEAL warehouse automation-rules journey traced live · found and fixed a real MEDIUM bug (third instance of the HUD-0089/HUD-0092 pattern)
+- **Category:** Functional correctness (Phase 5, fifty-third journey).
+- **Trace:** `seal-automation.routes.ts` — a small, purpose-built trigger→action table (explicitly
+  not a third generic workflow engine, per the file's own header comment), fired only by a real
+  on-demand "Run Automation Check" button, never a hidden background job. Created a real
+  `low_stock`/`create_task` rule (threshold 5) and a real `seal_lots` fixture at `qty_on_hand: 3` →
+  ran `POST /automation-rules/evaluate` and confirmed it correctly fired against **three** real
+  qualifying lots in the tenant (my fixture plus two genuinely pre-existing low-stock lots — not
+  narrowed to a made-up scenario) → independently confirmed one of the resulting `seal_tasks` rows
+  directly against Postgres: correct title (`[Automation: HUD-0094 low stock alert] …`), correct
+  `high` priority, correctly `NULL` assignee/compartment matching the rule's own unset fields → ran
+  the exact same evaluation a second time immediately after and confirmed it correctly fired **zero**
+  times, proving the `existingOpen` per-rule-per-subject dedup guard actually prevents duplicate
+  tasks on a repeat click, not just in theory.
+- **Result: the trigger/dedup mechanics are real and correct.** Deactivating the rule and any staff
+  role (a `JUNIOR`, not just MGMT) being able to create/toggle a rule both matched this SEAL cluster's
+  established "any non-CUSTOMER role" convention (same as HUD-0092/HUD-0093's siblings); `CUSTOMER`
+  is correctly refused the whole surface.
+- **Found and fixed a real MEDIUM bug — the third occurrence of the exact HUD-0089/HUD-0092 pattern
+  in this same SEAL module.** `PATCH /automation-rules/:id` used `.executeTakeFirstOrThrow()`, so a
+  wrong/stale/foreign id crashed with a raw `500 {"error":"no result"}` instead of a clean `404`,
+  live-confirmed. **Fixed** by switching to `.executeTakeFirst()` with an explicit `404` on a falsy
+  result, matching the same fix already applied to `consignments.routes.ts` and
+  `seal-equipment.routes.ts`. Re-verified live: the original crashing reproduction now `404`s
+  cleanly while the real rule's own `PATCH` still works. **Ran a platform-wide sweep rather than
+  just recommending one.** A `grep` for `.where('id', '=', <url param>)…executeTakeFirstOrThrow()`
+  across `apps/api/src/routes` surfaced roughly **30 files**, not a small tail — far more than the
+  three this arc found journey-by-journey (consignments, SEAL equipment, SEAL automation).
+  Spot-checking a sample shows most are *not* live bugs: `fixed-assets.routes.ts`,
+  `task-projects.routes.ts`, and `vehicleDetail.routes.ts` all perform a real existence check
+  (`executeTakeFirst()` returning a clean `404`, or a `resolveProjectAccess()` helper doing the
+  same) immediately before the throwing call, so the "throw" branch is dead code in practice, not a
+  reachable crash — materially different from HUD-0089/0092/0094's bare, unchecked update.
+  Distinguishing the two requires reading each call site's surrounding handler, not just the grep
+  hit itself, so this is correctly its own bounded Phase-5-style sweep for a future session, not a
+  quick fix appended here — reported as a scoped, ready-to-start follow-up (`grep -rn ".where('id',
+  '=', .*executeTakeFirstOrThrow" apps/api/src/routes`, then classify each hit as guarded vs
+  unguarded) rather than an item this journey either fixes wholesale or dismisses as narrow.
+- **Test-artifact handling:** the real rule and a stray probe rule (created while testing the
+  any-staff-role RBAC boundary) were both fully removed via the real `DELETE` endpoint. The fixture
+  `seal_lots` row, its one automation run, and its one auto-created task (all created by this
+  journey) were removed via direct SQL, symmetric with the fixture's own SQL-based creation. The
+  automation runs/tasks generated against the *other two, genuinely pre-existing* low-stock lots
+  were deliberately left untouched — they are real automation output against real tenant data this
+  journey did not create, not test debris. Usage counter restored to 500/500 (temporarily lowered
+  for this journey's metered rule-creation, verified restored).
+
+### HUD-0095 — Phase 5: AgencyHost managed-client onboarding + cross-agency isolation journey traced live · CLEAN (no finding)
+- **Category:** Functional correctness (Phase 5, fifty-fourth journey).
+- **Trace:** `onsite-agency.routes.ts`/`onsite-agency-manage.routes.ts`/`agency-tenant.service.ts` —
+  an agency tenant provisioning and day-to-day managing a genuinely independent client tenant's
+  Onsite resources, without impersonation. Created a real new client tenant via
+  `POST /v1/onsite/agency/clients` → independently confirmed against Postgres that all three
+  expected rows exist and agree (`tenants` row with `plan: 'agency-managed'`, a real `PENDING`
+  `hr_invitations` row for the client's future admin, an `active` `agency_managed_tenants`
+  relationship row) → managed the new client end to end from the agency side: overview → created a
+  domain (confirmed a DNS zone plus two real NS records auto-created) → added a real A record →
+  attempted a deploy on the freshly-created application (honestly refused `409`, no CI provider
+  connected for this brand-new tenant — not faked) → created a health check and ran it live
+  (a genuine DNS resolution failure against the fictitious test domain, correctly stamped
+  `status: critical` with a real error message and response time, not a canned success) → linked a
+  billing customer in the *agency's own* books → detached the client.
+- **The most important check — live cross-agency isolation, not assumed from the code's own
+  tenant-pinning logic:** a genuinely different tenant's `TENANT_ADMIN` (not the agency that created
+  this client) was correctly refused `404: "Client not found"` reaching the exact same client's
+  overview — not a 403 that would confirm the client's existence, matching the middleware's own
+  documented reasoning. That other tenant's own `GET /clients` list correctly showed only its own
+  genuinely pre-existing managed client, never the HUD-0095 test client. After detaching, **the
+  same agency that had just been managing this client also lost access** — `verifyAgencyClientAccess`
+  correctly re-checks `status = 'active'` on every request, not just at attach time — and a second
+  detach attempt on the now-inactive relationship correctly 404s too (idempotent, matching the
+  file's own comment that "there's nothing to detach twice").
+- **Also confirmed live:** `MANAGER` is correctly refused `/clients` (`SUPER_ADMIN`/`ADMIN`/
+  `TENANT_ADMIN` only, an account-level action); a nonexistent application id at `/deploy` correctly
+  404s (this file already does the "check exists first" guard right, unlike the SEAL-cluster bugs
+  found earlier this arc). Self-caught a non-bug: an empty-path-segment URL (`//deploy`, from my own
+  stale shell variable) produced a raw 500 — Fastify's own routing behavior for a malformed path,
+  not this route's bug; re-tested with a well-formed nonexistent id and got the correct `404`.
+- **No bug found.**
+- **Test-artifact handling:** the new client tenant has no delete endpoint (tenants are never
+  hard-deleted anywhere on this platform) — left in place, clearly labeled
+  `HUD-0095 Test Client Co`, already detached from any agency and with a `PENDING` invitation nobody
+  will ever accept. The linked billing customer (in the dev tenant's own books) was left in place,
+  same label. Usage counter restored to 500/500 (temporarily lowered for this journey's metered
+  tenant-creation, verified restored). No code changes this pass.
+
+### HUD-0096 — Phase 5: HuduBI configurable widgets + cross-app entity resolution journey traced live · found and fixed a real LOW bug; a code-reading security hypothesis tested live and disproven
+- **Category:** Functional correctness (Phase 5, fifty-fifth journey).
+- **Trace:** `hudubi.routes.ts`'s two surfaces beyond the already-closed data-quality engine
+  (HUD-0086): the configurable widget/report builder and the M5 cross-app semantic entity resolver.
+  Fetched the real metric registry → previewed `customers_count` and independently confirmed it
+  against a direct `SELECT count(*)` on Postgres (26, matching exactly) → saved a real widget →
+  confirmed `GET /widgets/:id/data` returns the identical figure to the raw preview → renamed it and
+  changed its chart type → deleted it. For entity resolution: resolved a real, genuinely
+  pre-existing customer (from HUD-0083's own test data) and confirmed a real `client_id`-linked Sign
+  envelope was correctly returned; resolved a second real customer with a real email set and
+  confirmed a second, genuinely pre-existing `client_id` hit *plus* a newly-planted fuzzy-email-match
+  envelope (no `client_id`, a `sign_recipients` row whose email matches the customer's own) — both
+  correctly attributed with the exact right `matched_via` value and explanatory summary text.
+- **Found and fixed a real LOW bug**: `updateWidget()` used `.executeTakeFirstOrThrow()`, so a
+  wrong/stale widget id threw "no result" — but unlike the SEAL-cluster instances of this same
+  pattern (HUD-0089/0092/0094), the route's catch block mapped *every* error to `400`, live-confirmed
+  turning a legitimate not-found into a response that reads as "your request body was malformed"
+  rather than "this widget doesn't exist" — a more actively misleading failure mode than a bare 500,
+  even though the status code itself was less obviously wrong. **Fixed** by having `updateWidget()`
+  throw the exact same `"Widget not found"` error `getWidgetData()` already throws, and having the
+  route map that specific message to `404` — reusing a convention already correct elsewhere in the
+  same file rather than inventing a new one. Re-verified live: the original reproduction now `404`s
+  cleanly, a real widget's `PATCH` still works.
+- **A code-reading security hypothesis was tested live and disproven, not reported on suspicion.**
+  `resolveCustomerAcrossApps()` runs on `dbPlatform` (which bypasses RLS) and its fuzzy-email-match
+  join only filters `sign_recipients.tenant_id`, never adding an explicit tenant clause on the
+  joined `sign_envelopes` row — a pattern that looked, from reading the code alone, like it could
+  leak a same-email match from a different tenant's envelope. Tested directly: planted a customer
+  and a `sign_envelopes`/`sign_recipients` pair in a **genuinely different, real tenant** sharing the
+  exact same email as this journey's own test customer, then confirmed the resolution correctly
+  returned *only* the real customer's own two hits — the other tenant's identically-emailed envelope
+  never appeared. Root cause of why this is actually safe: `sign_recipients.tenant_id` and its
+  parent `sign_envelopes.tenant_id` are always the same value by construction (a recipient is never
+  created against a different tenant's envelope anywhere in the codebase), so filtering the
+  recipient row's own tenant_id is sufficient in practice even without a redundant filter on the
+  join partner. Verified, not assumed — a genuine non-issue, matching this arc's established
+  "hypothesis tested live, not reported on suspicion" discipline (see HUD-0062, HUD-0071).
+- **Aside, not a bug:** the dev tenant's `growth` plan doesn't include `hudubi` — granted a temporary
+  `tenant_settings.settings['enabled-apps']['hudubi'] = true` override (the same real per-tenant
+  grant mechanism used in HUD-0089/HUD-0095) to exercise the surface, removed it afterward, confirmed
+  the override map is back to `{}`.
+- **Test-artifact handling:** the test widget was fully removed via the real `DELETE` endpoint; the
+  planted fuzzy-match envelope/recipient and the other-tenant customer/envelope/recipient were
+  cleaned up via direct SQL, symmetric with their SQL-based creation. Usage counter restored to
+  500/500 (temporarily lowered for this journey's metered widget-creation, verified restored).
+- **Separately noted, not investigated**: partway through this journey, `apps/api`'s `tsc --noEmit`
+  started failing on `cms-content.routes.ts:154` (a required-vs-optional `key` field type mismatch).
+  Confirmed via `git status` this file is untracked and was never touched by this session — it
+  belongs to a different, concurrent session's own in-progress CMS feature work (also visible:
+  `cms.routes.ts`/`cms.service.ts`/`packages/types/src/cms.ts` all modified, three new untracked
+  migrations, several new untracked web files). Confirmed this session's own two changed files
+  (`hudubi.routes.ts`, `hudubi-widgets.service.ts`) typecheck cleanly in isolation — the error is
+  entirely contained to the concurrent session's own file. Left alone, matching the same
+  cross-session-collision boundary already established at HUD-0074's `email.routes.ts` regression.
+
+### HUD-0097 — Platform-wide sweep: unguarded `executeTakeFirstOrThrow()` on a URL id · found and fixed 47 real instances across 21 files (17 in the original single-line sweep, 30 more in an addendum pass)
+- **Category:** Functional correctness / error-handling (the standing follow-up flagged in HUD-0094,
+  now executed in full).
+- **Trace:** `grep -rn ".where('id', '=', <url param or body field>)…executeTakeFirstOrThrow()"`
+  across every file in `apps/api/src/routes` — the exact same "no prior existence check, so a
+  wrong/stale/foreign id crashes instead of 404ing" pattern already found three times this arc
+  (HUD-0089 consignments, HUD-0092 SEAL equipment, HUD-0094 SEAL automation) and once in a related
+  400-mismapped form (HUD-0096 HuduBI widgets). The grep surfaced **~90 hits across ~40 files** —
+  read every single one in its surrounding handler to classify **guarded** (an `executeTakeFirst()`
+  existence check, or an equivalent helper like `resolveProjectAccess()`/`resolveTaskAccess()`,
+  already ran against the exact same id moments earlier in the same handler/transaction, making the
+  later `executeTakeFirstOrThrow()` unreachable-on-bad-id in practice) from **unguarded** (this is
+  genuinely the first touch of that id, with nothing upstream to catch a miss).
+- **Result: the overwhelming majority were already correct.** `hr.routes.ts` (15 hits — every
+  requisition/offer/delete-request transition route), `task-projects.routes.ts` (7 hits, all behind
+  `resolveProjectAccess()`), `security.routes.ts`, `bills.routes.ts`, `cit.routes.ts`,
+  `financeExpenses.routes.ts`, `gl-periods.routes.ts`, `wht.routes.ts`, `vat-periods.routes.ts`,
+  `files.routes.ts`, `invoices.routes.ts`, `products.routes.ts`, `contracts.routes.ts`,
+  `dividends.routes.ts`, `fixed-assets.routes.ts`, `hr-training.routes.ts`, `sign.routes.ts`,
+  `sign-stamps.routes.ts`, `sign-forensics.routes.ts`, `sms.routes.ts`, `seal.routes.ts`,
+  `ondi.routes.ts`, `ap-approval-workflows.routes.ts`, `addons.routes.ts`,
+  `contacts-sync.routes.ts`, `calls.routes.ts`, `tasks.routes.ts` — every one of these already does
+  a real existence check (or the id demonstrably comes from a row just fetched/inserted moments
+  earlier in the same transaction, e.g. `session.id`, `existing.id`, `row.id`) before the throwing
+  call. This confirms the earlier HUD-0089/0092/0094 instances were genuine one-off mistakes in
+  specific files, not a codebase-wide habit.
+- **Found and fixed 17 real unguarded instances across 5 files, all live-reproduced before the fix
+  and re-verified after:**
+  - **`cargoLoading.routes.ts`** (4 routes) — `PATCH /manifests/:id`, `PATCH /manifests/:id/status`,
+    `POST /manifests/:id/dispatch` all crashed on a bad manifest id; `POST
+    /manifests/:id/import-shipment` both never checked the *manifest* existed and threw a bare
+    `Error('Shipment not found')` with no `reply.status()` call for a bad *shipment* id (itself a
+    second variant of "not found reported wrong"). Fixed all four; added a manifest-existence check
+    to `import-shipment` and converted its shipment-not-found throw to a real `404`.
+  - **`inventory-counts.routes.ts`** (3 routes) — `PATCH .../lines/:lineId`, `POST .../post`, `POST
+    .../cancel` all crashed on a bad session id (and `.../lines/:lineId` also on a bad *line* id
+    within a real session) with the local catch reporting it as `422` (implying a malformed
+    request) instead of `404`. Fixed using this file's own pre-existing "return null from the trx,
+    check outside it" convention (already used by the file's own `POST /count-sessions`).
+  - **`seal-fulfillment.routes.ts`** (6 routes) — `POST .../pick` (both the order lookup and the
+    pick-line lookup by `lineId`), `.../pack`, `.../dispatch`, `.../cancel`, and `PATCH
+    /dispatch-requests/:id` all crashed on a bad id, again reported as `422`. Fixed all six.
+  - **`support.routes.ts`** (2 routes) — `PATCH /rules/:id` and `PATCH /kb/articles/:id` both
+    crashed on a bad id with no local catch at all, falling to the global error handler as a bare
+    `500` (confirmed via `index.ts`'s own error handler: a Kysely `NoResultError` carries no
+    Postgres `.code`/`.severity`, so the handler's driver-error sanitizer doesn't recognize it and
+    falls through to `reply.send(error)`).
+  - **`vehicleDetail.routes.ts`** (2 routes) — `PATCH /issues/:id` and `PATCH /issues/:id/resolve`
+    likewise crashed with no local catch and reached the global handler as a bare `500`; neither
+    handler even accepted a `reply` parameter, requiring that to be added as part of the fix.
+  - Every fix follows the same shape established at HUD-0089: switch the throwing call to
+    `.executeTakeFirst()`, check the result, return a real `404` with a specific message. All 17
+    were re-verified live post-fix — every original crashing reproduction (a well-formed but
+    nonexistent UUID) now returns a clean `404`, and a real, valid id still succeeds on every fixed
+    route.
+- **Test-artifact handling:** no persistent test data was created — every reproduction used a
+  synthetic, well-formed nonexistent UUID (`00000000-…-000099`) against the dev tenant, which by
+  construction never matches a real row and needs no cleanup. Two temporary entitlement overrides
+  (`tracking.cargo-loading`, granted to reach `cargoLoading.routes.ts`) and one temporary usage
+  counter lowering (for the metered `POST`s exercised) were both reverted/restored and verified.
+  Full suite green (11 files/105 tests), `check:triggers` OK; `tsc --noEmit` clean on all five
+  changed files (the two remaining errors are entirely contained in
+  `cms-content.routes.ts`/`cms-content.service.ts`, both untracked files belonging to a different,
+  concurrent session's own in-progress work — see this file's "Production build" row).
+
+**Addendum — the original sweep's grep had a blind spot, found by hand and closed in full.**
+While live-tracing `seal-warehouse-ops.routes.ts` as the next Phase 5 journey (unrelated to
+HUD-0097), found two more crashing routes (`PATCH /containers/:id/yard-slot`,
+`PATCH /containers/:id/vehicle`) that the original grep never matched — because the pattern
+required `.where('id', '=', …)` and `executeTakeFirstOrThrow()` to appear **on the same line**, and
+these call sites (like many in this codebase) wrap the chain across two lines. Re-ran the sweep with
+a multi-line-aware pattern (`grep -Pzo` / a multiline regex spanning a newline) across
+`apps/api/src/routes` and got **33 files**, not 5 — most already covered by the first pass's own
+files (re-confirming those were already correctly classified) but **16 new files** the single-line
+grep had silently skipped. Read every hit in its file, classified guarded vs unguarded exactly as
+before, and found **30 more real unguarded instances**:
+- **`fleetOps.routes.ts`** (5 routes) — `PATCH /drivers/:id`, `/vendors/:id`, `/trips/:id` (only
+  reachable when the patch body doesn't include `status: 'IN_PROGRESS'` — that branch alone had its
+  own real guard), `/maintenance/:id`, `/parts/:id`.
+- **`warehouse.routes.ts`** (4 routes) — `PATCH /warehouse/locations/:id` and all three dock-
+  appointment transitions (`check-in`/`complete`/`cancel`) — the same file HUD-0089's own journey
+  had already traced the *happy path* of live, but never the not-found case for these specific
+  routes.
+- **`fleetCompliance.routes.ts`** (3 routes) — documents, reminders, `alerts/:id/acknowledge`.
+- **`trailers.routes.ts`** (3 routes) — transporters, trailers, trailer-documents.
+- **`seal-warehouse-ops.routes.ts`** (2 routes) — the two that started this addendum.
+- **`tracking.routes.ts`** (2 routes) — vehicles, geofences.
+- **`inventory-catalog.routes.ts`** (2 routes) — warehouses, items.
+- **`org-chart.routes.ts`**, **`quotations.routes.ts`**, **`seal-examinations.routes.ts`**,
+  **`seal-documents.routes.ts`**, **`inventory-tasks.routes.ts`**, **`seal-tasks.routes.ts`**,
+  **`drives.routes.ts`** (1 route each, the last reported as a misleading `400` from its own local
+  catch, same shape as HUD-0096).
+- **`billing.routes.ts`** (`PATCH /payment-methods/:id/default`) — worse than the others: this
+  route unconditionally clears every payment method's `is_default` flag *first*, then sets the new
+  one — so a bad id used to crash *after* that first write had already committed, live-confirmed to
+  leave the tenant with **no default payment method at all**, not just a bad response. Fixed by
+  checking existence before touching any row, not just before the second write.
+- **`superadmin.routes.ts`** (`PATCH /tenants/:id`) — genuinely fetched a `before` row for its own
+  later plan-change-pruning logic but never checked it was non-null before proceeding to update.
+- All 24 of the newly-fixed routes with a reachable non-SUPER_ADMIN path were re-verified live
+  post-fix (the remaining 6 are thin siblings of an already-verified pattern in the same file);
+  `superadmin.routes.ts`'s fix was verified with a real platform `SUPER_ADMIN` account. Two real
+  records (`vehicles`, `drivers`) were also re-PATCHed with valid ids afterward to confirm the happy
+  path was untouched by the fix.
+- **Test-artifact handling:** same as the original sweep — every reproduction used a synthetic
+  nonexistent UUID needing no cleanup. Temporary entitlement overrides for `tracking.warehouse`,
+  `tracking.cargo-loading`, `seal`, and `crm` were granted to reach the gated files and fully
+  reverted afterward. `tsc --noEmit` clean on all 16 newly-changed files (same two pre-existing
+  concurrent-session CMS errors, unrelated); full suite green (11/105); `check:triggers` OK.
+- **HUD-0097 total, both passes combined: 47 real "crash instead of 404" bugs found and fixed
+  across 21 files** — the single largest fix count of any entry in this audit arc. The lesson this
+  addendum itself demonstrates: a grep-based sweep's completeness is only as good as its pattern's
+  tolerance for how the codebase actually formats a call chain — worth remembering before treating
+  any future single-pattern sweep's "done" as final without a second pass with a structurally
+  different pattern.
+
+### HUD-0130 — Phase 5: CMS Forms + a systemic sweep of the whole new CMS codebase for the HUD-0097 bug class (`cms-forms.routes.ts`/`.service.ts`, plus `cms-content.service.ts` and `cms-webhooks.service.ts`) traced live and adversarially · Found+fixed 7 real crash/leak-instead-of-404 bugs across 3 service files — the widest single-pass instance of this bug class in the arc
+- **Category:** Functional correctness + information disclosure (Phase 5, eighty-sixth journey). Forms —
+  a tenant defines a form's field shape once, a real `form` block places it publicly, and a visitor's
+  submission is validated server-side against that exact shape (honeypot-guarded, only declared field
+  keys ever read or stored, notify-email HTML properly entity-escaped before interpolation). Chosen as
+  the next CMS surface specifically for its genuinely public `POST /public/:tenantSlug/forms/:formKey/
+  submit` endpoint. While confirming the platform's global rate-limit plugin and its new global
+  driver-error-sanitizing handler (`index.ts`'s `setErrorHandler`, itself a recent addition) actually
+  cover this route, noticed that plugin only sanitizes *uncaught* errors — any route with its own local
+  `catch (err: any) { return reply.status(400).send({ error: err.message }) }` bypasses it entirely by
+  forwarding `err.message` directly. Given HUD-0127 (HuduBI) had already found this exact shape once,
+  and this "local catch re-leaks the raw error" pattern is used almost universally across every CMS
+  route file, this pass deliberately widened from "trace Forms" to "sweep every new CMS service file for
+  this pattern" rather than stopping at the one surface.
+- **Trace:** Grepped all 7 new CMS service files for unguarded `executeTakeFirstOrThrow()`, then read
+  each call site's context to separate genuine bugs from the transitively-safe ones this arc has always
+  distinguished (a plain `INSERT...RETURNING`, a `COUNT(*)` aggregate that always returns a row, or a
+  by-id `GET` route whose route already catches every error generically as a clean 404 with no message
+  forwarded). Of 21 raw hits, found 7 real, reachable, message-leaking ones — every single-resource
+  `PATCH` route across three files, and the one place a caller-supplied id feeds a live outbound HTTP
+  call: `updateForm` (`cms-forms.service.ts`), `updateModel`/`updateField`/`updateEntry`/
+  `updateComponent` (`cms-content.service.ts`), and `CMSWebhooksService.update`/`sendTest`
+  (`cms-webhooks.service.ts`). **Live-reproduced 4 of the 7 before writing any fix** (a nonexistent form,
+  content-model, webhook, and webhook-test all returned Kysely's own raw `{"error":"no result"}` at
+  `HTTP 400`), then treated the remaining 3 as confirmed by the identical code shape rather than
+  re-proving an already-established pattern a 5th/6th/7th time.
+- **Fixed** all 7 by replacing `executeTakeFirstOrThrow()` with `executeTakeFirst()` plus an explicit
+  `if (!row) throw new Error('X not found.')`, then extending each file's own existing error-mapping
+  convention to recognize it: `cms-forms.routes.ts` and `cms-content.routes.ts` each already had a
+  shared `handleError()` helper, extended with one generic check (`err.message.endsWith('not found.')`
+  → 404) rather than one exact-string check per resource type — safe because neither file's own
+  `ValidationError`/`FormValidationError` messages ever end that way; the two webhook routes (no shared
+  helper) got the same exact-string check HUD-0096 already established for `hudubi-widgets.service.ts`.
+  Re-verified live: all 7 reproductions now return a clean, resource-specific 404 (`"Form not found."`,
+  `"Model not found."`, `"Field not found."`, `"Entry not found."`, `"Component not found."`,
+  `"Webhook not found."` ×2), and a fresh create-then-patch round-trip on all 6 resource types (plus a
+  genuine webhook test — a real outbound POST to `https://example.com`, correctly getting back a real
+  `405` from that real server) confirmed zero regression to the legitimate path.
+- **Test-artifact handling:** one real form, content model (with a field and an entry), component, and
+  webhook created while exercising every fixed route were removed directly via the database afterward.
+  `tsc --noEmit` clean; full suite green (166/166 tests, 12/12 files — test count grew during this pass
+  from the concurrent CMS session's own ongoing work, unrelated); `check:triggers` OK (same unrelated
+  concurrent-CMS-session warnings). Shared dev server used directly throughout, confirmed healthy.
+
+### HUD-0129 — Phase 5: CMS Content Model Builder (`cms-content.routes.ts`/`cms-content.service.ts`/`cms-capabilities.service.ts` — no-code content types, typed/relation/computed fields, public dynamic templates, per-role capability matrix) traced live and adversarially · CLEAN (no finding)
+- **Category:** Security (Phase 5, eighty-fifth journey). The no-code Content Model Builder — a tenant
+  defines its own content type (Product, Employee, Event) with typed fields including a `relation` field
+  type that names another model as its target and a `computed` field that evaluates a formula against
+  sibling values — plus a genuinely public, unauthenticated dynamic-template route
+  (`/public/:tenantSlug/m/:modelKey/:entrySlug`) and a custom per-role capability matrix (§74) gating
+  view/manage/publish separately per CMS area. Never traced this arc as its own security-focused pass
+  (only exercised functionally in earlier CMS-development passes). Chosen specifically because a
+  dynamic, user-defined schema system with a real foreign-key-like `relation` field is exactly the shape
+  of feature where a cross-tenant reference-injection bug tends to hide.
+- **Trace:** Read both service files in full (1089 + 100 lines). **Cross-tenant relation-field IDOR**:
+  created a real model + relation field on one tenant pointing at a legitimate same-tenant target model,
+  then attempted to save an entry whose relation value was a real, live entry id belonging to a
+  genuinely different tenant (created via a second real account) — correctly refused
+  (`"Category" must reference an existing entry.`), confirming `validateAgainstFields`' relation check
+  really does scope the lookup by `tenant_id` and not just `model_id`. **Public draft-gating**: a real
+  draft entry correctly never appeared in the public list endpoint, and direct-by-slug access was
+  correctly refused both with no token and with a syntactically-plausible fabricated token. **Preview
+  token security**: confirmed the real HMAC+timingSafeEqual+24h-expiry token (same established pattern
+  as `object-storage.ts`'s signed URLs) actually works when genuine, and — the more meaningful check —
+  that a valid token minted for one entry does **not** transfer to a different entry's slug, confirming
+  the signature is genuinely bound to the specific row id, not just "any valid-looking token for this
+  model." **Capability matrix (§74)**: live-tested the custom per-role RBAC system rather than trusting
+  the code — confirmed a JUNIOR account has full default access today, then had a real admin account
+  revoke JUNIOR's `can_manage` for the `content` area, confirmed JUNIOR was immediately refused creating
+  an entry (403) while `can_view` (untouched) still allowed listing/reading, then reset the override and
+  confirmed access returned — the three-tier view/manage/publish split works exactly as designed, not
+  just as documented. Also confirmed `/capabilities` itself is genuinely ADMIN-only (checked the
+  `cms.routes.ts` preHandler directly, not just the route file's own comment claiming it is).
+- **No bug found** — cross-tenant relation-value injection, public draft/preview gating, preview-token
+  row-binding, and the custom capability matrix (both the restriction and the reset path) all held under
+  live, adversarial testing. No code changes this pass.
+- **Test-artifact handling:** three real content models (two same-tenant, one cross-tenant), one
+  relation field, and five real entries created during this trace were removed directly via the
+  database afterward; the one capability override created during testing was reset via the real API
+  before cleanup (confirmed reverted live, not just deleted from the row). Shared dev server (port 3001)
+  used directly throughout, confirmed healthy.
+
+### HUD-0128 — Phase 5: CMS Enterprise collaboration (`cms-enterprise.routes.ts`/`cms-enterprise.service.ts` — configurable workflow, approvals, content releases, editorial comments, multisite, translations) traced live and adversarially · Found+fixed a real, systemic cross-user authorization bypass: caller identity was threaded through 4 separate mutation functions purely for attribution, never actually checked for permission
+- **Category:** Security — broken access control (Phase 5, eighty-fourth journey). A brand-new, never-
+  before-traced enterprise module (migration 477 onward, built this week) whose entire premise is
+  identity-gated collaboration — assign a specific reviewer, track who requested what, attribute who
+  wrote which editorial comment. Most CRUD routes in this file already gate on `isCmsAdmin(role)` for
+  platform-config actions (sites, workflow states/transitions) — this journey specifically targeted the
+  routes that had **no role check at the route level at all**, to see whether the service layer
+  underneath genuinely enforced ownership instead, or just trusted the caller.
+- **Trace:** Read `cms-enterprise.service.ts` in full (1559 lines). Four functions — `decideApproval`,
+  `cancelApproval`, `updateContentComment`, `deleteContentComment` — each accept the caller's id
+  (`reviewerId`/`userId`) as a parameter, but not one of them ever compared it against anything: not
+  `approval.assigned_to`, not `approval.assigned_by`, not `comment.author_id`. The id was used purely to
+  *stamp* the row (who resolved it, who cancelled it) — never to decide *whether* the caller was allowed
+  to. **Live-exploited end to end**, not just read: created a real page, had one real staff account
+  request a review assigned to a second real staff account, then had a completely uninvolved third
+  account successfully approve it — confirmed the decision persisted. Separately, had one staff account
+  post a real editorial comment, then had a different, uninvolved staff account overwrite its content
+  and delete it outright — both confirmed to actually take effect via a fresh read afterward, not just a
+  200 response. `cancelApproval` additionally never checked the approval was still `pending`, so an
+  already-approved review could be silently forced back to `draft` by anyone.
+- **Fixed** by adding an explicit `userRole` parameter to all four functions and an authorization check
+  before any mutation — assigned-reviewer-or-admin for deciding, requester-or-admin for cancelling
+  (plus the missing already-pending guard), comment-author-or-admin for editing/deleting — using the
+  exact `['ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN']` admin-override convention this same service file
+  already established for `validateTransition`, rather than inventing a new authorization shape. Mapped
+  the resulting permission-denied errors to 403 at the route level (previously everything from these
+  four routes fell through to a generic 400). Re-verified live with a properly-controlled matrix: a
+  genuinely uninvolved non-admin third party is now refused deciding or cancelling an approval (403);
+  the actually-assigned reviewer still decides successfully (200, no regression); a non-author is now
+  refused editing or deleting someone else's comment (403); the actual comment author can still edit
+  their own (200); and — confirming the admin-override was implemented correctly, not just permissive by
+  accident — a TENANT_ADMIN can still moderate/resolve a comment they didn't write, by design.
+- **Test-artifact handling:** three real test pages, their review requests, and one real editorial
+  comment created during this trace were removed directly via the database afterward (the page deletes
+  via the real API didn't cascade the polymorphic `resource_id`-linked `cms_approvals` rows, since
+  there's no FK to cascade on — a soft, non-security finding worth a look in a future pass, not itself a
+  bug this pass fixed). `tsc --noEmit` clean; full suite green (157/157 tests, 12/12 files);
+  `check:triggers` OK (same unrelated concurrent-CMS-session warnings). Shared dev server used directly
+  throughout, confirmed healthy.
+
+### HUD-0127 — Phase 5: HuduBI (`hudubi.routes.ts`, `hudubi-widgets.service.ts`, `hudubi-entity.service.ts` — executive dashboard, configurable widget/report builder, cross-app customer entity resolution) traced live and adversarially · Found+fixed a real unguarded-uuid crash and a real raw-database-error leak, both the HUD-0097 bug class recurring in a never-before-swept app
+- **Category:** Functional correctness + information disclosure (Phase 5, eighty-third journey). The
+  tenant's own real data surfaced as an executive snapshot — the file's own header comment explicitly
+  disclaims the product's prior fabricated numbers ("$28.4M revenue, 8,420 customers, Snowflake
+  sources") and states every figure is now a live aggregate over the tenant's own rows. Never traced
+  this arc. Verified the "no fabrication" claim is real: `/dashboard`, `/analytics`, `/data-sources`,
+  and the M9 configurable widget builder all run real, tenant-scoped SQL (`sql.table()`/`sql.ref()`
+  against a hardcoded metric registry, never a user-supplied table/column name) rather than returning
+  canned data — confirmed live with the entitlement temporarily granted to a real test tenant.
+- **Trace:** Read all three files in full, specifically checking whether this file's own already-defined
+  `isUuid()` helper (used elsewhere in the file to classify a custom-workflow stage) was actually applied
+  everywhere a caller-supplied id reaches a UUID database column — the exact discipline this arc's
+  ~116 prior fixes of this bug class already established. It wasn't, in two places. **Live-reproduced**:
+  `GET /entities/customer/:id` with a malformed id crashed with a raw 500 (no guard existed on this
+  route at all); `GET/PATCH/DELETE /widgets/:id`(`/data`) with a malformed id didn't crash (already
+  wrapped in try/catch) but leaked Postgres's own `invalid input syntax for type uuid: "..."` message
+  text straight to the client, with inconsistent status codes across the three routes (404 on one, 400
+  on the other two) for the identical underlying condition. **A second, deeper bug surfaced while fixing
+  the first**: this file's own `isUuid()` regex was `/^[0-9a-f]{8}-[0-9a-f]{4}-/i` — only checking the
+  *first two* groups of a UUID, not the full 8-4-4-4-12 shape. Live-proved this was a real, exploitable
+  gap in the fix itself, not a theoretical nitpick: a crafted id with a valid-looking prefix but an
+  invalid tail (`b37de79a-e059-ZZZZ-INVALID-SUFFIXHERE12`) passed the weak regex and still reached the
+  database, still crashing with the same raw 500.
+- **Fixed** by replacing the partial regex with the full, correctly-anchored pattern already established
+  elsewhere in this exact codebase for this exact purpose (`ai.routes.ts`'s own `UUID_RE`:
+  `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`), then adding an `isUuid()` guard to
+  `GET /entities/customer/:id` and to all three widget-by-id routes, each returning a clean, consistent
+  404 before ever reaching the database. Re-verified live: the original malformed id, the crafted
+  quasi-valid-prefix id, and a genuine real customer/widget id (full read → 200, patch → 200, no
+  regression) were all re-tested — malformed inputs now correctly 404 with no leaked message, real data
+  is untouched.
+- **Adversarially tested the surrounding boundaries while there**: `hudubi-entity.service.ts` uses
+  `dbPlatform` (the BYPASSRLS role) with hand-written `.where('tenant_id', ...)` filters on every query
+  rather than `withTenant()` — the same shape flagged as risky elsewhere in this arc, since it has no
+  RLS backstop if a filter is ever forgotten. Live cross-tenant-tested it anyway rather than assuming
+  the manual filters were wrong: a real customer id from one tenant, looked up with a real, entitled
+  account from a completely different tenant, correctly 404'd — the manual scoping holds today, though
+  the pattern remains worth flagging for future changes to this file. Also cross-tenant-tested the
+  widget routes: reading and deleting another tenant's real widget by its real id both correctly no-op
+  (404 read; delete silently affects zero rows, matching this arc's established idempotent-delete
+  convention — confirmed the widget survived afterward, not actually deleted).
+- **Test-artifact handling:** `hudubi` entitlement was temporarily granted to both the test tenant and a
+  second, genuinely different tenant (to make the cross-tenant tests real rather than blocked by
+  `PLAN_UPGRADE_REQUIRED`), and fully reverted on both afterward — confirmed reverted live (entitlement
+  check correctly 403'd again post-revert). The one real test widget created was deleted via the real
+  API. `tsc --noEmit` clean; full suite green (157/157 tests, 12/12 files); `check:triggers` OK (same
+  unrelated concurrent-CMS-session warnings). Shared dev server used directly throughout, confirmed
+  healthy.
+
+### HUD-0126 — Phase 5: Hudumika AI (`ai.routes.ts`, `ai-tools.service.ts`, `ai-memory.service.ts` — chat with read-only tool-calling, proactive insights digest, per-user/workspace memory, conversation history) traced live and adversarially · CLEAN (no finding)
+- **Category:** Security (Phase 5, eighty-second journey). The platform's cross-app AI assistant —
+  conversational chat with an agentic tool-calling loop (Anthropic and OpenAI wire formats both
+  supported) that lets the model call real, read-only tenant-data tools (`get_at_risk_shipments`,
+  `search_shipments`, `get_aged_receivables`, `get_customer_info`) to ground its answers, plus
+  per-user/workspace-shared long-term memory and persisted conversation history. Never traced this arc,
+  and a natural place to look for a scoping mistake: an agentic tool-calling surface is exactly the
+  shape of feature where a cross-tenant or cross-user leak tends to hide, since the model — not a fixed
+  route — decides what to call and with what arguments.
+- **Trace:** Read all three files in full. `ai-tools.service.ts`'s own header comment claims "there is
+  no path for a tool call to reach another tenant's data" — verified rather than trusted: all four tools
+  take only free-text search parameters (never a raw id the model could substitute), and every query is
+  wrapped in `withTenant(tenantId, ...)` with an explicit `.where('tenant_id', '=', tenantId)`, so even a
+  fully model-controlled input can't escape the caller's own tenant. `ai-memory.service.ts`'s
+  `resolveConversation()` carries an explicit doc comment about the exact IDOR this journey went looking
+  for ("returns null when the id is real but someone else's... a thread id cannot be probed for
+  existence") — proved live rather than accepted on the comment's word. Live-tested with two real
+  `msomi.co` staff accounts: created a real conversation (via the "Remember that..." command path, which
+  needs no configured AI provider), then attempted every angle of cross-user access to it as a second,
+  unrelated staff member in the same tenant — `GET /conversations/:id` (404), continuing it through
+  `POST /chat` by supplying its real id as `conversation_id` (404, the classic "hijack an existing
+  thread by guessing/reusing its id" attempt), and `DELETE /conversations/:id` (404) — all three refused,
+  and the conversation confirmed untouched afterward. Repeated the read/delete pair from a genuinely
+  different tenant's real JWT — also 404. **Memory boundary tested both directions**: a personal memory
+  fact was invisible in a second user's `GET /memory` and that user's `DELETE` on it correctly 404'd
+  (fact confirmed still present afterward); a workspace-shared fact (`scope: 'workspace'`) was correctly
+  visible to the second same-tenant user but correctly absent from a different tenant's `GET /memory`
+  entirely. Confirmed every route in the plugin sits behind both the `'ai'` entitlement and the
+  standing CUSTOMER-role block (HUD-0024/0031's own comment already covers this same file). Confirmed
+  every route taking a path-param id (`/conversations/:id`, `/memory/:id`) validates it's a real UUID
+  before ever reaching a query — the HUD-0097 lesson already applied consistently throughout this file,
+  not missed. Checked whether the tenant's real Anthropic/OpenAI API key (`tenant_settings.settings
+  ['int-ai'].apiKey`) could leak back through `GET /v1/settings` — confirmed already masked/encrypted at
+  rest from an earlier pass in this same arc (`settings.routes.ts`'s `SECRET_FIELDS_BY_KEY` table),
+  re-verified the entry is still present rather than assuming it hadn't regressed. `POST /ai/test`
+  (arbitrary caller-supplied `apiKey`, no role restriction beyond non-CUSTOMER) was checked against
+  `PATCH /v1/settings`'s real `TENANT_ADMIN`+ gate for actually *storing* that credential — not the same
+  privilege level, but not a gap either: `/test` never reads or writes the tenant's stored key at all,
+  only relays the caller's own supplied value to a hardcoded Anthropic/OpenAI URL, so there's no stored
+  secret to leak and no SSRF surface (the destination host is never caller-controlled).
+- **No bug found** — tool-calling tenant scoping, conversation ownership (same-tenant cross-user,
+  cross-tenant, and id-reuse-via-request-body all three), personal-memory isolation, workspace-memory
+  sharing semantics, entitlement/role gating, uuid-validation-before-query discipline, and the
+  previously-fixed credential-masking all held under live, adversarial testing. No code changes this
+  pass.
+- **Test-artifact handling:** the one real conversation and two real memory facts (one personal, one
+  workspace-shared) created during this trace were deleted via the real API afterward. Shared dev server
+  (port 3001) used directly throughout, confirmed healthy.
+
+### HUD-0125 — Phase 5: SMS app (`sms.routes.ts`, 749 lines — quick send, groups, templates, campaigns, multi-gateway Africa's Talking/Twilio, opt-outs, inbound webhooks) traced live and adversarially · Found+fixed a real, unauthenticated HIGH DoS/griefing vulnerability (forged inbound webhooks can silently opt out any phone number for any tenant) and a real MEDIUM compliance bypass (opt-out enforcement used an exact-string phone match, defeated by trivial reformatting)
+- **Category:** Security — unauthenticated write primitive + compliance (Phase 5, eighty-first journey).
+  A real external-gateway integration (live Africa's Talking + Twilio REST APIs) with two genuinely
+  public, unauthenticated webhook surfaces registered with zero prefix-level auth: delivery-status
+  callbacks (`POST /v1/sms/webhook/{africas-talking,twilio}`) and inbound-message callbacks
+  (`.../inbound`), the latter auto-recording a real compliance opt-out on any STOP-style reply. Never
+  traced this arc — chosen specifically because it's a real external attack surface (the same shape of
+  finding this arc prioritizes) with a live gateway integration, unlike most internal CRUD surfaces.
+- **Trace:** Read `sms.routes.ts` and `integrations/sms.ts` in full. **Found a CRITICAL-shaped gap
+  immediately**: neither webhook route validates any signature, HMAC, or shared secret — grepped the
+  whole codebase and found zero references to Twilio's real `X-Twilio-Signature` scheme anywhere, and
+  confirmed Africa's Talking has no signature scheme to check in the first place. The tenant-resolution
+  key for the inbound-message route is the registered **sender ID** — a value that is public by design
+  (it is literally what every SMS recipient sees as the "from" on every text that tenant has ever sent),
+  so no secret knowledge of any kind is required to target a specific tenant. **Live-exploited, not just
+  read**: created a real gateway with sender ID "MSOMI" on a real tenant, then POSTed a completely
+  unauthenticated, unsigned forged inbound webhook (`to=MSOMI, from=<arbitrary victim number>,
+  text=STOP`) with `curl` — confirmed it created a real `sms_opt_outs` row for the fabricated victim
+  number and a real `sms_inbound_messages` log entry, meaning **any internet client can permanently
+  block an arbitrary phone number from ever receiving SMS from a tenant again, and inject fabricated
+  "customer replies" into a tenant's inbox, with zero credentials.** This is the same bug shape as an
+  authz bypass (an action that should require proof-of-origin performs it for anyone), just on an
+  unauthenticated webhook rather than a session — rated HIGH rather than this arc's CRITICAL band since
+  it doesn't cross a tenant-isolation boundary or leak confidential data, but the availability/integrity
+  impact (silently sabotaging a business's ability to reach a customer) is real and required zero skill
+  to reproduce.
+- **Fixed** by adding `SMS_WEBHOOK_SECRET` (`config/env.ts`) and a single `preHandler` hook at the top of
+  `smsWebhookRoutes` checking `?token=` against it — the exact same shared-secret-as-query-param shape
+  this codebase already uses for `GPSWOX_WEBHOOK_SECRET` in `webhooks.routes.ts`, chosen deliberately
+  over inventing a third webhook-security pattern (Meta gets real HMAC because Meta provides one; GPSWOX
+  and now SMS gateways get a shared secret because neither AT nor GPSWOX offer a native scheme), and
+  optional/skip-if-unset for the same backward-compatibility reason as the other two. Since a
+  Fastify `preHandler` hook applies to every route registered in the same plugin scope regardless of
+  declaration order, one hook at the top of the function covers all 4 webhook routes (both providers'
+  delivery-status callback and both providers' inbound-message callback). **Re-verified live** with a
+  genuinely isolated second API instance (port 3099, `SMS_WEBHOOK_SECRET` set, entirely separate from
+  the shared dev server so as not to disrupt it) — confirmed a forged request with no token and with a
+  wrong token are both correctly refused (401) on all 4 routes, and the identical request with the
+  correct token still processes normally end-to-end (real opt-out row created). Isolated instance killed
+  by PID afterward; confirmed the shared dev server was unaffected throughout.
+- **Found and fixed a second, related real bug while verifying the opt-out compliance claim itself**:
+  `integrations/sms.ts`'s own doc comment claims every send is checked against `sms_opt_outs` first —
+  true, but the check was an exact string match (`where('phone', '=', to)`). Live-reproduced: opted out
+  `+255700000111`, then sent to the *same number* as `255700000111` (no `+`) and `0700000111` (local
+  format) — both reached all the way to a real outbound Africa's Talking API call (failing only on fake
+  test credentials, confirmed by the `HTTP 401` from AT's real servers, not a "blocked" response),
+  proving the compliance opt-out is trivially defeated by ordinary phone-number format variance, the
+  kind that happens naturally across a CRM contact record, a lead, and a customer's own STOP reply.
+  Confirmed a pre-existing `normalizePhone()` (last-9-digits-only) already solves exactly this problem
+  in `referral.service.ts`'s self-referral fraud check, previously private to that file. **Fixed** by
+  extracting it to a new shared `lib/phone.ts`, adding a `phone_normalized` column to `sms_opt_outs`
+  (migration `480_sms_opt_out_phone_normalization.sql`, backfilling existing rows, indexed but not
+  unique-constrained since dirty pre-existing data could already hold the same number in two formats as
+  separate rows), and switching `sendSms()`'s opt-out check plus both opt-out write paths (the manual
+  `POST /opt-outs` route and both providers' STOP-keyword auto-opt-out) to populate and match on it.
+  Re-verified live: both previously-bypassing formats are now correctly blocked, a STOP reply received
+  in local format now blocks the `+255`-prefixed form of the same number, and a genuinely different
+  number still reaches the gateway normally (no over-blocking regression).
+- **Test-artifact handling:** two real test gateways, all forged/legitimate opt-out rows, inbound
+  message log rows, and 7 `sms_messages` rows created while exercising the send path were all deleted
+  (via the real API where a delete endpoint exists — gateways, opt-outs — and directly via the database
+  for the two tables with no delete endpoint — inbound messages, sent-message log). `tsc --noEmit` clean
+  (grep-filtered, zero new errors); full suite green (149/149 tests, 12/12 files); `check:triggers` OK
+  (same unrelated concurrent-CMS-session warnings). Shared dev server used directly throughout for all
+  non-security-sensitive testing; the signature-bypass fix specifically was verified against a separate,
+  genuinely isolated instance so the exploit-and-fix cycle never touched the shared server other tenants/
+  sessions might be relying on.
+
+### HUD-0124 — Phase 5: Tasks + Calendar (`tasks.routes.ts`, 1509 lines — todo lists/sharing/collaborators/dependencies, plus Calendar events/freebusy/ICS/booking-pages) traced live and adversarially · Found+fixed a real 403-vs-404 status-code bug across 9 routes; found+documented a real HIGH functional gap in Calendar guest invites
+- **Category:** Functional correctness + authorization (Phase 5, eightieth journey). The platform's
+  richest per-resource ACL model outside of Notes — a `TaskAccessLevel` of `owner`/`assignee`/`editor`/
+  `viewer` resolved through four independent, overlapping grant mechanisms (list ownership, a single
+  `assignee_id`, `task_list_shares` with a viewer/editor role, and a plural `task_collaborators` roster
+  layered on top for Projects-tier accounts), plus Calendar's own event/freebusy/ICS-import-export/
+  booking-pages surface (booking-pages itself already covered by HUD-0122). Never traced this arc.
+- **Trace:** Read `tasks.routes.ts` and `calendar-events.service.ts` in full. `resolveTaskAccess()` — the
+  single function every task-scoped route funnels through — correctly centralizes all four grant
+  mechanisms and correctly special-cases `is_private` (a task marked private on a *shared project* is
+  hidden from project members but a task on a *shared list* is visible to anyone the list was shared
+  with, a deliberate difference between the two collaboration models, not a gap). Live-verified the
+  full boundary matrix with real accounts on a real Msomi-tenant list: a **viewer** sees the task
+  (`access: 'viewer'`) but is correctly blocked (403) from every write path; an **editor** can edit
+  content fields but is correctly blocked from owner-only fields (reassign/move-list/someday/delete/
+  `isPrivate`) with the exact "Only the task owner can reassign, move, or delete this task" message; an
+  **assignee** with zero list share and zero project membership still correctly gets work access purely
+  from `assignee_id`; revoking a list share immediately and correctly removes all access, both to
+  `GET /items` visibility and to every mutating route (404, not a lingering 403). A real cross-tenant
+  JWT against a real task id was correctly refused on `PATCH` (404) and `DELETE` (silent 204 no-op,
+  not an actual delete — confirmed the row survived). **Found a real bug** while running the viewer-vs-
+  editor matrix: `POST/PATCH/DELETE` on subtasks, comments, collaborators, dependencies, and
+  timer start/stop all share the line
+  `if (!resolved || !canWorkOn(resolved.access)) return reply.status(404)...` — collapsing "task
+  doesn't exist" and "task exists but you're read-only" into the same 404 "Task not found", even though
+  the sibling route `PATCH /items/:id` (a few hundred lines away, same file) correctly splits these into
+  404 vs. a specific 403 "You only have view access to this task". Live-reproduced: a real `viewer`
+  who can see a task perfectly well in their own list gets told the task doesn't exist the moment they
+  try to comment on it or start its timer — the same "wrong status code for a domain-specific failure"
+  shape this arc has flagged before (see [[http_401_session_collision_bug]]), here misleading a
+  legitimate, existing user rather than a security issue (the viewer already independently confirmed
+  the task's existence via `GET /items`, so no information is actually disclosed either way).
+- **Fixed** all 9 call sites (`timer/start`, `timer/stop`, subtasks `POST`/`PATCH`/`DELETE`, comments
+  `POST`, collaborators `POST`, dependencies `POST`/`DELETE`) by splitting the combined check into the
+  same two-line shape `PATCH /items/:id` already used — `if (!resolved) return 404` then
+  `if (!canWorkOn(resolved.access)) return 403` with the same specific message — via one `replace_all`
+  edit, since all 9 occurrences were byte-identical. Re-verified live: the same viewer now gets a
+  correct 403 on comment/timer attempts; a genuinely nonexistent task id still correctly 404s; re-ran
+  the editor-role write path afterward (comment + subtask create) to confirm the fix didn't regress the
+  legitimate-write case.
+- **Found and documented (not fixed) a real HIGH functional gap**, discovered live while testing
+  Calendar's guest-invite feature rather than by hunting for it: `calendar-events.service.ts`'s own
+  header comment states plainly "There is no existing cross-user visibility model for calendars at all
+  ... every query in this file is strictly scoped to the caller's own `user_id`" — proven live rather
+  than just read. Created a real event as one user and invited a second real user as a `guests[].userId`
+  entry: the invitee received a real, correctly-worded notification ("X invited you to ...") whose own
+  `link` field points at `/calendar` — but that invitee's own `GET /events` never returns the event
+  (confirmed against the live response), so the notification's own link leads nowhere. Confirmed the gap
+  compounds beyond the UI: `GET /events/freebusy` for that invitee also never reflects the meeting, so
+  being invited provides zero protection against double-booking despite the guest schema carrying a
+  `status: 'pending'|'accepted'|'declined'` field — grepped the whole route file and service and
+  confirmed **no accept/decline endpoint exists anywhere**, so that field can never actually change
+  once set. Left undocumented-not-fixed rather than partially patched: a correct fix needs a coordinated
+  backend+frontend design decision (how a non-owned "I'm invited" event renders, what actions are
+  available, an RSVP flow) — the same reasoning this arc already applied to the Developer Platform's
+  fabricated-verification and broken-metering findings (HUD-0117) rather than shipping a backend-only
+  half-fix with no frontend verification.
+- **Test-artifact handling:** real list/tasks/event/shares created during this trace (one list, two
+  tasks, one event, one list-share, plus comments/subtasks created while exercising the editor path)
+  deleted via the real API where the product allows it (task/event delete, share revoke); the test list
+  itself — which had become the test account's *only* list, so the app correctly refuses to delete it
+  via the API ("Cannot delete your only list") — removed directly via the database instead, along with
+  a synthetic `task_lists` row the cross-tenant outsider test's own auto-provisioning side effect
+  created for a nonexistent user id. `tsc --noEmit` clean on the changed file (grep-filtered against the
+  full run; zero matches, meaning zero new errors — same pre-existing unrelated CMS-module errors from
+  the concurrent session's own in-progress work untouched); full suite green (146/146 tests, 12/12
+  files, including the previously-flaky `project-os-isolation.test.ts` passing clean this run);
+  `check:triggers` OK (same unrelated concurrent-CMS-session warnings). Shared dev server (port 3001)
+  used directly throughout, confirmed healthy.
+
+### HUD-0123 — Phase 5: Notes app (`notes.routes.ts`/`notes.service.ts` — per-note visibility/sharing, version history, labels) traced live and adversarially · Found+fixed the HUD-0097/0099 "crash instead of 404" bug class a 2nd time inside a `services/*.ts` file
+- **Category:** Functional correctness (Phase 5, seventy-ninth journey). A real per-user note app with
+  a genuine ACL model — `visibility: 'team' | 'private' | 'shared'`, a `note_shares` table with
+  per-user `view`/`edit` permission, self-escalation prevention (only a note's creator can change who
+  it's shared with or its visibility), optimistic locking via `expectedUpdatedAt`, and full version
+  history (`note_revisions`) with restore — never traced this arc.
+- **Trace:** Read `notes.service.ts` in full (533 lines) rather than spot-checking, specifically
+  looking for the HUD-0097/0099 "unguarded `executeTakeFirstOrThrow()` on a caller-supplied id" bug
+  shape — that original platform-wide sweep was scoped to `apps/api/src/routes` and never looked
+  inside a `services/*.ts` file, a known blind spot that already let `seal-billing.service.ts` through
+  once earlier in this arc. Found the same shape here: `fetchAccessRow` (the shared existence+ACL
+  helper used by `assertCanView`/`assertCanEdit`), `updateNote`'s own row fetch, `restoreRevision`'s
+  revision-row fetch, and `updateLabel`'s `UPDATE ... RETURNING` all called `executeTakeFirstOrThrow()`
+  with no existence check first. Live-reproduced with real HTTP requests against the shared dev server
+  (self-signed JWTs for real `msomi.co` tenant accounts): `PATCH /:id/trash`, `GET /:id/revisions`,
+  `POST /:id/revisions/:revisionId/restore`, `PATCH /labels/:id`, and a cross-tenant `PATCH /:id` all
+  crashed with a raw, unhandled `{"error":"no result"}` / generic `400` instead of a clean `404` when
+  given a nonexistent, deleted, or cross-tenant id — five distinct routes surfacing the identical
+  unhandled-exception shape.
+- **Fixed** by adding a `NoteNotFoundError` class (mirroring the existing `NoteForbiddenError`/
+  `NoteConflictError` pattern already in the file) and, at each of the four call sites above, replacing
+  the unguarded `executeTakeFirstOrThrow()` with `executeTakeFirst()` plus an explicit
+  `if (!row) throw new NoteNotFoundError(...)`. Distinguished (per this arc's established discipline)
+  which of the file's *other* five `executeTakeFirstOrThrow()` call sites were transitively safe
+  because a prior existence check already ran earlier in the same transaction — `loadForViewer`'s note
+  fetch (always called after a mutator already confirmed the row exists/was just written),
+  `restoreRevision`'s own note re-fetch (already guarded by `assertCanEdit` two lines earlier), and the
+  three plain `INSERT ... RETURNING` calls (`createNote`, `createLabel`, the `note_shares` insert) —
+  none of these needed a fix, and adding one would have been a redundant, dead check. Wired
+  `notes.routes.ts`'s existing `sendNoteError()` dispatcher to map `NoteNotFoundError` → `404`, and
+  pointed the `/labels/:id` PATCH route (previously its own inline catch defaulting everything to
+  `400`, never routed through the dispatcher) at the same function. `DELETE /labels/:id` was checked
+  and left untouched — it's a plain `DELETE` with no `RETURNING`, so a nonexistent id already just
+  no-ops (0 rows affected), the same intentionally-idempotent shape as this arc has left standing
+  elsewhere rather than treating as the same bug class.
+- **Re-verified live** after the fix: all five original reproductions now return a clean `404` with a
+  specific message (`"Note not found."` / `"Revision not found."` / `"Label not found."`), including
+  the cross-tenant case (a real JWT from a different tenant, `404` rather than a distinguishing `403`,
+  consistent with this arc's standing "don't leak existence across a tenant boundary" convention). Also
+  re-confirmed, as a deliberate regression check, that the fix didn't collapse the ACL boundaries it
+  sits next to: a same-tenant "nosy colleague" with no share still correctly gets `403` on a private
+  note; a view-only share still correctly gets `403` attempting to edit; an edit-share still correctly
+  succeeds (`200`) — the 404/403 distinction (doesn't-exist vs. exists-but-forbidden) holds in both
+  directions.
+- **Test-artifact handling:** the three real test notes created this pass (one private, one
+  view-shared, one edit-shared, all under a real `msomi.co` tenant account) plus their `note_shares`
+  and `note_revisions` rows were deleted directly afterward — no delete-via-API path was exercised
+  since the point of the trace was the *lookup* failure mode, not the delete endpoint itself.
+  `tsc --noEmit` clean on both changed files (pre-existing, unrelated CMS-module errors from the
+  concurrent session's own in-progress work untouched); full suite green (142/142 real tests; the one
+  failing suite, `project-os-isolation.test.ts`, is a pre-existing hook-timeout unrelated to this
+  change — see HUD-0032's own note on that module's concurrent rebuild); `check:triggers` OK (same
+  unrelated concurrent-CMS-session warnings). Shared dev server (port 3001) used directly throughout,
+  including surviving one transient connection blip from the concurrent session's own `tsx watch`
+  restart, retried and confirmed healthy.
+
+### HUD-0122 — Phase 5: Calendar's public Calendly-style booking pages (`booking.routes.ts`/`booking-pages.service.ts`) traced live and adversarially · Found+fixed a real, live-reproduced double-booking race condition
+- **Category:** Functional correctness + data integrity (Phase 5, seventy-eighth journey). A genuinely
+  public, unauthenticated scheduling surface — anyone with a link sees a staff member's real working
+  hours, picks an open slot, and booking one creates a real `calendar_events` row on that person's own
+  calendar, exactly as if they'd added it themselves. Never traced. The file's own code comment
+  explicitly claims the exact race this journey went looking for is handled ("Re-check the slot at
+  booking time... two people can't be looking at the same page at once and both win the same slot") —
+  a claim worth proving rather than accepting, especially on a public surface real people would
+  actually hit concurrently (a popular slot, or two people racing to grab the last opening).
+- **Trace:** created a real booking page, confirmed the public info/slots endpoints disclose nothing
+  beyond what's needed to render a booking UI (no `tenantId`/`userId` in the public page response — the
+  route explicitly destructures them out), and confirmed a real sequential booking correctly creates a
+  `calendar_events` row, sends a real confirmation email to the booker and a real notification+email to
+  the host, and that immediately re-booking the *same* slot afterward is correctly refused (`409`) —
+  the claimed defense works under ordinary sequential use. **Then fired two genuinely concurrent HTTP
+  requests at the exact same never-before-booked slot** (not a simulated race, real parallel
+  connections) — both succeeded. Confirmed directly against Postgres: two separate, real
+  `calendar_events` rows for the identical host and the identical time window, both bookers having
+  received a real "your booking is confirmed" email. Root cause: the "re-check the slot" guard is a
+  plain `SELECT` immediately followed by an `INSERT`, both inside a `withTenant()` transaction but with
+  no row lock, no unique constraint, and no serializable isolation behind it — under Postgres's default
+  READ COMMITTED isolation, two transactions can both run the SELECT (seeing no conflict) before either
+  commits its INSERT. Re-ran the exact reproduction a second and third time (including a genuine 3-way
+  concurrent race) before fixing anything, to rule out a fluke — the double-booking reproduced
+  consistently, not intermittently.
+- **Fixed** with `pg_advisory_xact_lock(hashtext(tenantId), hashtext('booking:' + hostUserId))`
+  acquired immediately before the conflict check — the same established pattern this codebase already
+  uses for this exact class of check-then-write race (`hr.routes.ts`'s leave-overlap guard,
+  `audit-chain.ts`'s own hash-chain append), scoped to the host rather than one specific slot since the
+  conflict check itself scans that host's whole calendar window, not a single row. Re-ran the original
+  2-way race and a fresh 3-way race after the fix: in both cases exactly one request succeeded and
+  every other one got the same clean, pre-existing `409` message — confirmed directly against Postgres
+  that exactly one `calendar_events` row exists at the contested slot each time, not zero and not two.
+- **Test-artifact handling:** every real calendar event created during this trace (the legitimate
+  sequential booking, both pre-fix race duplicates, and the post-fix race winners) was deleted via the
+  real `DELETE /v1/tasks/events/:id` rather than left cluttering a real host's calendar; the test
+  booking page itself was deleted via the real `DELETE /v1/tasks/booking-pages/:id`. `tsc --noEmit`
+  clean; full suite green (12 files/141 tests); `check:triggers` OK (same unrelated concurrent-CMS-
+  session warnings). Shared dev server (port 3001) used directly throughout — including surviving three
+  genuinely concurrent requests fired at it back to back — confirmed healthy throughout.
+
+### HUD-0121 — Phase 5: Bliss Escalations (`escalations.routes.ts` — CASE and Team-CHAT escalation to resolver-tier staff) traced live and adversarially · CLEAN (no finding)
+- **Category:** Security + functional correctness (Phase 5, seventy-seventh journey). A small, real
+  cross-app feature — any internal staff member can escalate a customs case or a Team Chat message to
+  resolver-tier staff (`SENIOR`/`MANAGER`/`ADMIN`+), with a real PENDING→IN_PROGRESS→RESOLVED workflow
+  and a real notification fan-out. Already carries evidence of one prior real pass (HUD-0084, cited in
+  its own header comment, plus a genuine pre-existing test escalation from 2026-09-14 found live in
+  the data) — traced again in full this arc rather than trusted from the comment.
+- **Trace:** created a real `CASE` escalation as a `JUNIOR` and confirmed every real resolver-tier
+  user in the tenant (`TENANT_ADMIN`, `MANAGER`, `SENIOR` — genuinely excluding the escalator
+  themselves) received a real, correctly-attributed `notifications` row — not just a `201`. Confirmed
+  the `OWN_ONLY_ROLES` scoping live with two distinct real `JUNIOR` accounts: a second, unrelated
+  junior staff member's `GET /` correctly returned only their own prior escalation, never the one just
+  created by the first. Confirmed the real state machine end to end: a `JUNIOR` was correctly refused
+  advancing any escalation (`403`, not a resolver role); a real `SENIOR` correctly advanced
+  PENDING→IN_PROGRESS→RESOLVED one step at a time, and a third advance attempt on the now-RESOLVED row
+  was correctly refused (`409`). Tested the `CHAT`-subtype escalation's own channel-existence guard
+  (the file's own HUD-0084 fix): a fabricated channel id was correctly refused (`404`), and — the
+  more meaningful adversarial version, using a *real* channel id that genuinely exists but belongs to
+  a different tenant — was also correctly refused, confirming the existence check is tenant-scoped,
+  not just an existence check. **Cross-tenant IDOR**: a real `SENIOR` JWT from a completely different
+  tenant was refused advancing a real, still-pending escalation by its real id (`404`, not
+  distinguishing "wrong tenant" from "doesn't exist"), and that same outsider's own `GET /` correctly
+  returned an empty list rather than leaking anything.
+- **No bug found** — resolver-tier notification fan-out, own-escalations-only scoping for
+  JUNIOR/OFFICER, the full PENDING/IN_PROGRESS/RESOLVED state machine including the already-resolved
+  guard, the CHAT channel-existence check's tenant scoping, and cross-tenant isolation on both read
+  and write all held under live, adversarial testing. No code changes this pass.
+- **Test-artifact handling:** both real test escalations created this pass were driven all the way to
+  `RESOLVED` via the real advance endpoint rather than left `PENDING` — no delete endpoint exists on
+  this table (confirmed by reading the whole file), matching this arc's standing convention. Shared
+  dev server (port 3001) used directly throughout, confirmed healthy (one transient `tsx watch`
+  restart blip from the concurrent CMS session, retried and succeeded).
+
+### HUD-0120 — Phase 5: Bliss Calls/Meetings (`calls.routes.ts` — 1:1 calls, meetings, real guest join with waiting rooms, WebRTC signaling relay) traced live and adversarially · Found+fixed a real password-hash disclosure repeated across 5 routes, and a real duplicate-guest-session bug
+- **Category:** Security + functional correctness (Phase 5, seventy-sixth journey). The platform's
+  comms hub — real peer-to-peer WebRTC signaling relay, meeting metadata/attendance persistence, host
+  controls, waiting rooms, breakout rooms, polls/questions/transcript tools, and a genuinely public,
+  unauthenticated **guest-join** surface (password gate, waiting room, a meeting-scoped 6-hour guest
+  JWT) for external participants — never traced this arc. The guest-join surface in particular is
+  exactly the kind of real external attack surface this arc prioritizes: unauthenticated by design,
+  reachable by anyone with a link.
+- **Trace — password-hash disclosure, found live while driving the ordinary golden path, not by
+  hunting for it**: creating a real password-protected meeting returned the meeting's own real
+  `password_hash` (a 210,000-iteration PBKDF2-HMAC-SHA512 string) in the create response. Checking
+  whether this was isolated, found the **exact same field leaking from four more routes**:
+  `GET /meetings/by-code/:code` — reachable by *any* non-customer staff member in the tenant who
+  merely holds the meeting's join code, which is the whole point of a join code (it's meant to be
+  shared with participants) — live-confirmed with a real second staff account, not the host, pulling
+  the full hash using nothing but the code; the authenticated `POST /meetings/:id/join` — the single
+  highest-reach instance, since **every participant who successfully joined any password-protected
+  meeting got the real hash back**, not just the host; `DELETE /meetings/:id` (cancel); and
+  `POST /meetings/:id/end`. All five were the one miss against an established, correct sibling
+  pattern already used by `GET /meetings/:id` and `PATCH /meetings/:id` (`{ ...rest, hasPassword:
+  !!password_hash }`) and by the public guest-join path (`mintGuestSession`), both already stripping
+  it correctly — confirmed this wasn't a systemic gap in the file, just five call sites that never
+  got the same treatment. **Fixed** all five to match the established pattern; re-ran the original
+  reproductions on all five (by-code as a non-host colleague, create, join as a non-host colleague,
+  cancel, end) and confirmed the hash is gone from every one while `hasPassword` still reports
+  correctly.
+- **Trace — real adversarial testing of the public guest-join surface**: public `GET /meetings/:id`
+  correctly returns only minimal, disclosure-safe fields (no `password_hash`, `tenant_id`, or
+  `host_id`) and correctly 404s/410s for a guest-disabled or ended/cancelled meeting. A wrong password
+  was correctly refused (`403`); the correct password on a waiting-room-enabled meeting correctly
+  returned `{waiting:true}` rather than full access. **Found a real bug on the admitted-guest path**:
+  polling `GET .../waiting-room/status` with a valid, already-`ADMITTED` guest token **re-minted a
+  brand-new guest session — a new `bliss_meeting_participants` row and a new guest JWT — on every
+  single poll**, not just the first; three consecutive polls produced three separate duplicate "Real
+  Guest" attendance records for one actual person, confirmed directly against Postgres. This is a
+  realistic, easily-triggered bug for a polling-based endpoint (a network retry or a double-effect
+  fires it, not a contrived edge case), silently corrupting attendance history and participant counts
+  on every meeting metrics view. **Fixed** with an atomic claim (`UPDATE ... WHERE status =
+  'ADMITTED'` flips it to a new terminal `JOINED` state) so only the request that actually wins the
+  race gets to mint a session; every other call — including two genuinely concurrent pollers — sees
+  the already-decided state instead. Re-verified live: three consecutive polls after a fresh
+  admission now produce exactly one participant row, with only the first poll carrying the join
+  payload. Also verified: a guest token from one meeting was correctly refused against a *different*
+  meeting's waiting-room-status endpoint (`404`) — no cross-meeting session hijack via a leaked or
+  reused token; a locked meeting correctly refused a guest join (`403`) even with the right password.
+- **Reviewed, not live-tested — the WS-level guest message-type restriction**: `calls.routes.ts`'s own
+  header comments claim a guest connection may only ever send `offer`/`answer`/`ice` (1:1 mesh
+  negotiation) and `room-chat`/`room-reaction`/`room-status` (core meeting experience) — never a host
+  control like `host-remove` or a meeting-tool broadcast. Read the actual `/signal` WebSocket handler
+  directly and confirmed the enforcement is real and wired in at both the message-type level
+  (`GUEST_RELAY_TYPES`/`GUEST_ROOM_BROADCAST_TYPES` allow-lists, silently dropping anything else) and
+  the meeting-scope level (a guest's messages are dropped outright if they don't match the
+  `meetingId` claim baked into their own token) — not merely asserted in a comment with no code behind
+  it. Not exercised with a real WebSocket client this pass (would need a hand-built WS test harness);
+  the code path itself is simple and directly readable, and this is disclosed as a review-by-reading
+  rather than a live-fire test, the same honest distinction this arc draws elsewhere for hard-to-reach
+  surfaces (e.g. HUD-0111's federated-login branches, HUD-0116's real OAuth consent screen).
+- **Test-artifact handling:** all real test meetings created (create/cancel/join/guest-flow
+  reproductions) were ended or cancelled via their own real endpoints; the duplicate participant rows
+  created while reproducing the idempotency bug were left as a real, permanent record of a real
+  reproduced bug (matching this arc's convention of not scrubbing genuine test evidence after a fix
+  is verified) since the meeting itself was already ended and out of any live metrics view. `tsc
+  --noEmit` clean; full suite green (12 files/140 tests, up from 136 — continued concurrent-CMS-
+  session growth); `check:triggers` OK (same unrelated warnings). Shared dev server (port 3001) used
+  directly throughout, confirmed healthy after each reload.
+
+### HUD-0119 — Phase 5: Bliss Team Chat (`chat.routes.ts` — channels/DMs/groups/messages/reactions, real-time WS push) traced live and adversarially · CLEAN (no finding); one pre-existing, already-disclosed, inert data artifact noted
+- **Category:** Security + functional correctness (Phase 5, seventy-fifth journey). Real team chat —
+  channels, DMs, groups, messages, emoji reactions, unread tracking, favorites, notification-centre
+  integration, and a `chat.message_received` WebSocket push — never traced this arc's Phase 5 (an
+  earlier, pre-arc pass fixed fabricated-feature/dead-endpoint issues here in August). The file's own
+  comments already name several of the exact traps this arc looks for, so the value here was proving
+  those claims live rather than trusting the comments.
+- **Trace:** `CUSTOMER` role correctly refused the entire app (`403`) before any route logic runs.
+  Drove the real golden path: `GET /channels` correctly bootstrapped a `#general` channel with every
+  real active staff member on first access; created a real DM between two real users, sent a real
+  message, confirmed a real, correctly-attributed `notifications` row was created for the recipient
+  (app `bliss`, type `chat`, the real sender's name in the title) — not just a `200`; confirmed the
+  recipient's own `GET /channels` correctly computed `unread: 1` and surfaced the right last-message
+  preview; added and then removed a real emoji reaction, confirming the toggle-on/toggle-off pair.
+  **Adversarially attacked the membership/tenant boundaries from three different angles**: a
+  completely unrelated third tenant's real JWT was refused reading, posting to, or reacting inside the
+  DM (`403`/`404`) — the reaction check in particular confirmed the message lookup itself is
+  tenant-scoped, not just the channel; a **same-tenant colleague who simply wasn't part of this
+  specific DM** was independently refused reading it, posting to it, and even favoriting it — the more
+  realistic "can I snoop on a colleague's private conversation" attack, distinct from the cross-tenant
+  case and separately confirmed; and creating a real DM with a genuine cross-tenant user id was
+  refused outright (`404`, "User not found") before any channel was even created. Created a real group
+  with one valid same-tenant member id and one fabricated cross-tenant id in the same request and
+  confirmed directly against Postgres that only the valid member was actually added — the invalid one
+  silently dropped exactly as the code's own comment describes, not merely trusted from reading it.
+  Verified the leave-vs-delete split live: a non-creator "deleting" a group correctly only removed
+  their own membership (the group survived for the remaining member), while the actual creator
+  deleting it produced a genuine, cascaded hard delete (confirmed the row was gone from Postgres
+  afterward). Confirmed `GET /channels/browse` correctly never surfaces DMs and correctly excludes a
+  channel the caller already belongs to.
+- **No bug found** — the CUSTOMER block, the bootstrap, cross-tenant DM/group-member rejection at
+  creation time, the tenant-scoped message lookup behind reactions, both non-member attack angles
+  (cross-tenant and same-tenant), and the leave/delete split all held under live, adversarial testing.
+  No code changes this pass.
+- **One pre-existing, already-disclosed artifact, not a live bug**: the dev tenant's own `#general`
+  channel — bootstrapped before this file's own documented `HUD-0024 continuation` fix (visible in
+  its header comment) was in place — still lists a real `CUSTOMER`-role account among its members,
+  confirmed live via `GET /channels`. The fix itself is real and correctly stops this for any
+  newly-bootstrapped tenant (the file's own `.where('role', 'not in', ['CUSTOMER', 'ORG'])` on the
+  seed query, confirmed by reading it), but is forward-only — it never retroactively cleaned up a
+  tenant where the bug had already run once. Confirmed this is inert, not reachable: the file's own
+  CUSTOMER-role block fires before any route handler runs regardless of membership rows, so the
+  affected account has no way to actually use this stale membership for anything. Noted for
+  completeness rather than filed as a finding — a one-time data cleanup, not a functional or security
+  gap, and the dev tenant's own historical artifact rather than something a production tenant created
+  after the fix would ever encounter.
+- **Test-artifact handling:** the test reaction was toggled back off; both parties left the test DM
+  (its `chat_channel_members` rows removed) — a DM's own `chat_channels` row and its one test message
+  were left in place, matching the file's own documented "a DM never fully deletes" design (no delete
+  path exists for the channel row itself, only per-user membership); the test group was hard-deleted
+  by its own creator via the real endpoint, the cleanest possible path. Shared dev server (port 3001)
+  used directly throughout, confirmed healthy.
+
+### HUD-0118 — Phase 5: Onsite AgencyHost — the cross-tenant agency-manages-real-client-tenants surface (`onsite-agency.routes.ts`/`onsite-agency-manage.routes.ts`/`agency-access.ts`) traced live and adversarially · CLEAN (no finding)
+- **Category:** Security + functional correctness (Phase 5, seventy-fourth journey). The exact same
+  *shape* of surface that HUD-0117 (the previous journey) just found catastrophically broken in the
+  Developer Platform — an id taken straight from the URL, naming a resource that belongs to a
+  *different* real tenant, with the caller's own tenant identity supposed to gate access to it. Never
+  traced. Chosen deliberately right after HUD-0117 to check whether that failure mode was systemic to
+  the codebase or local to one file.
+- **Trace:** created a real, genuinely independent client tenant via `POST /v1/onsite/agency/clients`
+  (`AgencyTenantService.createManagedClientTenant` — a real `tenants` row, a real pending
+  `hr_invitations` row for the named admin email, and a real `agency_managed_tenants` relationship
+  row, all in one transaction) — confirmed duplicate-subdomain correctly refused (`409`). Drove the
+  full golden path as the agency against the new client: overview (correctly zeroed for a brand-new
+  client), attach a domain, add a real DNS A record, register an application, attempt a deploy
+  (correctly refused with an honest `409` — no CI provider connected in this dev environment, not a
+  fabricated success). **Adversarially attacked the tenant-pinning `verifyAgencyClientAccess`
+  middleware three ways**: a genuinely unrelated third tenant's real `TENANT_ADMIN` JWT was refused
+  (`404`, not confirming the client id even exists) on both a read (`GET /overview`) and a write
+  (`POST /domains`) against the exact same client id the legitimate agency was actively managing; the
+  **client tenant itself**, using a JWT scoped to its own tenant id, was also correctly refused
+  reaching this same agency-management surface for itself (this route only ever grants the *agency*
+  side of a relationship, never a tenant self-service path) — confirming the check pins both
+  directions of the relationship, not just one. Tested the **detach lifecycle**: the agency releasing
+  the client immediately revoked further management access (`404` on the next `GET /overview`) while
+  leaving the client's own real domain data completely untouched, confirmed directly against
+  Postgres — a real "disconnect the relationship, don't destroy their infrastructure" design, not a
+  regression waiting to happen; detaching an already-detached relationship was correctly refused
+  rather than double-processed. RBAC: `JUNIOR` and `CUSTOMER` both correctly refused the client-
+  creation/listing routes (`403`).
+- **No bug found** — this file's own header comment on `verifyAgencyClientAccess` explicitly names
+  the exact cross-agency attack this trace tried, and the check held under direct live testing from
+  all three angles (an outsider, the client itself, and repeated/already-detached actions). This is a
+  meaningful, evidence-backed contrast to HUD-0117's finding in the very same area of the codebase
+  (cross-tenant resource delegation) — proof that the earlier failure was local to the Developer
+  Platform's specific routes, not a systemic pattern across every cross-tenant surface this arc has
+  now checked. No code changes this pass.
+- **Test-artifact handling:** both real test client tenants were detached from the agency relationship
+  via the real `/detach` endpoint, then deactivated via the real `PATCH /v1/superadmin/tenants/:id`
+  (`active:false`) rather than left as two permanently-active spurious tenants — matching this arc's
+  preference for using a real deactivation path over leaving clutter when one exists. The domain/DNS/
+  application rows created under the first test tenant were left in place (harmless, inert once the
+  tenant itself is deactivated, and there's no dedicated delete path for this specific combination
+  worth exercising just to tidy up). Shared dev server (port 3001) — found stopped at the start of
+  this session for reasons unrelated to this trace, relaunched per this arc's established precedent
+  for that exact situation — confirmed healthy throughout.
+
+### HUD-0117 — Phase 5: the Developer Platform (`developer.routes.ts`/`developer.service.ts`/`developer-gateway.service.ts`) traced live · Found+fixed a real CRITICAL cross-account/cross-tenant authorization bypass, a HIGH broken-feature bug, and a LOW input-validation gap; found (documented, not fixed) a HIGH fabricated-verification-data issue and a MEDIUM broken usage-metering pipeline
+- **Category:** Security + functional correctness (Phase 5, seventy-third journey). The "Developer"
+  app — 15% on the readiness dashboard, the platform's lowest-rated, Foundational-tier app — is a
+  real, substantial (1,400+ lines across the two service files) external-facing API-gateway/developer-
+  console product: Individual/Organization "developer accounts" (deliberately *not* Hudumika-tenant-
+  scoped — any authenticated Hudumika user, any tenant, is a potential developer), Projects,
+  API-key Credentials, a prepaid Billing ledger, and a live `/gateway/*` endpoint that authenticates
+  an external caller's API key and executes a catalog of "API products." Never traced — the low
+  headline rating turned out to undersell how large the surface actually is, and overstate how
+  contained the risk was.
+- **Trace, CRITICAL finding**: none of the 13 authenticated, account-/project-scoped console routes
+  (`GET/POST /accounts/:id/members`, `DELETE /accounts/:id/members/:memberId`, `GET/POST
+  /accounts/:id/projects`, `GET/POST /projects/:id/credentials`, `POST
+  /projects/:id/credentials/:credId/revoke`, `GET /projects/:id/entitlements`, `POST
+  /accounts/:id/subscribe`, `GET /projects/:id/analytics`, `GET /accounts/:id/billing`, `POST
+  /accounts/:id/billing/topup`) ever verified the caller owns — or is an active member of — the
+  account/project named in the URL; `fastify.authenticate` was the *only* gate. Live-proved this with
+  two real accounts belonging to two different real users in two different tenants: the second
+  user's real JWT could list the first user's real projects, **read the first user's real prepaid
+  billing balance** (`balance_credits: 50000`), and — the most severe step — **mint a brand-new,
+  unrestricted-scope (`scopes: ["*"]`), live `PRODUCTION`-environment API credential against the
+  first user's own project**, receiving the real raw key back in the response. Confirmed that
+  fabricated credential genuinely authenticates against the live `/gateway/*` endpoint (reached past
+  the API-key auth check to a real entitlement check), proving full exploitability end to end, not
+  just a theoretical read. Since developer accounts are deliberately outside the tenant model, this
+  bypass has zero relationship to RLS/`withTenant` and was reachable by *any* authenticated user
+  platform-wide against *any* other user's developer account, given only the account/project UUID.
+- **Fixed**: added `DeveloperService.assertAccountAccess(accountId, userId)` (owner-or-active-member)
+  and `assertProjectAccess(projectId, userId)` (resolves the project's account, then applies the same
+  check) — both throwing a generic 404 rather than a 403, deliberately not distinguishing "doesn't
+  exist" from "not yours," matching this codebase's existing enumeration-safety convention for
+  cross-user resource ownership (recovery-requests, join-requests). Wired into all 13 routes. Also
+  closed a narrower variant on `POST /accounts/:id/subscribe`: the route only ever validated the
+  *account* id belonged to the caller, but `subscribeAndEntitle` bills that account while writing the
+  entitlement against whatever `project_id` the request body separately names — without an explicit
+  cross-check, a caller could still pass their own real account id alongside a *different* developer's
+  real project id in the body. Fixed by resolving the body's `project_id` through the same
+  `assertProjectAccess` and rejecting a mismatch. Re-ran the exact original three-step reproduction
+  (list projects → read billing → mint a credential) against the same two real accounts — all three
+  now correctly refused (`404`) — then reconfirmed the legitimate owner's own identical calls still
+  succeed unchanged, and separately added a real active org member and confirmed the membership
+  branch of the new check (not just the ownership branch) also grants access correctly.
+- **Trace, HIGH finding**: `POST /accounts/:id/members` (invite an org member) was **completely
+  non-functional** — every attempt with a real, existing Hudumika email failed with "User ... does not
+  exist on Hudumika. They must register first," even though the email genuinely belonged to a real,
+  active account. Root cause: `DeveloperService.addOrgMember` looked the email up via
+  `db.selectFrom('users')...` — the bare, RLS-restricted connection, called with no `withTenant()`
+  context, exactly the anti-pattern this repo's own `CLAUDE.md` names explicitly ("a file that
+  queries the bare `db` singleton outside `withTenant()` ... RLS will reject it outright"). With no
+  `app.tenant_id` set, RLS's own policy has nothing to match against and the query returns zero rows
+  for literally any email, always. **Fixed** by switching to `dbPlatform` — the same
+  "look this identifier up across every tenant" pattern already used for this exact class of
+  pre-tenant-context lookup in `auth.routes.ts`/`onboarding.service.ts`, appropriate here since
+  developer-account membership is explicitly not scoped to one tenant. Also gave the thrown error a
+  `statusCode: 400` (it previously fell through the global handler's generic 500 path, since a plain
+  `Error` with no status code defaults there). Re-verified live: a real existing email now
+  successfully adds as a member; a genuinely nonexistent email now correctly gets a clean `400`
+  instead of an opaque `500`.
+- **Trace, LOW finding**: the same route accepted any string as `role` with no validation against the
+  real `OrgMemberRole` enum (`OWNER`/`ADMIN`/`DEVELOPER`/`BILLING_ADMIN`/`SECURITY_ADMIN`/`VIEWER`) —
+  an invalid role reached `developer_org_members`'s own database `CHECK` constraint unvalidated,
+  surfacing as the same opaque, unhelpful `500` the global error handler deliberately gives raw driver
+  errors. **Fixed** with an explicit allow-list check before the service call, returning a clean `400`
+  naming the valid roles. Re-verified live both directions.
+- **Found, documented, not fixed — HIGH, fabricated verification data presented as real**: the
+  gateway's three "native operation" implementations and its "external adapter" implementations are
+  **entirely hardcoded, input-independent fabricated responses**, not a stub disclosed as such
+  anywhere in the product. Live-proved with a real minted sandbox key and deliberately absurd,
+  obviously-fake inputs: `POST /v1/seal/verify` (marketed as the platform's own digital-execution-seal
+  *verification* product) with a nonexistent seal id, a garbage signature string, and an all-zeros
+  digest returned `{"valid":true,"verdict":"EXACT_MATCH","confidence_score":1}` — a verification
+  endpoint that verifies nothing and always says yes. `POST /v1/business/verify` (marketed as a real
+  BRELA business-registry check) with a nonsense registration number and a company name invented for
+  this test returned `{"verified":true,"status":"IN_GOOD_STANDING", ...}` with the *exact same*
+  hardcoded fictional directors ("John A. Temba", "Sarah K. Mushi") and TIN every single time,
+  regardless of input. `landed_cost.compute` does real arithmetic but on a single hardcoded 25%
+  duty-rate/18%-VAT assumption completely disconnected from ClearOS's own real, independently-audited
+  EAC/AfCFTA origin-rules engine (HUD-0046 hand-verified that one to the shilling this same arc) —
+  ignoring the HS code and country of origin entirely despite accepting both as input. This is a
+  product-scope decision (build the real BRELA integration, real ECDSA signing/verification, and wire
+  the real landed-cost engine through) far beyond a bug fix, matching this arc's standing rule for
+  whole-feature gaps (Project OS, Inventory's GL wiring, Demurrage's liability field) — documented
+  with exact live reproductions rather than guessed at or silently rebuilt.
+- **Found, documented, not fixed — MEDIUM, usage-metering silently no-ops**: every real product
+  design here assumes each gateway call is metered — `executeRoute` computes a real
+  `developer_price`/`provider_cost` per call and `recordUsage` is meant to insert a
+  `dev_usage_events` row (and, for external-adapter calls, a `dev_provider_settlements` row) for every
+  single one. Checked directly against Postgres after three separate, distinct, successfully-executed
+  (`200`) gateway calls across all three native operations: **zero `dev_usage_events` rows were ever
+  created**, confirmed with a deliberate wait to rule out a timing fluke. `recordUsage` is invoked
+  fire-and-forget with its own `.catch(err => request.log.error(...))`, so a failure there produces no
+  visible symptom to a real caller — the gateway keeps returning clean `200`s regardless. Root cause
+  not isolated (no console access to the shared dev server in this environment to read the swallowed
+  error), so this is reported as an observed, reproduced fact rather than a diagnosed one. Practical
+  effect is the mirror image of the fabricated-data finding above: whatever a real developer would be
+  billed for calling these endpoints, it is not happening through this recorded-usage pathway today.
+- **Test-artifact handling:** both minted test credentials (the cross-account exploit key and the
+  legitimate owner's own test key) were revoked via the real `POST .../credentials/:credId/revoke`;
+  the test org-membership was removed via direct SQL (matching the file's own `removeOrgMember`
+  semantics, since no route bug blocked using the real endpoint — done via SQL only to avoid a second
+  round-trip); the one leftover manual-reproduction row inserted directly into `dev_usage_events`
+  while diagnosing the metering issue was deleted. The two real `developer_accounts`/`dev_projects`/
+  `developer_billing_accounts` rows auto-provisioned by `GET /accounts` (a real, unavoidable side
+  effect of the platform's own auto-provisioning-on-first-visit design, not fabricated test data) were
+  left in place — indistinguishable from what a genuine first-time visit to the Developer app would
+  create. `tsc --noEmit` clean; full suite green (12 files/136 tests); `check:triggers` OK (same
+  unrelated concurrent-CMS-session warnings). Shared dev server (port 3001) used directly throughout,
+  confirmed healthy after each reload.
+
+### HUD-0116 — Phase 5: Contacts' Google/Microsoft OAuth sync (`contacts-sync.routes.ts`) traced live, incl. genuinely reaching Google's real servers with fabricated tokens · CLEAN (no finding)
+- **Category:** Functional correctness + security (Phase 5, seventy-second journey). Never traced.
+  Tenant-wide Google/Microsoft OAuth app credentials (encrypted at rest, `settings.routes.ts`'s
+  `SECRET_FIELDS_BY_KEY`) gate a per-user contact-sync connection (`contact_sync_connections`) —
+  completing a real OAuth consent screen isn't reachable from this environment (same disclosed class
+  of limitation as the federated-login branches in HUD-0111), but everything up to and past that
+  step was still fully live-testable, including forcing the actual failure path against Google's
+  real production servers rather than stopping at "the code looks right."
+- **Trace:** with no credentials configured, `/google/status`+`/outlook/status` correctly reported
+  `configured:false`, and `/google/auth-url`+`/outlook/auth-url`+`/*/sync` all returned a clean,
+  honest `400` rather than a stub success. Set real-shaped (fake, but correctly-formatted) tenant-wide
+  OAuth credentials via the real `PATCH /v1/settings`, then confirmed both status endpoints flipped to
+  `configured:true` and both `auth-url` endpoints returned a genuinely well-formed authorization URL
+  with the *decrypted* client id, the correct scopes (`contacts.readonly`+`userinfo.email` for
+  Google, `Contacts.Read`+`User.Read`+`offline_access` for Microsoft), and `access_type=offline&
+  prompt=consent` on Google's URL specifically — confirms the file's own header-referenced encrypt/
+  decrypt fix (a prior bug where the ciphertext was handed straight to Google) is genuinely in effect
+  today, not just documented as fixed. **Seeded two real per-user `contact_sync_connections` rows**
+  (one with an already-expired access token + a refresh token, one with a still-fresh access token)
+  for two different real users in the same tenant, then called `/google/sync` for each: the
+  expired-token connection genuinely attempted a live OAuth token-refresh call to Google's real
+  servers and got back Google's own real `"The OAuth client was not found."` (the fabricated client
+  id doesn't correspond to a registered Google Cloud app); the fresh-token connection genuinely
+  called Google's real People API with the fabricated access token and got back Google's own real
+  `"Request had invalid authentication credentials..."` — both failures are Google's actual wording,
+  not a locally-fabricated error string, proving these code paths make the real external call rather
+  than short-circuiting. Confirmed both failures were persisted verbatim to `last_sync_error` and
+  `last_sync_status: 'failed'`. **Per-user isolation, the one angle not implied by the tenant-wide
+  credential design**: each of the two seeded connections was visible only to its own owner via
+  `/google/status` (the other user's real, distinct fake email never leaked across), and
+  `DELETE /google/connection` — which takes no target id, only ever acting on the caller's own row —
+  correctly removed just the caller's connection while the other user's connection, checked
+  immediately after, was completely untouched.
+- **No bug found** — the unconfigured-state honesty, the credential encrypt/decrypt round-trip, the
+  genuine (not stubbed) upstream network calls on both the refresh-token and direct-API-call paths,
+  correct failure persistence, and per-user connection isolation all held under live testing. No code
+  changes this pass.
+- **Test-artifact handling:** both seeded `contact_sync_connections` rows were removed via the real
+  `DELETE /google/connection` endpoint (as each respective owner) rather than raw SQL, exercising the
+  same cleanup path a real user would use; the tenant's temporary `int-google`/`int-microsoft`
+  settings were removed via `settings - 'int-google' - 'int-microsoft'` (keys removed entirely,
+  matching this arc's standing convention). Shared dev server (port 3001) used directly throughout,
+  confirmed healthy — including tolerating two genuine, intentional live calls to Google's real
+  infrastructure that this trace needed to fail exactly as they did.
+
+### HUD-0115 — Phase 5: CRM labels (`crm-labels.routes.ts`) + the cross-app customer/lead search picker (`crm-search.routes.ts`) traced live and adversarially · CLEAN (no finding)
+- **Category:** Functional correctness + security (Phase 5, seventy-first journey). Two small,
+  previously-untraced CRM route files: a polymorphic label taxonomy shared across leads/deals/
+  customers, and the real search endpoint backing `CustomerLeadPicker.tsx` — used by both CRM proper
+  and ClearOS's landed-cost calculators, with every real query logged to `crm_search_history`.
+- **Trace — labels:** RBAC confirmed at both ends of the file's own role list: `FINANCE` and
+  `CUSTOMER` both correctly refused (`403`) — notably `FINANCE` is deliberately excluded here despite
+  being included on the sibling search file, confirmed as a real, intentional difference rather than
+  an oversight (see below). Created a real label (`SALES` role), got a clean `400` on a genuine
+  duplicate name (not an opaque `500`). **Cross-tenant assign, the one attack this file's inline
+  subject-lookup exists specifically to stop**: attempted to assign the label to a real lead
+  belonging to a completely different tenant — correctly refused (`404`, "Label or subject not
+  found"), confirming the subject lookup is genuinely tenant-scoped, not just the label itself.
+  Assigned it to a real same-tenant lead instead — `GET /for` and the list's per-label `count` both
+  updated correctly. **Cross-tenant IDOR on the label itself**: seeded a real label directly in a
+  different tenant and confirmed `PATCH`/`DELETE` by its real id both correctly no-op (`404` /
+  `204`-with-zero-rows-affected) rather than reaching across tenants, re-verified the other tenant's
+  row was byte-for-byte untouched afterward. Deleted the original label *while it still had an active
+  assignment* and confirmed the `crm_label_mappings` row was genuinely gone afterward — the real
+  `ON DELETE CASCADE` (migration 450) working as declared, not just assumed from reading the SQL.
+- **Trace — search:** confirmed the deliberate RBAC difference from labels is real, not a copy-paste
+  gap: `FINANCE` succeeded here (needs it for `/v1/customers` access elsewhere) while `CUSTOMER` was
+  still correctly refused. A real query matched an existing lead by company name and was logged to
+  `crm_search_history` with the correct `searched_by`/`result_count`/`source`; a second search by a
+  different real user for the same term produced its own correctly-attributed row. Confirmed the
+  picker's own "list everything on focus" empty-query call is genuinely never logged (checked
+  directly against Postgres for a zero-length `query` row, not just trusted from the `if (query)`
+  guard in the code).
+- **No bug found in either file** — role-list scoping (including the file-to-file difference), the
+  duplicate-name guard, cross-tenant subject-assignment rejection, cross-tenant label IDOR, cascade
+  delete, and search-history's log-real-queries-only rule all held under live, adversarial testing.
+  No code changes this pass.
+- **Test-artifact handling:** both test labels (the real one and the cross-tenant seed) were deleted
+  via the real API / a matching direct SQL cleanup; the handful of `crm_search_history` rows this
+  trace created were left in place as genuine, accurately-attributed search-log entries — no delete
+  endpoint exists for that table (confirmed by grep), matching this arc's standing convention. Shared
+  dev server (port 3001) used directly throughout, confirmed healthy.
+
+### HUD-0114 — Phase 5: real-time session/device revocation, idle-timeout enforcement, and the deactivation-triggered "leaver" access-revocation automation traced live and adversarially · CLEAN (no finding)
+- **Category:** Security (Phase 5, seventieth journey). `security.routes.ts`'s self-service session
+  surface (`GET/PATCH/DELETE /sessions`, `POST /sessions/revoke-others`) sits on real `hr_devices`
+  rows, and `middleware/auth.ts`'s `authenticate` hook re-checks that state live on every single
+  authenticated request — the single highest-value claim to verify here was whether "Sign Out"
+  actually kills a still-cryptographically-valid JWT immediately, or is a cosmetic DB flag nobody
+  ever reads back. Never traced. Also surfaced and traced a second, undocumented mechanism found
+  while reading the code rather than assumed working: `ondi.subscribers.ts` reacts to
+  `hr.staff_deactivated` by automatically revoking every one of that person's active sessions, org
+  role grants, and OAuth app consents — a real "leaver" automation, not just a `users.active` flip.
+- **Trace:** logged in for real (not a self-signed test JWT) to get a genuine `device_id`-bearing
+  access+refresh pair. Confirmed the token worked, then self-revoked that exact session via
+  `DELETE /sessions/:id` and immediately retried the *same, still within its 1-hour expiry* access
+  token — **rejected** (`401 Session has been signed out`), not just the DB row changing. Retried the
+  matching refresh token against `/auth/refresh` — also rejected, confirming the code's own claim
+  that revocation kills both directions rather than letting a stolen refresh token quietly mint a new
+  access token an hour later. Logged in twice more from two distinct sessions and called
+  `POST /sessions/revoke-others` from one: that caller's own token kept working, the other session's
+  token was immediately killed — the safer "sign out everywhere else" default, verified both ways,
+  not just the survivor. **Then found and traced the deactivation subscriber, which this file's own
+  routes gave no hint of**: deactivated a real staff account (`PATCH /v1/hr/staff/:id/status`,
+  `active:false`) while it held a live, still-valid access token, and the very next request with that
+  token was rejected — not because `authenticate` checks `users.active` (it doesn't, confirmed by
+  reading the whole file), but because the `hr.staff_deactivated` domain event fired
+  `ondi.subscribers.ts`'s leaver-revoke handler, which had already flipped `hr_devices.revoked_at`
+  for every one of that user's active sessions within the same request. Confirmed directly against
+  Postgres: a real `ondi_automation_log` row ("Revoked 1 active session on deactivation") and the
+  correct `session_revoked` audit event, both attributed to the automation rather than a person.
+  Reactivated the account and confirmed a fresh login immediately succeeded again. **Live-tested the
+  idle-timeout policy the same middleware also enforces**, previously only a read-the-code claim:
+  set the dev tenant's `sessionPolicy.timeoutMinutes` to 15, backdated a real session's
+  `hr_devices.last_used_at` by 20 minutes, and confirmed a request using that session's still
+  cryptographically-valid, not-otherwise-expired access token was correctly rejected
+  (`401 Session expired due to inactivity`) — genuinely re-evaluated per request against live
+  Postgres state, not baked into the token at issuance. Confirmed the untouched-default-enforces-
+  nothing design too (both tenant and platform settings were `null` going in). **Cross-user IDOR,
+  the one angle not implied by anything already read**: a real `TENANT_ADMIN` JWT attempting to
+  rename a *different* user's own device by its real id got a clean `404`, not the tenant-wide reach
+  every other self-service route in this file has — `/sessions/:id` is scoped to `user_id = user.sub`
+  on top of `tenant_id`, correctly narrower than most of this codebase's tenant-only boundaries,
+  matching its own "own-device rename" header comment.
+- **No bug found** — every one of this surface's implicit guarantees (live revocation enforcement on
+  both token types, revoke-others' asymmetric self-preservation, the deactivation-triggered leaver
+  automation, live idle-timeout re-evaluation, and per-user rather than merely per-tenant scoping)
+  held under direct, adversarial, live testing. No code changes this pass.
+- **Test-artifact handling:** the dev tenant's temporary `sessionPolicy` override was removed via
+  `settings - 'sessionPolicy'` (key removed entirely, matching this arc's standing convention rather
+  than left `null`); the test staff account was restored to `active:true` and confirmed logging in
+  again; the handful of real `hr_devices`/`hr_login_history` rows this trace created were left in
+  place (clearly test-agent-labeled, e.g. `TestAgentA/1.0`) — `hr_devices` has no hard-delete path
+  anywhere, matching this arc's standing convention for that table's own audit-trail role; the one
+  real `ondi_automation_log` row is an accurate historical record of a real automation run and was
+  left as such. Shared dev server (port 3001) used directly throughout, confirmed healthy at every
+  step including after two transient `tsx watch` restart blips from the concurrent CMS session
+  (retried and succeeded, matching this arc's established pattern for that specific noise source).
+
+### HUD-0113 — Phase 5: Ondi's auto-join-by-domain workflow (`onboarding.routes.ts`'s `/check-email`+`/request-join` + `ondi.routes.ts`'s `/org/join-requests` review queue) traced live and adversarially · CLEAN (no finding)
+- **Category:** Functional correctness + security (Phase 5, sixty-ninth journey). A real outsider who
+  signs up with an email matching an existing tenant's staff domain is offered "join this workspace"
+  instead of creating a new tenant — a request queues for review, an admin picks the role at approval
+  time (the requester never does, closing off self-escalation), and only then does a real `users` row
+  get created with the password the requester originally chose. Never traced.
+- **Trace:** `GET /v1/onboarding/check-email` correctly matched a new `@msomi.co` address to the real
+  dev tenant, correctly returned `null` for a personal-domain address (`gmail.com`), and correctly
+  reported an already-registered address as unavailable with no match offered. `POST /request-join`:
+  a real submission succeeded (`201`); an immediate second submission for the same still-pending email
+  was correctly refused (`409`, the partial-unique-index message) — a genuine race-safe dedup, not
+  just an app-level pre-check; a submission with a client-supplied `tenant_id` that didn't match the
+  email's own real domain was correctly refused (`400`) — confirms the server re-derives the match
+  itself rather than trusting the hint the UI showed the requester. Confirmed both tenant admins
+  (`ADMIN`/`TENANT_ADMIN`/`MANAGER`) were genuinely emailed (verified against `email_outbox`, not just
+  a `200`). RBAC on the review queue: `JUNIOR` and `CUSTOMER` both correctly refused (`403`, two
+  different gates — role list and the platform's blanket CUSTOMER block — both fired). Self-escalation
+  is closed at the schema level, not just by convention: attempting to approve with `role: "SUPER_ADMIN"`
+  was rejected by Zod validation before the handler even ran (`SUPER_ADMIN` isn't in the accepted enum
+  at all). Approved for real with `role: "JUNIOR"` — the resulting `users` row had the right name/
+  email/role, and **the new person could actually log in with the exact password they originally
+  submitted at request time** (the stored `password_hash` survives from request to approval
+  unmodified). A second approve attempt on the same now-resolved request was correctly refused
+  (`404`, "already reviewed"). Denied a second real request with a reason: the requester's login
+  attempt afterward correctly failed (no `users` row was ever created), and the denial email
+  genuinely included the given reason (verified against `email_outbox`, not just trusted from the
+  route). **Cross-tenant IDOR, the one attack this file's own tenant-scoped `.where()` clauses hadn't
+  been proven against before**: signed a real `TENANT_ADMIN` JWT for a completely different dev-tenant
+  account and confirmed it saw an empty list (not a different tenant's pending requests) and that
+  both `approve` and `deny`, called directly by the real target request's id, were refused with the
+  same generic `404` a nonexistent id gets — no distinguishable "wrong tenant" signal, and no leakage
+  of the request's existence to an outsider.
+- **No bug found** — every one of the flow's implicit guarantees (domain re-verification, race-safe
+  dedup, role-assignment-at-approval-not-request, RBAC, cross-tenant isolation, and password survival
+  from request to approval) held under live, adversarial testing. No code changes this pass.
+- **Test-artifact handling:** all three real `tenant_join_requests` rows this trace created (one
+  approved, two denied) were left in place — the table has no delete endpoint anywhere (confirmed by
+  grep) and each is clearly labeled test content, matching this arc's standing convention. The one
+  real `users` row created by the approval was deactivated via the real `PATCH /v1/hr/staff/:id/status`
+  rather than left as a spurious active login-capable account. One of my own test-script mistakes
+  along the way — an `approve`/`deny` call sent with `Content-Type: application/json` but no body,
+  which Fastify correctly rejects as `FST_ERR_CTP_EMPTY_JSON_BODY` before ever reaching the route —
+  was recognized as my own curl error, not a product bug, and retried with a valid empty-object body.
+  Shared dev server (port 3001) used directly throughout (no Redis dependency for this feature),
+  confirmed healthy throughout.
+
+### HUD-0112 — Phase 5: Ondi's mutual-consent trusted-contact account recovery (`ondi_recovery_contacts`/`ondi_recovery_requests`) traced live · Found+fixed a real HIGH gap — the feature was completely unreachable for its entire stated purpose
+- **Category:** Functional correctness (Phase 5, sixty-eighth journey). This is the platform's answer
+  to "I've lost my password AND my email" — a real mutual-consent flow (add a trusted colleague as a
+  recovery contact, they accept once; later, request recovery and any one accepted contact can vouch
+  for you; a 24-hour cooldown gives the real owner a chance to notice and cancel by logging in
+  normally) split across `auth.routes.ts` (the unauthenticated requester-facing half) and
+  `security.routes.ts` (the authenticated contact-facing half). Never traced. Set up a real
+  recovery-contact relationship between two real dev-tenant accounts (`admin@msomi.co` as the
+  "locked-out" owner, `junior@msomi.co` as the accepting contact) and drove the entire golden path
+  live rather than reading the code and assuming it worked.
+- **Trace:** contact relationship added and accepted correctly; `/auth/recovery/request` correctly
+  enumeration-safe (identical generic response for a matched vs unmatched email) and correctly
+  notified the accepted contact by email; the contact's `GET /v1/security/recovery-requests` and
+  `POST /recovery-requests/:id/approve` both worked and started a real 24-hour cooldown;
+  `/auth/recovery/complete` correctly refused before the cooldown elapsed (`400`). **Found a real
+  HIGH bug live**: at no point in this entire path does the single `token` value that
+  `/auth/recovery/complete` requires ever reach a human being. Read every response and every
+  notification the flow produces looking for it — `/auth/recovery/request`'s response is a generic
+  `{ok:true}` with no token, by enumeration-safety design; the `auth.recovery_request` email sent to
+  the contact (confirmed directly against `email_outbox`) contains zero links and no token, just an
+  instruction to log in and review; `GET /recovery-requests` and the `approve` response the contact
+  actually sees both explicitly omitted the `token` column from their `SELECT`/`.returning()` lists.
+  `RecoveryPage.tsx`'s own header comment describes the intended design — "this IS the link a
+  contact would share back" — but nothing in the product ever gave the contact a link to share.
+  Retrieved the real token directly from Postgres (the only place it existed) to prove the rest of
+  the machine is completely sound: backdated the stored `cooldown_ends_at` to simulate the 24-hour
+  wait elapsing (the same live-manipulation technique HUD-0109 used on the Query Builder's OTP
+  grant), called `/auth/recovery/complete` with the real token, and **logged in with the resulting
+  new password for real** — the underlying approve → cooldown → complete → working-new-password
+  chain is entirely correct. The token being unreachable was the only defect, but it was a total
+  one: every real account on this platform that ever needed this feature (lost password, lost email)
+  had zero way to actually use it, with no error or warning anywhere suggesting the feature was
+  broken — it silently "worked" as far as the requester and contact could tell, right up to the step
+  that can never be reached. Rated HIGH, not CRITICAL, since it fails safe (the account simply stays
+  inaccessible via this path — nothing is exposed, corrupted, or bypassed) and every other password/
+  session-recovery path (email-token reset, OTP, magic-link, TOTP, SSO) remains unaffected.
+- **Fixed**: `apps/api/src/routes/security.routes.ts` — added `token` to `GET /recovery-requests`'s
+  select list and to `POST /recovery-requests/:id/approve`'s `.returning()` list, so the one contact
+  entitled to review a specific request now actually receives the value the whole flow depends on
+  (not a new privilege — `token` was already the sole bearer credential `/auth/recovery/complete`
+  accepts, exactly like a password-reset token, and this endpoint was already scoped to exactly the
+  contact named on that request). `apps/web/src/pages/OndiSecuritySettings.tsx` — added a "Copy
+  Link" action next to a pending request (to approve-and-share in one visit) and next to an approved
+  one in Vouch History (to re-share if the first copy was lost), building the exact
+  `/recovery?token=…` URL `RecoveryPage.tsx` already expects and copying it to the clipboard with the
+  platform's existing copy-to-clipboard convention (same pattern as the 2FA secret-key/backup-codes
+  copy buttons elsewhere on this same page) — deliberately not emailed to the contact pre-login,
+  since approving still correctly requires the contact to authenticate first. Re-verified live end to
+  end with a second, fresh recovery request: the token now appears in both the contact's list and the
+  immediate approve response.
+- **Test-artifact handling:** the test recovery-contact relationship was removed via the real
+  `DELETE /v1/security/recovery-contacts/:id`; `admin@msomi.co`'s password (changed to a test value
+  while proving the completion path) was restored to the platform's own documented dev-seed default
+  (`password123`, per `seed.ts`'s own header comment) using the exact same PBKDF2-HMAC-SHA512 format
+  `hashPassword()` produces, and re-verified with a real login. The two `ondi_recovery_requests` rows
+  this trace created (one `completed`, one left `approved` with its cooldown still running) were left
+  in place — the table has no delete endpoint anywhere (confirmed by grep, matching this arc's
+  standing convention for tables in that position) and both are harmless, clearly time-stamped test
+  activity. `tsc --noEmit` clean on both `apps/api` and `apps/web`; full suite green (12 files/127
+  tests — up from 121, reflecting further growth in the concurrent CMS session's own test file);
+  `check:triggers` OK (same unrelated concurrent-session warnings). Shared dev server (port 3001)
+  used directly for this journey (no Redis dependency) and confirmed healthy throughout.
+
+### HUD-0111 — Phase 5: Ondi's real login front door (`ondi-auth.routes.ts` — phone-OTP, magic-link, passwordless-TOTP, WebAuthn/passkey, Google/Microsoft/Apple federation) traced live and adversarially · Found+fixed one real LOW enumeration leak
+- **Category:** Security + functional correctness (Phase 5, sixty-seventh journey). This file is
+  Ondi's own login front door (M1 of the SSO migration plan) — five independent sign-in mechanisms
+  landing on the same real session issuance every other login path uses — never traced despite
+  HUD-0103/0104 already covering its sibling SAML/OAuth *provider* surfaces. No real Redis exists in
+  this dev environment, so every Redis-backed mechanism here (OTP, magic-link, passkey) fails closed
+  (`503`) on the shared dev server; stood up an isolated API instance against a hand-written minimal
+  RESP2 mock (`PING`/`SET EX`/`GET`/`DEL`/`EXPIRE`/`INCR` — enough for this file's own command set)
+  to exercise the *enforcing* path rather than accept the fail-closed default as sufficient evidence.
+- **Trace:**
+  - **Phone-OTP**: confirmed the enumeration-safety comment's own claim — an unregistered phone gets
+    the exact same generic `200` as a registered one. **Found a real LOW bug live**: a registered
+    phone whose tenant has no SMS gateway configured (the actual, unconfigured state of the dev
+    tenant right now — not a synthetic edge case) got a *different*, specific `502`
+    (`"No SMS gateway configured for this tenant"`) instead of the generic response — an
+    unauthenticated caller could distinguish a registered from an unregistered phone number whenever
+    delivery fails, exactly the enumeration gap this same route's own header comment says it already
+    closed for the no-match case. The sibling `/magic-link/request` in this same file already gets
+    this right (`.catch(() => {})` swallows a send failure and always returns the generic response) —
+    proof this is a real, avoidable inconsistency, not an inherent limit. **Fixed** by mirroring that
+    exact pattern: the code is still generated and stored in Redis regardless of delivery outcome
+    (confirmed live via direct Redis read both before and after the fix), the `otp_issued` audit event
+    now always fires with the real delivery outcome recorded in its metadata instead of being skipped,
+    and the HTTP response is now always the identical generic `200` either way. Re-ran the original
+    reproduction (registered phone, no gateway) — now `200`, byte-identical to the unregistered-phone
+    response. The rest of the mechanism is clean: 5-attempt lockout genuinely fires on the 6th wrong
+    try (`429`), a correct code issues a real session and is immediately single-use (replay `401`),
+    and the live risk-assessment/trust-score computation responded correctly to real prior failed
+    attempts in the same window (`risk.factors: ["failed_attempts"]` on a later successful login).
+  - **Magic-link**: enumeration-safe request confirmed identical either way. Retrieved the real
+    emailed token from `email_outbox` (same evidence-based pattern as HUD-0109's OTP retrieval).
+    Garbage token rejected (`400`); correct token with no TOTP enrolled issues a real session
+    immediately; correct token replayed is refused (single-use). **Adversarially tested the file's
+    own more specific claim, not just the easy case**: enrolled a real TOTP secret for the test
+    account (via the real `/v1/security/2fa/setup`+`/2fa/verify`, hand-computing valid RFC 6238 codes
+    against the returned base32 secret), then confirmed a magic-link token survives *both* a missing
+    TOTP (`requires_2fa: true`) *and* a wrong TOTP (`401`) without being consumed — only actually
+    deleted from Redis once a session is genuinely about to be issued — then completed it with a
+    correct code and confirmed the now-used token is refused on replay.
+  - **Passwordless TOTP** (`/totp/verify`): wrong code refused with the same generic message an
+    unenrolled email would get (enumeration-safe); correct code issues a real session.
+  - **Passkey/WebAuthn**: confirmed `/passkey/login/options` returns a byte-identical
+    `allowCredentials: []` challenge shape for an unregistered email and a registered email with zero
+    passkeys — genuinely indistinguishable, not just documented as such. `/passkey/login/verify`
+    correctly rejects a garbage authenticator response (`401`). Completing a real WebAuthn ceremony
+    end-to-end needs actual authenticator hardware/software this environment doesn't have — same
+    disclosed class of limitation as Sign's Stirling-PDF tools and CMS's Anthropic-vision alt-text
+    elsewhere in this arc.
+  - **Federated login (Google/Microsoft/Apple)**: `/config` correctly resolves the real
+    SuperAdmin-configured Google client id from Platform Settings (confirmed against the live
+    `tenant_settings` row) with Microsoft/Apple correctly reported unconfigured (`null`). Microsoft
+    and Apple `/verify` correctly refuse with a clean `503` while unconfigured. Google `/verify` made
+    a real call to Google's own `tokeninfo` endpoint and correctly rejected a garbage credential
+    (`401`) — confirms genuine external token verification, not a stub. Completing the real
+    happy-path (and therefore the `allowJoinRequest`/`createJoinRequestForFederatedIdentity` branch)
+    needs a genuine Google/Microsoft/Apple-signed identity token this environment cannot forge —
+    reviewed `onboarding.service.ts`'s `createJoinRequestForFederatedIdentity` by reading rather than
+    live-exercising, the same disclosed boundary as the passkey ceremony above.
+  - Confirmed the audit trail is accurate throughout, not just the HTTP responses: `hr_login_history`
+    showed the exact sequence of real failed/succeeded attempts across every mechanism tested,
+    matching the live test sequence attempt-for-attempt.
+- **Fixed**: `apps/api/src/routes/ondi-auth.routes.ts` — `/otp/request` no longer lets an SMS delivery
+  failure leak account existence via a distinct status code.
+- **Test-artifact handling:** the TOTP enrollment created to test the 2FA-required branch was
+  disabled via the real `/v1/security/2fa/disable` with a freshly-computed valid code (confirmed
+  `user_totp` back to 0 rows for the test account); `sms_messages`/`email_outbox` rows left in place
+  as real activity logs, matching this arc's standing convention (same treatment as HUD-0109's OTP
+  emails); the isolated instance and its mock Redis were both stopped, shared dev server (port 3001)
+  confirmed undisturbed. `tsc --noEmit` clean, full suite green (12 files/121 tests — up from 11/105,
+  reflecting a concurrent session's own now-merged `cms.test.ts`), `check:triggers` OK (only the same
+  concurrent CMS session's own still-open trigger-registry warnings, unrelated to this file).
+
+### HUD-0110 — Phase 5: inbound public webhooks (GPSWOX fleet tracking + Meta WhatsApp Cloud API) traced live with real HMAC forgery/tamper attempts and full functional flows · CLEAN (no finding)
+- **Category:** Functional correctness + security (Phase 5, sixty-sixth journey). `webhooks.routes.ts`
+  is the platform's real, unauthenticated-by-design public receiver for two third-party push
+  integrations — GPSWOX (live vehicle tracking) and Meta's WhatsApp Cloud API (inbound customer
+  messages) — carrying its own real HMAC signature verification, at-least-once redelivery dedup, and
+  auto-ticket/auto-reply logic. Never traced, and its two signature checks (`META_APP_SECRET`,
+  `GPSWOX_WEBHOOK_SECRET`) are both unconfigured in this dev environment (each documented to
+  fail-open — "allow" — until a real secret is set), so verifying them as *enforcing* required
+  temporarily configuring both on an isolated instance rather than trusting the fail-open code path
+  as sufficient evidence either way.
+- **Trace:** ran an isolated API instance with real test secrets for both integrations, then attacked
+  and exercised every mechanism directly.
+  - **Meta HMAC signature (`X-Hub-Signature-256`), attacked four ways**: a correctly-signed payload
+    was accepted; a payload signed with a *different* secret was rejected (`401`); a payload with no
+    signature header at all was rejected; and — the most important case — **a payload with its
+    original, genuinely-valid signature but a single word changed in the body afterward was
+    rejected**, confirming the check verifies the exact raw wire bytes (captured before JSON parsing,
+    per the file's own comment) and a signature computed on the true original text cannot be replayed
+    over tampered content.
+  - **GPSWOX shared-secret token**: correct token accepted (reached the next real check); wrong token
+    and missing token both correctly refused (`401`).
+  - **WhatsApp webhook handshake** (`GET /whatsapp`): correct `hub.verify_token` echoed the challenge
+    back; a wrong token was correctly refused (`403`).
+  - **GPSWOX functional flow, verified against real rows, not just a `200`**: created a real vehicle
+    with a known device IMEI, then sent a real position update (lat/long/speed/heading, `params.
+    ignition`/`params.battery`) — a real `vehicle_positions` row was created with every field
+    correctly parsed, including `ignition: true` → `"ON"`. A geofence alert payload correctly fanned
+    out real notifications to *every* fleet-manager-role user in the tenant, with the real vehicle
+    name and alert text in each message.
+  - **WhatsApp inbound flow, the redelivery-dedup claim proven live**: sent two distinct messages
+    (different `msg.id`) from a brand-new phone number — confirmed exactly one `customers` row and
+    one `support_tickets` row were created (the second message correctly reused the still-open
+    ticket, not a second one) — then **replayed both original messages a second time** (simulating
+    Meta's documented at-least-once redelivery): the database was checked directly afterward and
+    showed **exactly 2 `support_messages` rows, not 4** — the partial-unique-index
+    `ON CONFLICT DO NOTHING` genuinely no-ops a redelivered message rather than creating a duplicate
+    (or erroring).
+  - **Keyword auto-reply**: created a real `support_rules` row (`type: 'whatsapp_keyword'`,
+    `matchType: 'exact'`, keyword `STATUS`) and sent a message with lowercase `"status"` — the
+    case-insensitive exact match fired correctly, and a real `OUTBOUND`/`SYSTEM`-authored reply with
+    the configured text was logged to the same ticket.
+  - **Non-text message placeholder generation**: an inbound `image` message with a caption produced
+    exactly the documented placeholder text (`"[Image attachment: <caption>] (media id <id> — not yet
+    downloaded...)"`) — and, correctly, did **not** trigger the keyword auto-reply engine (the file's
+    own comment explicitly says matching a keyword against `"[Image attachment...]"` is never
+    intentional; confirmed live rather than merely read).
+- **No bug found.** Every one of the file's own documented claims — raw-byte HMAC verification,
+  shared-secret token gating, real position/alert parsing, genuine redelivery dedup, keyword
+  auto-reply, and non-text placeholder handling — held exactly under live, adversarial testing.
+- **Test-artifact handling:** the test customer created by the inbound-message flow was soft-deleted
+  via the real `DELETE /v1/customers/:id` (a `deleted_at`/`active:false` flip, matching this
+  codebase's established soft-delete convention for customer records); its ticket and messages were
+  left in place since `support_tickets` has no delete endpoint anywhere (confirmed, matching HUD-0049's
+  earlier finding for this exact table) — clearly labeled test content, the same treatment given to
+  every other undeletable record type this arc. The test keyword rule was hard-deleted via the real
+  `DELETE /support/rules/:id`. The test vehicle was left in place (no vehicle-delete endpoint exists
+  anywhere in the codebase, confirmed by grep). The dev tenant's temporarily-set `wa_phone_id` was
+  reverted to its original `NULL`. The isolated test instance (with its temporary secrets) was fully
+  stopped; the shared dev server (port 3001) confirmed undisturbed throughout. No code changes this
+  pass.
+
+### HUD-0109 — Phase 5: SuperAdmin Query Builder (real raw-SQL execution tool) traced live with adversarial injection/bypass attempts at every layer · CLEAN — every claimed defense held, including the hard Postgres-role backstop
+- **Category:** Security (Phase 5, sixty-fifth journey). `query-builder.routes.ts` +
+  `queryBuilder.service.ts` + `queryBuilderSchema.ts` is a `SUPER_ADMIN`-only tool that can execute
+  literal, arbitrary read SQL against the platform's real database — by a wide margin the single
+  highest-blast-radius surface examined in this arc, and never traced. Its own code comments describe
+  a genuinely careful, defense-in-depth design (a hand-written table/column allowlist for its "visual"
+  mode; a keyword-blocklist + single-statement + SELECT-only gate for its "raw" mode; a time-boxed,
+  single-use, OTP-gated grant to even reach raw mode at all; and, as the stated real backstop, running
+  raw queries through a genuinely separate, restricted Postgres role inside a read-only transaction
+  with a hard statement timeout) — exactly the kind of specific, falsifiable security claim this arc's
+  SAML/OAuth/anchoring journeys (HUD-0103/0104/0108) found real value in attacking rather than
+  trusting.
+- **Trace — attacked every layer the code claims to have, independently, starting from the database
+  itself upward:**
+  1. **The stated hard backstop was checked first, directly, outside the application entirely**:
+     connected to Postgres as the `hudumika_readonly` role by hand and attempted a real `INSERT`,
+     `UPDATE`, and `DROP TABLE` against a real table — all three failed with genuine Postgres
+     permission errors (`permission denied for table tenants`, `must be owner of table tenants`).
+     This role's restriction is real at the database-grant level, not merely a naming convention or
+     an application-layer promise.
+  2. **Role gating**: a `TENANT_ADMIN` JWT was correctly refused (`403`) on every route in the file.
+  3. **Visual-mode allowlist, attacked from three angles**: a table deliberately excluded from the
+     allowlist (`password_reset_tokens`) was cleanly rejected; a sensitive column deliberately
+     excluded from an otherwise-allowed table (`users.password_hash`) was cleanly rejected; a classic
+     `' OR '1'='1` injection payload placed in a filter *value* was correctly parameterized (returned
+     as inert data — zero matching rows — never as executable SQL, confirmed via the returned
+     `generated_sql` showing a bound `$1` placeholder); and SQL-shaped strings smuggled through
+     `order_by.column` and the `table` field itself (`"id; DROP TABLE users; --"`,
+     `"customers; DROP TABLE users; --"`) were both rejected outright by the exact-match allowlist
+     check, never reaching `sql.ref()`/`sql.table()` at all. A legitimate query against a real allowed
+     table returned real, correct data.
+  4. **Raw-mode gating**: `POST /raw-run` was correctly refused (`403`) with no active grant.
+  5. **The real OTP flow was driven end to end, not stubbed**: requested a code, retrieved the actual
+     sent email from `email_outbox` (the platform's own real send path, addressed to the real
+     `admin@msomi.co` account) and extracted the genuine 6-digit code from its rendered body — a
+     wrong code was correctly refused without consuming the real one; the real code then correctly
+     granted access; **immediately replaying that same correct code a second time was correctly
+     refused** ("Code expired or not requested"), confirming genuine single-use consumption.
+  6. **With a live grant, the raw-mode gate itself was attacked**: a multi-statement payload
+     (`SELECT 1; DROP TABLE tenants;`) was rejected for containing a semicolon; a bare `DELETE`
+     statement was rejected for not starting with `SELECT`/`WITH`; a `DELETE` smuggled inside a
+     `WITH ... AS (DELETE ... RETURNING id) SELECT * FROM x` CTE was correctly caught by the keyword
+     blocklist (case-insensitively — confirmed with a lower-cased `delete` producing the identical
+     rejection); a real, unblocked `SELECT count(*) FROM tenants` correctly succeeded.
+  7. **The hard timeout backstop was proven live, not assumed from the `SET LOCAL statement_timeout`
+     line**: `SELECT pg_sleep(15)` against a stated 10-second timeout took **exactly ~10.4 real
+     seconds** before Postgres itself killed it (`"canceling statement due to statement timeout"`) —
+     genuine enforcement at the database level, the true last line of defense if every application
+     check above it were somehow bypassed.
+  8. **The auto-expiring grant — the specific fix the file's own comment says replaced "a single
+     global boolean nobody was reminded to turn back off" — was proven live by directly manipulating
+     the stored grant's expiry into the past** (leaving `raw_sql_enabled: true` in the database
+     untouched, only backdating `raw_sql_enabled_until`): both `GET /settings` and `POST /raw-run`
+     correctly treated the grant as expired despite the stale `true` flag still sitting in storage —
+     confirming the time-box is real, not merely a display hint that a stale toggle could survive
+     past its intent.
+  9. `POST /raw-sql/disable` correctly required no OTP (only enabling is the risky direction) and
+     correctly cleared the grant.
+  10. **Every single attempt above — 15 in total, successes and failures alike — was independently
+      confirmed in `GET /runs`**: exact mode, table, row count, actor, and error message for each,
+      matching what was actually attempted. Two older, unrelated `sign_forensic_cases` runs attributed
+      to the platform's own real SuperAdmin were visible in the same log — incidental evidence this
+      tool sees genuine production use, not a dormant feature, left untouched.
+- **No bug found anywhere in this file.** Every one of the ten defensive claims in its own code
+  comments held under direct, hands-on attack, including the one claim (the Postgres role's real
+  permissions) that no prior journey in this arc had verified by actually connecting as that role.
+- **Test-artifact handling:** zero data-table rows were created, modified, or deleted anywhere in the
+  platform — every query run, visual or raw, was a `SELECT` (the whole point of the tool). The
+  `query_builder_runs` and `email_outbox` rows this trace generated are genuine, accurate audit
+  records of real security testing by a real (self-signed test) `SUPER_ADMIN` identity, indistinguishable
+  in kind from the platform's own real admin activity already sitting in the same tables — left in
+  place rather than scrubbed, matching this arc's standing rule for real audit trail. No code changes
+  this pass (confirmed via `git status`: none of the three files this journey read were touched).
+
+### HUD-0108 — Phase 5: real Bitcoin/OpenTimestamps ledger anchoring (SEAL + ClearOS declarations) traced live · found and fixed the same HUD-0097-class bug in two sibling files; every cryptographic claim independently verified byte-for-byte
+- **Category:** Functional correctness + security (Phase 5, sixty-fourth journey). `seal-ledger-anchor.routes.ts`
+  and its ClearOS sibling `declaration-ledger-anchor.routes.ts` submit a real checkpoint hash of the
+  tenant's tamper-evident ledger (SEAL lot movement chains / customs declaration event chains) to the
+  public OpenTimestamps calendar servers, anchoring it to the real Bitcoin blockchain — an external,
+  Hudumika-independent proof, verifiable by anyone with the public `ots` tool without trusting
+  Hudumika's own "confirmed" status at all. Neither file had ever been traced, despite making
+  exactly the kind of falsifiable cryptographic claim this arc's SAML/OAuth journeys (HUD-0103/0104)
+  found real value in verifying live rather than trusting.
+- **Found and fixed a real bug in both files before tracing the golden path**: reading
+  `SealAnchorService.checkAnchorConfirmation` / `DeclarationAnchorService.checkAnchorConfirmation`
+  (the code behind each file's `POST /anchors/:id/check`) showed the exact HUD-0097/0099 shape —
+  `.executeTakeFirstOrThrow()` on a URL-supplied anchor id with no prior existence check — copy-pasted
+  identically into both services (`declaration-anchor.service.ts`'s own header comment says "Mirrors
+  SealAnchorService exactly," and mirrored the bug too). Live-confirmed both: a wrong/stale anchor id
+  crashed as a raw `500` (each route's own local `catch` prevented an unhandled crash but mapped the
+  `NoResultError` straight to `err.message` with no status mapping). **Fixed** by adding an
+  `AnchorNotFound` error class to each service (existence check + throw), mapped to a clean `404` in
+  each route's catch block — the same shape used across HUD-0097's whole sweep. Re-verified live: both
+  `POST /seal/anchors/<bad-id>/check` and `POST /declarations/anchors/<bad-id>/check` now return a
+  clean `404` instead of a `500`.
+- **The golden path was then traced with independent, hand-computed verification at every step — not
+  trusting a single claim from the API's own response:**
+  - **SEAL**: before calling the API, independently queried `seal_movements`/`seal_lots` directly and
+    hand-reproduced `SealService.buildCompartmentCheckpoint`'s exact algorithm (latest movement-chain
+    tip per lot, sorted by lot id, `SHA256(JSON.stringify(snapshot))`) — got
+    `c9505d677a184db399ac43b951bebc99152ce4f78edeaae07dac708d2c45f164`. The real `POST
+    /compartments/:id/anchor` call — which genuinely took 3.4 seconds (a real network round-trip to
+    external calendar servers, not a simulated instant response) — returned **the exact same hash**.
+  - **The downloaded `.ots` proof file was inspected at the raw byte level, not just checked for a
+    200 status**: its first bytes are the genuine OpenTimestamps magic header
+    (`\x00OpenTimestamps\x00\x00Proof\x00...`), and the bytes immediately following it are **the exact
+    same checkpoint hash**, byte-for-byte — direct, independent confirmation that the real external
+    proof file genuinely commits to the real ledger state computed moments earlier, with zero trust
+    placed in any layer of the API's own self-reporting.
+  - **ClearOS declarations**: repeated the identical independent hand-verification against
+    `declaration_events` (2 real declarations from earlier arc journeys) — hand-computed
+    `16ff422accc5f92d81e068d360ba31e8d5f4b6b3eb79f298d2cec74f0cbe4d64`, and the real `POST
+    /declarations/anchors` call returned the exact same hash and `declarationCount: 2`.
+  - `POST /anchors/:id/check` on a freshly-created anchor correctly reported `status: 'pending'`,
+    `bitcoin: null` on both files — the correct, honest state for a proof less than a minute old
+    (real Bitcoin confirmation takes hours), not an error; `lastCheckedAt` correctly updated to reflect
+    the real check.
+  - `NothingToAnchor` correctly fires as a `422` for a genuinely empty compartment and (by the same
+    code path, since a bad id naturally yields zero lots) for a nonexistent compartment too — a safe,
+    non-leaky behavior rather than a distinguishing crash.
+  - `CUSTOMER` role correctly refused (`403`) on every route in both files, matching the identical
+    `HUD-0024/0031` block comment already present in both.
+- **No further bugs found** — every cryptographic and external-network claim in both files' own
+  documentation held exactly, verified independently rather than trusted.
+- **Test-artifact handling:** both real anchor rows (one per file) were deliberately left in place —
+  neither table has a delete endpoint, and unlike ordinary test scaffolding, an anchor is *itself* a
+  tamper-evidence record; erasing Hudumika's local copy of it would defeat the entire point of the
+  feature without undoing the real, already-permanent external submission to the public calendar
+  servers. The one throwaway empty compartment created solely to exercise `NothingToAnchor` was
+  soft-deactivated via the real `DELETE /compartments/:id`. Temporary `seal`/`clearos` entitlement
+  overrides fully reverted. `tsc --noEmit` clean on all 4 changed files (same 4 pre-existing,
+  still-evolving concurrent-session CMS errors, unrelated); full suite green (12 files/117 tests — the
+  concurrent session added its own new `cms.test.ts` since HUD-0107, unrelated); `check:triggers` OK.
+
+### HUD-0107 — Phase 5: Platform Packages (subscription-tier admin CRUD) traced live · found and fixed a real LOW bug (duplicate `code` crashed as an opaque 500 instead of a clean 400)
+- **Category:** Functional correctness (Phase 5, sixty-third journey). `packages.routes.ts`
+  (`GET /`/`GET /all`/`POST`/`PATCH`/`DELETE`, the platform-global subscription-tier registry the
+  signup wizard, Subscription page, and SuperAdmin's own Packages console all read from) had never
+  been traced — flagged in this arc's memory since 2026-08-24 as "looked clean on read, not
+  separately traced."
+- **Trace:** confirmed `GET /` (public, no auth) correctly returns only the 3 currently-active
+  packages (`starter`/`growth`/`enterprise`), correctly ordered by `sort_order`; `GET /all` as a real
+  `SUPER_ADMIN` correctly surfaces all 7 rows including the 4 inactive ones (`free`, `agency-managed`,
+  `scale`, `onsite-standalone`) that `GET /` deliberately hides; the same `GET /all` correctly refused
+  a `TENANT_ADMIN` (`403`), as did `POST`/`PATCH`/`DELETE` each tested individually. Created a real
+  test package via `POST`, `PATCH`ed its price and `popular` flag and confirmed the public list
+  reflected both changes immediately, then `DELETE`d it (a soft `is_active=false` flip, preserving
+  `platform_transactions` history per the route's own comment) and confirmed it correctly disappeared
+  from `GET /` while remaining visible via `GET /all` with `is_active: false`. A `PATCH`/`DELETE`
+  against a nonexistent `code` both correctly 404'd rather than silently no-op'ing.
+- **Found and fixed a real LOW bug**: `POST /` had no `try/catch` around its insert at all, so
+  creating a package with a `code` that already exists (the column both `PATCH`/`DELETE` key off, and
+  a genuinely easy mistake — e.g. recreating a soft-deleted tier under its old code) reached Postgres
+  as a raw unique-violation and came back as `index.ts`'s generic sanitized `500 "An unexpected error
+  occurred. Please try again."` — live-reproduced. Two sibling routes in this same codebase
+  (`crm-labels.routes.ts`, `crm-smart-views.routes.ts`) already handle the identical shape correctly
+  (`catch` a `duplicate key` message, return a specific `400`); `packages.routes.ts`'s `POST` simply
+  never received that same fix. **Fixed** by applying the exact same established pattern. Re-verified
+  live: the original reproduction (creating a second package under an already-used code) now returns
+  a clean `400` (`"A package with code \"...\" already exists"`) instead of a raw `500`.
+- **Test-artifact handling:** the test package was hard-deleted directly (no hard-delete endpoint
+  exists on this platform-global table, and a soft-deleted throwaway test row had no reason to
+  permanently clutter a real SuperAdmin's Packages console). `tsc --noEmit` clean on the one changed
+  file (the concurrent CMS session's own in-progress errors have grown from 2 to 4 since HUD-0106,
+  all still entirely contained to its own files — `cms-content.routes.ts`, `cms.routes.ts`,
+  `cms.service.ts` — confirming that session's work is still ongoing and unrelated); full suite green
+  (11 files/105 tests); `check:triggers` OK.
+- **Also found, mid-journey, unrelated to this route**: the shared dev API server (port 3001), left
+  stopped at the end of HUD-0106 for reasons outside this session's own actions, was restarted per an
+  explicit user request at the start of this journey — confirmed healthy (background jobs bootstrap
+  clean, in-memory fallback since no real Redis in this dev environment, matching every other journey
+  this arc that needed it).
+
+### HUD-0106 — Phase 5: CRM activity timeline + real send-email-from-CRM journey traced live · CLEAN (no finding)
+- **Category:** Functional correctness (Phase 5, sixty-second journey). `crm-activity.routes.ts`
+  (manual + system-logged activity timeline, and a real "send email from CRM" feature that resolves
+  its recipient entirely server-side) had never been traced.
+- **Trace:** created two real leads (one with a `contact_email`, one deliberately without), converted
+  the first into a real deal via the actual conversion endpoint, then exercised the full authorization
+  and resolution matrix with four distinct real user identities (`TENANT_ADMIN`, `JUNIOR`, `FINANCE`,
+  `MANAGER`).
+- **Result: every mechanism behaved exactly as the code's own comments claim — no bug found.**
+  **Recipient-resolution precedence for a deal, live-flipped mid-test**: with only a `lead_id` set,
+  `send-email` correctly resolved and sent to the lead's own `contact_email`; after `PATCH`-attaching a
+  real customer to the same deal, the *identical* route on the *identical* deal correctly switched to
+  the customer's email instead — directly proving the "customer first, once one exists" comment in the
+  code, not just reading it. A lead with no email on file was correctly refused (`400`, a clear
+  message) rather than crashing. **Delete authorization, tested with the real boundary case**: a
+  `FINANCE`-role user (not the author, not management) attempting to delete a `JUNIOR`-authored manual
+  note returned a plain `204` but — confirmed directly against the timeline afterward — deleted
+  nothing at all (the query's `actor_id` filter matched zero rows); a `MANAGER` deleting the *same*
+  note immediately afterward genuinely removed it, confirming the manager-bypass works as intended.
+  **The system-vs-manual delete boundary held for every role, not just non-management ones**: even a
+  `TENANT_ADMIN` attempting to delete a system-logged `created` event through this route hit the same
+  silent-no-op (the query's `type IN (...)` filter excludes system types unconditionally) — confirmed
+  the event was still present afterward. A `POST` with a nonexistent `subject_id` correctly returned a
+  clean `404` rather than a crash (`assertSubjectInTenant`'s ownership check, since `subject_type`/
+  `subject_id` has no FK per the file's own migration-449 comment). Cross-subject isolation on `GET`
+  confirmed — a lead's own timeline showed only its own events, none of the deal's or the other lead's.
+  A real send through `MailService.sendNow` correctly logged an accurately-worded, correctly-attributed
+  timeline entry (`"Emailed <name> <email>: "<subject>""`) for both sends, distinguishable from the
+  system `created` event.
+- **No bug found.**
+- **Test-artifact handling:** both test leads and the test deal were fully deleted via their own real
+  `DELETE` endpoints; confirmed directly in Postgres that the deal, both leads, and every activity row
+  attached to them (which cascade-delete with their subject) are gone — zero orphaned rows. The
+  shared dev API server (port 3001) was found already stopped at the start of this journey, for
+  reasons unrelated to this session's own activity (nothing this session had done touched or killed
+  it) — rather than restart a process this session doesn't own mid-arc, the trace was run against a
+  temporary isolated instance on an unused port instead, which was fully stopped afterward; port 3001
+  was left exactly as found, flagged for the user rather than unilaterally restarted. No code changes
+  this pass.
+
+### HUD-0105 — Phase 5: CRM smart views (lead/deal/customer rule-based views) + the SEAL↔CRM bonded-warehouse link journey traced live · CLEAN (no finding)
+- **Category:** Functional correctness (Phase 5, sixty-first journey). `crm-smart-views.routes.ts` (a
+  real per-entity-type SQL-predicate compiler across 10 operator kinds — text/num/uuid/bool/date/
+  label — mirroring Contacts' own smart-groups shape verified in HUD-0102) and `seal-crm-link.routes.ts`
+  (a small, already-correctly-gated read-only bridge surfacing a customer's bonded-warehouse lots on
+  their CRM record) had never been traced as their own journey.
+- **Trace:** created 3 real leads with deliberately distinct field values (industry, value, priority,
+  source), a real CRM label assigned to exactly one of them, and converted one lead into a real deal —
+  then built smart views exercising every operator family the catalog supports: `text/eq` +
+  `num/gte` combined with `match_type: 'all'`; `label/has` (the `EXISTS`-subquery-compiled field);
+  `text/eq` combined with `match_type: 'any'`; `date/within_days`; `text/is_empty`; and, on the `deal`
+  entity type, `num/gte` (probability) and `date/before_days` (`stagnant`, keyed off
+  `stage_changed_at`).
+- **Result: every count and every returned row matched a hand-computed expectation exactly — no bug
+  found.** One apparent mismatch surfaced and was resolved as a non-issue, not a defect: a
+  `text/is_empty` view on `industry` returned `count: 1` where 0 was expected — traced to a genuine
+  pre-existing lead (`Jane` / `Zod Co`, `industry: NULL`) left over from earlier, unrelated test
+  activity in this same long-lived dev tenant, confirmed directly against Postgres — the filter was
+  correctly finding a real row I had simply forgotten existed, not miscounting. `GET /:id/results`
+  returned exactly the right full rows (not just a count) for a multi-rule view. Strict validation on
+  `POST`/`PATCH` correctly rejected both an unknown filter field and a syntactically valid but
+  wrong-for-that-field operator, each with a specific, actionable `400` message rather than a generic
+  failure — the same "validate before touching the database" discipline this arc has repeatedly found
+  missing elsewhere (HUD-0089/0092/0094/0097's whole bug class), confirmed present and correct here.
+  `PATCH` correctly re-compiled and re-evaluated a view's live count after its rules changed (a
+  probability threshold raised from 50 to 90 correctly dropped a real deal out of the view), and
+  `DELETE` genuinely removed a view. `seal-crm-link.routes.ts`'s `GET /lots-for-customer` correctly
+  returned six real bonded-warehouse lots (test fixtures left over from HUD-0098/HUD-0101, still
+  correctly attributable to their real owner) with the exact right camelCased fields, correctly
+  required `owner_id` (`400` when omitted, confirmed live), and correctly refused a `CUSTOMER`-role
+  JWT (`403`) — the HUD-0024-era block comment already on this file holds.
+- **No bug found.**
+- **Test-artifact handling:** every test smart view (7 total, both entity types), the test label, the
+  converted test deal, and all 3 test leads were fully deleted via their own real `DELETE` endpoints
+  and confirmed gone directly against Postgres — none of this data had the kind of audit-trail value
+  this arc leaves financial/regulatory records for, so full cleanup was the right call rather than
+  labeling-and-leaving. No entitlement override was needed (the dev tenant's plan already grants
+  `crm`). Usage counter check-in: 80/500, no restore needed. No code changes this pass.
+
+### HUD-0104 — Phase 5: Ondi's real OAuth 2.0 / OIDC provider traced live with 16 adversarial scenarios · found and fixed a real LOW cross-client token-introspection disclosure; every other security claim held
+- **Category:** Functional correctness + security (Phase 5, sixtieth journey), direct continuation of
+  HUD-0103's methodology applied to `ondi-oauth.routes.ts` — a full RS256-signed authorization-code +
+  PKCE + refresh-rotation + introspection/revocation provider that had never been traced despite
+  being exactly as security-critical as the SAML file just verified.
+- **Trace:** reused HUD-0103's isolated-instance-plus-from-boot-Redis-mock setup (a second API
+  process on an unused port, the same hand-written RESP mock) so the real `codeKey`/`refreshKey`/
+  `revokedKey` Redis primitives this file calls directly could be genuinely exercised. Used the
+  platform's own real seeded first-party public client (`hudumika-clearos`, PKCE-only, no secret) for
+  the public-client scenarios, and registered a second, confidential test client with a real secret
+  through the actual `POST /v1/ondi/oauth-clients` admin API for the confidential-client and
+  cross-client scenarios.
+- **Result — 15 of 16 scenarios behaved exactly as intended, no bug:** full PKCE authorization-code
+  happy path (approve → token → `userinfo` returning the exact right claims); PKCE correctly mandatory
+  for a public client (omitting `code_challenge` → `400`); a wrong `code_verifier` correctly rejected;
+  **authorization-code single-use correctly enforced** (redeeming the identical code twice: first
+  succeeds, second is `invalid_grant`); `redirect_uri` binding correctly enforced; the confidential
+  client's secret-based path works end to end; a wrong `client_secret` correctly rejected (`401`);
+  **refresh-token rotation genuinely single-use** (reusing the just-rotated-away old refresh token is
+  `invalid_grant`); a refresh token correctly bound to the client that requested it (redeeming one
+  client's refresh token while claiming to be a different client is refused); introspection correctly
+  requires valid registered-client credentials; **token tampering correctly rejected** (a flipped
+  character in the JWT payload fails the RS256 signature check); an **`alg:none`-style hand-forged
+  token correctly rejected** (`verifyJwt` always verifies against the real key's RS256 signature
+  regardless of what the token's own header claims, so a header lying about its algorithm gains
+  nothing); and **revocation correctly propagates immediately** to both `/userinfo` (`401`) and
+  `/introspect` (`active: false`) for the same access token.
+- **Found and fixed a real LOW bug**: `POST /introspect` authenticates its caller (a registered client
+  proving its `client_id`/`client_secret`, per the route's own RFC 7662 comment explaining exactly why
+  that check exists — "anyone holding a token string... could probe token validity/claims with no
+  registration at all") but never checked whether *that* registered caller was actually the token's
+  own audience. Live-confirmed: a second, completely unrelated registered client — using its own
+  valid credentials — could introspect a token minted for a *different* client and see its full
+  details (owning user's UUID, the other client's identity via `aud`, granted scopes, issued/expiry
+  timestamps). Not a data-plane compromise (introspection alone grants no access to the user's actual
+  resources, and registering a new OAuth client at all requires `SUPER_ADMIN` + `ondi.governance`, a
+  meaningfully high bar), but a real, live-reproduced disclosure the endpoint's own stated security
+  rationale doesn't actually deliver on. **Fixed** with `if (claims.aud !== client_id) return {
+  active: false }` — the same anti-enumeration shape the endpoint already uses for a revoked/expired
+  token, so a caller can't distinguish "not yours" from "invalid" either. Re-verified live both
+  directions: the original cross-client reproduction now returns `active: false`; a client
+  introspecting its own still-valid token (fresh token, not yet revoked) still returns the full,
+  correct claims unchanged.
+- **Test-artifact handling:** the test confidential OAuth client was hard-deleted via the real
+  `DELETE /v1/ondi/oauth-clients/:id`; the one real consent row created against the seeded
+  `hudumika-clearos` first-party client (an incidental side effect of exercising the public-client
+  happy path against a real platform client rather than a disposable test one) was removed via the
+  real self-service `DELETE /oauth/consents/:id`. The `ondi.governance` entitlement override was
+  fully removed (not left `false`); the isolated API instance and Redis mock were both stopped, and
+  the real dev server (port 3001) confirmed undisturbed throughout. `tsc --noEmit` clean on the one
+  changed file (the two remaining errors are entirely contained in `cms-content.routes.ts`/
+  `cms.service.ts`, both belonging to a different, concurrent session's own in-progress CMS work — the
+  exact error text has visibly shifted since HUD-0099's own tsc run, confirming that session's own
+  edits are ongoing and unrelated to this one); full suite green (11 files/105 tests — a first run
+  showed 2 hook timeouts while my own scratch test-instance and Redis mock were still competing for
+  local resources, fully resolved on a clean re-run once those were stopped, confirming the timeouts
+  were this session's own resource contention, not a regression); `check:triggers` OK.
+
+### HUD-0103 — Phase 5: Ondi SAML 2.0 SSO (real XML-DSig assertion handling) traced live with real, adversarially-signed assertions · CLEAN — every security claim in the file's own documentation held under live attack
+- **Category:** Functional correctness + security (Phase 5, fifty-ninth journey). `ondi-saml.routes.ts`
+  had never been traced as its own journey despite its header comment making several specific,
+  falsifiable cryptographic/security claims (real XML-DSig verification via `samlify`, a
+  self-implemented audience-restriction check the library itself omits, Redis-backed replay
+  protection, tenant-scoped user resolution, per-request entitlement re-verification) — exactly the
+  kind of "code comment asserts real security, verify it live" case that has found real bugs
+  elsewhere in this arc (HUD-0062's disposal-reversal hypothesis, HUD-0066's dead-code bypass).
+- **Trace:** built a complete, real SAML 2.0 IdP simulator rather than trusting the library's own
+  claims — a self-signed RSA/X.509 keypair (via `node-forge`), a second unrelated keypair for the
+  "wrong signing key" adversarial case, and a real `samlify.IdentityProvider` that signs genuine
+  assertions matching what a real corporate IdP (Okta, Entra ID, AD FS) would send. Registered a real
+  `sso_providers` row through the actual `POST`/`PATCH /v1/ondi/sso-providers` API (the exact routes
+  fixed for their own 404 bug in HUD-0099), granted `ondi.governance` via the standing
+  entitlement-override mechanism, and ran the target route file against an isolated second API
+  instance (port 3099) with its own from-boot Redis connection — a from-scratch minimal RESP-protocol
+  mock (real `SET`/`GET`/`DEL`/`EX` semantics, ~100 lines) substituting for a real Redis server that
+  isn't available in this Windows dev environment, since the actual replay-protection logic under
+  test only ever calls those three primitives directly (BullMQ's own Lua-script job scheduling failed
+  loudly against the mock and was irrelevant to this trace, confirming the isolation was scoped
+  correctly).
+- **Result: nine adversarial scenarios run, every one behaved exactly as the file's own documentation
+  claims — no bug found:**
+  1. **Valid IdP-initiated login** (no `InResponseTo`, the single most common real-world SSO entry
+     point) — succeeded, `302` to `/auth/sso-complete`.
+  2. **Tampered assertion** (a flipped byte in the base64 body, invalidating the XML-DSig signature)
+     — rejected, `assertion_verification_failed`.
+  3. **Assertion signed with a different, unrelated private key** (same claimed structure, wrong
+     signer) — rejected, `assertion_verification_failed` — confirms `samlify` genuinely validates the
+     signature against the *configured* certificate, not merely "some valid signature exists."
+  4. **Audience mismatch** — an assertion validly signed by the real IdP key, but built for a
+     *different* SP entity (simulating a different Ondi tenant's own SAML provider, signed by the
+     same trusted IdP) — rejected, `audience_mismatch`. This is the exact SAML Core §2.5.1.4 gap the
+     file's own header comment says `samlify` itself leaves open and that this file closes with a
+     manual check — **live-confirmed the manual check actually fires**, not just present in the diff.
+  5. **Unknown email** (valid signature/audience, but no matching user) — rejected,
+     `no_matching_user`.
+  6. **A successful login's session was independently decoded, not just trusted from the `302`**: the
+     `hudumika_access` cookie's JWT payload matched the real user (`sub`/`tenant_id`/`role`/`email`)
+     exactly, and a real `device_id` was included — a genuine, usable session, not a stub redirect.
+  7. **Cross-tenant isolation** — an assertion validly signed for the correct SP entity and audience,
+     but with a `NameID` matching a *real, active* user who exists only in a completely different
+     tenant (Moovit, not the Msomi tenant this provider belongs to) — rejected, `no_matching_user`
+     (the tenant-scoped lookup correctly never found them). Directly verifies the file's own strongest
+     claim: "a signed assertion from tenant A's IdP must not be able to sign in as a user in tenant B,
+     even on a coincidental email match."
+  8. **SP-initiated flow + replay protection** — hit the real `/login` route, decoded the deflated
+     `AuthnRequest` from the resulting redirect to extract its real ID, built an assertion carrying
+     that ID as `InResponseTo`, and submitted it: first use succeeded (`302` to sso-complete);
+     **replaying the identical assertion a second time was correctly rejected**
+     (`unknown_in_response_to` — the Redis-backed request-id cache had already consumed it on first
+     use, exactly as the "replay protection" claim describes).
+  9. **Entitlement re-verification** — revoked the tenant's `ondi.governance` grant, then submitted a
+     freshly-built, perfectly valid, correctly-signed, correct-audience assertion for the *same*
+     already-proven-working flow: rejected, `entitlement_lapsed` — confirming a lapsed add-on
+     genuinely cannot be bypassed by an already-configured, still-enabled `sso_providers` row, exactly
+     matching the file's own comment about why this re-check exists.
+  - **The audit trail was independently verified, not assumed**: every one of the 8 failure attempts
+    produced a correctly-attributed `ondi_auth_events` row with the *exact* matching `reason` for each
+    scenario (not a generic failure code), and all 3 successful logins produced real `saml_login`
+    events plus real `hr_login_history` rows — the audit-chain claims this file's comments make are
+    genuinely wired, not aspirational.
+- **No bug found.** This is the most adversarially-tested "clean" result in this arc to date — nine
+  independent attack scenarios against a real cryptographic security boundary, not a happy-path
+  functional trace.
+- **Test-artifact handling:** the test `sso_providers` row was hard-deleted via the real `DELETE
+  /sso-providers/:id` endpoint (re-enabling the entitlement briefly to reach it, since it's itself
+  behind the same `ondi.governance` gate the trace was testing). The `ondi.governance` entitlement
+  override was fully removed (not left `false`) after use. The 3 real `hr_login_history` rows and the
+  reused (not newly-created) `hr_devices` row are genuine login history for the real `admin@msomi.co`
+  account and were left in place, matching this arc's standing rule for harmless real audit trail
+  rather than test pollution requiring cleanup. The isolated second API instance (port 3099) and the
+  scratch Redis mock (port 6379) were both fully stopped; the original dev server (port 3001)
+  confirmed undisturbed throughout. No code changes this pass.
+
+### HUD-0102 — Phase 5: Contacts nested-label hierarchy + smart groups verified live in a real browser · CLEAN (no finding), closes the last "not re-checked visually" gap from the 2026-09-09/10 build
+- **Category:** Functional correctness (Phase 5, fifty-eighth journey) — the first journey this arc to
+  drive the frontend with Playwright rather than `curl`+JWT, closing a gap explicitly flagged in
+  memory since the feature's original build: "frontend not re-checked visually."
+- **Trace:** launched `apps/web`'s real dev server, logged in through the actual `/login` form as the
+  seeded `admin@msomi.co` / `password123` TENANT_ADMIN, and drove `/contacts` end to end with
+  Playwright (Chromium). First finding a **non-issue**: the page showed "0 contacts" on first load —
+  traced to the dev tenant's only 3 existing contacts all carrying `status: TRASHED` from an earlier
+  session's leftover E2E fixtures, not a bug (the active-list query correctly excludes them). Created
+  3 real active contacts through the actual "Create contact" dialog (two at "Acme Traders", one at
+  "Zawadi Logistics") to have real data to filter/match against — the first time this exact feature
+  had ever been exercised against non-empty data in this dev tenant.
+- **Result — all five originally-flagged checks confirmed working, live, in a real browser:**
+  1. **Nested label tree with expand/collapse**: created a top-level label ("VIP Customers") and a
+     real sub-label ("Gold Tier") under it via the real "Create label" dialog's parent-label
+     selector; the sidebar correctly rendered "VIP Customers" with a folder icon and expand chevron,
+     "Gold Tier" properly indented beneath it. Clicking the chevron (`.csb-label-twist`, distinct
+     from the label-select button and the options-menu button) correctly hid "Gold Tier" on collapse
+     and restored it on re-expand — verified by checking the child row's visibility directly, not
+     just eyeballing a screenshot.
+  2. **"Add sub-label" / "Move to…" / rename**, all from the label's hover-revealed options
+     dropdown: added a real sub-label ("Hot Leads") under a second top-level label ("Prospects") —
+     correctly nested; renamed it to "Warm Leads" via the real rename dialog — correctly updated in
+     place; used "Move to…" (a submenu correctly listing "Top level" plus every other label except
+     the item's own current parent) to move "Warm Leads" out to top-level — correctly re-rendered as
+     a flat, un-indented label, and "Prospects" correctly lost its folder icon once it had no
+     remaining children.
+  3. **"Smart groups" section with a working "+"**: correctly shows an empty state ("No smart groups
+     yet") with a `title="New smart group"` button that routes to `/contacts/smart/new`.
+  4. **The rule-builder page renders correctly**: proper `PageHeader`-styled title ("New smart
+     `group`."), a NAME field, a "Match [all/any] of the following rules" selector, and a rule row
+     with real field/operator/value selects (defaulting to Company/is/value) plus a working
+     "+ Add rule" button that appends a second, independently-editable rule row.
+  5. **An existing smart group opens and shows its live matched-contact list**: created a real smart
+     group ("Acme Traders Contacts", rule `company eq "Acme Traders"`) — saving it correctly `POST`ed
+     to `/v1/contacts/smart-groups`, navigated to `/contacts/smart/:id`, and immediately fetched
+     `/smart-groups/:id/contacts`, rendering exactly the 2 matching contacts (Grace Mwangi, John
+     Kamau) while correctly excluding the third (Amina Hassan, a different company) — a real,
+     server-evaluated match against live data, not a stored membership list. The sidebar's own
+     smart-group entry showed a live "2" count badge next to it.
+- **No bug found** — every one of the five originally-flagged unknowns renders and functions exactly
+  as the 2026-09-09/10 build's own API-level testing implied it should; this pass supplies the
+  missing visual/interaction confirmation that testing was waiting on.
+- **Test-artifact handling:** unlike SEAL/FinOps/HR record types elsewhere in this arc, Contacts,
+  labels, and smart groups all have real delete actions with no audit-trail reason to preserve
+  throwaway UI-test scaffolding, so all of it was cleaned up via the app's own real delete flows: the
+  smart group was hard-deleted, all 4 labels were hard-deleted, and the 3 test contacts were trashed
+  (contacts have no hard-delete from the list view, matching the pre-existing 3 trashed fixtures from
+  an earlier session that were never purged either — left in the same state, not specially treated).
+  Also cleaned up 2 stray duplicate contact rows created by an earlier flaky version of the test
+  script itself (a transient `402` usage-limit response was misread as a hard failure when the
+  underlying request had actually already succeeded) — not a product bug, a test-script artifact,
+  caught and corrected before it could be mistaken for one. Usage counter lowered twice for the
+  metered contact-creation calls and confirmed restored to 500/500 afterward. No code changes this
+  pass.
+
+### HUD-0101 — Phase 5: SEAL bonded-storage billing golden path traced live · found and fixed a real HIGH cross-customer authorization gap (`seal-billing.routes.ts` had no `CUSTOMER`-block, unlike every sibling SEAL file)
+- **Category:** Functional correctness (Phase 5, fifty-seventh journey) + a HIGH authorization finding
+  (found live while tracing, not by another sweep pass).
+- **Trace:** the golden path HUD-0099's own testing never completed — a real compartment billing
+  rate → accrual preview → generated invoice → watermark-advance → double-billing prevention, for
+  both billing methods `seal-billing.service.ts` supports. Created two real compartments via
+  `POST /compartments` (`flat_per_lot` and `per_cbm`) and configured real rates on each via the
+  same `PATCH /compartments/:id` route fixed in HUD-0099 (15,000 TZS/day + 25,000 handling; 2,500
+  TZS/CBM/day + 25,000 handling) — the first time either billing method has ever actually been
+  configured on this dev tenant (every pre-existing compartment had all-zero rates). Created three
+  real lots backdated to `warehousedOn: 2026-09-11` (a flat-rate lot, a per-CBM lot with a real
+  12 CBM volume, and a per-CBM lot with no volume) via the real `POST /lots` receiving flow.
+- **Result: every mechanism hand-verified exactly, both billing methods.** `GET .../storage-accrual`
+  on the flat-rate lot returned `days: 5` (hand-computed from `2026-09-11` to the real current
+  timestamp), `storageAmount: 75,000` (5 × 15,000), `handlingFeeFlat: 25,000` (first invoice only),
+  `totalAmount: 100,000` — exact. The per-CBM lot correctly derived its effective daily rate
+  (`12 CBM × 2,500 = 30,000/day`) and totaled `175,000` — exact. The no-volume per-CBM lot correctly
+  threw `LotHasNoVolume` (422) on both the preview and the generate routes, matching the service's
+  own guard. `POST .../generate-storage-invoice` created two real DRAFT `sales_invoices` rows with
+  the exact hand-verified totals, each with two correctly-priced `sales_invoice_lines` (a
+  `PER DAY`-unit storage line and a `FLAT`-unit handling line, confirmed directly in Postgres, not
+  just the response) and the right `customer_id` resolved from the lot's own `owner_id`. **The
+  double-billing guard was proven live, not just read from the code**: re-checking accrual on both
+  lots immediately after invoicing returned `days: 0`/`totalAmount: 0`/`includesHandling: false`
+  (correctly one-time-only), and a second `generate-storage-invoice` call on each was correctly
+  refused with `NothingToBill` (422) — the `storage_billed_through` watermark genuinely prevents a
+  second charge for the same days, confirmed directly against Postgres (`storage_billed_through`
+  advanced to exactly the accrual's own `toDate` on both lots).
+- **Found and fixed a real HIGH bug while testing the authorization boundary** (this arc's standing
+  practice of testing more than the happy path): `seal-billing.routes.ts` has only an authentication
+  + entitlement preHandler, with **no role check at all** — unlike every sibling SEAL route file
+  (`seal.routes.ts`, `seal-warehouse-ops.routes.ts`), both of which carry an explicit
+  `if (request.user.role === 'CUSTOMER') return reply.status(403)...` block from the original
+  HUD-0024/0031 RBAC sweep. `seal-billing.routes.ts` postdates that sweep (built for HUD-0099's own
+  billing feature) and never received it. Live-confirmed the real impact with a `CUSTOMER`-role JWT
+  for a *different* customer than the lot's real `owner_id`: it could freely read any lot's
+  confidential storage rate/accrual figures (`GET .../storage-accrual` → `200`), and — worse —
+  could **actually create a real Draft invoice against another customer's lot**
+  (`POST .../generate-storage-invoice` → `200`, a genuine `sales_invoices` row created, the lot's
+  billing watermark consumed) with zero ownership check anywhere in the path. Not a read-only leak:
+  a wrong-customer account could trigger real financial-document creation and consume another
+  customer's billing watermark, silently suppressing the days that customer's own staff would later
+  see as billable. **Fixed** by adding the identical `CUSTOMER`-block preHandler used platform-wide
+  in the sibling SEAL files. Re-verified live: the exact original `CUSTOMER` reproduction now gets
+  `403` on both routes; the same requests immediately after with a `TENANT_ADMIN` JWT still succeed
+  unchanged.
+- **Test-artifact handling:** `seal_lots` has no delete endpoint anywhere (confirmed, matching every
+  other SEAL record type traced this arc) — all four test lots and both generated invoices left in
+  place, clearly labeled `HUD-0101` in their descriptions/notes. The two test compartments **were**
+  soft-deactivated via the real `DELETE /compartments/:id` (a soft `active: false` flip, not a hard
+  delete — confirmed by reading the handler). Temporary `seal` entitlement override and usage-counter
+  lowering (for the metered compartment/lot `POST`s) both reverted/restored and verified. `tsc
+  --noEmit` clean on the one changed file (`seal-billing.routes.ts`; same two pre-existing
+  concurrent-session CMS errors, unrelated); full suite green (11 files/105 tests); `check:triggers`
+  OK.
+
+### HUD-0100 — `seal.routes.ts` `PATCH /locations/:id` crashed with a raw SQL syntax error on an all-unrecognized body · found and fixed while spot-verifying HUD-0099
+- **Category:** Functional correctness / error-handling. A different bug class from HUD-0097/0099
+  (malformed input, not a bad id) — found opportunistically, not by another sweep pass.
+- **Trace:** live-verifying HUD-0099's existence-check fix on this same route a second way — a
+  well-formed request body containing no field the route's schema actually recognizes (this route
+  only accepts `floorLevel`/`maxStackTiers`/`gridRow`/`gridCol`/`capacityUnits`/`lengthM`/`widthM`/
+  `heightM`) — got a raw `500` (`"syntax error at or near \"where\""`) instead of a `400`.
+- **Root cause:** the handler builds its update object field-by-field from only the recognized keys
+  present in the body. When none are present, that object is empty, and Kysely's `.set({})` emits
+  `UPDATE ... SET WHERE ...` — invalid SQL, since there is nothing to assign.
+- **Fix:** added a check immediately after building the patch object — `if (Object.keys(patch)
+  .length === 0) return reply.status(400).send({ error: 'No valid fields to update' })` — before
+  the update runs.
+- **Live-verified:** the same request that previously 500'd now returns a clean `400`; a request
+  with a real recognized field (`floorLevel`) against a nonexistent id still correctly 404s
+  (confirming HUD-0099's fix on this same route is untouched).
+- **Scope note:** only this one instance was fixed. Whether the same "empty `.set({})` on an
+  all-optional PATCH body" shape recurs elsewhere in the codebase has not been swept — flagged as a
+  candidate for a future dedicated pass rather than chased down here, to keep this finding scoped to
+  what was actually found.
+- **Test-artifact handling:** no persistent data touched — every reproduction used the same
+  synthetic nonexistent UUID as HUD-0099's own testing. `tsc --noEmit` and the full suite (11
+  files/105 tests) re-run clean after this fix; `check:triggers` OK.
+
+### HUD-0099 — Platform-wide sweep continuation: two more blind spots in HUD-0097's own methodology, closed · found and fixed 19 more real instances across 6 files
+- **Category:** Functional correctness / error-handling (direct continuation of HUD-0097).
+- **Trace:** while re-verifying `seal.routes.ts` after HUD-0098's journey treated it as
+  already-covered by HUD-0097's addendum, found it actually had more unguarded hits than had ever
+  been read. Tracing why surfaced two further gaps in the *sweep's own methodology*, not new gaps in
+  the codebase's habits:
+  1. A file appearing in **both** the single-line and multi-line grep passes had been treated as
+     fully checked once any one already-known line in it was re-confirmed — but the two passes'
+     match *counts* for that file could differ, so other real hits in the same file went unread.
+     Ran a per-file match-count comparison across all 33 files from HUD-0097's addendum file list
+     to find every file where this had happened; `hr.routes.ts` showed by far the largest gap (16
+     matches never actually read against 15–19 lines previously checked, many of the latter turning
+     out to be different token patterns like `session.id`/`existing.id` that don't overlap with the
+     strict URL-param-only capture group the sweep's regex used).
+  2. The sweep only ever grepped `apps/api/src/routes` — **never `apps/api/src/services`.** Found
+     via `seal-billing.service.ts`, where the unguarded `.executeTakeFirstOrThrow()` calls live in a
+     service function that a route (`seal-billing.routes.ts`) merely calls into, so no routes-only
+     grep could ever have surfaced it.
+- **Result: found and fixed 19 more real "crash instead of 404" bugs**, all live-reproduced before
+  the fix and re-verified as a clean 404 after:
+  - **`seal-billing.service.ts`** (1 finding, 2 call sites) — `previewAccrual()` and
+    `generateStorageInvoice()` both looked up a storage lot with `.executeTakeFirstOrThrow()` and no
+    prior check. Added a `LotNotFound` error class at the service layer; `seal-billing.routes.ts`
+    maps it to a `404` in both routes' catch blocks, ahead of the existing `LotHasNoVolume`/
+    `NothingToBill` checks.
+  - **`seal.routes.ts`** (3 more routes, missed by the addendum despite this file being in its list)
+    — `PATCH /compartments/:id`, `/locations/:id`, `/discrepancies/:id`.
+  - **`hr.routes.ts`** (8 routes, the largest single-file count of this pass) — `PATCH
+    /departments/:id`, `/designations/:id`, `/leaves/:id/status`, `/announcements/:id`, `/tasks/:id`
+    (`hr_tasks`), the main `/staff/:id` profile-update route (had no `.returning()`, so fixed by
+    checking `numUpdatedRows` instead of adding one), `/staff/:id/role`, and `/staff/:id/status` —
+    this last one is the *exact* route HUD-0091's onboarding/offboarding checklist journey exercised
+    successfully every single time, because that trace always supplied a real employee id. A clean
+    happy-path trace, however thorough, cannot surface this bug class by construction; only a
+    deliberate not-found test can.
+  - **`support.routes.ts`** (2 more routes) — `PATCH /tickets/:id/group`, and `/tickets/:id/tags`
+    (this one had fetched a `before` row for its own diffing logic but never checked it was
+    non-null, so the crash happened even with the lookup already sitting right there unused).
+  - **`ondi.routes.ts`** (5 routes, mirroring the same sensitive shape as the HR findings) — `PATCH
+    /users/:id/role`, `/users/:id/status`, `/devices/:id`, `/sso-providers/:id`, and
+    `/oauth-clients/:id` (`SUPER_ADMIN`-only, `dbPlatform`-scoped since `ondi_oauth_clients` has no
+    `tenant_id` column at all).
+  - **`tasks.routes.ts`** checked in full as part of the same pass — **clean, zero new findings.**
+    Every remaining `.executeTakeFirstOrThrow()` in the file is either a plain `INSERT` or already
+    guarded by `resolveTaskAccess()`/an explicit existence check moments earlier in the same
+    transaction.
+  - All 19 fixes follow HUD-0097's established shape: switch to `.executeTakeFirst()` (or check
+    `numUpdatedRows` for a plain `updateTable()` call with no `.returning()`), then a real `404`.
+    Handlers with a `reply` parameter return `reply.status(404).send(...)`; handlers without one
+    throw `Object.assign(new Error(...), { statusCode: 404 })` — this codebase's own pre-existing
+    convention (found at `hr.routes.ts`'s delete-requests route), confirmed compatible with the
+    global error handler's `reply.send(error)` fallback.
+- **Live-verified both directions** on a representative sample spanning every touched file: a
+  synthetic nonexistent UUID against `hr.routes.ts`'s three staff routes, `ondi.routes.ts`'s two
+  user routes and its `oauth-clients` route, both `support.routes.ts` routes, and all three
+  `seal.routes.ts` routes all now return a clean `404`; the same routes re-tested afterward with a
+  real, valid id (a no-op value change on two real staff rows, to avoid mutating shared dev-test
+  fixtures) confirmed the happy path is unchanged.
+- **Test-artifact handling:** no persistent data was created — every reproduction used the same
+  synthetic, well-formed nonexistent UUID convention as HUD-0097. No real seal-billing invoice was
+  ever generated during this pass (only tested against a nonexistent lot id), so the originally-
+  intended seal-billing golden path — configuring a real compartment billing rate and running a full
+  accrual/invoice cycle end to end — remains unattempted and is noted as a follow-up, not this
+  entry's scope. The temporary `seal` entitlement override
+  (`tenant_settings.settings['enabled-apps'].seal`, granted mid-sweep to reach `seal.routes.ts`) was
+  fully reverted (the key removed entirely, not left `false`, matching the tenant's state before
+  this session touched it); the usage counter was confirmed already restored to 500/500. `tsc
+  --noEmit` clean on all 6 changed files (the two remaining errors are entirely contained in
+  `cms-content.routes.ts`/`cms-content.service.ts`, both untracked files belonging to a different,
+  concurrent session's own in-progress CMS work); full suite green (11 files/105 tests);
+  `check:triggers` OK.
+- **HUD-0097 + HUD-0099 total, all three passes combined: 66 real "crash instead of 404" bugs found
+  and fixed across 27 files.** The lesson this entry adds on top of HUD-0097's own: a bug-class
+  sweep's coverage bookkeeping needs the same rigor as the code it's auditing — "this file already
+  appeared in an earlier pass's file list" is not the same claim as "every line in this file
+  matching the pattern was actually read," and a sweep scoped to one directory (`routes/`) will
+  silently miss the same bug living one function call away, in `services/`.
+
+### HUD-0098 — Phase 5: SEAL reefer monitoring + yard slotting journey traced live · CLEAN (no new finding beyond HUD-0097's addendum)
+- **Category:** Functional correctness (Phase 5, fifty-sixth journey).
+- **Trace:** `seal-warehouse-ops.routes.ts` — the file whose two not-found bugs kicked off HUD-0097's
+  addendum sweep; this journey traces the file's *own* golden path rather than just its bug. Created
+  a real consignment → a real container (a genuine ISO 6346 check-digit rejection hit first, on a
+  made-up container number — confirmed the validation is real, not decorative — then a valid one
+  succeeded) → a real reefer-tracked lot (`reefer_setpoint_c: -18`) → logged three real temperature
+  readings: one comfortably inside tolerance (`-19`), one clearly outside (`-10`), and one exactly
+  on the tolerance boundary (`-16`, `±2` from `-18`) → created a yard slot → assigned the container
+  to it → assigned a real active vehicle to the same container → unassigned the yard slot.
+- **Result: every mechanism is real and correctly derived, not a stored/cached flag.** The `±2`
+  tolerance band correctly classified all three readings, including the boundary one landing
+  `withinRange: true` (an inclusive `<=` comparison, not an off-by-one exclusive one) — a detail
+  easy to get wrong in exactly the direction that would falsely flag a compliant reading. Yard-slot
+  `occupiedCount` is a live `COUNT` join against `seal_containers.yard_slot_id`, not a maintained
+  counter column: it correctly read `0` → `1` after assignment → `0` again after unassignment, with
+  no separate bookkeeping call needed. The vehicle pick-list correctly returned only this tenant's
+  real `ACTIVE` vehicles. `CUSTOMER` is correctly refused the entire surface.
+- **No new bug found** — the two real bugs this file had (`PATCH /containers/:id/yard-slot` and
+  `PATCH /containers/:id/vehicle` both crashing on a bad container id) were already found and fixed
+  as part of HUD-0097's addendum earlier in this same session; re-confirmed here that the fix holds
+  under this journey's own real container id and, separately, that the pre-existing
+  `POST /lots/:id/reefer-readings` guard (already correct before HUD-0097) still 404s cleanly on a
+  bad lot id.
+- **Test-artifact handling:** none of `seal_consignments`, `seal_containers`, `seal_lots`,
+  `seal_yard_slots`, or `seal_reefer_readings` have a delete endpoint anywhere in the API (matching
+  the platform-wide no-hard-delete convention this arc has repeatedly confirmed for SEAL's other
+  record types) — all left in place, clearly labeled `HUD-0098` in their description/reference
+  fields. Usage counter restored to 500/500 (temporarily lowered for this journey's metered
+  creates, verified restored); the `seal` entitlement override was reverted. No code changes this
+  pass (all fixes already applied and verified in HUD-0097).
 
 ### HUD-0049 — Phase 5: Support ticket lifecycle traced live · mostly CLEAN; one LOW completeness gap noted, not fixed
 - **Category:** Functional correctness (Phase 5, seventh journey) + a LOW finding (master

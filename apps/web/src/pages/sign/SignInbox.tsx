@@ -100,13 +100,18 @@ function RecipientAvatarStack({ recipients, size, max }: { recipients: SignRecip
   );
 }
 
-function EnvelopeCard({ env, onClick }: { env: EnvelopeWithRecipients; onClick: () => void }) {
+function EnvelopeCard({ env, onClick, selected, onToggleSelect }: { env: EnvelopeWithRecipients; onClick: () => void; selected: boolean; onToggleSelect: (evt: React.MouseEvent) => void }) {
   const signerCount = env.recipients?.length ?? 0;
   const signedCount = env.recipients?.filter(r => r.status === 'signed').length ?? 0;
 
   return (
     <div className="sign-envelope-card" onClick={onClick} role="button" tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && onClick()}>
+      onKeyDown={e => e.key === 'Enter' && onClick()} style={{ position: 'relative' }}>
+      <div onClick={onToggleSelect} role="checkbox" aria-checked={selected} tabIndex={0}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onToggleSelect(e as any); } }}
+        style={{ position: 'absolute', top: 10, right: 10, width: 18, height: 18, borderRadius: 4, border: `1.5px solid ${selected ? 'var(--teal)' : 'var(--border)'}`, background: selected ? 'var(--teal)' : 'var(--card-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+        {selected && <Icon name="check" size={11} color="#fff" />}
+      </div>
       <div className="sign-envelope-icon"><Icon name="fileText" size={20} style={{ color: 'var(--teal)' }} /></div>
       <div className="sign-envelope-meta">
         <div className="sign-envelope-title">{env.title}</div>
@@ -136,12 +141,19 @@ function EnvelopeCard({ env, onClick }: { env: EnvelopeWithRecipients; onClick: 
  *  status text or filename happens to be (same reasoning as the Companies
  *  table in SuperAdmin.tsx / DataTable). Grid view keeps the taller,
  *  two-row EnvelopeCard, which is a different visual shape on purpose. */
-function EnvelopeRow({ env, onClick }: { env: EnvelopeWithRecipients; onClick: () => void }) {
+function EnvelopeRow({ env, onClick, selected, onToggleSelect }: { env: EnvelopeWithRecipients; onClick: () => void; selected: boolean; onToggleSelect: (evt: React.MouseEvent) => void }) {
   const signerCount = env.recipients?.length ?? 0;
   const signedCount = env.recipients?.filter(r => r.status === 'signed').length ?? 0;
 
   return (
     <tr onClick={onClick} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onClick()} style={{ cursor: 'pointer' }}>
+      <td style={{ width: 34 }} onClick={onToggleSelect}>
+        <div role="checkbox" aria-checked={selected} tabIndex={0}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onToggleSelect(e as any); } }}
+          style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${selected ? 'var(--teal)' : 'var(--border)'}`, background: selected ? 'var(--teal)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {selected && <Icon name="check" size={10} color="#fff" />}
+        </div>
+      </td>
       <td>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div className="sign-envelope-row-icon"><Icon name="fileText" size={14} style={{ color: 'var(--teal)' }} /></div>
@@ -176,9 +188,20 @@ export function SignInbox({ view }: { view: ViewKey }) {
   const [envelopes, setEnvelopes] = useState<EnvelopeWithRecipients[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // Debounced so every keystroke doesn't fire its own request — real
+  // Postgres full-text search (migration 463) replaces what used to be an
+  // in-memory substring filter over whatever page had already loaded.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const loadEnvelopes = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams();
     // Drafts are a personal work-in-progress, same as Sent — the backend
@@ -189,15 +212,56 @@ export function SignInbox({ view }: { view: ViewKey }) {
     else if (view === 'declined') params.set('status', 'declined');
     else if (view === 'expired') params.set('status', 'expired');
     else params.set('view', view);
+    if (debouncedSearch) params.set('search', debouncedSearch);
 
-    apiFetch(`/v1/sign/envelopes?${params}`)
+    return apiFetch(`/v1/sign/envelopes?${params}`)
       .then(setEnvelopes).catch(console.error)
       .finally(() => setLoading(false));
-  }, [view]);
+  }, [view, debouncedSearch]);
 
-  const filtered = envelopes.filter(e =>
-    !search || e.title.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => { loadEnvelopes(); }, [loadEnvelopes]);
+  // Clears on a view or search change, not just view — otherwise a
+  // selection made before narrowing the search could linger as a
+  // "N selected" bar referencing rows no longer even in the list.
+  useEffect(() => { setSelected(new Set()); }, [view, debouncedSearch]);
+
+  function toggleSelect(id: string, evt: React.MouseEvent) {
+    evt.stopPropagation();
+    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  async function bulkAction(action: 'void' | 'remind') {
+    const ids = Array.from(selected);
+    if (!ids.length || bulkBusy) return;
+    if (action === 'void') {
+      const ok = await showConfirm('Each one stops accepting signatures immediately. This cannot be undone.', {
+        title: `Void ${ids.length} envelope${ids.length === 1 ? '' : 's'}?`,
+        confirmLabel: 'Void', variant: 'danger',
+      });
+      if (!ok) return;
+    }
+    setBulkBusy(true);
+    try {
+      const res = await apiFetch('/v1/sign/envelopes/bulk', {
+        method: 'POST', body: JSON.stringify({ ids, action }),
+      });
+      setSelected(new Set());
+      await loadEnvelopes();
+      const failed = (res.results as { id: string; ok: boolean; error?: string }[]).filter(r => !r.ok);
+      if (failed.length) {
+        showAlert(`${res.succeeded} succeeded, ${failed.length} skipped — ${failed[0].error}${failed.length > 1 ? ` (+${failed.length - 1} more)` : ''}`);
+      }
+    } catch (err: any) {
+      showAlert(err.message || `Bulk ${action} failed`);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  // Filtering now happens server-side (real full-text search, migration
+  // 463) — `envelopes` already reflects `debouncedSearch` by the time it's
+  // rendered below.
+  const filtered = envelopes;
   const currentTab = VIEW_TABS.find(t => t.key === view);
 
   // Compute live metrics for KPI cards row matching standard format
@@ -284,6 +348,25 @@ export function SignInbox({ view }: { view: ViewKey }) {
         </div>
       </div>
 
+      {/* Bulk-select action bar — Void/Remind many envelopes from one
+          multi-select, instead of opening each one. The backend reports
+          per-item skip reasons (e.g. a completed envelope can't be voided),
+          surfaced via the summary alert after the batch runs. */}
+      {selected.size > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 14px', marginBottom: 12, borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal)' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--teal-deep)' }}>{selected.size} selected</span>
+          <Button variant="outline" disabled={bulkBusy} onClick={() => bulkAction('remind')} style={{ padding: '5px 12px', fontSize: 12.5 }}>
+            <Icon name="bell" size={13} /> Remind
+          </Button>
+          <Button variant="outline" disabled={bulkBusy} onClick={() => bulkAction('void')} style={{ padding: '5px 12px', fontSize: 12.5, color: 'var(--red)' }}>
+            <Icon name="xCircle" size={13} /> Void
+          </Button>
+          <button type="button" onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12.5, cursor: 'pointer' }}>
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* List / grid */}
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
         {loading ? (
@@ -317,7 +400,8 @@ export function SignInbox({ view }: { view: ViewKey }) {
         ) : viewMode === 'grid' ? (
           <div className="sign-envelope-grid">
             {filtered.map(env => (
-              <EnvelopeCard key={env.id} env={env} onClick={() => navigate(`/sign/envelope/${env.id}`)} />
+              <EnvelopeCard key={env.id} env={env} onClick={() => navigate(`/sign/envelope/${env.id}`)}
+                selected={selected.has(env.id)} onToggleSelect={evt => toggleSelect(env.id, evt)} />
             ))}
           </div>
         ) : (
@@ -325,6 +409,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
             <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
               <thead>
                 <tr>
+                  <th style={{ width: 34 }} />
                   <th>Document</th>
                   <th>Status</th>
                   <th>Recipients</th>
@@ -333,7 +418,8 @@ export function SignInbox({ view }: { view: ViewKey }) {
               </thead>
               <tbody>
                 {filtered.map(env => (
-                  <EnvelopeRow key={env.id} env={env} onClick={() => navigate(`/sign/envelope/${env.id}`)} />
+                  <EnvelopeRow key={env.id} env={env} onClick={() => navigate(`/sign/envelope/${env.id}`)}
+                    selected={selected.has(env.id)} onToggleSelect={evt => toggleSelect(env.id, evt)} />
                 ))}
               </tbody>
             </table>

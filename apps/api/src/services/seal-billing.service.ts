@@ -84,6 +84,20 @@ export class NothingToBill extends Error {
   }
 }
 
+// HUD-0099: previewAccrual/generateStorageInvoice both looked up a lot with
+// executeTakeFirstOrThrow() and no prior check — a wrong/stale lot id
+// crashed with a raw 500 instead of a clean 404. Same "crash instead of
+// 404" family HUD-0097 already found and fixed across ~40 route files, but
+// this one lives in a service the route only calls into, so neither of
+// that sweep's two grep passes (both scoped to apps/api/src/routes) ever
+// saw it.
+export class LotNotFound extends Error {
+  constructor() {
+    super('Lot not found');
+    this.name = 'LotNotFound';
+  }
+}
+
 export class SealBillingService {
   /** `tenantId` is required, not optional: `lotId` arrives from the URL, so
    *  without it any workspace can price — and, through
@@ -100,7 +114,8 @@ export class SealBillingService {
       ])
       .where('seal_lots.tenant_id', '=', tenantId)
       .where('seal_lots.id', '=', lotId)
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
+    if (!lot) throw new LotNotFound();
 
     return computeStorageAccrual({
       lotId: lot.id,
@@ -124,7 +139,8 @@ export class SealBillingService {
    *  entirely inside FinOps's own POST /v1/invoices flow, not duplicated
    *  here, so there's exactly one place that logic lives. */
   static async generateStorageInvoice(trx: Transaction<Database>, tenantId: string, actorId: string | null, lotId: string) {
-    const lot = await trx.selectFrom('seal_lots').selectAll().where('tenant_id', '=', tenantId).where('id', '=', lotId).executeTakeFirstOrThrow();
+    const lot = await trx.selectFrom('seal_lots').selectAll().where('tenant_id', '=', tenantId).where('id', '=', lotId).executeTakeFirst();
+    if (!lot) throw new LotNotFound();
     const accrual = await SealBillingService.previewAccrual(trx, tenantId, lotId);
     if (accrual.days <= 0 || accrual.totalAmount <= 0) throw new NothingToBill();
 

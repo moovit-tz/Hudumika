@@ -343,9 +343,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
       if (body.head_user_id !== undefined) allowed.head_user_id = body.head_user_id;
       if (body.status !== undefined)       allowed.status = body.status;
       allowed.updated_at = new Date();
-      return trx.updateTable('hr_departments').set(allowed)
+      const updated = await trx.updateTable('hr_departments').set(allowed)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow();
+        .returningAll().executeTakeFirst();
+      if (!updated) throw Object.assign(new Error('Department not found'), { statusCode: 404 });
+      return updated;
     });
   });
 
@@ -414,9 +416,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
       const allowed: Record<string, any> = {};
       if (body.title         !== undefined) allowed.title         = body.title;
       if (body.department_id !== undefined) allowed.department_id = body.department_id || null;
-      return trx.updateTable('hr_designations').set(allowed)
+      const updated = await trx.updateTable('hr_designations').set(allowed)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow();
+        .returningAll().executeTakeFirst();
+      if (!updated) throw Object.assign(new Error('Designation not found'), { statusCode: 404 });
+      return updated;
     });
   });
 
@@ -1595,7 +1599,8 @@ export async function hrRoutes(fastify: FastifyInstance) {
         approved_at: body.status === 'APPROVED' ? new Date() : null,
         updated_at: new Date(),
       }).where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow();
+        .returningAll().executeTakeFirst();
+      if (!updated) throw Object.assign(new Error('Leave request not found'), { statusCode: 404 });
       await logActivity(trx, user.tenant_id, user.sub, `${body.status === 'APPROVED' ? 'Approved' : body.status === 'REJECTED' ? 'Rejected' : 'Updated'} leave request (${updated.type})`);
 
       // Only the settled outcomes are events; an intermediate status change is
@@ -2819,9 +2824,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
       if (body.body     !== undefined) upd.body     = body.body;
       if (body.category !== undefined) upd.category = body.category;
       if (body.audience !== undefined) upd.audience = body.audience;
-      return trx.updateTable('hr_announcements').set(upd)
+      const updated = await trx.updateTable('hr_announcements').set(upd)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow();
+        .returningAll().executeTakeFirst();
+      if (!updated) throw Object.assign(new Error('Announcement not found'), { statusCode: 404 });
+      return updated;
     });
   });
 
@@ -2966,9 +2973,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
       if (body.color       !== undefined) allowed.color       = body.color;
       if (body.active      !== undefined) allowed.active      = body.active;
       allowed.updated_at = new Date();
-      return trx.updateTable('hr_tasks').set(allowed)
+      const updated = await trx.updateTable('hr_tasks').set(allowed)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow();
+        .returningAll().executeTakeFirst();
+      if (!updated) throw Object.assign(new Error('Task not found'), { statusCode: 404 });
+      return updated;
     });
   });
 
@@ -3440,9 +3449,10 @@ export async function hrRoutes(fastify: FastifyInstance) {
         if (!desig) return reply.status(404).send({ error: 'Designation not found in this workspace.' });
       }
       allowed.updated_at = new Date();
-      await trx.updateTable('users').set(allowed)
+      const patched = await trx.updateTable('users').set(allowed)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+      if (patched.numUpdatedRows === 0n) return reply.status(404).send({ error: 'Staff member not found' });
       const updated = await trx.selectFrom('users')
         .leftJoin('hr_departments as dept', 'dept.id', 'users.department_id')
         .leftJoin('hr_designations as desig', 'desig.id', 'users.designation_id')
@@ -3479,7 +3489,8 @@ export async function hrRoutes(fastify: FastifyInstance) {
       const updated = await trx.updateTable('users').set({ role, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returning(['id', 'name', 'email', 'role'])
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Staff member not found' });
       await logActivity(trx, user.tenant_id, user.sub, `Changed role for ${updated.name} to ${role}`);
       // Role drives what a person can reach in every app on the platform, so
       // this is the one HR change other apps most need to hear about.
@@ -3500,7 +3511,8 @@ export async function hrRoutes(fastify: FastifyInstance) {
       const updated = await trx.updateTable('users').set({ active, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returning(['id', 'name', 'active'])
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+      if (!updated) throw Object.assign(new Error('Staff member not found'), { statusCode: 404 });
       await logActivity(trx, user.tenant_id, user.sub, `${active ? 'Reactivated' : 'Deactivated'} staff member ${updated.name}`);
       // Deactivation has consequences elsewhere — open shipments and tasks
       // still assigned to this person need reassigning, which is exactly the

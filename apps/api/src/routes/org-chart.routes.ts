@@ -112,12 +112,17 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
       const update: Record<string, any> = { updated_at: new Date() };
       const fields = ['label','job_title','department','email','phone','avatar_color','parent_id','position_x','position_y','node_type','color','user_id'];
       for (const f of fields) if (body[f] !== undefined) update[f] = body[f] ?? null;
-      return trx.updateTable('org_chart_nodes')
+      // HUD-0097 (addendum): the node itself was never checked to exist —
+      // only body.user_id/body.parent_id were — so a bad node id crashed
+      // instead of 404ing. Same multi-line-chain miss as seal-warehouse-ops.
+      const updated = await trx.updateTable('org_chart_nodes')
         .set(update)
         .where('id', '=', id)
         .where('tenant_id', '=', user.tenant_id)
         .returningAll()
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+      if (!updated) { reply.status(404); return { error: 'Node not found' }; }
+      return updated;
     });
   });
 

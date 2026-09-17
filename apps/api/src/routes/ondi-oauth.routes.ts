@@ -274,6 +274,17 @@ export async function ondiOauthRoutes(fastify: FastifyInstance) {
     const claims = await verifyJwt(token);
     if (!claims) return { active: false };
     if (claims.jti && redisClient && await redisClient.get(revokedKey(claims.jti))) return { active: false };
+    // HUD-0104: the client-auth check above stops an unregistered caller
+    // from probing token validity, but until now said nothing about
+    // *which* registered client was asking — any client, using its own
+    // valid credentials, could introspect a token minted for a completely
+    // different client and learn its owning user, scopes and lifetime.
+    // RFC 7662's own security considerations assume the caller is either
+    // the resource server or the token's own client; scoping the response
+    // to `aud === client_id` closes the gap the same "don't distinguish
+    // revoked from not-yours" way `active: false` already treats an
+    // invalid/revoked token, rather than a distinguishable 403.
+    if (claims.aud !== client_id) return { active: false };
     return { active: true, sub: claims.sub, aud: claims.aud, iss: claims.iss, exp: claims.exp, iat: claims.iat, scope: claims.scope, token_use: claims.token_use };
   });
 

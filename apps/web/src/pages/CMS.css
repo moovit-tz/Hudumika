@@ -1,0 +1,23 @@
+/* §40 — a read-only render of a Page/Post's RichTextEditor HTML, styled
+   against the admin's own design tokens (var(--ink)/--ink2/--border/--teal),
+   not the public site's --lp-* set (scoped to .lp-page, which this editor
+   panel isn't inside of). Covers exactly the tags RichTextEditor's own
+   toolbar can produce: bold/italic/underline, h2/h3/p, lists, blockquote,
+   links, plus img/table for pasted-in content. */
+.cms-preview-body { font-size: 14px; color: var(--ink2); line-height: 1.7; }
+.cms-preview-body h2 { font-size: 19px; font-weight: 700; color: var(--ink); margin: 28px 0 12px; }
+.cms-preview-body h2:first-child { margin-top: 0; }
+.cms-preview-body h3 { font-size: 15.5px; font-weight: 700; color: var(--ink); margin: 20px 0 8px; }
+.cms-preview-body p { margin: 0 0 12px; }
+.cms-preview-body p:last-child { margin-bottom: 0; }
+.cms-preview-body ul, .cms-preview-body ol { padding-left: 20px; margin: 0 0 12px; }
+.cms-preview-body li { margin-bottom: 5px; }
+.cms-preview-body a { color: var(--teal); }
+.cms-preview-body strong, .cms-preview-body b { color: var(--ink); }
+.cms-preview-body blockquote { margin: 0 0 12px; padding: 8px 14px; border-left: 3px solid var(--teal); background: var(--bg); color: var(--ink2); }
+.cms-preview-body img { max-width: 100%; border-radius: var(--r-sm); }
+.cms-preview-body table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 14px 0; border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; }
+.cms-preview-body th { padding: 8px 12px; text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink3); background: var(--bg); border-bottom: 1px solid var(--border); }
+.cms-preview-body td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--ink2); vertical-align: top; }
+.cms-preview-body tr:last-child td { border-bottom: none; }
+.cms-preview-body:empty::before { content: 'Nothing to preview yet — start writing first.'; color: var(--ink3); font-style: italic; }

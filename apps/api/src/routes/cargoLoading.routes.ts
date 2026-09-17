@@ -133,11 +133,20 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.patch('/manifests/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  // HUD-0097: none of the four routes below checked the manifest existed
+  // before updating/using it — a wrong/stale id fell straight through to
+  // executeTakeFirstOrThrow()'s "no result" (or, for import-shipment, a bare
+  // thrown Error), both of which the global error handler in index.ts
+  // cannot turn into a clean 404 since neither is a real Postgres driver
+  // error. Same pattern already found and fixed in consignments.routes.ts
+  // (HUD-0089), seal-equipment.routes.ts (HUD-0092) and
+  // seal-automation.routes.ts (HUD-0094) — reusing the exact same
+  // "check first, 404 on a falsy result" fix here.
+  fastify.patch('/manifests/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as any;
-    
+
     return withTenant(user.tenant_id, async (trx) => {
       let q = trx.updateTable('cargo_manifests' as any).where('id', '=', id).where('tenant_id', '=', user.tenant_id);
       if (body.name !== undefined) q = q.set({ name: body.name });
@@ -149,47 +158,57 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
       if (body.container_width_cm !== undefined) q = q.set({ container_width_cm: body.container_width_cm });
       if (body.container_height_cm !== undefined) q = q.set({ container_height_cm: body.container_height_cm });
       if (body.max_weight_kg !== undefined) q = q.set({ max_weight_kg: body.max_weight_kg });
-      return q.returningAll().executeTakeFirstOrThrow();
+      const updated = await q.returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Manifest not found' });
+      return updated;
     });
   });
 
-  fastify.patch('/manifests/:id/status', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.patch('/manifests/:id/status', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const { status } = req.body as { status: string };
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('cargo_manifests' as any).set({ status }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow()
-    );
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('cargo_manifests' as any).set({ status })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Manifest not found' });
+      return updated;
+    });
   });
 
-  fastify.post('/manifests/:id/dispatch', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.post('/manifests/:id/dispatch', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const { vehicle_id } = req.body as { vehicle_id: string };
-    
+
     return withTenant(user.tenant_id, async (trx) => {
       const manifest = await trx.updateTable('cargo_manifests' as any)
         .set({ status: 'DISPATCHED', vehicle_id })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow();
-      
+        .returningAll().executeTakeFirst();
+      if (!manifest) return reply.status(404).send({ error: 'Manifest not found' });
+
       // Optionally create a trip or just rely on the vehicle_id link
       return manifest;
     });
   });
 
-  fastify.post('/manifests/:id/import-shipment', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.post('/manifests/:id/import-shipment', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const { shipment_id } = req.body as { shipment_id: string };
-    
+
     return withTenant(user.tenant_id, async (trx) => {
+      const manifest = await trx.selectFrom('cargo_manifests').select('id')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!manifest) return reply.status(404).send({ error: 'Manifest not found' });
+
       // Fetch shipment containers
       const shipment = await trx.selectFrom('shipment_cases').selectAll()
         .where('id', '=', shipment_id).where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
-      
-      if (!shipment) throw new Error('Shipment not found');
+
+      if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
       
       const containers = (shipment.containers as any) || [];
       const newItems = [];

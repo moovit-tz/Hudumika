@@ -914,7 +914,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
-      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      if (!canWorkOn(resolved.access)) return reply.status(403).send({ error: 'You only have view access to this task' });
       const existingOpen = await trx.selectFrom('task_time_entries').select('id')
         .where('task_id', '=', request.params.id).where('user_id', '=', user.sub).where('ended_at', 'is', null)
         .executeTakeFirst();
@@ -931,7 +932,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
-      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      if (!canWorkOn(resolved.access)) return reply.status(403).send({ error: 'You only have view access to this task' });
       const open = await trx.selectFrom('task_time_entries').selectAll()
         .where('task_id', '=', request.params.id).where('user_id', '=', user.sub).where('ended_at', 'is', null)
         .executeTakeFirst();
@@ -956,7 +958,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const body = subtaskCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
-      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      if (!canWorkOn(resolved.access)) return reply.status(403).send({ error: 'You only have view access to this task' });
       const row = await trx.insertInto('task_subtasks').values({
         id: body.id, tenant_id: user.tenant_id, task_id: request.params.id, title: body.title.trim(),
       }).returningAll().executeTakeFirstOrThrow();
@@ -970,7 +973,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const body = subtaskPatchSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
-      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      if (!canWorkOn(resolved.access)) return reply.status(403).send({ error: 'You only have view access to this task' });
       const updates: Record<string, unknown> = {};
       if (body.title !== undefined) updates.title = body.title.trim();
       if (body.completed !== undefined) updates.completed = body.completed;
@@ -990,7 +994,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       // visibility rework rather than left for later since it's the exact
       // same lookup this route now needs anyway.
       const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
-      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      if (!canWorkOn(resolved.access)) return reply.status(403).send({ error: 'You only have view access to this task' });
       await trx.deleteFrom('task_subtasks').where('id', '=', request.params.subId).where('task_id', '=', request.params.id).execute();
       return { success: true };
     });
@@ -1023,7 +1028,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const body = commentCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
-      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      if (!canWorkOn(resolved.access)) return reply.status(403).send({ error: 'You only have view access to this task' });
       const task = resolved.task;
 
       const row = await trx.insertInto('todo_comments').values({
@@ -1111,7 +1117,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const body = collaboratorAddSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
-      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      if (!canWorkOn(resolved.access)) return reply.status(403).send({ error: 'You only have view access to this task' });
       const target = await trx.selectFrom('users').select('id')
         .where('id', '=', body.userId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!target) return reply.status(404).send({ error: 'User not found' });
@@ -1175,7 +1182,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const body = dependencyAddSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
-      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      if (!canWorkOn(resolved.access)) return reply.status(403).send({ error: 'You only have view access to this task' });
       if (body.dependsOnTaskId === request.params.id) return reply.status(400).send({ error: 'A task cannot depend on itself' });
       const target = await trx.selectFrom('tasks').select('id')
         .where('id', '=', body.dependsOnTaskId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
@@ -1215,7 +1223,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
-      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      if (!canWorkOn(resolved.access)) return reply.status(403).send({ error: 'You only have view access to this task' });
       await trx.deleteFrom('task_dependencies')
         .where('id', '=', request.params.depId).where('task_id', '=', request.params.id).where('tenant_id', '=', user.tenant_id)
         .execute();

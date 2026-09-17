@@ -2847,7 +2847,7 @@ export const Customers: React.FC = () => {
                     </button>
                     <button type="button" onClick={() => unlinkFile(f.id, f.name)}
                       style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
-                      title="Remove from this customer (file stays in Drive)">
+                      title="Remove from this customer (file stays in Drive)" aria-label={`Remove ${f.name} from this customer`}>
                       <Icon name="x" size={13} />
                     </button>
                   </div>

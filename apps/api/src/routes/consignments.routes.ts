@@ -30,6 +30,7 @@ export async function consignmentRoutes(app: FastifyInstance) {
     const user = (req as any).user;
     const { id } = req.params as any;
     const detail = await consignmentService.getById(user.tenant_id, id);
+    if (!detail) return reply.code(404).send({ error: 'Consignment not found' });
     return detail;
   });
 
@@ -48,6 +49,7 @@ export async function consignmentRoutes(app: FastifyInstance) {
     const { id } = req.params as any;
     const { status } = req.body as any;
     const result = await consignmentService.updateStatus(user.tenant_id, id, status);
+    if (!result) return reply.code(404).send({ error: 'Consignment not found' });
     return result;
   });
 
@@ -58,6 +60,7 @@ export async function consignmentRoutes(app: FastifyInstance) {
     const { id } = req.params as any;
     const body = req.body as any;
     const trip = await consignmentService.addTrip(user.tenant_id, id, body);
+    if (!trip) return reply.code(404).send({ error: 'Consignment not found' });
     return reply.code(201).send(trip);
   });
 
@@ -66,6 +69,7 @@ export async function consignmentRoutes(app: FastifyInstance) {
     const { tripId } = req.params as any;
     const { status } = req.body as any;
     const trip = await consignmentService.updateTripStatus(user.tenant_id, tripId, status);
+    if (!trip) return reply.code(404).send({ error: 'Trip not found' });
     return trip;
   });
 
@@ -76,6 +80,7 @@ export async function consignmentRoutes(app: FastifyInstance) {
     const { id } = req.params as any;
     const body = req.body as any;
     const border = await consignmentService.addBorderCrossing(user.tenant_id, id, body);
+    if (!border) return reply.code(404).send({ error: 'Consignment not found' });
     return reply.code(201).send(border);
   });
 
@@ -84,6 +89,7 @@ export async function consignmentRoutes(app: FastifyInstance) {
     const { borderId } = req.params as any;
     const { status, delay_reason } = req.body as any;
     const border = await consignmentService.updateBorderStatus(user.tenant_id, borderId, status, delay_reason);
+    if (!border) return reply.code(404).send({ error: 'Border crossing not found' });
     return border;
   });
 }

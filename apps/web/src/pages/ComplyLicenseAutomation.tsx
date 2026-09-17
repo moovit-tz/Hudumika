@@ -39,6 +39,11 @@ export function ComplyLicenseAutomation() {
   ]);
 
   const [resultData, setResultData] = useState<any>(null);
+  // Whether resultData is demo/simulated rather than a real extraction —
+  // same distinction ComplyTraExtract.tsx tracks, threaded through to the
+  // imported record's own notes below so a simulated import can't later be
+  // mistaken for a live one once it's sitting in the Vault.
+  const [simulated, setSimulated] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'licenses' | 'levies' | 'workflows'>('licenses');
 
   // Syncing states
@@ -107,6 +112,7 @@ export function ComplyLicenseAutomation() {
       addLog(`Extracted ${res.licenses?.length || 0} license record(s).`, 'agent');
       addLog(`Extracted ${res.levies?.length || 0} levy record(s).`, 'agent');
       addLog('Extraction complete. Review the results below.', 'success');
+      setSimulated(res?.simulated !== false);
       setResultData(res);
     } catch (err: any) {
       addLog(`Extraction failed: ${err.message}`, 'error');
@@ -116,7 +122,13 @@ export function ComplyLicenseAutomation() {
     }
   };
 
-  // Perform automatic capture from the active Tausi session
+  // Perform automatic capture from the active Tausi session. There is no
+  // real capture mechanism behind this — a cross-origin iframe's content
+  // can't be read from the client, so this always sends an empty
+  // image_base64 and the server always falls back to simulated data (see
+  // POST /v1/comply/tausi-import's own `if (!apiKey || !image_base64)`
+  // guard). Surfaced honestly rather than silently, the same way the real
+  // upload path above and ComplyTraExtract.tsx's equivalent both already do.
   const handleCaptureInAppBrowser = async () => {
     setUploading(true);
     addLog('Capturing active session statement from in-app browser...', 'agent');
@@ -128,10 +140,14 @@ export function ComplyLicenseAutomation() {
         body: JSON.stringify({ image_base64: '', media_type: 'image/jpeg' }),
       });
 
+      if (res.simulated) {
+        addLog('No real session data could be read from the in-app browser (cross-origin) — showing simulated data instead. Use "Upload statement" for a real extraction.', 'warn');
+      }
       addLog(`Taxpayer profile identified: ${res.taxpayer?.name || 'ECOSCOPE FOUNDATION'}.`, 'success');
       addLog(`Extracted ${res.licenses?.length || 0} license record(s).`, 'agent');
       addLog(`Extracted ${res.levies?.length || 0} levy record(s).`, 'agent');
       addLog('Extraction complete. Review the results below.', 'success');
+      setSimulated(res?.simulated !== false);
       setResultData(res);
     } catch (err: any) {
       addLog(`Capture failed: ${err.message}`, 'error');
@@ -166,7 +182,7 @@ export function ComplyLicenseAutomation() {
           issued_date: lic.issued_date,
           expiry_date: lic.expiry_date,
           metadata: {
-            notes: `Imported from Tausi TAMISEMI license portal. Status: ${lic.status}`,
+            notes: `Imported from Tausi TAMISEMI license portal. Status: ${lic.status}${simulated ? ' — SIMULATED demo data, not a live Tausi record. Verify before relying on it.' : ''}`,
             cost: lic.cost,
           }
         });
@@ -358,6 +374,18 @@ export function ComplyLicenseAutomation() {
               <Icon name="refresh" style={{ marginRight: 6 }} /> Return to Portal / Capture More
             </Button>
           </div>
+
+          {/* Simulated-data disclosure — CompObligation (levies) has no
+              notes/metadata field to carry this once imported, unlike
+              certificates below, so this banner is the one place a levy
+              import gets flagged as demo data at all. Shown regardless of
+              which results tab is active. */}
+          {simulated && (
+            <div style={{ margin: '0 24px', padding: '10px 14px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r-sm)', color: 'var(--gold)', fontSize: 12.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="alertTriangle" style={{ width: 14, height: 14, flexShrink: 0 }} />
+              Simulated demo data — no real Tausi session could be read. Importing this creates real records in your Vault; verify against the actual portal before relying on them.
+            </div>
+          )}
 
           {/* Results Tabs */}
           <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)} variant="segmented" style={{ padding: '0 24px' }}>

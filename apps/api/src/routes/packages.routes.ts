@@ -94,28 +94,40 @@ export async function packagesRoutes(fastify: FastifyInstance) {
   fastify.post('/', { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] }, async (request, reply) => {
     const body = packageCreateSchema.parse(request.body);
 
-    const row = await dbPlatform.insertInto('packages')
-      .values({
-        code: body.code.trim(),
-        name: body.name.trim(),
-        monthly_price: body.monthly_price ?? 0,
-        annual_price: body.annual_price ?? 0,
-        max_users: body.max_users ?? 0,
-        price_per_seat: body.price_per_seat ?? null,
-        extra_seat_price: body.extra_seat_price ?? null,
-        extra_seat_threshold: body.extra_seat_threshold ?? null,
-        monthly_item_limit: body.monthly_item_limit ?? null,
-        storage_limit_bytes: body.storage_limit_bytes != null ? String(body.storage_limit_bytes) : null,
-        features: JSON.stringify(body.features ?? []) as unknown as string[],
-        color: body.color ?? '#0d7a6b',
-        popular: body.popular ?? false,
-        sort_order: body.sort_order ?? 99,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+    // HUD-0107: a reused `code` (packages.code is unique — PATCH/DELETE
+    // below both key off it) used to reach Postgres with no local catch at
+    // all, so a duplicate crashed as index.ts's generic sanitized 500
+    // instead of a specific, actionable error — the exact "duplicate key
+    // reported as an opaque 500" shape crm-labels.routes.ts and
+    // crm-smart-views.routes.ts's own POST handlers already guard against
+    // elsewhere in this codebase.
+    try {
+      const row = await dbPlatform.insertInto('packages')
+        .values({
+          code: body.code.trim(),
+          name: body.name.trim(),
+          monthly_price: body.monthly_price ?? 0,
+          annual_price: body.annual_price ?? 0,
+          max_users: body.max_users ?? 0,
+          price_per_seat: body.price_per_seat ?? null,
+          extra_seat_price: body.extra_seat_price ?? null,
+          extra_seat_threshold: body.extra_seat_threshold ?? null,
+          monthly_item_limit: body.monthly_item_limit ?? null,
+          storage_limit_bytes: body.storage_limit_bytes != null ? String(body.storage_limit_bytes) : null,
+          features: JSON.stringify(body.features ?? []) as unknown as string[],
+          color: body.color ?? '#0d7a6b',
+          popular: body.popular ?? false,
+          sort_order: body.sort_order ?? 99,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
 
-    reply.status(201);
-    return toPackage(row);
+      reply.status(201);
+      return toPackage(row);
+    } catch (err: any) {
+      if (err.message?.includes('duplicate key')) return reply.status(400).send({ error: `A package with code "${body.code.trim()}" already exists` });
+      throw err;
+    }
   });
 
   /**

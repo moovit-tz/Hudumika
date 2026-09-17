@@ -360,8 +360,15 @@ const AppContentBody: React.FC = () => {
       <Route path="/r/:token"             element={<SharedLandedCostReport />} />
       <Route path="/why-complyos"         element={<ComplyOSSales />} />
       <Route path="/agency-directory"     element={<AgencyDirectory />} />
-      <Route path="/site/:tenantSlug"             element={<OneSitePublic />} />
-      <Route path="/site/:tenantSlug/:pageSlug"   element={<OneSitePublic />} />
+      <Route path="/site/:tenantSlug"                    element={<OneSitePublic />} />
+      <Route path="/site/:tenantSlug/search"             element={<OneSitePublic />} />
+      <Route path="/site/:tenantSlug/blog"               element={<OneSitePublic />} />
+      <Route path="/site/:tenantSlug/blog/archive/:year/:month" element={<OneSitePublic />} />
+      <Route path="/site/:tenantSlug/blog/author/:authorId" element={<OneSitePublic />} />
+      <Route path="/site/:tenantSlug/blog/:postSlug"      element={<OneSitePublic />} />
+      <Route path="/site/:tenantSlug/m/:modelKey"         element={<OneSitePublic />} />
+      <Route path="/site/:tenantSlug/m/:modelKey/:entrySlug" element={<OneSitePublic />} />
+      <Route path="/site/:tenantSlug/:pageSlug"          element={<OneSitePublic />} />
       {/* eSign public routes — external signers access these without a Hudumika account */}
       <Route path="/sign/public/:token"  element={<SignPublicPage />} />
       <Route path="/sign/verify/:code"   element={<SignVerifyPage />} />
@@ -416,8 +423,15 @@ const AppContentBody: React.FC = () => {
           <Route path="/support-ticket" element={<SupportTicket />} />
           <Route path="/why-complyos"   element={<ComplyOSSales />} />
           <Route path="/agency-directory" element={<AgencyDirectory />} />
-          <Route path="/site/:tenantSlug"           element={<OneSitePublic />} />
-          <Route path="/site/:tenantSlug/:pageSlug" element={<OneSitePublic />} />
+          <Route path="/site/:tenantSlug"               element={<OneSitePublic />} />
+          <Route path="/site/:tenantSlug/search"        element={<OneSitePublic />} />
+          <Route path="/site/:tenantSlug/blog"          element={<OneSitePublic />} />
+          <Route path="/site/:tenantSlug/blog/archive/:year/:month" element={<OneSitePublic />} />
+          <Route path="/site/:tenantSlug/blog/author/:authorId" element={<OneSitePublic />} />
+          <Route path="/site/:tenantSlug/blog/:postSlug" element={<OneSitePublic />} />
+          <Route path="/site/:tenantSlug/m/:modelKey"      element={<OneSitePublic />} />
+          <Route path="/site/:tenantSlug/m/:modelKey/:entrySlug" element={<OneSitePublic />} />
+          <Route path="/site/:tenantSlug/:pageSlug"     element={<OneSitePublic />} />
           <Route path="/book/:slug"                 element={<BookingPublicPage />} />
           <Route path="/meet/:id"                   element={<GuestMeetingJoin />} />
           <Route path="/subscription" element={<Navigate to="/workspace/billing" replace />} />

@@ -29,10 +29,14 @@ const TOOLBAR: ToolbarButton[] = [
  * component doesn't need to worry about what a malicious paste might smuggle
  * in — only about giving an editor experience for the CMS's fixed toolbar.
  */
-export function RichTextEditor({ value, onChange, placeholder }: {
+export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  /** Resolves to a URL to insert at the cursor, or null if the caller
+   *  cancelled — omitted entirely hides the image button, so a caller with
+   *  no media backend of its own (AdminCMSPages.tsx) is unaffected. */
+  onInsertImage?: () => Promise<string | null>;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   // Starts as null (not `value`) so the very first effect run below always
@@ -89,6 +93,25 @@ export function RichTextEditor({ value, onChange, placeholder }: {
         >
           <Icon name="link" size={13} />
         </button>
+        {onInsertImage && (
+          <button
+            type="button"
+            className="rte-toolbar-btn"
+            title="Insert image"
+            onMouseDown={e => {
+              e.preventDefault();
+              // Cursor position is lost the instant focus leaves the editor
+              // (e.g. while the media picker modal is open), so execCommand
+              // would insert at the wrong spot — or nowhere — once the
+              // promise resolves. Re-focusing right before running the
+              // command is enough for a contentEditable div to restore its
+              // own last selection.
+              onInsertImage().then(url => { if (url) runCommand('insertImage', url); });
+            }}
+          >
+            <Icon name="image" size={13} />
+          </button>
+        )}
       </div>
       <div
         ref={ref}

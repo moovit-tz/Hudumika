@@ -1007,10 +1007,18 @@ export class ComplyService {
       // certificate forever. Closing the loop here, at the one place that
       // actually observes "the renewal is done," rather than adding a
       // separate submit/complete endpoint nothing calls yet.
+      //
+      // Status is 'issued', not a separate 'completed' value — CompRenewalStatus
+      // (packages/types/src/comply.ts) never declared 'completed', so a first
+      // version of this fix wrote a status the UI's FILTER_TABS/StatusBadge
+      // couldn't match against anything: a renewal closed this way vanished
+      // from every tab on the Workflows page, permanently. 'issued' is
+      // already the terminal status the workflow stepper and the "Completed"
+      // filter tab both mean by it; this reuses that, it doesn't invent one.
       if (input.expiry_date !== undefined) {
         await trx
           .updateTable('comply_renewals')
-          .set({ status: 'completed', completed_at: new Date() })
+          .set({ status: 'issued', completed_at: new Date() })
           .where('cert_id', '=', certId)
           .where('tenant_id', '=', tenantId)
           .where('status', 'in', ['pending_review', 'approved', 'submitted'])

@@ -60,6 +60,20 @@ export class NoteConflictError extends Error {
     this.current = current;
   }
 }
+// HUD-0123: every note-/revision-/label-scoped call in this file that takes
+// a caller-supplied id went straight to an unguarded executeTakeFirstOrThrow()
+// with no existence check first — a bad, deleted, or cross-tenant id crashed
+// as a raw, unhandled "no result" exception instead of a clean 404. The
+// platform-wide sweep that found and fixed this exact bug shape ~70 times
+// elsewhere (HUD-0097/0099) was scoped to apps/api/src/routes and never
+// looked inside a services/*.ts file — the same blind spot that let
+// seal-billing.service.ts slip through earlier in this arc let this one
+// through too. Live-reproduced on trashNote, listRevisions, updateNote,
+// restoreRevision, and updateLabel with a nonexistent/cross-tenant id, all
+// five surfacing the same raw "no result" string to the caller.
+export class NoteNotFoundError extends Error {
+  constructor(message = 'Note not found.') { super(message); }
+}
 
 // Same 1000 the old hardcoded .limit(1000) used — kept as the default page
 // size (not lowered) so the sidebar's own counts (NotesShell.tsx tallies
@@ -133,8 +147,10 @@ async function loadForViewer(trx: any, tenantId: string, noteId: string, userId:
 }
 
 async function fetchAccessRow(trx: any, tenantId: string, noteId: string) {
-  return trx.selectFrom('notes').select(['created_by', 'visibility', 'legal_hold'])
-    .where('id', '=', noteId).where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
+  const row = await trx.selectFrom('notes').select(['created_by', 'visibility', 'legal_hold'])
+    .where('id', '=', noteId).where('tenant_id', '=', tenantId).executeTakeFirst();
+  if (!row) throw new NoteNotFoundError();
+  return row;
 }
 
 async function assertCanView(trx: any, tenantId: string, noteId: string, userId: string) {
@@ -272,7 +288,8 @@ export async function createNote(tenantId: string, userId: string, input: NoteIn
 export async function updateNote(tenantId: string, userId: string, id: string, input: NoteInput) {
   return withTenant(tenantId, async (trx) => {
     const existing = await trx.selectFrom('notes').selectAll()
-      .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
+      .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!existing) throw new NoteNotFoundError();
     const isCreator = existing.created_by === userId;
 
     // Changing who a shared note is shared with (or its visibility at all)
@@ -449,7 +466,8 @@ export async function restoreRevision(tenantId: string, userId: string, noteId: 
     await assertCanEdit(trx, tenantId, noteId, userId);
     const rev = await trx.selectFrom('note_revisions').selectAll()
       .where('id', '=', revisionId).where('note_id', '=', noteId).where('tenant_id', '=', tenantId)
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
+    if (!rev) throw new NoteNotFoundError('Revision not found.');
     const existing = await trx.selectFrom('notes').selectAll()
       .where('id', '=', noteId).where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
 
@@ -509,7 +527,8 @@ export async function updateLabel(tenantId: string, id: string, name: string) {
   return withTenant(tenantId, async (trx) => {
     const row = await trx.updateTable('note_labels').set({ name: name.trim() })
       .where('id', '=', id).where('tenant_id', '=', tenantId)
-      .returningAll().executeTakeFirstOrThrow();
+      .returningAll().executeTakeFirst();
+    if (!row) throw new NoteNotFoundError('Label not found.');
     return mapLabel(row);
   });
 }

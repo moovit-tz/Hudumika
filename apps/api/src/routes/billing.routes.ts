@@ -150,9 +150,17 @@ export default async function billingRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch<{ Params: { id: string } }>('/payment-methods/:id/default', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT) }, async (request) => {
+  // HUD-0097 (addendum): a wrong/stale id crashed instead of 404ing — a
+  // multi-line-chain miss from the original sweep — and worse, since every
+  // other method's is_default was already cleared first, a crash here left
+  // the tenant with no default payment method at all. Fixed by checking
+  // existence before touching any row.
+  fastify.patch<{ Params: { id: string } }>('/payment-methods/:id/default', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT) }, async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('payment_methods').select('id')
+        .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Payment method not found' });
       await trx.updateTable('payment_methods').set({ is_default: false }).where('tenant_id', '=', user.tenant_id).execute();
       return trx.updateTable('payment_methods').set({ is_default: true })
         .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id)
