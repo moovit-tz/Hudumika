@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { sql } from 'kysely';
 import { GoogleGenAI } from '@google/genai';
 import { ComplyService } from '../services/comply.service.js';
+import { searchBrelaLive } from '../services/brela.service.js';
 import { AGENCY_ADAPTERS } from '../integrations/comply-agencies.js';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
@@ -491,95 +492,9 @@ export async function complyRoutes(fastify: FastifyInstance) {
   fastify.post('/brela-search', async (request: any, reply) => {
     const { objectType, incNumber, companyName } = brelaSearchSchema.parse(request.body);
     try {
-      const isCompany = objectType !== 'Business name';
-      const jsonUrl = 'https://ors.brela.go.tz/orsreg/list/search/businesspublic.json';
-      const searchPageUrl = 'https://ors.brela.go.tz/orsreg/searchbusinesspublic';
-      const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
-      let liveResults: Array<{
-        reg_number: string;
-        name: string;
-        registered_office: string;
-        status: string;
-        type: string;
-        incorporation_date: string | null;
-      }> = [];
-
-      try {
-        // A real browser hitting the public search form first loads the page
-        // (which sets a session cookie) before the page's JS calls the JSON
-        // endpoint — same two-step flow here, not a bypass of anything gated.
-        const pageRes = await fetch(searchPageUrl, {
-          headers: { 'User-Agent': userAgent },
-          signal: AbortSignal.timeout(5000),
-        });
-        const setCookie = pageRes.headers.get('set-cookie') ?? '';
-        const sessionCookie = setCookie.split(';')[0];
-
-        const payload: Record<string, string | number> = {
-          object_type: isCompany ? 'ET-COMPANY' : 'ET-BUSINESS',
-          PageSize: 20,
-          PageNumber: 1,
-        };
-        if (isCompany) {
-          payload.cm_number = incNumber || '';
-          payload.cm_name = companyName || '';
-        } else {
-          payload.bn_number = incNumber || '';
-          payload.bn_name = companyName || '';
-        }
-
-        const response = await fetch(jsonUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Referer': searchPageUrl,
-            'Origin': 'https://ors.brela.go.tz',
-            'Accept': 'application/json, text/javascript, */*; q=0.01',
-            'User-Agent': userAgent,
-            ...(sessionCookie ? { Cookie: sessionCookie } : {}),
-          },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(5000),
-        });
-
-        if (response.ok) {
-          const data: any = await response.json().catch(() => null);
-          const map: string[] = Array.isArray(data?.Map) ? data.Map : [];
-          const records: any[][] = Array.isArray(data?.Records) ? data.Records : [];
-
-          for (const record of records) {
-            const row: Record<string, any> = {};
-            map.forEach((col, i) => { row[col] = record[i]; });
-
-            const num = String(row.cert_number ?? '').trim();
-            const name = String(row.legal_name ?? '').trim();
-            if (!num || !name) continue;
-
-            liveResults.push({
-              reg_number: num,
-              name,
-              registered_office: String(row.address ?? '').trim() || 'Tanzania Registered Address',
-              status: String(row.reg_status_name ?? row.reg_status ?? '').trim() || 'Registered',
-              type: String(row.subtype_name ?? '').trim() || (isCompany ? 'Private Limited Company' : 'Business Name'),
-              incorporation_date: row.incorporation_date ?? row.reg_date ?? null,
-            });
-          }
-          if (data?.Result !== 'OK') {
-            fastify.log.warn({ result: data?.Result, objectType, incNumber, companyName }, '[BRELA Scraper] Portal responded but not with Result:"OK" — treating as no live match.');
-          } else if (liveResults.length === 0) {
-            fastify.log.info({ objectType, incNumber, companyName }, '[BRELA Scraper] Portal reached successfully but returned zero matching records for this query.');
-          }
-        } else {
-          fastify.log.warn({ status: response.status }, '[BRELA Scraper] Portal returned a non-OK status (likely its WAF blocking a non-browser request, which is expected from server infrastructure) — falling back to local reference data.');
-        }
-      } catch (err) {
-        // Expected in most environments — BRELA has no public API, sits behind a
-        // WAF that blocks non-browser traffic even with realistic headers/session
-        // cookies, and this scrape is best-effort only. This is the PRD's own
-        // "manual + tracking" fallback path, not a bug to silence.
-        fastify.log.warn({ err: (err as Error).message }, '[BRELA Scraper] Live fetch failed — falling back to local reference data.');
+      const { live, results: liveResults } = await searchBrelaLive(objectType, incNumber, companyName);
+      if (!live) {
+        fastify.log.warn({ objectType, incNumber, companyName }, '[BRELA Scraper] Live fetch found no match (portal unreachable, WAF-blocked, or zero real results) — falling back to local reference data.');
       }
 
       // Log every search — live or reference-fallback — so a tenant can see

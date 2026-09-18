@@ -1162,6 +1162,31 @@ export class CMSService {
     return generatePreviewToken('post', id);
   }
 
+  /** §28-29 hreflang — the OTHER published members of a translation group,
+   *  as real public URLs (never the caller's own resource; the frontend adds
+   *  the self-referencing hreflang entry, which every real page in the group
+   *  needs per spec). Draft/scheduled/trashed siblings are deliberately
+   *  excluded — an unauthenticated visitor should never learn a translation
+   *  exists before it's actually published, the same posture every other
+   *  public route already takes. Spans both Pages and Posts (a translation
+   *  group is not type-locked at the schema level), not Content entries —
+   *  a disclosed, bounded first version, not the full model.
+   */
+  private static async getPublicTranslationSiblings(tenantId: string, tenantSlug: string, translationGroupId: string, excludeId: string): Promise<{ locale: string; url: string }[]> {
+    return withTenant(tenantId, async (trx) => {
+      const pages = await trx.selectFrom('cms_pages').select(['id', 'slug', 'locale'])
+        .where('tenant_id', '=', tenantId).where('translation_group_id', '=', translationGroupId)
+        .where('status', '=', 'published').where('id', '!=', excludeId).execute();
+      const posts = await trx.selectFrom('cms_posts').select(['id', 'slug', 'locale'])
+        .where('tenant_id', '=', tenantId).where('translation_group_id', '=', translationGroupId)
+        .where('status', '=', 'published').where('id', '!=', excludeId).execute();
+      return [
+        ...pages.map(p => ({ locale: p.locale || 'en', url: `/site/${tenantSlug}/${p.slug.replace(/^\//, '')}` })),
+        ...posts.map(p => ({ locale: p.locale || 'en', url: `/site/${tenantSlug}/blog/${p.slug}` })),
+      ];
+    });
+  }
+
   static async getPublicPage(tenantSlug: string, pageSlug: string, previewToken?: string | null): Promise<CmsPage | null> {
     const tenant = await this.resolveTenantBySlug(tenantSlug);
     if (!tenant) return null;
@@ -1184,7 +1209,11 @@ export class CMSService {
     // §38 — a draft/scheduled page is only visible with a token that verifies
     // for this exact row id; a published page needs no token at all.
     if (row.status !== 'published' && !verifyPreviewToken('page', row.id, previewToken)) return null;
-    return toCmsPage(row);
+    const page = toCmsPage(row);
+    page.translations = row.translation_group_id
+      ? await this.getPublicTranslationSiblings(tenant.id, tenantSlug, row.translation_group_id, row.id)
+      : [];
+    return page;
   }
 
   static async getPublicPost(tenantSlug: string, postSlug: string, previewToken?: string | null): Promise<CmsPublicPost | null> {
@@ -1192,7 +1221,7 @@ export class CMSService {
     if (!tenant) return null;
     const row = await withTenant(tenant.id, trx => {
       let query = trx.selectFrom('cms_posts')
-        .select(['id', 'slug', 'title', 'content', 'category', 'tags', 'author_id', 'created_at', 'seo_description', 'canonical_url', 'noindex', 'og_image', 'status'])
+        .select(['id', 'slug', 'title', 'content', 'category', 'tags', 'author_id', 'created_at', 'seo_description', 'canonical_url', 'noindex', 'og_image', 'status', 'locale', 'translation_group_id'])
         .where('tenant_id', '=', tenant.id)
         .where('slug', '=', postSlug);
       if (!previewToken) query = query.where('status', '=', 'published');
@@ -1201,11 +1230,15 @@ export class CMSService {
     if (!row) return null;
     if (row.status !== 'published' && !verifyPreviewToken('post', row.id, previewToken)) return null;
     const authorName = row.author_id ? await this.resolveAuthorName(tenant.id, row.author_id) : null;
+    const translations = row.translation_group_id
+      ? await this.getPublicTranslationSiblings(tenant.id, tenantSlug, row.translation_group_id, row.id)
+      : [];
     return {
       id: row.id, slug: row.slug, title: row.title, content: row.content,
       category: row.category, tags: row.tags, created_at: (row.created_at as Date).toISOString(),
       author_id: row.author_id, author_name: authorName,
       seo_description: row.seo_description, canonical_url: row.canonical_url, noindex: !!row.noindex, og_image: row.og_image,
+      locale: row.locale || 'en', translation_group_id: row.translation_group_id ?? null, translations,
     };
   }
 

@@ -47,6 +47,18 @@ export async function generateDueBills(tenantId: string, today = new Date().toIS
         result.skipped.push({ templateId: r.id, reason: 'template has no amount' });
         continue;
       }
+      // HUD-0077: this loop also runs unattended from the daily job — no
+      // human clicks "Generate now" to notice a blocked supplier here, so
+      // skipping (not erroring, which would abort every other due template
+      // in the same batch) is the only point this ever gets caught.
+      if (r.supplier_id) {
+        const supplier = await trx.selectFrom('suppliers').select('status')
+          .where('id', '=', r.supplier_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+        if (supplier?.status === 'blocked') {
+          result.skipped.push({ templateId: r.id, reason: 'supplier is blocked' });
+          continue;
+        }
+      }
 
       const billNumber = `BILL-${Date.now()}-${r.id.slice(0, 4)}`;
       const taxAmount = amount * (Number(r.tax_rate) || 0) / 100;

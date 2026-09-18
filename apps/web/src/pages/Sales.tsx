@@ -14,6 +14,7 @@ import { useTaxCodes } from '../data/taxCodeData.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 import { Tip } from '../components/ui/tooltip.js';
+import './Sales.css';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -773,9 +774,9 @@ export const Sales: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div className="sales-page">
       {/* Header */}
-      <div style={{ flexShrink: 0 }}>
+      <div className="sales-page-header">
         <PageHeader
           crumbs={['CRM', 'Sales pipeline']}
           titlePlain="Sales"
@@ -790,7 +791,7 @@ export const Sales: React.FC = () => {
       </div>
 
       {/* KPI row */}
-      <div style={{ paddingTop: 16, flexShrink: 0 }}>
+      <div className="sales-metrics">
         <MetricsRow cards={[
           {
             title: 'Total Quotes',
@@ -814,48 +815,56 @@ export const Sales: React.FC = () => {
       </div>
 
       {/* Pipeline kanban */}
-      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '16px 0', display: 'flex', gap: 12 }}>
+      <section className="sales-board" aria-label="Quotation pipeline">
         {STAGES.map(stage => {
           const cards = byStage(stage.key);
           return (
-            <div key={stage.key} style={{ width: 240, minWidth: 240, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div key={stage.key} className="sales-stage" style={{ '--sales-stage-color': stage.color } as React.CSSProperties}>
               {/* Column header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: stage.color, flexShrink: 0 }} />
-                <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--ink)' }}>{stage.label}</span>
-                <span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink3)' }}>{cards.length}</span>
+              <div className="sales-stage-header">
+                <span className="sales-stage-dot" />
+                <span className="sales-stage-name">{stage.label}</span>
+                <Badge variant="gray" className="sales-stage-count">{cards.length}</Badge>
               </div>
 
               {/* Cards */}
-              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 8 }}>
+              <div className="sales-stage-list">
                 {loading && <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 12, padding: 16 }}>…</div>}
                 {!loading && cards.length === 0 && (
-                  <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 12, padding: 20, borderRadius: 'var(--r)', border: '1px dashed var(--border)' }}>
-                    Empty
+                  <div className="sales-empty-stage">
+                    <Icon name="fileText" size={18} />
+                    <span>No quotations</span>
                   </div>
                 )}
                 {cards.map(q => (
                   <div
                     key={q.id}
-                    className="card"
-                    style={{ padding: 12, cursor: 'pointer', borderLeft: `3px solid ${stage.color}` }}
+                    className="sales-quote-card"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setDetailId(q.id)}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setDetailId(q.id);
+                      }
+                    }}
                   >
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--teal)', marginBottom: 4 }}>{q.quote_number}</div>
-                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, color: 'var(--ink)' }}>{q.title}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 6 }}>{q.customer_name}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: 'var(--navy)' }}>
+                    <div className="sales-quote-number">{q.quote_number}</div>
+                    <div className="sales-quote-title">{q.title}</div>
+                    <div className="sales-quote-customer">{q.customer_name || 'No customer assigned'}</div>
+                    <div className="sales-quote-footer">
+                      <div className="sales-quote-value">
                         {fmt(q.total_amount, q.currency)}
                       </div>
                       {/* Quick action buttons on card */}
-                      <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
+                      <div className="sales-card-actions" onClick={e => e.stopPropagation()}>
                         <Tip label="Edit quotation">
                         <button
                           type="button"
+                          className="sales-card-action"
                           aria-label={`Edit quotation ${q.quote_number}`}
                           onClick={() => openEdit(q)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 3 }}
                         >
                           <Icon name="edit" size={13} />
                         </button>
@@ -863,9 +872,9 @@ export const Sales: React.FC = () => {
                         <Tip label="Delete quotation">
                         <button
                           type="button"
+                          className="sales-card-action is-danger"
                           aria-label={`Delete quotation ${q.quote_number}`}
                           onClick={() => openDelete(q)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 3 }}
                         >
                           <Icon name="trash2" size={13} />
                         </button>
@@ -873,7 +882,7 @@ export const Sales: React.FC = () => {
                       </div>
                     </div>
                     {q.valid_until && (
-                      <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4 }}>
+                      <div className="sales-quote-validity">
                         Valid until {fmtDate(q.valid_until)}
                       </div>
                     )}
@@ -883,7 +892,7 @@ export const Sales: React.FC = () => {
             </div>
           );
         })}
-      </div>
+      </section>
 
       {/* Detail panel */}
       {detailId && (

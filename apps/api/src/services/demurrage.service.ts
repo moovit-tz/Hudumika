@@ -259,6 +259,13 @@ export const demurrageService = {
     shipment_id?: string | null;
     discharge_date?: string | null;
     free_days?: number;
+    // HUD-0057: the columns cost-posting.service.ts has always read (whose
+    // debit account and recharge-eligibility depend on liable_party, and
+    // whose WAIVED status skips posting entirely) but nothing could ever
+    // write — see this function's own liability guard below.
+    liable_party?: 'CUSTOMER' | 'COMPANY';
+    liability_reason?: string | null;
+    status?: 'ACTIVE' | 'COMPLETED' | 'WAIVED';
   }) {
     return withTenant(tenantId, async (trx) => {
       const existing = await trx
@@ -268,7 +275,34 @@ export const demurrageService = {
         .selectAll()
         .executeTakeFirstOrThrow();
 
+      if ('liable_party' in data && data.liable_party !== 'CUSTOMER' && data.liable_party !== 'COMPANY') {
+        throw Object.assign(new Error(`liable_party must be "CUSTOMER" or "COMPANY", got "${data.liable_party}".`), { statusCode: 400 });
+      }
+      if ('status' in data && !['ACTIVE', 'COMPLETED', 'WAIVED'].includes(data.status as string)) {
+        throw Object.assign(new Error(`status must be one of ACTIVE, COMPLETED, WAIVED, got "${data.status}".`), { statusCode: 400 });
+      }
+      // Once a charge has actually been posted to the GL (cost-posting.
+      // service.ts's own idempotency check), the liability call has already
+      // been booked into a real journal entry — changing it here afterward
+      // would desync the container's own record from what was actually
+      // debited, the same "financial immutability once posted" rule this
+      // arc already applies to invoices/bills (void-and-repost, never a
+      // silent retroactive edit). Not blocked before posting: this is
+      // exactly the normal "decide liability, then post" workflow.
+      if ('liable_party' in data || 'liability_reason' in data || ('status' in data && data.status === 'WAIVED')) {
+        const posted = await trx.selectFrom('journal_entries').select('id')
+          .where('tenant_id', '=', tenantId).where('source_module', '=', 'EXPENSE')
+          .where('source_id', '=', containerId).where('status', '<>', 'VOIDED')
+          .executeTakeFirst();
+        if (posted) {
+          throw Object.assign(new Error('This charge has already been posted to the ledger — liability and waiver can no longer be changed here. Void the journal entry first if it was posted in error.'), { statusCode: 400 });
+        }
+      }
+
       const patch: Record<string, any> = { updated_at: new Date() };
+      if ('liable_party' in data) patch.liable_party = data.liable_party;
+      if ('liability_reason' in data) patch.liability_reason = data.liability_reason ?? null;
+      if ('status' in data) patch.status = data.status;
       for (const k of ['container_number', 'container_size', 'seal_number', 'carrier_name', 'shipment_id'] as const) {
         if (k in data) patch[k] = (data as any)[k] ?? null;
       }

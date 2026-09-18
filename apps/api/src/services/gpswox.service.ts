@@ -155,14 +155,15 @@ export class GpswoxService {
 
     await withTenant(tenantId, async (trx) => {
       const vehicles = await trx.selectFrom('vehicles')
-        .select(['id', 'device_id'])
+        .select(['id', 'device_id', 'name'])
         .where('tenant_id', '=', tenantId)
         .where('device_id', 'is not', null)
         .execute();
-      const vehicleByDeviceId = new Map(vehicles.map(v => [v.device_id, v.id]));
+      const vehicleByDeviceId = new Map(vehicles.map(v => [v.device_id, v]));
 
       for (const device of devices) {
-        const vehicleId = vehicleByDeviceId.get(device.imei);
+        const vehicleRow = vehicleByDeviceId.get(device.imei);
+        const vehicleId = vehicleRow?.id;
         if (!vehicleId) {
           unmatched.push(device.imei ?? String(device.id));
           continue;
@@ -192,7 +193,7 @@ export class GpswoxService {
           recorded_at: (device.last_update || device.updated_at) ? new Date(device.last_update || device.updated_at!) : new Date(),
         } as any).execute();
 
-        await checkGeofenceTransitions(trx, tenantId, vehicleId, lat, lng);
+        await checkGeofenceTransitions(trx, tenantId, vehicleId, vehicleRow!.name, lat, lng);
         onPosition?.(vehicleId, lat, lng);
         matched++;
       }

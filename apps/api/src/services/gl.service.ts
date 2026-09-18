@@ -40,6 +40,11 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '1502', name: 'Motor Vehicles', type: 'ASSET', subtype: 'FIXED_ASSET', parentCode: '1500', normalBalance: 'DEBIT' },
   { code: '1503', name: 'Accumulated Depreciation', type: 'ASSET', subtype: 'FIXED_ASSET', parentCode: '1500', normalBalance: 'CREDIT' },
   { code: '2000', name: 'Accounts Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  // A receipt physically arrives before the supplier's bill does — not yet
+  // an Accounts Payable line (no bill to pay against), but a real clearing
+  // liability until bill-matching flips it. Backfilled to existing tenants
+  // by migration 486.
+  { code: '2050', name: 'Goods Received Not Invoiced', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2100', name: 'Accrued Liabilities', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   // Unapplied customer overpayments (M10) — kept off 2100/2200, its own
   // liability until applied to a future invoice. Backfilled to existing
@@ -78,6 +83,11 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   // Posts against 1300 Inventory (already seeded, unused until this) on
   // every 'issue' movement, at the item's running weighted-average cost.
   { code: '5010', name: 'Cost of Goods Sold', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
+  // A negative count correction (stock physically missing) debits this and
+  // credits 1300; a positive one (stock physically found) does the reverse —
+  // one account for both directions, same convention as 5202 below.
+  // Backfilled to existing tenants by migration 486.
+  { code: '5011', name: 'Inventory Shrinkage/Write-off', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
   { code: '5100', name: 'Salaries & Wages', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   // Employer-side cost of employing people (contributions matched/paid on
   // top of gross pay), kept out of 5100 for the same "spelled out, not

@@ -5,6 +5,16 @@ import { GLService } from './gl.service.js';
 
 const COGS_ACCOUNT = '5010';
 const INVENTORY_ASSET_ACCOUNT = '1300';
+// HUD-0054: a receipt physically arrives before the supplier's bill does —
+// not yet a real Accounts Payable line, but a real clearing liability until
+// bill-matching flips it (migration 486; procurement→Inventory wiring itself
+// is still a separate, undecided gap — see this file's own note below).
+const GRNI_ACCOUNT = '2050';
+// One account for both directions of a physical count correction — a
+// negative delta (stock missing) debits it, a positive one (stock found)
+// credits it, the same convention 5202 Foreign Exchange Gain/(Loss) already
+// uses for a single net line covering either sign (migration 486).
+const SHRINKAGE_ACCOUNT = '5011';
 
 // Inventory Control's stock ledger — mirrors SealService.recordMovement's
 // discipline (ledger insert + projection update, always in the same
@@ -12,6 +22,19 @@ const INVENTORY_ASSET_ACCOUNT = '1300';
 // SEAL's customs regulatory audit requirement. This is the *only* function
 // allowed to write to inventory_stock_levels; the projection must never be
 // mutated any other way.
+//
+// GL wiring (HUD-0054): every movement type that changes value now posts —
+// 'issue' (pre-existing, COGS/1300), 'receipt' (1300/GRNI), and 'adjust'/
+// 'count_correction' (1300/Shrinkage, direction by qty_delta's sign).
+// 'transfer' never posts — it moves location, not value. Still NOT wired:
+// Purchase Orders never call into this service at all (purchase-orders.
+// routes.ts only updates its own `received_qty`/status columns), so marking
+// a PO "Received" still has zero effect on stock or the GL — the only way
+// stock enters this ledger is a manual movement through this app itself.
+// Closing that needs a real product decision (should a PO receipt
+// auto-create a movement, and does that require a match-to-bill step before
+// GRNI clears to 2000?) this fix doesn't make unilaterally — same standing
+// rule as every other design-level gap in this arc.
 
 export class UnknownUom extends Error {
   constructor(public uomCode: string) {
@@ -103,10 +126,12 @@ export class InventoryService {
 
     // Weighted-average costing — recomputed on 'receipt' (a new average
     // blending what's already on hand with what's arriving), read
-    // unchanged on 'issue' (COGS = qty x the average as it stood at that
-    // moment, not recomputed later). Nothing else moves the average: a
-    // transfer/adjust/count_correction changes location or quantity, not
-    // what was paid for it.
+    // unchanged on 'issue'/'adjust'/'count_correction' (each costed at the
+    // average as it stood at that moment, not recomputed later). Nothing
+    // but a receipt moves the average: a transfer changes location, not what
+    // was paid for it, and a correction is fixing a count error, not a
+    // purchase — recomputing the average from it would let a shrinkage event
+    // quietly change what every future issue is costed at.
     let unitCost: number | null = null;
     let totalCost: number | null = null;
     let newAvgCost: number | null = null;
@@ -120,8 +145,13 @@ export class InventoryService {
       const newTotalQty = currentQty + baseQty;
       newAvgCost = newTotalQty > 0 ? (currentQty * currentAvg + baseQty * unitCost) / newTotalQty : unitCost;
       newAvgCost = Math.round(newAvgCost * 10000) / 10000;
+      totalCost = Math.round(baseQty * unitCost * 100) / 100;
     } else if (input.movementType === 'issue') {
       totalCost = Math.round(baseQty * Number(item.avg_cost) * 100) / 100;
+    } else if (input.movementType === 'adjust' || input.movementType === 'count_correction') {
+      // Magnitude only — qty_delta (already stored on the movement row) is
+      // what carries the sign/direction for the GL branch below.
+      totalCost = Math.round(Math.abs(qtyDelta) * Number(item.avg_cost) * 100) / 100;
     }
 
     const movement = await trx.insertInto('inventory_movements').values({
@@ -166,28 +196,65 @@ export class InventoryService {
 
     if (newAvgCost != null) {
       await trx.updateTable('inventory_items').set({ avg_cost: newAvgCost, updated_at: new Date() }).where('id', '=', input.itemId).execute();
-    } else if (totalCost != null && totalCost > 0) {
-      // COGS at the average cost as it stood the moment stock left —
-      // same idempotency non-issue as cost-posting.service.ts's demurrage
-      // posting: each movement posts exactly once, at creation, never re-run.
-      await GLService.post(tenantId, {
-        entryDate: new Date().toISOString().slice(0, 10),
-        description: `COGS: issue of ${baseQty} ${item.base_uom}`,
-        // inventory_movements.id is a BIGSERIAL, not a UUID —
-        // journal_entries.source_id is UUID-typed, so the movement's own id
-        // can't be passed there directly (confirmed live: posting failed
-        // with "invalid input syntax for type uuid"). No idempotency check
-        // currently needs to look this posting back up by source_id (unlike
-        // demurrage/payroll), so it's left unset rather than forcing a
-        // mismatched type in.
-        reference: String(movement.id),
-        sourceModule: 'EXPENSE',
-        createdBy: input.actorId ?? undefined,
-        lines: [
-          { accountCode: COGS_ACCOUNT, debit: totalCost, credit: 0, description: 'Cost of goods sold' },
-          { accountCode: INVENTORY_ASSET_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory reduced' },
-        ],
-      });
+    }
+
+    // GL posting — one line shape per movement type, all sharing the same
+    // idempotency non-issue as cost-posting.service.ts's demurrage posting:
+    // each movement posts exactly once, at creation, never re-run.
+    // inventory_movements.id is a BIGSERIAL, not a UUID — journal_entries.
+    // source_id is UUID-typed, so the movement's own id can't be passed
+    // there directly (confirmed live: posting failed with "invalid input
+    // syntax for type uuid"). No idempotency check currently needs to look
+    // this posting back up by source_id (unlike demurrage/payroll), so it's
+    // left unset rather than forcing a mismatched type in.
+    if (totalCost != null && totalCost > 0) {
+      const entryDate = new Date().toISOString().slice(0, 10);
+      const common = { entryDate, reference: String(movement.id), sourceModule: 'EXPENSE' as const, createdBy: input.actorId ?? undefined };
+
+      if (input.movementType === 'issue') {
+        // COGS at the average cost as it stood the moment stock left.
+        await GLService.post(tenantId, {
+          ...common,
+          description: `COGS: issue of ${baseQty} ${item.base_uom}`,
+          lines: [
+            { accountCode: COGS_ACCOUNT, debit: totalCost, credit: 0, description: 'Cost of goods sold' },
+            { accountCode: INVENTORY_ASSET_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory reduced' },
+          ],
+        });
+      } else if (input.movementType === 'receipt') {
+        // Not yet an Accounts Payable line — the supplier's bill hasn't
+        // necessarily arrived yet (procurement→Inventory wiring is a
+        // separate, still-open gap; see this file's own header note) — so
+        // the credit is the GRNI clearing liability, not 2000 directly.
+        await GLService.post(tenantId, {
+          ...common,
+          description: `Goods received: ${baseQty} ${item.base_uom} @ ${unitCost}`,
+          lines: [
+            { accountCode: INVENTORY_ASSET_ACCOUNT, debit: totalCost, credit: 0, description: 'Inventory received' },
+            { accountCode: GRNI_ACCOUNT, debit: 0, credit: totalCost, description: 'Goods received, not yet invoiced' },
+          ],
+        });
+      } else if (input.movementType === 'adjust' || input.movementType === 'count_correction') {
+        // qtyDelta < 0: stock is physically missing — an expense, debited.
+        // qtyDelta > 0: stock is physically found — a recovery, credited
+        // against the same account (mirrors 5202's single net-line
+        // convention for a gain/loss pair).
+        const shrinkage = qtyDelta < 0;
+        const verb = input.movementType === 'count_correction' ? 'count correction' : 'adjustment';
+        await GLService.post(tenantId, {
+          ...common,
+          description: `Inventory ${verb}: ${shrinkage ? 'shortage' : 'overage'} of ${Math.abs(qtyDelta)} ${item.base_uom}`,
+          lines: shrinkage
+            ? [
+                { accountCode: SHRINKAGE_ACCOUNT, debit: totalCost, credit: 0, description: 'Inventory shrinkage' },
+                { accountCode: INVENTORY_ASSET_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory reduced' },
+              ]
+            : [
+                { accountCode: INVENTORY_ASSET_ACCOUNT, debit: totalCost, credit: 0, description: 'Inventory increased' },
+                { accountCode: SHRINKAGE_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory found (shrinkage recovery)' },
+              ],
+        });
+      }
     }
 
     return movement;

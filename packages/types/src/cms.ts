@@ -29,6 +29,11 @@ export interface CmsPage {
   trashed_at:      string | null;
   locale?:         string; // §25-26 Localization
   translation_group_id?: string;
+  /** §28-29 hreflang — the OTHER published members of this page's translation
+   *  group (never includes this page itself); only populated by the public
+   *  GET route, undefined everywhere else (admin list/detail never fetch it,
+   *  to avoid an N+1 lookup on every page in a list). */
+  translations?:   { locale: string; url: string }[];
   created_at:      string;
   updated_at:      string;
 }
@@ -386,6 +391,10 @@ export interface CmsPublicPost {
   canonical_url:   string | null;
   noindex:         boolean;
   og_image:        string | null;
+  /** §25-26 Localization / §28-29 hreflang — see CmsPage's own field for what these mean; posts didn't carry either at all until this pass. */
+  locale:          string;
+  translation_group_id: string | null;
+  translations:    { locale: string; url: string }[];
 }
 
 // ── Blog comments (§37) ──────────────────────────────────────────────────
@@ -505,6 +514,11 @@ export interface CmsContentField {
   field_type: CmsFieldType;
   required:   boolean;
   help_text:  string | null;
+  /** Type-specific shape (select options, relation target, …) PLUS two
+   *  universal display flags every field type understands regardless of
+   *  its own config: `showInList` (opt-in — the public collection index
+   *  shows nothing but title/date by default) and `hideInDetail` (opt-out
+   *  — the public detail view shows every field with a value by default). */
   config:     Record<string, unknown>;
   sort_order: number;
 }
@@ -594,6 +608,11 @@ export interface CmsPublicContentEntrySummary {
   slug:       string;
   title:      string;
   created_at: string;
+  /** §12-13 — values for whichever fields the admin flagged `config.showInList`
+   *  on the Content Model editor; omitted entirely when no field is flagged,
+   *  matching this route's original (list-shows-nothing-but-title) shape so
+   *  a model that's never touched this setting renders identically to before. */
+  fields?:    Record<string, unknown>;
 }
 
 // ── Revisions (§19) ───────────────────────────────────────────────────────

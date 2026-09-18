@@ -181,7 +181,7 @@ export function OneSitePublic() {
   const [site, setSite] = useState<CmsPublicSite | null>(null);
   const [page, setPage] = useState<CmsPage | null>(null);
   const [post, setPost] = useState<CmsPublicPost | null>(null);
-  const [modelIndex, setModelIndex] = useState<{ model: { key: string; name: string; name_plural: string }; entries: CmsPublicContentEntrySummary[] } | null>(null);
+  const [modelIndex, setModelIndex] = useState<{ model: { key: string; name: string; name_plural: string; listFields: { key: string; label: string }[] }; entries: CmsPublicContentEntrySummary[] } | null>(null);
   const [modelEntry, setModelEntry] = useState<CmsPublicContentEntry | null>(null);
   const [searchResults, setSearchResults] = useState<CmsPublicSearchResult[] | null>(null);
   const [archiveMonths, setArchiveMonths] = useState<CmsPublicArchiveMonth[]>([]);
@@ -450,7 +450,32 @@ export function OneSitePublic() {
       document.head.appendChild(jsonLdEl);
     }
 
-    return () => { restores.forEach(fn => fn()); jsonLdEl?.remove(); };
+    // §28-29 hreflang — one <link rel="alternate" hreflang="…"> per OTHER
+    // published member of this page/post's translation group, plus a real
+    // self-referencing entry (every page in a hreflang set must reference
+    // itself too, per spec). Deliberately no x-default: this codebase has
+    // no tenant-level "default locale" concept to point it at yet, and
+    // guessing one from a column default would be fabricating a preference
+    // nobody set — omitted honestly rather than invented. Only emitted when
+    // there's at least one real sibling; a lone self-referencing tag with
+    // nothing to alternate with is noise, not a real language signal.
+    const siblings = post?.translations || page?.translations || [];
+    const hreflangEls: HTMLLinkElement[] = [];
+    if (siblings.length > 0) {
+      const selfLocale = post?.locale || page?.locale || 'en';
+      const selfUrl = window.location.origin + window.location.pathname;
+      const entries = [{ locale: selfLocale, url: selfUrl }, ...siblings];
+      for (const entry of entries) {
+        const l = document.createElement('link');
+        l.rel = 'alternate';
+        l.hreflang = entry.locale;
+        l.href = entry.url.startsWith('http') ? entry.url : window.location.origin + entry.url;
+        document.head.appendChild(l);
+        hreflangEls.push(l);
+      }
+    }
+
+    return () => { restores.forEach(fn => fn()); jsonLdEl?.remove(); hreflangEls.forEach(el => el.remove()); };
   }, [page, post, activeTitle, siteName, site?.settings.logoUrl, site?.settings.tagline, site?.tenantName]);
 
   if (loading) return <div className="onesite-pub-loading"><PageLoading /></div>;
@@ -570,6 +595,7 @@ export function OneSitePublic() {
               <h1>{modelEntry.title}</h1>
               <dl style={{ margin: '18px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {modelEntry.model.fields.map(f => {
+                  if ((f.config as any)?.hideInDetail === true) return null;
                   const value = modelEntry.data[f.key];
                   if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) return null;
                   return (
@@ -635,6 +661,19 @@ export function OneSitePublic() {
                 <li key={e.slug} style={{ marginBottom: 12 }}>
                   <Link to={`/site/${tenantSlug}/m/${modelKey}/${e.slug}`} style={{ fontWeight: 600 }}>{e.title}</Link>
                   <div style={{ fontSize: 12.5, color: 'var(--ink3, #8a8f98)', margin: '3px 0' }}>{fmtDate(e.created_at)}</div>
+                  {/* §12-13 — whichever fields the admin flagged showInList;
+                      deliberately simple (label: raw value, no per-type
+                      rendering) since the full type-aware switch belongs to
+                      the detail view above, not a scannable list row. */}
+                  {e.fields && modelIndex.model.listFields.length > 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink2, #555)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                      {modelIndex.model.listFields.map(lf => {
+                        const v = e.fields![lf.key];
+                        if (v === undefined || v === null || v === '') return null;
+                        return <span key={lf.key}><b>{lf.label}:</b> {Array.isArray(v) ? v.join(', ') : typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>;
+                      })}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

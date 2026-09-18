@@ -154,6 +154,7 @@ import { metricsRoutes } from './routes/metrics.routes.js';
 import { dataQualityRoutes } from './routes/data-quality.routes.js';
 import { cmsRoutes } from './routes/cms.routes.js';
 import { cmsContentRoutes } from './routes/cms-content.routes.js';
+import { cmsTemplatesRoutes } from './routes/cms-templates.routes.js';
 import { cmsFormsRoutes } from './routes/cms-forms.routes.js';
 import { cmsAnalyticsRoutes } from './routes/cms-analytics.routes.js';
 import { cmsImportExportRoutes } from './routes/cms-import-export.routes.js';
@@ -648,6 +649,7 @@ export async function registerApp() {
     await server.register(dataQualityRoutes, { prefix: '/v1/superadmin/data-quality' });
     await server.register(cmsRoutes, { prefix: '/v1/cms' });
     await server.register(cmsContentRoutes, { prefix: '/v1/cms' });
+    await server.register(cmsTemplatesRoutes, { prefix: '/v1/cms' });
     await server.register(cmsFormsRoutes, { prefix: '/v1/cms' });
     await server.register(cmsAnalyticsRoutes, { prefix: '/v1/cms' });
     await server.register(cmsImportExportRoutes, { prefix: '/v1/cms' });

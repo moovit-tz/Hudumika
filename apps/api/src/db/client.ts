@@ -5635,6 +5635,7 @@ export interface Database {
   api_entitlements: ApiEntitlementsTable;
   dev_gateway_requests: DevGatewayRequestsTable;
   dev_usage_events: DevUsageEventsTable;
+  dev_issued_seals: DevIssuedSealsTable;
   dev_billing_events: DevBillingEventsTable;
   dev_provider_settlements: DevProviderSettlementsTable;
   // ─── Hudumika Project OS Core & Governance (Migration 448) ────
@@ -5931,6 +5932,17 @@ export interface DevUsageEventsTable {
   is_success: Generated<boolean>;
   metadata: Generated<Record<string, unknown>>;
   created_at: Generated<Date>;
+}
+
+// Migration 487 — real persistence backing the Developer Platform's
+// 'seal.issue'/'seal.verify' gateway operations (HUD-0117).
+export interface DevIssuedSealsTable {
+  id: Generated<string>;
+  seal_id: string;
+  developer_account_id: string;
+  project_id: string;
+  digest_sha256: string;
+  issued_at: Generated<Date>;
 }
 
 export interface DevBillingEventsTable {

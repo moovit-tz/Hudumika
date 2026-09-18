@@ -28,6 +28,7 @@ import { PersonLink } from '../components/PersonLink.js';
 import { PayrollSettingsModal } from './PayrollSettingsModal.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import './HRMDashboard.css';
 
 function mapAttStatus(s: string): AttendanceStatus {
   switch (s) {
@@ -3691,7 +3692,6 @@ export function AnnouncementsPage() {
 /* -- Page routing -- */
 export function HrmDashboard() {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
   const { user } = useAuth();
   const [metrics, setMetrics] = useState<any>(null);
   const [depts, setDepts] = useState<{ name: string; employees: number }[]>([]);
@@ -3758,19 +3758,10 @@ export function HrmDashboard() {
   ];
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '0 4px 24px 4px' }}>
+    <div className="hrd-dashboard">
 
       {/* ── SmartHR Admin Welcome & Action Header Banner ──────────────── */}
-      <div style={{
-        background: 'hsl(var(--primary))',
-        borderRadius: 'var(--r-lg)',
-        padding: '24px 28px',
-        color: 'hsl(var(--primary-foreground))',
-        marginBottom: 24,
-        boxShadow: 'var(--elev-lg)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
+      <div className="hrd-hero">
         <div style={{
           position: 'absolute', top: -30, right: -30, width: 220, height: 220,
           borderRadius: '50%', background: 'hsl(var(--primary-foreground) / 0.06)', pointerEvents: 'none'
@@ -3815,11 +3806,7 @@ export function HrmDashboard() {
               <Icon name="userPlus" size={15} /> + Add Staff
             </Link>
 
-            <button type="button" onClick={genInsights} disabled={aiLoading} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r)',
-              background: 'var(--purple)', color: 'var(--white)', border: 'none',
-              fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px var(--purple)'
-            }}>
+            <button type="button" className="hrd-hero-action" onClick={genInsights} disabled={aiLoading}>
               <Icon name="sparkle" size={15} /> {aiLoading ? 'Analysing…' : 'AI Digest'}
             </button>
           </div>
@@ -3861,22 +3848,9 @@ export function HrmDashboard() {
       )}
 
       {/* ── SmartHR 5 Metric KPI Cards Row ────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+      <div className="hrd-kpi-grid">
         {kpis.map(k => (
-          <Link key={k.label} to={k.path} style={{
-            background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)',
-            padding: '18px 20px', cursor: 'pointer', transition: 'all 0.2s ease', textDecoration: 'none', color: 'inherit',
-            display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-          }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(0,0,0,0.08)';
-            (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 6px rgba(0,0,0,0.02)';
-            (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-          }}>
+          <Link key={k.label} to={k.path} className="hrd-kpi-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k.label}</span>
               <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: k.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -3915,13 +3889,13 @@ export function HrmDashboard() {
       )}
 
       {/* ── Main SmartHR Dashboard 2-Column Grid ──────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr', gap: 20, marginBottom: 24 }}>
+      <div className="hrd-content-grid">
 
         {/* ── LEFT COLUMN ────────────────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* 1. Today's Attendance Overview */}
-          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="check" size={16} color="var(--green)" />
@@ -3968,7 +3942,7 @@ export function HrmDashboard() {
           </div>
 
           {/* 2. Department Breakdown */}
-          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="building" size={16} color="var(--purple)" />
@@ -4004,7 +3978,7 @@ export function HrmDashboard() {
           </div>
 
           {/* 3. Recent Security & System Activity Logs */}
-          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="activity" size={16} color="var(--blue)" />
@@ -4038,7 +4012,7 @@ export function HrmDashboard() {
           </div>
 
           {/* 4. Upcoming Interviews */}
-          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="userPlus" size={16} color="var(--purple)" />
@@ -4085,7 +4059,7 @@ export function HrmDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* 1. Payroll Runs Widget */}
-          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="dollarSign" size={16} color="var(--green)" />
@@ -4136,7 +4110,7 @@ export function HrmDashboard() {
           </div>
 
           {/* 2. Pending Leave Requests */}
-          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="calendar" size={16} color="var(--gold)" />
@@ -4166,7 +4140,7 @@ export function HrmDashboard() {
           </div>
 
           {/* 3. Upcoming Holidays */}
-          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="sun" size={16} color="var(--teal)" />
@@ -4201,7 +4175,7 @@ export function HrmDashboard() {
           </div>
 
           {/* 4. Latest Announcements */}
-          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="volume2" size={16} color="var(--ink3)" />
@@ -4247,14 +4221,14 @@ export function HrmDashboard() {
       </div>
 
       {/* ── SmartHR HR Hub Quick Modules Grid Section ───────────────────── */}
-      <div style={{ background: 'var(--white)', borderRadius: 'var(--card-radius)', border: '1px solid var(--border)', padding: '20px 24px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+      <div className="hrd-hub">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>SmartHR Management Hub</h3>
             <p style={{ margin: '2px 0 0 0', fontSize: 12, color: 'var(--ink3)' }}>Direct access shortcuts to core workforce applications & features</p>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 12 }}>
+        <div className="hrd-hub-grid">
           {[
             { label:'Manage Staff',    icon:'users'      as IconName, path:'/nexushr/employees',   color:'var(--blue)', bg:'var(--blue-l)' },
             { label:'Attendance',      icon:'clock'      as IconName, path:'/nexushr/attendance',  color:'var(--teal)', bg:'var(--teal-l)' },
@@ -4273,22 +4247,7 @@ export function HrmDashboard() {
             { label:'Asset Tracking',  icon:'package'    as IconName, path:'/nexushr/assets',      color:'var(--teal)', bg:'var(--teal-l)' },
             { label:'Visitors',        icon:'userPlus'   as IconName, path:'/nexushr/visitors',    color:'var(--purple)', bg:'var(--purple-l)' },
           ].map(m => (
-            <Link key={m.path} to={m.path}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
-                background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
-                cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none', transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.background = m.bg;
-                (e.currentTarget as HTMLElement).style.borderColor = m.color;
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.background = 'var(--bg)';
-                (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-              }}>
+            <Link key={m.path} to={m.path} className="hrd-hub-link" style={{ '--hrd-module-color': m.color, '--hrd-module-bg': m.bg } as React.CSSProperties}>
               <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: m.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name={m.icon} size={15} color={m.color} />
               </div>

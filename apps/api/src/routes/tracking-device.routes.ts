@@ -40,7 +40,7 @@ export async function trackingDeviceRoutes(fastify: FastifyInstance) {
     }).parse(req.body);
 
     const vehicle = await dbPlatform.selectFrom('vehicles')
-      .select(['id', 'tenant_id', 'device_secret'])
+      .select(['id', 'tenant_id', 'device_secret', 'name'])
       .where('device_id', '=', body.device_id)
       .executeTakeFirst();
     // A vehicle registered before migration 396 has no device_secret yet
@@ -71,7 +71,7 @@ export async function trackingDeviceRoutes(fastify: FastifyInstance) {
         recorded_at: recordedAt,
       } as any).execute();
 
-      await checkGeofenceTransitions(trx, vehicle.tenant_id, vehicle.id, body.lat, body.lng);
+      await checkGeofenceTransitions(trx, vehicle.tenant_id, vehicle.id, vehicle.name, body.lat, body.lng);
 
       broadcastToTenant(fastify, vehicle.tenant_id, {
         type: 'vehicle.position_updated',

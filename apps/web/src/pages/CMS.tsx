@@ -880,6 +880,10 @@ export const CMS: React.FC = () => {
 
   const [sites, setSites] = useState<CmsSite[]>([]);
   const [workflowStates, setWorkflowStates] = useState<CmsWorkflowState[]>([]);
+  // §45-46 — starter templates, offered only while the site is genuinely
+  // empty (installTemplate itself also refuses server-side once a page exists).
+  const [templates, setTemplates] = useState<{ key: string; name: string; description: string; seeds: string[] }[]>([]);
+  const [installingTemplate, setInstallingTemplate] = useState<string | null>(null);
   const [selectedSiteFilter, setSelectedSiteFilter] = useState<string>('all');
   const [selectedLocaleFilter, setSelectedLocaleFilter] = useState<string>('all');
 
@@ -979,7 +983,23 @@ export const CMS: React.FC = () => {
     loadWorkflowStates();
     loadComments();
     apiFetch('/v1/cms/site-settings').then(setSiteSettings).catch(() => {});
+    apiFetch('/v1/cms/templates').then((r: { data: typeof templates }) => setTemplates(r.data ?? [])).catch(() => {});
   }, []);
+
+  const installTemplate = async (key: string) => {
+    setInstallingTemplate(key);
+    try {
+      const { data } = await apiFetch<{ data: { pagesCreated: number; postsCreated: number; navItemsCreated: number } }>(`/v1/cms/templates/${key}/install`, { method: 'POST' });
+      showAlert(`Template installed — ${data.pagesCreated} page(s), ${data.postsCreated} post(s) and ${data.navItemsCreated} nav link(s) created.`);
+      loadPages();
+      loadPosts({ search: '', site_id: selectedSiteFilter, locale: selectedLocaleFilter });
+      goTo('pages');
+    } catch (e: any) {
+      showAlert(`Couldn't install this template: ${e.message}`);
+    } finally {
+      setInstallingTemplate(null);
+    }
+  };
 
   useEffect(() => {
     loadPosts({ search: pSearchDebounced, site_id: selectedSiteFilter, locale: selectedLocaleFilter });
@@ -1400,6 +1420,34 @@ export const CMS: React.FC = () => {
         {/* ══ DASHBOARD ══ */}
         {view === 'dashboard' && (
           <div>
+            {/* §45-46 — a brand-new, empty site can start from a real starter
+                kit instead of a blank Customize form. Disappears the moment
+                the tenant has a single page — installTemplate itself also
+                refuses server-side past that point, this is just the UI's
+                own mirror of that same rule. */}
+            {pages.length === 0 && templates.length > 0 && (
+              <div style={{ background: 'var(--teal-l)', borderBottom: '1px solid var(--border)', padding: '22px 28px' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginBottom: 4 }}>Start from a template</div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16, lineHeight: 1.5 }}>Get a few real pages and a nav menu in one click, then edit them to fit your business — or skip this and build from scratch.</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${templates.length}, 1fr)`, gap: 14 }}>
+                  {templates.map(t => (
+                    <div key={t.key} className="card" style={{ padding: '16px 18px', background: 'var(--white)' }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy)', marginBottom: 5 }}>{t.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10, lineHeight: 1.5 }}>{t.description}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 12 }}>{t.seeds.join(' · ')}</div>
+                      <button
+                        onClick={() => installTemplate(t.key)}
+                        disabled={installingTemplate !== null}
+                        className="btn btn-primary btn-sm"
+                        style={{ opacity: installingTemplate && installingTemplate !== t.key ? 0.5 : 1 }}
+                      >
+                        {installingTemplate === t.key ? 'Installing…' : 'Use this template'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '22px 28px' }}>
               <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)', marginBottom: 20, fontFamily: 'var(--font)' }}>Welcome to CMS Dashboard!</h2>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 28, paddingTop: 20, borderTop: '1px solid var(--border)' }}>

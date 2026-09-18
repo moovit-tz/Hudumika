@@ -666,10 +666,12 @@ export async function ondiRoutes(fastify: FastifyInstance) {
   // ── Custom roles & groups (Ondi M5) — additive layer on top of
   // users.role; see org-rbac.ts's ORG_PERMISSIONS for what a role can
   // actually be granted, and its own comment on why role administration
-  // itself (this section) stays ADMIN/TENANT_ADMIN-only rather than being
-  // gated by one of those permissions. ──
+  // itself (this section) stays role-gated (ADMIN/TENANT_ADMIN, plus
+  // SUPER_ADMIN — HUD-0066 — for the same cross-tenant support/ops-override
+  // reason every sibling section in this file already includes it) rather
+  // than gated by one of those permissions. ──
 
-  fastify.get('/org/roles', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.get('/org/roles', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       const roles = await trx.selectFrom('ondi_org_roles').selectAll().where('tenant_id', '=', user.tenant_id).orderBy('name').execute();
@@ -681,7 +683,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/org/roles', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  fastify.post('/org/roles', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const body = orgRoleSchema.parse(req.body);
     try {
@@ -698,7 +700,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.delete('/org/roles/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  fastify.delete('/org/roles/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
@@ -709,7 +711,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/org/roles/:id/members', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  fastify.post('/org/roles/:id/members', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     // Just-in-Time-lite access (migration 364): expires_in_hours is optional —
@@ -743,7 +745,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/org/roles/:id/members/:userId', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/org/roles/:id/members/:userId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id, userId } = req.params as { id: string; userId: string };
     return withTenant(user.tenant_id, async (trx) => {

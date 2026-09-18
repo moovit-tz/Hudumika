@@ -86,8 +86,12 @@ export const developerRoutes: FastifyPluginAsync = async fastify => {
 
       return reply.status(result.status_code).send(result.data);
     } catch (err: any) {
-      return reply.status(500).send({
-        error: 'Gateway Execution Failed',
+      // A bad caller input (missing/unknown HS code, invalid cif_value —
+      // see landed_cost.compute) is a 4xx, not a server fault; every other
+      // thrown error still 500s as before.
+      const statusCode = err.statusCode || (err.name === 'HsCodeNotFound' ? 400 : 500);
+      return reply.status(statusCode).send({
+        error: statusCode === 400 ? 'Bad Request' : 'Gateway Execution Failed',
         message: err.message || 'An internal error occurred while executing the API operation.',
       });
     }

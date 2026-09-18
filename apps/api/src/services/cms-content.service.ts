@@ -720,12 +720,43 @@ export class CMSContentService {
     return withTenant(tenantId, async (trx) => {
       if (input.field_type === 'relation') await this.checkRelationConfig(trx, tenantId, input.config);
       if (input.field_type === 'computed') await this.checkComputedConfig(trx, tenantId, modelId, input.config);
+      // Real bug fixed alongside §12-13: every field used to default to
+      // sort_order 0 regardless of how many already existed, so a newly
+      // added field could land anywhere (even first) depending on
+      // insertion order rather than always appending to the end — the
+      // same max+1 pattern createNavItem already uses.
+      let sortOrder = input.sort_order;
+      if (sortOrder === undefined) {
+        const max = await trx.selectFrom('cms_content_fields').select(sql<string>`coalesce(max(sort_order), -1)`.as('m'))
+          .where('model_id', '=', modelId).executeTakeFirst();
+        sortOrder = Number(max?.m ?? -1) + 1;
+      }
       const row = await trx.insertInto('cms_content_fields').values({
         tenant_id: tenantId, model_id: modelId, key, label: input.label, field_type: input.field_type,
         required: input.required ?? false, help_text: input.help_text ?? null,
-        config: JSON.stringify(input.config ?? {}), sort_order: input.sort_order ?? 0,
+        config: JSON.stringify(input.config ?? {}), sort_order: sortOrder,
       }).returningAll().executeTakeFirstOrThrow();
       return toField(row);
+    });
+  }
+
+  /** §12-13 — real field reordering (up/down, same reliability posture as
+   *  Nav Items and the Block Editor use elsewhere in this codebase rather
+   *  than drag-and-drop). A move past either boundary is a silent no-op,
+   *  not an error — matches how those other reorder UIs behave. */
+  static async moveField(tenantId: string, fieldId: string, direction: 'up' | 'down'): Promise<void> {
+    return withTenant(tenantId, async (trx) => {
+      const target = await trx.selectFrom('cms_content_fields').select('model_id')
+        .where('id', '=', fieldId).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!target) throw new Error('Field not found.');
+      const fields = await trx.selectFrom('cms_content_fields').select(['id', 'sort_order'])
+        .where('tenant_id', '=', tenantId).where('model_id', '=', target.model_id).orderBy('sort_order', 'asc').execute();
+      const idx = fields.findIndex(f => f.id === fieldId);
+      const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= fields.length) return;
+      const other = fields[swapIdx];
+      await trx.updateTable('cms_content_fields').set({ sort_order: other.sort_order }).where('id', '=', fieldId).execute();
+      await trx.updateTable('cms_content_fields').set({ sort_order: fields[idx].sort_order }).where('id', '=', other.id).execute();
     });
   }
 
@@ -1029,11 +1060,23 @@ export class CMSContentService {
   static async listPublicEntries(tenantSlug: string, modelKey: string): Promise<CmsPublicContentEntrySummary[] | null> {
     const resolved = await this.getPublicModel(tenantSlug, modelKey);
     if (!resolved) return null;
+    // §12-13 — the collection index shows nothing but title/date unless the
+    // admin has explicitly flagged one or more fields `showInList`; `data`
+    // is always selected (cheap at this row limit) but only ever exposed on
+    // the response when there's a real flagged field, so a model that's
+    // never touched this setting renders byte-identical to before.
+    const listFields = resolved.fields.filter(f => (f.config as any)?.showInList === true);
     return withTenant(resolved.tenantId, trx => trx.selectFrom('cms_content_entries')
-      .select(['slug', 'title', 'created_at'])
+      .select(['slug', 'title', 'created_at', 'data'])
       .where('model_id', '=', resolved.model.id).where('status', '=', 'published')
       .orderBy('created_at', 'desc').limit(100).execute()
-      .then(rows => rows.map(r => ({ slug: r.slug, title: r.title, created_at: (r.created_at as Date).toISOString() }))));
+      .then(rows => rows.map(r => {
+        const data = typeof r.data === 'string' ? JSON.parse(r.data) : (r.data ?? {});
+        return {
+          slug: r.slug, title: r.title, created_at: (r.created_at as Date).toISOString(),
+          ...(listFields.length ? { fields: Object.fromEntries(listFields.map(f => [f.key, data[f.key] ?? null])) } : {}),
+        };
+      })));
   }
 
   static async createEntryPreviewToken(tenantId: string, id: string): Promise<{ token: string; expiresAt: number }> {
@@ -1063,8 +1106,15 @@ export class CMSContentService {
       components = {};
       for (const r of rows) components[r.id] = typeof r.blocks === 'string' ? JSON.parse(r.blocks) : (r.blocks ?? []);
     }
+    // §12-13 — hideInDetail is enforced here, not just left to the frontend
+    // to not-render: a field an admin has hidden from the detail view
+    // shouldn't still be sitting in the raw API response for anyone who
+    // opens dev tools, the same "server is the real boundary" posture
+    // preview tokens and status-gating already take on this same route.
+    const hiddenKeys = new Set(resolved.fields.filter(f => (f.config as any)?.hideInDetail === true).map(f => f.key));
+    const data = hiddenKeys.size ? Object.fromEntries(Object.entries(entry.data).filter(([k]) => !hiddenKeys.has(k))) : entry.data;
     return {
-      id: entry.id, slug: entry.slug, title: entry.title, data: entry.data, created_at: entry.created_at,
+      id: entry.id, slug: entry.slug, title: entry.title, data, created_at: entry.created_at,
       model: { key: resolved.model.key, name: resolved.model.name, fields: resolved.fields as any },
       ...(components ? { components } : {}),
     };

@@ -933,6 +933,88 @@ describe('CMS — pages, posts, search, autosave, SEO extras, webhooks, audit tr
     });
   });
 
+  // Each test below mints its own tenant rather than reusing A — this
+  // describe block alone adds ~11 POSTs (models/fields/entries all count
+  // toward CMS's shared monthly quota), which was enough on its own to tip
+  // A over its limit and start 402ing an unrelated, pre-existing §34 test
+  // later in this same file. Same shared-tenant quota-exhaustion class the
+  // Enterprise CMS and Starter-templates describe blocks already hit.
+  describe('field reordering + per-field display config (§12-13)', () => {
+    it('creates fields in append order, reorders them with real up/down moves, and a boundary move is a silent no-op', async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const { authorization } = authHeaders(t.token);
+        const model = (await app.inject({ method: 'POST', url: '/v1/cms/content-models', headers: { authorization }, payload: { key: 'display_cfg_v1', name: 'Product', name_plural: 'Products' } })).json();
+
+        const f1 = (await app.inject({ method: 'POST', url: `/v1/cms/content-models/${model.id}/fields`, headers: { authorization }, payload: { label: 'Price', field_type: 'number' } })).json();
+        const f2 = (await app.inject({ method: 'POST', url: `/v1/cms/content-models/${model.id}/fields`, headers: { authorization }, payload: { label: 'Description', field_type: 'text' } })).json();
+        const f3 = (await app.inject({ method: 'POST', url: `/v1/cms/content-models/${model.id}/fields`, headers: { authorization }, payload: { label: 'SKU', field_type: 'text' } })).json();
+
+        const before = (await app.inject({ method: 'GET', url: `/v1/cms/content-models/${model.id}`, headers: { authorization } })).json();
+        expect(before.fields.map((f: any) => f.key)).toEqual([f1.key, f2.key, f3.key]);
+
+        const move = await app.inject({ method: 'POST', url: `/v1/cms/content-fields/${f3.id}/move`, headers: { authorization }, payload: { direction: 'up' } });
+        expect(move.statusCode).toBe(200);
+        const afterMove = (await app.inject({ method: 'GET', url: `/v1/cms/content-models/${model.id}`, headers: { authorization } })).json();
+        expect(afterMove.fields.map((f: any) => f.key)).toEqual([f1.key, f3.key, f2.key]);
+
+        const boundaryMove = await app.inject({ method: 'POST', url: `/v1/cms/content-fields/${f1.id}/move`, headers: { authorization }, payload: { direction: 'up' } });
+        expect(boundaryMove.statusCode).toBe(200);
+        const afterBoundary = (await app.inject({ method: 'GET', url: `/v1/cms/content-models/${model.id}`, headers: { authorization } })).json();
+        expect(afterBoundary.fields.map((f: any) => f.key)).toEqual([f1.key, f3.key, f2.key]);
+      } finally { await t.cleanup(); }
+    });
+
+    it('showInList surfaces a flagged field on the public collection index, and hideInDetail strips it from the public entry response entirely', async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const { authorization } = authHeaders(t.token);
+        const model = (await app.inject({ method: 'POST', url: '/v1/cms/content-models', headers: { authorization }, payload: { key: 'display_cfg_v2', name: 'Item', name_plural: 'Items' } })).json();
+        const priceField = (await app.inject({ method: 'POST', url: `/v1/cms/content-models/${model.id}/fields`, headers: { authorization }, payload: { label: 'Price', field_type: 'number' } })).json();
+        const notesField = (await app.inject({ method: 'POST', url: `/v1/cms/content-models/${model.id}/fields`, headers: { authorization }, payload: { label: 'Internal Notes', field_type: 'text' } })).json();
+
+        const patchList = await app.inject({ method: 'PATCH', url: `/v1/cms/content-fields/${priceField.id}`, headers: { authorization }, payload: { config: { showInList: true } } });
+        expect(patchList.statusCode).toBe(200);
+        const patchHide = await app.inject({ method: 'PATCH', url: `/v1/cms/content-fields/${notesField.id}`, headers: { authorization }, payload: { config: { hideInDetail: true } } });
+        expect(patchHide.statusCode).toBe(200);
+
+        const entry = (await app.inject({ method: 'POST', url: `/v1/cms/content-models/${model.id}/entries`, headers: { authorization }, payload: { title: 'Widget', status: 'published', data: { [priceField.key]: 42, [notesField.key]: 'internal only' } } })).json();
+
+        const tenantRow = await dbPlatform.selectFrom('tenants').select('slug').where('id', '=', t.tenantId).executeTakeFirstOrThrow();
+        const listRes = await app.inject({ method: 'GET', url: `/v1/cms/public/${tenantRow.slug}/m/display_cfg_v2` });
+        expect(listRes.statusCode).toBe(200);
+        expect(listRes.json().model.listFields).toEqual([{ key: priceField.key, label: 'Price' }]);
+        expect(listRes.json().entries[0].fields).toEqual({ [priceField.key]: 42 });
+
+        const detailRes = await app.inject({ method: 'GET', url: `/v1/cms/public/${tenantRow.slug}/m/display_cfg_v2/${entry.slug}` });
+        expect(detailRes.statusCode).toBe(200);
+        expect(detailRes.json().data[priceField.key]).toBe(42);
+        expect(detailRes.json().data[notesField.key]).toBeUndefined();
+      } finally { await t.cleanup(); }
+    });
+
+    it('a newly created field defaults both flags off — a model that never touches this setting renders identically to before', async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const { authorization } = authHeaders(t.token);
+        const model = (await app.inject({ method: 'POST', url: '/v1/cms/content-models', headers: { authorization }, payload: { key: 'display_cfg_v3', name: 'Plain', name_plural: 'Plains' } })).json();
+        const field = (await app.inject({ method: 'POST', url: `/v1/cms/content-models/${model.id}/fields`, headers: { authorization }, payload: { label: 'Name', field_type: 'text' } })).json();
+        const entry = (await app.inject({ method: 'POST', url: `/v1/cms/content-models/${model.id}/entries`, headers: { authorization }, payload: { title: 'Plain One', status: 'published', data: { [field.key]: 'value' } } })).json();
+
+        const tenantRow = await dbPlatform.selectFrom('tenants').select('slug').where('id', '=', t.tenantId).executeTakeFirstOrThrow();
+        const listRes = await app.inject({ method: 'GET', url: `/v1/cms/public/${tenantRow.slug}/m/display_cfg_v3` });
+        expect(listRes.json().model.listFields).toEqual([]);
+        expect(listRes.json().entries[0].fields).toBeUndefined();
+
+        const detailRes = await app.inject({ method: 'GET', url: `/v1/cms/public/${tenantRow.slug}/m/display_cfg_v3/${entry.slug}` });
+        expect(detailRes.json().data[field.key]).toBe('value');
+      } finally { await t.cleanup(); }
+    });
+  });
+
   // §30-31 — Forms + form workflows. A tenant defines a form's own field
   // shape once (config validated the same "declare the shape up front"
   // way §2's own field types already are), places it anywhere a 'blocks'
@@ -1652,6 +1734,150 @@ describe('CMS — pages, posts, search, autosave, SEO extras, webhooks, audit tr
 
       const translateAsStaff = await app.inject({ method: 'POST', url: '/v1/cms/translate', headers: authHeaders(manager.token), payload: { resource_type: 'page', resource_id: page.json().id, target_locale: 'fr' } });
       expect(translateAsStaff.statusCode).toBe(400);
+    });
+  });
+
+  describe('Starter templates (§45-46)', () => {
+    it('lists the real template catalog', async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const res = await app.inject({ method: 'GET', url: '/v1/cms/templates', headers: authHeaders(t.token) });
+        expect(res.statusCode).toBe(200);
+        const keys = res.json().data.map((x: any) => x.key).sort();
+        expect(keys).toEqual(['blog', 'corporate']);
+        expect(res.json().data[0].seeds.length).toBeGreaterThan(0);
+      } finally { await t.cleanup(); }
+    });
+
+    it('installs the corporate template onto an empty site as real, published pages and nav links', async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const res = await app.inject({ method: 'POST', url: '/v1/cms/templates/corporate/install', headers: authHeaders(t.token), payload: {} });
+        expect(res.statusCode).toBe(200);
+        expect(res.json().data).toEqual({ pagesCreated: 3, postsCreated: 0, navItemsCreated: 4 });
+
+        const pages = await app.inject({ method: 'GET', url: '/v1/cms/pages', headers: authHeaders(t.token) });
+        const slugs = pages.json().map((p: any) => p.slug).sort();
+        expect(slugs).toEqual(['/about', '/contact', '/services']);
+        expect(pages.json().every((p: any) => p.status === 'published')).toBe(true);
+
+        const nav = await app.inject({ method: 'GET', url: '/v1/cms/nav-items', headers: authHeaders(t.token) });
+        expect(nav.json()).toHaveLength(4);
+      } finally { await t.cleanup(); }
+    });
+
+    it('installs the blog template with a real published post', async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const res = await app.inject({ method: 'POST', url: '/v1/cms/templates/blog/install', headers: authHeaders(t.token), payload: {} });
+        expect(res.statusCode).toBe(200);
+        expect(res.json().data).toEqual({ pagesCreated: 1, postsCreated: 1, navItemsCreated: 3 });
+
+        const posts = await app.inject({ method: 'GET', url: '/v1/cms/posts', headers: authHeaders(t.token) });
+        expect(posts.json().some((p: any) => p.title === 'Welcome to your new blog' && p.status === 'published')).toBe(true);
+      } finally { await t.cleanup(); }
+    });
+
+    it('refuses to install once the site already has a page', async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        await app.inject({ method: 'POST', url: '/v1/cms/pages', headers: authHeaders(t.token), payload: { slug: '/existing', title: 'Existing Page', content: '<p>hi</p>' } });
+        const res = await app.inject({ method: 'POST', url: '/v1/cms/templates/corporate/install', headers: authHeaders(t.token), payload: {} });
+        expect(res.statusCode).toBe(400);
+        expect(res.json().error).toMatch(/already has pages/i);
+      } finally { await t.cleanup(); }
+    });
+
+    it('rejects an unknown template key with a clean 400, not a crash', async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const res = await app.inject({ method: 'POST', url: '/v1/cms/templates/does-not-exist/install', headers: authHeaders(t.token), payload: {} });
+        expect(res.statusCode).toBe(400);
+      } finally { await t.cleanup(); }
+    });
+
+    it('a non-admin can list templates but cannot install one', async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const staff = await t.addUser('MANAGER');
+        const list = await app.inject({ method: 'GET', url: '/v1/cms/templates', headers: authHeaders(staff.token) });
+        expect(list.statusCode).toBe(200);
+        const install = await app.inject({ method: 'POST', url: '/v1/cms/templates/blog/install', headers: authHeaders(staff.token), payload: {} });
+        expect(install.statusCode).toBe(403);
+      } finally { await t.cleanup(); }
+    });
+
+    it('blocks a CUSTOMER-role account entirely', async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const customer = await t.addUser('CUSTOMER');
+        const res = await app.inject({ method: 'GET', url: '/v1/cms/templates', headers: authHeaders(customer.token) });
+        expect(res.statusCode).toBe(403);
+      } finally { await t.cleanup(); }
+    });
+  });
+
+  describe('hreflang (§28-29 continued)', () => {
+    it("a published page's public response lists its other published translations, never a draft one or itself", async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const tenant = await dbPlatform.selectFrom('tenants').select('slug').where('id', '=', t.tenantId).executeTakeFirstOrThrow();
+        const headers = authHeaders(t.token);
+
+        const enPage = await app.inject({ method: 'POST', url: '/v1/cms/pages', headers, payload: { slug: '/about', title: 'About', content: '<p>Hi</p>', status: 'published', locale: 'en' } });
+        const swPage = await app.inject({ method: 'POST', url: '/v1/cms/pages', headers, payload: { slug: '/kuhusu', title: 'Kuhusu', content: '<p>Habari</p>', status: 'published', locale: 'sw' } });
+        const draftPage = await app.inject({ method: 'POST', url: '/v1/cms/pages', headers, payload: { slug: '/a-propos', title: 'A propos', content: '<p>Salut</p>', status: 'draft', locale: 'fr' } });
+        const groupId = enPage.json().translation_group_id;
+
+        await app.inject({ method: 'POST', url: '/v1/cms/translations/link', headers, payload: { resource_type: 'page', resource_id: swPage.json().id, translation_group_id: groupId, locale: 'sw' } });
+        await app.inject({ method: 'POST', url: '/v1/cms/translations/link', headers, payload: { resource_type: 'page', resource_id: draftPage.json().id, translation_group_id: groupId, locale: 'fr' } });
+
+        const pub = await app.inject({ method: 'GET', url: `/v1/cms/public/${tenant.slug}/pages/about` });
+        expect(pub.statusCode).toBe(200);
+        expect(pub.json().translations).toEqual([{ locale: 'sw', url: `/site/${tenant.slug}/kuhusu` }]);
+      } finally { await t.cleanup(); }
+    });
+
+    it("a page and a post can share a translation group, and the public post response now carries locale/translation_group_id", async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const tenant = await dbPlatform.selectFrom('tenants').select('slug').where('id', '=', t.tenantId).executeTakeFirstOrThrow();
+        const headers = authHeaders(t.token);
+
+        const page = await app.inject({ method: 'POST', url: '/v1/cms/pages', headers, payload: { slug: '/news', title: 'News', content: '<p>Hi</p>', status: 'published', locale: 'en' } });
+        const post = await app.inject({ method: 'POST', url: '/v1/cms/posts', headers, payload: { slug: 'habari', title: 'Habari', content: '<p>Habari</p>', status: 'published', locale: 'sw' } });
+        const groupId = page.json().translation_group_id;
+        await app.inject({ method: 'POST', url: '/v1/cms/translations/link', headers, payload: { resource_type: 'post', resource_id: post.json().id, translation_group_id: groupId, locale: 'sw' } });
+
+        const pubPage = await app.inject({ method: 'GET', url: `/v1/cms/public/${tenant.slug}/pages/news` });
+        expect(pubPage.json().translations).toEqual([{ locale: 'sw', url: `/site/${tenant.slug}/blog/habari` }]);
+
+        const pubPost = await app.inject({ method: 'GET', url: `/v1/cms/public/${tenant.slug}/posts/habari` });
+        expect(pubPost.json().locale).toBe('sw');
+        expect(pubPost.json().translation_group_id).toBe(groupId);
+        expect(pubPost.json().translations).toEqual([{ locale: 'en', url: `/site/${tenant.slug}/news` }]);
+      } finally { await t.cleanup(); }
+    });
+
+    it('a page with no translation group returns an empty translations array, not an error', async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const tenant = await dbPlatform.selectFrom('tenants').select('slug').where('id', '=', t.tenantId).executeTakeFirstOrThrow();
+        await app.inject({ method: 'POST', url: '/v1/cms/pages', headers: authHeaders(t.token), payload: { slug: '/solo', title: 'Solo', content: '<p>Hi</p>', status: 'published' } });
+        const pub = await app.inject({ method: 'GET', url: `/v1/cms/public/${tenant.slug}/pages/solo` });
+        expect(pub.statusCode).toBe(200);
+        expect(pub.json().translations).toEqual([]);
+      } finally { await t.cleanup(); }
     });
   });
 });

@@ -441,6 +441,20 @@ export async function billRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = billCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      // HUD-0077: a supplier's own `blocked` status (fraud/dispute/etc.) used
+      // to be purely cosmetic — set it, and every other route ignored it, so
+      // a bill would still post normally with no warning anywhere. Checked
+      // first, before any side effect, same reasoning as the bill-number
+      // clash check below.
+      if (body.supplier_id) {
+        const supplier = await trx.selectFrom('suppliers').select(['status', 'name', 'notes'])
+          .where('id', '=', body.supplier_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (supplier?.status === 'blocked') {
+          return reply.status(400).send({
+            error: `${supplier.name} is blocked and cannot be billed${supplier.notes ? ` (${supplier.notes})` : ''}. Reactivate the supplier first if this was a mistake.`,
+          });
+        }
+      }
       const items: any[] = Array.isArray(body.items) ? body.items : [];
       // Resolved before the header insert — an early 400 from inside withTenant
       // commits the transaction, so validating later leaves an orphan bill.
@@ -626,7 +640,7 @@ export async function billRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const body = billCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('supplier_bills').select(['id', 'bill_date'])
+      const existing = await trx.selectFrom('supplier_bills').select(['id', 'bill_date', 'supplier_id', 'status'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Bill not found' });
 
@@ -637,6 +651,25 @@ export async function billRoutes(fastify: FastifyInstance) {
       } catch (e) {
         if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
         throw e;
+      }
+
+      // HUD-0077: mirrors POST /'s own supplier-blocked guard, checked before
+      // any write per this route's own established rule (see the buildBillLines
+      // comment below). Only fires when this edit actually changes the
+      // supplier or is the edit that posts the bill for the first time — a
+      // bill that already existed against a since-blocked supplier can still
+      // be edited/saved as DRAFT without this tripping on every unrelated save.
+      const effectiveSupplierId = body.supplier_id !== undefined ? body.supplier_id : existing.supplier_id;
+      const changingSupplier = body.supplier_id !== undefined && body.supplier_id !== existing.supplier_id;
+      const postingNow = body.status === 'POSTED' && existing.status !== 'POSTED';
+      if (effectiveSupplierId && (changingSupplier || postingNow)) {
+        const supplier = await trx.selectFrom('suppliers').select(['status', 'name', 'notes'])
+          .where('id', '=', effectiveSupplierId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (supplier?.status === 'blocked') {
+          return reply.status(400).send({
+            error: `${supplier.name} is blocked and cannot be billed${supplier.notes ? ` (${supplier.notes})` : ''}. Reactivate the supplier first if this was a mistake.`,
+          });
+        }
       }
 
       const updates: any = { updated_at: new Date() };

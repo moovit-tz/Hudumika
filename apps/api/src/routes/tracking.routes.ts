@@ -100,9 +100,24 @@ function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): num
  * Simple radius-based geofence ENTER/EXIT check against active zones, shared by
  * every position-ingestion path (manual device POST, GPSWOX sync) so the logic
  * can't drift between them.
+ *
+ * HUD-0137: this always correctly wrote the transition to
+ * `vehicle_geofence_events`, but never told anyone — `fleet_alerts.alert_type`
+ * has documented `GEOFENCE_BREACH` as a real value since the table was
+ * created (migration 055), and `TrackingAlerts.tsx`'s own page subtitle
+ * promises "geofence breach" alerts, but nothing anywhere ever inserted one.
+ * Now inserts a real `fleet_alerts` row on every transition — `WARNING` for
+ * entering a `RESTRICTED` zone (the one zone_type this schema treats as
+ * meaningfully different, per its own `zone_type` comment), `INFO`
+ * otherwise, matching how a routine PORT/CUSTOMS_CHECKPOINT crossing isn't
+ * the same class of event as entering a zone a vehicle shouldn't be in.
+ * Deliberately does not also push a live notification the way a manually-
+ * created alert (`POST /alerts`) does — matches this same file's own
+ * existing convention for the other auto-detected alert type,
+ * `DEVICE_OFFLINE`, which doesn't notify either.
  */
 export async function checkGeofenceTransitions(
-  trx: any, tenantId: string, vehicleId: string, lat: number, lng: number
+  trx: any, tenantId: string, vehicleId: string, vehicleName: string, lat: number, lng: number
 ): Promise<void> {
   const zones = await trx.selectFrom('geofences').selectAll()
     .where('tenant_id', '=', tenantId).where('active', '=', true).execute();
@@ -119,10 +134,20 @@ export async function checkGeofenceTransitions(
         geofence_id: zone.id, vehicle_id: vehicleId, tenant_id: tenantId,
         event_type: 'ENTER', latitude: lat, longitude: lng,
       } as any).execute();
+      await trx.insertInto('fleet_alerts').values({
+        tenant_id: tenantId, vehicle_id: vehicleId, alert_type: 'GEOFENCE_BREACH',
+        severity: zone.zone_type === 'RESTRICTED' ? 'WARNING' : 'INFO',
+        message: `${vehicleName} entered geofence "${zone.name}"`,
+      } as any).execute();
     } else if (!inside && currentlyInside) {
       await trx.insertInto('vehicle_geofence_events').values({
         geofence_id: zone.id, vehicle_id: vehicleId, tenant_id: tenantId,
         event_type: 'EXIT', latitude: lat, longitude: lng,
+      } as any).execute();
+      await trx.insertInto('fleet_alerts').values({
+        tenant_id: tenantId, vehicle_id: vehicleId, alert_type: 'GEOFENCE_BREACH',
+        severity: 'INFO',
+        message: `${vehicleName} exited geofence "${zone.name}"`,
       } as any).execute();
     }
   }

@@ -11,7 +11,6 @@ import { SkeletonPage } from '../components/ui/skeleton.js';
 import { SetupGuideWidget } from '../components/SetupGuideWidget.js';
 import { AttendanceStatusBanner } from '../components/AttendanceStatusBanner.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
-import { PageHeader } from '../components/PageHeader.js';
 import './WorkspaceHome.css';
 
 interface HudumikaApp {
@@ -209,13 +208,6 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
 
         {/* ── Main Content Area ── */}
         <div className="wh-new-container">
-          <PageHeader
-            crumbs={['Workspace', 'Home']}
-            titlePlain="Your"
-            titleEm="workspace"
-            subtitle="Open the tools and workspaces available to your organisation."
-          />
-
           {/* ── Section: Attendance / Clock-in identity banner — moved here
               from NexusHR's own "My HR" ESS dashboard at the user's request. ── */}
           <AttendanceStatusBanner />
@@ -229,7 +221,7 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
               <div className="wh-section-header">
                 <h2 className="wh-section-title">{t('hub.recentlyViewed')}</h2>
               </div>
-              <div className="wh-cards-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
+              <div className="wh-cards-row">
                 {recentlyViewedApps.map(app => {
                   const appColor = branding.getAppColor(app.id, app.color);
                   const appName = branding.getAppName(app.id, app.name);

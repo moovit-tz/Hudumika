@@ -126,7 +126,11 @@ export async function cmsContentRoutes(fastify: FastifyInstance) {
     const resolved = await CMSContentService.getPublicModel(tenantSlug, modelKey);
     if (!resolved) return reply.status(404).send({ error: 'Not found.' });
     const entries = await CMSContentService.listPublicEntries(tenantSlug, modelKey);
-    return { model: { key: resolved.model.key, name: resolved.model.name, name_plural: resolved.model.name_plural }, entries: entries ?? [] };
+    // §12-13 — key/label only (never the field's own type-specific config)
+    // for whichever fields are flagged showInList, so the collection index
+    // can render a real label next to each value instead of a bare number.
+    const listFields = resolved.fields.filter(f => (f.config as any)?.showInList === true).map(f => ({ key: f.key, label: f.label }));
+    return { model: { key: resolved.model.key, name: resolved.model.name, name_plural: resolved.model.name_plural, listFields }, entries: entries ?? [] };
   });
 
   fastify.get('/public/:tenantSlug/m/:modelKey/:entrySlug', async (request: any, reply) => {
@@ -218,6 +222,14 @@ export async function cmsContentRoutes(fastify: FastifyInstance) {
     const body = fieldPatchSchema.parse(request.body);
     try { return await CMSContentService.updateField(request.user.tenant_id, (request.params as any).id, body); }
     catch (err: any) { return handleError(reply, err); }
+  });
+
+  fastify.post('/content-fields/:id/move', async (request: any, reply) => {
+    const body = z.object({ direction: z.enum(['up', 'down']) }).parse(request.body);
+    try {
+      await CMSContentService.moveField(request.user.tenant_id, (request.params as any).id, body.direction);
+      return { ok: true };
+    } catch (err: any) { return handleError(reply, err); }
   });
 
   fastify.delete('/content-fields/:id', async (request: any, reply) => {

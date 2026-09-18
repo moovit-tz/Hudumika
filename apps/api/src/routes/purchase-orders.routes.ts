@@ -128,6 +128,19 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = poCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      // HUD-0077: mirrors bills.routes.ts's own supplier-blocked guard — a
+      // blocked supplier previously had zero enforcement anywhere, including
+      // here, so a fresh purchase order could still be opened against one
+      // mid-dispute with no warning.
+      if (body.supplier_id) {
+        const supplier = await trx.selectFrom('suppliers').select(['status', 'name', 'notes'])
+          .where('id', '=', body.supplier_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (supplier?.status === 'blocked') {
+          return reply.status(400).send({
+            error: `${supplier.name} is blocked and cannot be ordered from${supplier.notes ? ` (${supplier.notes})` : ''}. Reactivate the supplier first if this was a mistake.`,
+          });
+        }
+      }
       const items = Array.isArray(body.lines) ? body.lines : [];
       const built = await buildPoLines(trx, user.tenant_id, '', items);
       if (!built.ok) return reply.status(400).send({ error: built.error });

@@ -98,6 +98,12 @@ export function AttendanceStatusBanner() {
   }, []);
 
   const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const dateStr = time.toLocaleDateString('en-US', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 
   // The timer's own start time comes from the shared context's entry, not a
   // fetch this component owns — whichever surface (header or this card)
@@ -190,24 +196,33 @@ export function AttendanceStatusBanner() {
             </div>
           </div>
 
-          {/* Centre column: greeting + time/weather/location */}
+          {/* Centre column: workspace welcome + date/time/weather/location */}
           <div className="asb-center-col">
-            <p className="asb-greeting">Welcome back,</p>
-            <div className="asb-weather-time">
-              <span className="asb-time-badge">{timeStr}</span>
+            <h2 className="asb-greeting">
+              Welcome to your <em>workspace</em><span className="asb-greeting-dot">.</span>
+            </h2>
+            <div className="asb-context-grid">
+              <div className="asb-context-column">
+                <div className="asb-context-value">
+                  <span className="asb-date">{dateStr}</span>
+                  <span className="asb-dot-sep">·</span>
+                  <span className="asb-time-badge">{timeStr}</span>
+                </div>
+              </div>
               {weather && (
-                <>
-                  <span className="asb-dot-sep">·</span>
-                  <span className="asb-weather-item">{weather.desc}, {weather.temp}°C</span>
-                  <span className="asb-dot-sep">·</span>
-                  <span className="asb-weather-item">{weather.humidDesc}</span>
-                </>
-              )}
-              {userCity && (
-                <>
-                  <span className="asb-dot-sep">·</span>
-                  <span className="asb-weather-item">{userCity}</span>
-                </>
+                <div className="asb-context-column">
+                  <div className="asb-context-value">
+                    <span className="asb-weather-item">{weather.desc}, {weather.temp}°C</span>
+                    <span className="asb-dot-sep">·</span>
+                    <span className="asb-weather-item">{weather.humidDesc}</span>
+                    {userCity && (
+                      <>
+                        <span className="asb-dot-sep">·</span>
+                        <span className="asb-weather-item">{userCity}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </div>

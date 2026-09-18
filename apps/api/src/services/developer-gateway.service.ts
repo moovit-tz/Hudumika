@@ -6,6 +6,8 @@
 import crypto from 'crypto';
 import { db } from '../db/client.js';
 import type { EnvironmentType } from '@hudumika/types';
+import { searchBrelaLive } from './brela.service.js';
+import { computeDuty } from './seal-duty.service.js';
 
 export interface GatewayAuthContext {
   credential_id: string;
@@ -110,12 +112,20 @@ export class DeveloperGatewayService {
       return null;
     }
 
-    // Resolve primary provider
+    // Resolve primary provider. `selectAll('api_operation_providers')` pulls
+    // in that join table's OWN primary key as `.id` — a distinct row from
+    // the real provider — alongside its real FK, `.provider_id`. Every
+    // caller downstream that wants "the provider's id" (recordUsage's own
+    // dev_usage_events/dev_provider_settlements inserts) must read
+    // `.provider_id`, never `.id`, or it foreign-keys against the wrong
+    // table (HUD-0117: live-reproduced as a real, silently-swallowed
+    // `dev_usage_events_provider_id_fkey` violation on every gateway call).
     const providerRow = await db
       .selectFrom('api_operation_providers')
       .innerJoin('api_providers', 'api_providers.id', 'api_operation_providers.provider_id')
       .selectAll('api_operation_providers')
       .select([
+        'api_providers.name as provider_name',
         'api_providers.code as provider_code',
         'api_providers.adapter_type',
         'api_providers.base_url as provider_base_url',
@@ -186,7 +196,7 @@ export class DeveloperGatewayService {
     // Native vs External execution logic
     if (operation.execution_mode === 'NATIVE' || provider?.adapter_type === 'HudumikaInternal') {
       // Execute Hudumika internal logic based on operation_id
-      const data = await this.executeNativeOperation(operation.operation_id, body, query);
+      const data = await this.executeNativeOperation(operation.operation_id, body, query, authContext);
       return {
         status_code: 200,
         data,
@@ -212,45 +222,83 @@ export class DeveloperGatewayService {
     }
   }
 
-  private static async executeNativeOperation(operationId: string, body: any, query: any) {
+  private static async executeNativeOperation(operationId: string, body: any, query: any, authContext: GatewayAuthContext) {
     switch (operationId) {
-      case 'seal.issue':
+      case 'seal.issue': {
+        // Real persistence (migration 487, HUD-0117) — this used to hand
+        // back a random id backed by nothing, so 'seal.verify' had no real
+        // ledger to check against and always said yes. The digest is real
+        // (a genuine SHA-256 of the submitted manifest); there is no real
+        // asymmetric keypair infrastructure behind this product, so it no
+        // longer claims a fabricated 'ECDSA_SHA256_P256' signature scheme,
+        // and there is no real public verify page yet, so no verification
+        // URL is returned rather than one that would lead nowhere.
+        const sealId = `seal_${crypto.randomBytes(12).toString('hex')}`;
+        const digest = crypto.createHash('sha256').update(JSON.stringify(body || {})).digest('hex');
+        await db.insertInto('dev_issued_seals').values({
+          seal_id: sealId,
+          developer_account_id: authContext.developer_account_id,
+          project_id: authContext.project_id,
+          digest_sha256: digest,
+        }).execute();
         return {
-          seal_id: `seal_${crypto.randomBytes(12).toString('hex')}`,
+          seal_id: sealId,
           status: 'ISSUED',
-          digest_sha256: crypto.createHash('sha256').update(JSON.stringify(body || {})).digest('hex'),
-          algorithm: 'ECDSA_SHA256_P256',
-          timestamp: new Date().toISOString(),
-          verification_url: `https://hudumika.co/sign/verify/${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
+          digest_sha256: digest,
+          issued_at: new Date().toISOString(),
         };
-      case 'seal.verify':
+      }
+      case 'seal.verify': {
+        // Real lookup against what 'seal.issue' actually persisted, instead
+        // of an unconditional valid:true for any input.
+        const sealId = (body?.seal_id || '').toString().trim();
+        const providedDigest = (body?.digest || '').toString().trim().toLowerCase();
+        if (!sealId) {
+          return { valid: false, verdict: 'MISSING_SEAL_ID' };
+        }
+        const seal = await db.selectFrom('dev_issued_seals').select(['digest_sha256', 'issued_at'])
+          .where('seal_id', '=', sealId).executeTakeFirst();
+        if (!seal) {
+          return { valid: false, verdict: 'NOT_FOUND' };
+        }
+        const matches = !!providedDigest && seal.digest_sha256 === providedDigest;
         return {
-          valid: true,
-          verdict: 'EXACT_MATCH',
-          confidence_score: 1.0,
-          issued_at: new Date(Date.now() - 3600000).toISOString(),
-          canonical_match: true,
+          valid: matches,
+          verdict: matches ? 'EXACT_MATCH' : 'DIGEST_MISMATCH',
+          issued_at: new Date(seal.issued_at).toISOString(),
         };
-      case 'landed_cost.compute':
-        const cif = Number(body?.cif_value || 10000000);
-        const duty = cif * 0.25;
-        const vat = (cif + duty) * 0.18;
-        const rdl = cif * 0.015;
-        const port = 450000;
-        const total = cif + duty + vat + rdl + port;
+      }
+      case 'landed_cost.compute': {
+        // Real engine (HUD-0117) — the same HS-code-driven EAC CET
+        // computation ClearOS's own landed-cost pages and SEAL's bonded-
+        // warehouse duty engine already use (seal-duty.service.ts,
+        // hand-verified to the shilling this same audit arc), in place of
+        // this operation's previous hardcoded 25%/18% assumption that
+        // ignored the HS code and country of origin entirely. `cif_value`
+        // is treated as already being the full CIF in the declared
+        // currency (fxRate 1, no separate freight/insurance breakdown) —
+        // the only input shape this product ever documented.
+        const hsCode = (body?.hs_code || '').toString().trim();
+        if (!hsCode) {
+          throw Object.assign(new Error('hs_code is required to compute a real landed cost.'), { statusCode: 400 });
+        }
+        const cifValue = Number(body?.cif_value);
+        if (!Number.isFinite(cifValue) || cifValue <= 0) {
+          throw Object.assign(new Error('cif_value must be a positive number.'), { statusCode: 400 });
+        }
+        const result = await computeDuty({ hsCode, invoiceValue: cifValue, currency: 'TZS', fxRate: 1 });
         return {
-          hs_code: body?.hs_code || '8703.23.90',
-          currency: 'TZS',
-          cif_value: cif,
-          duty_rate_pct: 25,
-          import_duty: duty,
-          vat_rate_pct: 18,
-          vat_amount: vat,
-          railway_development_levy: rdl,
-          port_and_clearance_charges: port,
-          total_landed_cost: total,
-          calculated_at: new Date().toISOString(),
+          hs_code: result.hsCode,
+          hs_code_description: result.hsCodeDescription,
+          currency: result.currency,
+          cif_value: result.cifValueLocal,
+          line_items: result.lineItems.map(li => ({ code: li.code, label: li.label, rate_pct: li.ratePct, base: li.base, amount: li.amount })),
+          total_duty: result.totalDuty,
+          total_tax: result.totalTax,
+          total_landed_cost: result.cifValueLocal + result.totalPayableLocal,
+          calculated_at: result.computedAt,
         };
+      }
       default:
         return {
           success: true,
@@ -262,50 +310,84 @@ export class DeveloperGatewayService {
   }
 
   private static async executeExternalAdapter(provider: any, operation: any, body: any, query: any) {
-    // Simulated external upstream call with standardized error normalization
+    // Real live lookups against BRELA's own public ORS search portal
+    // (services/brela.service.ts — the same scraper ComplyOS's own
+    // /brela-search route uses, extracted so there's one real
+    // implementation instead of a second, fabricated one — HUD-0117).
+    // BRELA's public search returns only reg number/name/address/status/
+    // type/incorporation date — never a TIN, director list, share capital,
+    // or VAT registration, so a caller asking this product to confirm any
+    // of those gets an honest `null` and an explanatory note instead of an
+    // invented value. `live: false` means the portal genuinely could not be
+    // reached this call (it sits behind a WAF that blocks most non-browser
+    // traffic) — never silently swapped for fabricated data.
     if (operation.operation_id === 'business.search') {
-      const q = (query?.q || body?.q || 'Hudumika').toString();
+      const q = (query?.q || body?.q || '').toString().trim();
+      const { live, results } = await searchBrelaLive('Company', undefined, q || undefined);
       return {
-        query: q,
-        total_results: 1,
-        results: [
-          {
-            registration_number: '148920-TZ',
-            legal_name: `${q} East Africa Limited`,
-            tin: '109-883-921',
-            status: 'ACTIVE_REGISTERED',
-            incorporation_date: '2021-04-15',
-            business_type: 'PRIVATE_LIMITED_COMPANY',
-            registered_office: 'Samora Avenue, Dar es Salaam, Tanzania',
-            registry_authority: 'BRELA',
-          },
-        ],
+        query: q || null,
+        live,
+        total_results: results.length,
+        results: results.map(r => ({
+          registration_number: r.reg_number,
+          legal_name: r.name,
+          status: r.status,
+          incorporation_date: r.incorporation_date,
+          business_type: r.type,
+          registered_office: r.registered_office,
+          registry_authority: 'BRELA',
+        })),
+        ...(live ? {} : { note: 'The BRELA public registry portal could not be reached for this request — no results to report. This is not evidence the business does not exist.' }),
       };
     }
 
     if (operation.operation_id === 'business.verify') {
-      const regNo = body?.registration_number || '148920-TZ';
+      const regNo = (body?.registration_number || '').toString().trim();
+      const legalName = (body?.legal_name || '').toString().trim();
+      const { live, results } = await searchBrelaLive('Company', regNo || undefined, legalName || undefined);
+      const match = regNo
+        ? results.find(r => r.reg_number.replace(/\s/g, '').toLowerCase() === regNo.replace(/\s/g, '').toLowerCase())
+        : results[0];
+
+      if (!live) {
+        return {
+          verified: false,
+          registration_number: regNo || null,
+          reason: 'The BRELA public registry portal could not be reached for this request — verification is inconclusive, not a confirmed negative.',
+          verified_at: new Date().toISOString(),
+        };
+      }
+      if (!match) {
+        return {
+          verified: false,
+          registration_number: regNo || null,
+          reason: 'No matching registration was found in BRELA\'s public registry for the details given.',
+          verified_at: new Date().toISOString(),
+        };
+      }
       return {
         verified: true,
-        registration_number: regNo,
-        legal_name: body?.legal_name || 'Verified Enterprise Ltd',
-        tin: '109-883-921',
-        vat_registered: true,
-        status: 'IN_GOOD_STANDING',
-        directors: [
-          { name: 'John A. Temba', nationality: 'TZ', role: 'Managing Director' },
-          { name: 'Sarah K. Mushi', nationality: 'TZ', role: 'Director' },
-        ],
-        issued_share_capital_tzs: 50000000,
-        last_annual_return_date: '2025-12-31',
-        verification_hash: crypto.randomBytes(16).toString('hex'),
+        registration_number: match.reg_number,
+        legal_name: match.name,
+        status: match.status,
+        incorporation_date: match.incorporation_date,
+        business_type: match.type,
+        registered_office: match.registered_office,
+        // BRELA's public search never exposes these — reported as
+        // genuinely unavailable rather than invented, unlike this
+        // operation's previous hardcoded response.
+        tin: null,
+        vat_registered: null,
+        directors: null,
+        issued_share_capital_tzs: null,
+        note: 'TIN, VAT registration, directors, and share capital are not available from BRELA\'s public registry search and are not reported by this product.',
         verified_at: new Date().toISOString(),
       };
     }
 
     return {
       success: true,
-      provider: provider?.name || 'Upstream Provider',
+      provider: provider?.provider_name || 'Upstream Provider',
       data: body || {},
     };
   }
@@ -337,7 +419,7 @@ export class DeveloperGatewayService {
         api_version_id: params.operation.api_version_id,
         operation_id: params.operation.id,
         credential_id: params.authContext.credential_id,
-        provider_id: params.provider?.id || null,
+        provider_id: params.provider?.provider_id || null,
         billing_unit: params.result.billing_unit,
         quantity: 1,
         is_billable: params.result.is_billable,
@@ -351,13 +433,13 @@ export class DeveloperGatewayService {
       .execute();
 
     // If external provider, record settlement ledger
-    if (usageEvent && params.provider?.id && params.result.provider_cost > 0) {
+    if (usageEvent && params.provider?.provider_id && params.result.provider_cost > 0) {
       const grossMargin = params.result.developer_price - params.result.provider_cost;
       await db
         .insertInto('dev_provider_settlements')
         .values({
           usage_event_id: usageEvent.id,
-          provider_id: params.provider.id as string,
+          provider_id: params.provider.provider_id as string,
           developer_account_id: params.authContext.developer_account_id,
           units: 1,
           provider_cost: params.result.provider_cost,

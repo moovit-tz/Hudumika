@@ -188,6 +188,29 @@ export function CMSContentModelDetail() {
     }
   }
 
+  async function handleMoveField(fieldId: string, direction: 'up' | 'down') {
+    try {
+      await apiFetch(`/v1/cms/content-fields/${fieldId}/move`, { method: 'POST', body: JSON.stringify({ direction }) });
+      load();
+    } catch (e: any) {
+      showAlert(`Failed to reorder: ${e.message}`);
+    }
+  }
+
+  // §12-13 — updateField replaces config wholesale, so toggling one display
+  // flag must resubmit the field's own existing config alongside it, or a
+  // relation's targetModelId / a computed field's formula would be silently
+  // wiped the first time someone checks "Show in list."
+  async function handleToggleDisplayFlag(field: CmsContentField, flag: 'showInList' | 'hideInDetail') {
+    const config = { ...(field.config as Record<string, unknown>), [flag]: !(field.config as any)?.[flag] };
+    try {
+      await apiFetch(`/v1/cms/content-fields/${field.id}`, { method: 'PATCH', body: JSON.stringify({ config }) });
+      load();
+    } catch (e: any) {
+      showAlert(`Failed to update: ${e.message}`);
+    }
+  }
+
   async function handleRename() {
     if (!model) return;
     const name = await showPrompt('Model name', { defaultValue: model.name });
@@ -236,14 +259,24 @@ export function CMSContentModelDetail() {
             <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-                  {['Label', 'Key', 'Type', 'Required', ''].map(h => (
+                  {['', 'Label', 'Key', 'Type', 'Required', 'On public site', ''].map(h => (
                     <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {(model.fields ?? []).map(f => (
+                {(model.fields ?? []).map((f, i) => (
                   <tr key={f.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 4px', whiteSpace: 'nowrap' }}>
+                      <button onClick={() => handleMoveField(f.id, 'up')} disabled={i === 0} title="Move up"
+                        style={{ background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer', opacity: i === 0 ? 0.3 : 1, padding: 2 }}>
+                        <Icon name="arrowUp" size={13} />
+                      </button>
+                      <button onClick={() => handleMoveField(f.id, 'down')} disabled={i === (model.fields ?? []).length - 1} title="Move down"
+                        style={{ background: 'none', border: 'none', cursor: i === (model.fields ?? []).length - 1 ? 'default' : 'pointer', opacity: i === (model.fields ?? []).length - 1 ? 0.3 : 1, padding: 2 }}>
+                        <Icon name="arrowDown" size={13} />
+                      </button>
+                    </td>
                     <td style={{ padding: '10px 16px', fontWeight: 600 }}>{f.label}</td>
                     <td style={{ padding: '10px 16px', fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink3)' }}>{f.key}</td>
                     <td style={{ padding: '10px 16px', color: 'var(--ink2)' }}>
@@ -260,13 +293,27 @@ export function CMSContentModelDetail() {
                       )}
                     </td>
                     <td style={{ padding: '10px 16px' }}>{f.required ? <Icon name="check" size={13} color="var(--teal)" /> : '—'}</td>
+                    <td style={{ padding: '10px 16px' }}>
+                      {/* §12-13 — which fields the generic public template shows,
+                          and where: opt-in for the collection index (it shows
+                          nothing but title/date by default), opt-out for the
+                          entry detail view (it shows every field by default). */}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: 'var(--ink2)', cursor: 'pointer', marginBottom: 3 }}>
+                        <input type="checkbox" checked={!!(f.config as any)?.showInList} onChange={() => handleToggleDisplayFlag(f, 'showInList')} />
+                        Show in list
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: 'var(--ink2)', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={!(f.config as any)?.hideInDetail} onChange={() => handleToggleDisplayFlag(f, 'hideInDetail')} />
+                        Show in detail
+                      </label>
+                    </td>
                     <td style={{ padding: '10px 16px', textAlign: 'right' }}>
                       <button onClick={() => handleDeleteField(f.id, f.label)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)' }}>Remove</button>
                     </td>
                   </tr>
                 ))}
                 {(model.fields ?? []).length === 0 && !addingField && (
-                  <tr><td colSpan={5} style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)' }}>No fields yet — add the first one below.</td></tr>
+                  <tr><td colSpan={7} style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)' }}>No fields yet — add the first one below.</td></tr>
                 )}
               </tbody>
             </table>
