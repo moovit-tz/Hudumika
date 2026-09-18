@@ -890,7 +890,7 @@ export function CrmPipelineStages() {
               <label className="mb-1.5 block text-xs font-semibold text-foreground">
                 Accent Color
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {COLOR_NAMES.map((c) => {
                   const isSelected = editColor === c;
                   const item = STAGE_COLORS[c];
@@ -1050,7 +1050,7 @@ export function CrmPipelineStages() {
               <label className="mb-1.5 block text-xs font-semibold text-foreground">
                 Accent Color
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {COLOR_NAMES.map((c) => {
                   const isSelected = newDialogColor === c;
                   const item = STAGE_COLORS[c];

@@ -228,7 +228,7 @@ export const Login: React.FC = () => {
         {/* Sign in / Sign up — Sign up isn't rebuilt in-card since /signup
             is already a real, dedicated multi-step registration flow
             (OnboardingWizard); this pill just navigates there. */}
-        <div className="login-toplevel-tabs">
+        <div className="login-toplevel-switcher">
           <button type="button" className="login-toplevel-tab login-toplevel-tab--active">{t('login.signIn')}</button>
           <button type="button" onClick={() => navigate('/signup')} className="login-toplevel-tab">{t('login.createAccount')}</button>
         </div>
@@ -249,7 +249,7 @@ export const Login: React.FC = () => {
             renders standalone) in the Ondi tab. Was a navigation to
             /ondi/login; moved inline per direct feedback — a tab switching
             to a different *page* read as broken, not as a tab. ── */}
-        <div className="login-method-tabs">
+        <div className="login-method-switcher">
           {methods.map(m => (
             <button
               key={m.key}

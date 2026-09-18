@@ -204,9 +204,11 @@ export const OndiOrgActivity: React.FC = () => {
       {/* Main Section & Filter Toolbar */}
       <SectionCard padded={false} title="Audit Feed">
         <div className="ondi-toolbar">
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div role="tablist" aria-label="Audit event category" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <button
               type="button"
+              role="tab"
+              aria-selected={categoryTab === 'all'}
               className={`ondi-tab-btn ${categoryTab === 'all' ? 'active' : ''}`}
               onClick={() => setCategoryTab('all')}
             >
@@ -215,6 +217,8 @@ export const OndiOrgActivity: React.FC = () => {
 
             <button
               type="button"
+              role="tab"
+              aria-selected={categoryTab === 'auth'}
               className={`ondi-tab-btn ${categoryTab === 'auth' ? 'active' : ''}`}
               onClick={() => setCategoryTab('auth')}
             >
@@ -223,6 +227,8 @@ export const OndiOrgActivity: React.FC = () => {
 
             <button
               type="button"
+              role="tab"
+              aria-selected={categoryTab === 'security'}
               className={`ondi-tab-btn ${categoryTab === 'security' ? 'active' : ''}`}
               onClick={() => setCategoryTab('security')}
             >
@@ -333,4 +339,3 @@ export const OndiOrgActivity: React.FC = () => {
 };
 
 export default OndiOrgActivity;
-

@@ -17,6 +17,7 @@ import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { Switch } from '../components/ui/switch.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -150,7 +151,7 @@ export function CrmLeadScoring() {
         )}
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Metric icon={SlidersHorizontal} label="Total rules" value={rules ? metrics.total : '—'} variant="brand" />
         <Metric icon={Zap} label="Active rules" value={rules ? metrics.active : '—'} variant="info" />
         <Metric icon={ArrowUp} label="Positive signals" value={rules ? metrics.positive : '—'} variant="success" />
@@ -242,13 +243,15 @@ export function CrmLeadScoring() {
                         disabled={togglingId === rule.id}
                         aria-label={`${rule.active ? 'Disable' : 'Enable'} ${rule.label}`}
                       />
-                      <Button
-                        type="button" variant="ghost" size="icon" onClick={() => remove(rule)}
-                        title={`Delete ${rule.label}`} aria-label={`Delete ${rule.label}`}
-                        className="text-muted-foreground hover:bg-[var(--red-l)] hover:text-[var(--red)]"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Tip label={`Delete ${rule.label}`}>
+                        <Button
+                          type="button" variant="ghost" size="icon" onClick={() => remove(rule)}
+                          aria-label={`Delete ${rule.label}`}
+                          className="text-muted-foreground hover:bg-[var(--red-l)] hover:text-[var(--red)]"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </Tip>
                     </div>
                   </div>
                 );

@@ -110,7 +110,7 @@
    options", not "this option is now active/armed" — an accent fill (the
    Ondi tabs' original look) reads more like a toggle-on state than a plain
    navigation choice, so both share this same neutral style instead. ── */
-.login-toplevel-tabs {
+.login-toplevel-switcher {
   display: flex;
   gap: 2px;
   background: var(--lp-tabs-bg, #f1f3f4);
@@ -158,7 +158,7 @@
    (see Login.tsx's `methods` list), so a platform with no federated
    provider configured shows a plain password form with no tab chrome
    around it. ── */
-.login-method-tabs {
+.login-method-switcher {
   display: flex;
   gap: 18px;
   border-bottom: 1px solid var(--lp-list-border, #e0e2e6);

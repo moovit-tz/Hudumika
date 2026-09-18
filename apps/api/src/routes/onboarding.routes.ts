@@ -55,6 +55,11 @@ const onboardingCompleteSchema = z.object({
     hq_city: z.string().max(100).optional(),
     hq_country: z.string().max(100).optional(),
   }),
+  privacy_acknowledgement: z.object({
+    policy_version_id: z.string().uuid(),
+    acknowledged: z.literal(true),
+    locale: z.string().min(2).max(20).default('en'),
+  }),
   referral_code: z.string().trim().max(63).optional(),
 });
 

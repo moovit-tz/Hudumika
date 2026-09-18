@@ -380,7 +380,7 @@ export const FinancePayments: React.FC = () => {
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
 
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <Tabs value={activeTab} onValueChange={setActiveTab} variant="segmented">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                   <TabsTrigger value="ALL">All ({payments.length})</TabsTrigger>
                   <TabsTrigger value="IN">Received ({inRows.length})</TabsTrigger>

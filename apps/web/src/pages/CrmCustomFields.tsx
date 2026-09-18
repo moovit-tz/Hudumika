@@ -17,6 +17,7 @@ import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 
@@ -235,17 +236,18 @@ export function CrmCustomFields() {
                         )}
                       </div>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => remove(field)}
-                      title={`Delete ${field.label}`}
-                      aria-label={`Delete ${field.label}`}
-                      className="shrink-0 text-muted-foreground hover:bg-[var(--red-l)] hover:text-[var(--red)]"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <Tip label={`Delete ${field.label}`}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => remove(field)}
+                        aria-label={`Delete ${field.label}`}
+                        className="shrink-0 text-muted-foreground hover:bg-[var(--red-l)] hover:text-[var(--red)]"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </Tip>
                   </div>
                 );
               })}

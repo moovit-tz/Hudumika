@@ -86,6 +86,13 @@ export interface CalendarEvent {
   guestPermissions?: GuestPermissions;
   visibility?: 'default' | 'public' | 'private';
   busyStatus?: 'busy' | 'free';
+  /** False when this row is here because I'm invited as a guest, not
+   *  because I created it — a guest-visible event is read-only (no
+   *  edit/delete), see respondToInvite for the one write a guest can make. */
+  isOrganizer: boolean;
+  /** My own entry's status in `guests`, or null when I'm the organizer (an
+   *  organizer has nothing of their own to accept/decline). */
+  myRsvpStatus: 'pending' | 'accepted' | 'declined' | null;
 }
 
 export interface TaskList {
@@ -296,6 +303,8 @@ function fromApiEvent(row: any): CalendarEvent {
     meetingUrl: row.meeting_url || undefined,
     meetingSettings: row.meeting_settings || undefined,
     blissMeetingId: row.bliss_meeting_id || null,
+    isOrganizer: row.is_organizer !== false,
+    myRsvpStatus: row.my_rsvp_status ?? null,
   };
 }
 
@@ -352,7 +361,7 @@ export async function reloadEvents(): Promise<void> {
   } catch { /* keep showing whatever's already cached */ }
 }
 
-type NewEventInput = Omit<CalendarEvent, 'id' | 'occurrenceDate' | 'isOverridden' | 'isRecurring' | 'guests' | 'allDay' | 'reminderOffsets'>
+type NewEventInput = Omit<CalendarEvent, 'id' | 'occurrenceDate' | 'isOverridden' | 'isRecurring' | 'guests' | 'allDay' | 'reminderOffsets' | 'isOrganizer' | 'myRsvpStatus'>
   & { guests?: CalendarGuest[]; allDay?: boolean; reminderOffsets?: number[] };
 
 export function addEvent(event: NewEventInput) {
@@ -360,6 +369,7 @@ export function addEvent(event: NewEventInput) {
   const newEvent: CalendarEvent = {
     ...event, id, occurrenceDate: event.start.slice(0, 10), isOverridden: false, isRecurring: !!event.recurrence,
     guests: event.guests ?? [], allDay: event.allDay ?? false, reminderOffsets: event.reminderOffsets ?? [],
+    isOrganizer: true, myRsvpStatus: null,
   };
   events = [...events, newEvent];
   emit();
@@ -441,6 +451,17 @@ export function deleteEvent(id: string, opts?: { scope?: 'all' | 'this'; occurre
   emit();
   const qs = (scope === 'this' && occurrenceDate) ? `?scope=this&occurrenceDate=${occurrenceDate}` : '';
   apiFetch(`/v1/tasks/events/${id}${qs}`, { method: 'DELETE' })
+    .catch(err => { events = prev; emit(); reportSyncFailure(err); });
+}
+
+/** A guest's accept/decline on an invite — the one write a guest is allowed
+ *  to make on an event they don't organize. Also patches this user's own
+ *  `guests` entry locally so the badge/status updates without a reload. */
+export function respondToInvite(id: string, status: 'accepted' | 'declined') {
+  const prev = events;
+  events = events.map(e => e.id === id ? { ...e, myRsvpStatus: status } : e);
+  emit();
+  apiFetch(`/v1/tasks/events/${id}/rsvp`, { method: 'PATCH', body: JSON.stringify({ status }) })
     .catch(err => { events = prev; emit(); reportSyncFailure(err); });
 }
 

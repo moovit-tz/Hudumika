@@ -354,12 +354,16 @@ export function AIAutomations() {
       </div>
 
       {/* ── Workflow Tabs ── */}
-      <div className="aia-tabs">
+      <div className="aia-tabs" role="tablist" aria-label="Automation workflows">
         {workflows.map(wf => (
           <div
             key={wf.id}
+            role="tab"
+            tabIndex={0}
+            aria-selected={wf.id === activeId}
             className={`aia-tab ${wf.id === activeId ? 'active' : ''}`}
             onClick={() => switchWorkflow(wf.id)}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchWorkflow(wf.id); } }}
             onDoubleClick={() => setRenamingId(wf.id)}
           >
             {renamingId === wf.id ? (
@@ -448,14 +452,14 @@ export function AIAutomations() {
 
             <div className="aia-sidebar-content">
               {/* Tabs */}
-              <div className="aia-sidebar-tabs">
-                <button className={sidebarTab === 'setup' ? 'active' : ''} onClick={() => setSidebarTab('setup')}>
+              <div className="aia-sidebar-tabs" role="tablist" aria-label="Automation step settings">
+                <button role="tab" aria-selected={sidebarTab === 'setup'} className={sidebarTab === 'setup' ? 'active' : ''} onClick={() => setSidebarTab('setup')}>
                   <Icon name="check" size={12} style={{ marginRight: 4 }} /> Setup
                 </button>
-                <button className={sidebarTab === 'integration' ? 'active' : ''} onClick={() => setSidebarTab('integration')}>
+                <button role="tab" aria-selected={sidebarTab === 'integration'} className={sidebarTab === 'integration' ? 'active' : ''} onClick={() => setSidebarTab('integration')}>
                   <Icon name="link" size={12} style={{ marginRight: 4 }} /> Integration
                 </button>
-                <button className={sidebarTab === 'testing' ? 'active' : ''} onClick={() => setSidebarTab('testing')}>
+                <button role="tab" aria-selected={sidebarTab === 'testing'} className={sidebarTab === 'testing' ? 'active' : ''} onClick={() => setSidebarTab('testing')}>
                   <Icon name="play" size={12} style={{ marginRight: 4 }} /> Testing
                 </button>
               </div>

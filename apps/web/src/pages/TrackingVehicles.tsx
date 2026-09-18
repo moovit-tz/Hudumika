@@ -250,7 +250,7 @@ export const TrackingVehicles: React.FC = () => {
         <div>
           <div className="trk-fleet-header">
             <div className="trk-fleet-header-controls">
-              <Tabs value={filter} onValueChange={setFilter} variant="segmented">
+              <Tabs value={filter} onValueChange={setFilter}>
                 <TabsList>
                   {['All', 'In warehouse', 'On route', 'Loading', 'Maintenance'].map(f => (
                     <TabsTrigger key={f} value={f}>{f}</TabsTrigger>

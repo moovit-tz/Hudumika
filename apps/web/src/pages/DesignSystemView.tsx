@@ -1523,14 +1523,14 @@ export function DesignSystemView() {
                   its own "selected" look (solid dark, tinted, outlined),
                   which is the inconsistency this example exists to close off
                   by showing the one correct way to compose it: raw
-                  ds-tabs-list/ds-tabs-trigger with data-variant="segmented",
+                  ds-tabs-list/ds-tabs-trigger using the selected global variant,
                   icon optional, and a count badge as a plain child span. The
                   label is wrapped in .ds-tabs-trigger-label, which is what
                   makes it collapse to icon-only under 560px — resize the
                   window (or view on a phone) to see it happen. */}
               <div className="ds-interactive-preview-card">
                 <span className="ds-preview-mini-label">FILTER ROW WITH COUNT BADGES — SAME CONTROL, NOT A SEPARATE COMPONENT (RESIZE BELOW 560PX TO SEE THE LABEL COLLAPSE)</span>
-                <Tabs value={tabsBadgeDemo} onValueChange={setTabsBadgeDemo} variant="segmented">
+                <Tabs value={tabsBadgeDemo} onValueChange={setTabsBadgeDemo}>
                   <TabsList>
                     {[
                       { key: 'all', icon: 'grid' as IconName, label: 'All', count: 27 },

@@ -81,6 +81,11 @@ export interface OnboardingCompleteInput {
   subdomain: string;
   payment: OnboardingPaymentInput;
   configuration: OnboardingConfigurationInput;
+  privacy_acknowledgement: {
+    policy_version_id: string;
+    acknowledged: true;
+    locale: string;
+  };
   /** AgencyHost M8 — the referring tenant's slug, from `?ref=` on the signup
    *  URL. Silently ignored if it doesn't match a real, active tenant —
    *  never surfaced as a signup error over a stale/mistyped link. */

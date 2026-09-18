@@ -984,9 +984,9 @@ export const EmailApp: React.FC = () => {
               </button>
             </div>
 
-            <div className="em-filter-bar">
+            <div className="em-filter-bar" role="tablist" aria-label="Message filter">
               {(['all', 'unread', 'starred'] as Filter[]).map(f => (
-                <button key={f} type="button" className={`em-filter-tab${filter === f ? ' em-filter-tab--active' : ''}`} onClick={() => setFilter(f)}>
+                <button key={f} type="button" role="tab" aria-selected={filter === f} className={`em-filter-tab${filter === f ? ' em-filter-tab--active' : ''}`} onClick={() => setFilter(f)}>
                   {f.charAt(0).toUpperCase() + f.slice(1)}
                 </button>
               ))}

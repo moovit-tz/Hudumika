@@ -1,6 +1,8 @@
 import React from 'react';
 import type { StepProps } from './types.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { Link } from 'react-router-dom';
+import { Checkbox } from '../../components/ui/checkbox.js';
 
 const TIMEZONES = ['Africa/Dar_es_Salaam', 'Africa/Nairobi', 'Africa/Kampala', 'Africa/Kigali', 'Africa/Lusaka'];
 const CURRENCIES = ['TZS', 'KES', 'UGX', 'RWF', 'ZMW', 'USD'];
@@ -75,9 +77,25 @@ export const StepConfiguration: React.FC<StepProps> = ({ draft, update, onNext, 
         <div className="ob-review-row"><span>Payment</span><span>{maskedCard}</span></div>
       </div>
 
+      <label className="flex items-start gap-3 text-sm text-[var(--lp-ink2)]">
+        <Checkbox
+          checked={draft.privacy_acknowledged}
+          onCheckedChange={checked => update({ privacy_acknowledged: checked === true })}
+          disabled={!draft.privacy_policy_version_id || submitting}
+          aria-label="Acknowledge the Privacy Policy"
+        />
+        <span>
+          I acknowledge that I have reviewed the current{' '}
+          <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--lp-link-accent)] underline">
+            Privacy Policy
+          </Link>.
+          This does not combine optional marketing or analytics consent.
+        </span>
+      </label>
+
       <div className="login-form-actions">
         <button type="button" onClick={onBack} className="login-back-btn" disabled={submitting}>Back</button>
-        <button type="submit" className="login-submit-btn" disabled={submitting}>
+        <button type="submit" className="login-submit-btn" disabled={submitting || !draft.privacy_policy_version_id || !draft.privacy_acknowledged}>
           {submitting ? 'Creating your workspace…' : 'Create my workspace'}
         </button>
       </div>

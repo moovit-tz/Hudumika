@@ -7,6 +7,12 @@ import { formatTemplate } from '../lib/template.js';
 import { encryptJson, decryptJson } from '../services/onsite-secrets.service.js';
 import { env } from '../config/env.js';
 import { normalizePhone } from '../lib/phone.js';
+import { verifyTwilioSignature } from '../integrations/sms.js';
+
+// TENANT_ADMIN is a live, still-issued legacy alias for ADMIN — every file
+// that wants admin-equivalent access lists both explicitly (cms.routes.ts's
+// own CMS_ADMIN_ROLES, metrics-registry.service.ts's METRICS_MGMT_ROLES, …).
+const SMS_ADMIN_ROLES: readonly string[] = ['ADMIN', 'TENANT_ADMIN'];
 
 const uuidSchema = z.string().uuid();
 const gatewaySchema = z.object({
@@ -608,11 +614,24 @@ export async function smsRoutes(fastify: FastifyInstance) {
     return { data: row };
   });
 
-  fastify.delete<{ Params: { id: string } }>('/opt-outs/:id', async (request) => {
+  fastify.delete<{ Params: { id: string } }>('/opt-outs/:id', async (request, reply) => {
     const user = request.user;
-    await withTenant(user.tenant_id, trx => trx.deleteFrom('sms_opt_outs')
-      .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).execute());
-    return { success: true };
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('sms_opt_outs').select('reason')
+        .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return { success: true }; // already gone — same silent-no-op posture as every other tenant-scoped delete here
+      // A 'stop_keyword' row means the recipient themselves asked to stop —
+      // reversing that needs the same real START reply this app's own
+      // inbound webhook already honours (see registerInboundRoutes below),
+      // not a staff member unilaterally deciding to resume contact. A
+      // 'manual' row is an admin's own block, reasonably reversible by any
+      // SMS-entitled staff, same as today.
+      if (existing.reason === 'stop_keyword' && !SMS_ADMIN_ROLES.includes(user.role)) {
+        return reply.status(403).send({ error: 'Only an admin can remove an opt-out the recipient requested themselves — ask them to reply START to resubscribe instead.' });
+      }
+      await trx.deleteFrom('sms_opt_outs').where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).execute();
+      return { success: true };
+    });
   });
 
   // ── Inbound message log (populated by the unauthenticated inbound
@@ -696,6 +715,20 @@ export async function smsWebhookRoutes(fastify: FastifyInstance) {
       .where('provider', '=', 'twilio').where('provider_message_id', '=', providerMessageId).executeTakeFirst();
     if (!owner) return reply.status(200).send({ ok: true });
 
+    // Real per-request signature verification, on top of the shared
+    // ?token= guard above — the owning tenant's own Twilio gateway auth
+    // token is what outbound sending already requires, so it's already
+    // there to check against. `env.API_BASE_URL + request.url` must
+    // byte-exactly match whatever URL is configured in that tenant's own
+    // Twilio console (see verifyTwilioSignature's own header comment).
+    const gateway = await withTenant(owner.tenant_id, trx => trx.selectFrom('sms_gateways').select('credentials')
+      .where('tenant_id', '=', owner.tenant_id).where('provider', '=', 'twilio').where('active', '=', true).executeTakeFirst());
+    const authToken = gateway ? (() => { try { return decryptJson(gateway.credentials).twilioToken as string | undefined; } catch { return undefined; } })() : undefined;
+    const callbackUrl = `${env.API_BASE_URL}${request.url}`;
+    if (!verifyTwilioSignature(callbackUrl, body, authToken, request.headers['x-twilio-signature'] as string | undefined)) {
+      return reply.status(401).send({ error: 'Invalid Twilio signature' });
+    }
+
     const mapped = status === 'delivered' ? 'delivered' : ['failed', 'undelivered'].includes(status) ? 'undelivered' : null;
     if (mapped) {
       await withTenant(owner.tenant_id, trx => trx.updateTable('sms_messages')
@@ -709,10 +742,86 @@ export async function smsWebhookRoutes(fastify: FastifyInstance) {
 }
 
 const STOP_KEYWORDS = ['stop', 'unsubscribe', 'cancel', 'opt out', 'optout', 'quit', 'end'];
+const START_KEYWORDS = ['start', 'subscribe', 'unstop'];
 
 function matchStopKeyword(body: string): string | null {
   const normalized = body.trim().toLowerCase();
   return STOP_KEYWORDS.find(k => normalized === k || normalized.startsWith(`${k} `)) ?? null;
+}
+
+function matchStartKeyword(body: string): string | null {
+  const normalized = body.trim().toLowerCase();
+  return START_KEYWORDS.find(k => normalized === k || normalized.startsWith(`${k} `)) ?? null;
+}
+
+/**
+ * Shared by both inbound handlers below. Logs the inbound message (deduped —
+ * a real provider message id gets a real partial-unique-index arbiter per
+ * migration 484; without one — Africa's Talking has no confirmed inbound-id
+ * field — a short time-window heuristic stands in, disclosed as bounded, not
+ * a perfect general solution), applies a matched STOP/START keyword, and —
+ * for STOP only — sends the required confirmation reply.
+ */
+async function handleInboundMessage(opts: {
+  tenantId: string; gatewayId: string; from: string; text: string; providerMessageId: string | null;
+}): Promise<void> {
+  const { tenantId, gatewayId, from, text, providerMessageId } = opts;
+  const stopKeyword = matchStopKeyword(text);
+  const startKeyword = !stopKeyword ? matchStartKeyword(text) : null;
+
+  const logged = await withTenant(tenantId, async (trx) => {
+    if (providerMessageId) {
+      const inserted = await trx.insertInto('sms_inbound_messages').values({
+        tenant_id: tenantId, gateway_id: gatewayId, from_number: from, body: text,
+        matched_keyword: stopKeyword ?? startKeyword, provider_message_id: providerMessageId,
+      } as any)
+        // Same partial-unique-index shape as webhooks.routes.ts:400 — the
+        // predicate must be restated verbatim for Postgres to accept it as
+        // the ON CONFLICT arbiter (migration 484's index is partial so it
+        // doesn't also reject every pre-existing NULL-provider_message_id row).
+        .onConflict((oc) => oc.columns(['tenant_id', 'provider_message_id']).where('provider_message_id', 'is not', null).doNothing())
+        .returning('id').executeTakeFirst();
+      if (!inserted) return false; // redelivery of an already-logged message
+    } else {
+      const recentDup = await trx.selectFrom('sms_inbound_messages').select('id')
+        .where('tenant_id', '=', tenantId).where('from_number', '=', from).where('body', '=', text)
+        .where('created_at', '>', new Date(Date.now() - 60_000)).executeTakeFirst();
+      if (recentDup) return false;
+      await trx.insertInto('sms_inbound_messages').values({
+        tenant_id: tenantId, gateway_id: gatewayId, from_number: from, body: text, matched_keyword: stopKeyword ?? startKeyword,
+      }).execute();
+    }
+
+    if (stopKeyword) {
+      await trx.insertInto('sms_opt_outs').values({
+        tenant_id: tenantId, phone: from, phone_normalized: normalizePhone(from),
+        reason: 'stop_keyword', note: `Replied "${stopKeyword}"`,
+      }).onConflict(oc => oc.columns(['tenant_id', 'phone']).doNothing()).execute();
+    } else if (startKeyword) {
+      // Only reverses a self-requested opt-out — an admin's own manual
+      // block needs an admin to lift it (DELETE /opt-outs/:id below), a
+      // START reply from the blocked number itself isn't enough.
+      const normalizedFrom = normalizePhone(from);
+      if (normalizedFrom) {
+        await trx.deleteFrom('sms_opt_outs')
+          .where('tenant_id', '=', tenantId).where('phone_normalized', '=', normalizedFrom)
+          .where('reason', '=', 'stop_keyword').execute();
+      }
+    }
+    return true;
+  });
+
+  if (!logged || !stopKeyword) return;
+
+  // The one deliberate bypass of the opt-out check — see
+  // SmsIntegration.sendSms's own comment on why this call, and only this
+  // call, is allowed to pass bypassOptOut. Best-effort: a failed reply never
+  // undoes the opt-out already recorded above.
+  await SmsService.sendNow(tenantId, null, {
+    to: from,
+    body: "You've been unsubscribed and won't receive further messages. Reply START to resubscribe.",
+    sourceApp: 'sms',
+  }, { bypassOptOut: true }).catch(err => console.error(`[SMS] STOP confirmation reply failed for ${from}:`, err));
 }
 
 /**
@@ -733,18 +842,10 @@ async function registerInboundRoutes(fastify: FastifyInstance) {
       .where('provider', '=', 'africas_talking').where('sender_id', '=', to).executeTakeFirst();
     if (!gateway) { console.warn(`[SMS inbound] No gateway matches Africa's Talking "to"=${to} — cannot attribute tenant`); return { ok: true }; }
 
-    const keyword = matchStopKeyword(text);
-    await withTenant(gateway.tenant_id, async (trx) => {
-      await trx.insertInto('sms_inbound_messages').values({
-        tenant_id: gateway.tenant_id, gateway_id: gateway.id, from_number: from, body: text, matched_keyword: keyword,
-      }).execute();
-      if (keyword) {
-        await trx.insertInto('sms_opt_outs').values({
-          tenant_id: gateway.tenant_id, phone: from, phone_normalized: normalizePhone(from),
-          reason: 'stop_keyword', note: `Replied "${keyword}"`,
-        }).onConflict(oc => oc.columns(['tenant_id', 'phone']).doNothing()).execute();
-      }
-    });
+    // Africa's Talking has no confirmed inbound-message-id field in this
+    // session's references — providerMessageId stays null, falling back to
+    // handleInboundMessage's own time-window dedup heuristic.
+    await handleInboundMessage({ tenantId: gateway.tenant_id, gatewayId: gateway.id, from, text, providerMessageId: null });
     return { ok: true };
   });
 
@@ -757,18 +858,7 @@ async function registerInboundRoutes(fastify: FastifyInstance) {
       .where('provider', '=', 'twilio').where('sender_id', '=', to).executeTakeFirst();
     if (!gateway) { console.warn(`[SMS inbound] No gateway matches Twilio "To"=${to} — cannot attribute tenant`); return { ok: true }; }
 
-    const keyword = matchStopKeyword(text);
-    await withTenant(gateway.tenant_id, async (trx) => {
-      await trx.insertInto('sms_inbound_messages').values({
-        tenant_id: gateway.tenant_id, gateway_id: gateway.id, from_number: from, body: text, matched_keyword: keyword,
-      }).execute();
-      if (keyword) {
-        await trx.insertInto('sms_opt_outs').values({
-          tenant_id: gateway.tenant_id, phone: from, phone_normalized: normalizePhone(from),
-          reason: 'stop_keyword', note: `Replied "${keyword}"`,
-        }).onConflict(oc => oc.columns(['tenant_id', 'phone']).doNothing()).execute();
-      }
-    });
+    await handleInboundMessage({ tenantId: gateway.tenant_id, gatewayId: gateway.id, from, text, providerMessageId: body.MessageSid || null });
     return { ok: true };
   });
 }

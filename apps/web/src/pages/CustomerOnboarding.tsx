@@ -93,7 +93,7 @@ export const CustomerOnboarding: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
 
       {/* Header */}
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '14px 24px', flexShrink: 0 }}>
+      <div style={{ flexShrink: 0 }}>
         <Link
           to={backHref()}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none', marginBottom: 10 }}
@@ -109,8 +109,8 @@ export const CustomerOnboarding: React.FC = () => {
       </div>
 
       {/* Body */}
-      <form onSubmit={handleSubmit} style={{ flex: 1, overflowY: 'auto', padding: '32px 24px' }}>
-        <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <form onSubmit={handleSubmit} style={{ flex: 1, overflowY: 'auto', paddingBottom: 32 }}>
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {error && <Banner variant="error">{error}</Banner>}
 

@@ -7,7 +7,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
-import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import { SectionLoading } from '../components/ui/spinner.js';
@@ -83,17 +83,6 @@ export const CustomerOverview: React.FC = () => {
     { icon: 'barChart2',     label: 'Finance Report',  path: '/finance'              },
   ];
 
-  const cardStyle: React.CSSProperties = {
-    background: 'var(--card-bg, var(--white))',
-    borderRadius: 'var(--r)',
-    border: '1px solid var(--border)',
-    padding: '16px 18px',
-    boxShadow: 'var(--elev-sm)',
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  };
-
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
 
@@ -103,7 +92,7 @@ export const CustomerOverview: React.FC = () => {
         titleEm="overview"
         subtitle="Active shipments, financials and performance at a glance."
         actions={
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Button variant="outline" size="sm" asChild>
               <Link to="/crm/customers" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
                 <Icon name="users" size={13} /> Customer List
@@ -118,48 +107,21 @@ export const CustomerOverview: React.FC = () => {
         }
       />
 
-      <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ width: '100%', paddingBottom: 40, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Row 1: KPI ribbon */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 14 }}>
-          {([
-            { icon: 'package'     as IconName, variant: 'info'    as const, value: String(data.kpis.active_shipments),          label: 'Active Shipments'         },
-            { icon: 'checkCircle' as IconName, variant: 'success' as const, value: String(data.kpis.cleared_this_month),        label: 'Cleared This Month'       },
-            { icon: 'clock'       as IconName, variant: 'warning' as const, value: String(data.kpis.pending_customs),           label: 'Pending Customs'          },
-            { icon: 'dollarSign'  as IconName, variant: 'error'   as const, value: fmtM(data.kpis.outstanding_duties_tzs),     label: 'Overdue Receivables (30d+)'},
-          ] as { icon: IconName; variant: React.ComponentProps<typeof FeaturedIcon>['variant']; value: string; label: string }[]).map(k => (
-            <div key={k.label} style={cardStyle}>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>{k.label}</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--navy)', marginTop: 4, lineHeight: 1.1 }}>{k.value}</div>
-              </div>
-              <FeaturedIcon variant={k.variant} size="md" shape="square">
-                <Icon name={k.icon} size={18} />
-              </FeaturedIcon>
-            </div>
-          ))}
-        </div>
+        <MetricsRow cards={[
+          { title: 'Active Shipments', value: String(data.kpis.active_shipments), icon: 'package', barHighlight: 'var(--blue)' },
+          { title: 'Cleared This Month', value: String(data.kpis.cleared_this_month), icon: 'checkCircle', barHighlight: 'var(--green)' },
+          { title: 'Pending Customs', value: String(data.kpis.pending_customs), icon: 'clock', barHighlight: 'var(--gold)' },
+          { title: 'Overdue Receivables (30d+)', value: fmtM(data.kpis.outstanding_duties_tzs), icon: 'dollarSign', barHighlight: 'var(--red)' },
+        ]} />
 
-        {/* Row 2: Status cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 14 }}>
-          {([
-            { label: 'On-Time Clearance',     value: `${data.status_cards.on_time_clearance_pct}%`,   pct: data.status_cards.on_time_clearance_pct,  color: 'var(--green)',  icon: 'trendingUp'   as IconName },
-            { label: 'Document Compliance',   value: `${data.status_cards.document_compliance_pct}%`, pct: data.status_cards.document_compliance_pct, color: 'var(--blue)',   icon: 'file'         as IconName },
-            { label: 'At-Risk Shipments',     value: `${data.status_cards.at_risk_shipments} of ${data.status_cards.active_shipment_count}`, pct: data.status_cards.active_shipment_count > 0 ? Math.round((data.status_cards.at_risk_shipments / data.status_cards.active_shipment_count) * 100) : 0, color: 'var(--red)', icon: 'alertTriangle' as IconName },
-            { label: 'Freight Revenue (MTD)', value: fmtM(data.status_cards.freight_revenue_mtd_tzs), pct: 100,                                        color: 'var(--purple)', icon: 'barChart2'    as IconName },
-          ]).map(s => (
-            <div key={s.label} style={{ background: 'var(--card-bg, var(--white))', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--elev-sm)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-                <Icon name={s.icon} size={13} color={s.color} />
-                <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{s.label}</span>
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', marginBottom: 10 }}>{s.value}</div>
-              <div style={{ height: 5, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min(100, s.pct)}%`, borderRadius: 'var(--r-sm)', background: s.color, transition: 'width 0.6s ease' }} />
-              </div>
-            </div>
-          ))}
-        </div>
+        <MetricsRow cards={[
+          { title: 'On-Time Clearance', value: `${data.status_cards.on_time_clearance_pct}%`, icon: 'trendingUp', barHighlight: 'var(--green)' },
+          { title: 'Document Compliance', value: `${data.status_cards.document_compliance_pct}%`, icon: 'file', barHighlight: 'var(--blue)' },
+          { title: 'At-Risk Shipments', value: `${data.status_cards.at_risk_shipments} of ${data.status_cards.active_shipment_count}`, icon: 'alertTriangle', barHighlight: 'var(--red)' },
+          { title: 'Freight Revenue (MTD)', value: fmtM(data.status_cards.freight_revenue_mtd_tzs), icon: 'barChart2', barHighlight: 'var(--purple)' },
+        ]} />
 
         {/* Row 3: Two-column grid */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
@@ -247,7 +209,7 @@ export const CustomerOverview: React.FC = () => {
             </SectionCard>
 
             <SectionCard title="Quick Actions" padded={false}>
-              <div style={{ padding: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ padding: 14, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8 }}>
                 {QUICK_ACTIONS.map(a => (
                   <Link
                     key={a.label}

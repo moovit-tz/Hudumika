@@ -2,7 +2,6 @@ import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "@/lib/utils"
-import "./ds-tabs.css"
 
 /**
  * Tabs, styled from design-system tokens rather than fixed Tailwind classes.
@@ -19,8 +18,9 @@ import "./ds-tabs.css"
  *   outline    discrete chips, active chip reads through its border alone
  *   lifted     browser-tab style — active tab rises to meet the panel below
  *
- * The `variant` prop overrides the platform default for one instance where a
- * page genuinely needs it; leaving it unset is the norm.
+ * The platform variant is authoritative. The legacy `variant` prop remains
+ * in the type temporarily so older call sites compile during migration, but
+ * it is intentionally ignored: a page must not bypass the SuperAdmin choice.
  *
  * Icon + label + a count badge (a plain child `<span>`, not a prop) is a
  * composition pattern any variant supports — see ShipmentDetail.tsx or
@@ -33,48 +33,26 @@ import "./ds-tabs.css"
  */
 export type TabsVariant = "underline" | "pill" | "segmented" | "boxed" | "outline" | "lifted"
 
-const VariantContext = React.createContext<TabsVariant | undefined>(undefined)
-
 const Tabs = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> & { variant?: TabsVariant }
->(({ variant, ...props }, ref) => (
-  <VariantContext.Provider value={variant}>
-    <TabsPrimitive.Root ref={ref} {...props} />
-  </VariantContext.Provider>
-))
+>(({ variant: _legacyVariant, ...props }, ref) => <TabsPrimitive.Root ref={ref} {...props} />)
 Tabs.displayName = TabsPrimitive.Root.displayName
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => {
-  const variant = React.useContext(VariantContext)
-  return (
-    <TabsPrimitive.List
-      ref={ref}
-      data-variant={variant}
-      className={cn("ds-tabs-list", className)}
-      {...props}
-    />
-  )
-})
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.List ref={ref} className={cn("ds-tabs-list", className)} {...props} />
+))
 TabsList.displayName = TabsPrimitive.List.displayName
 
 const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, ...props }, ref) => {
-  const variant = React.useContext(VariantContext)
-  return (
-    <TabsPrimitive.Trigger
-      ref={ref}
-      data-variant={variant}
-      className={cn("ds-tabs-trigger", className)}
-      {...props}
-    />
-  )
-})
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.Trigger ref={ref} className={cn("ds-tabs-trigger", className)} {...props} />
+))
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
 
 const TabsContent = React.forwardRef<

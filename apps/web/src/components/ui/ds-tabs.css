@@ -242,3 +242,217 @@
   .ds-tabs-trigger-label { display: none; }
   .ds-tabs-trigger:has(.ds-tabs-trigger-label) { padding: 0 9px; gap: 0; }
 }
+
+/* Legacy semantic tabs -----------------------------------------------------
+   The platform setting must also reach older screens that correctly expose
+   tab semantics but predate the Radix wrapper. This compatibility layer is
+   deliberately role-based: unrelated button groups, radio cards and wizard
+   steps are not silently restyled as tabs. New code must use tabs.tsx. */
+[role="tablist"]:not(.ds-tabs-list) {
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  min-height: var(--tab-height, 38px) !important;
+  max-width: 100%;
+  overflow-x: auto;
+}
+[role="tablist"]:not(.ds-tabs-list) > [role="tab"] {
+  appearance: none;
+  border: none !important;
+  background: transparent !important;
+  color: var(--ink3) !important;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: var(--tab-size, 13px) !important;
+  font-weight: 600 !important;
+  height: var(--tab-height, 38px) !important;
+  min-height: 0 !important;
+  padding: 0 14px !important;
+  white-space: nowrap;
+}
+[role="tablist"]:not(.ds-tabs-list) > [role="tab"]:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
+}
+[role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] { color: var(--teal) !important; }
+
+:root[data-tabs="underline"] [role="tablist"]:not(.ds-tabs-list) {
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+:root[data-tabs="underline"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"] {
+  border-radius: 0 !important;
+  box-shadow: inset 0 -2px 0 transparent !important;
+}
+:root[data-tabs="underline"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] {
+  box-shadow: inset 0 -2px 0 var(--teal) !important;
+}
+
+:root[data-tabs="pill"] [role="tablist"]:not(.ds-tabs-list),
+:root[data-tabs="segmented"] [role="tablist"]:not(.ds-tabs-list) {
+  border: 0 !important;
+  border-radius: calc(var(--tab-radius, 8px) + 3px) !important;
+  padding: 3px !important;
+  gap: 3px !important;
+  width: fit-content;
+}
+:root[data-tabs="pill"] [role="tablist"]:not(.ds-tabs-list) { background: var(--teal-l) !important; }
+:root[data-tabs="segmented"] [role="tablist"]:not(.ds-tabs-list) { background: var(--card-sunken) !important; }
+:root[data-tabs="pill"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"],
+:root[data-tabs="segmented"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"] {
+  border-radius: var(--tab-radius, 8px) !important;
+  height: calc(var(--tab-height, 38px) - 6px) !important;
+}
+:root[data-tabs="pill"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+:root[data-tabs="segmented"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] {
+  background: var(--card-bg, var(--white)) !important;
+  color: var(--ink) !important;
+  box-shadow: var(--elev-sm) !important;
+}
+
+:root[data-tabs="boxed"] [role="tablist"]:not(.ds-tabs-list),
+:root[data-tabs="outline"] [role="tablist"]:not(.ds-tabs-list) {
+  background: transparent !important;
+  border: 0 !important;
+  gap: 6px !important;
+  padding: 0 !important;
+}
+:root[data-tabs="boxed"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"],
+:root[data-tabs="outline"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"] {
+  background: var(--white) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 999px !important;
+  height: calc(var(--tab-height, 38px) - 8px) !important;
+}
+:root[data-tabs="boxed"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] {
+  background: var(--teal-l) !important;
+  border-color: var(--teal-m) !important;
+}
+:root[data-tabs="outline"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] {
+  border: 1.5px solid var(--ink) !important;
+  color: var(--ink) !important;
+  font-weight: 700 !important;
+}
+
+:root[data-tabs="lifted"] [role="tablist"]:not(.ds-tabs-list) {
+  align-items: flex-end !important;
+  background: transparent !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+:root[data-tabs="lifted"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"] {
+  background: var(--card-sunken) !important;
+  border: 1px solid transparent !important;
+  border-bottom: 0 !important;
+  border-radius: var(--tab-radius, 8px) var(--tab-radius, 8px) 0 0 !important;
+  transform: translateY(1px);
+}
+:root[data-tabs="lifted"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] {
+  background: var(--card-bg, var(--white)) !important;
+  border-color: var(--border) !important;
+  box-shadow: var(--elev-sm) !important;
+  color: var(--ink) !important;
+  transform: translateY(0);
+}
+
+/* Class-name bridge for pre-Radix tabs that have not yet gained tab roles.
+   This is intentionally limited to containers whose class token ends in
+   `-tabs` or `-tabstrip`; tab panels and unrelated controls are untouched. */
+:is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) {
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  min-height: var(--tab-height, 38px) !important;
+  max-width: 100%;
+  overflow-x: auto;
+}
+:is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(button, [class*="-tab"]) {
+  appearance: none;
+  color: var(--ink3) !important;
+  flex: 0 0 auto;
+  font-size: var(--tab-size, 13px) !important;
+  font-weight: 600 !important;
+  height: var(--tab-height, 38px) !important;
+  min-height: 0 !important;
+  padding: 0 14px !important;
+  white-space: nowrap;
+}
+:is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) {
+  color: var(--teal) !important;
+}
+:root[data-tabs="underline"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+:root[data-tabs="underline"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(button, [class*="-tab"]) {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: inset 0 -2px 0 transparent !important;
+}
+:root[data-tabs="underline"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) {
+  box-shadow: inset 0 -2px 0 var(--teal) !important;
+}
+:root[data-tabs="pill"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]),
+:root[data-tabs="segmented"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) {
+  border: 0 !important;
+  border-radius: calc(var(--tab-radius, 8px) + 3px) !important;
+  gap: 3px !important;
+  padding: 3px !important;
+  width: fit-content;
+}
+:root[data-tabs="pill"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) { background: var(--teal-l) !important; }
+:root[data-tabs="segmented"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) { background: var(--card-sunken) !important; }
+:root[data-tabs="pill"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+:root[data-tabs="segmented"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) {
+  background: var(--card-bg, var(--white)) !important;
+  box-shadow: var(--elev-sm) !important;
+  color: var(--ink) !important;
+}
+:root[data-tabs="boxed"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]),
+:root[data-tabs="outline"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) {
+  background: transparent !important;
+  border: 0 !important;
+  gap: 6px !important;
+  padding: 0 !important;
+}
+:root[data-tabs="boxed"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(button, [class*="-tab"]),
+:root[data-tabs="outline"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(button, [class*="-tab"]) {
+  background: var(--white) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 999px !important;
+  height: calc(var(--tab-height, 38px) - 8px) !important;
+}
+:root[data-tabs="boxed"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) { background: var(--teal-l) !important; border-color: var(--teal-m) !important; }
+:root[data-tabs="outline"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) { border: 1.5px solid var(--ink) !important; color: var(--ink) !important; }
+:root[data-tabs="lifted"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) {
+  align-items: flex-end !important;
+  background: transparent !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+:root[data-tabs="lifted"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(button, [class*="-tab"]) {
+  background: var(--card-sunken) !important;
+  border: 1px solid transparent !important;
+  border-bottom: 0 !important;
+  border-radius: var(--tab-radius, 8px) var(--tab-radius, 8px) 0 0 !important;
+}
+:root[data-tabs="lifted"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) {
+  background: var(--card-bg, var(--white)) !important;
+  border-color: var(--border) !important;
+  box-shadow: var(--elev-sm) !important;
+  color: var(--ink) !important;
+}

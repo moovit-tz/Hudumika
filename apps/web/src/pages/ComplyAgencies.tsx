@@ -33,7 +33,7 @@ export function ComplyAgencies() {
         subtitle="All regulatory bodies relevant to business compliance in Tanzania"
       />
 
-      <Tabs value={cat} onValueChange={setCat} variant="boxed">
+      <Tabs value={cat} onValueChange={setCat}>
         <TabsList style={{ marginBottom: 20 }}>
           {CATEGORIES.map(c => (
             <TabsTrigger key={c} value={c}>{c}</TabsTrigger>

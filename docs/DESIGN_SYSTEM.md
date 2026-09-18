@@ -17,6 +17,21 @@ runtime tokens written by `useDesignSystem()` and scoped per app by
   dialog must use `DialogContent size` or `steady`, `DialogHeader`,
   `DialogBody`, and `DialogFooter`.
 
+## Global tabs contract
+
+The selection in `/admin/design-system?section=tabs` is authoritative for
+every app and page. Use `Tabs`, `TabsList`, `TabsTrigger`, and `TabsContent`
+from `components/ui/tabs.tsx`; do not add a page-specific visual variant or
+`data-variant`. The legacy `variant` prop is intentionally ignored while old
+call sites are removed, so it cannot override the platform setting.
+
+Older genuine tab strips may temporarily use `role="tablist"`, direct child
+`role="tab"`, and `aria-selected`; the global compatibility rules in
+`ds-tabs.css` give those controls the same selected variant. This bridge is
+not permission to create new hand-built tabs. Wizard steps, radio-card
+choices, view buttons, and ordinary navigation links are not tabs and must
+keep their appropriate component semantics.
+
 ## Token contract
 
 | Purpose | Tokens |
@@ -27,6 +42,7 @@ runtime tokens written by `useDesignSystem()` and scoped per app by
 | Control density | `--ctl-h-xs`, `--ctl-h-sm`, `--ctl-h`, `--ctl-h-lg`; `--ds-btn-py-*`; `--ds-input-py` |
 | Data density | `--ds-cell-py`, `--badge-*` |
 | Elevation | `--elev-sm`, `--elev`, `--elev-lg` |
+| Tabs | `data-tabs` on the root; `--tab-radius`, `--tab-height`, `--tab-size` |
 | Spacing | `--space-xs` through `--space-xl`, `--content-gap`, `--page-pad-x` |
 
 `--teal` is an accent for text, borders, and tints. It is not a guaranteed

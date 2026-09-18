@@ -41,9 +41,11 @@ function countSegments(body: string): number {
  */
 export const SmsService = {
   /** Sends synchronously and logs the real result — for quick-send, OTP-adjacent
-   *  flows, and anywhere the caller's own UX depends on an immediate outcome. */
-  async sendNow(tenantId: string, userId: string | null, input: SendSmsInput): Promise<SmsSendResult> {
-    const result = await SmsIntegration.sendSms(tenantId, input.to, input.body);
+   *  flows, and anywhere the caller's own UX depends on an immediate outcome.
+   *  `bypassOptOut` exists only for the STOP-reply confirmation SMS — see
+   *  SmsIntegration.sendSms's own comment. */
+  async sendNow(tenantId: string, userId: string | null, input: SendSmsInput, opts?: { bypassOptOut?: boolean }): Promise<SmsSendResult> {
+    const result = await SmsIntegration.sendSms(tenantId, input.to, input.body, opts);
     return withTenant(tenantId, async (trx) => {
       const row = await trx.insertInto('sms_messages').values({
         tenant_id: tenantId, user_id: userId, to_number: input.to, body: input.body,

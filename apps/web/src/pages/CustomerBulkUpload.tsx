@@ -55,7 +55,7 @@ export const CustomerBulkUpload: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
 
       {/* Header */}
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '14px 24px', flexShrink: 0 }}>
+      <div style={{ flexShrink: 0 }}>
         <Link
           to="/customers/overview"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none', marginBottom: 10 }}
@@ -66,8 +66,8 @@ export const CustomerBulkUpload: React.FC = () => {
       </div>
 
       {/* Body */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '32px 24px' }}>
-        <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 32 }}>
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* Template download — row on desktop; the icon+copy and the
               button stack on mobile instead of squeezing into a sliver
@@ -105,8 +105,8 @@ export const CustomerBulkUpload: React.FC = () => {
 
           {/* Upload success */}
           {summary && (
-            <div style={{ background: summary.inserted > 0 ? 'var(--green-l)' : 'var(--red-l)', border: `1px solid ${summary.inserted > 0 ? 'var(--green)' : 'var(--red)'}`, borderRadius: 'var(--r)', padding: '20px 24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ background: summary.inserted > 0 ? 'var(--green-l)' : 'var(--red-l)', border: `1px solid ${summary.inserted > 0 ? 'var(--green)' : 'var(--red)'}`, borderRadius: 'var(--r)', padding: isMobile ? 16 : '20px 24px' }}>
+              <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', gap: 14, flexWrap: 'wrap' }}>
                 <Icon name={summary.inserted > 0 ? 'checkCircle' : 'alertCircle'} size={24} color={summary.inserted > 0 ? 'var(--green)' : 'var(--red)'} />
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: summary.inserted > 0 ? 'var(--green)' : 'var(--red)' }}>
@@ -117,7 +117,7 @@ export const CustomerBulkUpload: React.FC = () => {
                   )}
                 </div>
                 {summary.inserted > 0 && (
-                  <Button asChild size="sm" style={{ marginLeft: 'auto' }}>
+                  <Button asChild size="sm" style={{ marginLeft: isMobile ? 0 : 'auto', width: isMobile ? '100%' : 'auto' }}>
                     <Link to="/customers">View List</Link>
                   </Button>
                 )}

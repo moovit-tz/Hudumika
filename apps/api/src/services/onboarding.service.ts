@@ -10,6 +10,7 @@ import { NotificationService } from './notification.service.js';
 import { MailService } from './mail.service.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
 import { enforcePasswordPolicy } from '../lib/password-policy.js';
+import { PrivacyPolicyService } from './privacy-policy.service.js';
 import { PERSONAL_EMAIL_DOMAINS, type MatchedTenant, type JoinRequestInput, type JoinRequestSubmitResponse } from '@hudumika/types';
 import type { OnboardingCompleteInput, OnboardingCompleteResponse, TenantPlan, JWTPayload } from '@hudumika/types';
 import type { FastifyInstance } from 'fastify';
@@ -240,6 +241,11 @@ export class OnboardingService {
       throw new OnboardingError(409, 'This subdomain is already taken');
     }
 
+    const currentPrivacyPolicy = await PrivacyPolicyService.currentVersion();
+    if (!input.privacy_acknowledgement.acknowledged || input.privacy_acknowledgement.policy_version_id !== currentPrivacyPolicy.id) {
+      throw new OnboardingError(409, 'Please review and acknowledge the current Privacy Policy before creating your workspace');
+    }
+
     const pkg = await dbPlatform.selectFrom('packages').selectAll()
       .where('code', '=', input.package_code)
       .where('is_active', '=', true)
@@ -298,6 +304,15 @@ export class OnboardingService {
         created_at: now,
         updated_at: now,
       }).returningAll().executeTakeFirstOrThrow();
+
+      await PrivacyPolicyService.acknowledge(
+        tenant.id,
+        admin.id,
+        currentPrivacyPolicy.id,
+        'registration',
+        input.privacy_acknowledgement.locale,
+        trx,
+      );
 
       // Every new tenant starts with the platform default workflows (Sea/Air/
       // Road/Sea-transit) — same footing as the seeded chart of accounts above.

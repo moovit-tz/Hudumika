@@ -243,7 +243,7 @@ export function ComplyLegal() {
             </div>
           </div>
 
-          <Tabs value={specialty} onValueChange={setSpecialty} variant="boxed">
+          <Tabs value={specialty} onValueChange={setSpecialty}>
           <TabsList style={{ marginBottom: 18 }}>
             {SPECIALTIES_FILTER.map(s => (
               <TabsTrigger key={s} value={s}>{s}</TabsTrigger>

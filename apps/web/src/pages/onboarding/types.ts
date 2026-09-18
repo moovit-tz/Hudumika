@@ -30,6 +30,8 @@ export interface OnboardingDraft {
   currency: string;
   hq_city: string;
   hq_country: string;
+  privacy_policy_version_id: string;
+  privacy_acknowledged: boolean;
 }
 
 export const EMPTY_DRAFT: OnboardingDraft = {
@@ -39,6 +41,7 @@ export const EMPTY_DRAFT: OnboardingDraft = {
   subdomain: '',
   payment: { method: 'card', card_number: '', card_holder: '', card_expiry: '', card_cvc: '', mobile_number: '', mobile_provider: 'M-Pesa' },
   timezone: 'Africa/Dar_es_Salaam', currency: 'TZS', hq_city: '', hq_country: 'Tanzania',
+  privacy_policy_version_id: '', privacy_acknowledged: false,
 };
 
 export interface StepProps {

@@ -2025,7 +2025,7 @@ const ModulesSection: React.FC = () => {
 
         {/* Category Filter Chips (Scrollable inline segment) */}
         <div className="s-mods-cats-scroll">
-          <Tabs value={selectedCategory} onValueChange={setSelectedCategory} variant="segmented">
+          <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
             <TabsList style={{ display: 'inline-flex', flexWrap: 'nowrap' }}>
               {MODULE_CATEGORIES.map(cat => {
                 const count = cat === 'All'

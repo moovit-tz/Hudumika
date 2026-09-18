@@ -68,7 +68,7 @@ export const TrackingTrailers: React.FC = () => {
       />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-        <Tabs value={filter} onValueChange={setFilter} variant="segmented">
+        <Tabs value={filter} onValueChange={setFilter}>
           <TabsList>
             <TabsTrigger value="All">All ({stats.all})</TabsTrigger>
             <TabsTrigger value="In use">In use ({stats.inUse})</TabsTrigger>

@@ -45,16 +45,16 @@ function RuleEditor({ entity, catalog, rules, onChange }: {
         return (
           <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <Select value={r.field} onValueChange={v => changeField(i, v)}>
-              <SelectTrigger style={{ width: 160 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
               <SelectContent>{fields.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
             </Select>
             <Select value={r.op} onValueChange={v => patch(i, { op: v, value: NO_VALUE_OPS.has(v) ? null : (r.value ?? '') })}>
-              <SelectTrigger style={{ width: 150 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-38"><SelectValue /></SelectTrigger>
               <SelectContent>{(spec?.ops || []).map(o => <SelectItem key={o} value={o}>{OP_LABEL[o] ?? o}</SelectItem>)}</SelectContent>
             </Select>
             {!NO_VALUE_OPS.has(r.op) && (
               <input
-                className="input-field" style={{ width: 160, height: 34 }}
+                className="input-field w-full sm:w-40" style={{ height: 34 }}
                 type={spec?.kind === 'num' || r.op === 'within_days' || r.op === 'before_days' ? 'number' : 'text'}
                 value={String(r.value ?? '')}
                 onChange={e => patch(i, { value: e.target.value })}
@@ -62,7 +62,7 @@ function RuleEditor({ entity, catalog, rules, onChange }: {
               />
             )}
             <button type="button" onClick={() => onChange(rules.filter((_, j) => j !== i))} disabled={rules.length === 1}
-              style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', width: 28, height: 28, cursor: 'pointer', color: 'var(--ink3)' }}>
+              style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', width: 28, height: 28, cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0 }}>
               <Icon name="x" size={12} />
             </button>
           </div>
@@ -124,14 +124,14 @@ export function CrmSmartViews() {
     <div style={{ padding: '20px 0 40px' }}>
       <PageHeader crumbs={['CRM', 'Saved Views']} titlePlain="Saved" titleEm="views" subtitle="A filter you name once and reopen forever — membership recomputed every time." />
 
-      <div style={{ display: 'flex', gap: 8, margin: '18px 0 20px' }}>
+      <div style={{ display: 'flex', gap: 8, margin: '18px 0 20px', flexWrap: 'wrap' }}>
         {ENTITIES.map(e => (
           <button key={e} type="button" onClick={() => setEntity(e)}
             className={e === entity ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'} style={{ textTransform: 'capitalize' }}>
             {e}s
           </button>
         ))}
-        <Button type="button" variant="outline" size="sm" style={{ marginLeft: 'auto' }}
+        <Button type="button" variant="outline" size="sm" className="max-sm:w-full sm:ml-auto"
           onClick={() => setEditing({ name: '', match_type: 'all', rules: [{ field: catalog ? Object.keys(catalog[entity])[0] : 'stage', op: 'eq', value: '' }] })}>
           <Icon name="plus" size={13} /> New view
         </Button>
@@ -157,7 +157,7 @@ export function CrmSmartViews() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 300px) 1fr', gap: 20 }}>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(240px,300px)_minmax(0,1fr)]">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {views === null ? <SectionLoading />
             : views.length === 0 ? <div style={{ color: 'var(--ink3)', fontSize: 13, fontStyle: 'italic' }}>No saved {entity} views yet.</div>

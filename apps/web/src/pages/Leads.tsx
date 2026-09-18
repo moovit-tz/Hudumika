@@ -19,6 +19,7 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { ActivityTimeline } from '../components/crm/ActivityTimeline.js';
 import { LabelChips } from '../components/crm/LabelChips.js';
 import { ComposeEmailButton } from '../components/crm/ComposeEmailButton.js';
@@ -149,9 +150,11 @@ export function ScoreBadge({ score }: { score?: number }) {
   const color = score >= 70 ? 'var(--green)' : score >= 40 ? 'var(--gold)' : 'var(--ink3)';
   const bg = score >= 70 ? 'var(--green-l)' : score >= 40 ? 'var(--gold-l)' : 'var(--bg)';
   return (
-    <span title="Lead score" className="mono" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: bg, color }}>
-      {score}
-    </span>
+    <Tip label="Lead score">
+      <span className="mono" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: bg, color }}>
+        {score}
+      </span>
+    </Tip>
   );
 }
 
@@ -242,14 +245,14 @@ function StagePipeline({ current, onSelect, interactive }: { current: string; on
         const clickable = interactive && !cur;
         return (
           <React.Fragment key={s}>
+            <Tip label={clickable ? `Move to ${cfg.label}` : cfg.label}>
             <button
               type="button"
               disabled={!clickable}
               onClick={() => clickable && onSelect(s)}
-              title={clickable ? `Move to ${cfg.label}` : cfg.label}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '6px 13px', borderRadius: 20,
+                padding: '6px 13px', borderRadius: 'var(--badge-radius)',
                 fontSize: 12.5, fontWeight: cur ? 700 : 600,
                 fontFamily: 'var(--font)',
                 background: cur ? cfg.bg : done ? 'var(--teal-l)' : 'var(--white)',
@@ -275,8 +278,9 @@ function StagePipeline({ current, onSelect, interactive }: { current: string; on
               {done && <Icon name="check" size={12} strokeWidth={3} />}
               {cfg.label}
             </button>
+            </Tip>
             {i < activeStages.length - 1 && (
-              <div style={{ width: 18, height: 2, borderRadius: 1, background: i < active ? 'var(--teal)' : 'var(--border)', flexShrink: 0, margin: '0 2px' }} />
+              <div style={{ width: 18, height: 2, borderRadius: 'var(--badge-radius)', background: i < active ? 'var(--teal)' : 'var(--border)', flexShrink: 0, margin: '0 2px' }} />
             )}
           </React.Fragment>
         );
@@ -666,7 +670,7 @@ export const Leads: React.FC = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap: 20 }}>
                 {/* KPI cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, alignContent: 'start' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 14, alignContent: 'start' }}>
                   {[
                     { label: 'Pipeline Value',   value: fmtValue(sel.value),   icon: 'dollarSign' as IconName, color: 'var(--blue)', bg: 'var(--blue-l)' },
                     { label: 'Days in Pipeline', value: `${days} days`,         icon: 'timer'      as IconName, color: 'var(--gold)', bg: 'var(--gold-l)' },
@@ -904,10 +908,12 @@ export const Leads: React.FC = () => {
                         style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
                         <Icon name="download" size={13} /> Download
                       </button>
-                      <button type="button" onClick={() => unlinkFile(f.id, f.name)} title="Remove from this lead (file stays in Drive)" aria-label={`Remove ${f.name} from this lead`}
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-                        <Icon name="x" size={13} />
-                      </button>
+                      <Tip label="Remove from this lead (file stays in Drive)">
+                        <button type="button" onClick={() => unlinkFile(f.id, f.name)} aria-label={`Remove ${f.name} from this lead`}
+                          style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                          <Icon name="x" size={13} />
+                        </button>
+                      </Tip>
                     </div>
                   ))}
                 </SectionCard>

@@ -4139,6 +4139,7 @@ export interface SmsInboundMessagesTable {
   from_number: string;
   body: string;
   matched_keyword: string | null;
+  provider_message_id: string | null;
   created_at: Generated<Date>;
 }
 
@@ -5497,6 +5498,8 @@ export interface Database {
   cms_workflow_transitions: CmsWorkflowTransitionsTable;
   cms_approvals: CmsApprovalsTable;
   cms_releases: CmsReleasesTable;
+  privacy_policy_versions: PrivacyPolicyVersionsTable;
+  privacy_policy_acknowledgements: PrivacyPolicyAcknowledgementsTable;
   cms_release_items: CmsReleaseItemsTable;
   cms_content_comments: CmsContentCommentsTable;
   cms_translation_groups: CmsTranslationGroupsTable;
@@ -9080,6 +9083,28 @@ export interface CmsPagesTable {
   template:         Generated<string>; // 'standard' | 'full-width' | 'landing' — §11
   created_at:       Generated<Date>;
   updated_at:       Generated<Date>;
+}
+
+export interface PrivacyPolicyVersionsTable {
+  id: Generated<string>;
+  cms_page_id: string;
+  version: string;
+  content_hash: string;
+  title: string;
+  effective_at: Date;
+  published_at: Generated<Date>;
+  created_at: Generated<Date>;
+}
+
+export interface PrivacyPolicyAcknowledgementsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  policy_version_id: string;
+  acknowledged_at: Generated<Date>;
+  acknowledgement_method: 'registration' | 'in_app';
+  locale: Generated<string>;
+  evidence: Generated<any>;
 }
 
 export interface CmsPostsTable {

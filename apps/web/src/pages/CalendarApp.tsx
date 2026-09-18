@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import {
-  useEvents, addEvent, updateEvent, deleteEvent, CalendarEvent, CalendarGuest, RecurrenceRule, MeetingSettings, GuestPermissions,
+  useEvents, addEvent, updateEvent, deleteEvent, respondToInvite, CalendarEvent, CalendarGuest, RecurrenceRule, MeetingSettings, GuestPermissions,
   useTodos, updateTodo, Todo,
   useAppSettings, updateAppSettings,
   useCurrentCalendarDate, setCurrentCalendarDate,
@@ -289,6 +289,10 @@ export const CalendarApp: React.FC = () => {
     // calendar_events row — dragging one to "reschedule" would try to PATCH
     // an id that table doesn't have.
     if (ev.category === 'holiday') { e.preventDefault(); return; }
+    // A guest-visible event (I'm invited, not the organizer) is read-only —
+    // updateEvent is scoped server-side to the organizer's own user_id, so
+    // dragging one here would just fail after the fact. Block it up front.
+    if (!ev.isOrganizer) { e.preventDefault(); return; }
     e.stopPropagation();
     e.dataTransfer.setData('eventId', ev.id);
     e.dataTransfer.effectAllowed = 'move';
@@ -378,6 +382,7 @@ export const CalendarApp: React.FC = () => {
   // ── Drag-to-resize an existing event's duration (week/day view) ──
   function startEventResize(e: React.MouseEvent, ev: CalendarEvent) {
     if (ev.category === 'holiday') return; // synthetic row — nothing to resize
+    if (!ev.isOrganizer) return; // guest-visible event — read-only, see handleEventDragStart
     e.stopPropagation();
     e.preventDefault();
     const startY = e.clientY;
@@ -890,7 +895,7 @@ export const CalendarApp: React.FC = () => {
                               fontSize: 12, fontWeight: 500, color: '#fff',
                               background: resolveEventColor(ev), padding: '4px 8px', borderRadius: 'var(--r-sm)',
                               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                              cursor: 'grab', opacity: draggingEventId === ev.id ? 0.4 : 1,
+                              cursor: ev.isOrganizer ? 'grab' : 'pointer', opacity: draggingEventId === ev.id ? 0.4 : 1,
                             }}
                           >
                             {ev.title}
@@ -1054,7 +1059,7 @@ export const CalendarApp: React.FC = () => {
                       style={{
                         position: 'absolute', top: top + 2, left, width, height: height - 4,
                         background: resolveEventColor(ev), borderRadius: 'var(--r-sm)', padding: '6px 8px',
-                        fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'grab', zIndex: isResizingThis ? 20 : 10,
+                        fontSize: 12, fontWeight: 600, color: '#fff', cursor: ev.isOrganizer ? 'grab' : 'pointer', zIndex: isResizingThis ? 20 : 10,
                         opacity: draggingEventId === ev.id ? 0.4 : 1,
                         overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 2,
                         boxShadow: 'var(--elev)'
@@ -1066,12 +1071,14 @@ export const CalendarApp: React.FC = () => {
                         {' – '}
                         {evEndDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                       </div>
-                      {/* Drag-resize handle — bottom edge, changes duration only. */}
-                      <div
-                        onMouseDown={e => startEventResize(e, ev)}
-                        title="Drag to resize"
-                        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 6, cursor: 'ns-resize' }}
-                      />
+                      {/* Drag-resize handle — bottom edge, changes duration only. Not for a guest-visible event (read-only). */}
+                      {ev.isOrganizer && (
+                        <div
+                          onMouseDown={e => startEventResize(e, ev)}
+                          title="Drag to resize"
+                          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 6, cursor: 'ns-resize' }}
+                        />
+                      )}
                     </div>
                   );
                 })}
@@ -1192,7 +1199,7 @@ export const CalendarApp: React.FC = () => {
                         style={{
                           position: 'absolute', top: top + 2, left: 64, right: 16, height: height - 4,
                           background: resolveEventColor(ev), borderRadius: 'var(--r)', padding: '12px 16px',
-                          fontSize: 14, color: '#fff', cursor: 'grab', zIndex: isResizingThis ? 20 : 10,
+                          fontSize: 14, color: '#fff', cursor: ev.isOrganizer ? 'grab' : 'pointer', zIndex: isResizingThis ? 20 : 10,
                           opacity: draggingEventId === ev.id ? 0.4 : 1,
                           display: 'flex', flexDirection: 'column', gap: 4, overflow: 'hidden',
                           boxShadow: 'var(--elev)'
@@ -1205,11 +1212,13 @@ export const CalendarApp: React.FC = () => {
                           {' – '}
                           {evEndDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                         </div>
-                        <div
-                          onMouseDown={e => startEventResize(e, ev)}
-                          title="Drag to resize"
-                          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 6, cursor: 'ns-resize' }}
-                        />
+                        {ev.isOrganizer && (
+                          <div
+                            onMouseDown={e => startEventResize(e, ev)}
+                            title="Drag to resize"
+                            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 6, cursor: 'ns-resize' }}
+                          />
+                        )}
                       </div>
                     );
                   })}
@@ -1618,6 +1627,14 @@ export const CalendarApp: React.FC = () => {
                   <span>{ev.guests.map(g => g.name || g.email).join(', ')}</span>
                 </div>
               )}
+              {/* Guest-visible event — I'm invited, not the organizer. Read-only:
+                  the only write I can make here is accepting or declining. */}
+              {!ev.isOrganizer && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 24, marginBottom: 12, fontSize: 12.5, color: 'var(--ink3)' }}>
+                  <Icon name="user" size={13} style={{ flexShrink: 0 }} />
+                  <span>You're invited to this event</span>
+                </div>
+              )}
               {ev.isRecurring && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 24, marginBottom: 12, fontSize: 12.5, color: 'var(--ink3)' }}>
                   <Icon name="refresh" size={12} style={{ flexShrink: 0 }} />
@@ -1628,9 +1645,34 @@ export const CalendarApp: React.FC = () => {
                   working calendar (hr_holidays), not a real calendar_events
                   row — there's nothing to PATCH/DELETE by this id, so no
                   Edit action for them. */}
-              {ev.category !== 'holiday' && (
+              {ev.category !== 'holiday' && ev.isOrganizer && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button onClick={() => openEdit(ev)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Edit</button>
+                </div>
+              )}
+              {/* A guest's only action on someone else's event: accept or
+                  decline the invite. Re-clicking the other option switches
+                  the response; there's no "clear" state once answered. */}
+              {ev.category !== 'holiday' && !ev.isOrganizer && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+                  {ev.myRsvpStatus === 'accepted' && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600, marginRight: 'auto' }}>Accepted</span>}
+                  {ev.myRsvpStatus === 'declined' && <span style={{ fontSize: 12, color: 'var(--red)', fontWeight: 600, marginRight: 'auto' }}>Declined</span>}
+                  {ev.myRsvpStatus !== 'declined' && (
+                    <button
+                      onClick={() => { respondToInvite(ev.id, 'declined'); setPopover(null); }}
+                      style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', color: 'var(--ink2)', fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 10px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}
+                    >
+                      Decline
+                    </button>
+                  )}
+                  {ev.myRsvpStatus !== 'accepted' && (
+                    <button
+                      onClick={() => { respondToInvite(ev.id, 'accepted'); setPopover(null); }}
+                      style={{ background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r-sm)', color: 'hsl(var(--primary-foreground))', fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 10px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}
+                    >
+                      Accept
+                    </button>
+                  )}
                 </div>
               )}
             </div>

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Hudumika Global Tabs Coverage Audit — 17 September 2026</title>
+  <style>
+    :root{--ink:#17202a;--muted:#667085;--line:#dfe4ea;--bg:#f5f7f9;--card:#fff;--brand:#008f72;--brand-soft:#e9f7f3;--warn:#a15c00;--warn-soft:#fff5df;--bad:#b42318;--bad-soft:#fff0ee;--good:#067647;--good-soft:#ecfdf3;--r:14px;--shadow:0 4px 18px rgba(16,24,40,.07)}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}main{width:min(1180px,calc(100% - 32px));margin:32px auto 64px}.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}.hero{padding:30px}.eyebrow{color:var(--brand);font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}h1{font-size:clamp(27px,4vw,44px);line-height:1.08;margin:8px 0 12px}h2{font-size:21px;margin:0 0 14px}h3{font-size:15px;margin:18px 0 8px}.lede{max-width:850px;color:var(--muted);font-size:16px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0}.metric{padding:18px;background:var(--card);border:1px solid var(--line);border-radius:var(--r)}.metric strong{display:block;font-size:29px}.metric span{color:var(--muted)}.stack{display:grid;gap:16px;margin-top:16px}.card{padding:22px}.status{display:inline-flex;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800}.good{background:var(--good-soft);color:var(--good)}.warn{background:var(--warn-soft);color:var(--warn)}.bad{background:var(--bad-soft);color:var(--bad)}table{width:100%;border-collapse:collapse}th,td{text-align:left;vertical-align:top;padding:11px 10px;border-bottom:1px solid var(--line)}th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}code{font:12px ui-monospace,SFMono-Regular,Consolas,monospace;background:#f2f4f7;padding:2px 5px;border-radius:5px}ul,ol{padding-left:21px}.callout{border-left:4px solid var(--brand);background:var(--brand-soft);padding:14px 16px;border-radius:0 10px 10px 0}.critical{border-left-color:var(--bad);background:var(--bad-soft)}.files{font:12px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;color:#344054;overflow-wrap:anywhere}.phase{display:grid;grid-template-columns:110px 1fr;gap:14px;padding:13px 0;border-bottom:1px solid var(--line)}.phase:last-child{border:0}@media(max-width:820px){.grid{grid-template-columns:repeat(2,1fr)}table{display:block;overflow-x:auto}.phase{grid-template-columns:1fr}}@media(max-width:480px){main{width:min(100% - 20px,1180px);margin-top:10px}.hero,.card{padding:18px}.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body><main>
+  <section class="hero">
+    <div class="eyebrow">Hudumika design-system audit</div>
+    <h1>Global Tabs Coverage</h1>
+    <p class="lede">Audit of whether the selection at <code>/admin/design-system?section=tabs</code> controls every tab across every Hudumika page and app. Source reviewed on 17 September 2026.</p>
+    <div class="grid">
+      <div class="metric"><strong>84</strong><span>files importing the shared Tabs primitive</span></div>
+      <div class="metric"><strong>101</strong><span>shared <code>TabsList</code> instances found</span></div>
+      <div class="metric"><strong>11</strong><span>production files forcing a local variant</span></div>
+      <div class="metric"><strong>Partial</strong><span>current platform-wide coverage</span></div>
+    </div>
+    <div class="callout"><strong>Implementation update:</strong> remediated on 17 September 2026. The shared component now ignores legacy local variants, tab CSS loads globally, confirmed bespoke tabs are connected through semantic roles, API values are validated, and repository checks protect the global contract. The sections below preserve the original findings and rationale.</div>
+  </section>
+
+  <div class="stack">
+    <section class="card"><h2>1. What already works</h2>
+      <table><thead><tr><th>Layer</th><th>Finding</th><th>Status</th></tr></thead><tbody>
+        <tr><td>Admin editor</td><td>The six choices (underline, pill, segmented, boxed, outline, lifted), radius, height and label size update <code>tokens.tabs</code>.</td><td><span class="status good">Working</span></td></tr>
+        <tr><td>Persistence</td><td><code>PUT /v1/platform/design-tokens</code> is SUPER_ADMIN-only and saves to the global sentinel tenant settings row. <code>GET</code> is public, allowing all routes to load the platform setting.</td><td><span class="status good">Working</span></td></tr>
+        <tr><td>Global application</td><td><code>DesignSystemProvider</code> wraps <code>AppContent</code>. It writes <code>data-tabs</code> to <code>&lt;html&gt;</code> and emits <code>--tab-radius</code>, <code>--tab-height</code>, and <code>--tab-size</code>.</td><td><span class="status good">Working</span></td></tr>
+        <tr><td>Shared component</td><td><code>components/ui/tabs.tsx</code> consistently adds <code>ds-tabs-list</code> and <code>ds-tabs-trigger</code>. <code>ds-tabs.css</code> contains all six global variants and responsive horizontal overflow.</td><td><span class="status good">Working</span></td></tr>
+        <tr><td>Live/cross-tab update</td><td>The hook updates the current document immediately, broadcasts a custom event in the same window, and listens for storage changes in other browser tabs.</td><td><span class="status good">Working</span></td></tr>
+      </tbody></table>
+    </section>
+
+    <section class="card"><h2>2. Surfaces that are unaffected</h2>
+      <h3>A. Explicit shared-component overrides</h3>
+      <p>These pages use the correct shared component but pass <code>variant="…"</code>. That prop sets <code>data-variant</code>, whose component selector overrides the root <code>data-tabs</code> choice. This is deliberate behavior in the current API, but conflicts with the requested “one selection affects all tabs” policy.</p>
+      <p class="files">Budgets.tsx · ComplyAgencies.tsx · ComplyLegal.tsx · FinancePayments.tsx · Recruitment.tsx · Overtime.tsx · Settings.tsx · TrackingDriverDetail.tsx · TrackingShipments.tsx · TrackingTrailers.tsx · TrackingVehicles.tsx</p>
+      <p>The Design System page also forces <code>segmented</code> for its composition example; that demo is not a production navigation surface. <code>CommandCenter.tsx</code> manually applies <code>data-variant="segmented"</code> to raw shared CSS classes and therefore also bypasses the selection.</p>
+
+      <h3>B. Bespoke tab controls</h3>
+      <p>These are buttons/divs with local state and page CSS. They never render <code>ds-tabs-list</code>/<code>ds-tabs-trigger</code>, so neither the global variant nor tab sizing tokens can reach them.</p>
+      <table><thead><tr><th>Area</th><th>Examples confirmed</th><th>Why unaffected</th></tr></thead><tbody>
+        <tr><td>CRM</td><td><code>CrmDuplicates</code>, <code>CrmCustomFields</code>, <code>CrmLeadScoring</code></td><td>Card selectors or locally styled segmented buttons with manual <code>role="tab"</code>.</td></tr>
+        <tr><td>Ondi / organisation</td><td><code>OndiUsers</code>, <code>OndiOrgActivity</code>, <code>Team</code>, membership-type selector in <code>OndiGroups</code></td><td><code>ondi-tab-btn</code>/<code>team-tab</code> and inline button styles.</td></tr>
+        <tr><td>Studio / AI</td><td><code>WorkflowEditor</code>, <code>AIAutomations</code></td><td><code>studio-pane-btn</code>, <code>aia-tabs</code>, and sidebar-local tab CSS.</td></tr>
+        <tr><td>Communication</td><td><code>EmailApp</code></td><td><code>em-filter-tab</code> is a hand-built filter strip.</td></tr>
+        <tr><td>Onsite</td><td><code>OnsiteDomains</code>, <code>OnsiteWebsites</code></td><td>Local <code>onsite-tabs</code> structures.</td></tr>
+        <tr><td>Authentication/onboarding</td><td><code>Login</code>, <code>onboarding/StepAccount</code></td><td>Local login method and top-level tab classes. These are inside the provider but structurally disconnected from shared tabs.</td></tr>
+        <tr><td>Other composed UI</td><td><code>Customer360Sidebar</code>, <code>Setup</code>, <code>OndiPersonalActivity</code>, design-system light/dark preview toggles</td><td>Local tabs or switchers; some may be semantically specialized and should be explicitly exempted or migrated.</td></tr>
+      </tbody></table>
+
+      <h3>C. CSS that can partially mask the global appearance</h3>
+      <p><code>Bliss.css</code> styles active and hover states for <code>bliss-inbox-tab-trigger</code> on top of the shared component. <code>Billing.css</code> customizes active count badges. These do not fully disconnect the control, but can make a chosen variant look inconsistent. Inline styles on many shared <code>TabsList</code>/<code>TabsTrigger</code> instances similarly override layout, font size, background, width or spacing.</p>
+    </section>
+
+    <section class="card"><h2>3. Why coverage is incomplete</h2>
+      <ol>
+        <li><strong>The component API permits policy bypass.</strong> <code>variant?</code> is public and has higher-priority selectors than the platform default.</li>
+        <li><strong>There is no enforced single tab primitive.</strong> Historic pages implemented tabs as ordinary buttons before the global component existed.</li>
+        <li><strong>“Tabs” and “filters” were treated as different visuals.</strong> Several status/category filters are functionally tabs but retain bespoke chip or card UI.</li>
+        <li><strong>No lint or CI rule protects coverage.</strong> New <code>role="tablist"</code>, <code>*-tabs</code> classes, or local active-tab styles can be introduced without detection.</li>
+        <li><strong>No browser regression suite exists.</strong> Type checking cannot prove that all six variants remain usable on desktop, dark mode, and mobile.</li>
+        <li><strong>Persistence validation is permissive.</strong> The API accepts an arbitrary record rather than validating the tabs enum and numeric bounds. The typed admin UI is safe, but malformed external requests could save invalid values.</li>
+        <li><strong>Initial rendering uses local/default data before the GET resolves.</strong> A new browser can briefly render the default underline style before the stored global setting arrives.</li>
+      </ol>
+    </section>
+
+    <section class="card"><h2>4. What implementation requires</h2>
+      <div class="phase"><strong>Phase 1<br>Policy</strong><div>Decide whether any local variant is allowed. For the requested strict global behavior, remove production <code>variant</code>/<code>data-variant</code> overrides and reserve an override only for the design-system specimen via an explicitly named preview-only API.</div></div>
+      <div class="phase"><strong>Phase 2<br>Migration</strong><div>Replace genuine bespoke tabs with <code>Tabs</code>, <code>TabsList</code>, <code>TabsTrigger</code>, and <code>TabsContent</code>. Preserve route/state behavior, counts and icons. Do not mechanically convert wizards, radio-card choices, view toggles, or navigation links unless their semantics are actually tabs.</div></div>
+      <div class="phase"><strong>Phase 3<br>CSS cleanup</strong><div>Remove page-local active-track/fill/border rules. Keep only content-specific composition classes (badge sizing, icon visibility, container width) that do not redefine the selected variant.</div></div>
+      <div class="phase"><strong>Phase 4<br>Guardrails</strong><div>Add a design-system check that rejects production <code>variant=</code>, raw <code>data-variant</code>, and new tab-role implementations outside <code>components/ui/tabs.tsx</code> and an allowlist. Add a typed Zod schema for <code>tabs.variant</code>, radius, height and size.</div></div>
+      <div class="phase"><strong>Phase 5<br>Verification</strong><div>Build a route inventory and exercise every migrated surface across all six variants, light/dark themes, keyboard navigation, 320/768/desktop widths, overflow rows and disabled states. Because the repository has no automated UI test suite, browser checks are required before calling migration complete.</div></div>
+    </section>
+
+    <section class="card"><h2>5. Recommended acceptance criteria</h2>
+      <ul>
+        <li>Changing the admin selection updates every mounted, genuine tab strip without reload.</li>
+        <li>After a reload and on another device, the saved selection is restored from the platform API.</li>
+        <li>No production page passes a visual tab variant override.</li>
+        <li>All genuine tabs use the shared primitive and support arrow-key navigation, focus indication, <code>aria-selected</code>, and linked panels.</li>
+        <li>All six variants remain legible in light/dark mode and scroll horizontally on narrow screens.</li>
+        <li>Non-tab controls (wizard steps, radio cards, list selectors, navigation links) are documented as exclusions and use their own correct design-system primitive.</li>
+      </ul>
+      <div class="callout"><strong>Estimated scope:</strong> medium-to-large frontend migration. The infrastructure does not need redesign; most work is component replacement, semantic classification, removal of local CSS, and route-by-route visual verification. The highest-value first pass is removing the 11 production overrides and migrating the confirmed CRM/Ondi/Studio bespoke strips.</div>
+    </section>
+
+    <section class="card"><h2>6. Audit limitations</h2><p>The local browser integration exposed no available browser instance during this audit, so rendered pages and authenticated runtime behavior could not be visually inspected. Findings are based on exhaustive source searches and direct review of the provider, persistence route, shared component, global variant CSS, explicit overrides and representative bespoke implementations. A live visual pass remains mandatory before implementation sign-off.</p></section>
+  </div>
+</main></body>
+</html>

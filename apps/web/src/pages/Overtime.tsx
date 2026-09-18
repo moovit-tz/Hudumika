@@ -219,7 +219,7 @@ export function OvertimePage() {
         ))}
       </div>
 
-      <Tabs value={filter} onValueChange={setFilter} variant="segmented">
+      <Tabs value={filter} onValueChange={setFilter}>
         <TabsList style={{ marginBottom: 14, display: 'inline-flex' }}>
           {[['', 'All'], ['PENDING', 'Pending'], ['APPROVED', 'Approved'], ['REJECTED', 'Rejected']].map(([v, l]) => (
             <TabsTrigger key={v || 'all'} value={v}>{l}</TabsTrigger>

@@ -914,7 +914,7 @@ function RequisitionsTab({ staff }: { staff: { id: string; name: string }[] }) {
       {showCreate && <CreateRequisitionModal staff={staff} onClose={() => setShowCreate(false)} onCreated={load} />}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-        <Tabs value={statusFilter} onValueChange={setStatusFilter} variant="segmented">
+        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
           <TabsList>
             {STATUS_FILTERS.map(s => <TabsTrigger key={s} value={s}>{s ? prettyType(s) : 'All'}</TabsTrigger>)}
           </TabsList>

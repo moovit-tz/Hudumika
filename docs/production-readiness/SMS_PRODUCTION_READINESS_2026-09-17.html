@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Hudumika SMS — Production Readiness</title>
+  <style>
+    :root{--ink:#17211f;--muted:#68736f;--line:#dfe7e4;--bg:#f3f7f5;--paper:#fff;--teal:#087f6b;--teal-l:#e5f5f1;--green:#18794e;--green-l:#e8f6ee;--gold:#9a6700;--gold-l:#fff5d6;--red:#b42318;--red-l:#ffebe9;--blue:#175cd3;--blue-l:#eaf2ff;--shadow:0 16px 44px rgba(20,55,47,.09)}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55}.wrap{max-width:1080px;margin:auto}.hero{padding:55px 24px 76px;background:linear-gradient(130deg,#102d28,#087f6b);color:#fff}.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:800;color:#9ce4d5}.hero h1{margin:10px 0 14px;font-size:clamp(38px,7vw,68px);line-height:1;font-weight:300}.hero h1 em{font-family:Georgia,serif;color:#9ce4d5}.hero p{max-width:700px;color:#d9ebe7;font-size:18px}.date{font-size:13px;color:#add1c9}main{padding:0 24px 64px;margin-top:-40px}.panel{background:var(--paper);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:24px}.verdict{display:grid;grid-template-columns:1.35fr .65fr;gap:24px}.verdict h2{margin:4px 0 8px;font-size:28px}.status{color:var(--gold)}.scorebox{display:grid;place-items:center;border-radius:16px;background:var(--gold-l);text-align:center}.scorebox strong{display:block;color:var(--gold);font-size:42px}.scorebox span{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold)}section{margin-top:28px}h2{font-size:25px;margin:0 0 14px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:19px}.card h3{margin:0 0 8px;font-size:18px}.card p{margin:0;color:#43504d;font-size:14px}.priority{display:inline-block;margin-bottom:10px;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}.p0{background:var(--red-l);color:var(--red)}.p1{background:var(--gold-l);color:var(--gold)}.p2{background:var(--blue-l);color:var(--blue)}.done{background:var(--green-l);color:var(--green)}.checks{display:grid;gap:10px}.check{display:flex;gap:12px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:12px}.icon{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;font-weight:900}.icon.ok{background:var(--green-l);color:var(--green)}.icon.todo{background:var(--gold-l);color:var(--gold)}.check strong{display:block}.check small{color:var(--muted)}.callout{border-left:5px solid var(--red);background:var(--red-l);padding:17px 19px;border-radius:12px}.callout code{background:#fff;padding:2px 5px;border-radius:4px}.release{counter-reset:n;display:grid;gap:10px}.release div{position:relative;padding:14px 16px 14px 56px;background:#fff;border:1px solid var(--line);border-radius:12px}.release div:before{counter-increment:n;content:counter(n);position:absolute;left:15px;top:13px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--teal-l);color:var(--teal);font-weight:800}.evidence{font-size:14px;color:var(--muted)}footer{text-align:center;padding:24px;color:var(--muted);border-top:1px solid var(--line);font-size:13px}@media(max-width:720px){.verdict,.grid{grid-template-columns:1fr}.hero{padding-top:36px}}@media print{body{background:#fff}.hero{padding:28px;background:#173a33;-webkit-print-color-adjust:exact;print-color-adjust:exact}main{margin:0;padding:18px}.panel,.card{box-shadow:none}.card,.check{break-inside:avoid}footer{display:none}}
+  </style>
+</head>
+<body>
+  <header class="hero"><div class="wrap"><div class="eyebrow">App readiness report</div><h1>Hudumika <em>SMS.</em></h1><p>What is working, what remains, and the exact gates for enabling the SMS application in production.</p><div class="date">Audit date · 17 September 2026</div></div></header>
+  <main class="wrap">
+    <div class="panel verdict"><div><div class="eyebrow" style="color:var(--teal)">Decision</div><h2><span class="status">Conditional</span> — not yet production-ready</h2><p>The core SMS product is implemented and its two serious security/compliance defects were fixed. Production release still depends on mandatory webhook-secret configuration, provider certification, delivery lifecycle testing, compliance review and dedicated regression coverage.</p></div><div class="scorebox"><div><strong>5</strong><span>release gates</span></div></div></div>
+
+    <section><h2>Critical configuration warning</h2><div class="callout"><strong><code>SMS_WEBHOOK_SECRET</code> must be set in production.</strong><br>The webhook authentication hook deliberately skips validation when the value is absent. An unset secret would reopen the forged inbound-message and fake opt-out vulnerability fixed under HUD-0125.</div></section>
+
+    <section><h2>Pending work</h2><div class="grid">
+      <article class="card"><span class="priority p0">Release blocker</span><h3>Secure webhook configuration</h3><p>Generate and deploy a strong SMS webhook secret, place it in the secret manager, append the token to every provider callback URL and verify requests without it receive HTTP 401.</p></article>
+      <article class="card"><span class="priority p0">Release blocker</span><h3>Provider certification</h3><p>Test Africa's Talking and Twilio using production-like credentials, approved sender IDs, funded accounts and publicly reachable callback URLs.</p></article>
+      <article class="card"><span class="priority p1">High priority</span><h3>Delivery lifecycle</h3><p>Verify queued, sent, delivered, failed and undelivered states, including duplicate callbacks, out-of-order callbacks, unknown IDs and provider retries.</p></article>
+      <article class="card"><span class="priority p1">High priority</span><h3>Campaign and worker reliability</h3><p>Exercise scheduled campaigns, Redis downtime, worker restarts, partial bulk failures, multi-gateway failover and duplicate-delivery prevention.</p></article>
+      <article class="card"><span class="priority p1">High priority</span><h3>Compliance sign-off</h3><p>Validate consent evidence, STOP handling, opt-out imports/removals, supported-country phone normalization, retention and applicable messaging regulations.</p></article>
+      <article class="card"><span class="priority p1">High priority</span><h3>Automated regression tests</h3><p>Add SMS-specific tests for webhook tokens, forged requests, tenant isolation, opt-outs, phone formats, campaign retries and gateway fallback.</p></article>
+      <article class="card"><span class="priority p2">Operational</span><h3>Monitoring and alerts</h3><p>Monitor failed and undelivered rates, rejected webhooks, stuck campaigns, provider balance, gateway health, worker backlog and retry exhaustion.</p></article>
+      <article class="card"><span class="priority p2">Operational</span><h3>Runbooks and key rotation</h3><p>Document provider outage response, webhook-secret rotation, sender-ID changes, opt-out disputes, credential replacement and campaign cancellation.</p></article>
+    </div></section>
+
+    <section><h2>Already completed</h2><div class="checks">
+      <div class="check"><span class="icon ok">✓</span><div><strong>Forged inbound webhook protection</strong><small>A shared-secret guard now covers all four delivery and inbound webhook routes.</small></div></div>
+      <div class="check"><span class="icon ok">✓</span><div><strong>Phone-format opt-out enforcement</strong><small>Canonical normalization prevents bypassing an opt-out with +255, 255 or local-number variants.</small></div></div>
+      <div class="check"><span class="icon ok">✓</span><div><strong>Tenant and role boundaries</strong><small>Customer accounts are blocked from internal SMS administration, and SMS data is tenant-scoped.</small></div></div>
+      <div class="check"><span class="icon ok">✓</span><div><strong>Multiple gateway support</strong><small>Africa's Talking and Twilio are wired, with priority ordering and fallback between active gateways.</small></div></div>
+      <div class="check"><span class="icon ok">✓</span><div><strong>Scheduled campaign worker</strong><small>The application includes an SMS outbox worker that fans out due campaigns and completes in-flight campaign state.</small></div></div>
+    </div></section>
+
+    <section><h2>Production release checklist</h2><div class="release">
+      <div>Set and rotate <code>SMS_WEBHOOK_SECRET</code>; prove all four webhook routes reject missing and incorrect tokens.</div>
+      <div>Send real messages through both supported providers and receive authentic delivery and inbound callbacks.</div>
+      <div>Run scheduled and bulk campaigns through restart, retry, failover and partial-failure scenarios without duplicate delivery.</div>
+      <div>Obtain compliance approval for consent, opt-out, retention and country-specific sending rules.</div>
+      <div>Add automated regression coverage, monitoring dashboards, alerts and an operator runbook.</div>
+    </div></section>
+
+    <section class="panel evidence"><h2>Evidence</h2><p><strong>Primary finding:</strong> HUD-0125 in <code>docs/production-readiness/AUDIT_REGISTER.md</code>.</p><p><strong>Implementation:</strong> <code>apps/api/src/routes/sms.routes.ts</code>, <code>apps/api/src/integrations/sms.ts</code>, <code>apps/api/src/jobs/sms-outbox.job.ts</code>, and <code>apps/api/src/config/env.ts</code>.</p><p><strong>Assessment scope:</strong> quick send, groups, templates, campaigns, gateway management, delivery callbacks, inbound messages and opt-outs.</p></section>
+  </main>
+  <footer>Hudumika SMS · Production readiness report</footer>
+</body>
+</html>

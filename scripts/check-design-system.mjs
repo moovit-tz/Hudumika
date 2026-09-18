@@ -8,6 +8,8 @@ const checks = [
   ['DatePicker has no nested fake button', 'apps/web/src/components/ui/date-picker.tsx', (source) => !source.includes('role="button"') && source.includes('ClearDateButton')],
   ['Badge uses density tokens', 'apps/web/src/components/ui/badge.tsx', /minHeight: 'var\(--badge-min-h\)'.*paddingBlock: 'var\(--badge-py\)'/s],
   ['Table cells use the data-density token', 'apps/web/src/components/ui/table.tsx', /py-\[var\(--ds-cell-py\)\]/],
+  ['Tabs cannot override the global platform variant', 'apps/web/src/components/ui/tabs.tsx', (source) => source.includes('variant: _legacyVariant') && !source.includes('data-variant={')],
+  ['Tab styles load globally for legacy semantic tabs', 'apps/web/src/index.css', /@import "\.\/components\/ui\/ds-tabs\.css"/],
   ['Design-system contract is documented', 'docs/DESIGN_SYSTEM.md', () => true],
 ];
 

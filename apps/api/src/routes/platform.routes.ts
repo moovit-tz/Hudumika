@@ -12,7 +12,15 @@ const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 // to guarantee the body is really an object/array before it's spread or
 // iterated, not to police individual field shapes.
 const brandingPatchSchema = z.record(z.string(), z.any());
-const designTokensPatchSchema = z.record(z.string(), z.any());
+const tabsTokensSchema = z.object({
+  variant: z.enum(['underline', 'pill', 'segmented', 'boxed', 'outline', 'lifted']),
+  radius: z.number().min(0).max(999),
+  height: z.number().min(24).max(96),
+  size: z.number().min(9).max(32),
+}).partial();
+const designTokensPatchSchema = z.object({
+  tabs: tabsTokensSchema.optional(),
+}).passthrough();
 const seoPatchSchema = z.record(z.string(), z.any());
 const workspacesPatchSchema = z.array(z.record(z.string(), z.any()));
 const stirlingPdfPatchSchema = z.object({

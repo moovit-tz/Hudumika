@@ -185,6 +185,7 @@ import { orgRoutes } from './routes/org.routes.js';
 import { organizationsRoutes } from './routes/organizations.routes.js';
 import supportRoutes from './routes/support.routes.js';
 import { platformRoutes } from './routes/platform.routes.js';
+import { privacyPolicyRoutes } from './routes/privacy-policy.routes.js';
 import { landedCostShareRoutes } from './routes/landed-cost-share.routes.js';
 import { shipmentReportPublicRoutes } from './routes/shipment-report-public.routes.js';
 import { entitlementsRoutes } from './routes/entitlements.routes.js';
@@ -668,6 +669,7 @@ export async function registerApp() {
     await server.register(organizationsRoutes, { prefix: '/v1/organizations' });
     await server.register(supportRoutes, { prefix: '/v1/support' });
     await server.register(platformRoutes, { prefix: '/v1/platform' });
+    await server.register(privacyPolicyRoutes, { prefix: '/v1/privacy-policy' });
     await server.register(entitlementsRoutes, { prefix: '/v1/entitlements' });
     await server.register(relatedRecordsRoutes, { prefix: '/v1/related' });
     await server.register(apiKeysRoutes, { prefix: '/v1/api-keys' });

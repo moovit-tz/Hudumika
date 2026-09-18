@@ -8,6 +8,7 @@ import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { Tip } from '../components/ui/tooltip.js';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter
 } from '../components/ui/dialog.js';
@@ -125,7 +126,7 @@ export function CrmChainPartners() {
         }
       />
 
-      <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         {/* KPI Metrics Ribbon */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
@@ -199,15 +200,16 @@ export function CrmChainPartners() {
                 style={{ paddingLeft: 32, paddingRight: search ? 32 : 12, width: '100%' }}
               />
               {search && (
+                <Tip label="Clear search">
                 <button
                   type="button"
-                  title="Clear search"
                   aria-label="Clear partner search"
                   onClick={() => setSearch('')}
                   style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, display: 'flex', alignItems: 'center' }}
                 >
                   <Icon name="x" size={13} />
                 </button>
+                </Tip>
               )}
             </div>
             <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
@@ -340,7 +342,7 @@ export function CrmChainPartners() {
           </DialogHeader>
           <form onSubmit={handleCreatePartner}>
             <DialogBody>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label className="seal-field-label">Partner / Company Name <span style={{ color: 'var(--red)' }}>*</span></label>
                   <input

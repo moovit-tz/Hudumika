@@ -6,7 +6,7 @@ import { NotificationService } from '../services/notification.service.js';
 import { MailService } from '../services/mail.service.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import * as CalendarEvents from '../services/calendar-events.service.js';
-import { EventNotFoundError, EventValidationError } from '../services/calendar-events.service.js';
+import { EventNotFoundError, EventValidationError, EventForbiddenError } from '../services/calendar-events.service.js';
 import * as BookingPages from '../services/booking-pages.service.js';
 import { SlugTakenError, BookingPageNotFoundError } from '../services/booking-pages.service.js';
 import { resolveProjectAccess, canEditProject } from './task-projects.routes.js';
@@ -1332,6 +1332,22 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const q = request.query as { scope?: 'all' | 'this'; occurrenceDate?: string };
     await CalendarEvents.deleteEvent(user.tenant_id, user.sub, request.params.id, q.scope ?? 'all', q.occurrenceDate);
     return { success: true };
+  });
+
+  // Guest accept/decline on an invite — the one write a guest (not the
+  // organizer) is allowed to make on an event they don't own.
+  const eventRsvpSchema = z.object({ status: z.enum(['accepted', 'declined']) });
+  fastify.patch<{ Params: { id: string } }>('/events/:id/rsvp', async (request, reply) => {
+    const user = request.user;
+    const body = eventRsvpSchema.parse(request.body);
+    try {
+      const row = await CalendarEvents.respondToInvite(user.tenant_id, user.sub, request.params.id, body.status);
+      return { data: row };
+    } catch (err: any) {
+      if (err instanceof EventNotFoundError) return reply.status(404).send({ error: 'Event not found' });
+      if (err instanceof EventForbiddenError) return reply.status(403).send({ error: err.message });
+      throw err;
+    }
   });
 
   // ── ICS export/import ──────────────────────────────────────────────────

@@ -1010,9 +1010,11 @@ export const OndiPersonalActivity: React.FC = () => {
                 </div>
 
                 {/* Modal Navigation Tabs */}
-                <div className="opa-modal-tabs">
+                <div className="opa-modal-tabs" role="tablist" aria-label="Activity event details">
                   <button
                     type="button"
+                    role="tab"
+                    aria-selected={activeModalTab === 'specs'}
                     className={`opa-modal-tab ${activeModalTab === 'specs' ? 'active' : ''}`}
                     onClick={() => setActiveModalTab('specs')}
                   >
@@ -1020,6 +1022,8 @@ export const OndiPersonalActivity: React.FC = () => {
                   </button>
                   <button
                     type="button"
+                    role="tab"
+                    aria-selected={activeModalTab === 'json'}
                     className={`opa-modal-tab ${activeModalTab === 'json' ? 'active' : ''}`}
                     onClick={() => setActiveModalTab('json')}
                   >

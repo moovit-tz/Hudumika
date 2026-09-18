@@ -29,7 +29,7 @@ const LOGIN_BG_MAP: Record<string, string> = {
   white:    '#f0f4f9',
 };
 
-function toCompleteInput(draft: OnboardingDraft, referralCode: string | null): OnboardingCompleteInput {
+function toCompleteInput(draft: OnboardingDraft, referralCode: string | null, locale: string): OnboardingCompleteInput {
   return {
     referral_code: referralCode || undefined,
     account: { name: draft.name, email: draft.email, password: draft.password },
@@ -51,6 +51,11 @@ function toCompleteInput(draft: OnboardingDraft, referralCode: string | null): O
       currency: draft.currency,
       hq_city: draft.hq_city || undefined,
       hq_country: draft.hq_country || undefined,
+    },
+    privacy_acknowledgement: {
+      policy_version_id: draft.privacy_policy_version_id,
+      acknowledged: true,
+      locale,
     },
   };
 }
@@ -134,6 +139,9 @@ export const OnboardingWizard: React.FC = () => {
 
   useEffect(() => {
     apiFetch('/v1/packages').then(res => setPackages(res.data)).catch(() => {});
+    apiFetch('/v1/privacy-policy/current')
+      .then((policy: any) => setDraft(prev => ({ ...prev, privacy_policy_version_id: policy.id })))
+      .catch(() => setSubmitError('The Privacy Policy is temporarily unavailable. Please try again shortly.'));
   }, []);
 
   // Once the success screen has shown its checklist animation, log in and land in the workspace.
@@ -156,12 +164,16 @@ export const OnboardingWizard: React.FC = () => {
       return;
     }
     // Final step — actually create the tenant/account/plan/payment/settings.
+    if (!draft.privacy_policy_version_id || !draft.privacy_acknowledged) {
+      setSubmitError('Please review and acknowledge the Privacy Policy before creating your workspace.');
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
     try {
       const res: OnboardingCompleteResponse = await apiFetch('/v1/onboarding/complete', {
         method: 'POST',
-        body: JSON.stringify(toCompleteInput(draft, referralCodeRef.current)),
+        body: JSON.stringify(toCompleteInput(draft, referralCodeRef.current, language)),
       });
       setSuccess(res);
     } catch (err: any) {

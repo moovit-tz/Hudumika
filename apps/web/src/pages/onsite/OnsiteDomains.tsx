@@ -332,21 +332,21 @@ export function OnsiteDomains() {
 
       {/* Tabs */}
       <div className="onsite-tabs-row">
-        <div className="onsite-tabs">
+        <div className="onsite-tabs" role="tablist" aria-label="Domain ownership">
           <button
-            className={activeTab === 'owned' ? 'onsite-tab active' : 'onsite-tab'}
+            role="tab" aria-selected={activeTab === 'owned'} className={activeTab === 'owned' ? 'onsite-tab active' : 'onsite-tab'}
             onClick={() => setActiveTab('owned')}
           >
             Owned Domains ({displayDomains.length})
           </button>
           <button
-            className={activeTab === 'external' ? 'onsite-tab active' : 'onsite-tab'}
+            role="tab" aria-selected={activeTab === 'external'} className={activeTab === 'external' ? 'onsite-tab active' : 'onsite-tab'}
             onClick={() => setActiveTab('external')}
           >
             External &amp; Connected
           </button>
           <button
-            className={activeTab === 'shared' ? 'onsite-tab active' : 'onsite-tab'}
+            role="tab" aria-selected={activeTab === 'shared'} className={activeTab === 'shared' ? 'onsite-tab active' : 'onsite-tab'}
             onClick={() => setActiveTab('shared')}
           >
             Shared with Workspace

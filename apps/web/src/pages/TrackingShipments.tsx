@@ -187,7 +187,7 @@ export const TrackingShipments: React.FC = () => {
         {/* Filters */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Tabs value={filter} onValueChange={setFilter} variant="segmented">
+            <Tabs value={filter} onValueChange={setFilter}>
               <TabsList>
                 {['All', 'Shipped', 'In Transit', 'Delayed', 'Delivered'].map(f => (
                   <TabsTrigger key={f} value={f}>{f}</TabsTrigger>

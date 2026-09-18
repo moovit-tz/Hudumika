@@ -57,6 +57,8 @@ function TabBtn({ id, label, icon, active, onClick }: { id: Tab; label: string; 
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       className="c360-tab"
       data-active={active ? 'true' : undefined}
       onClick={onClick}
@@ -264,7 +266,7 @@ export function Customer360Sidebar({
       </div>
 
       {/* ── Navigation Tabs (Profile, Invoices, Shipments, AI) ── */}
-      <div className="c360-tabs">
+      <div className="c360-tabs" role="tablist" aria-label="Customer details">
         {([
           { id: 'profile', label: 'CRM Details', icon: 'user' },
           { id: 'invoices', label: 'Invoices', icon: 'invoice' },

@@ -13,6 +13,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { useTaxCodes } from '../data/taxCodeData.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -218,7 +219,7 @@ function DetailPanel({
 
   return (
     <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
-      <SheetContent className="w-140 sm:max-w-140 flex flex-col p-0 gap-0" style={{ overflowY: 'auto' }}>
+      <SheetContent className="w-full sm:max-w-140 flex flex-col p-0 gap-0" style={{ overflowY: 'auto' }}>
         {/* Panel header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--white)', position: 'sticky', top: 0, zIndex: 2 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: stageColor, flexShrink: 0 }} />
@@ -501,9 +502,11 @@ function QuoteModal({
         {/* Modal header */}
         <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--white)', zIndex: 2 }}>
           <DialogTitle style={{ fontWeight: 700, fontSize: 15 }}>{isEdit ? 'Edit Quotation' : 'New Quotation'}</DialogTitle>
-          <button type="button" title="Close quotation editor" aria-label="Close quotation editor" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
-            <Icon name="x" size={18} />
-          </button>
+          <Tip label="Close quotation editor">
+            <button type="button" aria-label="Close quotation editor" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+              <Icon name="x" size={18} />
+            </button>
+          </Tip>
         </div>
 
         <div style={{ padding: '22px 22px 8px' }}>
@@ -648,9 +651,11 @@ function QuoteModal({
                         </td>
                         <td style={{ padding: '4px 4px' }}>
                           {lines.length > 1 && (
-                            <button type="button" title="Remove line" aria-label={`Remove line ${idx + 1}`} onClick={() => removeLine(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }}>
-                              <Icon name="x" size={14} />
-                            </button>
+                            <Tip label="Remove line">
+                              <button type="button" aria-label={`Remove line ${idx + 1}`} onClick={() => removeLine(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }}>
+                                <Icon name="x" size={14} />
+                              </button>
+                            </Tip>
                           )}
                         </td>
                       </tr>
@@ -770,7 +775,7 @@ export const Sales: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Header */}
-      <div style={{ padding: isMobile ? '12px 16px' : '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0 }}>
+      <div style={{ flexShrink: 0 }}>
         <PageHeader
           crumbs={['CRM', 'Sales pipeline']}
           titlePlain="Sales"
@@ -785,7 +790,7 @@ export const Sales: React.FC = () => {
       </div>
 
       {/* KPI row */}
-      <div style={{ padding: '16px 20px 0', flexShrink: 0 }}>
+      <div style={{ paddingTop: 16, flexShrink: 0 }}>
         <MetricsRow cards={[
           {
             title: 'Total Quotes',
@@ -809,7 +814,7 @@ export const Sales: React.FC = () => {
       </div>
 
       {/* Pipeline kanban */}
-      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '16px 20px', display: 'flex', gap: 12 }}>
+      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '16px 0', display: 'flex', gap: 12 }}>
         {STAGES.map(stage => {
           const cards = byStage(stage.key);
           return (
@@ -845,24 +850,26 @@ export const Sales: React.FC = () => {
                       </div>
                       {/* Quick action buttons on card */}
                       <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
+                        <Tip label="Edit quotation">
                         <button
                           type="button"
-                          title="Edit"
                           aria-label={`Edit quotation ${q.quote_number}`}
                           onClick={() => openEdit(q)}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 3 }}
                         >
                           <Icon name="edit" size={13} />
                         </button>
+                        </Tip>
+                        <Tip label="Delete quotation">
                         <button
                           type="button"
-                          title="Delete"
                           aria-label={`Delete quotation ${q.quote_number}`}
                           onClick={() => openDelete(q)}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 3 }}
                         >
                           <Icon name="trash2" size={13} />
                         </button>
+                        </Tip>
                       </div>
                     </div>
                     {q.valid_until && (

@@ -21,7 +21,7 @@ const SLA_DEFAULTS: Record<string, number> = {
 
 function TabBtn({ id, label, active, onClick }: { id: Tab; label: string; active: boolean; onClick: (t: Tab) => void }) {
   return (
-    <button type="button" className={`dpt${active ? ' on' : ''}`} onClick={() => onClick(id)}>{label}</button>
+    <button type="button" role="tab" aria-selected={active} className={`dpt${active ? ' on' : ''}`} onClick={() => onClick(id)}>{label}</button>
   );
 }
 
@@ -93,7 +93,7 @@ export const Setup: React.FC = () => {
         </button>
       </div>
 
-      <div className="dp-tabs" style={{ borderRadius: 0, flexShrink: 0 }}>
+      <div className="dp-tabs" role="tablist" aria-label="Setup sections" style={{ borderRadius: 0, flexShrink: 0 }}>
         <TabBtn id="general"      label="General"       active={tab==='general'}       onClick={setTab} />
         <TabBtn id="notifications" label="Notifications" active={tab==='notifications'} onClick={setTab} />
         <TabBtn id="stages"       label="SLA / Stages"  active={tab==='stages'}        onClick={setTab} />

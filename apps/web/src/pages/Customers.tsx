@@ -160,7 +160,7 @@ function Avatar({ name, size = 36, customerId }: { name: string; size?: number; 
       shape="square"
       style={{
         borderRadius: 'var(--r)',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        boxShadow: 'var(--elev-sm)',
         border: '1px solid var(--border)',
       }}
     />
@@ -1005,7 +1005,7 @@ export const Customers: React.FC = () => {
         />
 
         {/* Main Content Layout */}
-        <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* Top KPI Metrics Ribbon */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 14 }}>
@@ -1198,7 +1198,7 @@ export const Customers: React.FC = () => {
                       background: viewMode === 'table' ? 'var(--card-bg, var(--white))' : 'transparent',
                       color: viewMode === 'table' ? 'var(--teal)' : 'var(--ink3)',
                       cursor: 'pointer',
-                      boxShadow: viewMode === 'table' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                      boxShadow: viewMode === 'table' ? 'var(--elev-sm)' : 'none',
                       display: 'flex',
                       alignItems: 'center',
                     }}
@@ -1216,7 +1216,7 @@ export const Customers: React.FC = () => {
                       background: viewMode === 'grid' ? 'var(--card-bg, var(--white))' : 'transparent',
                       color: viewMode === 'grid' ? 'var(--teal)' : 'var(--ink3)',
                       cursor: 'pointer',
-                      boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                      boxShadow: viewMode === 'grid' ? 'var(--elev-sm)' : 'none',
                       display: 'flex',
                       alignItems: 'center',
                     }}

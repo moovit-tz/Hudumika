@@ -372,7 +372,7 @@ export const TrackingDriverDetail: React.FC = () => {
       {/* Main Tabs Section: Delivery Logs / Dispatch Messaging / Compliance */}
       <div className="dd-card dd-main-tabs-card">
         <div className="dd-tabs-header">
-          <Tabs value={activeTab} onValueChange={setActiveTab} variant="segmented">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="Delivery Logs">
                 <Icon name="package" size={14} style={{ marginRight: 6 }} /> Delivery Logs & Trips ({trips.length})

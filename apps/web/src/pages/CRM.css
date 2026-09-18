@@ -201,6 +201,19 @@
   [data-crm="true"] .crm-toolbar > [role="combobox"] {
     width: 100% !important;
   }
+
+  /* CRM toolbars contain several independent filter groups. Let every direct
+     control use the available row width on phones instead of preserving its
+     desktop min-width and forcing the whole page sideways. Tables retain their
+     own intentional horizontal scroller. */
+  [data-crm="true"] .crm-toolbar > div {
+    max-width: 100% !important;
+  }
+
+  [data-crm="true"] .crm-toolbar input,
+  [data-crm="true"] .crm-toolbar [role="combobox"] {
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 480px) {

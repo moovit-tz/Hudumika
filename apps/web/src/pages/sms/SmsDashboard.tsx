@@ -60,7 +60,7 @@ export function SmsDashboard() {
           <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>
             No SMS gateway configured yet — sends will fail until Africa's Talking or Twilio credentials are saved.
           </div>
-          <Link to="/workspace/settings?s=integrations"><Button size="sm" variant="outline">Configure gateway</Button></Link>
+          <Link to="/sms/gateways"><Button size="sm" variant="outline">Configure gateway</Button></Link>
         </div>
       )}
 

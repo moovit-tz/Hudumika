@@ -15,7 +15,7 @@ and the running API (`localhost:3001`), not just source reading.
 | Severity | Open | Fixed (verified) | Total |
 |----------|-----:|-----------------:|------:|
 | CRITICAL | 0 | 8 | 8 |
-| HIGH | 8 | 35 | 43 |
+| HIGH | 7 | 36 | 43 |
 | MEDIUM | 9 | 5 | 14 |
 | LOW | 9 | 4 | 13 |
 
@@ -2582,6 +2582,68 @@ before, and found **30 more real unguarded instances**:
   any future single-pattern sweep's "done" as final without a second pass with a structurally
   different pattern.
 
+### HUD-0131 — Phase 5 follow-up: Calendar guest-invite visibility gap (`calendar-events.service.ts`, `tasks.routes.ts`, `calendarStore.ts`, `CalendarApp.tsx`) — closing HUD-0124's documented-not-fixed HIGH finding · Fixed: guest-visible events now appear on the invitee's own calendar and free/busy, plus a real accept/decline endpoint
+- **Category:** Functional correctness (Phase 5 follow-up, user-directed). HUD-0124 found and deliberately
+  left unfixed a real gap: every Calendar query in `calendar-events.service.ts` was scoped strictly to
+  `user_id = caller`, so a guest invited to someone else's event got a notification whose own `link`
+  pointed at `/calendar` but the event itself never appeared there, never counted toward that guest's
+  free/busy, and could never be accepted or declined (the `guests[].status` field existed but nothing
+  could ever write to it). Revisited on the user's explicit instruction to close out Calendar's
+  remaining gap rather than leave it as a permanent documented exception.
+- **Fix — backend (`calendar-events.service.ts`):** Added `ownerOrGuestFilter(userId)`, a
+  `.where(eb => eb.or([...]))` clause matching either the `user_id` column or a JSONB containment check
+  (`guests @> '[{"userId":"..."}]'`, the same containment-operator convention already used in
+  `onsite-agency-directory.routes.ts`), and applied it to both `listEvents` and `getFreeBusy` in place of
+  the old owner-only equality check. Threaded a `callerId` through `computeOccurrencesInRange`/
+  `mapOccurrence` so every returned occurrence now carries `is_organizer` (false when the row is only
+  visible because the caller is a guest) and `my_rsvp_status` (the caller's own `guests[]` entry status,
+  null for the organizer). `getFreeBusy` additionally filters out any occurrence the target user has
+  personally declined — a declined invite no longer blocks that person's own free/busy, matching how
+  workplace calendars treat a declined meeting versus an organized or still-pending one. Added
+  `respondToInvite(tenantId, userId, id, status)` — the one write a non-organizer may make on someone
+  else's event: loads the master row, confirms the caller actually has a `guests[].userId` entry
+  (`EventForbiddenError` if not — an uninvolved user can't RSVP to an event they were never invited to),
+  then replaces that one guest's `status` and re-saves the whole array, mirroring `updateEvent`'s own
+  existing whole-array-replace convention for the guest list rather than inventing a new per-element
+  update path. `updateEvent`/`deleteEvent` were deliberately left untouched — both already scope their
+  `WHERE` to `user_id = userId`, so a guest who can now *see* an event they don't organize still can't
+  edit or delete it; extending visibility didn't need to extend write access.
+- **Fix — route (`tasks.routes.ts`):** Added `PATCH /events/:id/rsvp` (`{status: 'accepted'|'declined'}`),
+  mapping `EventNotFoundError` → 404 and the new `EventForbiddenError` → 403, following the exact
+  try/catch shape every other event-mutation route in this file already uses.
+- **Fix — frontend (`calendarStore.ts`, `CalendarApp.tsx`):** Added `isOrganizer`/`myRsvpStatus` to the
+  `CalendarEvent` type (mirroring `Todo.isOwner`'s existing boolean-flag convention) and to
+  `fromApiEvent`'s mapping; added `respondToInvite(id, status)`, an optimistic-update mutator matching
+  every other mutator in the store (`reportSyncFailure` on a failed persist, no local rollback needed
+  since RSVP status is a small, safely-retryable field). In `CalendarApp.tsx`: gated the event-click
+  popover's footer so a guest-visible event shows Accept/Decline buttons (or its current
+  Accepted/Declined status) instead of an Edit link that would have opened the full edit modal only to
+  fail on save (`updateEvent` is still organizer-only server-side); gated drag-to-reschedule and
+  drag-to-resize the same way `holiday` synthetic rows already were (`if (!ev.isOrganizer) return`), so
+  a guest can no longer start a reschedule drag that would silently fail after the fact; changed the
+  cursor from `grab` to `pointer` and hid the resize-handle strip on a guest-visible event across all
+  three calendar-grid views (month/week/day) as the matching visual cue.
+- **Live-tested end-to-end** against an isolated second API instance (a different `APP_PORT`, shared dev
+  server on 3001 left untouched) with two real users in the same tenant (`junior@msomi.co` as organizer,
+  `admin@msomi.co` as guest, `sales@msomi.co` as an uninvolved third party): organizer creates an event
+  inviting the guest → guest's own `GET /events` now returns it with `is_organizer: false,
+  my_rsvp_status: 'pending'` → organizer's own listing still shows `is_organizer: true` → the uninvolved
+  third party's listing correctly does **not** include it → `GET /events/freebusy` for the guest shows
+  the real busy block → the uninvolved third party's RSVP attempt correctly 403s
+  ("You are not invited to this event.") → the guest's attempt at a full `PATCH /events/:id` edit
+  correctly 404s (still organizer-only) → the guest accepts via the new RSVP endpoint, re-listing
+  confirms `my_rsvp_status: 'accepted'` → the guest then declines, and the freebusy block for that user
+  correctly disappears → cleanup delete by the organizer succeeds and the guest's listing no longer
+  contains the event. All 10 assertions passed on the first run.
+- **Test-artifact handling:** the one real event created for the live test was deleted via the real API
+  (`DELETE /events/:id`) as the final step of the test script itself, confirmed gone from the guest's own
+  listing afterward; no direct database cleanup needed. `tsc --noEmit` clean on both `apps/api` and
+  `apps/web`. Full API vitest suite green (180/180 tests, 13/13 files). `check:triggers` OK (same
+  pre-existing, unrelated concurrent-CMS-session `page.${action}`/`post.${action}`/`entry.${action}`
+  warnings this arc has already flagged as not this session's concern). Isolated test API instance (a
+  different `APP_PORT`) used for the exploit/fix cycle and torn down afterward; shared dev server on
+  port 3001 confirmed untouched throughout.
+
 ### HUD-0130 — Phase 5: CMS Forms + a systemic sweep of the whole new CMS codebase for the HUD-0097 bug class (`cms-forms.routes.ts`/`.service.ts`, plus `cms-content.service.ts` and `cms-webhooks.service.ts`) traced live and adversarially · Found+fixed 7 real crash/leak-instead-of-404 bugs across 3 service files — the widest single-pass instance of this bug class in the arc
 - **Category:** Functional correctness + information disclosure (Phase 5, eighty-sixth journey). Forms —
   a tenant defines a form's field shape once, a real `form` block places it publicly, and a visitor's
@@ -4751,6 +4813,19 @@ before, and found **30 more real unguarded instances**:
   scheme at all (same shape as GPSWOX/WhatsApp's "fails open until a secret is configured"
   pattern) — would need a new tenant-configurable shared-secret field plus a settings-UI change,
   which is a feature addition, not a bug fix, and out of this pass's scope.
+- **Update, 2026-09-18 (found while checking Calendar's HUD-0131 fix, not a new trace of this
+  finding):** the Twilio half of this gap is now closed — `sms.routes.ts`'s `/twilio` delivery-
+  status route calls `verifyTwilioSignature` (real HMAC-SHA1 over the exact callback URL, keyed by
+  the owning tenant's own decrypted Twilio auth token) before touching `sms_messages`, and both
+  `/africas-talking` and `/twilio` sit behind the shared `?token=` `SMS_WEBHOOK_SECRET` preHandler
+  guard HUD-0125 added for the inbound STOP-reply route. This was a concurrent session's own work
+  (confirmed by grep, not this session's fix — see `apps/api/src/integrations/sms.ts`'s
+  `verifyTwilioSignature` and its own header comment for the implementation). Africa's Talking
+  still has no per-request signature scheme of its own (genuinely doesn't offer one), so it relies
+  on the shared-secret guard alone — the same "fails open until a secret is configured" posture
+  GPSWOX/WhatsApp already have. Downgrading this finding's real-world risk accordingly; not
+  re-opening or closing the HUD number outright since this session didn't do the fix or re-verify
+  it live end to end.
 - **Log-secret scan (also Phase 6): clean, no finding.** Checked `apps/api/src/index.ts`'s
   Fastify logger config — no custom `serializers`/`redact`, meaning Fastify's *default* request
   serializer is in effect, which only logs `req.{method,url,hostname,remoteAddress,remotePort}`

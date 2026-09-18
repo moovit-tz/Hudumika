@@ -341,7 +341,7 @@ export function Pipeline() {
       ) : stages.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink3)' }}>No pipeline stages configured yet.</div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stages.length}, 1fr)`, gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stages.length}, minmax(260px, 1fr))`, gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
           {stages.map(col => {
             const list = byStage[col.key] || [];
             const total = list.reduce((s, d) => s + d.value, 0);

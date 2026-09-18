@@ -158,7 +158,7 @@ export function Budgets() {
         </button>
       </div>
 
-      <Tabs value={selectedId ?? ''} onValueChange={setSelectedId} variant="segmented">
+      <Tabs value={selectedId ?? ''} onValueChange={setSelectedId}>
         <TabsList style={{ marginBottom: 20 }}>
           {budgets.map(b => (
             <TabsTrigger key={b.id} value={b.id}>{b.name} ({b.fiscal_year})</TabsTrigger>

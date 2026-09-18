@@ -113,7 +113,7 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext, onRequ
           request, no form to fill in at all) — a company that's genuinely
           new still needs this form (name/plan/payment have nowhere else to
           come from), but a colleague joining an existing one doesn't. */}
-      <div className="login-method-tabs">
+      <div className="login-method-switcher">
         <button type="button" onClick={() => setMode('ondi')} className={`login-method-tab${mode === 'ondi' ? ' login-method-tab--active' : ''}`}>
           <OndiLogo size={14} />
           <span>Ondi</span>

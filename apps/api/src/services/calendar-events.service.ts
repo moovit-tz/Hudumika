@@ -2,6 +2,7 @@
 // guest invites, and ICS export/import. Extracted out of tasks.routes.ts
 // (where /events used to be a handful of inline queries) now that a single
 // event maps to many rendered occurrences instead of one row, one card.
+import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { NotificationService } from './notification.service.js';
 import { MailService } from './mail.service.js';
@@ -47,6 +48,21 @@ export interface EventInput {
 
 export class EventNotFoundError extends Error {}
 export class EventValidationError extends Error {}
+export class EventForbiddenError extends Error {}
+
+/** Kysely `.where(eb => eb.or([...]))` clause matching both an event's
+ *  organizer and anyone invited as a guest — a guest's userId lives inside
+ *  the `guests` JSONB array, not a column, so membership is a containment
+ *  check (`guests @> '[{"userId":"..."}]'`) rather than an equality one.
+ *  Shared by listEvents and getFreeBusy so a colleague's calendar/free-busy
+ *  reflects events they're invited to, not just ones they organize — see
+ *  getFreeBusy's own comment for why that used to be strictly owner-only. */
+function ownerOrGuestFilter(userId: string) {
+  return (eb: any) => eb.or([
+    eb('user_id', '=', userId),
+    sql<boolean>`guests @> ${JSON.stringify([{ userId }])}::jsonb`,
+  ]);
+}
 
 function isoDate(v: unknown): string {
   if (v instanceof Date) return v.toISOString().slice(0, 10);
@@ -57,7 +73,11 @@ function isoDate(v: unknown): string {
  *  expanded occurrence of a recurring one. `id` always identifies the
  *  master row; `occurrenceDate` plus `scope: 'this'` is what a caller sends
  *  back to edit/delete just this occurrence rather than the whole series. */
-function mapOccurrence(master: any, occ: { start: Date; end: Date; originalDate: string; title: string; description: string | null; location: string | null; isOverridden: boolean }) {
+function mapOccurrence(master: any, occ: { start: Date; end: Date; originalDate: string; title: string; description: string | null; location: string | null; isOverridden: boolean }, callerId: string) {
+  const isOrganizer = master.user_id === callerId;
+  // Only set for a guest looking at someone else's event — the organizer's
+  // own occurrences never carry a status of their own to accept/decline.
+  const myGuestEntry = !isOrganizer ? (master.guests ?? []).find((g: Guest) => g.userId === callerId) : undefined;
   return {
     id: master.id,
     occurrenceDate: occ.originalDate,
@@ -80,12 +100,14 @@ function mapOccurrence(master: any, occ: { start: Date; end: Date; originalDate:
     bliss_meeting_id: master.bliss_meeting_id ?? null,
     tenant_id: master.tenant_id,
     user_id: master.user_id,
+    is_organizer: isOrganizer,
+    my_rsvp_status: myGuestEntry?.status ?? null,
     created_at: master.created_at,
     updated_at: master.updated_at,
   };
 }
 
-function computeOccurrencesInRange(master: any, overrides: any[], from: Date, to: Date) {
+function computeOccurrencesInRange(master: any, overrides: any[], from: Date, to: Date, callerId: string) {
   const overrideByDate = new Map(overrides.map(o => [isoDate(o.occurrence_date), o]));
   const masterStart = new Date(master.start_at);
   const masterEnd = new Date(master.end_at);
@@ -111,7 +133,7 @@ function computeOccurrencesInRange(master: any, overrides: any[], from: Date, to
       description: override?.description !== undefined && override?.description !== null ? override.description : master.description,
       location: override?.location !== undefined && override?.location !== null ? override.location : master.location,
       isOverridden: !!override,
-    }));
+    }, callerId));
   }
   return results;
 }
@@ -119,7 +141,7 @@ function computeOccurrencesInRange(master: any, overrides: any[], from: Date, to
 export async function listEvents(tenantId: string, userId: string, range: { from: Date; to: Date }, search?: string) {
   return withTenant(tenantId, async (trx) => {
     let q = trx.selectFrom('calendar_events').selectAll()
-      .where('tenant_id', '=', tenantId).where('user_id', '=', userId);
+      .where('tenant_id', '=', tenantId).where(ownerOrGuestFilter(userId));
     if (search?.trim()) {
       const term = `%${search.trim()}%`;
       q = q.where((eb: any) => eb.or([
@@ -139,7 +161,7 @@ export async function listEvents(tenantId: string, userId: string, range: { from
       }
     }
 
-    const occurrences = masters.flatMap(m => computeOccurrencesInRange(m, overridesByEvent.get(m.id) ?? [], range.from, range.to));
+    const occurrences = masters.flatMap(m => computeOccurrencesInRange(m, overridesByEvent.get(m.id) ?? [], range.from, range.to, userId));
 
     const hrHolidays = await trx.selectFrom('hr_holidays').selectAll().where('tenant_id', '=', tenantId).execute();
     const holidayEvents = hrHolidays
@@ -152,7 +174,8 @@ export async function listEvents(tenantId: string, userId: string, range: { from
           title: h.name, start_at: `${dateStr}T00:00:00.000Z`, end_at: `${dateStr}T23:59:59.999Z`,
           description: `${h.type} Holiday`, location: null, category: 'holiday', guests: [],
           all_day: true, color: null, recurrence: null, is_recurring: false, reminder_offsets: [],
-          tenant_id: h.tenant_id, user_id: userId, created_at: h.created_at, updated_at: h.created_at,
+          tenant_id: h.tenant_id, user_id: userId, is_organizer: true, my_rsvp_status: null,
+          created_at: h.created_at, updated_at: h.created_at,
         };
       })
       .filter((h): h is NonNullable<typeof h> => h !== null);
@@ -164,19 +187,19 @@ export async function listEvents(tenantId: string, userId: string, range: { from
 export interface BusyBlock { start: string; end: string; }
 
 /** "Meet with…" — busy/free only, never titles/descriptions/location, for
- *  every requested colleague in the SAME tenant. There is no existing
- *  cross-user visibility model for calendars at all (every other query in
- *  this file is strictly scoped to the caller's own user_id) — this is
- *  deliberately the first one, and deliberately safe by construction: it
- *  can never leak what a meeting is about, only when someone is unavailable,
- *  matching how real workplace calendars behave by default for colleagues
- *  in the same organization. */
+ *  every requested colleague in the SAME tenant. Includes events the person
+ *  is invited to as a guest, not just ones they organize (see
+ *  ownerOrGuestFilter) — a colleague who accepted a meeting invite reads as
+ *  busy for that slot the same as its organizer, matching how real
+ *  workplace calendars behave. Deliberately safe by construction regardless
+ *  of scope: it can never leak what a meeting is about, only when someone
+ *  is unavailable. */
 export async function getFreeBusy(tenantId: string, userIds: string[], range: { from: Date; to: Date }): Promise<Record<string, BusyBlock[]>> {
   return withTenant(tenantId, async (trx) => {
     const result: Record<string, BusyBlock[]> = {};
     for (const userId of userIds) {
       const masters = await trx.selectFrom('calendar_events').selectAll()
-        .where('tenant_id', '=', tenantId).where('user_id', '=', userId).execute();
+        .where('tenant_id', '=', tenantId).where(ownerOrGuestFilter(userId)).execute();
 
       const overridesByEvent = new Map<string, any[]>();
       if (masters.length) {
@@ -189,8 +212,12 @@ export async function getFreeBusy(tenantId: string, userIds: string[], range: { 
         }
       }
 
-      const occurrences = masters.flatMap(m => computeOccurrencesInRange(m, overridesByEvent.get(m.id) ?? [], range.from, range.to));
+      const occurrences = masters.flatMap(m => computeOccurrencesInRange(m, overridesByEvent.get(m.id) ?? [], range.from, range.to, userId));
       result[userId] = occurrences
+        // A declined invite doesn't hold the slot — everything else (organizer,
+        // pending, accepted) does, matching how workplace calendars treat an
+        // unanswered invite as tentatively busy rather than free.
+        .filter(o => o.my_rsvp_status !== 'declined')
         .map(o => ({ start: o.start_at, end: o.end_at }))
         .sort((a, b) => a.start.localeCompare(b.start));
     }
@@ -292,6 +319,29 @@ export async function updateEvent(
 
     if (newlyInvitedGuests.length) await notifyGuests(tenantId, actorName, { id: row.id, title: row.title, start_at: new Date(row.start_at).toISOString() }, newlyInvitedGuests);
     return { master: row };
+  });
+}
+
+/** A guest's accept/decline on an invite — the only write a non-organizer
+ *  is ever allowed to make to someone else's event. Applies to the whole
+ *  series (guests live on the master row, not per-occurrence, the same as
+ *  the guest list itself), matching how updateEvent's own guest list is
+ *  always a whole-array replace rather than a per-occurrence patch. */
+export async function respondToInvite(tenantId: string, userId: string, id: string, status: 'accepted' | 'declined') {
+  return withTenant(tenantId, async (trx) => {
+    const existing = await trx.selectFrom('calendar_events').selectAll()
+      .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!existing) throw new EventNotFoundError();
+
+    const guests: Guest[] = existing.guests ?? [];
+    if (!guests.some(g => g.userId === userId)) throw new EventForbiddenError('You are not invited to this event.');
+
+    const nextGuests = guests.map(g => (g.userId === userId ? { ...g, status } : g));
+    const row = await trx.updateTable('calendar_events')
+      .set({ guests: JSON.stringify(nextGuests) as unknown as any, updated_at: new Date() })
+      .where('id', '=', id).where('tenant_id', '=', tenantId)
+      .returningAll().executeTakeFirstOrThrow();
+    return row;
   });
 }
 

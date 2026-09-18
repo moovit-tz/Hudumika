@@ -309,15 +309,15 @@ export const OndiUsers: React.FC = () => {
       </div>
 
       {/* Tabs Header Bar */}
-      <div className="ondi-nav-tabstrip">
-        <button className={`ondi-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
+      <div className="ondi-nav-tabstrip" role="tablist" aria-label="People administration">
+        <button role="tab" aria-selected={activeTab === 'users'} className={`ondi-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
           <Icon name="users" size={14} /> Users <span className="ondi-tab-badge">{users.length}</span>
         </button>
-        <button className={`ondi-tab-btn ${activeTab === 'invites' ? 'active' : ''}`} onClick={() => setActiveTab('invites')}>
+        <button role="tab" aria-selected={activeTab === 'invites'} className={`ondi-tab-btn ${activeTab === 'invites' ? 'active' : ''}`} onClick={() => setActiveTab('invites')}>
           <Icon name="mail" size={14} /> Invites {invites.length > 0 && <span className="ondi-tab-badge">{invites.length}</span>}
         </button>
         {canManage && (
-          <button className={`ondi-tab-btn ${activeTab === 'join-requests' ? 'active' : ''}`} onClick={() => setActiveTab('join-requests')}>
+          <button role="tab" aria-selected={activeTab === 'join-requests'} className={`ondi-tab-btn ${activeTab === 'join-requests' ? 'active' : ''}`} onClick={() => setActiveTab('join-requests')}>
             <Icon name="userCheck" size={14} /> Join Requests {joinRequests.length > 0 && <span className="ondi-tab-badge">{joinRequests.length}</span>}
           </button>
         )}

@@ -760,13 +760,12 @@ export const CommandCenter: React.FC = () => {
         {/* Collapsible Ops Summary & Filters — one row, wraps as a unit on narrow screens */}
         {expanded && (
           <div className="cc-toolbar-row" style={{ paddingLeft: 0, paddingRight: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', width: '100%' }}>
-              <div className="ds-tabs-list" data-variant="segmented" style={{ flexShrink: 0, overflowX: 'auto', maxWidth: '100%' }}>
+              <div className="ds-tabs-list" style={{ flexShrink: 0, overflowX: 'auto', maxWidth: '100%' }}>
                 {opsSummary && (
                   <>
                     <button
                       type="button"
                       className="ds-tabs-trigger"
-                      data-variant="segmented"
                       data-state={selectedMetric === 'active' ? 'active' : 'inactive'}
                       onClick={() => setSelectedMetric(m => m === 'active' ? null : 'active')}
                     >
@@ -786,7 +785,6 @@ export const CommandCenter: React.FC = () => {
                     <button
                       type="button"
                       className="ds-tabs-trigger"
-                      data-variant="segmented"
                       data-state={selectedMetric === 'checked_in' ? 'active' : 'inactive'}
                       onClick={() => setSelectedMetric(m => m === 'checked_in' ? null : 'checked_in')}
                     >
@@ -806,7 +804,6 @@ export const CommandCenter: React.FC = () => {
                     <button
                       type="button"
                       className="ds-tabs-trigger"
-                      data-variant="segmented"
                       data-state={selectedMetric === 'pending' ? 'active' : 'inactive'}
                       onClick={() => setSelectedMetric(m => m === 'pending' ? null : 'pending')}
                     >
@@ -830,7 +827,6 @@ export const CommandCenter: React.FC = () => {
                 <button
                   type="button"
                   className="ds-tabs-trigger"
-                  data-variant="segmented"
                   data-state={showOnlyMyCases ? 'active' : 'inactive'}
                   onClick={() => setShowOnlyMyCases(!showOnlyMyCases)}
                 >
@@ -840,7 +836,6 @@ export const CommandCenter: React.FC = () => {
                 <button
                   type="button"
                   className="ds-tabs-trigger"
-                  data-variant="segmented"
                   data-state={selectedRiskOnly ? 'active' : 'inactive'}
                   onClick={() => setSelectedRiskOnly(!selectedRiskOnly)}
                   style={selectedRiskOnly ? { color: 'var(--red)' } : {}}
