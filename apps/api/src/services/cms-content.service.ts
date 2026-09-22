@@ -181,7 +181,22 @@ export const FIELD_TYPES: Record<CmsFieldType, { label: string }> = {
   computed:    { label: 'Computed (formula)' },
 };
 
-const BLOCK_TYPES: CmsBlockType[] = ['paragraph', 'heading', 'image', 'list', 'quote', 'button', 'divider', 'component', 'form', 'experiment'];
+const BLOCK_TYPES: CmsBlockType[] = ['paragraph', 'heading', 'image', 'list', 'quote', 'button', 'divider', 'component', 'form', 'experiment', 'embed'];
+
+// §5 — an embed block is the first place in this codebase that deliberately
+// renders a tenant-supplied <iframe> on the public site; rich-text content
+// (Pages/Posts) actively strips <iframe> for exactly the clickjacking/
+// content-injection reason this exists to guard against. Hostname allow-
+// list, not a free-form https:// check like image/button urls get — a
+// tenant can embed a known-safe provider's own widget, not frame arbitrary
+// third-party content under their own site's trust.
+const EMBED_ALLOWED_HOSTS = new Set([
+  'www.youtube.com', 'youtube.com', 'www.youtube-nocookie.com', 'youtube-nocookie.com',
+  'player.vimeo.com',
+  'www.google.com', 'calendar.google.com', 'maps.google.com',
+  'calendly.com',
+  'open.spotify.com',
+]);
 
 /** Validates + sanitizes one block's props by its own type. Block text
  *  props render as plain React text nodes (both in the editor and on the
@@ -215,6 +230,16 @@ export function sanitizeBlock(raw: any, context: 'entry' | 'component' | 'experi
   const checkUrl = (v: unknown, field: string) => {
     const s = str(v);
     if (s && !/^https?:\/\//.test(s)) throw new ValidationError(`Block ${field} must start with http:// or https://.`);
+    return s;
+  };
+  const checkEmbedUrl = (v: unknown): string => {
+    const s = str(v);
+    if (!s) return '';
+    let host: string;
+    try { host = new URL(s).hostname.toLowerCase(); } catch { throw new ValidationError('Embed url must be a valid URL.'); }
+    if (!s.startsWith('https://') || !EMBED_ALLOWED_HOSTS.has(host)) {
+      throw new ValidationError('Embed url must be an https:// link from an allowed provider (YouTube, Vimeo, Google Maps/Calendar, Calendly, Spotify).');
+    }
     return s;
   };
   // §8 — a slot name marks one block inside a component's own definition as
@@ -311,6 +336,16 @@ export function sanitizeBlock(raw: any, context: 'entry' | 'component' | 'experi
     case 'experiment':
       props = { experimentKey: str(p.experimentKey) };
       break;
+    // §5 — url is required and must clear checkEmbedUrl's own allow-list;
+    // an empty/unset url is never valid for this block (unlike image/button,
+    // where a blank url just renders nothing), since an embed with nothing
+    // to embed has no reason to exist.
+    case 'embed': {
+      const url = checkEmbedUrl(p.url);
+      if (!url) throw new ValidationError('An embed block needs a url.');
+      props = { url, title: str(p.title).slice(0, 150) };
+      break;
+    }
     case 'divider':
     default:
       props = {};

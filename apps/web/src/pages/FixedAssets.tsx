@@ -148,7 +148,7 @@ export function FixedAssets() {
   const disposedCost = assets.filter(a => a.status === 'DISPOSED').reduce((s, a) => s + Number(a.cost), 0);
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
+    <div className="finance-fixed-assets-page" style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
       <PageHeader
         crumbs={['Finance', 'Accounts']}
         titlePlain="Fixed"
@@ -219,9 +219,9 @@ export function FixedAssets() {
                   </td>
                   <td style={{ padding: '9px 12px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      <button type="button" title="View schedule" onClick={() => viewSchedule(a)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="fileText" size={14} /></button>
-                      {a.status === 'ACTIVE' && <button type="button" title="Dispose" onClick={() => { setDisposing(a); setDisposalProceeds(0); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gold)', padding: 4 }}><Icon name="logOut" size={14} /></button>}
-                      {a.accumulated_depreciation === 0 && a.status === 'ACTIVE' && <button type="button" title="Delete" onClick={() => handleDelete(a)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }}><Icon name="trash" size={14} /></button>}
+                      <button type="button" className="finance-icon-action" title="View schedule" onClick={() => viewSchedule(a)} style={{ color: 'var(--ink3)' }}><Icon name="fileText" size={14} /></button>
+                      {a.status === 'ACTIVE' && <button type="button" className="finance-icon-action" title="Dispose" onClick={() => { setDisposing(a); setDisposalProceeds(0); }} style={{ color: 'var(--gold)' }}><Icon name="logOut" size={14} /></button>}
+                      {a.accumulated_depreciation === 0 && a.status === 'ACTIVE' && <button type="button" className="finance-icon-action" title="Delete" onClick={() => handleDelete(a)} style={{ color: 'var(--red)' }}><Icon name="trash" size={14} /></button>}
                     </div>
                   </td>
                 </tr>

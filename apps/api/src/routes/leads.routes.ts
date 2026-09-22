@@ -35,6 +35,13 @@ const leadCreateSchema = z.object({
   location: z.string().max(200).optional(),
   website: z.string().max(500).optional(),
 });
+// A malformed (non-UUID) :id used to reach Postgres as-is and crash with a
+// raw "invalid input syntax for type uuid" driver error, forwarded verbatim
+// to the client by this file's own local catch blocks below (they bypass
+// the platform's global sanitizing error handler entirely) instead of the
+// clean 404 every one of these routes already gives a well-formed-but-
+// nonexistent id — live-reproduced across every :id route in this file.
+const idParamSchema = z.object({ id: z.string().uuid() });
 const leadPatchSchema = z.object({
   company: z.string().trim().min(1).max(300).optional(),
   contact_name: z.string().trim().min(1).max(300).optional(),
@@ -154,81 +161,75 @@ export async function leadsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/:id', async (request: any, reply) => {
+    const { id } = idParamSchema.parse(request.params);
     const b = leadPatchSchema.parse(request.body);
-    try {
-      const patch: Record<string, unknown> = { updated_at: new Date() };
-      if (b.company !== undefined) patch.company = b.company;
-      if (b.contact_name !== undefined) patch.contact_name = b.contact_name;
-      if (b.contact_email !== undefined) patch.contact_email = b.contact_email || null;
-      if (b.contact_phone !== undefined) patch.contact_phone = b.contact_phone || null;
-      if (b.source !== undefined) patch.source = b.source;
-      if (b.stage !== undefined) patch.stage = b.stage;
-      if (b.value !== undefined) patch.value = String(Number(b.value) || 0);
-      if (b.priority !== undefined) patch.priority = b.priority;
-      if (b.assigned_to !== undefined) patch.assigned_to = b.assigned_to || null;
-      if (b.assigned_to_id !== undefined) patch.assigned_to_id = b.assigned_to_id || null;
-      if (b.expected_close !== undefined) patch.expected_close = b.expected_close ? new Date(b.expected_close) : null;
-      if (b.notes !== undefined) patch.notes = b.notes || null;
-      if (b.industry !== undefined) patch.industry = b.industry || null;
-      if (b.location !== undefined) patch.location = b.location || null;
-      if (b.website !== undefined) patch.website = b.website || null;
+    const patch: Record<string, unknown> = { updated_at: new Date() };
+    if (b.company !== undefined) patch.company = b.company;
+    if (b.contact_name !== undefined) patch.contact_name = b.contact_name;
+    if (b.contact_email !== undefined) patch.contact_email = b.contact_email || null;
+    if (b.contact_phone !== undefined) patch.contact_phone = b.contact_phone || null;
+    if (b.source !== undefined) patch.source = b.source;
+    if (b.stage !== undefined) patch.stage = b.stage;
+    if (b.value !== undefined) patch.value = String(Number(b.value) || 0);
+    if (b.priority !== undefined) patch.priority = b.priority;
+    if (b.assigned_to !== undefined) patch.assigned_to = b.assigned_to || null;
+    if (b.assigned_to_id !== undefined) patch.assigned_to_id = b.assigned_to_id || null;
+    if (b.expected_close !== undefined) patch.expected_close = b.expected_close ? new Date(b.expected_close) : null;
+    if (b.notes !== undefined) patch.notes = b.notes || null;
+    if (b.industry !== undefined) patch.industry = b.industry || null;
+    if (b.location !== undefined) patch.location = b.location || null;
+    if (b.website !== undefined) patch.website = b.website || null;
 
-      const tenantId = request.user.tenant_id;
-      const notFound = await withTenant(tenantId, async trx => {
-        let existing: { stage: string; company: string } | undefined;
-        if (b.stage !== undefined) {
-          existing = await trx.selectFrom('leads').select(['stage', 'company'])
-            .where('id', '=', request.params.id).where('tenant_id', '=', tenantId).executeTakeFirst();
-        }
-        // executeTakeFirstOrThrow() used to sit here — a lead id from another
-        // tenant (RLS zeroes the match, same as one that never existed) threw
-        // a NoResultError the outer catch turned into a bare 500 instead of
-        // an honest 404. Checking numUpdatedRows lets both cases 404 cleanly.
-        const result = await trx.updateTable('leads').set(patch).where('id', '=', request.params.id)
-          .where('tenant_id', '=', tenantId).executeTakeFirst();
-        if (result.numUpdatedRows === 0n) return true;
-        if (b.stage !== undefined && existing && existing.stage !== b.stage) {
-          await logCrmActivity(trx, {
-            tenantId, subjectType: 'lead', subjectId: request.params.id, type: 'stage_change',
-            body: `Stage moved from ${existing.stage} to ${b.stage}`,
-            meta: { from: existing.stage, to: b.stage },
-            actorId: request.user.sub, actorName: request.user.name,
-          });
-          await emitDomainEvent(trx, tenantId, {
-            type: 'lead.stage_changed', sourceApp: 'crm', entityType: 'lead', entityId: request.params.id,
-            payload: { from: existing.stage, to: b.stage, company: existing.company },
-            actorId: request.user.sub,
-          }).catch(e => console.error('[CRM] lead.stage_changed emit failed:', e.message));
-        }
-        return false;
-      });
-      if (notFound) return reply.status(404).send({ error: 'Lead not found' });
-      const [row] = await withTenant<any[]>(tenantId, trx => leadSelect(trx).where('leads.id', '=', request.params.id).execute());
-      return mapLead(row);
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+    const tenantId = request.user.tenant_id;
+    const notFound = await withTenant(tenantId, async trx => {
+      let existing: { stage: string; company: string } | undefined;
+      if (b.stage !== undefined) {
+        existing = await trx.selectFrom('leads').select(['stage', 'company'])
+          .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+      }
+      // executeTakeFirstOrThrow() used to sit here — a lead id from another
+      // tenant (RLS zeroes the match, same as one that never existed) threw
+      // a NoResultError the outer catch turned into a bare 500 instead of
+      // an honest 404. Checking numUpdatedRows lets both cases 404 cleanly.
+      const result = await trx.updateTable('leads').set(patch).where('id', '=', id)
+        .where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (result.numUpdatedRows === 0n) return true;
+      if (b.stage !== undefined && existing && existing.stage !== b.stage) {
+        await logCrmActivity(trx, {
+          tenantId, subjectType: 'lead', subjectId: id, type: 'stage_change',
+          body: `Stage moved from ${existing.stage} to ${b.stage}`,
+          meta: { from: existing.stage, to: b.stage },
+          actorId: request.user.sub, actorName: request.user.name,
+        });
+        await emitDomainEvent(trx, tenantId, {
+          type: 'lead.stage_changed', sourceApp: 'crm', entityType: 'lead', entityId: id,
+          payload: { from: existing.stage, to: b.stage, company: existing.company },
+          actorId: request.user.sub,
+        }).catch(e => console.error('[CRM] lead.stage_changed emit failed:', e.message));
+      }
+      return false;
+    });
+    if (notFound) return reply.status(404).send({ error: 'Lead not found' });
+    const [row] = await withTenant<any[]>(tenantId, trx => leadSelect(trx).where('leads.id', '=', id).execute());
+    return mapLead(row);
   });
 
   fastify.delete('/:id', async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      await withTenant(tenantId, async trx => {
-        // crm_activities has no FK to leads (subject_id is a polymorphic
-        // reference across leads/deals/customers — see migration 449's own
-        // comment), so nothing cascades here automatically; a hard-deleted
-        // lead would otherwise leave its whole timeline as permanent,
-        // unreachable orphan rows.
-        await trx.deleteFrom('crm_activities')
-          .where('tenant_id', '=', tenantId).where('subject_type', '=', 'lead').where('subject_id', '=', request.params.id).execute();
-        await trx.deleteFrom('leads').where('id', '=', request.params.id)
-          .where('tenant_id', '=', tenantId).execute();
-      });
-      reply.status(204);
-      return null;
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+    const { id } = idParamSchema.parse(request.params);
+    const tenantId = request.user.tenant_id;
+    await withTenant(tenantId, async trx => {
+      // crm_activities has no FK to leads (subject_id is a polymorphic
+      // reference across leads/deals/customers — see migration 449's own
+      // comment), so nothing cascades here automatically; a hard-deleted
+      // lead would otherwise leave its whole timeline as permanent,
+      // unreachable orphan rows.
+      await trx.deleteFrom('crm_activities')
+        .where('tenant_id', '=', tenantId).where('subject_type', '=', 'lead').where('subject_id', '=', id).execute();
+      await trx.deleteFrom('leads').where('id', '=', id)
+        .where('tenant_id', '=', tenantId).execute();
+    });
+    reply.status(204);
+    return null;
   });
 
   // Creates a real Deal from this lead — the CRM gap-analysis's #1 "Now"
@@ -238,53 +239,50 @@ export async function leadsRoutes(fastify: FastifyInstance) {
   // lead can be converted more than once — a second deal from a lead that
   // adds a second product line is a real scenario, not a bug to prevent.
   fastify.post('/:id/convert', async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      const lead = await withTenant(tenantId, trx =>
-        trx.selectFrom('leads').selectAll().where('id', '=', request.params.id)
-          .where('tenant_id', '=', tenantId).executeTakeFirst()
-      );
-      if (!lead) return reply.status(404).send({ error: 'Lead not found' });
+    const { id } = idParamSchema.parse(request.params);
+    const tenantId = request.user.tenant_id;
+    const lead = await withTenant(tenantId, trx =>
+      trx.selectFrom('leads').selectAll().where('id', '=', id)
+        .where('tenant_id', '=', tenantId).executeTakeFirst()
+    );
+    if (!lead) return reply.status(404).send({ error: 'Lead not found' });
 
-      const dealId = await withTenant(tenantId, async trx => {
-        const entryStage = defaultStageKey(await ensurePipelineStages(trx, tenantId));
-        const [row] = await trx.insertInto('deals').values({
-          tenant_id: tenantId,
-          name: lead.company,
-          lead_id: lead.id,
-          stage: entryStage,
-          value: lead.value,
-          currency: 'TZS',
-          probability: 50,
-          owner_id: lead.assigned_to_id,
-          source: lead.source,
-          expected_close: lead.expected_close,
-          notes: lead.notes,
-          created_by: request.user.sub,
-        }).returning('id').execute();
-        await logCrmActivity(trx, {
-          tenantId, subjectType: 'deal', subjectId: row.id, type: 'created',
-          body: 'Deal created from a converted lead',
-          actorId: request.user.sub, actorName: request.user.name,
-        });
-        await logCrmActivity(trx, {
-          tenantId, subjectType: 'lead', subjectId: lead.id, type: 'note',
-          body: 'Converted to a deal',
-          actorId: request.user.sub, actorName: request.user.name,
-        });
-        await emitDomainEvent(trx, tenantId, {
-          type: 'deal.created', sourceApp: 'crm', entityType: 'deal', entityId: row.id,
-          payload: { name: lead.company, value: Number(lead.value) || 0, fromLead: true },
-          actorId: request.user.sub,
-        }).catch(e => console.error('[CRM] deal.created emit failed:', e.message));
-        return row.id;
+    const dealId = await withTenant(tenantId, async trx => {
+      const entryStage = defaultStageKey(await ensurePipelineStages(trx, tenantId));
+      const [row] = await trx.insertInto('deals').values({
+        tenant_id: tenantId,
+        name: lead.company,
+        lead_id: lead.id,
+        stage: entryStage,
+        value: lead.value,
+        currency: 'TZS',
+        probability: 50,
+        owner_id: lead.assigned_to_id,
+        source: lead.source,
+        expected_close: lead.expected_close,
+        notes: lead.notes,
+        created_by: request.user.sub,
+      }).returning('id').execute();
+      await logCrmActivity(trx, {
+        tenantId, subjectType: 'deal', subjectId: row.id, type: 'created',
+        body: 'Deal created from a converted lead',
+        actorId: request.user.sub, actorName: request.user.name,
       });
+      await logCrmActivity(trx, {
+        tenantId, subjectType: 'lead', subjectId: lead.id, type: 'note',
+        body: 'Converted to a deal',
+        actorId: request.user.sub, actorName: request.user.name,
+      });
+      await emitDomainEvent(trx, tenantId, {
+        type: 'deal.created', sourceApp: 'crm', entityType: 'deal', entityId: row.id,
+        payload: { name: lead.company, value: Number(lead.value) || 0, fromLead: true },
+        actorId: request.user.sub,
+      }).catch(e => console.error('[CRM] deal.created emit failed:', e.message));
+      return row.id;
+    });
 
-      const [row] = await withTenant<any[]>(tenantId, trx => dealSelect(trx).where('deals.id', '=', dealId).execute());
-      return mapDeal(row);
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+    const [row] = await withTenant<any[]>(tenantId, trx => dealSelect(trx).where('deals.id', '=', dealId).execute());
+    return mapDeal(row);
   });
 
   // Fuzzy-duplicate detection on company name — same pg_trgm mechanism
@@ -295,27 +293,45 @@ export async function leadsRoutes(fastify: FastifyInstance) {
   // lead's own email/phone belong to whichever contact took the call, not
   // to the account — matching two different peoples' numbers proves
   // nothing about whether the two leads are the same company.
-  fastify.get('/duplicates', async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      const rows = await withTenant(tenantId, async trx => {
-        const fuzzy = await sql<{ id: string; other_id: string }>`
-          SELECT a.id, b.id AS other_id
-          FROM leads a
-          JOIN leads b ON b.tenant_id = a.tenant_id AND b.id > a.id
-          WHERE a.tenant_id = ${tenantId}
-            AND similarity(a.company, b.company) >= 0.5
-        `.execute(trx);
-        if (fuzzy.rows.length === 0) return [];
-        const ids = [...new Set(fuzzy.rows.flatMap(r => [r.id, r.other_id]))];
-        const leads = await leadSelect(trx).where('leads.id', 'in', ids).execute();
-        const byId = new Map(leads.map((l: any) => [l.id, mapLead(l)]));
-        return fuzzy.rows.map(r => ({ leads: [byId.get(r.id), byId.get(r.other_id)].filter(Boolean) }));
-      });
-      return rows;
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+  fastify.get('/duplicates', async (request: any) => {
+    const tenantId = request.user.tenant_id;
+    return withTenant(tenantId, async trx => {
+      const fuzzy = await sql<{ id: string; other_id: string }>`
+        SELECT a.id, b.id AS other_id
+        FROM leads a
+        JOIN leads b ON b.tenant_id = a.tenant_id AND b.id > a.id
+        WHERE a.tenant_id = ${tenantId}
+          AND similarity(a.company, b.company) >= 0.5
+      `.execute(trx);
+      if (fuzzy.rows.length === 0) return [];
+      const ids = [...new Set(fuzzy.rows.flatMap(r => [r.id, r.other_id]))];
+      const leads = await leadSelect(trx).where('leads.id', 'in', ids).execute();
+      const byId = new Map(leads.map((l: any) => [l.id, mapLead(l)]));
+      const adjacency = new Map<string, Set<string>>();
+      for (const pair of fuzzy.rows) {
+        if (!adjacency.has(pair.id)) adjacency.set(pair.id, new Set());
+        if (!adjacency.has(pair.other_id)) adjacency.set(pair.other_id, new Set());
+        adjacency.get(pair.id)!.add(pair.other_id);
+        adjacency.get(pair.other_id)!.add(pair.id);
+      }
+      const seen = new Set<string>();
+      const groups: Array<{ leads: any[] }> = [];
+      for (const id of adjacency.keys()) {
+        if (seen.has(id)) continue;
+        const stack = [id];
+        const component: any[] = [];
+        while (stack.length) {
+          const current = stack.pop()!;
+          if (seen.has(current)) continue;
+          seen.add(current);
+          const row = byId.get(current);
+          if (row) component.push(row);
+          for (const neighbour of adjacency.get(current) ?? []) stack.push(neighbour);
+        }
+        if (component.length > 1) groups.push({ leads: component });
+      }
+      return groups;
+    });
   });
 
   // Merges duplicate_ids into primary_id: every deal, activity and label
@@ -324,38 +340,61 @@ export async function leadsRoutes(fastify: FastifyInstance) {
   // may already carry a label a duplicate also had) — onConflict/doNothing
   // there, same shape contacts.service.ts's own mergeContacts uses.
   const mergeSchema = z.object({ primary_id: z.string().uuid(), duplicate_ids: z.array(z.string().uuid()).min(1) });
-  fastify.post('/merge', async (request: any, reply) => {
+  fastify.post('/merge', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
     const b = mergeSchema.parse(request.body);
-    try {
-      const tenantId = request.user.tenant_id;
-      await withTenant(tenantId, async trx => {
-        const primary = await trx.selectFrom('leads').select('id')
-          .where('id', '=', b.primary_id).where('tenant_id', '=', tenantId).executeTakeFirst();
-        if (!primary) throw new Error('Primary lead not found');
+    const tenantId = request.user.tenant_id;
+    const primary = await withTenant(tenantId, trx =>
+      trx.selectFrom('leads').select('id')
+        .where('id', '=', b.primary_id).where('tenant_id', '=', tenantId).executeTakeFirst()
+    );
+    if (!primary) return reply.status(404).send({ error: 'Primary lead not found' });
 
-        for (const dupId of b.duplicate_ids) {
-          if (dupId === b.primary_id) continue;
-          await trx.updateTable('deals').set({ lead_id: b.primary_id })
-            .where('lead_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
-          await trx.updateTable('crm_activities').set({ subject_id: b.primary_id })
-            .where('subject_type', '=', 'lead').where('subject_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+    await withTenant(tenantId, async trx => {
+      let survivor = await trx.selectFrom('leads').selectAll()
+        .where('id', '=', b.primary_id).where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
+      for (const dupId of b.duplicate_ids) {
+        if (dupId === b.primary_id) continue;
+        const duplicate = await trx.selectFrom('leads').selectAll()
+          .where('id', '=', dupId).where('tenant_id', '=', tenantId).executeTakeFirst();
+        if (!duplicate) throw new Error('A duplicate lead was not found in this workspace');
+        const mergedNotes = [survivor.notes, duplicate.notes].filter(Boolean).filter((value, index, all) => all.indexOf(value) === index).join('\n\n');
+        survivor = await trx.updateTable('leads').set({
+          contact_name: survivor.contact_name || duplicate.contact_name,
+          contact_email: survivor.contact_email || duplicate.contact_email,
+          contact_phone: survivor.contact_phone || duplicate.contact_phone,
+          website: survivor.website || duplicate.website,
+          industry: survivor.industry || duplicate.industry,
+          location: survivor.location || duplicate.location,
+          assigned_to: survivor.assigned_to || duplicate.assigned_to,
+          assigned_to_id: survivor.assigned_to_id || duplicate.assigned_to_id,
+          expected_close: survivor.expected_close || duplicate.expected_close,
+          notes: mergedNotes || null,
+          value: String(Number(survivor.value || 0) || Number(duplicate.value || 0)),
+          updated_at: new Date(),
+        }).where('id', '=', b.primary_id).where('tenant_id', '=', tenantId).returningAll().executeTakeFirstOrThrow();
+        await trx.updateTable('deals').set({ lead_id: b.primary_id })
+          .where('lead_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        await trx.updateTable('crm_activities').set({ subject_id: b.primary_id })
+          .where('subject_type', '=', 'lead').where('subject_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
 
-          const dupLabels = await trx.selectFrom('crm_label_mappings').select('label_id')
-            .where('subject_type', '=', 'lead').where('subject_id', '=', dupId).execute();
-          if (dupLabels.length) {
-            await trx.insertInto('crm_label_mappings')
-              .values(dupLabels.map(l => ({ label_id: l.label_id, subject_type: 'lead' as const, subject_id: b.primary_id })))
-              .onConflict(oc => oc.columns(['label_id', 'subject_type', 'subject_id']).doNothing())
-              .execute();
-          }
-          await trx.deleteFrom('crm_label_mappings')
-            .where('subject_type', '=', 'lead').where('subject_id', '=', dupId).execute();
-          await trx.deleteFrom('leads').where('id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        const dupLabels = await trx.selectFrom('crm_label_mappings').select('label_id')
+          .where('subject_type', '=', 'lead').where('subject_id', '=', dupId).execute();
+        if (dupLabels.length) {
+          await trx.insertInto('crm_label_mappings')
+            .values(dupLabels.map(l => ({ label_id: l.label_id, subject_type: 'lead' as const, subject_id: b.primary_id })))
+            .onConflict(oc => oc.columns(['label_id', 'subject_type', 'subject_id']).doNothing())
+            .execute();
         }
+        await trx.deleteFrom('crm_label_mappings')
+          .where('subject_type', '=', 'lead').where('subject_id', '=', dupId).execute();
+        await trx.deleteFrom('leads').where('id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+      }
+      await logCrmActivity(trx, {
+        tenantId, subjectType: 'lead', subjectId: b.primary_id, type: 'note',
+        body: `Merged ${b.duplicate_ids.length} duplicate lead record(s)`,
+        actorId: request.user.sub, actorName: request.user.name,
       });
-      return { success: true };
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+    });
+    return { success: true };
   });
 }

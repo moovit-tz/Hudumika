@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import type { UserRole } from '@hudumika/types';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { useAuth } from '../hooks/useAuth.js';
+import { MGMT_ROLES } from '../lib/permissions.js';
 import { apiFetch } from '../lib/api.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
@@ -180,12 +183,13 @@ function StatusModal({
 // ─── Detail Panel ─────────────────────────────────────────────────────────────
 
 function DetailPanel({
-  quoteId, onClose, onEdit, onDelete, onStatusChange, onConvert,
+  quoteId, onClose, onEdit, onDelete, canDelete, onStatusChange, onConvert,
 }: {
   quoteId: string;
   onClose: () => void;
   onEdit: (q: any) => void;
   onDelete: (q: any) => void;
+  canDelete: boolean;
   onStatusChange: (q: any) => void;
   onConvert: (q: any) => void;
 }) {
@@ -246,10 +250,12 @@ function DetailPanel({
               <Icon name="arrowRight" size={13} /> Convert to Shipment
             </button>
           )}
-          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, color: 'var(--red)', borderColor: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-            onClick={() => onDelete(quote)}>
-            <Icon name="trash2" size={13} /> Delete
-          </button>
+          {canDelete && (
+            <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, color: 'var(--red)', borderColor: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
+              onClick={() => onDelete(quote)}>
+              <Icon name="trash2" size={13} /> Delete
+            </button>
+          )}
         </div>
 
         {/* Body */}
@@ -694,6 +700,11 @@ function QuoteModal({
 
 export const Sales: React.FC = () => {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
+  // Mirrors the API's QUOTE_DELETE_ROLES (quotations.routes.ts). Create/edit/
+  // status/convert are open to every role that can reach this page (CRM_ROLES
+  // is the same list as QUOTE_WRITE_ROLES), so only Delete needs gating.
+  const canDelete = MGMT_ROLES.includes((user?.role ?? '') as UserRole);
   const [quotes, setQuotes]       = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -869,16 +880,18 @@ export const Sales: React.FC = () => {
                           <Icon name="edit" size={13} />
                         </button>
                         </Tip>
-                        <Tip label="Delete quotation">
-                        <button
-                          type="button"
-                          className="sales-card-action is-danger"
-                          aria-label={`Delete quotation ${q.quote_number}`}
-                          onClick={() => openDelete(q)}
-                        >
-                          <Icon name="trash2" size={13} />
-                        </button>
-                        </Tip>
+                        {canDelete && (
+                          <Tip label="Delete quotation">
+                          <button
+                            type="button"
+                            className="sales-card-action is-danger"
+                            aria-label={`Delete quotation ${q.quote_number}`}
+                            onClick={() => openDelete(q)}
+                          >
+                            <Icon name="trash2" size={13} />
+                          </button>
+                          </Tip>
+                        )}
                       </div>
                     </div>
                     {q.valid_until && (
@@ -901,6 +914,7 @@ export const Sales: React.FC = () => {
           onClose={() => setDetailId(null)}
           onEdit={q => { setDetailId(null); openEdit(q); }}
           onDelete={q => openDelete(q)}
+          canDelete={canDelete}
           onStatusChange={q => { setDetailId(null); setStatusQuote(q); }}
           onConvert={q => doConvert(q)}
         />

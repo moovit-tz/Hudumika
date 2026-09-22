@@ -365,6 +365,8 @@
 /* Class-name bridge for pre-Radix tabs that have not yet gained tab roles.
    This is intentionally limited to containers whose class token ends in
    `-tabs` or `-tabstrip`; tab panels and unrelated controls are untouched. */
+/* Radix roots expose data-ds-tabs-root. New root class names must not end in
+   `-tabs`: that suffix is deliberately reserved for this legacy bridge. */
 :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) {
   display: flex !important;
   align-items: center !important;

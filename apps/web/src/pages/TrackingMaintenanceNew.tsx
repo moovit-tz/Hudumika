@@ -6,7 +6,6 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
-import { BackButton } from '../components/ui/BackButton.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Vendor { id: string; name: string }
@@ -56,11 +55,12 @@ export const TrackingMaintenanceNew: React.FC = () => {
 
   return (
     <div style={{ padding: '0 0 24px'}}>
-      <BackButton to="/tracking/maintenance" label="Maintenance" />
       <PageHeader
         crumbs={['HuduFreight', 'Log Service']}
-        titlePlain="Log"
-        titleEm="maintenance"
+        title="Log maintenance"
+        subtitle="Record completed or scheduled service work for a vehicle."
+        variant="create"
+        backTo="/tracking/maintenance"
       />
 
       <SectionCard>

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Braces, CalendarDays, CheckSquare, Hash, ListFilter, Plus,
+  Braces, CalendarDays, CheckSquare, Hash, ListFilter, Pencil, Plus,
   Search, SlidersHorizontal, TextCursorInput, Trash2, Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -54,6 +54,7 @@ export function CrmCustomFields() {
   const [defs, setDefs] = useState<FieldDef[] | null>(null);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingField, setEditingField] = useState<FieldDef | null>(null);
   const [label, setLabel] = useState('');
   const [type, setType] = useState<FieldType>('text');
   const [options, setOptions] = useState('');
@@ -83,9 +84,23 @@ export function CrmCustomFields() {
     setLabel('');
     setOptions('');
     setType('text');
+    setEditingField(null);
   }
 
-  async function add() {
+  function openAdd() {
+    resetForm();
+    setDialogOpen(true);
+  }
+
+  function openEdit(field: FieldDef) {
+    setEditingField(field);
+    setLabel(field.label);
+    setType(field.type);
+    setOptions(field.options.join(', '));
+    setDialogOpen(true);
+  }
+
+  async function save() {
     if (!label.trim()) return;
     const selectOptions = options.split(',').map((option) => option.trim()).filter(Boolean);
     if (type === 'select' && selectOptions.length < 2) {
@@ -95,20 +110,33 @@ export function CrmCustomFields() {
 
     setAdding(true);
     try {
-      await apiFetch('/v1/crm/custom-fields/defs', {
-        method: 'POST',
-        body: JSON.stringify({
-          entity_type: entity,
-          label: label.trim(),
-          type,
-          options: type === 'select' ? selectOptions : undefined,
-        }),
-      });
+      if (editingField) {
+        // The generated field_key and type stay fixed once created (imports/
+        // exports/workflows key off them) — only the label and, for a
+        // dropdown, its options can change after the fact.
+        await apiFetch(`/v1/crm/custom-fields/defs/${editingField.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            label: label.trim(),
+            options: editingField.type === 'select' ? selectOptions : undefined,
+          }),
+        });
+      } else {
+        await apiFetch('/v1/crm/custom-fields/defs', {
+          method: 'POST',
+          body: JSON.stringify({
+            entity_type: entity,
+            label: label.trim(),
+            type,
+            options: type === 'select' ? selectOptions : undefined,
+          }),
+        });
+      }
       resetForm();
       setDialogOpen(false);
       load();
     } catch (err: any) {
-      showAlert(err.message || 'Failed to add field');
+      showAlert(err.message || `Failed to ${editingField ? 'update' : 'add'} field`);
     } finally {
       setAdding(false);
     }
@@ -136,7 +164,7 @@ export function CrmCustomFields() {
         titleEm="fields"
         subtitle="Shape the information your team captures across leads, deals, and customer records."
         actions={(
-          <Button size="sm" className="gap-2" onClick={() => setDialogOpen(true)}>
+          <Button size="sm" className="gap-2" onClick={openAdd}>
             <Plus className="h-4 w-4" />
             New Field
           </Button>
@@ -153,7 +181,7 @@ export function CrmCustomFields() {
               role="tab"
               aria-selected={active}
               onClick={() => { setEntity(item); setSearch(''); }}
-              className={`flex min-h-20 items-start gap-3 rounded-lg border p-4 text-left transition-colors ${
+              className={`flex min-h-24 items-center gap-3 rounded-lg border p-4 text-left transition-colors ${
                 active
                   ? 'border-[var(--teal)] bg-[var(--teal-l)] ring-1 ring-[var(--teal)]/20'
                   : 'border-border bg-card hover:border-[var(--teal)]/50 hover:bg-muted/20'
@@ -209,7 +237,7 @@ export function CrmCustomFields() {
                   : `Add a field to capture information that is unique to how your team manages ${entity}s.`}
               </p>
               {!search && (
-                <Button size="sm" variant="outline" className="mt-4 gap-2" onClick={() => setDialogOpen(true)}>
+                <Button size="sm" variant="outline" className="mt-4 gap-2" onClick={openAdd}>
                   <Plus className="h-4 w-4" /> Add first field
                 </Button>
               )}
@@ -236,6 +264,18 @@ export function CrmCustomFields() {
                         )}
                       </div>
                     </div>
+                    <Tip label={`Edit ${field.label}`}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEdit(field)}
+                        aria-label={`Edit ${field.label}`}
+                        className="shrink-0 text-muted-foreground hover:bg-muted"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </Tip>
                     <Tip label={`Delete ${field.label}`}>
                       <Button
                         type="button"
@@ -269,9 +309,11 @@ export function CrmCustomFields() {
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open && !adding) resetForm(); }}>
         <DialogContent size="md">
           <DialogHeader>
-            <DialogTitle>Add custom field</DialogTitle>
+            <DialogTitle>{editingField ? 'Edit custom field' : 'Add custom field'}</DialogTitle>
             <DialogDescription>
-              Add a field to every {entity} record. The generated field key cannot be changed later.
+              {editingField
+                ? `The generated field key ("${editingField.field_key}") and type stay fixed — only the label${editingField.type === 'select' ? ' and dropdown options' : ''} can change.`
+                : `Add a field to every ${entity} record. The generated field key cannot be changed later.`}
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="space-y-5">
@@ -282,7 +324,7 @@ export function CrmCustomFields() {
                 autoFocus
                 value={label}
                 onChange={(event) => setLabel(event.target.value)}
-                onKeyDown={(event) => { if (event.key === 'Enter' && type !== 'select') void add(); }}
+                onKeyDown={(event) => { if (event.key === 'Enter' && type !== 'select') void save(); }}
                 placeholder="e.g. Referral source"
               />
               <p className="mt-1.5 text-[11px] text-muted-foreground">Use a short, recognizable label your team will understand.</p>
@@ -290,7 +332,7 @@ export function CrmCustomFields() {
 
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">Field type</label>
-              <Select value={type} onValueChange={(value) => setType(value as FieldType)}>
+              <Select value={type} onValueChange={(value) => setType(value as FieldType)} disabled={!!editingField}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(TYPE_META) as FieldType[]).map((fieldType) => (
@@ -298,7 +340,9 @@ export function CrmCustomFields() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="mt-1.5 text-[11px] text-muted-foreground">{TYPE_META[type].description}</p>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                {editingField ? "A field's type can't change once created." : TYPE_META[type].description}
+              </p>
             </div>
 
             {type === 'select' && (
@@ -308,7 +352,7 @@ export function CrmCustomFields() {
                   id="custom-field-options"
                   value={options}
                   onChange={(event) => setOptions(event.target.value)}
-                  onKeyDown={(event) => { if (event.key === 'Enter') void add(); }}
+                  onKeyDown={(event) => { if (event.key === 'Enter') void save(); }}
                   placeholder="Inbound, Referral, Partner"
                 />
                 <p className="mt-1.5 text-[11px] text-muted-foreground">Separate each option with a comma. Add at least two options.</p>
@@ -327,9 +371,9 @@ export function CrmCustomFields() {
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} disabled={adding}>Cancel</Button>
-            <Button size="sm" onClick={add} disabled={adding || !label.trim()} className="gap-2">
-              <Plus className="h-4 w-4" />
-              {adding ? 'Adding…' : 'Add Field'}
+            <Button size="sm" onClick={save} disabled={adding || !label.trim()} className="gap-2">
+              {editingField ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {adding ? (editingField ? 'Saving…' : 'Adding…') : (editingField ? 'Save Changes' : 'Add Field')}
             </Button>
           </DialogFooter>
         </DialogContent>

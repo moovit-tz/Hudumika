@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hudumika Agentic Platform — Implementation Plan</title>
+  <style>
+    :root{--ink:#15181d;--muted:#667085;--line:#dfe3e8;--paper:#fff;--wash:#f6f5f1;--brand:#087f73;--brand-l:#e8f5f2;--amber:#9a6700;--amber-l:#fff7df;--red:#b42318;--red-l:#fff0ee;--blue:#175cd3;--blue-l:#edf4ff;--r:14px;--shadow:0 1px 2px rgba(16,24,40,.05)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--wash);color:var(--ink);font:14px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}a{color:inherit}.shell{max-width:1240px;margin:auto;padding:28px 24px 64px}.hero{background:#101828;color:#fff;border-radius:20px;padding:42px;display:grid;grid-template-columns:1.5fr .8fr;gap:32px}.eyebrow,.kicker{font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.eyebrow{color:#7ee0d2}.hero h1{font-size:clamp(34px,5vw,64px);line-height:1.03;letter-spacing:-.045em;margin:12px 0 18px;font-weight:650}.hero p{color:#ccd4df;max-width:720px;font-size:16px}.decision{align-self:end;background:#1d2939;border:1px solid #344054;border-radius:var(--r);padding:20px}.decision strong{display:block;color:#7ee0d2;margin-bottom:7px}.meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:22px;color:#98a2b3;font-size:12px}.nav{position:sticky;top:0;z-index:5;margin:18px 0;background:rgba(246,245,241,.92);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:12px;padding:9px;display:flex;gap:5px;overflow:auto}.nav a{text-decoration:none;white-space:nowrap;padding:8px 11px;border-radius:8px;color:#475467;font-weight:650}.nav a:hover{background:#fff;color:var(--ink)}section{margin-top:18px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:30px;box-shadow:var(--shadow)}h2{font-size:26px;letter-spacing:-.025em;margin:0 0 8px}h3{font-size:17px;margin:0 0 8px}p{margin:7px 0;color:#475467}.lead{font-size:16px;max-width:850px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}.card{border:1px solid var(--line);border-radius:12px;padding:18px;background:#fff}.card p{font-size:13px}.badge{display:inline-flex;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:800}.ready{background:var(--brand-l);color:var(--brand)}.partial{background:var(--amber-l);color:var(--amber)}.missing{background:var(--red-l);color:var(--red)}.replace{background:var(--blue-l);color:var(--blue)}table{width:100%;border-collapse:collapse;margin-top:18px;font-size:13px}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#667085;background:#f9fafb}.flow{margin-top:20px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.node{min-height:110px;border:1px solid var(--line);border-radius:12px;padding:14px;background:#fbfcfd;position:relative}.node:not(:last-child):after{content:"→";position:absolute;right:-17px;top:40%;z-index:2;color:var(--brand);font-size:18px;font-weight:900}.node b{display:block;margin-bottom:5px}.node small{color:#667085}.callout{border-left:4px solid var(--brand);background:var(--brand-l);padding:14px 16px;margin-top:18px;border-radius:0 10px 10px 0}.warning{border-color:var(--amber);background:var(--amber-l)}.danger{border-color:var(--red);background:var(--red-l)}.phase{display:grid;grid-template-columns:105px 1fr 190px;gap:20px;padding:20px 0;border-top:1px solid var(--line)}.phase:first-of-type{margin-top:16px}.phase-no{font-weight:850;color:var(--brand)}.phase ul,.checklist{margin:8px 0 0;padding-left:19px;color:#475467}.phase li,.checklist li{margin:5px 0}.exit{font-size:12px;background:#f2f4f7;border-radius:10px;padding:12px;color:#344054}.code{background:#101828;color:#d0d5dd;border-radius:12px;padding:18px;overflow:auto;font:12px/1.65 "IBM Plex Mono",Consolas,monospace;margin-top:14px}.code .g{color:#7ee0d2}.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}.route{font-family:Consolas,monospace;color:#344054}.footer{text-align:center;color:#667085;padding:30px 10px}.print{position:fixed;right:18px;bottom:18px;border:0;border-radius:10px;padding:11px 16px;background:#101828;color:#fff;font-weight:750;cursor:pointer;box-shadow:0 8px 24px rgba(16,24,40,.18)}
+    @media(max-width:900px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}.flow{grid-template-columns:1fr}.node:not(:last-child):after{content:"↓";right:50%;top:auto;bottom:-22px}.phase{grid-template-columns:80px 1fr}.exit{grid-column:2}.two{grid-template-columns:1fr}}
+    @media(max-width:600px){.shell{padding:12px 12px 44px}.hero,section{padding:22px;border-radius:14px}.grid{grid-template-columns:1fr}.phase{grid-template-columns:1fr;gap:7px}.exit{grid-column:auto}.hero h1{font-size:38px}.print{display:none}table{display:block;overflow-x:auto;white-space:nowrap}}
+    @media print{body{background:#fff}.shell{max-width:none;padding:0}.nav,.print{display:none}.hero{border-radius:0}section{break-inside:avoid;box-shadow:none}.phase{break-inside:avoid}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="hero">
+    <div>
+      <div class="eyebrow">Architecture decision & implementation contract</div>
+      <h1>Hudumika Agentic Platform</h1>
+      <p>Replace the isolated <strong>/ai/chat</strong> experience with one permissioned Workspace Agent that can investigate, prepare, execute and audit work across Hudumika applications.</p>
+      <div class="meta"><span>Version 1.0</span><span>19 September 2026</span><span>Status: Proposed for implementation</span></div>
+    </div>
+    <aside class="decision"><strong>Decision</strong>Remove the public AI Chat page. Preserve its conversations and memory. Move all agent interaction to a new Workspace Agent backed by a shared tool registry, Ondi identity, policy decisions, approvals, Studio orchestration and domain-event audit trails.</aside>
+  </header>
+
+  <nav class="nav" aria-label="Document sections">
+    <a href="#decision">Decision</a><a href="#baseline">Baseline</a><a href="#target">Architecture</a><a href="#decommission">Chat removal</a><a href="#data">Data</a><a href="#api">API</a><a href="#phases">Phases</a><a href="#acceptance">Acceptance</a>
+  </nav>
+
+  <section id="decision">
+    <div class="kicker">ADR-001</div><h2>One agent spine, not another chatbot</h2>
+    <p class="lead">The current chat is useful but structurally narrow: it presents a conversation page over four read-only tools. Hudumika needs a governed execution surface that understands the user, tenant, application context, permissions, evidence and approval requirements.</p>
+    <div class="grid">
+      <article class="card"><span class="badge missing">Remove</span><h3>/ai/chat page</h3><p>Delete the sidebar entry and standalone page after the Agent workspace reaches parity.</p></article>
+      <article class="card"><span class="badge ready">Preserve</span><h3>Memory and conversations</h3><p>Migrate existing threads and explicit personal/workspace memory; do not erase user history.</p></article>
+      <article class="card"><span class="badge replace">Replace with</span><h3>/agent</h3><p>A task-oriented workspace for investigation, plans, approvals, evidence, runs and reusable agent skills.</p></article>
+    </div>
+    <div class="callout warning"><strong>Scope clarification:</strong> removing <code>/ai/chat</code> means removing the visible web route. The backend <code>/v1/ai/chat</code> cannot be deleted on day one because Calls and the Google Workspace sidebar currently consume it. It becomes a temporary compatibility adapter and is removed only after those callers migrate.</div>
+  </section>
+
+  <section id="baseline">
+    <div class="kicker">Repository assessment</div><h2>Existing capabilities to reuse</h2>
+    <table><thead><tr><th>Capability</th><th>State</th><th>Implementation decision</th></tr></thead><tbody>
+      <tr><td>Tenant-scoped domain events</td><td><span class="badge ready">Ready</span></td><td>Use as the event and audit backbone. Retain actor attribution and signed marketplace delivery.</td></tr>
+      <tr><td>Studio executor and run logs</td><td><span class="badge ready">Ready</span></td><td>Keep deterministic workflows; allow agent steps only through registered tools.</td></tr>
+      <tr><td>AI conversations and explicit memory</td><td><span class="badge ready">Ready</span></td><td>Rename product language, preserve storage, add consent and provenance controls.</td></tr>
+      <tr><td>AI tool calling</td><td><span class="badge partial">Partial</span></td><td>Replace four-tool switch statement with a shared typed registry used by Agent and Studio.</td></tr>
+      <tr><td>Studio action definitions</td><td><span class="badge partial">Partial</span></td><td>Promote actions into governed tools with output schema, effect, risk, grants and approvals.</td></tr>
+      <tr><td>Ondi identity and roles</td><td><span class="badge partial">Partial</span></td><td>Add first-class agent identities, delegated authority and expiring grants.</td></tr>
+      <tr><td>Approval lifecycle</td><td><span class="badge missing">Missing</span></td><td>Create durable approval requests; confirmation dialogs alone are insufficient.</td></tr>
+      <tr><td>Permission-filtered RAG</td><td><span class="badge missing">Missing</span></td><td>Add document ingestion, sensitivity labels, citations and access-time filtering.</td></tr>
+      <tr><td>Model router and cost controls</td><td><span class="badge missing">Missing</span></td><td>Route by sensitivity, capability, latency, language, tenant policy and budget.</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="target">
+    <div class="kicker">Target architecture</div><h2>Governed execution path</h2>
+    <div class="flow">
+      <div class="node"><b>1. Request</b><small>User instruction, Studio trigger or domain event.</small></div>
+      <div class="node"><b>2. Agent runtime</b><small>Intent, context, plan, model selection and stop conditions.</small></div>
+      <div class="node"><b>3. Policy decision</b><small>Allow, deny or require human approval.</small></div>
+      <div class="node"><b>4. Typed tool</b><small>Validated, tenant-scoped and idempotent service operation.</small></div>
+      <div class="node"><b>5. Evidence & audit</b><small>Result, sources, actor, cost, changes and next action.</small></div>
+    </div>
+    <div class="two">
+      <article class="card"><h3>Agent is not the authority</h3><p>The initiating user supplies intent. Ondi and policy determine authority. The tool performs the operation. The agent cannot expand its own permissions.</p></article>
+      <article class="card"><h3>Model is not the database</h3><p>Authoritative totals, statuses and calculations come from tools. The model explains results and proposes actions but does not invent operational state.</p></article>
+    </div>
+    <pre class="code"><span class="g">interface AgentToolDefinition</span> {
+  id: string; appId: string; version: number;
+  inputSchema: ZodSchema; outputSchema: ZodSchema;
+  effect: 'read' | 'create' | 'update' | 'delete' | 'external';
+  risk: 'low' | 'medium' | 'high' | 'critical';
+  requiredPermissions: string[];
+  approvalPolicy: 'never' | 'policy' | 'always';
+  idempotency: 'required' | 'supported' | 'none';
+  simulate?: (ctx, input) =&gt; Promise&lt;ToolPreview&gt;;
+  execute: (ctx, input) =&gt; Promise&lt;ToolResult&gt;;
+}</pre>
+  </section>
+
+  <section id="decommission">
+    <div class="kicker">Controlled decommission</div><h2>How /ai/chat is removed safely</h2>
+    <div class="phase"><div class="phase-no">Step 1</div><div><h3>Freeze the legacy page</h3><ul><li>No new features in <code>AIChat.tsx</code>.</li><li>Add telemetry for page and API consumers.</li><li>Inventory deep links and saved bookmarks.</li></ul></div><div class="exit">Exit: all callers and data dependencies documented.</div></div>
+    <div class="phase"><div class="phase-no">Step 2</div><div><h3>Launch /agent at feature parity</h3><ul><li>Threads, conversation history and explicit memory are available.</li><li>The four existing read tools work through the new registry.</li><li>Existing conversation IDs remain valid.</li></ul></div><div class="exit">Exit: parity tests and tenant isolation checks pass.</div></div>
+    <div class="phase"><div class="phase-no">Step 3</div><div><h3>Remove the visible route</h3><ul><li>Delete Chat from <code>AIShell</code> navigation.</li><li>Redirect <code>/ai/chat</code> to <code>/agent</code> for one release.</li><li>Then remove <code>AIChat.tsx</code> and its route registration.</li></ul></div><div class="exit">Exit: no internal links target the legacy page.</div></div>
+    <div class="phase"><div class="phase-no">Step 4</div><div><h3>Migrate embedded consumers</h3><ul><li>Calls uses an Agent session with meeting context.</li><li>Workspace sidebar uses the same Agent runtime with current-app context.</li><li>Both handle approvals and evidence consistently.</li></ul></div><div class="exit">Exit: no frontend calls <code>/v1/ai/chat</code>.</div></div>
+    <div class="phase"><div class="phase-no">Step 5</div><div><h3>Retire the compatibility endpoint</h3><ul><li>Return deprecation headers before removal.</li><li>Move the handler to <code>/v1/agent/runs</code>.</li><li>Keep database history; remove only dead routing code.</li></ul></div><div class="exit">Exit: production logs show zero legacy requests for 30 days.</div></div>
+  </section>
+
+  <section id="data">
+    <div class="kicker">Persistence</div><h2>New production data model</h2>
+    <table><thead><tr><th>Table</th><th>Purpose</th><th>Mandatory controls</th></tr></thead><tbody>
+      <tr><td class="route">agent_identities</td><td>Registered platform and specialist agents.</td><td>tenant_id, status, owner, service user, version.</td></tr>
+      <tr><td class="route">agent_tool_grants</td><td>Tools and scopes delegated to each agent.</td><td>permission, conditions, expiry, granted_by.</td></tr>
+      <tr><td class="route">agent_runs</td><td>One user goal or event-driven execution.</td><td>initiator, agent, status, model, cost, correlation ID.</td></tr>
+      <tr><td class="route">agent_run_steps</td><td>Plans, tool requests, tool outputs and transitions.</td><td>sequence, evidence, latency, tokens, redaction.</td></tr>
+      <tr><td class="route">agent_approvals</td><td>Durable human decision before consequential work.</td><td>requested effect, preview, approver role, expiry, decision.</td></tr>
+      <tr><td class="route">agent_artifacts</td><td>Generated worklists, drafts, reports and plans.</td><td>classification, retention, source entities.</td></tr>
+      <tr><td class="route">agent_evidence</td><td>Links claims to Hudumika records or retrieved sources.</td><td>entity version, accessed_at, access decision.</td></tr>
+    </tbody></table>
+    <div class="callout danger"><strong>Tenant isolation is mandatory:</strong> every table carries <code>tenant_id</code>, every query uses an explicit tenant predicate, and all database work runs inside <code>withTenant()</code>. A referenced entity ID must be verified as belonging to the same tenant before tool execution.</div>
+  </section>
+
+  <section id="api">
+    <div class="kicker">Interface contract</div><h2>Agent API replacing chat</h2>
+    <table><thead><tr><th>Method and route</th><th>Purpose</th></tr></thead><tbody>
+      <tr><td class="route">POST /v1/agent/runs</td><td>Start an agent run from a user goal, app context or domain event.</td></tr>
+      <tr><td class="route">GET /v1/agent/runs/:id</td><td>Return current state, plan, evidence, steps, approvals and artifacts.</td></tr>
+      <tr><td class="route">POST /v1/agent/runs/:id/messages</td><td>Continue or correct a run without creating a disconnected chat thread.</td></tr>
+      <tr><td class="route">POST /v1/agent/runs/:id/cancel</td><td>Stop future steps; never pretend completed side effects were rolled back.</td></tr>
+      <tr><td class="route">POST /v1/agent/approvals/:id/decision</td><td>Approve or reject using the authenticated human identity.</td></tr>
+      <tr><td class="route">GET /v1/agent/tools</td><td>Return tools visible to the current user and application context.</td></tr>
+      <tr><td class="route">GET /v1/agent/threads</td><td>Expose migrated conversation history.</td></tr>
+      <tr><td class="route">GET/POST/DELETE /v1/agent/memory</td><td>Manage explicit personal or authorised workspace memory.</td></tr>
+    </tbody></table>
+    <p class="callout"><strong>Transport:</strong> start with server-sent events for run progress and approval notifications. The work is server-to-client streaming; WebSockets are unnecessary until bidirectional real-time requirements actually exist.</p>
+  </section>
+
+  <section id="phases">
+    <div class="kicker">Delivery sequence</div><h2>Implementation phases</h2>
+    <div class="phase"><div class="phase-no">Phase 0<br>1 week</div><div><h3>Contracts and measurement</h3><ul><li>Freeze legacy chat.</li><li>Define tool, evidence, approval and run contracts in <code>@hudumika/types</code>.</li><li>Record baseline usage, latency, tool errors and provider cost.</li></ul></div><div class="exit">Approved ADR and measurable baseline.</div></div>
+    <div class="phase"><div class="phase-no">Phase 1<br>2–3 weeks</div><div><h3>Shared tool runtime</h3><ul><li>Unify current AI tools and Studio actions.</li><li>Add schema validation, permission checks, simulation and idempotency.</li><li>Keep Studio deterministic.</li></ul></div><div class="exit">Existing tools execute identically through one registry.</div></div>
+    <div class="phase"><div class="phase-no">Phase 2<br>2–3 weeks</div><div><h3>Runs, identity and audit</h3><ul><li>Add migrations and Kysely types.</li><li>Register agents in Ondi.</li><li>Persist every plan and tool transition.</li></ul></div><div class="exit">Every action identifies initiator, agent, approver and effect.</div></div>
+    <div class="phase"><div class="phase-no">Phase 3<br>2 weeks</div><div><h3>Approvals and policy</h3><ul><li>Implement allow, deny and require-approval decisions.</li><li>Add approval inbox and expiring requests.</li><li>Protect regulated, financial, destructive and external actions.</li></ul></div><div class="exit">No high-risk write bypasses policy.</div></div>
+    <div class="phase"><div class="phase-no">Phase 4<br>2–3 weeks</div><div><h3>Workspace Agent UI</h3><ul><li>Build <code>/agent</code> with runs, evidence, approvals, artifacts and threads.</li><li>Use the global Hudumika design system.</li><li>Make mobile a first-class layout.</li></ul></div><div class="exit">Parity with AI Chat plus run transparency.</div></div>
+    <div class="phase"><div class="phase-no">Phase 5<br>3–4 weeks</div><div><h3>First operational agents</h3><ul><li>FinOps collections.</li><li>ClearOS clearance readiness.</li><li>NexusHR attendance exceptions.</li></ul></div><div class="exit">Each pilot shows measurable time saved with zero unauthorised writes.</div></div>
+    <div class="phase"><div class="phase-no">Phase 6<br>2 weeks</div><div><h3>Legacy retirement</h3><ul><li>Redirect then remove <code>/ai/chat</code>.</li><li>Migrate Calls and Workspace sidebar.</li><li>Deprecate and remove <code>/v1/ai/chat</code>.</li></ul></div><div class="exit">Zero legacy traffic for 30 days and rollback snapshot retained.</div></div>
+  </section>
+
+  <section id="acceptance">
+    <div class="kicker">Release gates</div><h2>Definition of production-ready</h2>
+    <div class="two">
+      <div class="card"><h3>Security and correctness</h3><ul class="checklist"><li>Cross-tenant access tests cover every tool.</li><li>Write tools are idempotent.</li><li>Agent cannot invoke undisclosed tools.</li><li>PII is redacted from provider logs and telemetry.</li><li>Approval cannot be replayed after expiry or execution.</li><li>Tool outputs—not model prose—drive authoritative state.</li></ul></div>
+      <div class="card"><h3>Product and operations</h3><ul class="checklist"><li>Every answer distinguishes recorded, derived, estimated and missing data.</li><li>Claims link to accessible evidence.</li><li>Users can cancel, correct and inspect runs.</li><li>Mobile approval and run views are usable.</li><li>Latency, tokens, cost and failures are observable.</li><li>Provider failure produces a recoverable run, not lost work.</li></ul></div>
+    </div>
+    <div class="callout"><strong>First proof journey:</strong> ask which completed shipments are ready to invoice, receive a source-linked worklist, preview invoices, submit consequential actions for approval, execute each approved operation exactly once, and inspect the complete audit trail.</div>
+  </section>
+
+  <footer class="footer">Hudumika Agentic Platform · Implementation contract · 19 September 2026</footer>
+</main>
+<button class="print" type="button" onclick="window.print()">Print / Save PDF</button>
+</body>
+</html>

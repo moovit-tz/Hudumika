@@ -589,10 +589,33 @@ export async function trackingRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/assignments', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.post('/assignments', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const body = req.body as { vehicle_id: string; driver_id: string; start_time: string; end_time?: string; labels?: string; comment?: string; };
     return withTenant(user.tenant_id, async (trx) => {
+      const [vehicle, driver] = await Promise.all([
+        trx.selectFrom('vehicles').select('id').where('id', '=', body.vehicle_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
+        trx.selectFrom('drivers').select('id').where('id', '=', body.driver_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
+      ]);
+      if (!vehicle || !driver) return reply.code(404).send({ error: 'Vehicle or driver not found' });
+
+      await trx.updateTable('vehicle_assignments')
+        .set({ end_time: body.start_time } as any)
+        .where('vehicle_id', '=', body.vehicle_id)
+        .where('tenant_id', '=', user.tenant_id)
+        .where('end_time', 'is', null)
+        .execute();
+      await trx.updateTable('vehicle_assignments')
+        .set({ end_time: body.start_time } as any)
+        .where('driver_id', '=', body.driver_id)
+        .where('tenant_id', '=', user.tenant_id)
+        .where('end_time', 'is', null)
+        .execute();
+      await trx.updateTable('drivers').set({ assigned_vehicle_id: null, updated_at: new Date() })
+        .where('assigned_vehicle_id', '=', body.vehicle_id).where('tenant_id', '=', user.tenant_id).execute();
+      await trx.updateTable('drivers').set({ assigned_vehicle_id: body.vehicle_id, updated_at: new Date() })
+        .where('id', '=', body.driver_id).where('tenant_id', '=', user.tenant_id).execute();
+
       return trx.insertInto('vehicle_assignments').values({
         tenant_id: user.tenant_id,
         vehicle_id: body.vehicle_id,

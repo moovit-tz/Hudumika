@@ -79,7 +79,7 @@ const NAV: SidebarSection[] = [
 export function StudioShell() {
   return (
     <WorkspaceApp appId="studio">
-      <div className="app-shell">
+      <div className="app-shell" data-studio="true">
         <AppSidebar appId="studio" sections={NAV} />
         <div className="app-main">
           <AppHeader />

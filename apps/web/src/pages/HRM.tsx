@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { MetricsRow, type MetricCardProps } from '../components/MetricCard.js';
-import { apiFetch, apiDownload } from '../lib/api.js';
+import { apiFetch, apiDownload, apiFetchBlob } from '../lib/api.js';
 import { Button } from '../components/ui/button.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
@@ -19,7 +19,7 @@ import type { AttendanceStatus, AttendanceRecord, ShiftType, ShiftAssignment, Em
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { MultiSelectFilter } from '../components/ui/filter-dropdown.js';
-import { DatePicker } from '../components/ui/date-picker.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { PageHeader as SharedPageHeader } from '../components/PageHeader.js';
@@ -28,6 +28,7 @@ import { PersonLink } from '../components/PersonLink.js';
 import { PayrollSettingsModal } from './PayrollSettingsModal.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { showPrompt } from '../lib/prompt.js';
 import './HRMDashboard.css';
 
 function mapAttStatus(s: string): AttendanceStatus {
@@ -131,7 +132,7 @@ function PageHeader({ icon, title, sub, children }: { icon?: IconName; title: st
 }
 
 function Card({ children, mb = 16 }: { children: React.ReactNode; mb?: number }) {
-  return <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden', marginBottom:mb }}>{children}</div>;
+  return <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', boxShadow:'var(--elev-sm)', overflow:'hidden', marginBottom:mb }}>{children}</div>;
 }
 
 const TH = ({ children, right }: { children: React.ReactNode; right?: boolean }) => (
@@ -155,18 +156,18 @@ function Wrap({ children }: { children: React.ReactNode }) {
 
 function PrimaryBtn({ label, icon, onClick, type = 'button' }: { label: string; icon?: IconName; onClick?: () => void; type?: 'button' | 'submit' }) {
   return (
-    <button type={type} className="btn btn-primary" onClick={onClick} style={{ display:'flex', alignItems:'center', gap:6 }}>
-      {icon && <Icon name={icon} size={13} color="hsl(var(--primary-foreground))" />}
+    <Button type={type} size="sm" onClick={onClick}>
+      {icon && <Icon name={icon} size={13} />}
       {label}
-    </button>
+    </Button>
   );
 }
 
 function ActionBtn({ label, color = 'var(--teal)', onClick }: { label: string; color?: string; onClick?: () => void }) {
   return (
-    <button type="button" onClick={onClick} style={{ fontSize:12, padding:'var(--ds-btn-py-xs) 9px', borderRadius:'var(--r)', border:`1px solid ${color}`, color, background:'none', cursor:'pointer', fontFamily:'var(--font)', fontWeight:600, marginRight:4, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+    <Button type="button" variant="outline" size="xs" onClick={onClick} style={{ color, borderColor: color, marginRight: 4 }}>
       {label}
-    </button>
+    </Button>
   );
 }
 
@@ -382,7 +383,7 @@ export function EmployeesPage() {
               try {
                 await apiFetch('/v1/hr/invitations', { method: 'POST', body: JSON.stringify({ email, role }) });
                 setShowOnboard(false);
-              } catch { /* ignore */ }
+              } catch (error: any) { showAlert(error?.message || 'Could not send the invitation.', { variant: 'error' }); }
             }}>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Work Email</label>
@@ -870,15 +871,15 @@ export function DeleteRequestsPage() {
   const [showNew, setShowNew] = useState(false);
 
   const load = useCallback(async () => {
-    try { setReqs(await apiFetch('/v1/hr/delete-requests')); } catch { /* none yet */ }
+    try { setReqs(await apiFetch('/v1/hr/delete-requests')); } catch (error: any) { showAlert(error?.message || 'Could not load deletion requests.', { variant: 'error' }); }
   }, []);
   const loadStaff = useCallback(async () => {
-    try { setStaff(await apiFetch('/v1/hr/staff')); } catch { /* keep empty */ }
+    try { setStaff(await apiFetch('/v1/hr/staff')); } catch (error: any) { showAlert(error?.message || 'Could not load staff.'); }
   }, []);
   useEffect(() => { load(); loadStaff(); }, [load, loadStaff]);
 
   async function decide(id: string, status: 'APPROVED' | 'REJECTED') {
-    try { await apiFetch(`/v1/hr/delete-requests/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }); load(); } catch { /* ignore */ }
+    try { await apiFetch(`/v1/hr/delete-requests/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }); load(); } catch (error: any) { showAlert(error?.message || 'Could not update the deletion request.', { variant: 'error' }); }
   }
 
   return (
@@ -898,7 +899,7 @@ export function DeleteRequestsPage() {
             try {
               await apiFetch('/v1/hr/delete-requests', { method: 'POST', body: JSON.stringify({ user_id: userId, reason }) });
               setShowNew(false); load();
-            } catch { /* ignore */ }
+            } catch (error: any) { showAlert(error?.message || 'Could not submit the deletion request.', { variant: 'error' }); }
           }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Staff Member</label>
@@ -1007,13 +1008,18 @@ export function DepartmentsPage() {
     try {
       await apiFetch('/v1/hr/departments', { method: 'POST', body: JSON.stringify({ name: v.name, head_user_id: v.head_user_id || null, status: v.status }) });
       setShowNew(false); load();
-    } catch { /* ignore */ }
+    } catch (error: any) { showAlert(error?.message || 'Could not create department.'); }
   }
   async function save(id: string, v: { name: string; head_user_id: string; status: string }) {
     try {
       await apiFetch(`/v1/hr/departments/${id}`, { method: 'PATCH', body: JSON.stringify({ name: v.name, head_user_id: v.head_user_id || null, status: v.status }) });
       setEditing(null); load();
-    } catch { /* ignore */ }
+    } catch (error: any) { showAlert(error?.message || 'Could not update department.'); }
+  }
+  async function remove(d: DeptRow) {
+    if (!(await showConfirm(`Delete the "${d.name}" department?`, { variant: 'danger', confirmLabel: 'Delete' }))) return;
+    try { await apiFetch(`/v1/hr/departments/${d.id}`, { method: 'DELETE' }); load(); }
+    catch (error: any) { showAlert(error?.message || 'Could not delete the department.'); }
   }
 
   return (
@@ -1029,12 +1035,12 @@ export function DepartmentsPage() {
         <thead><tr><TH>Department</TH><TH>Head</TH><TH right>Employees</TH><TH>Status</TH><TH right>Actions</TH></tr></thead>
         <tbody>
           {depts.map(d => (
-            <tr key={d.name} style={{ borderBottom:'1px solid var(--border)' }}>
+            <tr key={d.id ?? d.name} style={{ borderBottom:'1px solid var(--border)' }}>
               <TD bold>{d.name}</TD>
               <TD>{d.head === '-' ? <span style={{ color:'var(--ink3)' }}>—</span> : <div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={d.head} size={24} />{d.head}</div>}</TD>
               <TD right bold>{d.employees}</TD>
               <TD><Badge status={d.status} /></TD>
-              <TD right>{d.id && <ActionBtn label="Edit" onClick={() => { setShowNew(false); setEditing(d); }} />}</TD>
+              <TD right>{d.id && <><ActionBtn label="Edit" onClick={() => { setShowNew(false); setEditing(d); }} /><ActionBtn label="Delete" color="var(--red)" onClick={() => remove(d)} /></>}</TD>
             </tr>
           ))}
         </tbody>
@@ -1052,19 +1058,30 @@ export function TeamsPage() {
   const [addingTo, setAddingTo] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    try { setTeams(await apiFetch('/v1/hr/teams')); } catch { /* none yet */ }
+    try { setTeams(await apiFetch('/v1/hr/teams')); } catch (error: any) { showAlert(error?.message || 'Could not load teams.'); }
   }, []);
   const loadStaff = useCallback(async () => {
-    try { setStaff(await apiFetch('/v1/hr/staff')); } catch { /* keep empty */ }
+    try { setStaff(await apiFetch('/v1/hr/staff')); } catch (error: any) { showAlert(error?.message || 'Could not load staff.'); }
   }, []);
   useEffect(() => { load(); loadStaff(); }, [load, loadStaff]);
 
   async function addMember(teamId: string, userId: string) {
     if (!userId) return;
-    try { await apiFetch(`/v1/hr/teams/${teamId}/members`, { method: 'POST', body: JSON.stringify({ user_id: userId }) }); setAddingTo(null); load(); } catch { /* ignore */ }
+    try { await apiFetch(`/v1/hr/teams/${teamId}/members`, { method: 'POST', body: JSON.stringify({ user_id: userId }) }); setAddingTo(null); load(); } catch (error: any) { showAlert(error?.message || 'Could not add team member.'); }
   }
   async function removeMember(teamId: string, userId: string) {
-    try { await apiFetch(`/v1/hr/teams/${teamId}/members/${userId}`, { method: 'DELETE' }); load(); } catch { /* ignore */ }
+    try { await apiFetch(`/v1/hr/teams/${teamId}/members/${userId}`, { method: 'DELETE' }); load(); } catch (error: any) { showAlert(error?.message || 'Could not remove team member.'); }
+  }
+  async function renameTeam(t: TeamRow) {
+    const name = await showPrompt('Team name', { title: 'Rename team', defaultValue: t.name, confirmLabel: 'Rename', required: true });
+    if (name === null || !name.trim() || name.trim() === t.name) return;
+    try { await apiFetch(`/v1/hr/teams/${t.id}`, { method: 'PATCH', body: JSON.stringify({ name: name.trim() }) }); load(); }
+    catch (error: any) { showAlert(error?.message || 'Could not rename the team.'); }
+  }
+  async function deleteTeam(t: TeamRow) {
+    if (!(await showConfirm(`Delete the "${t.name}" team? Its ${t.members.length} member${t.members.length !== 1 ? 's' : ''} stay on staff; only the grouping is removed.`, { variant: 'danger', confirmLabel: 'Delete' }))) return;
+    try { await apiFetch(`/v1/hr/teams/${t.id}`, { method: 'DELETE' }); load(); }
+    catch (error: any) { showAlert(error?.message || 'Could not delete the team.'); }
   }
 
   return (
@@ -1085,7 +1102,7 @@ export function TeamsPage() {
             try {
               await apiFetch('/v1/hr/teams', { method: 'POST', body: JSON.stringify({ name, lead_user_id: leadId || null }) });
               setShowNew(false); load();
-            } catch { /* ignore */ }
+            } catch (error: any) { showAlert(error?.message || 'Could not create the team.', { variant: 'error' }); }
           }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 180 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Team Name</label>
@@ -1129,7 +1146,11 @@ export function TeamsPage() {
                 placeholder="-- Select staff to add --"
               />
             ) : (
-              <ActionBtn label="Add Member" onClick={() => setAddingTo(t.id)} />
+              <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                <ActionBtn label="Add Member" onClick={() => setAddingTo(t.id)} />
+                <ActionBtn label="Rename" onClick={() => renameTeam(t)} />
+                <ActionBtn label="Delete" color="var(--red)" onClick={() => deleteTeam(t)} />
+              </div>
             )}
           </div>
         ))}
@@ -1330,6 +1351,10 @@ export function LeavesPage() {
   const [formPerson, setFormPerson] = useState('');
   const [formType, setFormType] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [formFrom, setFormFrom] = useState('');
+  const [formTo, setFormTo] = useState('');
+  const [formReason, setFormReason] = useState('');
+  const [formBusy, setFormBusy] = useState(false);
 
   const loadLeaves = useCallback(async () => {
     try {
@@ -1365,11 +1390,37 @@ export function LeavesPage() {
   }
 
   async function handleStatus(id: string, status: LeaveStatus) {
+    const before = leaves;
     setLeaves(prev => prev.map(l => l.id === id ? { ...l, status } : l));
     try {
       await apiFetch(`/v1/hr/leaves/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
       loadLeaves(); loadEntitlement(); loadSummary();
-    } catch { /* ignored */ }
+    } catch (error: any) {
+      // The row was flipped optimistically — put it back and say why, rather
+      // than leaving a request showing as decided when the server refused it.
+      setLeaves(before);
+      showAlert(error?.message || 'Could not update the leave request.');
+    }
+  }
+
+  // "Add Leave" toggled showNew, but nothing ever rendered a form for it — the
+  // button did nothing. The server does the real work (working-day count,
+  // overlap refusal, entitlement check) and answers in plain language.
+  async function submitLeave(e: React.FormEvent) {
+    e.preventDefault();
+    const type = leaveTypes.find(t => t.id === formType);
+    if (!formPerson || !type || !formFrom || !formTo) { setFormError('Choose an employee, a leave type, and both dates.'); return; }
+    setFormBusy(true); setFormError(null);
+    try {
+      await apiFetch('/v1/hr/leaves', { method: 'POST', body: JSON.stringify({
+        user_id: formPerson, leave_type_id: type.id, type: type.code,
+        from_date: formFrom, to_date: formTo, reason: formReason.trim() || undefined,
+      }) });
+      setShowNew(false); setFormPerson(''); setFormType(''); setFormFrom(''); setFormTo(''); setFormReason('');
+      loadLeaves(); loadEntitlement(); loadSummary();
+    } catch (error: any) {
+      setFormError(error?.message || 'Could not submit the leave request.');
+    } finally { setFormBusy(false); }
   }
 
   const rows = leaves.filter(l => {
@@ -1415,6 +1466,39 @@ export function LeavesPage() {
           </Button>
         </div>
       </div>
+
+      {showNew && (
+        <Card mb={0}>
+          <form onSubmit={submitLeave} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Employee</label>
+              <Combobox options={staff.map(s => ({ value: s.id, label: s.name }))} value={formPerson} onChange={setFormPerson} placeholder="Select employee" searchPlaceholder="Search people…" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Leave type</label>
+              <Select value={formType} onValueChange={setFormType}>
+                <SelectTrigger aria-label="Leave type" style={{ width: 200 }}><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectContent>{leaveTypes.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>From</label>
+              <DatePicker date={parseDateOnly(formFrom)} onChange={d => setFormFrom(d ? toDateOnlyString(d) : '')} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>To</label>
+              <DatePicker date={parseDateOnly(formTo)} onChange={d => setFormTo(d ? toDateOnlyString(d) : '')} />
+            </div>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Reason (optional)</label>
+              <input value={formReason} onChange={e => setFormReason(e.target.value)} maxLength={2000} placeholder="e.g. Family event" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+            </div>
+            <PrimaryBtn label={formBusy ? 'Submitting…' : 'Submit request'} type="submit" />
+            <ActionBtn label="Cancel" onClick={() => { setShowNew(false); setFormError(null); }} />
+            {formError && <div role="alert" style={{ flexBasis: '100%', fontSize: 12.5, color: 'var(--red)' }}>{formError}</div>}
+          </form>
+        </Card>
+      )}
 
       {/* Real KPI row — reads leaves/summary (year, pending_count,
           approved_count, on_leave_today, days_taken_ytd), a real endpoint
@@ -1951,7 +2035,7 @@ export function AttendancePage() {
                   try {
                     await apiFetch('/v1/hr/attendance/bulk', { method: 'POST', body: JSON.stringify({ user_ids: emps, from_date: sDate, to_date: eDate, status: toAttStatusApi(stat), clock_in: cIn || null, clock_out: cOut || null }) });
                     loadAttendance();
-                  } catch { /* ignore */ }
+                  } catch (error: any) { showAlert(error?.message || 'Could not mark attendance.', { variant: 'error' }); }
                 }
               }}>
                 <div style={{ marginBottom: 16 }}>
@@ -2192,23 +2276,20 @@ export function DevicesPage() {
           device={manageDevice}
           staff={staff}
           onClose={() => setManageDevice(null)}
-          onDeviceChanged={loadDevices}
         />
       )}
     </div>
   );
 }
 
-function DeviceManageDrawer({ device, staff, onClose, onDeviceChanged }: {
-  device: AttDevice; staff: { id: string; name: string }[]; onClose: () => void; onDeviceChanged: () => void;
+function DeviceManageDrawer({ device, staff, onClose }: {
+  device: AttDevice; staff: { id: string; name: string }[]; onClose: () => void;
 }) {
   const [enrollments, setEnrollments] = useState<AttDeviceEnrollment[]>([]);
   const [events, setEvents] = useState<AttDeviceEvent[]>([]);
   const [syncLogs, setSyncLogs] = useState<AttDeviceSyncLog[]>([]);
   const [enrollUserId, setEnrollUserId] = useState('');
   const [enrollPin, setEnrollPin] = useState('');
-  const [simulatePin, setSimulatePin] = useState('');
-  const [simulating, setSimulating] = useState(false);
   const [assigningEventId, setAssigningEventId] = useState<string | null>(null);
   const [assignUserId, setAssignUserId] = useState('');
 
@@ -2253,20 +2334,6 @@ function DeviceManageDrawer({ device, staff, onClose, onDeviceChanged }: {
     }
   }
 
-  async function simulatePunch() {
-    if (!simulatePin.trim()) return;
-    setSimulating(true);
-    try {
-      await apiFetch(`/v1/hr/attendance-devices/${device.id}/simulate-punch`, { method: 'POST', body: JSON.stringify({ externalPin: simulatePin.trim() }) });
-      load();
-      onDeviceChanged();
-    } catch (err: any) {
-      showAlert(`Simulated punch failed: ${err?.message ?? 'Unknown error'}`);
-    } finally {
-      setSimulating(false);
-    }
-  }
-
   const staffOptions = staff.map(s => ({ value: s.id, label: s.name }));
 
   return (
@@ -2281,20 +2348,6 @@ function DeviceManageDrawer({ device, staff, onClose, onDeviceChanged }: {
           </SheetHeader>
 
         <div style={{ padding: 24, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 22 }}>
-          {/* Simulate punch — no physical hardware reachable here, so this drives
-              one real synthetic punch through the exact same pipeline a genuine
-              device push uses (attendance-device.service.ts). */}
-          <div>
-            <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>Simulate a Punch</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input className="input-field" value={simulatePin} onChange={e => setSimulatePin(e.target.value)} placeholder="Enrolled PIN" style={{ flex: 1 }} />
-              <button type="button" className="btn btn-secondary btn-sm" disabled={!simulatePin.trim() || simulating} onClick={simulatePunch}>
-                {simulating ? 'Sending…' : 'Send Punch'}
-              </button>
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 6 }}>Stands in for a real terminal — runs the punch through the same reconciliation as a genuine device push.</div>
-          </div>
-
           {/* Enrollments */}
           <div>
             <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>Enrolled Employees</div>
@@ -2578,7 +2631,7 @@ export function ShiftsPage() {
                               e.stopPropagation();
                               setAssignments(prev => [...prev.filter(x => !(x.employeeId === emp.id && x.date === dStr)), { id: `A_${Date.now()}`, employeeId: emp.id, date: dStr, shiftId: st.id }]);
                               setActiveCell(null);
-                              try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: st.id, date: dStr }) }); loadAssignments(); } catch { /**/ }
+                              try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: st.id, date: dStr }) }); loadAssignments(); } catch (error: any) { loadAssignments(); showAlert(error?.message || 'Could not assign the shift.', { variant: 'error' }); }
                             }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} className="hover-bg">
                               <div style={{ width: 10, height: 10, borderRadius: 'var(--r-sm)', background: st.color }} />
                               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)' }}>{st.name}</span>
@@ -2589,7 +2642,7 @@ export function ShiftsPage() {
                             e.stopPropagation();
                             setAssignments(prev => prev.filter(x => !(x.employeeId === emp.id && x.date === dStr)));
                             setActiveCell(null);
-                            try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: null, date: dStr }) }); loadAssignments(); } catch { /**/ }
+                            try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: null, date: dStr }) }); loadAssignments(); } catch (error: any) { loadAssignments(); showAlert(error?.message || 'Could not clear the shift.', { variant: 'error' }); }
                           }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} className="hover-bg">
                             <Icon name="x" size={12} />
                             <span style={{ fontSize: 12, fontWeight: 600 }}>Clear Shift</span>
@@ -2634,7 +2687,7 @@ export function ShiftsPage() {
                       }
                     }
                     loadAssignments();
-                  } catch { /* ignore */ }
+                  } catch (error: any) { showAlert(error?.message || 'Could not assign the selected shifts.', { variant: 'error' }); }
                 }
               }}>
                 <div style={{ marginBottom: 16 }}>
@@ -2714,7 +2767,7 @@ export function HolidaysPage() {
 
   async function handleDelete(id: string) {
     setHolidays(prev => prev.filter(h => h.id !== id));
-    try { await apiFetch(`/v1/hr/holidays/${id}`, { method: 'DELETE' }); } catch { load(); }
+    try { await apiFetch(`/v1/hr/holidays/${id}`, { method: 'DELETE' }); } catch (error: any) { load(); showAlert(error?.message || 'Could not delete the holiday.', { variant: 'error' }); }
   }
 
   async function handleSync() {
@@ -2775,7 +2828,7 @@ export function HolidaysPage() {
             try {
               await apiFetch('/v1/hr/holidays', { method: 'POST', body: JSON.stringify({ date, name, type }) });
               setShowNew(false); load();
-            } catch { /* ignore */ }
+            } catch (error: any) { showAlert(error?.message || 'Could not add the holiday.', { variant: 'error' }); }
           }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Date</label>
@@ -2914,19 +2967,19 @@ export function DesignationsPage() {
 
   async function handleDelete(id: string) {
     setDesigs(prev => prev.filter(d => d.id !== id));
-    try { await apiFetch(`/v1/hr/designations/${id}`, { method: 'DELETE' }); } catch { load(); }
+    try { await apiFetch(`/v1/hr/designations/${id}`, { method: 'DELETE' }); } catch (error: any) { load(); showAlert(error?.message || 'Could not delete the designation.', { variant: 'error' }); }
   }
   async function create(v: { title: string; department_id: string }) {
     try {
       await apiFetch('/v1/hr/designations', { method: 'POST', body: JSON.stringify({ title: v.title, department_id: v.department_id || null }) });
       setShowNew(false); load();
-    } catch { /* ignore */ }
+    } catch (error: any) { showAlert(error?.message || 'Could not create the designation.', { variant: 'error' }); }
   }
   async function save(id: string, v: { title: string; department_id: string }) {
     try {
       await apiFetch(`/v1/hr/designations/${id}`, { method: 'PATCH', body: JSON.stringify({ title: v.title, department_id: v.department_id || null }) });
       setEditing(null); load();
-    } catch { /* ignore */ }
+    } catch (error: any) { showAlert(error?.message || 'Could not update the designation.', { variant: 'error' }); }
   }
 
   return (
@@ -2977,10 +3030,13 @@ const payM = (v: any) => 'TZS ' + (payNum(v) / 1_000_000).toFixed(2) + 'M';
 // split was hardcoded.
 export function PayrollPage() {
   const now = new Date();
+  const { user } = useAuth();
+  // Mirrors the API's PAYROLL_ROLES (payroll.routes.ts) — who may act on a run.
+  const canRun = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE'].includes(user?.role ?? '');
   const [runs, setRuns] = useState<PayRun[]>([]);
   const [selId, setSelId] = useState<string | null>(null);
   const [detail, setDetail] = useState<{ run: PayRun; payslips: Payslip[]; totals: any } | null>(null);
-  const [busy, setBusy] = useState<'' | 'create' | 'calc' | 'approve' | 'distribute' | 'mark-paid'>('');
+  const [busy, setBusy] = useState<'' | 'create' | 'calc' | 'approve' | 'distribute' | 'mark-paid' | 'delete'>('');
   const [search, setSearch] = useState('');
   const [showPay, setShowPay] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -3004,12 +3060,77 @@ export function PayrollPage() {
   useEffect(() => { if (selId) loadDetail(selId); else setDetail(null); }, [selId, loadDetail]);
 
   const createRun = async () => {
+    const period = `${now.toLocaleString('en', { month: 'long' })} ${now.getFullYear()}`;
+    if (!(await showConfirm(`Start the ${period} payroll run?`, { confirmLabel: 'Start run' }))) return;
     setBusy('create'); setErr(null);
     try {
       const r = await apiFetch('/v1/payroll/runs', { method: 'POST', body: JSON.stringify({ period_month: now.getMonth() + 1, period_year: now.getFullYear() }) });
       await loadRuns(); if (r?.id) setSelId(r.id);
-    } catch (e: any) { setErr(e?.message || 'Could not create a run.'); }
+    } catch (e: any) { showAlert(e?.message || 'Could not create a run.'); }
     finally { setBusy(''); }
+  };
+
+  // The lifecycle (calculate → approve → mark paid → send payslips) existed
+  // only in the API — the page could create a draft run and nothing more, so a
+  // payroll could never actually be run from the UI. Every step is validated
+  // server-side (409s carry a plain-language reason, surfaced as-is).
+  const runAction = async (kind: 'calc' | 'approve' | 'mark-paid' | 'distribute' | 'delete') => {
+    const run = detail?.run;
+    if (!run || busy) return;
+    const period = `${MONTH_ABBR[run.period_month - 1]} ${run.period_year}`;
+    const confirmations: Record<string, [string, string]> = {
+      approve: [`Approve the ${period} payroll? Once approved its figures are frozen and can no longer be recalculated.`, 'Approve'],
+      'mark-paid': [`Mark the ${period} payroll as paid? This posts wages, PAYE and statutory liabilities to the general ledger and cannot be undone.`, 'Mark as paid'],
+      distribute: [`Email each employee their ${period} payslip?`, 'Send payslips'],
+      delete: [`Delete the draft ${period} payroll run?`, 'Delete'],
+    };
+    const ask = confirmations[kind];
+    if (ask && !(await showConfirm(ask[0], { confirmLabel: ask[1], variant: kind === 'delete' ? 'danger' : undefined }))) return;
+    setBusy(kind);
+    try {
+      const base = `/v1/payroll/runs/${run.id}`;
+      if (kind === 'calc') {
+        const r = await apiFetch(`${base}/calculate`, { method: 'POST' });
+        if (r?.skipped?.length) {
+          showAlert(`${r.skipped.length} ${r.skipped.length === 1 ? 'person was' : 'people were'} left out because no basic salary is recorded. Add a salary for them, then recalculate.`,
+            { variant: 'warning', items: r.skipped.map((s: any) => s.name) });
+        }
+      } else if (kind === 'approve') {
+        await apiFetch(`${base}/approve`, { method: 'POST' });
+      } else if (kind === 'mark-paid') {
+        await apiFetch(`${base}/mark-paid`, { method: 'POST' });
+        showAlert('Payroll marked as paid and posted to the general ledger.', { variant: 'success' });
+      } else if (kind === 'distribute') {
+        const r = await apiFetch(`${base}/distribute`, { method: 'POST' });
+        showAlert(`Sent ${r?.sent ?? 0} of ${r?.total ?? 0} payslips.`, { variant: r?.skipped ? 'warning' : 'success', items: r?.failures?.length ? r.failures : undefined });
+      } else {
+        await apiFetch(base, { method: 'DELETE' });
+        setSelId(null);
+      }
+      await loadRuns();
+      if (kind !== 'delete') await loadDetail(run.id);
+    } catch (e: any) { showAlert(e?.message || 'That action failed.'); }
+    finally { setBusy(''); }
+  };
+
+  const downloadRunFile = async (kind: 'bank' | 'paye') => {
+    const run = detail?.run;
+    if (!run) return;
+    try {
+      if (kind === 'bank') {
+        const blob = await apiFetchBlob(`/v1/payroll/runs/${run.id}/bank-file`);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `bank-file_${run.period_year}-${String(run.period_month).padStart(2, '0')}.csv`;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      } else {
+        const blob = await apiFetchBlob(`/v1/payroll/runs/${run.id}/paye-return/pdf`);
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank', 'noopener');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      }
+    } catch (e: any) { showAlert(e?.message || 'Could not download the file.'); }
   };
 
   const payslips = detail?.payslips ?? [];
@@ -3125,6 +3246,62 @@ export function PayrollPage() {
       </div>
 
       {showSettings && <PayrollSettingsModal onClose={() => setShowSettings(false)} />}
+
+      {detail?.run && (() => {
+        const run = detail.run;
+        const st = String(run.status).toUpperCase();
+        const steps = ['DRAFT', 'CALCULATED', 'APPROVED', 'PAID'];
+        const at = Math.max(0, steps.indexOf(st === 'PENDING_APPROVAL' ? 'CALCULATED' : st));
+        const stepLabel: Record<string, string> = { DRAFT: 'Draft', CALCULATED: 'Calculated', APPROVED: 'Approved', PAID: 'Paid' };
+        const btn: React.CSSProperties = { height: 34, fontSize: 12.5, borderRadius: 'var(--r)', padding: '0 14px' };
+        return (
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{run.name}</span>
+                {runs.length > 1 && (
+                  <Select value={selId ?? ''} onValueChange={setSelId}>
+                    <SelectTrigger aria-label="Payroll run" style={{ height: 30, width: 190, fontSize: 12 }}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {runs.map(r => <SelectItem key={r.id} value={r.id}>{MONTH_ABBR[r.period_month - 1]} {r.period_year} · {String(r.status).toLowerCase()}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} aria-label="Run progress">
+                {steps.map((s, i) => (
+                  <React.Fragment key={s}>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: i <= at ? 'var(--teal-l)' : 'var(--bg)', color: i <= at ? 'var(--teal)' : 'var(--ink3)', border: `1px solid ${i === at ? 'var(--teal)' : 'transparent'}` }}>{stepLabel[s]}</span>
+                    {i < steps.length - 1 && <span style={{ color: 'var(--ink3)', fontSize: 11 }}>›</span>}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+            {canRun ? (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {st === 'DRAFT' && <>
+                  <Button style={btn} disabled={!!busy} onClick={() => runAction('calc')}>{busy === 'calc' ? 'Calculating…' : 'Calculate payroll'}</Button>
+                  <Button variant="secondary" style={{ ...btn, color: 'var(--red)' }} disabled={!!busy} onClick={() => runAction('delete')}>Delete draft</Button>
+                </>}
+                {(st === 'CALCULATED' || st === 'PENDING_APPROVAL') && <>
+                  <Button style={btn} disabled={!!busy} onClick={() => runAction('approve')}>{busy === 'approve' ? 'Approving…' : 'Approve'}</Button>
+                  <Button variant="secondary" style={btn} disabled={!!busy} onClick={() => runAction('calc')}>{busy === 'calc' ? 'Calculating…' : 'Recalculate'}</Button>
+                </>}
+                {st === 'APPROVED' && (
+                  <Button style={btn} disabled={!!busy} onClick={() => runAction('mark-paid')}>{busy === 'mark-paid' ? 'Posting…' : 'Mark as paid'}</Button>
+                )}
+                {(st === 'APPROVED' || st === 'PAID') && <>
+                  <Button variant="secondary" style={btn} disabled={!!busy} onClick={() => runAction('distribute')}>{busy === 'distribute' ? 'Sending…' : 'Send payslips'}</Button>
+                  <Button variant="secondary" style={btn} disabled={!!busy} onClick={() => downloadRunFile('bank')}>Bank file (CSV)</Button>
+                  <Button variant="secondary" style={btn} disabled={!!busy} onClick={() => downloadRunFile('paye')}>PAYE return (PDF)</Button>
+                </>}
+              </div>
+            ) : (
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Running payroll is limited to administrators and finance.</div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 📊 Top Charts Row (Payroll Summary + Company Pay Donut) — both real,
           computed from payroll_runs' own stored totals (set once a run is
@@ -3541,8 +3718,8 @@ export function MyPayslipsPage() {
   const period = (p: any) => (p.period_year && p.period_month)
     ? new Date(p.period_year, p.period_month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : (p.run_name ?? '');
-  const openFull = async (id: string) => { try { setViewing(await apiFetch(`/v1/payroll/payslips/${id}`)); } catch { /* ignore */ } };
-  const pdf = async (id: string) => { try { printPayslipPdf(await apiFetch(`/v1/payroll/payslips/${id}`)); } catch { /* ignore */ } };
+  const openFull = async (id: string) => { try { setViewing(await apiFetch(`/v1/payroll/payslips/${id}`)); } catch (error: any) { showAlert(error?.message || 'Could not open the payslip.', { variant: 'error' }); } };
+  const pdf = async (id: string) => { try { printPayslipPdf(await apiFetch(`/v1/payroll/payslips/${id}`)); } catch (error: any) { showAlert(error?.message || 'Could not export the payslip.', { variant: 'error' }); } };
 
   return (
     <div style={{ flex:1, overflowY:'auto' }}>
@@ -3598,7 +3775,7 @@ export function AnnouncementsPage() {
 
   async function handleDelete(id: string) {
     setAnnouncements(prev => prev.filter(a => a.id !== id));
-    try { await apiFetch(`/v1/hr/announcements/${id}`, { method: 'DELETE' }); } catch { load(); }
+    try { await apiFetch(`/v1/hr/announcements/${id}`, { method: 'DELETE' }); } catch (error: any) { load(); showAlert(error?.message || 'Could not delete the announcement.', { variant: 'error' }); }
   }
 
   const catColor: Record<string, string> = { HR:'var(--purple)', Policy:'var(--teal)', IT:'var(--blue)' };
@@ -3622,7 +3799,7 @@ export function AnnouncementsPage() {
             try {
               await apiFetch('/v1/hr/announcements', { method: 'POST', body: JSON.stringify({ title, body, category, audience }) });
               setShowNew(false); load();
-            } catch { /* ignore */ }
+            } catch (error: any) { showAlert(error?.message || 'Could not publish the announcement.', { variant: 'error' }); }
           }} style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 200 }}>
@@ -3692,7 +3869,6 @@ export function AnnouncementsPage() {
 /* -- Page routing -- */
 export function HrmDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [metrics, setMetrics] = useState<any>(null);
   const [depts, setDepts] = useState<{ name: string; employees: number }[]>([]);
   const [runs, setRuns] = useState<any[]>([]);
@@ -3701,42 +3877,32 @@ export function HrmDashboard() {
   const [activities, setActivities] = useState<any[]>([]);
   const [interviews, setInterviews] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [aiDigest, setAiDigest] = useState<string | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiErr, setAiErr] = useState<string | null>(null);
-
-  const genInsights = async () => {
-    setAiLoading(true); setAiErr(null); setAiDigest(null);
-    try {
-      const r = await apiFetch('/v1/hr/ai-insights');
-      setAiDigest(r?.digest || 'No insights returned.');
-    } catch (e: any) { setAiErr(e?.message || 'Could not generate insights.'); }
-    finally { setAiLoading(false); }
-  };
+  const [dashboardErrors, setDashboardErrors] = useState<string[]>([]);
 
   useEffect(() => {
-    apiFetch('/v1/hr/tools-overview').then(d => setMetrics(d)).catch(() => {});
+    const failed = (label: string) => setDashboardErrors(prev => prev.includes(label) ? prev : [...prev, label]);
+    apiFetch('/v1/hr/tools-overview').then(d => setMetrics(d)).catch(() => failed('workforce metrics'));
     apiFetch('/v1/hr/departments')
       .then((r: any) => setDepts((Array.isArray(r) ? r : []).map((d: any) => ({ name: d.name, employees: d.employee_count || 0 }))))
-      .catch(() => setDepts([]));
+      .catch(() => { setDepts([]); failed('departments'); });
     apiFetch('/v1/payroll/runs')
       .then((r: any) => setRuns(Array.isArray(r) ? r : []))
-      .catch(() => setRuns([]));
+      .catch(() => { setRuns([]); failed('payroll'); });
     apiFetch('/v1/hr/leaves?status=PENDING')
       .then((r: any) => setPendingLeaves(Array.isArray(r) ? r.slice(0, 5) : []))
-      .catch(() => setPendingLeaves([]));
-    apiFetch('/v1/hr/holidays')
-      .then((r: any) => setHolidays(Array.isArray(r) ? r.slice(0, 4) : []))
-      .catch(() => setHolidays([]));
+      .catch(() => { setPendingLeaves([]); failed('leave approvals'); });
+    apiFetch('/v1/hr/holidays?upcoming=true&limit=4')
+      .then((r: any) => setHolidays(Array.isArray(r) ? r : []))
+      .catch(() => { setHolidays([]); failed('holidays'); });
     apiFetch('/v1/hr/activity-log')
       .then((r: any) => setActivities(Array.isArray(r) ? r.slice(0, 5) : []))
-      .catch(() => setActivities([]));
+      .catch(() => { setActivities([]); failed('activity'); });
     apiFetch('/v1/hr/recruitment/interviews/upcoming?limit=5')
       .then((r: any) => setInterviews(Array.isArray(r) ? r : []))
-      .catch(() => setInterviews([]));
+      .catch(() => { setInterviews([]); failed('interviews'); });
     apiFetch('/v1/hr/announcements')
       .then((r: any) => setAnnouncements(Array.isArray(r) ? r.slice(0, 3) : []))
-      .catch(() => setAnnouncements([]));
+      .catch(() => { setAnnouncements([]); failed('announcements'); });
   }, []);
 
   const hr = metrics?.hr ?? { total_staff:0, active_staff:0, on_leave:0, pending_leaves:0, today_present:0, today_absent:0 };
@@ -3747,7 +3913,7 @@ export function HrmDashboard() {
   const latestRunNet = latestRun ? (Number(latestRun.total_net || 0) / 1_000_000).toFixed(2) : '0.00';
   // holidays is already sorted/limited by the backend; the nearest upcoming
   // one is just its first real (not-yet-passed) entry.
-  const nextHoliday = holidays.find(h => new Date(h.date || h.start_date).getTime() >= new Date().setHours(0, 0, 0, 0)) ?? holidays[0] ?? null;
+  const nextHoliday = holidays[0] ?? null;
 
   const kpis = [
     { label:'Total Staff',       value: hr.total_staff,       sub: `${hr.active_staff} active`, icon:'users' as IconName, color:'var(--teal)',  bg:'var(--teal-l)', path:'/nexushr/employees' },
@@ -3759,94 +3925,20 @@ export function HrmDashboard() {
 
   return (
     <div className="hrd-dashboard">
+      <PageHeader
+        icon="home"
+        title="Workforce Overview"
+        sub="Attendance, people operations, leave and payroll at a glance"
+      />
 
-      {/* ── SmartHR Admin Welcome & Action Header Banner ──────────────── */}
-      <div className="hrd-hero">
-        <div style={{
-          position: 'absolute', top: -30, right: -30, width: 220, height: 220,
-          borderRadius: '50%', background: 'hsl(var(--primary-foreground) / 0.06)', pointerEvents: 'none'
-        }} />
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <PersonAvatar userId={user?.id || 'admin'} name={user?.name || 'HR Admin'} size={52} />
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', color: 'hsl(var(--primary-foreground))' }}>
-                  Welcome back, {user?.name || 'Admin'}!
-                </h1>
-                <span style={{
-                  fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r)',
-                  background: 'hsl(var(--primary-foreground) / 0.2)', color: 'hsl(var(--primary-foreground))', backdropFilter: 'blur(4px)',
-                  textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap'
-                }}>
-                  {user?.role || 'NexusHR Admin'}
-                </span>
-              </div>
-              <p style={{ margin: '4px 0 0 0', fontSize: 13, color: 'hsl(var(--primary-foreground) / 0.85)' }}>
-                SmartHR Workforce Command Center • {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
-              </p>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <Link to="/nexushr/clock-in" style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r)',
-              background: 'hsl(var(--primary-foreground) / 0.15)', color: 'hsl(var(--primary-foreground))', border: '1px solid hsl(var(--primary-foreground) / 0.25)',
-              fontSize: 13, fontWeight: 600, textDecoration: 'none', transition: 'all 0.15s'
-            }}>
-              <Icon name="clock" size={15} /> Clock In/Out
-            </Link>
-
-            <Link to="/nexushr/employees" style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r)',
-              background: 'var(--white)', color: 'hsl(var(--primary))', border: 'none',
-              fontSize: 13, fontWeight: 700, textDecoration: 'none', boxShadow: 'var(--elev-sm)'
-            }}>
-              <Icon name="userPlus" size={15} /> + Add Staff
-            </Link>
-
-            <button type="button" className="hrd-hero-action" onClick={genInsights} disabled={aiLoading}>
-              <Icon name="sparkle" size={15} /> {aiLoading ? 'Analysing…' : 'AI Digest'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── AI Insights Card Banner ───────────────────────────────────── */}
-      {(aiDigest || aiErr || aiLoading) && (
-        <div style={{ marginBottom: 24 }}>
-        <SectionCard
-          title="SmartHR AI Insights"
-          action={
-            <button type="button" className="btn btn-secondary btn-sm" disabled={aiLoading} onClick={genInsights} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="sparkle" size={13} /> {aiLoading ? 'Refreshing…' : 'Refresh Digest'}
-            </button>
-          }
-        >
-          <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: aiErr || aiDigest ? 12 : 0 }}>Real-time automated audit across staffing, leave trends, and payroll.</div>
-          {aiErr && (
-            <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 'var(--r)', padding: '10px 14px' }}>
-              {aiErr}
-            </div>
-          )}
-          {aiDigest && (
-            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {aiDigest.split('\n').filter(l => l.trim()).map((line, i) => {
-                const clean = line.replace(/^[-*•]\s*/, '');
-                return (
-                  <div key={i} style={{ display: 'flex', gap: 10, fontSize: 13, color: 'var(--ink)', lineHeight: 1.5, background: 'var(--bg)', padding: '8px 12px', borderRadius: 'var(--r-sm)'}}>
-                    <span style={{ color: 'var(--purple)', fontWeight: 800 }}>•</span>
-                    <span>{clean}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </SectionCard>
-        </div>
+      {dashboardErrors.length > 0 && (
+        <Banner variant="error" title="Some dashboard data could not be loaded">
+          Unavailable: {dashboardErrors.join(', ')}. Refresh the page or try again shortly.
+        </Banner>
       )}
 
+      {/* ── SmartHR Admin Welcome & Action Header Banner ──────────────── */}
+      {/* ── AI Insights Card Banner ───────────────────────────────────── */}
       {/* ── SmartHR 5 Metric KPI Cards Row ────────────────────────────── */}
       <div className="hrd-kpi-grid">
         {kpis.map(k => (

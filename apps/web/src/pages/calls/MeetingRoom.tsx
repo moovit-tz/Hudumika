@@ -421,9 +421,17 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
     setAiInput('');
     setAiBusy(true);
     try {
-      const res = await apiFetch('/v1/ai/chat', { method: 'POST', body: JSON.stringify({ message: q, conversation_id: aiConversationId }) });
-      setAiConversationId(res.conversation_id ?? null);
-      setAiTurns(prev => [...prev, { role: 'assistant', text: res.reply || '(no reply)' }]);
+      // First question starts a governed agent run, later ones continue it.
+      const res = aiConversationId
+        ? await apiFetch(`/v1/agent/runs/${aiConversationId}/messages`, { method: 'POST', body: JSON.stringify({ message: q }) })
+        : await apiFetch('/v1/agent/runs', { method: 'POST', body: JSON.stringify({ goal: q }) });
+      setAiConversationId(res.id ?? aiConversationId);
+      const text = res.pendingApproval
+        ? 'That needs a person to approve it first. It is waiting in the Agent Approvals inbox on your home screen.'
+        : res.status === 'failed'
+          ? (res.errorMessage || 'Something went wrong.')
+          : (res.finalText || '(no reply)');
+      setAiTurns(prev => [...prev, { role: 'assistant', text }]);
     } catch (e: any) {
       setAiTurns(prev => [...prev, { role: 'assistant', text: e?.message || 'AI is not configured for this workspace.' }]);
     } finally {

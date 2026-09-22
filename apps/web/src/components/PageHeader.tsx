@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLocale } from '../hooks/useLocale.js';
+import { BackButton } from './ui/BackButton.js';
 
 /** A crumb is a bare label, or a label with an explicit destination when the
  *  one derived from the URL would be wrong. */
@@ -25,6 +26,11 @@ interface PageHeaderProps {
   subtitle?: React.ReactNode;
   /** Optional right-side slot (buttons, date chip, etc.) */
   actions?: React.ReactNode;
+  /** Create/edit flows use a quieter, plain title with Back as the first row. */
+  variant?: 'brand' | 'create';
+  backTo?: string;
+  backLabel?: string;
+  onBack?: () => void;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
@@ -34,6 +40,10 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   title,
   subtitle,
   actions,
+  variant = 'brand',
+  backTo,
+  backLabel = 'Back',
+  onBack,
 }) => {
   // An explicit split always wins; `title` is the runtime fallback.
   let plain = titlePlain ?? '';
@@ -79,9 +89,12 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   }
 
   return (
-  <div className="page-header">
+  <div className={`page-header${variant === 'create' ? ' page-header--create' : ''}`}>
+    {variant === 'create' && (backTo || onBack) && (
+      <BackButton to={backTo} onClick={onBack} label={backLabel} color="var(--ink2)" />
+    )}
     {/* Breadcrumb */}
-    <div className="page-header-crumb">
+    {variant !== 'create' && <div className="page-header-crumb">
       {crumbs.map((c, i) => {
         const label = typeof c === 'string' ? c : c.label;
         const href = hrefFor(c, i);
@@ -94,13 +107,17 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           </React.Fragment>
         );
       })}
-    </div>
+    </div>}
 
     {/* Title row */}
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-      <h1 className={`page-header-title${nonLatin ? ' ph-cjk' : ''}`}>
-        {plain} <em>{em}</em><span className="ph-dot">.</span>
-      </h1>
+      {variant === 'create' ? (
+        <h1 className="page-header-title page-header-title--create">{[plain, em].filter(Boolean).join(' ')}</h1>
+      ) : (
+        <h1 className={`page-header-title${nonLatin ? ' ph-cjk' : ''}`}>
+          {plain} <em>{em}</em><span className="ph-dot">.</span>
+        </h1>
+      )}
       {actions && <div style={{ flexShrink: 0, minWidth: 0, maxWidth: '100%', paddingBottom: 6 }}>{actions}</div>}
     </div>
 

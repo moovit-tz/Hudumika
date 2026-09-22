@@ -431,16 +431,18 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
 
                       return (
                         <React.Fragment key={item.path}>
-                          <div
+                          <button
+                            type="button"
                             className="app-sb-item app-sb-item--parent-hdr"
                             onClick={() => toggleParent(item.path)}
+                            aria-expanded={isParentOpen}
                           >
                             <span className="app-sb-item-icon">
                               <Icon name={item.icon} size={16} strokeWidth={1.8} />
                             </span>
                             <span className="app-sb-item-label">{item.label}</span>
                             <span className="app-sb-item-parent-toggle">{isParentOpen ? '−' : '+'}</span>
-                          </div>
+                          </button>
                           {isParentOpen && (
                             <div className="app-sb-children-group">
                               {item.children!.map(child => {
@@ -531,6 +533,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
         <aside
           ref={sidebarRef}
           className="app-sidebar app-sidebar--mobile-open"
+          data-app-id={appId}
         >
           {renderContent()}
         </aside>
@@ -543,6 +546,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
     <aside
       ref={sidebarRef}
       className={`app-sidebar${collapsed ? ' app-sidebar--collapsed' : ''}`}
+      data-app-id={appId}
     >
       {renderContent()}
     </aside>

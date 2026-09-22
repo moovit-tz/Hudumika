@@ -359,7 +359,7 @@ export const SHAPE_DEFAULT: ShapeTokens = {
 };
 
 export const DESIGN_TOKENS_DEFAULTS: DesignTokens = {
-  brand: { primary: '#0b1e3a' },
+  brand: { primary: '#1257c6' },
   neutral: { light: NEUTRAL_LIGHT_DEFAULT, dark: NEUTRAL_DARK_DEFAULT },
   semantic: { light: SEMANTIC_LIGHT_DEFAULT, dark: SEMANTIC_DARK_DEFAULT },
   typography: { font: 'system', scale: TYPE_SCALE_DEFAULT },
@@ -408,10 +408,10 @@ export const PLATFORM_THEMES: PlatformTheme[] = [
     name: 'Midnight Navy',
     description: 'Deep navy accent — trust, authority, calm.',
     tokens: {
-      brand: { primary: '#0b1e3a' },
+      brand: { primary: '#1257c6' },
       semantic: { light: SEMANTIC_LIGHT_DEFAULT, dark: SEMANTIC_DARK_DEFAULT },
     },
-    palette: ['#0b1e3a', '#14315c', '#1d4380', '#2c5aa0', '#3f74c0', '#0f2847', '#1a3a66', '#274e85'],
+    palette: ['#1257c6', '#1c64d8', '#3477df', '#0d49ad', '#4a8ae8', '#174f9f', '#286bc4', '#5a94e6'],
   },
   {
     id: 'deep-emerald',

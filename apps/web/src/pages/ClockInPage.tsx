@@ -7,6 +7,9 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
 import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
+import { Banner } from '../components/ui/alert.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { showAlert } from '../lib/alert.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -74,6 +77,7 @@ export function ClockInPage() {
   const [activeSession, setActiveSession] = useState<ClockSession | null>(null);
   const [activeBreak, setActiveBreak] = useState<ClockBreak | null>(null);
   const [loading, setLoading] = useState(true);
+  const [clockAction, setClockAction] = useState<'start' | 'break' | 'stop' | null>(null);
   const [projectInput, setProjectInput] = useState('');
   const [selectedProject, setSelectedProject] = useState('');
   
@@ -86,6 +90,7 @@ export function ClockInPage() {
   const [userProfile, setUserProfile] = useState<{ name: string; role?: string } | null>(null);
   const [dateRangeFilter, setDateRangeFilter] = useState('7days');
   const [workedMinutesTotal, setWorkedMinutesTotal] = useState(0);
+  const [loadErrors, setLoadErrors] = useState<string[]>([]);
 
   // Manual entry modal
   const [showManualModal, setShowManualModal] = useState(false);
@@ -125,8 +130,9 @@ export function ClockInPage() {
         setActiveSession(null);
         setActiveBreak(null);
       }
-    } catch (err) {
-      console.error('Failed to load active clock-in session', err);
+      setLoadErrors(previous => previous.filter(item => item !== 'current clock status'));
+    } catch {
+      setLoadErrors(previous => previous.includes('current clock status') ? previous : [...previous, 'current clock status']);
     } finally {
       setLoading(false);
     }
@@ -144,8 +150,9 @@ export function ClockInPage() {
           setUserProfile(res.user);
         }
       }
-    } catch (err) {
-      console.error('Failed to load weekly timesheets', err);
+      setLoadErrors(previous => previous.filter(item => item !== 'weekly timesheets'));
+    } catch {
+      setLoadErrors(previous => previous.includes('weekly timesheets') ? previous : [...previous, 'weekly timesheets']);
     }
   }, []);
 
@@ -183,6 +190,8 @@ export function ClockInPage() {
 
   // Clock Actions
   const handleStartClockIn = async () => {
+    if (clockAction) return;
+    setClockAction('start');
     try {
       const res = await apiFetch('/v1/hr/clock-in/start', {
         method: 'POST',
@@ -194,10 +203,12 @@ export function ClockInPage() {
       }
     } catch (err: any) {
       showAlert(err.message || 'Failed to clock in', { variant: 'error' });
-    }
+    } finally { setClockAction(null); }
   };
 
   const handleToggleBreak = async () => {
+    if (clockAction) return;
+    setClockAction('break');
     try {
       const res = await apiFetch('/v1/hr/clock-in/break', {
         method: 'POST',
@@ -210,10 +221,12 @@ export function ClockInPage() {
       }
     } catch (err: any) {
       showAlert(err.message || 'Failed to toggle break', { variant: 'error' });
-    }
+    } finally { setClockAction(null); }
   };
 
   const handleStopClockOut = async () => {
+    if (clockAction) return;
+    setClockAction('stop');
     try {
       const res = await apiFetch('/v1/hr/clock-in/stop', {
         method: 'POST',
@@ -222,11 +235,14 @@ export function ClockInPage() {
         setActiveSession(null);
         setActiveBreak(null);
         setElapsedSeconds(0);
-        loadWeeklyData();
+        await Promise.all([loadActiveState(), loadWeeklyData()]);
+        if (Array.isArray(res.warnings) && res.warnings.length > 0) {
+          showAlert(`Clocked out successfully, but these linked records could not be synchronized: ${res.warnings.join(', ')}. Contact HR if they remain outdated.`, { variant: 'warning' });
+        }
       }
     } catch (err: any) {
       showAlert(err.message || 'Failed to clock out', { variant: 'error' });
-    }
+    } finally { setClockAction(null); }
   };
 
   const handleAddProject = () => {
@@ -397,15 +413,17 @@ export function ClockInPage() {
 
         // Generate scale blocks
         const blocks: DailyTimelineBlock[] = [];
-        const DAY_START_MINS = 9 * 60; // 09:00 AM
-        const DAY_END_MINS = 18 * 60;  // 06:00 PM
+        // Use the full day so early, late and overnight-shift punches remain
+        // visible. A fixed 09:00–18:00 scale hid legitimate shift patterns.
+        const DAY_START_MINS = 0;
+        const DAY_END_MINS = 24 * 60;
         const RANGE_MINS = DAY_END_MINS - DAY_START_MINS;
 
         daySessions.forEach(sess => {
           const inDate = new Date(sess.clock_in_at);
           const inMins = inDate.getHours() * 60 + inDate.getMinutes();
           
-          let outMins = DAY_END_MINS;
+          let outMins = Math.min(DAY_END_MINS, new Date().getHours() * 60 + new Date().getMinutes());
           if (sess.clock_out_at) {
             const outDate = new Date(sess.clock_out_at);
             outMins = outDate.getHours() * 60 + outDate.getMinutes();
@@ -427,17 +445,22 @@ export function ClockInPage() {
             widthPercent,
           });
 
-          if (sess.total_break_minutes > 0) {
+          weeklyBreaks.filter(item => item.session_id === sess.id).forEach(item => {
+            const breakStart = new Date(item.start_at);
+            const breakEnd = item.end_at ? new Date(item.end_at) : new Date();
+            const breakStartMins = breakStart.getHours() * 60 + breakStart.getMinutes();
+            const breakEndMins = breakEnd.getHours() * 60 + breakEnd.getMinutes();
+            const breakDuration = item.duration_minutes ?? Math.max(0, breakEndMins - breakStartMins);
             blocks.push({
               type: 'break',
               label: 'Break',
-              startTime: '13:00',
-              endTime: '14:00',
-              durationMinutes: sess.total_break_minutes,
-              startPercent: Math.min(90, startPercent + Math.floor(widthPercent / 2)),
-              widthPercent: Math.min(20, Math.max(8, (sess.total_break_minutes / RANGE_MINS) * 100)),
+              startTime: `${String(breakStart.getHours()).padStart(2, '0')}:${String(breakStart.getMinutes()).padStart(2, '0')}`,
+              endTime: item.end_at ? `${String(breakEnd.getHours()).padStart(2, '0')}:${String(breakEnd.getMinutes()).padStart(2, '0')}` : 'Now',
+              durationMinutes: breakDuration,
+              startPercent: Math.min(99, Math.max(0, (breakStartMins / RANGE_MINS) * 100)),
+              widthPercent: Math.min(100, Math.max(1, (breakDuration / RANGE_MINS) * 100)),
             });
-          }
+          });
         });
 
         rows.push({
@@ -458,7 +481,7 @@ export function ClockInPage() {
   const dayRows = generateWeeklyRows();
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
       
       {/* Shared Standard Page Header */}
       <SharedPageHeader
@@ -505,6 +528,12 @@ export function ClockInPage() {
           </div>
         }
       />
+
+      {loadErrors.length > 0 && (
+        <Banner variant="error" title="Some time data could not be loaded">
+          Unavailable: {loadErrors.join(', ')}. Refresh the page or try again shortly.
+        </Banner>
+      )}
 
       {/* User Welcome & Date Filter Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -553,12 +582,12 @@ export function ClockInPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={() => handleReview(a.id, 'reject')} disabled={reviewingId === a.id} style={{ padding: '6px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--red)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => handleReview(a.id, 'reject')} disabled={reviewingId === a.id} style={{ color: 'var(--red)', borderColor: 'var(--red)' }}>
                     <Icon name="x" size={13} /> Reject
-                  </button>
-                  <button type="button" onClick={() => handleReview(a.id, 'approve')} disabled={reviewingId === a.id} style={{ padding: '6px 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green)', color: 'hsl(var(--green-foreground))', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  </Button>
+                  <Button type="button" size="sm" onClick={() => handleReview(a.id, 'approve')} disabled={reviewingId === a.id} style={{ background: 'var(--green)', color: 'hsl(var(--green-foreground))' }}>
                     <Icon name="check" size={13} /> {reviewingId === a.id ? '…' : 'Approve'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
@@ -566,7 +595,7 @@ export function ClockInPage() {
         </SectionCard>
       )}
 
-      {/* Clock-in control, weekly target, and worked-hours summary cards */}
+      {/* Clock-in control and worked-hours summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(310px, 100%), 1fr))', gap: 16 }}>
         
         {/* Widget 1: Clock-in Control Widget */}
@@ -595,20 +624,20 @@ export function ClockInPage() {
             <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 12 }}>
               {activeSession ? (
                 <>
-                  <button type="button" onClick={handleToggleBreak} style={{ padding: '8px 16px', borderRadius: 'var(--badge-radius)', border: '1px solid var(--border)', background: activeSession.status === 'ON_BREAK' ? 'var(--gold-l)' : 'var(--card-sunken)', color: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Button type="button" variant="outline" size="sm" onClick={handleToggleBreak} disabled={clockAction !== null} style={{ background: activeSession.status === 'ON_BREAK' ? 'var(--gold-l)' : undefined, color: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : undefined }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : 'var(--ink3)' }}></span>
                     {activeSession.status === 'ON_BREAK' ? 'Resume Work' : 'Break'}
-                  </button>
-                  <button type="button" onClick={handleStopClockOut} style={{ padding: '8px 20px', borderRadius: 'var(--badge-radius)', border: 'none', background: 'var(--red)', color: 'hsl(var(--red-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  </Button>
+                  <Button type="button" size="sm" onClick={handleStopClockOut} disabled={clockAction !== null} style={{ background: 'var(--red)', color: 'hsl(var(--red-foreground))' }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--white)' }}></span>
-                    Clock-out
-                  </button>
+                    {clockAction === 'stop' ? 'Clocking out…' : 'Clock-out'}
+                  </Button>
                 </>
               ) : (
-                <button type="button" onClick={handleStartClockIn} style={{ padding: '10px 28px', borderRadius: 'var(--badge-radius)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Button type="button" onClick={handleStartClockIn} disabled={clockAction !== null}>
                   <Icon name="check" size={16} />
-                  Clock-in Now
-                </button>
+                  {clockAction === 'start' ? 'Clocking in…' : 'Clock-in Now'}
+                </Button>
               )}
             </div>
           </div>
@@ -620,47 +649,23 @@ export function ClockInPage() {
               <Icon name="info" size={12} color="var(--ink3)" />
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <input
+              <Input
                 type="text"
                 value={selectedProject || projectInput}
                 onChange={e => { setProjectInput(e.target.value); setSelectedProject(e.target.value); }}
                 placeholder="Add projects you are working on..."
-                style={{ flex: 1, padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, background: 'var(--white)', color: 'var(--ink)' }}
+                style={{ flex: 1 }}
               />
               {projectInput && (
-                <button type="button" onClick={handleAddProject} style={{ padding: '7px 12px', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                <Button type="button" size="sm" aria-label="Add project" onClick={handleAddProject}>
                   +
-                </button>
+                </Button>
               )}
             </div>
           </div>
         </SectionCard>
 
-        {/* Widget 2: Weekly Target Widget — a fixed full-time reference line, not
-             this employee's own tracked data (no contracted-hours field exists
-             anywhere in the schema to pull a real per-employee figure from). Framed
-             as a standard benchmark, and compared against the one number here that
-             *is* real: workedMinutesTotal. */}
-        <SectionCard title="Weekly target">
-          <div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 4 }}>Standard full-time benchmark</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--navy)', marginBottom: 14 }}>
-              40<span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink3)' }}>hrs</span> / 5<span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink3)' }}>days</span>
-            </div>
-
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 4 }}>Progress this week</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--navy)' }}>
-              {Math.min(100, Math.round((workedMinutesTotal / 2400) * 100))}<span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink3)' }}>% of target</span>
-            </div>
-          </div>
-
-          <div style={{ fontSize: 11, color: 'var(--ink3)', display: 'flex', alignItems: 'flex-start', gap: 6, borderTop: '1px solid var(--border)', paddingTop: 10, marginTop: 14 }}>
-            <Icon name="info" size={13} color="var(--ink3)" style={{ flexShrink: 0, marginTop: 1 }} />
-            <span>A general reference, not this employee's personal contracted hours — no contract-hours record exists yet to show that.</span>
-          </div>
-        </SectionCard>
-
-        {/* Widget 3: Worked Hours Widget */}
+        {/* Widget 2: Worked Hours Widget */}
         <SectionCard title="Worked hours">
           <div>
             <div style={{ background: 'var(--card-sunken)', borderRadius: 'var(--r)', padding: '16px 18px', textAlign: 'center', border: '1px solid var(--border)', marginBottom: 14 }}>
@@ -704,9 +709,9 @@ export function ClockInPage() {
               </div>
             </div>
 
-            <button type="button" onClick={() => setShowManualModal(true)} style={{ padding: '6px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', fontSize: 12, fontWeight: 600, color: 'var(--navy)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowManualModal(true)}>
               + Entry log
-            </button>
+            </Button>
           </div>
         }
       >
@@ -715,13 +720,9 @@ export function ClockInPage() {
           
           {/* Time Ticks Header Scale */}
           <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 140, paddingRight: 80, fontSize: 11, color: 'var(--ink3)', borderBottom: '1px dashed var(--border)', paddingBottom: 8 }}>
-            <div style={{ flex: 1, textAlign: 'left' }}>09:00</div>
-            <div style={{ flex: 1, textAlign: 'center' }}>11:00</div>
-            <div style={{ flex: 1, textAlign: 'center' }}>13:00</div>
-            <div style={{ flex: 1, textAlign: 'center' }}>15:00</div>
-            <div style={{ flex: 1, textAlign: 'center' }}>16:00</div>
-            <div style={{ flex: 1, textAlign: 'center' }}>17:00</div>
-            <div style={{ flex: 1, textAlign: 'right' }}>18:00</div>
+            {['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'].map((tick, index, ticks) => (
+              <div key={tick} style={{ flex: 1, textAlign: index === 0 ? 'left' : index === ticks.length - 1 ? 'right' : 'center' }}>{tick}</div>
+            ))}
           </div>
 
           {/* Timeline Rows */}
@@ -798,45 +799,41 @@ export function ClockInPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', marginBottom: 4, display: 'block' }}>Clock In Time</label>
-                <input
+                <Input
                   type="time"
                   value={manualClockIn}
                   onChange={e => setManualClockIn(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
                 />
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', marginBottom: 4, display: 'block' }}>Clock Out Time</label>
-                <input
+                <Input
                   type="time"
                   value={manualClockOut}
                   onChange={e => setManualClockOut(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
 
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', marginBottom: 4, display: 'block' }}>Break (Minutes)</label>
-              <input
+              <Input
                 type="number"
                 value={manualBreakMins}
                 onChange={e => setManualBreakMins(e.target.value)}
                 min="0"
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
               />
             </div>
 
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', marginBottom: 4, display: 'block' }}>Project / Activity Name</label>
-              <input
+              <Input
                 type="text"
                 value={manualProject}
                 onChange={e => setManualProject(e.target.value)}
                 placeholder="e.g. Mobile App Redesign"
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -856,12 +853,11 @@ export function ClockInPage() {
           <DialogHeader><DialogTitle>Reject timesheet</DialogTitle></DialogHeader>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', marginBottom: 4, display: 'block' }}>Reason (optional)</label>
-            <textarea
+            <Textarea
               value={rejectNote}
               onChange={e => setRejectNote(e.target.value)}
               placeholder="Let them know what needs correcting…"
               rows={3}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
             />
           </div>
           <DialogFooter>

@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { z } from 'zod';
 import { MinioIntegration } from '../integrations/minio.js';
 import { withTenant } from '../db/client.js';
+import { env } from '../config/env.js';
 
 type Folder = 'inbox' | 'sent' | 'drafts' | 'spam' | 'trash' | 'scheduled' | 'archive';
 const FOLDERS = ['inbox', 'sent', 'drafts', 'spam', 'trash', 'scheduled', 'archive'] as const;
@@ -74,7 +75,10 @@ const sendSchema = z.object({
 });
 const bulkSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(500),
-  action: z.enum(['read', 'unread', 'archive', 'trash', 'spam', 'inbox', 'delete']),
+  action: z.enum(['read', 'unread', 'archive', 'trash', 'spam', 'inbox', 'delete', 'label', 'unlabel']),
+  // Required for 'label'/'unlabel' — the label name to add/remove on every
+  // matched message. Ignored for every other action.
+  label: z.string().trim().min(1).max(100).optional(),
 });
 
 function daysAgo(n: number, hour = 9, min = 0): Date {
@@ -217,43 +221,19 @@ export async function emailRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // GET /v1/emails?folder=inbox|sent|drafts|spam|trash|scheduled|archive|starred&search=
+  // GET /v1/emails?folder=inbox|sent|drafts|spam|trash|scheduled|archive|starred&search=&limit=&offset=
+  // Used to return the entire matched folder in one response and let the
+  // frontend slice it into pages of 15 — fine for a demo mailbox, real cost
+  // for a real one. Now a real LIMIT/OFFSET with a total count alongside it.
   fastify.get('/', async (request: any) => {
     const user = request.user;
     const { folder, search } = request.query as { folder?: string; search?: string };
+    const rawLimit = parseInt((request.query as any).limit, 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 200) : 50;
+    const rawOffset = parseInt((request.query as any).offset, 10);
+    const offset = Number.isFinite(rawOffset) && rawOffset > 0 ? rawOffset : 0;
 
     return withTenant(user.tenant_id, async (trx) => {
-      // First-run seed: a brand-new mailbox gets a few realistic sample
-      // messages instead of staying permanently empty (or, before this fix,
-      // permanently showing a hardcoded frontend-only array).
-      const existing = await trx.selectFrom('email_messages').select('id').where('user_id', '=', user.sub).executeTakeFirst();
-      if (!existing) {
-        const tenant = await trx.selectFrom('tenants').select('name').where('id', '=', user.tenant_id).executeTakeFirst();
-        const samples = sampleInbox(tenant?.name || 'Hudumika');
-        for (const s of samples) {
-          const id = crypto.randomUUID();
-          await trx.insertInto('email_messages').values({
-            id,
-            tenant_id: user.tenant_id,
-            user_id: user.sub,
-            folder: s.folder,
-            from_name: s.from_name,
-            from_email: s.from_email,
-            to_addresses: JSON.stringify(s.to_addresses),
-            cc_addresses: JSON.stringify([]),
-            subject: s.subject,
-            body: s.body,
-            snippet: s.snippet,
-            read: s.read,
-            starred: s.starred,
-            labels: JSON.stringify(s.labels),
-            has_attachment: s.has_attachment,
-            thread_id: id,
-            created_at: s.created_at,
-          }).execute();
-        }
-      }
-
       let q = trx.selectFrom('email_messages as m')
         .leftJoin('email_outbox as o', 'o.id', 'm.outbox_id')
         .selectAll('m').select('o.status as delivery_status')
@@ -271,7 +251,16 @@ export async function emailRoutes(fastify: FastifyInstance) {
       if (search && search.trim()) {
         q = q.where(sql<boolean>`m.search_vector @@ plainto_tsquery('english', ${search.trim()})`);
       }
-      const rows = await q.orderBy('m.created_at', 'desc').execute();
+
+      // Same filters, no join/columns — just the count this folder+search
+      // combination matches in total, independent of the page being fetched.
+      const totalRow = await q.clearSelect().select(sql<number>`count(*)`.as('n')).executeTakeFirst();
+      const total = Number(totalRow?.n ?? 0);
+
+      const rows = await q.selectAll('m').select('o.status as delivery_status')
+        .orderBy('m.created_at', 'desc')
+        .limit(limit).offset(offset)
+        .execute();
 
       // Cross-folder thread counts — a genuine conversation count (a reply
       // that moved to Sent, or an original that's since been archived, both
@@ -292,7 +281,56 @@ export async function emailRoutes(fastify: FastifyInstance) {
         for (const c of counts) threadCounts.set(c.thread_id, Number(c.n));
       }
 
-      return rows.map(r => mapMessageRow(r, user, threadCounts));
+      return {
+        items: rows.map(r => mapMessageRow(r, user, threadCounts)),
+        total,
+        hasMore: offset + rows.length < total,
+      };
+    });
+  });
+
+  // POST /v1/emails/seed-demo — explicit, dev/demo-only sample-mailbox
+  // action. This used to run automatically on every GET / against an empty
+  // mailbox, which meant an empty production mailbox got real (fake)
+  // correspondence written into it, and deleting all of it just brought the
+  // samples back on the next request. Now it's opt-in and disabled in
+  // production, same guard integrations/email.ts's dev-only simulated-send
+  // fallback already uses.
+  fastify.post('/seed-demo', async (request: any, reply) => {
+    if (env.APP_ENV === 'production') {
+      return reply.status(403).send({ error: 'Sample data is not available in production.' });
+    }
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('email_messages').select('id').where('user_id', '=', user.sub).executeTakeFirst();
+      if (existing) {
+        return reply.status(409).send({ error: 'This mailbox already has messages.' });
+      }
+      const tenant = await trx.selectFrom('tenants').select('name').where('id', '=', user.tenant_id).executeTakeFirst();
+      const samples = sampleInbox(tenant?.name || 'Hudumika');
+      for (const s of samples) {
+        const id = crypto.randomUUID();
+        await trx.insertInto('email_messages').values({
+          id,
+          tenant_id: user.tenant_id,
+          user_id: user.sub,
+          folder: s.folder,
+          from_name: s.from_name,
+          from_email: s.from_email,
+          to_addresses: JSON.stringify(s.to_addresses),
+          cc_addresses: JSON.stringify([]),
+          subject: s.subject,
+          body: s.body,
+          snippet: s.snippet,
+          read: s.read,
+          starred: s.starred,
+          labels: JSON.stringify(s.labels),
+          has_attachment: s.has_attachment,
+          thread_id: id,
+          created_at: s.created_at,
+        }).execute();
+      }
+      return { success: true, count: samples.length };
     });
   });
 
@@ -450,6 +488,26 @@ export async function emailRoutes(fastify: FastifyInstance) {
           .where('id', 'in', b.ids).where('user_id', '=', user.sub)
           .executeTakeFirst();
         return { success: true, count: Number(res.numDeletedRows ?? 0) };
+      }
+      if (b.action === 'label' || b.action === 'unlabel') {
+        if (!b.label) return reply.status(400).send({ error: 'A label is required for this action.' });
+        // Per-row read-modify-write, not a single set() — each message's
+        // `labels` array can already differ, so there's no one JSON patch
+        // that adds/removes the same value from every row at once.
+        const rows = await trx.selectFrom('email_messages').select(['id', 'labels'])
+          .where('id', 'in', b.ids).where('user_id', '=', user.sub).execute();
+        let count = 0;
+        for (const row of rows) {
+          const current: string[] = Array.isArray(row.labels) ? row.labels : [];
+          const next = b.action === 'label'
+            ? (current.includes(b.label) ? current : [...current, b.label])
+            : current.filter(l => l !== b.label);
+          if (next.length === current.length && next.every((l, i) => l === current[i])) continue;
+          await trx.updateTable('email_messages').set({ labels: JSON.stringify(next) })
+            .where('id', '=', row.id).where('user_id', '=', user.sub).execute();
+          count++;
+        }
+        return { success: true, count };
       }
       const patch: Record<string, any> =
         b.action === 'read' ? { read: true } :

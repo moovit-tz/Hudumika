@@ -112,6 +112,17 @@ export async function notesRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Pushes an already-set reminder forward — the "Snooze" action on the
+  // in-app notification notes-reminder.job.ts creates when one fires.
+  fastify.patch('/:id/snooze', async (request: any, reply) => {
+    const { reminderAt } = z.object({ reminderAt: z.string() }).parse(request.body);
+    try {
+      return await NotesService.snoozeReminder(request.user.tenant_id, request.user.sub, request.params.id, reminderAt);
+    } catch (err: any) {
+      return sendNoteError(reply, err);
+    }
+  });
+
   fastify.patch('/:id/archive', async (request: any, reply) => {
     const { archived } = z.object({ archived: z.boolean() }).parse(request.body);
     try {

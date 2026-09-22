@@ -330,7 +330,7 @@ export const FinancePayments: React.FC = () => {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
       {/* -- Header -- */}
       <div style={{ padding: 0 }}>
         <PageHeader
@@ -376,7 +376,7 @@ export const FinancePayments: React.FC = () => {
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', marginTop: 16 }}>
 
         {/* -- Left: List -- */}
-        <div style={{ flex: isSplit ? '0 0 55%' : 1, display: 'flex', flexDirection: 'column', borderRight: isSplit ? '1px solid var(--border)' : 'none', overflowY: 'auto' }}>
+        <div style={{ flex: 1, display: isSplit ? 'none' : 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
 
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -436,9 +436,7 @@ export const FinancePayments: React.FC = () => {
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--ink3)' }}>No payments found.</td></tr>
                 ) : pagedPayments.map(p => (
-                  <tr key={p.id} onClick={() => setSelectedPayment(p)} style={{ borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--navy)', cursor: 'pointer', background: selectedPayment?.id === p.id ? 'var(--bg)' : 'var(--white)' }}
-                      onMouseEnter={e => { if (selectedPayment?.id !== p.id) e.currentTarget.style.background = '#f8fafc'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = selectedPayment?.id === p.id ? 'var(--bg)' : 'var(--white)'; }}>
+                  <tr key={p.id} onClick={() => setSelectedPayment(p)} data-selected={selectedPayment?.id === p.id ? 'true' : 'false'} style={{ borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--navy)', cursor: 'pointer' }}>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span title={p.direction === 'in' ? 'Received from customer' : 'Paid to supplier'}

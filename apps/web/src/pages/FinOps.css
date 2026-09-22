@@ -13,4 +13,330 @@
 [data-finops] .btn-sm {
 }
 
+[data-theme="dark"] [data-finops="true"] .page-layout {
+  --fin-night-brand: #1257c6;
+  /* Card/surface color is the platform's real design-system token (SuperAdmin
+     ▸ Design System ▸ Brand & Neutral ▸ "Card / Surface", dark tab) — not a
+     hardcoded hex. This used to read `--fin-night-surface: #111827` and then
+     reassign `--white`/`--card-bg` FROM it, so a SuperAdmin's card-color
+     choice could never reach FinOps: every one of this file's ~30 rules that
+     read `--fin-night-surface` was pinned to that one static value regardless
+     of the live setting. Deriving it the other way round — from `--white`,
+     left otherwise untouched here — means the same live value every other
+     app already gets now also reaches every FinOps card, modal, table and
+     archive row below. */
+  --fin-night-surface: var(--white);
+  --fin-night-raised: #17243a;
+  --fin-night-sunken: #0c1422;
+  --fin-night-edge: rgba(96, 165, 250, 0.18);
+  --fin-night-edge-strong: rgba(96, 165, 250, 0.42);
+  --card-sunken: var(--fin-night-sunken);
+  --border: var(--fin-night-edge);
+  --border2: rgba(148, 184, 235, 0.3);
+}
+
+[data-theme="dark"] [data-finops="true"] .page-layout,
+[data-theme="dark"] [data-finops="true"] .page-layout-main { background: #080c14; }
+
+[data-theme="dark"] [data-finops="true"] .card,
+[data-theme="dark"] [data-finops="true"] .fin-shell,
+[data-theme="dark"] [data-finops="true"] .fin-detail,
+[data-theme="dark"] [data-finops="true"] .fin-archive,
+[data-theme="dark"] [data-finops="true"] .fin-arch-row,
+[data-theme="dark"] [data-finops="true"] .fin-narrow-strip,
+[data-theme="dark"] [data-finops="true"] .fin-modal,
+[data-theme="dark"] [data-finops="true"] .frm-modal { border-color: var(--fin-night-edge); }
+
+[data-theme="dark"] [data-finops="true"] .fin-shell,
+[data-theme="dark"] [data-finops="true"] .fin-detail,
+[data-theme="dark"] [data-finops="true"] .fin-archive,
+[data-theme="dark"] [data-finops="true"] .fin-modal,
+[data-theme="dark"] [data-finops="true"] .frm-modal { background: var(--fin-night-surface); }
+
+[data-theme="dark"] [data-finops="true"] .fin-archive-header,
+[data-theme="dark"] [data-finops="true"] .fin-tab-bar,
+[data-theme="dark"] [data-finops="true"] .fin-filters,
+[data-theme="dark"] [data-finops="true"] .fin-narrow-header,
+[data-theme="dark"] [data-finops="true"] .fin-modal-header,
+[data-theme="dark"] [data-finops="true"] .fin-modal-footer,
+[data-theme="dark"] [data-finops="true"] .frm-modal-header,
+[data-theme="dark"] [data-finops="true"] .frm-modal-footer {
+  background: color-mix(in srgb, var(--fin-night-surface) 94%, var(--fin-night-brand) 6%);
+  border-color: var(--fin-night-edge);
+}
+
+[data-theme="dark"] [data-finops="true"] .fin-arch-row:hover,
+[data-theme="dark"] [data-finops="true"] .fin-narrow-item:hover,
+[data-theme="dark"] [data-finops="true"] .fin-tab:hover,
+[data-theme="dark"] [data-finops="true"] .fin-tab-group-header:hover,
+[data-theme="dark"] [data-finops="true"] .fin-modal-tab-row:hover {
+  background: color-mix(in srgb, var(--teal) 9%, var(--fin-night-surface));
+}
+
+[data-theme="dark"] [data-finops="true"] .fin-arch-row--active,
+[data-theme="dark"] [data-finops="true"] .fin-arch-row--selected,
+[data-theme="dark"] [data-finops="true"] .fin-narrow-item--active,
+[data-theme="dark"] [data-finops="true"] .fin-modal-tab-row--selected {
+  background: color-mix(in srgb, var(--teal) 15%, var(--fin-night-surface));
+}
+
+[data-theme="dark"] [data-finops="true"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+[data-theme="dark"] [data-finops="true"] textarea,
+[data-theme="dark"] [data-finops="true"] select,
+[data-theme="dark"] [data-finops="true"] .fin-arch-search-wrap,
+[data-theme="dark"] [data-finops="true"] .fin-narrow-search-box,
+[data-theme="dark"] [data-finops="true"] .fin-modal-input,
+[data-theme="dark"] [data-finops="true"] .frm-modal-input,
+[data-theme="dark"] [data-finops="true"] .frm-modal-select {
+  background: var(--fin-night-sunken);
+  border-color: var(--fin-night-edge);
+}
+
+[data-theme="dark"] [data-finops="true"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
+[data-theme="dark"] [data-finops="true"] textarea:hover,
+[data-theme="dark"] [data-finops="true"] select:hover {
+  background: color-mix(in srgb, var(--fin-night-sunken) 90%, var(--fin-night-brand) 10%);
+  border-color: var(--fin-night-edge-strong);
+}
+
+[data-theme="dark"] [data-finops="true"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+[data-theme="dark"] [data-finops="true"] textarea:focus,
+[data-theme="dark"] [data-finops="true"] select:focus,
+[data-theme="dark"] [data-finops="true"] .fin-arch-search-wrap:focus-within {
+  background: var(--fin-night-raised);
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 20%, transparent);
+}
+
+[data-theme="dark"] [data-finops="true"] .btn-secondary,
+[data-theme="dark"] [data-finops="true"] .btn-outline,
+[data-theme="dark"] [data-finops="true"] .fin-filter-pill,
+[data-theme="dark"] [data-finops="true"] .fin-arch-export-btn,
+[data-theme="dark"] [data-finops="true"] .fin-page-btn,
+[data-theme="dark"] [data-finops="true"] .frm-btn {
+  background: var(--fin-night-surface);
+  border-color: var(--fin-night-edge);
+}
+
+[data-theme="dark"] [data-finops="true"] .btn-secondary:hover,
+[data-theme="dark"] [data-finops="true"] .btn-outline:hover,
+[data-theme="dark"] [data-finops="true"] .fin-filter-pill:hover,
+[data-theme="dark"] [data-finops="true"] .fin-arch-export-btn:hover,
+[data-theme="dark"] [data-finops="true"] .fin-page-btn:hover:not(:disabled),
+[data-theme="dark"] [data-finops="true"] .frm-btn:hover {
+  background: var(--teal-l);
+  border-color: var(--fin-night-edge-strong);
+  color: var(--teal);
+}
+
+[data-theme="dark"] [data-finops="true"] .fin-filter-pill[data-filter="Draft"],
+[data-theme="dark"] [data-finops="true"] .fin-arch-status-pill[data-status="Draft"] {
+  background: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.25);
+  color: var(--ink2);
+}
+
+[data-theme="dark"] [data-finops="true"] .fin-filter-pill[data-filter="Credited"],
+[data-theme="dark"] [data-finops="true"] .fin-arch-status-pill[data-status="Credited"] {
+  background: var(--purple-l);
+  border-color: color-mix(in srgb, var(--purple) 30%, transparent);
+  color: var(--purple);
+}
+
+[data-theme="dark"] [data-finops="true"] .fin-nf-option--active { background: var(--teal-l); color: var(--teal); }
+
+[data-theme="dark"] [data-finops="true"] .fin-modal-overlay,
+[data-theme="dark"] [data-finops="true"] .frm-modal-overlay {
+  background: rgba(2, 6, 15, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+[data-theme="dark"] [data-finops="true"] .inv-bulk-clear:hover { color: hsl(var(--primary-foreground)); }
+
+/* Shared accounting surfaces used by the route-level Finance pages. */
+[data-theme="dark"] [data-finops="true"] .page-layout .rtbl-wrap,
+[data-theme="dark"] [data-finops="true"] .page-layout .filter-bar,
+[data-theme="dark"] [data-finops="true"] .page-layout .detail-panel,
+[data-theme="dark"] [data-finops="true"] .page-layout .dp-header,
+[data-theme="dark"] [data-finops="true"] .page-layout .dp-tabs,
+[data-theme="dark"] [data-finops="true"] .page-layout .dp-body {
+  background: var(--fin-night-surface);
+  border-color: var(--fin-night-edge);
+}
+
+[data-theme="dark"] [data-finops="true"] .page-layout .rtbl th,
+[data-theme="dark"] [data-finops="true"] .page-layout .table-hdr,
+[data-theme="dark"] [data-finops="true"] .page-layout .th {
+  background: var(--fin-night-sunken);
+  border-color: var(--fin-night-edge);
+}
+
+[data-theme="dark"] [data-finops="true"] .page-layout .rtbl td,
+[data-theme="dark"] [data-finops="true"] .page-layout .tr,
+[data-theme="dark"] [data-finops="true"] .page-layout .dp-header,
+[data-theme="dark"] [data-finops="true"] .page-layout .dp-tabs {
+  border-color: var(--fin-night-edge);
+}
+
+[data-theme="dark"] [data-finops="true"] .page-layout .rtbl tbody tr,
+[data-theme="dark"] [data-finops="true"] .page-layout .tr,
+[data-theme="dark"] [data-finops="true"] .page-layout .card-interactive {
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+[data-theme="dark"] [data-finops="true"] .page-layout .rtbl tbody tr:hover,
+[data-theme="dark"] [data-finops="true"] .page-layout .tr:hover {
+  background: color-mix(in srgb, var(--fin-night-brand) 10%, var(--fin-night-surface));
+}
+
+[data-theme="dark"] [data-finops="true"] .page-layout .card-interactive:hover {
+  background: color-mix(in srgb, var(--fin-night-brand) 7%, var(--fin-night-surface));
+  border-color: var(--fin-night-edge-strong);
+  box-shadow: 0 10px 30px rgba(0, 25, 70, 0.28),
+    0 0 0 1px color-mix(in srgb, var(--fin-night-brand) 28%, transparent);
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] [data-finops="true"] .page-layout .dp-tab:hover,
+[data-theme="dark"] [data-finops="true"] .page-layout .dp-close:hover {
+  background: color-mix(in srgb, var(--fin-night-brand) 12%, var(--fin-night-surface));
+  color: var(--teal);
+}
+
+[data-theme="dark"] [data-finops="true"] .page-layout :is(button, a, [role="button"]):focus-visible {
+  outline: 2px solid var(--fin-night-brand);
+  outline-offset: 2px;
+}
+
+/* Ledger uses expandable grid rows rather than the shared table component. */
+[data-finops="true"] .finance-ledger-group {
+  background: var(--white);
+}
+
+[data-finops="true"] .finance-ledger-account-row {
+  background: var(--white);
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+[data-finops="true"] .finance-ledger-account-row:hover,
+[data-finops="true"] .finance-ledger-account-row[data-open="true"] {
+  background: var(--teal-l);
+  box-shadow: inset 3px 0 0 var(--teal);
+}
+
+[data-finops="true"] .finance-ledger-entry-row {
+  background: var(--bg);
+  transition: background-color 160ms ease;
+}
+
+[data-finops="true"] .finance-ledger-entry-row[data-stripe="true"] {
+  background: var(--white);
+}
+
+[data-finops="true"] .finance-ledger-entry-row:hover {
+  background: var(--teal-l);
+}
+
+[data-theme="dark"] [data-finops="true"] .finance-ledger-account-row:hover,
+[data-theme="dark"] [data-finops="true"] .finance-ledger-account-row[data-open="true"],
+[data-theme="dark"] [data-finops="true"] .finance-ledger-entry-row:hover {
+  background: color-mix(in srgb, var(--fin-night-brand) 12%, var(--fin-night-surface));
+}
+
+[data-theme="dark"] [data-finops="true"] .finance-ledger-detail {
+  background: var(--fin-night-sunken) !important;
+}
+
+[data-finops="true"] .rtbl tbody tr[data-selected="true"] {
+  background: var(--teal-l);
+  box-shadow: inset 3px 0 0 var(--teal);
+}
+
+[data-finops="true"] .finance-icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+[data-finops="true"] .finance-icon-action:hover {
+  background: var(--teal-l);
+  border-color: color-mix(in srgb, var(--teal) 30%, transparent);
+}
+
+[data-finops="true"] .finance-hover-card {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease,
+    background-color 160ms ease !important;
+}
+
+[data-finops="true"] .finance-hover-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--teal) 44%, var(--border)) !important;
+  box-shadow: var(--elev);
+}
+
+[data-theme="dark"] [data-finops="true"] .finance-hover-card:hover {
+  background: color-mix(in srgb, var(--fin-night-brand) 7%, var(--fin-night-surface)) !important;
+  border-color: var(--fin-night-edge-strong) !important;
+  box-shadow: 0 10px 30px rgba(0, 25, 70, 0.28),
+    0 0 0 1px color-mix(in srgb, var(--fin-night-brand) 24%, transparent);
+}
+
 /* ── Page layout flex column so child pages fill to footer ────────── */
+/* Purchase orders keep their primary reading path visible without forcing a
+   horizontal scrollbar. Lower-priority accounting breakdowns progressively
+   collapse as the content area narrows; the full values remain in Details. */
+.po-table-wrap {
+  width: 100%;
+  overflow: hidden;
+}
+.po-table {
+  width: 100%;
+  table-layout: fixed;
+}
+.po-table .po-col-po_number { width: 12%; }
+.po-table .po-col-vendorId { width: 18%; }
+.po-table .po-col-orderDate,
+.po-table .po-col-dueDate { width: 9%; }
+.po-table .po-col-subtotal,
+.po-table .po-col-tax { width: 11%; }
+.po-table .po-col-total,
+.po-table .po-col-balance { width: 12%; }
+.po-table .po-col-status { width: 7%; }
+.po-table .po-col-actions { width: 8%; }
+
+@media (max-width: 1600px) {
+  .po-table .po-col-tax { display: none; }
+  .po-table .po-col-vendorId { width: 20%; }
+  .po-table .po-col-actions { width: 10%; }
+}
+
+@media (max-width: 1320px) {
+  .po-table .po-col-subtotal { display: none; }
+  .po-table .po-col-vendorId { width: 23%; }
+  .po-table .po-col-po_number { width: 15%; }
+}
+
+@media (max-width: 1080px) {
+  .po-table .po-col-dueDate,
+  .po-table .po-col-balance { display: none; }
+  .po-table .po-col-vendorId { width: 27%; }
+  .po-table .po-col-total { width: 18%; }
+  .po-table .po-col-status { width: 12%; }
+  .po-table .po-col-actions { width: 13%; }
+}
+
+@media (max-width: 760px) {
+  .po-table .po-col-orderDate { display: none; }
+  .po-table .po-col-po_number { width: 27%; }
+  .po-table .po-col-vendorId { width: 31%; }
+  .po-table .po-col-total { width: 22%; }
+  .po-table .po-col-status { display: none; }
+  .po-table .po-col-actions { width: 20%; }
+}

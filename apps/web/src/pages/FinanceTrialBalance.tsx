@@ -125,7 +125,7 @@ export const FinanceTrialBalance: React.FC = () => {
   if (error) return <div style={{ textAlign: 'center', color: 'var(--red)' }}>{error}</div>;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
       {/* Header */}
       <PageHeader
         crumbs={['Finance', 'Reports']}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { Icon } from '../components/Icon.js';
 import { Spinner } from '../components/ui/spinner.js';
@@ -133,7 +133,14 @@ export function CreateShipmentPage() {
   usePageSEO('New Shipment', 'Create a new shipment case via OCR or manual entry.');
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+  const [searchParams] = useSearchParams();
+  // Arriving mid-invoice (Billing.tsx's "create shipment" EntityPicker
+  // option) — land back there with the new shipment instead of this page's
+  // own detail view, the same round-trip CustomerOnboarding.tsx already
+  // does for a brand-new customer.
+  const returnTo = searchParams.get('returnTo') || '';
+  const presetCustomerId = searchParams.get('customer_id') || '';
+
   const [currentStep, setCurrentStep] = useState(1);
   
   const [customers, setCustomers] = useState<any[]>([]);
@@ -166,7 +173,7 @@ export function CreateShipmentPage() {
   ];
 
   const [createForm, setCreateForm] = useState({
-    customer_id: '',
+    customer_id: presetCustomerId,
     type: 'SEA_FCL' as ShipmentType,
     goods_desc: '',
     bl_number: '',
@@ -280,7 +287,10 @@ export function CreateShipmentPage() {
     apiFetch('/v1/customers').then(res => {
       const list = res.data || [];
       setCustomers(list);
-      if (list.length > 0) setCreateForm(p => ({ ...p, customer_id: list[0].id }));
+      // Don't clobber a customer carried over from the invoice this shipment
+      // is being created for (`?customer_id=` via returnTo) with the list's
+      // arbitrary first entry.
+      if (list.length > 0 && !presetCustomerId) setCreateForm(p => ({ ...p, customer_id: list[0].id }));
     });
     apiFetch('/v1/hr/staff').then(res => {
       const list = (res.data || res || []) as any[];
@@ -558,7 +568,12 @@ export function CreateShipmentPage() {
         }
       }
 
-      navigate(`/clearos/clearance/${shipmentId}`);
+      if (returnTo) {
+        const sep = returnTo.includes('?') ? '&' : '?';
+        navigate(`${returnTo}${sep}shipment_id=${shipmentId}&new=1`);
+      } else {
+        navigate(`/clearos/clearance/${shipmentId}`);
+      }
     } catch (err: any) {
       showAlert(err.message || 'Failed to create case');
     } finally {

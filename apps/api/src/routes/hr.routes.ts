@@ -1,4 +1,5 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireUuidParams } from '../middleware/uuid-params.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'crypto';
@@ -45,6 +46,48 @@ function isoDate(v: unknown): string {
 
 async function logActivity(trx: any, tenantId: string, userId: string | null, action: string, module = 'HR') {
   await trx.insertInto('hr_activity_log').values({ tenant_id: tenantId, user_id: userId, action, module }).execute();
+}
+
+/** A uuid foreign key is only guaranteed to exist, not to belong to this
+ *  tenant — FK checks bypass RLS, so a user/department id from another tenant
+ *  would otherwise be accepted. No-op when the id is empty. */
+async function assertOwnedRef(trx: any, table: 'users' | 'hr_departments', id: string | null | undefined, tenantId: string, label: string) {
+  if (!id) return;
+  const row = await trx.selectFrom(table).select('id').where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+  if (!row) throw Object.assign(new Error(`${label} not found in this workspace.`), { statusCode: 400 });
+}
+
+/** Refuses a case-insensitive duplicate of `column` within the tenant (and,
+ *  optionally, within the same `scope` column value — null-aware), ignoring
+ *  the row being renamed. */
+async function assertNoDuplicate(
+  trx: any, table: 'hr_departments' | 'hr_designations' | 'hr_teams', column: 'name' | 'title',
+  value: string, tenantId: string, excludeId: string | null, message: string,
+  scope?: { column: 'department_id'; value: string | null },
+) {
+  let q = trx.selectFrom(table).select('id')
+    .where('tenant_id', '=', tenantId)
+    .where(sql<boolean>`lower(${sql.ref(column)}) = ${value.trim().toLowerCase()}`);
+  if (excludeId) q = q.where('id', '!=', excludeId);
+  if (scope) q = q.where(sql<boolean>`${sql.ref(scope.column)} is not distinct from ${scope.value}`);
+  if (await q.executeTakeFirst()) throw Object.assign(new Error(message), { statusCode: 409 });
+}
+
+const ADMIN_LIKE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'];
+
+/** Refuses a role change or deactivation that would leave the workspace with
+ *  no active administrator — nobody could then manage staff, roles or billing
+ *  short of a platform operator stepping in. */
+async function assertNotLastAdmin(trx: any, tenantId: string, targetId: string, action: string) {
+  const target = await trx.selectFrom('users').select(['role', 'active'])
+    .where('id', '=', targetId).where('tenant_id', '=', tenantId).executeTakeFirst();
+  if (!target || !target.active || !ADMIN_LIKE_ROLES.includes(target.role)) return;
+  const others = await trx.selectFrom('users').select((eb: any) => eb.fn.countAll().as('n'))
+    .where('tenant_id', '=', tenantId).where('active', '=', true)
+    .where('role', 'in', ADMIN_LIKE_ROLES).where('id', '!=', targetId).executeTakeFirst();
+  if (Number(others?.n) === 0) {
+    throw Object.assign(new Error(`${action} would leave this workspace with no active administrator.`), { statusCode: 409 });
+  }
 }
 
 const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -171,6 +214,24 @@ async function closeOpenTimeEntries(trx: any, tenantId: string, userId: string, 
   }
 }
 
+/** Keep optional clock-out enrichment from poisoning the PostgreSQL
+ * transaction that already completed the employee's session. PostgreSQL
+ * marks a transaction aborted after any failed statement; catching the JS
+ * error alone is not enough, so each best-effort operation gets a savepoint. */
+type BestEffortResult<T> = { ok: true; value: T } | { ok: false; error: unknown };
+async function bestEffortInTransaction<T>(trx: any, savepoint: string, work: () => Promise<T>): Promise<BestEffortResult<T>> {
+  await sql.raw(`SAVEPOINT ${savepoint}`).execute(trx);
+  try {
+    const result = await work();
+    await sql.raw(`RELEASE SAVEPOINT ${savepoint}`).execute(trx);
+    return { ok: true, value: result };
+  } catch (error) {
+    await sql.raw(`ROLLBACK TO SAVEPOINT ${savepoint}`).execute(trx);
+    await sql.raw(`RELEASE SAVEPOINT ${savepoint}`).execute(trx);
+    return { ok: false, error };
+  }
+}
+
 /** The day's shift for LATE detection: an explicit hr_shift_assignments row
  *  for that user/date, else the tenant's one `is_default` hr_shifts row,
  *  else a bare fallback for a tenant that hasn't configured shifts at all. */
@@ -270,6 +331,7 @@ export async function syncAttendanceFromSessions(trx: any, tenantId: string, use
 export async function hrRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
+  requireUuidParams(fastify);
   // Production-readiness audit HUD-0024/0031: HR data (departments, shifts,
   // attendance, leave, staff records) had no role check beyond entitlement
   // — reachable by a CUSTOMER-role portal account, which has no legitimate
@@ -316,10 +378,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const body = z.object({
       name: z.string().trim().min(1).max(200),
-      head_user_id: z.string().uuid().optional(),
+      head_user_id: z.string().uuid().nullish(),
       status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
     }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
+      await assertOwnedRef(trx, 'users', body.head_user_id, user.tenant_id, 'Department head');
+      await assertNoDuplicate(trx, 'hr_departments', 'name', body.name, user.tenant_id, null, 'A department with that name already exists.');
       return trx.insertInto('hr_departments').values({
         tenant_id: user.tenant_id,
         name: body.name,
@@ -343,6 +407,8 @@ export async function hrRoutes(fastify: FastifyInstance) {
       if (body.head_user_id !== undefined) allowed.head_user_id = body.head_user_id;
       if (body.status !== undefined)       allowed.status = body.status;
       allowed.updated_at = new Date();
+      await assertOwnedRef(trx, 'users', body.head_user_id, user.tenant_id, 'Department head');
+      if (body.name !== undefined) await assertNoDuplicate(trx, 'hr_departments', 'name', body.name, user.tenant_id, id, 'A department with that name already exists.');
       const updated = await trx.updateTable('hr_departments').set(allowed)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirst();
@@ -355,6 +421,19 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
+      // The FKs would let this through and quietly do damage: every member's
+      // department is nulled (ON DELETE SET NULL) and the department's
+      // headcount plans are deleted outright (ON DELETE CASCADE, migration 400).
+      const staff = await trx.selectFrom('users').select(eb => eb.fn.countAll<number>().as('n'))
+        .where('tenant_id', '=', user.tenant_id).where('department_id', '=', id).where('active', '=', true).executeTakeFirst();
+      if (Number(staff?.n) > 0) {
+        throw Object.assign(new Error(`${staff!.n} active staff member(s) still belong to this department — move them to another department first.`), { statusCode: 409 });
+      }
+      const plans = await trx.selectFrom('hr_headcount_plans').select(eb => eb.fn.countAll<number>().as('n'))
+        .where('tenant_id', '=', user.tenant_id).where('department_id', '=', id).executeTakeFirst();
+      if (Number(plans?.n) > 0) {
+        throw Object.assign(new Error('This department has workforce plans, which would be deleted with it. Remove those in Workforce Planning first.'), { statusCode: 409 });
+      }
       await trx.deleteFrom('hr_departments')
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .execute();
@@ -394,9 +473,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const body = z.object({
       title: z.string().trim().min(1).max(200),
-      department_id: z.string().uuid().optional(),
+      department_id: z.string().uuid().nullish(),
     }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
+      await assertOwnedRef(trx, 'hr_departments', body.department_id, user.tenant_id, 'Department');
+      await assertNoDuplicate(trx, 'hr_designations', 'title', body.title, user.tenant_id, null,
+        'That designation already exists in this department.', { column: 'department_id', value: body.department_id || null });
       return trx.insertInto('hr_designations').values({
         tenant_id: user.tenant_id,
         title: body.title,
@@ -416,6 +498,18 @@ export async function hrRoutes(fastify: FastifyInstance) {
       const allowed: Record<string, any> = {};
       if (body.title         !== undefined) allowed.title         = body.title;
       if (body.department_id !== undefined) allowed.department_id = body.department_id || null;
+      // An empty SET clause is invalid SQL — a bare 500 without this guard.
+      if (Object.keys(allowed).length === 0) throw Object.assign(new Error('Nothing to update'), { statusCode: 400 });
+      await assertOwnedRef(trx, 'hr_departments', body.department_id, user.tenant_id, 'Department');
+      if (body.title !== undefined || body.department_id !== undefined) {
+        const cur = await trx.selectFrom('hr_designations').select(['title', 'department_id'])
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (cur) {
+          await assertNoDuplicate(trx, 'hr_designations', 'title', body.title ?? cur.title, user.tenant_id, id,
+            'That designation already exists in this department.',
+            { column: 'department_id', value: body.department_id !== undefined ? (body.department_id || null) : cur.department_id });
+        }
+      }
       const updated = await trx.updateTable('hr_designations').set(allowed)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirst();
@@ -428,6 +522,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
+      // ON DELETE SET NULL would blank the designation on every staff record.
+      const staff = await trx.selectFrom('users').select(eb => eb.fn.countAll<number>().as('n'))
+        .where('tenant_id', '=', user.tenant_id).where('designation_id', '=', id).where('active', '=', true).executeTakeFirst();
+      if (Number(staff?.n) > 0) {
+        throw Object.assign(new Error(`${staff!.n} active staff member(s) still hold this designation — change theirs first.`), { statusCode: 409 });
+      }
       await trx.deleteFrom('hr_designations')
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .execute();
@@ -512,7 +612,8 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const body = z.object({
       user_id: z.string().uuid(),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD'),
-      shift_id: z.string().uuid().optional(),
+      // null clears the day's assignment — that is what the roster UI sends.
+      shift_id: z.string().uuid().nullish(),
     }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       if (body.shift_id) {
@@ -950,31 +1051,51 @@ export async function hrRoutes(fastify: FastifyInstance) {
       // moment a day had more than one session. syncAttendanceFromSessions
       // recomputes clock_in (earliest)/clock_out (latest)/worked_minutes
       // (sum) from every session that date, `completed` above included.
-      await syncAttendanceFromSessions(trx, user.tenant_id, user.sub, dateStr, user.sub);
+      const syncWarnings: string[] = [];
+      const attendanceSynced = await bestEffortInTransaction(trx, 'clockout_attendance', () =>
+        syncAttendanceFromSessions(trx, user.tenant_id, user.sub, dateStr, user.sub));
+      if (!attendanceSynced.ok) {
+        syncWarnings.push('attendance');
+        req.log.error({ err: attendanceSynced.error, sessionId: session.id, userId: user.sub }, 'Clock-out completed but attendance synchronization failed');
+      }
 
       // Close the matching header time entry so the widget flips back to idle.
-      await closeOpenTimeEntries(trx, user.tenant_id, user.sub, now);
+      const timeEntriesClosed = await bestEffortInTransaction(trx, 'clockout_time_entry', () =>
+        closeOpenTimeEntries(trx, user.tenant_id, user.sub, now));
+      if (!timeEntriesClosed.ok) {
+        syncWarnings.push('time-entry');
+        req.log.error({ err: timeEntriesClosed.error, sessionId: session.id, userId: user.sub }, 'Clock-out completed but header time-entry synchronization failed');
+      }
 
       // Clock-out summary — real tasks this person actually finished during
       // the session just closed, not an estimate. Owner or assignee, either
       // one, since both mean "this person did the work".
-      const finishedTasks = await trx.selectFrom('tasks')
-        .select(['id', 'title', 'completed_at'])
-        .where('tenant_id', '=', user.tenant_id)
-        .where('deleted_at', 'is', null)
-        .where('completed', '=', true)
-        .where('completed_at', '>=', session.clock_in_at)
-        .where('completed_at', '<=', now)
-        .where((eb: any) => eb.or([
-          eb('user_id', '=', user.sub),
-          eb('assignee_id', '=', user.sub),
-        ]))
-        .orderBy('completed_at', 'asc')
-        .execute();
+      let finishedTasks: Array<{ id: string; title: string; completed_at: Date | null }> = [];
+      const taskSummary = await bestEffortInTransaction(trx, 'clockout_task_summary', () =>
+        trx.selectFrom('tasks')
+          .select(['id', 'title', 'completed_at'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('deleted_at', 'is', null)
+          .where('completed', '=', true)
+          .where('completed_at', '>=', session.clock_in_at)
+          .where('completed_at', '<=', now)
+          .where((eb: any) => eb.or([
+            eb('user_id', '=', user.sub),
+            eb('assignee_id', '=', user.sub),
+          ]))
+          .orderBy('completed_at', 'asc')
+          .execute());
+      if (!taskSummary.ok) {
+        syncWarnings.push('task-summary');
+        req.log.error({ err: taskSummary.error, sessionId: session.id, userId: user.sub }, 'Clock-out completed but task summary failed');
+      } else {
+        finishedTasks = taskSummary.value;
+      }
 
       return {
         ok: true,
         session: completed,
+        warnings: syncWarnings,
         summary: {
           worked_minutes: workedMins,
           clock_in_at: session.clock_in_at,
@@ -1593,6 +1714,23 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const { id } = req.params as any;
     const body = z.object({ status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']) }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
+      // Any status could move to any other — a rejected request re-approved,
+      // an approved one sent back to pending — and every move to APPROVED
+      // re-emitted hr.leave_approved, so downstream automations fired again
+      // each time. A decision is now final except cancelling an approved leave.
+      const existing = await trx.selectFrom('hr_leaves').select(['status', 'user_id'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) throw Object.assign(new Error('Leave request not found'), { statusCode: 404 });
+      if (existing.status === body.status) {
+        return trx.selectFrom('hr_leaves').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirstOrThrow();
+      }
+      const NEXT: Record<string, string[]> = { PENDING: ['APPROVED', 'REJECTED', 'CANCELLED'], APPROVED: ['CANCELLED'], REJECTED: [], CANCELLED: [] };
+      if (!(NEXT[existing.status] ?? NEXT.PENDING).includes(body.status)) {
+        throw Object.assign(new Error(`A ${String(existing.status).toLowerCase()} leave request can't be changed to ${body.status.toLowerCase()}.`), { statusCode: 409 });
+      }
+      if (body.status === 'APPROVED' && existing.user_id === user.sub && !['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role)) {
+        throw Object.assign(new Error("You can't approve your own leave request — ask another manager."), { statusCode: 403 });
+      }
       const updated = await trx.updateTable('hr_leaves').set({
         status: body.status,
         approved_by: body.status === 'APPROVED' ? user.sub : null,
@@ -2846,12 +2984,20 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.get('/holidays', async (req) => {
     const user = req.user;
+    const query = z.object({
+      upcoming: z.enum(['true', 'false', '1', '0']).optional(),
+      limit: z.coerce.number().int().min(1).max(100).optional(),
+    }).parse(req.query);
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.selectFrom('hr_holidays')
+      let request = trx.selectFrom('hr_holidays')
         .selectAll()
-        .where('tenant_id', '=', user.tenant_id)
-        .orderBy('date')
-        .execute();
+        .where('tenant_id', '=', user.tenant_id);
+      if (query.upcoming === 'true' || query.upcoming === '1') {
+        request = request.where('date', '>=', isoDate(new Date()));
+      }
+      request = request.orderBy('date');
+      if (query.limit) request = request.limit(query.limit);
+      return request.execute();
     });
   });
 
@@ -3201,6 +3347,16 @@ export async function hrRoutes(fastify: FastifyInstance) {
                    'users.department_id', 'users.designation_id',
                    'dept.name as department_name', 'desig.title as designation_title'])
           .where('users.tenant_id', '=', user.tenant_id)
+          // This is the platform's shared "internal people" picker — 28+
+          // pages across CRM, Tasks, Chat, Calls, Sign and every app in
+          // between call it for assignee/recipient/participant lists, not
+          // just HR screens. With no role filter it also returned CUSTOMER
+          // (and would return ORG/GUEST) rows: a customer's own portal login
+          // showed up in "Manage Staff", could be assigned a department or
+          // designation, picked as a deal owner, added to a team, or handed
+          // a disciplinary case — anywhere in the app that lists "staff".
+          .where('users.role', '!=', 'CUSTOMER')
+          .where('users.role', '!=', 'ORG')
           .$if(!!search?.trim(), qb => qb.where(eb => eb.or([
             eb('users.name', 'ilike', `%${search!.trim()}%`),
             eb('users.email', 'ilike', `%${search!.trim()}%`),
@@ -3236,11 +3392,16 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const { id } = req.params as any;
     // This is the one place statutory identity/pay fields (basic_salary,
     // bank_account_no, national_id, etc.) leave the DB — every sub-resource
-    // route below already gates on mayViewStaffRecord (self or HR_VIEWER_ROLES),
-    // but this original, most sensitive endpoint never got the same check,
-    // leaving any authenticated tenant member able to read a colleague's
-    // exact salary and banking details by id.
-    if (!mayViewStaffRecord(req, id)) {
+    // route below already gates on mayViewStaffRecord, but this original, most
+    // sensitive endpoint never got the same check, leaving any authenticated
+    // tenant member able to read a colleague's exact salary and banking
+    // details by id. That was closed with a bare role check (any MANAGER),
+    // which itself over-shared: the MANAGER role is an operations role, so
+    // every manager still received every employee's pay and ID numbers.
+    // Access is now tiered — see staffAccessLevel — and what a tier may not
+    // see is removed from the response below, not merely hidden by the UI.
+    const access = await staffAccessLevel(req, id);
+    if (access === 'none') {
       reply.status(403);
       return { error: 'Not authorized to view this staff record.' };
     }
@@ -3313,8 +3474,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
           .executeTakeFirst(),
       ]);
 
+      // Withhold by tier, server-side. hire_date stays visible at every tier —
+      // it drives hireDate below, which approvers need to reset a leave
+      // allowance on the right day.
       return {
-        ...staff,
+        ...redactStaffRecord(staff, access),
+        record_access: access,
         org_chart_manager: orgChartManager,
         status: !staff.active ? 'INACTIVE' : Number(onLeaveNow?.c ?? 0) > 0 ? 'ON_LEAVE' : 'ACTIVE',
         // The real hire date if one has been entered, and only then the row's
@@ -3356,10 +3521,19 @@ export async function hrRoutes(fastify: FastifyInstance) {
    *    the field is editable by the people who should edit it rather than by
    *    everyone who can reach the screen.
    */
-  const PAY_FIELDS = new Set([
+  // Pay and statutory identity numbers — one list each, shared by the read
+  // redaction in GET /staff/:id and the write rules below, so what a role may
+  // see and what it may change can't drift apart. Declared here, above
+  // PAY_FIELDS, because that Set is built at registration time (a `const`
+  // declared later in this file would still be in its temporal dead zone).
+  const STAFF_PAY_FIELDS = [
     'basic_salary', 'pay_currency', 'pay_method', 'bank_name', 'bank_branch',
     'bank_account_no', 'bank_account_name', 'mobile_money_provider', 'mobile_money_number',
-  ]);
+  ] as const;
+  const STAFF_IDENTITY_NUMBER_FIELDS = [
+    'tax_residency', 'national_id', 'tax_id', 'social_security_no', 'health_insurance_no', 'pension_fund',
+  ] as const;
+  const PAY_FIELDS = new Set<string>(STAFF_PAY_FIELDS);
   const IDENTITY_FIELDS = new Set([
     'tax_residency', 'national_id', 'tax_id', 'social_security_no',
     'health_insurance_no', 'pension_fund', 'hire_date',
@@ -3375,6 +3549,18 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const { id } = req.params as any;
     const body = req.body as any;
+
+    // Read and write follow one rule: a MANAGER who can't see somebody's
+    // statutory identity numbers (see staffAccessLevel) shouldn't be able to
+    // overwrite them blind either. Contact details and org placement below
+    // keep their existing, broader manager access; admins and the person
+    // themselves are unaffected.
+    if (user.role === 'MANAGER' && user.sub !== id && [...IDENTITY_FIELDS].some(f => body[f] !== undefined)
+        && !(await isInManagementChain(user.tenant_id, user.sub, id))) {
+      return reply.status(403).send({ error: 'A manager can only edit identity details for people in their own reporting line.' });
+    }
+    // The echo of the updated row is subject to the same tiering as the GET.
+    const patchAccess = await staffAccessLevel(req, id);
 
     const allowed: Record<string, any> = {};
     if (body.name  !== undefined) allowed.name  = body.name;
@@ -3466,7 +3652,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
                     'users.mobile_money_provider', 'users.mobile_money_number'])
         .where('users.id', '=', id).where('users.tenant_id', '=', user.tenant_id)
         .executeTakeFirstOrThrow();
-      return { ...updated, hire_date_is_estimated: !updated.hire_date };
+      return { ...redactStaffRecord(updated, patchAccess), record_access: patchAccess, hire_date_is_estimated: !updated.hire_date };
     });
   });
 
@@ -3486,6 +3672,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'Only a SUPER_ADMIN can grant SUPER_ADMIN' });
     }
     return withTenant(user.tenant_id, async (trx) => {
+      const target = await trx.selectFrom('users').select('role')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (target?.role === 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') {
+        return reply.status(403).send({ error: "Only a SUPER_ADMIN can change a SUPER_ADMIN's role" });
+      }
+      if (!ADMIN_LIKE_ROLES.includes(role)) await assertNotLastAdmin(trx, user.tenant_id, id, 'Changing this role');
       const updated = await trx.updateTable('users').set({ role, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returning(['id', 'name', 'email', 'role'])
@@ -3508,6 +3700,15 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const { id } = req.params as any;
     const { active } = z.object({ active: z.boolean() }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
+      if (!active) {
+        if (id === user.sub) throw Object.assign(new Error("You can't deactivate your own account."), { statusCode: 409 });
+        const target = await trx.selectFrom('users').select('role')
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (target?.role === 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') {
+          throw Object.assign(new Error("Only a SUPER_ADMIN can deactivate a SUPER_ADMIN."), { statusCode: 403 });
+        }
+        await assertNotLastAdmin(trx, user.tenant_id, id, 'Deactivating this account');
+      }
       const updated = await trx.updateTable('users').set({ active, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returning(['id', 'name', 'active'])
@@ -3560,8 +3761,71 @@ export async function hrRoutes(fastify: FastifyInstance) {
    * necessary but not sufficient — a colleague is in your tenant too.
    */
   const HR_VIEWER_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'];
-  const mayViewStaffRecord = (req: any, targetId: string) =>
-    req.user.sub === targetId || HR_VIEWER_ROLES.includes(req.user.role);
+  const HR_ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'];
+
+  /**
+   * True when `callerId` sits anywhere above `targetId` in this tenant's Org
+   * Chart — a direct manager or any skip-level ancestor — so "manager" means a
+   * real reporting line, not merely holding the MANAGER role (which on this
+   * platform is an operations role, not "line manager of everyone").
+   * Recursive over org_chart_nodes.parent_id; UNION (not UNION ALL) so a
+   * corrupt parent_id cycle terminates instead of looping. A person who isn't
+   * placed on the chart at all has no manager here, so this fails closed.
+   */
+  async function isInManagementChain(tenantId: string, callerId: string, targetId: string): Promise<boolean> {
+    return withTenant(tenantId, async (trx) => {
+      const res = await sql<{ found: number }>`
+        WITH RECURSIVE chain AS (
+          SELECT id, parent_id, user_id FROM org_chart_nodes
+           WHERE tenant_id = ${tenantId} AND user_id = ${targetId}
+          UNION
+          SELECT n.id, n.parent_id, n.user_id FROM org_chart_nodes n
+            JOIN chain c ON n.id = c.parent_id
+           WHERE n.tenant_id = ${tenantId}
+        )
+        SELECT 1 AS found FROM chain WHERE user_id = ${callerId} LIMIT 1`.execute(trx);
+      return res.rows.length > 0;
+    });
+  }
+
+  /**
+   * How much of one person's HR record the caller may read:
+   *   full      — themselves, or an admin: everything.
+   *   team      — a MANAGER above them in the Org Chart: profile and identity
+   *               details, NOT pay (the same split the PATCH route below already
+   *               enforces — "pay is not the same permission as a phone number").
+   *   directory — any other MANAGER: the profile header only, no pay and no
+   *               statutory identity numbers.
+   *   none      — everyone else.
+   */
+  type StaffAccess = 'full' | 'team' | 'directory' | 'none';
+  async function staffAccessLevel(req: any, targetId: string): Promise<StaffAccess> {
+    if (req.user.sub === targetId) return 'full';
+    if (HR_ADMIN_ROLES.includes(req.user.role)) return 'full';
+    if (req.user.role === 'MANAGER') {
+      return (await isInManagementChain(req.user.tenant_id, req.user.sub, targetId)) ? 'team' : 'directory';
+    }
+    return 'none';
+  }
+  /** Removes what a tier may not see from a staff record. Used by every route
+   *  that returns one (the GET and the PATCH's echo of the updated row) — a
+   *  write response is a read too, and an earlier version of this let any
+   *  MANAGER read anyone's pay by re-saving a phone number. */
+  const redactStaffRecord = (record: Record<string, unknown>, access: StaffAccess): Record<string, unknown> => {
+    const hidden: readonly string[] = access === 'full' ? []
+      : access === 'team' ? STAFF_PAY_FIELDS
+      : [...STAFF_PAY_FIELDS, ...STAFF_IDENTITY_NUMBER_FIELDS];
+    const out = { ...record };
+    for (const k of hidden) delete out[k];
+    return out;
+  };
+
+  /** Sub-resources (leave, attendance, documents, …) need a real relationship —
+   *  the directory-only tier doesn't open them. */
+  const mayViewStaffRecord = async (req: any, targetId: string) => {
+    const access = await staffAccessLevel(req, targetId);
+    return access === 'full' || access === 'team';
+  };
 
   /** Wraps a per-person read with the access rule and the tenant filter. */
   function staffRecordRoute(
@@ -3570,8 +3834,8 @@ export async function hrRoutes(fastify: FastifyInstance) {
   ) {
     fastify.get(`/staff/:id${path}`, async (req: any, reply) => {
       const { id } = req.params as { id: string };
-      if (!mayViewStaffRecord(req, id)) {
-        return reply.status(403).send({ error: 'You can only open your own record.' });
+      if (!(await mayViewStaffRecord(req, id))) {
+        return reply.status(403).send({ error: 'You can only open your own record, or your reports’ if you are their manager.' });
       }
       return withTenant(req.user.tenant_id, async (trx) => {
         // Confirm the person is in this tenant before reading anything keyed on
@@ -3694,7 +3958,8 @@ export async function hrRoutes(fastify: FastifyInstance) {
       { label: 'Change a colleague’s role',           roles: ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] },
       { label: 'Activate or deactivate staff',            roles: ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] },
       { label: 'Approve or reject leave',                 roles: ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] },
-      { label: 'Open another person’s HR record',     roles: HR_VIEWER_ROLES },
+      { label: 'Open a report’s HR record (managers: without pay)', roles: HR_VIEWER_ROLES },
+      { label: 'See anyone’s pay and payment details',              roles: HR_ADMIN_ROLES },
     ].map(c => ({ label: c.label, granted: c.roles.includes(role) }));
     return { role, active: person.active, capabilities };
   });
@@ -4017,14 +4282,55 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const body = z.object({
       name: z.string().trim().min(1).max(200),
-      lead_user_id: z.string().uuid().optional(),
+      lead_user_id: z.string().uuid().nullish(),
     }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
+      await assertOwnedRef(trx, 'users', body.lead_user_id, user.tenant_id, 'Team lead');
+      await assertNoDuplicate(trx, 'hr_teams', 'name', body.name, user.tenant_id, null, 'A team with that name already exists.');
       const team = await trx.insertInto('hr_teams').values({
         tenant_id: user.tenant_id, name: body.name, lead_user_id: body.lead_user_id || null,
       }).returningAll().executeTakeFirstOrThrow();
       await logActivity(trx, user.tenant_id, user.sub, `Created team ${team.name}`);
       return team;
+    });
+  });
+
+  // A team could be created and have members added/removed, but never renamed,
+  // re-led or deleted — a mistyped team was permanent.
+  fastify.patch('/teams/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const body = z.object({
+      name: z.string().trim().min(1).max(200).optional(),
+      lead_user_id: z.string().uuid().nullable().optional(),
+    }).parse(req.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const allowed: Record<string, any> = {};
+      if (body.name !== undefined)         allowed.name = body.name;
+      if (body.lead_user_id !== undefined) allowed.lead_user_id = body.lead_user_id;
+      if (Object.keys(allowed).length === 0) throw Object.assign(new Error('Nothing to update'), { statusCode: 400 });
+      await assertOwnedRef(trx, 'users', body.lead_user_id, user.tenant_id, 'Team lead');
+      if (body.name !== undefined) await assertNoDuplicate(trx, 'hr_teams', 'name', body.name, user.tenant_id, id, 'A team with that name already exists.');
+      const updated = await trx.updateTable('hr_teams').set(allowed)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirst();
+      if (!updated) throw Object.assign(new Error('Team not found'), { statusCode: 404 });
+      await logActivity(trx, user.tenant_id, user.sub, `Updated team ${updated.name}`);
+      return updated;
+    });
+  });
+
+  fastify.delete('/teams/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const team = await trx.selectFrom('hr_teams').select(['id', 'name'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!team) throw Object.assign(new Error('Team not found'), { statusCode: 404 });
+      await trx.deleteFrom('hr_team_members').where('team_id', '=', id).execute();
+      await trx.deleteFrom('hr_teams').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      await logActivity(trx, user.tenant_id, user.sub, `Deleted team ${team.name}`);
+      return { ok: true };
     });
   });
 

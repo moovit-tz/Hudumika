@@ -16,6 +16,7 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { showConfirm } from '../lib/confirm.js';
 import { getCompany } from '../data/companyStore.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 // Types and Interfaces
 // Mirrors the backend's purchase_orders.status CHECK constraint
@@ -713,7 +714,7 @@ export const PurchaseOrders: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--white)', overflow: 'hidden', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', fontFamily: 'var(--font)' }}>
       
       {/* Toast Notifications */}
       <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 10000, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1027,6 +1028,7 @@ export const PurchaseOrders: React.FC = () => {
                   return (
                     <div
                       key={po.id}
+                      className="finance-hover-card"
                       style={{
                         background: 'var(--white)',
                         borderRadius: 'var(--r)',
@@ -1036,16 +1038,7 @@ export const PurchaseOrders: React.FC = () => {
                         flexDirection: 'column',
                         gap: 12,
                         boxShadow: 'var(--elev-sm)',
-                        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                         cursor: 'default'
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = 'var(--elev)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = 'var(--elev-sm)';
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -1209,8 +1202,8 @@ export const PurchaseOrders: React.FC = () => {
             ) : (
               // MAIN LIST VIEW (TABLE)
               <SectionCard collapsible={false} padded={false}>
-                <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
-                  <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 13 }}>
+                <div className="po-table-wrap">
+                  <table className="rtbl po-table" style={{ borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
                         {[
@@ -1226,6 +1219,7 @@ export const PurchaseOrders: React.FC = () => {
                         ].map(col => (
                           <th
                             key={col.key}
+                            className={`po-col-${col.key}`}
                             onClick={() => handleSort(col.key)}
                             style={{
                               padding: '12px 14px',
@@ -1250,7 +1244,7 @@ export const PurchaseOrders: React.FC = () => {
                             </div>
                           </th>
                         ))}
-                        <th style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Actions</th>
+                        <th className="po-col-actions" style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1264,7 +1258,7 @@ export const PurchaseOrders: React.FC = () => {
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           >
                             {/* Invoice number link */}
-                            <td style={{ padding: '12px 14px' }}>
+                            <td className="po-col-po_number" style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
                               <button
                                 onClick={() => { setSelectedPoId(po.id); setViewMode('DETAILS'); }}
                                 style={{
@@ -1283,18 +1277,20 @@ export const PurchaseOrders: React.FC = () => {
                               </button>
                             </td>
 
-                            <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--ink)' }}>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                            <td className="po-col-vendorId" style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--ink)', overflow: 'hidden' }}>
+                              <Tip label={po.vendorName} side="top">
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                                 <PersonAvatar userId={po.vendorId} kind="suppliers" name={po.vendorName} size={22} />
-                                {po.vendorName}
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{po.vendorName}</span>
                               </span>
+                              </Tip>
                             </td>
 
-                            <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>
+                            <td className="po-col-orderDate" style={{ padding: '12px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>
                               {po.orderDate}
                             </td>
 
-                            <td style={{ padding: '12px 14px' }}>
+                            <td className="po-col-dueDate" style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
                               <div>
                                 <span style={{ color: po.isOverdue ? 'var(--red)' : 'var(--ink2)', fontWeight: po.isOverdue ? 600 : 400 }}>{po.dueDate}</span>
                                 {po.isOverdue && (
@@ -1305,23 +1301,23 @@ export const PurchaseOrders: React.FC = () => {
                               </div>
                             </td>
 
-                            <td style={{ padding: '12px 14px', color: 'var(--ink2)', fontFamily: 'monospace' }}>
+                            <td className="po-col-subtotal" style={{ padding: '12px 14px', color: 'var(--ink2)', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
                               {fmt(po.subtotal, 'USD')}
                             </td>
 
-                            <td style={{ padding: '12px 14px', color: 'var(--ink2)', fontFamily: 'monospace' }}>
+                            <td className="po-col-tax" style={{ padding: '12px 14px', color: 'var(--ink2)', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
                               {fmt(po.tax, 'USD')}
                             </td>
 
-                            <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'monospace' }}>
+                            <td className="po-col-total" style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
                               {fmt(po.total, 'USD')}
                             </td>
 
-                            <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--blue)', fontFamily: 'monospace' }}>
+                            <td className="po-col-balance" style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--blue)', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
                               {fmt(po.balance, 'USD')}
                             </td>
 
-                            <td style={{ padding: '12px 14px' }}>
+                            <td className="po-col-status" style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
                               <span
                                 style={{
                                   fontSize: 10.5,
@@ -1338,8 +1334,9 @@ export const PurchaseOrders: React.FC = () => {
                             </td>
 
                             {/* Actions Column */}
-                            <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                            <td className="po-col-actions" style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'inline-flex', gap: 5, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                <Tip label="Download purchase order PDF">
                                 <button
                                   onClick={() => handleDownloadPDF(po.id)}
                                   disabled={downloading === po.po_number}
@@ -1355,10 +1352,11 @@ export const PurchaseOrders: React.FC = () => {
                                     alignItems: 'center',
                                     justifyContent: 'center'
                                   }}
-                                  title="Download PDF"
                                 >
                                   <Icon name="download" size={12.5} />
                                 </button>
+                                </Tip>
+                                <Tip label="View purchase order details">
                                 <button
                                   onClick={() => { setSelectedPoId(po.id); setViewMode('DETAILS'); }}
                                   style={{
@@ -1373,12 +1371,13 @@ export const PurchaseOrders: React.FC = () => {
                                     alignItems: 'center',
                                     justifyContent: 'center'
                                   }}
-                                  title="View Details"
                                 >
                                   <Icon name="eye" size={12.5} />
                                 </button>
+                                </Tip>
                                 {po.status === 'Draft' ? (
                                   <>
+                                    <Tip label="Duplicate purchase order">
                                     <button
                                       onClick={() => handleDuplicatePO(po.id)}
                                       style={{
@@ -1393,10 +1392,11 @@ export const PurchaseOrders: React.FC = () => {
                                         alignItems: 'center',
                                         justifyContent: 'center'
                                       }}
-                                      title="Duplicate"
                                     >
                                       <Icon name="copy" size={12.5} />
                                     </button>
+                                    </Tip>
+                                    <Tip label="Edit purchase order">
                                     <button
                                       onClick={() => handleEditInit(po.id)}
                                       style={{
@@ -1411,10 +1411,11 @@ export const PurchaseOrders: React.FC = () => {
                                         alignItems: 'center',
                                         justifyContent: 'center'
                                       }}
-                                      title="Edit"
                                     >
                                       <Icon name="edit" size={12.5} />
                                     </button>
+                                    </Tip>
+                                    <Tip label="Delete purchase order">
                                     <button
                                       onClick={() => handleDeletePO(po.id)}
                                       style={{
@@ -1429,10 +1430,10 @@ export const PurchaseOrders: React.FC = () => {
                                         alignItems: 'center',
                                         justifyContent: 'center'
                                       }}
-                                      title="Delete"
                                     >
                                       <Icon name="trash" size={12.5} />
                                     </button>
+                                    </Tip>
                                   </>
                                 ) : (
                                   <div style={{ width: 94 }} /> // placeholder to keep actions aligned

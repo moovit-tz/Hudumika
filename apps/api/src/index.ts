@@ -114,6 +114,7 @@ import { settingsRoutes } from './routes/settings.routes.js';
 import { mailOAuthRoutes } from './routes/mail-oauth.routes.js';
 import { reportsRoutes } from './routes/reports.routes.js';
 import { aiRoutes } from './routes/ai.routes.js';
+import { agentRoutes } from './routes/agent.routes.js';
 import { trackerRoutes, trackerPublicRoutes } from './routes/tracker.routes.js';
 import { cargoDashboardRoutes } from './routes/cargo-dashboard.routes.js';
 import { glRoutes } from './routes/gl.routes.js';
@@ -227,6 +228,7 @@ import { smsRoutes, smsWebhookRoutes } from './routes/sms.routes.js';
 import { setupGuideRoutes } from './routes/setup-guide.routes.js';
 import { developerRoutes } from './routes/developer.routes.js';
 import { projectOsRoutes } from './routes/project-os.routes.js';
+import { isDriverError, driverErrorResponse } from './utils/db-errors.js';
 
 const server = fastify({
   logger: {
@@ -372,12 +374,13 @@ export async function registerApp() {
       // — the many call sites across this codebase that intentionally
       // `throw new Error('a clear, safe message')` to surface a friendly
       // explanation via this exact handler — is left untouched.
-      const pgErr = error as unknown as { code?: unknown; severity?: unknown; table?: unknown; constraint?: unknown };
-      const looksLikeDriverError = typeof pgErr.code === 'string' && /^[0-9A-Z]{5}$/.test(pgErr.code)
-        && ('severity' in pgErr || 'table' in pgErr || 'constraint' in pgErr);
-      if (looksLikeDriverError) {
+      // Most such errors are the caller's own input (a malformed id, a
+      // duplicate, a record still in use) — driverErrorResponse maps those to
+      // the accurate 4xx with a fixed message; anything else stays a 500.
+      if (isDriverError(error)) {
         console.error('[db error]', request.method, request.url, error);
-        return reply.status(500).send({ error: 'An unexpected error occurred. Please try again.' });
+        const { status, error: message } = driverErrorResponse(error.code);
+        return reply.status(status).send({ error: message });
       }
 
       return reply.send(error);
@@ -606,6 +609,7 @@ export async function registerApp() {
     await server.register(mailOAuthRoutes, { prefix: '/v1/settings/email' });
     await server.register(reportsRoutes, { prefix: '/v1/reports' });
     await server.register(aiRoutes, { prefix: '/v1/ai' });
+    await server.register(agentRoutes, { prefix: '/v1/agent' });
     await server.register(trackerRoutes, { prefix: '/v1/tracker' });
     await server.register(trackerPublicRoutes, { prefix: '/v1/tracker' });
     await server.register(cargoDashboardRoutes, { prefix: '/v1/cargotracker/dashboard' });

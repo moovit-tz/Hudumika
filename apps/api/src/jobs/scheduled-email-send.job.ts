@@ -67,6 +67,10 @@ export async function runScheduledEmailSendJob(): Promise<void> {
           attachments: attachments.map((a: any) => ({ storageKey: a.storageKey, filename: a.filename })),
           inReplyToMessageId: row.in_reply_to_message_id,
           referencesMessageIds: referencesIds,
+          // The only place this delivers real per-user send identity
+          // (migration 491) — this is a message the owning user composed
+          // through the Email app, not a system-generated notification.
+          userId: row.user_id,
         });
 
         await withTenant(row.tenant_id, async (trx) => {

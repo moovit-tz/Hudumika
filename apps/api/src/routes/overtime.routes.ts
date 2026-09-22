@@ -17,6 +17,7 @@ import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireUuidParams } from '../middleware/uuid-params.js';
 import { HolidaysService } from '../services/holidays.service.js';
 import {
   overtimeKindFor, overtimeAmount, checkOvertimeCap, fourWeekWindow,
@@ -52,6 +53,7 @@ async function approvedHoursInWindow(tenantId: string, userId: string, dateISO: 
 export async function overtimeRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
+  requireUuidParams(fastify);
 
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,
   // fleet ops, HR, identity/access admin, or tenant configuration) with only

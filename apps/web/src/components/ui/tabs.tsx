@@ -36,7 +36,7 @@ export type TabsVariant = "underline" | "pill" | "segmented" | "boxed" | "outlin
 const Tabs = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> & { variant?: TabsVariant }
->(({ variant: _legacyVariant, ...props }, ref) => <TabsPrimitive.Root ref={ref} {...props} />)
+>(({ variant: _legacyVariant, ...props }, ref) => <TabsPrimitive.Root ref={ref} data-ds-tabs-root="" {...props} />)
 Tabs.displayName = TabsPrimitive.Root.displayName
 
 const TabsList = React.forwardRef<

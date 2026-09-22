@@ -1,21 +1,13 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireUuidParams } from '../middleware/uuid-params.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 
-const SEED_NODES = (tenantId: string) => [
-  { label: 'Chief Executive Officer', job_title: 'CEO', department: 'Executive', position_x: 400, position_y: 20,  color: '#7c3aed', avatar_color: '#7c3aed', node_type: 'person' },
-  { label: 'Chief Operations Officer', job_title: 'COO', department: 'Executive', position_x: 150, position_y: 170, color: '#0891b2', avatar_color: '#0891b2', node_type: 'person' },
-  { label: 'Chief Financial Officer',  job_title: 'CFO', department: 'Finance',   position_x: 650, position_y: 170, color: '#059669', avatar_color: '#059669', node_type: 'person' },
-  { label: 'Head of Logistics',        job_title: 'Manager', department: 'Operations', position_x: 0,   position_y: 340, color: '#0891b2', avatar_color: '#0891b2', node_type: 'person' },
-  { label: 'Head of Clearance',        job_title: 'Manager', department: 'Clearance',  position_x: 300, position_y: 340, color: '#0891b2', avatar_color: '#0891b2', node_type: 'person' },
-  { label: 'Finance Manager',          job_title: 'Manager', department: 'Finance',    position_x: 600, position_y: 340, color: '#059669', avatar_color: '#059669', node_type: 'person' },
-  { label: 'HR Manager',               job_title: 'Manager', department: 'HR',         position_x: 900, position_y: 340, color: '#f59e0b', avatar_color: '#f59e0b', node_type: 'person' },
-];
-
 export async function orgChartRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
+  requireUuidParams(fastify);
 
   // GET /org-chart — returns all nodes for the tenant. Used to silently
   // seed a fictional CEO/COO/CFO demo hierarchy the first time a tenant had
@@ -23,9 +15,7 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
   // fabricated company with user_id: null throughout. A genuinely empty
   // chart is a real state now — OrgChart.tsx's own empty view (Sync Staff /
   // Add first role) is the honest starting point, not a fake org someone
-  // has to notice and delete. POST /org-chart/reset still offers the same
-  // sample structure, but only as an explicit, named action a user asked
-  // for ("Reset org chart to default sample structure?").
+  // has to notice and delete.
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,
   // fleet ops, HR, identity/access admin, or tenant configuration) with only
   // an entitlement gate — reachable end-to-end by a CUSTOMER JWT (confirmed
@@ -222,30 +212,4 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // POST /org-chart/reset — reset org chart to default sample structure
-  fastify.post('/reset', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_CHART_MANAGE, 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
-    const user = req.user;
-    return withTenant(user.tenant_id, async (trx) => {
-      await trx.deleteFrom('org_chart_nodes').where('tenant_id', '=', user.tenant_id).execute();
-      const seeds = SEED_NODES(user.tenant_id);
-      const ceo = await trx.insertInto('org_chart_nodes').values({
-        tenant_id: user.tenant_id, ...seeds[0], user_id: null, email: null, phone: null, parent_id: null,
-      }).returningAll().executeTakeFirstOrThrow();
-
-      const [coo, cfo] = await Promise.all([
-        trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[1], user_id: null, email: null, phone: null, parent_id: ceo.id }).returningAll().executeTakeFirstOrThrow(),
-        trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[2], user_id: null, email: null, phone: null, parent_id: ceo.id }).returningAll().executeTakeFirstOrThrow(),
-      ]);
-
-      await Promise.all([
-        trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[3], user_id: null, email: null, phone: null, parent_id: coo.id }).returningAll().executeTakeFirstOrThrow(),
-        trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[4], user_id: null, email: null, phone: null, parent_id: coo.id }).returningAll().executeTakeFirstOrThrow(),
-        trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[5], user_id: null, email: null, phone: null, parent_id: cfo.id }).returningAll().executeTakeFirstOrThrow(),
-        trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[6], user_id: null, email: null, phone: null, parent_id: cfo.id }).returningAll().executeTakeFirstOrThrow(),
-      ]);
-
-      return trx.selectFrom('org_chart_nodes').selectAll()
-        .where('tenant_id', '=', user.tenant_id).orderBy('created_at').execute();
-    });
-  });
 }

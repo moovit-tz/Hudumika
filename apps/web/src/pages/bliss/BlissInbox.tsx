@@ -66,10 +66,10 @@ export const BlissInbox: React.FC = () => {
             <span className="bliss-inbox-title">Support Center</span>
           </div>
           <div className="bliss-inbox-tabs-wrap">
-            <Tabs value={view} onValueChange={v => setView(v as 'customers' | 'team')} className="bliss-inbox-tabs">
-              <TabsList className="bliss-inbox-tabs-list">
+            <Tabs value={view} onValueChange={v => setView(v as 'customers' | 'team')} className="bliss-inbox-view-switcher">
+              <TabsList className="bliss-inbox-view-list" aria-label="Support Center view">
                 {viewTabs.map(t => (
-                  <TabsTrigger key={t.id} value={t.id} className="bliss-inbox-tab-trigger">
+                  <TabsTrigger key={t.id} value={t.id}>
                     <Icon name={t.icon} size={16} />
                     <span className="bliss-inbox-tab-label-full">{t.label}</span>
                     <span className="bliss-inbox-tab-label-short">{t.shortLabel}</span>

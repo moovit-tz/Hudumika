@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
-import { BackButton } from '../components/ui/BackButton.js';
 import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -51,11 +50,12 @@ export const TrackingDriverNew: React.FC = () => {
 
   return (
     <div style={{ padding: '0 0 24px'}}>
-      <BackButton to="/tracking/drivers" label="Drivers" />
       <PageHeader
         crumbs={['HuduFreight', 'New Driver']}
-        titlePlain="Add a"
-        titleEm="driver"
+        title="Add a driver"
+        subtitle="Create a driver profile and optionally assign a vehicle."
+        variant="create"
+        backTo="/tracking/drivers"
       />
 
       <SectionCard>

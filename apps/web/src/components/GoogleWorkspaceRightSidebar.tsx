@@ -13,6 +13,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { useAgentChat, canDecideAgentApproval } from '../hooks/useAgentChat.js';
 import { isRightSidebarCollapsed, toggleRightSidebar, RIGHT_SIDEBAR_TOGGLE_EVENT } from '../lib/rightSidebarState.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from './ui/dropdown-menu.js';
@@ -406,8 +407,8 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   const [inboxEmails, setInboxEmails] = useState<{ id: string; from: { name: string; email: string }; subject: string; snippet: string; read: boolean; date: string }[]>([]);
   function loadInboxEmails() {
     if (!emailEnabled) return;
-    apiFetch('/v1/emails?folder=inbox')
-      .then(rows => setInboxEmails(Array.isArray(rows) ? rows.slice(0, 6) : []))
+    apiFetch('/v1/emails?folder=inbox&limit=6')
+      .then(res => setInboxEmails(Array.isArray(res?.items) ? res.items.slice(0, 6) : []))
       .catch(() => {});
   }
   useEffect(() => { loadInboxEmails(); }, [emailEnabled]);
@@ -431,33 +432,19 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     }
   }
 
-  // ── AI Assistant — real, /v1/ai/chat (agentic chat, tenant memory + tools) ──
-  const [aiMessages, setAiMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  // ── AI Assistant — the governed agent runtime (/v1/agent/runs): saved
+  // memory + "remember that…" (same ai_memory as before), read/write tools
+  // across apps, and an inline approval card when a tool needs a human
+  // decision. Replaced /v1/ai/chat here once the runtime reached parity. ──
+  const { messages: aiMessages, busy: aiSending, error: aiError, pendingApproval: aiApproval, decisionBusy: aiDecisionBusy, send: sendAgentMessage, decide: decideAgentApproval } = useAgentChat();
   const [aiInput, setAiInput] = useState('');
-  const [aiSending, setAiSending] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiConversationId, setAiConversationId] = useState<string | null>(null);
 
-  async function handleSendAiMessage(e: React.FormEvent) {
+  function handleSendAiMessage(e: React.FormEvent) {
     e.preventDefault();
     const text = aiInput.trim();
-    if (!text || aiSending) return;
-    setAiMessages(prev => [...prev, { role: 'user', content: text }]);
+    if (!text || aiSending || aiApproval) return;
     setAiInput('');
-    setAiSending(true);
-    setAiError(null);
-    try {
-      const res = await apiFetch('/v1/ai/chat', {
-        method: 'POST',
-        body: JSON.stringify({ message: text, conversation_id: aiConversationId }),
-      });
-      setAiConversationId(res.conversation_id ?? aiConversationId);
-      setAiMessages(prev => [...prev, { role: 'assistant', content: res.reply }]);
-    } catch (err: any) {
-      setAiError(err?.message || 'Could not reach the AI assistant.');
-    } finally {
-      setAiSending(false);
-    }
+    void sendAgentMessage(text);
   }
 
   // ── ClearOS — real, /v1/shipments. No inline create composer — a shipment
@@ -1513,16 +1500,33 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                   {aiError && (
                     <div style={{ fontSize: 12.5, color: '#dc2626', padding: '8px 12px', borderRadius: 8, background: 'rgba(220,38,38,0.08)' }}>{aiError}</div>
                   )}
+                  {aiApproval && (
+                    <div style={{ border: '1px solid var(--gold)', background: 'var(--gold-l)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Needs approval</div>
+                      <div style={{ fontSize: 12.5, lineHeight: 1.4, color: 'var(--ink)' }}>{aiApproval.requestedEffect}</div>
+                      {aiApproval.requiredApprovals > 1 && (
+                        <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Needs {aiApproval.requiredApprovals} distinct approvers.</div>
+                      )}
+                      {canDecideAgentApproval(user?.role, aiApproval.approverRole) ? (
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <Button size="xs" variant="outline" disabled={aiDecisionBusy} onClick={() => void decideAgentApproval('rejected')}>Reject</Button>
+                          <Button size="xs" disabled={aiDecisionBusy} onClick={() => void decideAgentApproval('approved')}>Approve</Button>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Waiting for a {aiApproval.approverRole.toLowerCase().replace('_', ' ')} to decide.</div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <form onSubmit={handleSendAiMessage} style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                   <input
                     value={aiInput}
                     onChange={e => setAiInput(e.target.value)}
-                    placeholder="Ask the AI assistant…"
-                    disabled={aiSending}
+                    placeholder={aiApproval ? 'Waiting on an approval decision…' : 'Ask the AI assistant…'}
+                    disabled={aiSending || !!aiApproval}
                     style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--bg)', color: 'var(--ink)' }}
                   />
-                  <Button type="submit" size="xs" disabled={aiSending || !aiInput.trim()}>Send</Button>
+                  <Button type="submit" size="xs" disabled={aiSending || !!aiApproval || !aiInput.trim()}>Send</Button>
                 </form>
               </div>
             )}

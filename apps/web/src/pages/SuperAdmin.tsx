@@ -26,6 +26,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { PaginationBar } from '../components/PaginationBar.js';
+import { AI_PROVIDERS } from '../lib/aiProviders.js';
 
 /* ══════════════════════════════════════════════════
    TYPES
@@ -39,7 +40,7 @@ type PayMethod = 'card' | 'bank' | 'mpesa' | 'paypal';
 
 interface Company { id:string; name:string; email:string; phone:string; plan:PlanId; users:number; status:CoStatus; domain:string; created:string; owner:string; country:string; color:string; logoUrl?:string; founderPersonalEmailDomain?:string|null; }
 interface Subscription { id:string; companyId:string; plan:PlanId; start:string; end:string; amount:number; billing:'monthly'|'annual'; status:SubStatus; }
-interface Package { id:string; code:string; name:string; monthly:number; annual:number; maxUsers:number; pricePerSeat:number|null; extraSeatPrice:number|null; extraSeatThreshold:number|null; monthlyItemLimit:number|null; storageLimitGb:number|null; features:string[]; active:number; color:string; popular?:boolean; isActive:boolean; }
+interface Package { id:string; code:string; name:string; monthly:number; annual:number; maxUsers:number; pricePerSeat:number|null; extraSeatPrice:number|null; extraSeatThreshold:number|null; monthlyItemLimit:number|null; storageLimitGb:number|null; monthlyAiCredits:number; byokAiAllowed:boolean; features:string[]; active:number; color:string; popular?:boolean; isActive:boolean; }
 /** Purchasable independent of which base Package a tenant is on
  *  (376_package_addons.sql) — Onsite's real home now, not a fourth
  *  competing base package. */
@@ -1387,7 +1388,7 @@ export function PackagesView() {
   // Edit/Create/Deactivate below are wired to real endpoints (packages.routes.ts POST/PATCH/DELETE,
   // SuperAdmin-gated). The Feature Gates checklist in the edit modal is a separate, already-wired
   // endpoint (/v1/superadmin/packages/:code/features) — see FeatureGatesEditor below.
-  function mapFromApi(pkg: { id:string; code:string; name:string; monthly_price:number; annual_price:number; max_users:number; price_per_seat:number|null; extra_seat_price:number|null; extra_seat_threshold:number|null; monthly_item_limit:number|null; storage_limit_bytes:number|null; features:string[]; color:string; popular:boolean; is_active:boolean }): Package {
+  function mapFromApi(pkg: { id:string; code:string; name:string; monthly_price:number; annual_price:number; max_users:number; price_per_seat:number|null; extra_seat_price:number|null; extra_seat_threshold:number|null; monthly_item_limit:number|null; storage_limit_bytes:number|null; monthly_ai_credits:number; byok_ai_allowed:boolean; features:string[]; color:string; popular:boolean; is_active:boolean }): Package {
     return {
       id: pkg.id,
       code: pkg.code,
@@ -1400,6 +1401,8 @@ export function PackagesView() {
       extraSeatThreshold: pkg.extra_seat_threshold,
       monthlyItemLimit: pkg.monthly_item_limit,
       storageLimitGb: pkg.storage_limit_bytes != null ? Math.round(pkg.storage_limit_bytes / 1073741824) : null,
+      monthlyAiCredits: pkg.monthly_ai_credits ?? 0,
+      byokAiAllowed: pkg.byok_ai_allowed ?? false,
       active: 0,
       // A package with no color set (onsite-standalone, agency-managed) used
       // to fall through to `${pkg.color}18` → "null18" and an unset Icon
@@ -1661,6 +1664,7 @@ export function PackagesView() {
                   { label:'Max Users', key:'maxUsers', hint:'0 = unlimited' },
                   { label:'Monthly item limit, all apps', key:'monthlyItemLimit', hint:'0 = unlimited' },
                   { label:'Storage limit, GB', key:'storageLimitGb', hint:'0 = unlimited' },
+                  { label:'AI credits / month (platform-billed)', key:'monthlyAiCredits', hint:'0 = no platform AI on this tier' },
                 ].map(f=>(
                   <div key={f.key}>
                     <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>
@@ -1719,6 +1723,18 @@ export function PackagesView() {
                 />
               </div>
 
+              <div style={{ marginTop:12, padding:'2px 16px', border:'1px solid var(--border)', borderRadius: 'var(--r)'}}>
+                <FeatureToggleRow
+                  icon={<Icon name="sparkle" size={18} strokeWidth={1.75} />}
+                  title="Bring your own AI key (BYOK)"
+                  description={editing.byokAiAllowed
+                    ? 'On — a tenant on this tier can enter their own provider key in Settings, which always wins over the platform default and is billed to them directly, not against the AI-credits allowance above.'
+                    : 'Off — a tenant on this tier can only use the platform-billed AI key (see AI credits/month above); any key they type in Settings is ignored.'}
+                  checked={editing.byokAiAllowed}
+                  onCheckedChange={(checked: boolean) => setEditing(p => p ? ({ ...p, byokAiAllowed: checked }) : p)}
+                />
+              </div>
+
               <FeatureGatesEditor packageCode={editing.code} />
               <AppQuotasEditor packageCode={editing.code} />
 
@@ -1745,6 +1761,8 @@ export function PackagesView() {
                             extra_seat_threshold: editing.extraSeatThreshold,
                             monthly_item_limit: editing.monthlyItemLimit ? editing.monthlyItemLimit : null,
                             storage_limit_bytes: editing.storageLimitGb ? editing.storageLimitGb * 1073741824 : null,
+                            monthly_ai_credits: editing.monthlyAiCredits ?? 0,
+                            byok_ai_allowed: editing.byokAiAllowed ?? false,
                             is_active: editing.isActive,
                           }),
                         });
@@ -2384,6 +2402,7 @@ export function ActivityView() {
 const SETTINGS_SECTIONS: { id: string; label: string; icon: IconName }[] = [
   { id: 'security', label: 'Security & Sessions', icon: 'lock' },
   { id: 'smtp',      label: 'Email / SMTP',        icon: 'mail' },
+  { id: 'ai',        label: 'AI Providers',         icon: 'sparkle' },
   { id: 'ocr',       label: 'OCR',                 icon: 'zap' },
   { id: 'ondiSso',   label: 'Ondi SSO',             icon: 'key' },
   { id: 'api',       label: 'API & Webhooks',       icon: 'terminal' },
@@ -2400,6 +2419,35 @@ export function SettingsView() {
   const [api, setApi] = useState({ rateLimit:'120', corsOrigins:'*', webhookSecret:'whs_live_••••••••••••••••', keyRotationDays:'90' });
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [ocr, setOcr] = useState({ geminiApiKey:'' });
+  // Platform-wide fallback AI key (apps/api/src/lib/platform-settings.ts's
+  // resolveAiCredentials()) — used by every tenant that hasn't configured
+  // its own key in Settings > Integrations > AI Integration. A tenant's own
+  // key always wins over this one; this only fills the gap for tenants
+  // that never set one up, billed to the platform rather than the tenant.
+  // One key + model per provider; `provider` is the platform DEFAULT. Keys arrive
+  // masked from the server and are only ever replaced by something typed here.
+  const [ai, setAi] = useState<{ enabled: boolean; provider: string; providers: Record<string, { apiKey: string; model: string }> }>({ enabled: false, provider: 'anthropic', providers: {} });
+  // True only once GET /v1/superadmin/settings has succeeded. Every save posts the WHOLE page's
+  // state, so saving before that (a failed fetch, then a click) would overwrite stored SMTP,
+  // security (lockout / 2FA / IP allowlist), API, OCR, SSO and AI-key settings with this page's
+  // built-in defaults. Saves are refused until it is true.
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  // Per-provider result of the "Test" button (POST /v1/superadmin/ai/test).
+  const [aiTest, setAiTest] = useState<Record<string, { busy: boolean; ok?: boolean; message?: string }>>({});
+  async function testAiProvider(provider: string) {
+    const row = ai.providers[provider];
+    const def = AI_PROVIDERS.find(x => x.value === provider);
+    setAiTest(prev => ({ ...prev, [provider]: { busy: true } }));
+    try {
+      // A typed (unsaved) key is tested as typed; the mask means "use the stored key" — the server resolves it.
+      const r = await apiFetch('/v1/superadmin/ai/test', { method: 'POST', body: JSON.stringify({ provider, model: row?.model || def?.models[0].value, apiKey: row?.apiKey || undefined }) });
+      setAiTest(prev => ({ ...prev, [provider]: { busy: false, ok: !!r.ok, message: r.ok ? `Working — ${r.model} answered in ${r.latencyMs} ms.` : (r.error || 'The provider rejected the request.') } }));
+    } catch (err: any) {
+      setAiTest(prev => ({ ...prev, [provider]: { busy: false, ok: false, message: err?.message || 'Test failed' } }));
+    }
+  }
+  const setAiRow = (provider: string, patch: Partial<{ apiKey: string; model: string }>) =>
+    setAi(prev => ({ ...prev, providers: { ...prev.providers, [provider]: { ...(prev.providers[provider] ?? { apiKey: '', model: '' }), ...patch } } }));
   const [ondiSso, setOndiSso] = useState<{ enabled: boolean; googleClientId?: string; microsoftClientId?: string; appleClientId?: string }>({ enabled: false });
   const [loading, setLoading] = useState(true);
   const [testingSmtp, setTestingSmtp] = useState(false);
@@ -2433,6 +2481,15 @@ export function SettingsView() {
         if (s.security) setSecurity(prev => ({ ...prev, ...s.security }));
         if (s.api) setApi(prev => ({ ...prev, ...s.api }));
         if (s.ocr) setOcr(prev => ({ ...prev, ...s.ocr }));
+        if (s.ai) {
+          setAi(prev => ({
+            enabled: !!s.ai.enabled,
+            provider: s.ai.provider || prev.provider,
+            providers: Object.fromEntries(Object.entries((s.ai.providers ?? {}) as Record<string, { apiKey?: string; model?: string }>)
+              .map(([name, v]) => [name, { apiKey: v.apiKey ?? '', model: v.model ?? '' }])),
+          }));
+        }
+        setSettingsLoaded(true);
         if (s.ondiSso) setOndiSso(prev => ({ ...prev, ...s.ondiSso }));
         setLoading(false);
       })
@@ -2444,12 +2501,21 @@ export function SettingsView() {
   }, []);
 
   async function save(section: string) {
+    if (!settingsLoaded) { showAlert('Settings did not load, so saving is disabled to protect what is stored. Reload the page and try again.'); return; }
     const payload = {
       maintenance,
       smtp,
       security,
       api,
       ocr,
+      ...(settingsLoaded ? { ai: {
+        enabled: ai.enabled,
+        provider: ai.provider,
+        model: ai.providers[ai.provider]?.model || AI_PROVIDERS.find(x => x.value === ai.provider)?.models[0].value,
+        providers: Object.fromEntries(AI_PROVIDERS
+          .filter(x => ai.providers[x.value]?.apiKey || ai.providers[x.value]?.model)
+          .map(x => [x.value, { apiKey: ai.providers[x.value].apiKey, model: ai.providers[x.value].model || x.models[0].value }])),
+      } } : {}),
       ondiSso
     };
 
@@ -2470,6 +2536,7 @@ export function SettingsView() {
   // client-side (crypto.getRandomValues, not Math.random) and saves it
   // immediately, same shape as an API key's own secret generation.
   async function regenerateWebhookSecret() {
+    if (!settingsLoaded) { showAlert('Settings did not load, so saving is disabled to protect what is stored. Reload the page and try again.'); return; }
     const bytes = crypto.getRandomValues(new Uint8Array(24));
     const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
     const nextApi = { ...api, webhookSecret: `whs_live_${hex}` };
@@ -2488,6 +2555,7 @@ export function SettingsView() {
   }
 
   async function toggleMaintenance() {
+    if (!settingsLoaded) { showAlert('Settings did not load, so saving is disabled to protect what is stored. Reload the page and try again.'); return; }
     const next = !maintenance;
     setMaintenance(next);
     try {
@@ -2686,6 +2754,80 @@ export function SettingsView() {
               {testingSmtp ? 'Testing...' : smtpTested ? <><Icon name="check" size={12}/>Connection OK</> : <><Icon name="mail" size={12}/>Send Test Email</>}
             </button>
           </div>
+        </div>
+      </SectionCard>
+        </TabsContent>
+
+        <TabsContent value="ai">
+      {/* ── AI Providers (platform-wide fallback): one key per provider ── */}
+      <SectionCard title="AI Providers" sub="Add a key for each provider you want available, then choose which one is the platform default. Billed to the platform — a tenant's own key (Hudu Advanced plan) always wins over these." section="ai">
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:24 }}>
+          <div>
+            <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>Enable platform-default AI</div>
+            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:3 }}>
+              {ai.enabled
+                ? 'On — tenants with no key of their own get a working agent, billed to the platform.'
+                : 'Off — a tenant without their own key sees "AI is not configured" until they add one.'}
+            </div>
+          </div>
+          <SAToggle value={ai.enabled} onChange={v => setAi(p=>({...p, enabled: v}))} label="Enable platform-default AI" />
+        </div>
+
+        {ai.enabled && !ai.providers[ai.provider]?.apiKey && (
+          <div style={{ marginTop:14, padding:'10px 12px', borderRadius:'var(--r)', background:'var(--gold-l)', border:'1px solid var(--gold)', fontSize:12, color:'var(--ink)' }}>
+            The default provider ({AI_PROVIDERS.find(x => x.value === ai.provider)?.label.split(' — ')[0]}) has no key yet, so AI stays off until you add one or make another provider the default.
+          </div>
+        )}
+
+        <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:18 }}>
+          {AI_PROVIDERS.map(prov => {
+            const row = ai.providers[prov.value] ?? { apiKey: '', model: '' };
+            const hasKey = !!row.apiKey;
+            const isDefault = ai.provider === prov.value;
+            const [name, freeNote] = prov.label.split(' — ');
+            return (
+              <div key={prov.value} data-testid={`ai-provider-${prov.value}`}
+                style={{ border:`1px solid ${isDefault ? 'var(--teal)' : 'var(--border)'}`, borderRadius:'var(--r)', padding:'14px 16px', background: isDefault ? 'var(--teal-l)' : 'var(--white)' }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:12 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>{name}</span>
+                    {isDefault && <span className="badge badge-teal" style={{ fontSize:11 }}>Default</span>}
+                    {hasKey
+                      ? <span style={{ fontSize:11, color:'var(--teal)', fontWeight:600 }}>● Key saved</span>
+                      : <span style={{ fontSize:11, color:'var(--ink3)' }}>○ No key</span>}
+                  </div>
+                  <div style={{ display:'flex', gap:8 }}>
+                    <Button type="button" size="xs" variant="outline" disabled={!hasKey || aiTest[prov.value]?.busy} title={hasKey ? 'Send a one-word request with this key and the agent\'s real tool definitions' : 'Add a key first'}
+                      onClick={() => testAiProvider(prov.value)}>{aiTest[prov.value]?.busy ? 'Testing…' : 'Test'}</Button>
+                    {hasKey && <Button type="button" size="xs" variant="outline" onClick={() => { setAiRow(prov.value, { apiKey: '' }); setAiTest(prev => ({ ...prev, [prov.value]: { busy: false } })); }}>Remove key</Button>}
+                    <Button type="button" size="xs" variant={isDefault ? 'default' : 'outline'} disabled={!hasKey || isDefault}
+                      title={hasKey ? undefined : 'Add a key first'} onClick={() => setAi(p => ({ ...p, provider: prov.value }))}>
+                      {isDefault ? 'Default' : 'Make default'}
+                    </Button>
+                  </div>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
+                  <Field label="API key" hint={freeNote ? `Free — ${freeNote}. Shown masked once saved.` : 'Shown masked once saved.'}>
+                    <input title={`${name} API key`} type="password" placeholder="Paste API key" autoComplete="off" value={row.apiKey}
+                      onChange={e => setAiRow(prov.value, { apiKey: e.target.value })} className="input-field" style={{ width:'100%' }} />
+                  </Field>
+                  <Field label="Model">
+                    <Select value={row.model || prov.models[0].value} onValueChange={v => setAiRow(prov.value, { model: v })}>
+                      <SelectTrigger className="input-field" style={{ width:'100%' }}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {prov.models.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+                {aiTest[prov.value]?.message && (
+                  <div role="status" style={{ marginTop:12, fontSize:12, padding:'8px 10px', borderRadius:'var(--r-sm)', border:`1px solid ${aiTest[prov.value].ok ? 'var(--green)' : 'var(--red)'}`, background: aiTest[prov.value].ok ? 'var(--green-l)' : 'var(--red-l)', color:'var(--ink)' }}>
+                    {aiTest[prov.value].message}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </SectionCard>
         </TabsContent>

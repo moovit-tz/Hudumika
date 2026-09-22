@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireUuidParams } from '../middleware/uuid-params.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 
 const MGMT = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
@@ -36,6 +37,7 @@ const noteSchema = z.object({ note: z.string().trim().min(1).max(4000) });
 export async function hrCasesRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
+  requireUuidParams(fastify);
   fastify.addHook('preHandler', requireRole(...MGMT));
 
   // GET /?employee_id=&status= — list, most recent first

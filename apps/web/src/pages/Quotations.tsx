@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { apiFetch } from '../lib/api.js';
@@ -17,6 +18,11 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import {
+  DocumentDetailShell, DocumentDetailMain, DocumentDetailSidebar,
+  DocumentHeaderCard, DocumentActionsCard, DocumentMetaCard, DocumentPartyCard,
+  DocumentLineItemsCard, DocumentActivityCard, type DocumentAction,
+} from '../components/DocumentDetail.js';
 
 // -- Types ---------------------------------------------------------------------
 
@@ -898,194 +904,125 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
 
   const lines = quote.lines??[];
   const activities = quote.activities??[];
-  const card: React.CSSProperties = { background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', marginBottom:20, overflow:'hidden' };
+
+  const actionGroups: DocumentAction[][] = [
+    [
+      { key:'print', label:'Print / PDF', icon:'printer', onClick:()=>printQuote(quote) },
+      { key:'send',  label:'Send to Customer', icon:'mail', onClick:()=>setShowSend(true) },
+    ],
+    [
+      { key:'edit', label:'Edit Quotation', icon:'edit', onClick:onEdit, hidden: !['DRAFT','PENDING'].includes(quote.status) },
+      { key:'dup',  label:'Duplicate', icon:'copy', loading: busy==='dup', loadingLabel:'Duplicating…', onClick:()=>act('dup',onDuplicate) },
+    ],
+    [
+      { key:'submit',  label:'Submit for Approval', icon:'send', loading: busy==='submit', loadingLabel:'Submitting…',
+        hidden: quote.status!=='DRAFT', onClick:()=>act('submit',()=>onStatusChange('PENDING')),
+        style:{ background:'var(--gold)', color:'hsl(var(--gold-foreground))', border:'none' } },
+      { key:'approve', label:'Approve', icon:'checkCircle', loading: busy==='approve', loadingLabel:'Approving…',
+        hidden: quote.status!=='PENDING', onClick:()=>act('approve',()=>onStatusChange('APPROVED')),
+        style:{ background:'var(--green)', color:'hsl(var(--green-foreground))', border:'none' } },
+      { key:'reject', label:'Reject', icon:'xCircle', variant:'destructive', hidden: quote.status!=='PENDING', onClick:()=>setShowReject(true) },
+      { key:'convert', label:'Convert to Shipment', icon:'ship', loading: busy==='convert', loadingLabel:'Converting…',
+        hidden: quote.status!=='APPROVED', onClick:()=>act('convert',onConvert),
+        style:{ background:'var(--navy)', color:'#fff', border:'none' } },
+    ],
+    [
+      { key:'delete', label:'Delete Quotation', icon:'trash', variant:'destructive', loading: busy==='delete', loadingLabel:'Deleting…', onClick:()=>act('delete',onDelete) },
+    ],
+  ];
 
   return (
     <>
       {showReject&&<RejectModal onConfirm={r=>{setShowReject(false);act('reject',()=>onStatusChange('REJECTED',r));}} onCancel={()=>setShowReject(false)}/>}
       {showSend&&<SendModal quote={quote} onSend={(e,m)=>{setShowSend(false);act('send',()=>onSend(e,m));}} onCancel={()=>setShowSend(false)}/>}
 
-      <div style={{ padding: '0 0 24px', flex:1, overflowY:'auto' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:20 }}>
-          <button type="button" title="Back" onClick={onBack} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--teal)', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:4, padding:0 }}>
-            <Icon name="arrowLeft" size={14}/> Quotations
-          </button>
-          <span style={{ color:'var(--ink3)', fontSize:13 }}>/</span>
-          <span style={{ fontSize:13, color:'var(--ink2)', fontFamily:'monospace' }}>{quote.quote_number}</span>
-        </div>
-
-        <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap:20, alignItems:'start' }}>
-          <div>
-            {/* Quote Header */}
-            <div style={card}>
-              <div style={{ padding:24 }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:16 }}>
-                  <div>
-                    <div style={{ fontFamily:'monospace', fontSize:13, color:'var(--teal)', fontWeight:700, marginBottom:4 }}>{quote.quote_number}</div>
-                    <h2 style={{ fontSize:21, fontWeight:800, color:'var(--ink)', margin:'0 0 6px' }}>{quote.title}</h2>
-                    <div style={{ fontSize:13, color:'var(--ink2)', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-                      <Av name={quote.customer_name} customerId={quote.customer_id} size={20}/>
-                      <strong>{quote.customer_name}</strong>
-                      {quote.customer_company&&<span style={{ color:'var(--ink3)' }}> – {quote.customer_company}</span>}
-                      <span style={{ color:'var(--ink3)' }}> –</span>
-                      <span>{SHIP_TYPE_LABEL[quote.shipment_type]??quote.shipment_type}</span>
-                    </div>
-                  </div>
-                  <StatusBadge status={quote.status}/>
+      <DocumentDetailShell backLabel="Quotations" onBack={onBack} docNumber={quote.quote_number} isMobile={isMobile}>
+        <DocumentDetailMain>
+          <DocumentHeaderCard
+            number={quote.quote_number}
+            title={quote.title}
+            subtitle={<>
+              <Av name={quote.customer_name} customerId={quote.customer_id} size={20}/>
+              <strong>{quote.customer_name}</strong>
+              {quote.customer_company&&<span style={{ color:'var(--ink3)' }}> – {quote.customer_company}</span>}
+              <span style={{ color:'var(--ink3)' }}> –</span>
+              <span>{SHIP_TYPE_LABEL[quote.shipment_type]??quote.shipment_type}</span>
+            </>}
+            status={<StatusBadge status={quote.status}/>}
+            meta={(quote.origin_port||quote.destination_port)&&(
+              <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto 1fr', gap:16, background:'var(--bg)', borderRadius: 'var(--r)', padding:16 }}>
+                <div>
+                  <div style={{ fontSize:10, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4 }}>Origin</div>
+                  <div style={{ fontSize:15, fontWeight:700 }}>{quote.origin_port||'—'}</div>
                 </div>
-                {(quote.origin_port||quote.destination_port)&&(
-                  <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto 1fr', gap:16, background:'var(--bg)', borderRadius: 'var(--r)', padding:16 }}>
-                    <div>
-                      <div style={{ fontSize:10, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4 }}>Origin</div>
-                      <div style={{ fontSize:15, fontWeight:700 }}>{quote.origin_port||'—'}</div>
-                    </div>
-                    <div style={{ display:'flex', alignItems:'center' }}><Icon name="arrowRight" size={20} color="var(--ink3)"/></div>
-                    <div>
-                      <div style={{ fontSize:10, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4 }}>Destination</div>
-                      <div style={{ fontSize:15, fontWeight:700 }}>{quote.destination_port||'—'}</div>
-                    </div>
-                  </div>
-                )}
-                {quote.rejection_reason&&(
-                  <div style={{ marginTop:14, padding:'10px 14px', background:'var(--red-l)', border:'1px solid var(--red)', borderRadius: 'var(--r)', fontSize:13, color:'var(--red)' }}>
-                    <strong>Rejection reason: </strong>{quote.rejection_reason}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Line Items */}
-            <div style={card}>
-              <SHdr title="Charges &amp; Services"/>
-              {lines.length===0
-                ? <div style={{ padding:32, textAlign:'center', color:'var(--ink3)', fontSize:13 }}>No line items</div>
-                : <><div className="rtbl-wrap" style={{ overflowX:'auto' }}>
-                    <table className="rtbl" style={{ borderCollapse:'collapse', fontSize:13 }}>
-                      <thead><tr style={{ background:'var(--bg)' }}>
-                        {['#','Description','Category','Qty','Unit Price','Tax','Total'].map(h=>(
-                          <th key={h} style={{ padding:'9px 14px', textAlign:['Qty','Unit Price','Tax','Total'].includes(h)?'right':'left', fontWeight:700, color:'var(--ink2)', fontSize:11, textTransform:'uppercase', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' }}>{h}</th>
-                        ))}
-                      </tr></thead>
-                      <tbody>
-                        {lines.map((l,i)=>(
-                          <tr key={l.id} style={{ borderBottom:'1px solid var(--border)' }}>
-                            <td style={{ padding:'10px 14px', color:'var(--ink3)', width:36 }}>{i+1}</td>
-                            <td style={{ padding:'10px 14px', fontWeight:600 }}>{l.description}</td>
-                            <td style={{ padding:'10px 14px' }}>
-                              <span style={{ padding:'2px 8px', background:'var(--bg)', borderRadius: 'var(--r-sm)', fontSize:11, fontWeight:600, color:'var(--ink2)' }}>{CAT_LABEL[l.category]??l.category}</span>
-                            </td>
-                            <td style={{ padding:'10px 14px', textAlign:'right' }}>{l.quantity}</td>
-                            <td style={{ padding:'10px 14px', textAlign:'right' }}>{fmt(l.unit_price,quote.currency)}</td>
-                            <td style={{ padding:'10px 14px', textAlign:'right', color:'var(--ink3)' }}>{l.tax_rate}%</td>
-                            <td style={{ padding:'10px 14px', textAlign:'right', fontWeight:700 }}>{fmt(l.line_total,quote.currency)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr style={{ background:'var(--bg)' }}><td colSpan={5}/><td style={{ padding:'9px 14px', fontWeight:600, fontSize:12, color:'var(--ink2)' }}>Subtotal</td><td style={{ padding:'9px 14px', textAlign:'right', fontWeight:700 }}>{fmt(quote.subtotal,quote.currency)}</td></tr>
-                        <tr style={{ background:'var(--bg)' }}><td colSpan={5}/><td style={{ padding:'5px 14px', fontWeight:600, fontSize:12, color:'var(--ink3)' }}>Tax</td><td style={{ padding:'5px 14px', textAlign:'right', color:'var(--ink3)' }}>{fmt(quote.tax_amount,quote.currency)}</td></tr>
-                        <tr style={{ background:'var(--teal-l)' }}><td colSpan={5}/><td style={{ padding:'11px 14px', fontWeight:800, fontSize:13, color:'var(--teal)' }}>Grand Total</td><td style={{ padding:'11px 14px', textAlign:'right', fontWeight:800, fontSize:16, color:'var(--teal)' }}>{fmt(quote.total_amount,quote.currency)}</td></tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </>
-              }
-            </div>
-
-            {(quote.notes||quote.terms)&&(
-              <div style={card}>
-                <SHdr title="Notes &amp; Terms"/>
-                <div style={{ padding:20, display:'flex', flexDirection:'column', gap:16 }}>
-                  {quote.notes&&<div><div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6 }}>Notes</div><div style={{ fontSize:13, color:'var(--ink2)', lineHeight:1.7, whiteSpace:'pre-line' }}>{quote.notes}</div></div>}
-                  {quote.terms&&<div><div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6 }}>Terms &amp; Conditions</div><div style={{ fontSize:12.5, color:'var(--ink2)', lineHeight:1.75, whiteSpace:'pre-line' }}>{quote.terms}</div></div>}
+                <div style={{ display:'flex', alignItems:'center' }}><Icon name="arrowRight" size={20} color="var(--ink3)"/></div>
+                <div>
+                  <div style={{ fontSize:10, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4 }}>Destination</div>
+                  <div style={{ fontSize:15, fontWeight:700 }}>{quote.destination_port||'—'}</div>
                 </div>
               </div>
             )}
-
-            <div style={card}>
-              <SHdr title="Activity"/>
-              <div style={{ padding:'8px 20px 16px' }}>
-                {activities.length===0
-                  ? <div style={{ fontSize:13, color:'var(--ink3)', padding:'12px 0' }}>No activity recorded.</div>
-                  : activities.map((a,i)=>(
-                      <div key={a.id} style={{ display:'flex', gap:12, padding:'10px 0', borderBottom:i<activities.length-1?'1px solid var(--border)':'none' }}>
-                        <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--teal-l)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><Icon name="activity" size={12} color="var(--teal)"/></div>
-                        <div>
-                          <div style={{ fontSize:13, color:'var(--ink)', fontWeight:500 }}>{a.action}{a.actor&&<span style={{ color:'var(--ink3)' }}> by {a.actor}</span>}</div>
-                          {a.note&&<div style={{ fontSize:12, color:'var(--ink2)', marginTop:2 }}>{a.note}</div>}
-                          <div style={{ fontSize:11, color:'var(--ink3)', marginTop:3 }}>{fmtDateTime(a.created_at)}</div>
-                        </div>
-                      </div>
-                    ))
-                }
+            banner={quote.rejection_reason&&(
+              <div style={{ padding:'10px 14px', background:'var(--red-l)', border:'1px solid var(--red)', borderRadius: 'var(--r)', fontSize:13, color:'var(--red)' }}>
+                <strong>Rejection reason: </strong>{quote.rejection_reason}
               </div>
-            </div>
-          </div>
+            )}
+          />
 
-          {/* Sidebar */}
-          <div style={{ position:'sticky', top:24, display:'flex', flexDirection:'column', gap:16 }}>
-            <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', overflow:'hidden' }}>
-              <SHdr title="Actions"/>
-              <div style={{ padding:16, display:'flex', flexDirection:'column', gap:8 }}>
-                {[
-                  { title:'Print / PDF',     icon:'printer' as const, color:'var(--ink2)',  fn:()=>Promise.resolve(printQuote(quote)) },
-                  { title:'Send to Customer',icon:'mail'    as const, color:'var(--blue)',  fn:()=>Promise.resolve(setShowSend(true)) },
-                ].map(a=>(
-                  <button key={a.title} type="button" title={a.title} onClick={()=>a.fn()}
-                    style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:a.color, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                    <Icon name={a.icon} size={14}/> {a.title}
-                  </button>
-                ))}
-                {['DRAFT','PENDING'].includes(quote.status)&&(
-                  <button type="button" title="Edit" onClick={onEdit}
-                    style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                    <Icon name="edit" size={14}/> Edit Quotation
-                  </button>
-                )}
-                <button type="button" title="Duplicate" onClick={()=>act('dup',onDuplicate)}
-                  style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                  <Icon name="copy" size={14}/> {busy==='dup'?'Duplicating...':'Duplicate'}
-                </button>
+          <DocumentLineItemsCard
+            title="Charges & Services"
+            columns={[
+              { key:'n',    header:'#',           width:36,  render:(_l,i)=>i+1 },
+              { key:'desc', header:'Description',            render:l=><span style={{ fontWeight:600 }}>{l.description}</span> },
+              { key:'cat',  header:'Category',               render:l=><span style={{ padding:'2px 8px', background:'var(--bg)', borderRadius: 'var(--r-sm)', fontSize:11, fontWeight:600, color:'var(--ink2)' }}>{CAT_LABEL[l.category]??l.category}</span> },
+              { key:'qty',  header:'Qty',         align:'right', render:l=>l.quantity },
+              { key:'up',   header:'Unit Price',  align:'right', render:l=>fmt(l.unit_price,quote.currency) },
+              { key:'tax',  header:'Tax',         align:'right', render:l=><span style={{ color:'var(--ink3)' }}>{l.tax_rate}%</span> },
+              { key:'tot',  header:'Total',       align:'right', render:l=><span style={{ fontWeight:700 }}>{fmt(l.line_total,quote.currency)}</span> },
+            ]}
+            rows={lines}
+            totals={[
+              { label:'Subtotal', value: fmt(quote.subtotal,quote.currency) },
+              { label:'Tax',      value: fmt(quote.tax_amount,quote.currency) },
+              { label:'Grand Total', value: fmt(quote.total_amount,quote.currency), emphasize:true },
+            ]}
+          />
 
-                <div style={{ borderTop:'1px solid var(--border)', paddingTop:8, marginTop:4, display:'flex', flexDirection:'column', gap:8 }}>
-                  {quote.status==='DRAFT'&&<button type="button" title="Submit" onClick={()=>act('submit',()=>onStatusChange('PENDING'))} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--gold)', color:'hsl(var(--gold-foreground))', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="send" size={14}/>{busy==='submit'?'Submitting...':'Submit for Approval'}</button>}
-                  {quote.status==='PENDING'&&<><button type="button" title="Approve" onClick={()=>act('approve',()=>onStatusChange('APPROVED'))} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--green)', color:'hsl(var(--green-foreground))', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="checkCircle" size={14}/>{busy==='approve'?'Approving...':'Approve'}</button>
-                  <button type="button" title="Reject" onClick={()=>setShowReject(true)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'1px solid var(--red)', borderRadius: 'var(--r)', background:'var(--red-l)', color:'var(--red)', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="xCircle" size={14}/>Reject</button></>}
-                  {quote.status==='APPROVED'&&<button type="button" title="Convert to Shipment" onClick={()=>act('convert',onConvert)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--navy)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="ship" size={14}/>{busy==='convert'?'Converting...':'Convert to Shipment'}</button>}
-                </div>
-
-                <button type="button" title="Delete" onClick={()=>act('delete',onDelete)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:9, border:'1px solid var(--red)', borderRadius: 'var(--r)', background:'none', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:12, marginTop:4 }}>
-                  <Icon name="trash" size={13}/> {busy==='delete'?'Deleting...':'Delete Quotation'}
-                </button>
+          {(quote.notes||quote.terms)&&(
+            <SectionCard title="Notes & Terms">
+              <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+                {quote.notes&&<div><div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6 }}>Notes</div><div style={{ fontSize:13, color:'var(--ink2)', lineHeight:1.7, whiteSpace:'pre-line' }}>{quote.notes}</div></div>}
+                {quote.terms&&<div><div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6 }}>Terms &amp; Conditions</div><div style={{ fontSize:12.5, color:'var(--ink2)', lineHeight:1.75, whiteSpace:'pre-line' }}>{quote.terms}</div></div>}
               </div>
-            </div>
+            </SectionCard>
+          )}
 
-            <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', overflow:'hidden' }}>
-              <SHdr title="Details"/>
-              <div style={{ padding:16 }}>
-                {[['Quote #',quote.quote_number],['Currency',quote.currency],['Mode',SHIP_TYPE_LABEL[quote.shipment_type]??quote.shipment_type],['Valid Until',fmtDate(quote.valid_until)],['Created',fmtDate(quote.created_at)],['Updated',fmtDate(quote.updated_at)]].map(([l,v])=>(
-                  <div key={l} style={{ display:'flex', justifyContent:'space-between', fontSize:12.5, marginBottom:8 }}>
-                    <span style={{ color:'var(--ink3)' }}>{l}</span>
-                    <span style={{ fontWeight:600, color:'var(--ink)', textAlign:'right' }}>{v}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <DocumentActivityCard
+            activities={activities.map(a=>({
+              id: a.id,
+              action: <>{a.action}{a.actor&&<span style={{ color:'var(--ink3)' }}> by {a.actor}</span>}</>,
+              note: a.note,
+              timestamp: fmtDateTime(a.created_at),
+            }))}
+          />
+        </DocumentDetailMain>
 
-            <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', overflow:'hidden' }}>
-              <SHdr title="Bill To"/>
-              <div style={{ padding:16 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
-                  <Av name={quote.customer_name} customerId={quote.customer_id} size={38}/>
-                  <div><div style={{ fontWeight:700, fontSize:13 }}>{quote.customer_name}</div>{quote.customer_company&&<div style={{ fontSize:11.5, color:'var(--ink3)' }}>{quote.customer_company}</div>}</div>
-                </div>
-                {quote.customer_email&&<a href={`mailto:${quote.customer_email}`} style={{ display:'flex', alignItems:'center', gap:6, fontSize:12.5, color:'var(--blue)', textDecoration:'none', marginBottom:6 }}><Icon name="mail" size={12} color="var(--blue)"/>{quote.customer_email}</a>}
-                {quote.customer_phone&&<div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12.5, color:'var(--ink2)' }}><Icon name="phone" size={12}/>{quote.customer_phone}</div>}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+        <DocumentDetailSidebar>
+          <DocumentActionsCard groups={actionGroups}/>
+          <DocumentMetaCard rows={[
+            ['Quote #',quote.quote_number],['Currency',quote.currency],
+            ['Mode',SHIP_TYPE_LABEL[quote.shipment_type]??quote.shipment_type],
+            ['Valid Until',fmtDate(quote.valid_until)],['Created',fmtDate(quote.created_at)],['Updated',fmtDate(quote.updated_at)],
+          ]}/>
+          <DocumentPartyCard
+            name={quote.customer_name}
+            company={quote.customer_company}
+            avatarId={quote.customer_id}
+            email={quote.customer_email}
+            phone={quote.customer_phone}
+          />
+        </DocumentDetailSidebar>
+      </DocumentDetailShell>
     </>
   );
 }

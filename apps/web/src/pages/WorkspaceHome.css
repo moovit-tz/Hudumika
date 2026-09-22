@@ -922,6 +922,14 @@
 .wh-workspace-toolbar .wh-section-title { margin: 0; }
 
 /* ── DARK MODE OVERRIDES ── */
+[data-theme="dark"] .wh-new-root {
+  --wh-night-brand: #1257c6;
+  --wh-night-card: #121722;
+  --wh-night-card-hover: #17233a;
+  --wh-night-border: rgba(91, 148, 235, 0.2);
+  --wh-night-border-hover: rgba(91, 148, 235, 0.58);
+}
+
 [data-theme="dark"] .wh-hero-banner {
   background: radial-gradient(circle at center, #070f1a 0%, #020408 100%);
   border-bottom-color: #3c4043;
@@ -938,28 +946,31 @@
 
 [data-theme="dark"] .wh-horizontal-card {
   background:
-    linear-gradient(#1e1e1f, #1e1e1f) padding-box,
-    linear-gradient(#3c4043, #3c4043) border-box;
+    linear-gradient(var(--wh-night-card), var(--wh-night-card)) padding-box,
+    linear-gradient(var(--wh-night-border), var(--wh-night-border)) border-box;
 }
 
 [data-theme="dark"] .wh-horizontal-card:hover {
   background:
-    linear-gradient(#1e1e1f, #1e1e1f) padding-box,
+    linear-gradient(var(--wh-night-card-hover), var(--wh-night-card-hover)) padding-box,
     conic-gradient(
       from var(--wh-border-angle),
-      transparent  0deg,  transparent  78deg,
-      var(--card-color, var(--teal))  90deg, var(--card-color, var(--teal)) 102deg,
+      transparent 0deg, transparent 78deg,
+      var(--card-color, var(--wh-night-brand)) 90deg,
+      var(--card-color, var(--wh-night-brand)) 102deg,
       transparent 114deg, transparent 360deg
     ) border-box;
+  box-shadow: 0 12px 30px rgba(0, 28, 74, 0.42), 0 0 0 1px rgba(18, 87, 198, 0.1);
 }
 
 [data-theme="dark"] .wh-toggle-group {
-  background: #1e1e1f;
-  border-color: #3c4043;
+  background: var(--wh-night-card);
+  border-color: var(--wh-night-border);
 }
 
 [data-theme="dark"] .wh-toggle-btn.active {
-  background: #2d2f31;
+  background: var(--teal-l);
+  color: #78aaf0;
 }
 
 [data-theme="dark"] .wh-toolbar-btn {
@@ -999,19 +1010,33 @@
 
 [data-theme="dark"] .wh-grid-card {
   background:
-    linear-gradient(#1e1e1f, #1e1e1f) padding-box,
-    linear-gradient(#3c4043, #3c4043) border-box;
+    linear-gradient(var(--wh-night-card), var(--wh-night-card)) padding-box,
+    linear-gradient(var(--wh-night-border), var(--wh-night-border)) border-box;
 }
 
 [data-theme="dark"] .wh-grid-card:hover {
   background:
-    linear-gradient(#1e1e1f, #1e1e1f) padding-box,
+    linear-gradient(var(--wh-night-card-hover), var(--wh-night-card-hover)) padding-box,
     conic-gradient(
       from var(--wh-border-angle),
-      transparent  0deg,  transparent  78deg,
-      var(--card-color, var(--teal))  90deg, var(--card-color, var(--teal)) 102deg,
+      transparent 0deg, transparent 78deg,
+      var(--card-color, var(--wh-night-brand)) 90deg,
+      var(--card-color, var(--wh-night-brand)) 102deg,
       transparent 114deg, transparent 360deg
     ) border-box;
+  box-shadow: 0 12px 30px rgba(0, 28, 74, 0.42), 0 0 0 1px rgba(18, 87, 198, 0.1);
+}
+
+[data-theme="dark"] .wh-horizontal-card:hover .wh-card-title,
+[data-theme="dark"] .wh-grid-card:hover .wh-grid-workspace-name {
+  color: #a9c9f7;
+}
+
+[data-theme="dark"] .wh-horizontal-card:hover .wh-badge-cat,
+[data-theme="dark"] .wh-grid-card:hover .wh-badge-cat {
+  background: rgba(18, 87, 198, 0.22);
+  border-color: rgba(91, 148, 235, 0.38);
+  color: #91baf2;
 }
 
 [data-theme="dark"] .wh-badge-lob {

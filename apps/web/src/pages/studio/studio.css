@@ -57,13 +57,22 @@
   align-items: flex-start;
   padding: 9px 10px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r);
   background: var(--card-bg, var(--white));
   cursor: pointer;
   margin-bottom: 6px;
   transition: border-color .12s, background .12s;
 }
-.studio-item:hover:not(:disabled) { border-color: var(--teal); background: var(--teal-l); }
+.studio-item:hover:not(:disabled) { border-color: var(--teal-m); background: var(--teal-l); box-shadow: var(--elev-sm); }
+.studio-item:focus-visible,
+.studio-icon-btn:focus-visible,
+.studio-chip:focus-visible,
+.studio-pane-btn:focus-visible,
+.studio-run-row:focus-visible,
+.studio-card-interactive:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
 .studio-item:disabled { opacity: .5; cursor: not-allowed; }
 .studio-item-name { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink); line-height: 1.35; }
 .studio-item-desc { display: block; font-size: 11px; color: var(--ink3); line-height: 1.45; margin-top: 2px; }
@@ -74,7 +83,7 @@
   width: 268px;
   background: var(--card-bg, var(--white));
   border: 1.5px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--card-radius);
   padding: 11px 13px 12px;
   box-shadow: var(--elev);
   transition: box-shadow .12s, border-color .12s;
@@ -123,16 +132,16 @@
   align-items: center;
   background: var(--card-bg, var(--white));
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r);
   padding: 4px;
   box-shadow: var(--elev);
 }
 .studio-icon-btn {
-  height: 28px; min-width: 28px;
-  padding: 0 8px;
+  min-height: var(--ctl-h-xs); min-width: var(--ctl-h-xs);
+  padding: 0 var(--ds-btn-py-xs);
   border: none;
   background: transparent;
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   cursor: pointer;
   color: var(--ink2);
   font-size: 12px;
@@ -327,7 +336,7 @@
 .studio-title-input:focus-visible {
   outline: 2px solid var(--teal);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
 }
 
 @media (max-width: 760px) {
@@ -367,7 +376,7 @@
 }
 .studio-tile {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--card-radius);
   padding: 15px 16px;
   background: var(--card-bg, var(--white));
   min-width: 0;
@@ -405,12 +414,76 @@
 
 /* ─── Workflow Studio Mobile & Responsive Perfections ─── */
 .studio-card-interactive {
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease;
 }
 .studio-card-interactive:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-  border-color: var(--teal-m);
+  box-shadow: var(--elev) !important;
+  border-color: var(--teal-m) !important;
+  background: var(--teal-l) !important;
+}
+
+.studio-dashboard-hero {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 24px;
+  padding: 28px 32px;
+  border: 1px solid var(--teal-m);
+  border-radius: var(--card-radius);
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: var(--elev-lg);
+}
+.studio-dashboard-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 88% 15%, rgba(255,255,255,.16), transparent 34%);
+  pointer-events: none;
+}
+.studio-dashboard-hero-content { position: relative; z-index: 1; }
+.studio-dashboard-hero-icon {
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--r);
+  background: color-mix(in srgb, hsl(var(--primary-foreground)) 14%, transparent);
+}
+.studio-dashboard-hero .studio-hero-secondary {
+  border-color: color-mix(in srgb, hsl(var(--primary-foreground)) 30%, transparent);
+  background: color-mix(in srgb, hsl(var(--primary-foreground)) 12%, transparent);
+  color: hsl(var(--primary-foreground));
+}
+.studio-dashboard-hero .studio-hero-secondary:hover {
+  background: color-mix(in srgb, hsl(var(--primary-foreground)) 20%, transparent);
+}
+.studio-dashboard-hero .studio-hero-primary {
+  border-color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary-foreground));
+  color: hsl(var(--primary));
+  box-shadow: var(--elev-sm);
+}
+.studio-dashboard-row {
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+.studio-dashboard-row:hover {
+  background: var(--teal-l) !important;
+  box-shadow: inset 3px 0 0 var(--teal);
+}
+
+[data-theme="dark"] [data-studio="true"] .studio-col,
+[data-theme="dark"] [data-studio="true"] .studio-runlog,
+[data-theme="dark"] [data-studio="true"] .studio-panel-head,
+[data-theme="dark"] [data-studio="true"] .studio-topbar,
+[data-theme="dark"] [data-studio="true"] .studio-tile,
+[data-theme="dark"] [data-studio="true"] .studio-item,
+[data-theme="dark"] [data-studio="true"] .studio-node,
+[data-theme="dark"] [data-studio="true"] .studio-canvas-bar {
+  background: var(--card-bg, var(--white));
+  border-color: var(--border);
+}
+
+@media (max-width: 640px) {
+  .studio-dashboard-hero { padding: 22px 18px; }
 }
 
 /* Base (desktop) layout for the workflow list item's header/meta rows —

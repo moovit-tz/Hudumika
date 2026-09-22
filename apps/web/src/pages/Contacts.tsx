@@ -21,6 +21,8 @@ import { Checkbox } from '../components/ui/checkbox.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle } from '../components/ui/dialog.js';
+import { Banner } from '../components/ui/alert.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { showAlert } from '../lib/alert.js';
 
 const MODAL_STEPS: { key: 'profile' | 'contact' | 'business' | 'extra'; label: string; icon: IconName }[] = [
@@ -83,7 +85,7 @@ function summarizeSmartGroup(group: SmartGroup, labelName: (id: string) => strin
 export function Contacts() {
   // Shared state + data from context (provided by ContactsProvider in ContactsShell)
   const {
-    contacts, labels, smartGroups, duplicates, companies, loading,
+    contacts, labels, smartGroups, duplicates, companies, loading, loadErrors,
     currentView, setCurrentView,
     selectedLabelId, setSelectedLabelId,
     selectedSmartGroupId,
@@ -105,6 +107,21 @@ export function Contacts() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activityLog, setActivityLog] = useState<ContactActivityEntry[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [activityError, setActivityError] = useState(false);
+
+  // A real, working endpoint (GET /v1/contacts/birthdays) with no frontend
+  // consumer anywhere in the app — the daily reminder job runs independently
+  // of this, but nothing ever showed the "what's coming" view the route was
+  // built for. Fetched once; this list changes at most daily.
+  const [upcomingBirthdays, setUpcomingBirthdays] = useState<
+    { id: string; first_name: string; last_name: string | null; birthday: string; days_until: number }[]
+  >([]);
+  const [birthdaysError, setBirthdaysError] = useState(false);
+  useEffect(() => {
+    apiFetch('/v1/contacts/birthdays?within=30')
+      .then((rows: any) => { setUpcomingBirthdays(Array.isArray(rows) ? rows : []); setBirthdaysError(false); })
+      .catch(() => setBirthdaysError(true));
+  }, []);
 
   // Modal / Form states
   const [showEditModal, setShowEditModal] = useState<Contact | null>(null);
@@ -367,17 +384,22 @@ export function Contacts() {
     reader.readAsDataURL(file);
   };
 
-  // Fetch the activity log whenever the Activity tab is opened for a contact
+  const [activityReloadKey, setActivityReloadKey] = useState(0);
+  const retryActivity = () => setActivityReloadKey(k => k + 1);
+
+  // Fetch the activity log whenever the Activity tab is opened for a
+  // contact, or retryActivity() bumps activityReloadKey after a failure.
   useEffect(() => {
     if (!activeContact || activeTab !== 'activity') return;
     let cancelled = false;
     setActivityLoading(true);
+    setActivityError(false);
     apiFetch(`/v1/contacts/${activeContact.id}/activity`)
       .then((res: any) => { if (!cancelled) setActivityLog(Array.isArray(res) ? res : []); })
-      .catch(() => { if (!cancelled) setActivityLog([]); })
+      .catch(() => { if (!cancelled) { setActivityLog([]); setActivityError(true); } })
       .finally(() => { if (!cancelled) setActivityLoading(false); });
     return () => { cancelled = true; };
-  }, [activeContact, activeTab]);
+  }, [activeContact, activeTab, activityReloadKey]);
 
   // Delete / Trash Contact
   const handleDeleteContact = async (id: string, hard: boolean = false) => {
@@ -851,6 +873,8 @@ export function Contacts() {
 
                       {activityLoading ? (
                         <div style={{ fontSize: 13, color: 'var(--ink2)', fontStyle: 'italic' }}>Loading activity…</div>
+                      ) : activityError ? (
+                        <div style={{ fontSize: 13, color: 'var(--red)' }}>Couldn't load activity — <button type="button" style={{ font: 'inherit', color: 'inherit', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={retryActivity}>retry</button>.</div>
                       ) : activityLog.length === 0 ? (
                         <div style={{ fontSize: 13, color: 'var(--ink2)', fontStyle: 'italic' }}>No activity recorded yet.</div>
                       ) : (
@@ -936,6 +960,52 @@ export function Contacts() {
             ) : (
               <div style={{ padding: '20px 0 0' }}>
                 <PageHeader crumbs={['Contacts']} titlePlain="All" titleEm="contacts" subtitle="Everyone you've saved, synced, or tagged in one place." />
+              </div>
+            )}
+
+            {currentView === 'contacts' && (loadErrors.contacts || loadErrors.labels || loadErrors.smartGroups || loadErrors.duplicates || loadErrors.companies || birthdaysError) && (
+              <div style={{ padding: '0 20px 16px' }}>
+                <Banner variant="error" action={<button type="button" className="btn btn-secondary btn-sm" onClick={() => { loadData(); if (birthdaysError) apiFetch('/v1/contacts/birthdays?within=30').then((rows: any) => { setUpcomingBirthdays(Array.isArray(rows) ? rows : []); setBirthdaysError(false); }).catch(() => setBirthdaysError(true)); }}>Retry</button>}>
+                  {loadErrors.contacts
+                    ? "Some contacts couldn't load — this list may be incomplete."
+                    : [
+                        loadErrors.labels && 'labels',
+                        loadErrors.smartGroups && 'smart groups',
+                        loadErrors.duplicates && 'duplicate suggestions',
+                        loadErrors.companies && 'linked companies',
+                        birthdaysError && 'upcoming birthdays',
+                      ].filter(Boolean).join(', ').replace(/^./, c => c.toUpperCase()) + " couldn't load."}
+                </Banner>
+              </div>
+            )}
+
+            {currentView === 'contacts' && upcomingBirthdays.length > 0 && (
+              <div style={{ padding: '0 20px 16px' }}>
+                <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+                    <Icon name="calendar" size={14} color="var(--gold)" />
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Upcoming birthdays</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, padding: '10px 14px', overflowX: 'auto' }}>
+                    {upcomingBirthdays.map(b => {
+                      const name = `${b.first_name} ${b.last_name || ''}`.trim();
+                      const when = b.days_until === 0 ? 'Today' : b.days_until === 1 ? 'Tomorrow' : `In ${b.days_until} days`;
+                      const full = contacts.find(c => c.id === b.id);
+                      return (
+                        <div key={b.id} onClick={() => full && setActiveContact(full)}
+                          role="button" tabIndex={0}
+                          onKeyDown={e => { if (full && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setActiveContact(full); } }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px 6px 6px', borderRadius: 999, background: 'var(--bg)', flexShrink: 0, cursor: full ? 'pointer' : 'default' }}>
+                          <PersonAvatar userId={b.id} kind="contacts" name={name} size={26} />
+                          <div>
+                            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{name}</div>
+                            <div style={{ fontSize: 11, color: b.days_until === 0 ? 'var(--gold)' : 'var(--ink3)', fontWeight: b.days_until === 0 ? 700 : 400 }}>{when}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1167,54 +1237,62 @@ export function Contacts() {
                                   {contact.status === 'ACTIVE' ? (
                                     <>
                                       {/* Star Favorite */}
-                                      <button
-                                        type="button"
-                                        onClick={() => handleToggleFavorite(contact)}
-                                        style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
-                                      >
-                                        <Icon
-                                          name="star"
-                                          size={18}
-                                          color={contact.is_favorite ? 'var(--gold)' : 'var(--ink2)'}
-                                        />
-                                      </button>
+                                      <Tip label={contact.is_favorite ? 'Unfavorite' : 'Favorite'}>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleToggleFavorite(contact)}
+                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
+                                        >
+                                          <Icon
+                                            name="star"
+                                            size={18}
+                                            color={contact.is_favorite ? 'var(--gold)' : 'var(--ink2)'}
+                                          />
+                                        </button>
+                                      </Tip>
                                       {/* Edit */}
-                                      <button
-                                        type="button"
-                                        onClick={() => openContactModal(contact)}
-                                        style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
-                                      >
-                                        <Icon name="edit" size={18} color="var(--ink2)" />
-                                      </button>
+                                      <Tip label="Edit">
+                                        <button
+                                          type="button"
+                                          onClick={() => openContactModal(contact)}
+                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
+                                        >
+                                          <Icon name="edit" size={18} color="var(--ink2)" />
+                                        </button>
+                                      </Tip>
                                       {/* Trash */}
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDeleteContact(contact.id, false)}
-                                        style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
-                                      >
-                                        <Icon name="trash" size={18} color="var(--ink2)" />
-                                      </button>
+                                      <Tip label="Move to trash">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteContact(contact.id, false)}
+                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
+                                        >
+                                          <Icon name="trash" size={18} color="var(--ink2)" />
+                                        </button>
+                                      </Tip>
                                     </>
                                   ) : (
                                     <>
                                       {/* Restore */}
-                                      <button
-                                        type="button"
-                                        onClick={() => handleRestoreContact(contact.id)}
-                                        style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
-                                        title="Restore"
-                                      >
-                                        <Icon name="refresh2" size={18} color="var(--cts-accent)" />
-                                      </button>
+                                      <Tip label="Restore">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRestoreContact(contact.id)}
+                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
+                                        >
+                                          <Icon name="refresh2" size={18} color="var(--cts-accent)" />
+                                        </button>
+                                      </Tip>
                                       {/* Hard Delete */}
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDeleteContact(contact.id, true)}
-                                        style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
-                                        title="Delete permanently"
-                                      >
-                                        <Icon name="trash" size={18} color="var(--red)" />
-                                      </button>
+                                      <Tip label="Delete permanently">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteContact(contact.id, true)}
+                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
+                                        >
+                                          <Icon name="trash" size={18} color="var(--red)" />
+                                        </button>
+                                      </Tip>
                                     </>
                                   )}
                                 </div>

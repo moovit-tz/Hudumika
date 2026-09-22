@@ -75,6 +75,9 @@ const createSchema = z.object({
   points: z.number().int().min(-100).max(100),
 });
 const patchSchema = createSchema.partial().extend({ active: z.boolean().optional(), position: z.number().int().min(0).optional() });
+// A malformed (non-UUID) :id used to reach Postgres as-is and crash with a
+// raw driver error (sanitized to an opaque 500) instead of a clean 404.
+const idParamSchema = z.object({ id: z.string().uuid() });
 
 export async function crmLeadScoringRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -83,66 +86,52 @@ export async function crmLeadScoringRoutes(fastify: FastifyInstance) {
 
   fastify.get('/fields', async () => SCORING_FIELDS);
 
-  fastify.get('/rules', async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      return await withTenant(tenantId, trx =>
-        trx.selectFrom('crm_lead_scoring_rules').selectAll()
-          .where('tenant_id', '=', tenantId).orderBy('position', 'asc').orderBy('created_at', 'asc').execute()
-      );
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+  fastify.get('/rules', async (request: any) => {
+    const tenantId = request.user.tenant_id;
+    return withTenant(tenantId, trx =>
+      trx.selectFrom('crm_lead_scoring_rules').selectAll()
+        .where('tenant_id', '=', tenantId).orderBy('position', 'asc').orderBy('created_at', 'asc').execute()
+    );
   });
 
   fastify.post('/rules', { preHandler: requireRole(...ADMIN_ROLES) }, async (request: any, reply) => {
     const b = createSchema.parse(request.body);
     if (!SCORING_FIELDS[b.field].ops.includes(b.op)) return reply.status(400).send({ error: `Operator "${b.op}" not valid for "${b.field}"` });
-    try {
-      const tenantId = request.user.tenant_id;
-      const [row] = await withTenant(tenantId, async trx => {
-        const max = await trx.selectFrom('crm_lead_scoring_rules').select(trx.fn.max('position').as('m'))
-          .where('tenant_id', '=', tenantId).executeTakeFirst();
-        return trx.insertInto('crm_lead_scoring_rules').values({
-          tenant_id: tenantId, label: b.label.trim(), field: b.field, op: b.op,
-          value: b.value ?? null, points: b.points, position: Number(max?.m ?? -1) + 1,
-        }).returningAll().execute();
-      });
-      return row;
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+    const tenantId = request.user.tenant_id;
+    const [row] = await withTenant(tenantId, async trx => {
+      const max = await trx.selectFrom('crm_lead_scoring_rules').select(trx.fn.max('position').as('m'))
+        .where('tenant_id', '=', tenantId).executeTakeFirst();
+      return trx.insertInto('crm_lead_scoring_rules').values({
+        tenant_id: tenantId, label: b.label.trim(), field: b.field, op: b.op,
+        value: b.value ?? null, points: b.points, position: Number(max?.m ?? -1) + 1,
+      }).returningAll().execute();
+    });
+    return row;
   });
 
   fastify.patch('/rules/:id', { preHandler: requireRole(...ADMIN_ROLES) }, async (request: any, reply) => {
+    const { id } = idParamSchema.parse(request.params);
     const b = patchSchema.parse(request.body);
-    try {
-      const tenantId = request.user.tenant_id;
-      const patch: any = {};
-      for (const k of ['label', 'field', 'op', 'value', 'points', 'active', 'position'] as const) {
-        if (b[k] !== undefined) patch[k] = k === 'label' && typeof b[k] === 'string' ? (b[k] as string).trim() : b[k];
-      }
-      const [row] = await withTenant(tenantId, trx =>
-        trx.updateTable('crm_lead_scoring_rules').set(patch)
-          .where('id', '=', request.params.id).where('tenant_id', '=', tenantId).returningAll().execute()
-      );
-      if (!row) return reply.status(404).send({ error: 'Rule not found' });
-      return row;
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+    const tenantId = request.user.tenant_id;
+    const patch: any = {};
+    for (const k of ['label', 'field', 'op', 'value', 'points', 'active', 'position'] as const) {
+      if (b[k] !== undefined) patch[k] = k === 'label' && typeof b[k] === 'string' ? (b[k] as string).trim() : b[k];
     }
+    const [row] = await withTenant(tenantId, trx =>
+      trx.updateTable('crm_lead_scoring_rules').set(patch)
+        .where('id', '=', id).where('tenant_id', '=', tenantId).returningAll().execute()
+    );
+    if (!row) return reply.status(404).send({ error: 'Rule not found' });
+    return row;
   });
 
   fastify.delete('/rules/:id', { preHandler: requireRole(...ADMIN_ROLES) }, async (request: any, reply) => {
-    try {
-      await withTenant(request.user.tenant_id, trx =>
-        trx.deleteFrom('crm_lead_scoring_rules').where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).execute()
-      );
-      reply.status(204);
-      return null;
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+    const { id } = idParamSchema.parse(request.params);
+    await withTenant(request.user.tenant_id, trx =>
+      trx.deleteFrom('crm_lead_scoring_rules').where('id', '=', id)
+        .where('tenant_id', '=', request.user.tenant_id).execute()
+    );
+    reply.status(204);
+    return null;
   });
 }

@@ -14,6 +14,8 @@ export interface Package {
   extra_seat_threshold: number | null; // seat count the discounted extra_seat_price kicks in after — null = no discount tier
   monthly_item_limit: number | null;  // billable items/month platform-wide — null = unlimited
   storage_limit_bytes: number | null; // Cloud storage quota — null = unlimited
+  monthly_ai_credits: number;         // platform-billed AI calls/month included in this tier — 0 = none
+  byok_ai_allowed: boolean;           // may this tier override the platform AI key with its own?
   features: string[];
   color: string;
   popular: boolean;

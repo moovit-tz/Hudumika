@@ -140,7 +140,7 @@ export function AppHeader({
     return { formatted, percent };
   }, [isCheckedIn, currentEntry, nowTick]);
 
-  const headerClockColor = activeApp && APP_COLORS[activeApp] && APP_COLORS[activeApp] !== '#0b1e3a'
+  const headerClockColor = activeApp && APP_COLORS[activeApp] && APP_COLORS[activeApp] !== '#1257c6'
     ? branding.getAppColor(activeApp, APP_COLORS[activeApp])
     : 'var(--teal)';
 
@@ -787,10 +787,10 @@ export function AppHeader({
                   />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-3 rounded-xl shadow-2xl border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-slate-100" style={{ background: 'var(--white)', zIndex: 99999 }}>
-                {/* Header User Identity Block (Compact) */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ position: 'relative', width: 38, height: 38, flexShrink: 0 }}>
+              <DropdownMenuContent align="end" className="app-header-profile-menu" style={{ zIndex: 99999 }}>
+                {/* Header User Identity Block (Refreshed) */}
+                <div className="ah-menu-identity">
+                  <div className="ah-menu-avatar-wrap">
                     <PersonAvatar
                       userId={(user as any)?.id}
                       name={user?.name ?? 'User'}
@@ -798,103 +798,95 @@ export function AppHeader({
                       style={{ border: '1px solid var(--border)' }}
                     />
                   </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+                  <div className="ah-menu-user-meta">
+                    <div className="ah-menu-user-name">
                       {user?.name ?? '—'}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
+                    <div className="ah-menu-user-email">
                       {user?.email ?? '—'}
                     </div>
                     {user?.role && (
-                      <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 'var(--r)', marginTop: 3 }}>
-                        {user.role}
+                      <span className="ah-menu-role-badge">
+                        {user.role.replace(/_/g, ' ')}
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Navigation items (Compact) */}
-                <div style={{ padding: '4px 0 2px', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <DropdownMenuSeparator className="ah-menu-divider" />
+
+                {/* Navigation items (Refreshed) */}
+                <div className="ah-menu-nav-group">
                   <DropdownMenuItem asChild>
-                    <Link to="/profile" style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name="user" size={13} style={{ color: 'var(--teal)' } as React.CSSProperties} />
+                    <Link to="/profile" className="ah-menu-item-link">
+                      <div className="ah-menu-icon-box" style={{ '--icon-color': 'var(--teal)', '--icon-bg': 'var(--teal-l)' } as React.CSSProperties}>
+                        <Icon name="user" size={13} />
                       </div>
-                      <span>{t('header.myProfile')}</span>
+                      <span className="ah-menu-item-label">{t('header.myProfile')}</span>
                     </Link>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem asChild>
-                    <Link to="/studio" style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name="zap" size={13} style={{ color: 'var(--purple)' } as React.CSSProperties} />
+                    <Link to="/studio" className="ah-menu-item-link">
+                      <div className="ah-menu-icon-box" style={{ '--icon-color': 'var(--purple)', '--icon-bg': 'rgba(168, 85, 247, 0.12)' } as React.CSSProperties}>
+                        <Icon name="zap" size={13} />
                       </div>
-                      <span>AI Studio</span>
+                      <span className="ah-menu-item-label">Automation</span>
                     </Link>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem asChild>
-                    <Link to="/workspace" style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name="settings" size={13} style={{ color: 'var(--blue)' } as React.CSSProperties} />
+                    <Link to="/workspace" className="ah-menu-item-link">
+                      <div className="ah-menu-icon-box" style={{ '--icon-color': 'var(--blue)', '--icon-bg': 'rgba(59, 130, 246, 0.12)' } as React.CSSProperties}>
+                        <Icon name="settings" size={13} />
                       </div>
-                      <span>Workspace Settings</span>
+                      <span className="ah-menu-item-label">Workspace Settings</span>
                     </Link>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem asChild>
-                    <Link to="/workspace/billing" style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name="creditCard" size={13} style={{ color: 'var(--gold)' } as React.CSSProperties} />
+                    <Link to="/developer" className="ah-menu-item-link">
+                      <div className="ah-menu-icon-box" style={{ '--icon-color': 'var(--teal)', '--icon-bg': 'var(--teal-l)' } as React.CSSProperties}>
+                        <Icon name="terminal" size={13} />
                       </div>
-                      <span>Billing &amp; Subscription</span>
-                    </Link>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem asChild>
-                    <Link to="/developer" style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name="terminal" size={13} style={{ color: 'var(--teal)' } as React.CSSProperties} />
-                      </div>
-                      <span>Developer Console</span>
+                      <span className="ah-menu-item-label">Developer Console</span>
                     </Link>
                   </DropdownMenuItem>
 
                   {user?.role === 'SUPER_ADMIN' && (
                     <DropdownMenuItem asChild>
-                      <Link to="/admin" style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-                        <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Icon name="lock" size={13} style={{ color: 'var(--red)' } as React.CSSProperties} />
+                      <Link to="/admin" className="ah-menu-item-link">
+                        <div className="ah-menu-icon-box" style={{ '--icon-color': 'var(--red)', '--icon-bg': 'var(--red-l)' } as React.CSSProperties}>
+                          <Icon name="shield" size={13} />
                         </div>
-                        <span>{t('header.adminPanel')}</span>
+                        <span className="ah-menu-item-label">{t('header.adminPanel')}</span>
                       </Link>
                     </DropdownMenuItem>
                   )}
                 </div>
 
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="ah-menu-divider" />
 
-                {/* Session actions (Compact) — lock is reversible (same overlay
-                    as the 15-minute idle timeout, see useIdleLock), sign out is not. */}
-                <div style={{ paddingTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {/* Session actions */}
+                <div className="ah-menu-session-group">
                   <DropdownMenuItem
                     onClick={() => lock()}
-                    style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', background: 'transparent', fontSize: 13, fontWeight: 600 }}
+                    className="ah-menu-item-link"
                   >
-                    <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Icon name="lock" size={13} style={{ color: 'var(--ink2)' } as React.CSSProperties} />
+                    <div className="ah-menu-icon-box" style={{ '--icon-color': 'var(--ink2)', '--icon-bg': 'var(--bg)' } as React.CSSProperties}>
+                      <Icon name="lock" size={13} />
                     </div>
-                    <span>{t('header.lockWorkspace')}</span>
+                    <span className="ah-menu-item-label">{t('header.lockWorkspace')}</span>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
                     onClick={() => logout()}
-                    style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--red)', background: 'transparent', fontSize: 13, fontWeight: 600 }}
+                    className="ah-menu-item-link ah-menu-item-logout"
                   >
-                    <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--red-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Icon name="arrowRight" size={13} style={{ color: 'var(--red)' } as React.CSSProperties} />
+                    <div className="ah-menu-icon-box ah-menu-icon-box-logout">
+                      <Icon name="logOut" size={13} />
                     </div>
-                    <span>{t('header.signOut')}</span>
+                    <span className="ah-menu-item-label">{t('header.signOut')}</span>
                   </DropdownMenuItem>
                 </div>
               </DropdownMenuContent>

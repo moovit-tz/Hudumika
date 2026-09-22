@@ -9,7 +9,9 @@ const ENTITY_TYPES = ['lead', 'deal', 'customer'] as const;
 type EntityType = (typeof ENTITY_TYPES)[number];
 const ENTITY_TABLE: Record<EntityType, 'leads' | 'deals' | 'customers'> = { lead: 'leads', deal: 'deals', customer: 'customers' };
 
-const VIEW_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SALES', 'SENIOR', 'JUNIOR', 'OFFICER', 'FINANCE'] as const;
+// Saved views are workspace-shared configuration. Keep API access aligned
+// with the CRM shell instead of allowing hidden roles to mutate them directly.
+const VIEW_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SALES'] as const;
 
 type FieldSpec = { kind: 'text' | 'uuid' | 'bool' | 'date' | 'num' | 'label'; col?: string; ops: string[] };
 
@@ -55,11 +57,22 @@ const CATALOGS: Record<EntityType, Record<string, FieldSpec>> = {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Distinguishes "the caller sent a malformed rule" (a real 400, worth
+// showing verbatim) from a genuine unexpected DB/driver failure — a plain
+// Error from bail() used to be indistinguishable from the latter, so every
+// route caught both the same way and forwarded whichever message it got,
+// including a raw driver error on the rare unexpected-failure path.
+class SmartViewValidationError extends Error {}
+
+// A malformed (non-UUID) :id used to reach Postgres as-is and crash with a
+// raw driver error (sanitized to an opaque 500) instead of a clean 404.
+const idParamSchema = z.object({ id: z.string().uuid() });
+
 // Compiles one rule to a boolean SQL fragment (strict → throw, lenient → null).
 // `table` is the entity's own table alias so `label` rules can scope the
 // EXISTS subquery correctly.
 function compileRule(entity: EntityType, rule: any, strict: boolean): any {
-  const bail = (msg: string) => { if (strict) throw new Error(msg); return null; };
+  const bail = (msg: string) => { if (strict) throw new SmartViewValidationError(msg); return null; };
   if (!rule || typeof rule !== 'object') return bail('Malformed rule');
   const spec = CATALOGS[entity][rule.field];
   if (!spec) return bail(`Unknown filter field "${rule.field}"`);
@@ -160,67 +173,58 @@ export async function crmSmartViewsRoutes(fastify: FastifyInstance) {
   // The field catalog itself — the frontend rule builder's dropdowns.
   fastify.get('/catalog', async () => CATALOGS);
 
-  fastify.get('/', async (request: any, reply) => {
+  fastify.get('/', async (request: any) => {
     const q = z.object({ entity_type: z.enum(ENTITY_TYPES).optional() }).parse(request.query);
-    try {
-      const tenantId = request.user.tenant_id;
-      const views = await withTenant(tenantId, async trx => {
-        let sel = trx.selectFrom('crm_smart_views').selectAll().where('tenant_id', '=', tenantId);
-        if (q.entity_type) sel = sel.where('entity_type', '=', q.entity_type);
-        const rows = await sel.orderBy('name', 'asc').execute();
-        const out = [];
-        for (const v of rows) {
-          const rules = normalizeRules(v.rules);
-          let count = 0;
-          try {
-            const r = await trx.selectFrom(ENTITY_TABLE[v.entity_type as EntityType])
-              .select(sql<string>`count(*)`.as('c'))
-              .where('tenant_id', '=', tenantId)
-              .where(buildPredicate(v.entity_type as EntityType, rules, v.match_type as any, false))
-              .executeTakeFirst();
-            count = Number(r?.c ?? 0);
-          } catch { count = 0; }
-          out.push({ id: v.id, entity_type: v.entity_type, name: v.name, match_type: v.match_type, rules, count });
-        }
-        return out;
-      });
-      return views;
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+    const tenantId = request.user.tenant_id;
+    return withTenant(tenantId, async trx => {
+      let sel = trx.selectFrom('crm_smart_views').selectAll().where('tenant_id', '=', tenantId);
+      if (q.entity_type) sel = sel.where('entity_type', '=', q.entity_type);
+      const rows = await sel.orderBy('name', 'asc').execute();
+      const out = [];
+      for (const v of rows) {
+        const rules = normalizeRules(v.rules);
+        let count = 0;
+        try {
+          const r = await trx.selectFrom(ENTITY_TABLE[v.entity_type as EntityType])
+            .select(sql<string>`count(*)`.as('c'))
+            .where('tenant_id', '=', tenantId)
+            .where(buildPredicate(v.entity_type as EntityType, rules, v.match_type as any, false))
+            .executeTakeFirst();
+          count = Number(r?.c ?? 0);
+        } catch { count = 0; }
+        out.push({ id: v.id, entity_type: v.entity_type, name: v.name, match_type: v.match_type, rules, count });
+      }
+      return out;
+    });
   });
 
   fastify.get('/:id/results', async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      const rows = await withTenant(tenantId, async trx => {
-        const view = await trx.selectFrom('crm_smart_views').selectAll()
-          .where('id', '=', request.params.id).where('tenant_id', '=', tenantId).executeTakeFirst();
-        if (!view) return null;
-        const entity = view.entity_type as EntityType;
-        const rules = normalizeRules(view.rules);
-        return trx.selectFrom(ENTITY_TABLE[entity]).selectAll()
-          .where('tenant_id', '=', tenantId)
-          .where(buildPredicate(entity, rules, view.match_type as any, false))
-          .orderBy('created_at', 'desc')
-          .limit(500)
-          .execute();
-      });
-      if (rows === null) return reply.status(404).send({ error: 'Smart view not found' });
-      return rows;
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+    const { id } = idParamSchema.parse(request.params);
+    const tenantId = request.user.tenant_id;
+    const rows = await withTenant(tenantId, async trx => {
+      const view = await trx.selectFrom('crm_smart_views').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!view) return null;
+      const entity = view.entity_type as EntityType;
+      const rules = normalizeRules(view.rules);
+      return trx.selectFrom(ENTITY_TABLE[entity]).selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where(buildPredicate(entity, rules, view.match_type as any, false))
+        .orderBy('created_at', 'desc')
+        .limit(500)
+        .execute();
+    });
+    if (rows === null) return reply.status(404).send({ error: 'Smart view not found' });
+    return rows;
   });
 
   fastify.post('/', async (request: any, reply) => {
     const b = createSchema.parse(request.body);
+    const tenantId = request.user.tenant_id;
+    const matchType = b.match_type === 'any' ? 'any' : 'all';
+    const rules = normalizeRules(b.rules);
     try {
-      const tenantId = request.user.tenant_id;
-      const matchType = b.match_type === 'any' ? 'any' : 'all';
-      const rules = normalizeRules(b.rules);
       buildPredicate(b.entity_type, rules, matchType, true); // validate
-
       const [row] = await withTenant(tenantId, trx =>
         trx.insertInto('crm_smart_views').values({
           tenant_id: tenantId, entity_type: b.entity_type, name: b.name.trim(),
@@ -229,18 +233,20 @@ export async function crmSmartViewsRoutes(fastify: FastifyInstance) {
       );
       return { ...row, rules, count: 0 };
     } catch (err: any) {
+      if (err instanceof SmartViewValidationError) return reply.status(400).send({ error: err.message });
       if (err.message?.includes('duplicate key')) return reply.status(400).send({ error: `A ${b.entity_type} view named "${b.name}" already exists` });
-      return reply.status(400).send({ error: err.message });
+      throw err;
     }
   });
 
   fastify.patch('/:id', async (request: any, reply) => {
+    const { id } = idParamSchema.parse(request.params);
     const b = patchSchema.parse(request.body);
+    const tenantId = request.user.tenant_id;
     try {
-      const tenantId = request.user.tenant_id;
       const row = await withTenant(tenantId, async trx => {
         const existing = await trx.selectFrom('crm_smart_views').selectAll()
-          .where('id', '=', request.params.id).where('tenant_id', '=', tenantId).executeTakeFirst();
+          .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
         if (!existing) return null;
         const entity = existing.entity_type as EntityType;
         const patch: any = {};
@@ -251,26 +257,24 @@ export async function crmSmartViewsRoutes(fastify: FastifyInstance) {
         if (b.rules !== undefined) patch.rules = JSON.stringify(rules) as any;
         if (b.rules !== undefined || b.match_type !== undefined) buildPredicate(entity, rules, matchType, true);
         const [r] = await trx.updateTable('crm_smart_views').set(patch)
-          .where('id', '=', request.params.id).where('tenant_id', '=', tenantId).returningAll().execute();
+          .where('id', '=', id).where('tenant_id', '=', tenantId).returningAll().execute();
         return { ...r, rules: normalizeRules(r.rules) };
       });
       if (!row) return reply.status(404).send({ error: 'Smart view not found' });
       return row;
     } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
+      if (err instanceof SmartViewValidationError) return reply.status(400).send({ error: err.message });
+      throw err;
     }
   });
 
   fastify.delete('/:id', async (request: any, reply) => {
-    try {
-      await withTenant(request.user.tenant_id, trx =>
-        trx.deleteFrom('crm_smart_views').where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).execute()
-      );
-      reply.status(204);
-      return null;
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+    const { id } = idParamSchema.parse(request.params);
+    await withTenant(request.user.tenant_id, trx =>
+      trx.deleteFrom('crm_smart_views').where('id', '=', id)
+        .where('tenant_id', '=', request.user.tenant_id).execute()
+    );
+    reply.status(204);
+    return null;
   });
 }

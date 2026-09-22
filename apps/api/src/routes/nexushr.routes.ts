@@ -1,4 +1,6 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireUuidParams } from '../middleware/uuid-params.js';
+import { isDriverError } from '../utils/db-errors.js';
 import type { FastifyInstance } from 'fastify';
 import { NexusHRService } from '../services/nexushr.service.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -10,6 +12,7 @@ import { escapeHtml } from '../services/sign-notify.service.js';
 export async function nexusHRRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
+  requireUuidParams(fastify);
   // HUD-0024/0031: same gap as hr.routes.ts — a separate file/plugin
   // registration sharing the /v1/hr prefix, not covered by that fix.
   fastify.addHook('preHandler', async (request: any, reply) => {
@@ -41,6 +44,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     try {
       return await NexusHRService.getRoster(request.user.tenant_id);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -53,6 +57,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     try {
       return await NexusHRService.getLegalEntities(request.user.tenant_id);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -61,6 +66,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     try {
       return await NexusHRService.createLegalEntity(request.user.tenant_id, request.body);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(400).send({ error: err.message });
     }
   });
@@ -70,6 +76,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     try {
       return await NexusHRService.getCompensationHistory(request.user.tenant_id, request.params.id);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(404).send({ error: err.message });
     }
   });
@@ -78,6 +85,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     try {
       return await NexusHRService.addCompensation(request.user.tenant_id, request.params.id, request.body);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(400).send({ error: err.message });
     }
   });
@@ -97,6 +105,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     try {
       return await NexusHRService.payrollVsContract(request.user.tenant_id, month, year);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -106,6 +115,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getEmployments(tenantId);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -134,6 +144,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getDocuments(tenantId);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -199,6 +210,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
 
         return row;
       } catch (err: any) {
+        if (isDriverError(err)) throw err;
         return reply.status(500).send({ error: err.message });
       }
     });
@@ -225,6 +237,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       reply.header('Content-Disposition', `attachment; filename="${doc.name.replace(/"/g, '')}"`);
       return reply.send(fileBuffer);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -242,6 +255,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
           request.user.tenant_id, id, request.user.sub, approval_status, review_notes
         );
       } catch (err: any) {
+        if (isDriverError(err)) throw err;
         return reply.status(400).send({ error: err.message });
       }
     });
@@ -250,6 +264,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     try {
       return await NexusHRService.getExpiryRadar(request.user.tenant_id);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -264,6 +279,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     try {
       return await NexusHRService.getDocumentRequirements(request.user.tenant_id);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -285,7 +301,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
         let empName = 'Employee';
         if (user_id) {
           const emp = await withTenant(tenantId, trx =>
-            trx.selectFrom('users').select(['name', 'email']).where('id', '=', user_id).executeTakeFirst());
+            trx.selectFrom('users').select(['name', 'email']).where('id', '=', user_id).where('tenant_id', '=', tenantId).executeTakeFirst());
           if (emp) empName = emp.name;
         }
 
@@ -334,6 +350,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
 
         return { success: true, document: doc, html: renderedHtml };
       } catch (err: any) {
+        if (isDriverError(err)) throw err;
         return reply.status(500).send({ error: err.message });
       }
     });
@@ -345,6 +362,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getDocumentTemplates(tenantId);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -354,6 +372,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getAssets(tenantId);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -362,6 +381,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     try {
       return await NexusHRService.createAsset(request.user.tenant_id, request.body);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(400).send({ error: err.message });
     }
   });
@@ -374,6 +394,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const { user_id, employment_id, date } = request.body ?? {};
       return await NexusHRService.assignAsset(request.user.tenant_id, request.params.id, user_id ?? employment_id ?? null, date);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(400).send({ error: err.message });
     }
   });
@@ -403,6 +424,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getGoals(tenantId);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -412,6 +434,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.createGoal(tenantId, request.body);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(400).send({ error: err.message });
     }
   });
@@ -422,6 +445,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string };
       return await NexusHRService.checkInGoal(tenantId, id, request.body);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(400).send({ error: err.message });
     }
   });
@@ -431,6 +455,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getReviewCycles(tenantId);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -439,6 +464,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     try {
       return await NexusHRService.createReviewCycle(request.user.tenant_id, request.body);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(400).send({ error: err.message });
     }
   });
@@ -448,6 +474,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     try {
       return await NexusHRService.getReviewInstances(request.user.tenant_id, request.params.id);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(404).send({ error: err.message });
     }
   });
@@ -459,6 +486,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getSurveys(tenantId, request.user.sub);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -469,6 +497,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string };
       return await NexusHRService.submitSurvey(tenantId, id, request.user.sub, request.body);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(400).send({ error: err.message });
     }
   });
@@ -484,6 +513,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const tenantId = request.user.tenant_id;
       return reply.status(201).send(await NexusHRService.createSurvey(tenantId, request.body));
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(400).send({ error: err.message });
     }
   });
@@ -494,6 +524,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string };
       return await NexusHRService.closeSurvey(tenantId, id);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(400).send({ error: err.message });
     }
   });
@@ -507,6 +538,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string };
       return await NexusHRService.getSurveyResults(tenantId, id);
     } catch (err: any) {
+      if (isDriverError(err)) throw err;
       return reply.status(400).send({ error: err.message });
     }
   });

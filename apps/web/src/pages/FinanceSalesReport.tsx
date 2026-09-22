@@ -125,7 +125,7 @@ export const FinanceSalesReport: React.FC = () => {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
       <PageHeader
         crumbs={['Finance', 'Reports']}
         titlePlain="Sales"

@@ -12,6 +12,8 @@ import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 import { DateTimePicker, DatePicker, toDateOnlyString, parseDateOnly } from '../components/ui/date-picker.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { showAlert } from '../lib/alert.js';
@@ -171,16 +173,16 @@ function CreateJobModal({ onClose, onCreated }: { onClose: () => void; onCreated
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Title</label>
-            <input required autoFocus value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Senior Backend Engineer" style={inp} />
+            <Input required autoFocus value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Senior Backend Engineer" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Department</label>
-              <input value={department} onChange={e => setDepartment(e.target.value)} style={inp} />
+              <Input value={department} onChange={e => setDepartment(e.target.value)} />
             </div>
             <div>
               <label style={lbl}>Location</label>
-              <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Remote, Dar es Salaam…" style={inp} />
+              <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="Remote, Dar es Salaam…" />
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -195,7 +197,7 @@ function CreateJobModal({ onClose, onCreated }: { onClose: () => void; onCreated
             </div>
             <div>
               <label style={lbl}>Positions</label>
-              <input type="number" min={1} value={openingsCount} onChange={e => setOpeningsCount(e.target.value)} style={inp} />
+              <Input type="number" min={1} value={openingsCount} onChange={e => setOpeningsCount(e.target.value)} />
             </div>
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
@@ -239,21 +241,21 @@ function AddCandidateModal({ jobOpeningId, jobTitle, onClose, onCreated }: { job
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Full name</label>
-            <input required autoFocus value={name} onChange={e => setName(e.target.value)} style={inp} />
+            <Input required autoFocus value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inp} />
+              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
             </div>
             <div>
               <label style={lbl}>Phone</label>
-              <input value={phone} onChange={e => setPhone(e.target.value)} style={inp} />
+              <Input value={phone} onChange={e => setPhone(e.target.value)} />
             </div>
           </div>
           <div>
             <label style={lbl}>Source</label>
-            <input value={source} onChange={e => setSource(e.target.value)} placeholder="LinkedIn, referral, walk-in…" style={inp} />
+            <Input value={source} onChange={e => setSource(e.target.value)} placeholder="LinkedIn, referral, walk-in…" />
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -319,7 +321,7 @@ function ScheduleInterviewModal({ application, staff, onClose, onScheduled }: {
           </div>
           <div>
             <label style={lbl}>Notes</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} />
+            <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -395,7 +397,7 @@ function CreateRequisitionModal({ staff, onClose, onCreated }: {
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Position title</label>
-            <input required autoFocus value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Senior Accountant" style={inp} />
+            <Input required autoFocus value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Senior Accountant" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
@@ -421,7 +423,7 @@ function CreateRequisitionModal({ staff, onClose, onCreated }: {
             </div>
             <div>
               <label style={lbl}>Openings</label>
-              <input type="number" min={1} value={openingsCount} onChange={e => setOpeningsCount(e.target.value)} style={inp} />
+              <Input type="number" min={1} value={openingsCount} onChange={e => setOpeningsCount(e.target.value)} />
             </div>
             <div>
               <label style={lbl}>Priority</label>
@@ -433,7 +435,7 @@ function CreateRequisitionModal({ staff, onClose, onCreated }: {
           </div>
           <div>
             <label style={lbl}>Location</label>
-            <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Remote, Dar es Salaam…" style={inp} />
+            <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="Remote, Dar es Salaam…" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
@@ -453,24 +455,24 @@ function CreateRequisitionModal({ staff, onClose, onCreated }: {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Salary min</label>
-              <input type="number" min={0} value={salaryMin} onChange={e => setSalaryMin(e.target.value)} style={inp} />
+              <Input type="number" min={0} value={salaryMin} onChange={e => setSalaryMin(e.target.value)} />
             </div>
             <div>
               <label style={lbl}>Salary max</label>
-              <input type="number" min={0} value={salaryMax} onChange={e => setSalaryMax(e.target.value)} style={inp} />
+              <Input type="number" min={0} value={salaryMax} onChange={e => setSalaryMax(e.target.value)} />
             </div>
             <div>
               <label style={lbl}>Currency</label>
-              <input value={salaryCurrency} onChange={e => setSalaryCurrency(e.target.value.toUpperCase())} maxLength={3} style={inp} />
+              <Input value={salaryCurrency} onChange={e => setSalaryCurrency(e.target.value.toUpperCase())} maxLength={3} />
             </div>
           </div>
           <div>
             <label style={lbl}>Description</label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} />
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} />
           </div>
           <div>
             <label style={lbl}>Requirements</label>
-            <textarea value={requirements} onChange={e => setRequirements(e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} />
+            <Textarea value={requirements} onChange={e => setRequirements(e.target.value)} rows={2} />
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -524,16 +526,16 @@ function CreateOfferModal({ applicationId, positionTitle, supersedesOfferId, onC
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Position title</label>
-            <input required autoFocus value={title} onChange={e => setTitle(e.target.value)} style={inp} />
+            <Input required autoFocus value={title} onChange={e => setTitle(e.target.value)} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Amount</label>
-              <input type="number" min={0} value={amount} onChange={e => setAmount(e.target.value)} style={inp} />
+              <Input type="number" min={0} value={amount} onChange={e => setAmount(e.target.value)} />
             </div>
             <div>
               <label style={lbl}>Currency</label>
-              <input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} style={inp} />
+              <Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
             </div>
             <div>
               <label style={lbl}>Period</label>
@@ -617,7 +619,7 @@ function CandidateProfileModal({ candidateId, candidateName, onClose }: { candid
       <DialogContent hideClose className="w-130 max-w-[92vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
           <DialogTitle>Candidate profile</DialogTitle>
-          <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose} aria-label="Close"><Icon name="x" size={18} /></Button>
         </DialogHeader>
         <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: -8, marginBottom: 4 }}>{candidateName}</div>
 
@@ -642,15 +644,15 @@ function CandidateProfileModal({ candidateId, candidateName, onClose }: { candid
             </div>
             <div>
               <label style={lbl}>Cover letter</label>
-              <textarea value={coverLetter} onChange={e => setCoverLetter(e.target.value)} rows={4} style={{ ...inp, resize: 'vertical' }} />
+              <Textarea value={coverLetter} onChange={e => setCoverLetter(e.target.value)} rows={4} />
             </div>
             <div>
               <label style={lbl}>Skills</label>
-              <input value={skills} onChange={e => setSkills(e.target.value)} placeholder="e.g. Kysely, Fastify, React" style={inp} />
+              <Input value={skills} onChange={e => setSkills(e.target.value)} placeholder="e.g. Kysely, Fastify, React" />
             </div>
             <div>
               <label style={lbl}>Education</label>
-              <textarea value={education} onChange={e => setEducation(e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} />
+              <Textarea value={education} onChange={e => setEducation(e.target.value)} rows={2} />
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={onClose}>Cancel</Button>
@@ -695,7 +697,7 @@ function ScreeningDialog({ application, onClose, onSaved }: { application: Appli
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Score (0–100)</label>
-            <input type="number" min={0} max={100} value={score} onChange={e => setScore(e.target.value)} style={inp} />
+            <Input type="number" min={0} max={100} value={score} onChange={e => setScore(e.target.value)} />
           </div>
           <div>
             <label style={lbl}>Outcome</label>
@@ -710,7 +712,7 @@ function ScreeningDialog({ application, onClose, onSaved }: { application: Appli
           {passed === 'fail' && (
             <div>
               <label style={lbl}>Disqualification reason</label>
-              <textarea value={reason} onChange={e => setReason(e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} />
+              <Textarea value={reason} onChange={e => setReason(e.target.value)} rows={2} />
             </div>
           )}
           <DialogFooter>
@@ -782,7 +784,7 @@ function OffersModal({ application, jobTitle, onClose, onChanged }: { applicatio
       <DialogContent hideClose className="w-160 max-w-[92vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
           <DialogTitle>Offers</DialogTitle>
-          <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose} aria-label="Close"><Icon name="x" size={18} /></Button>
         </DialogHeader>
         <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: -8, marginBottom: 4 }}>For <strong>{application.candidate_name}</strong></div>
 
@@ -948,9 +950,9 @@ function RequisitionsTab({ staff }: { staff: { id: string; name: string }[] }) {
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" disabled={busy} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                            <Button type="button" variant="ghost" size="sm" aria-label={`Actions for ${r.title}`} disabled={busy}>
                               <Icon name="moreHorizontal" size={18} />
-                            </button>
+                            </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {r.status === 'DRAFT' && <DropdownMenuItem onSelect={() => act(r, 'submit')}>Submit for approval</DropdownMenuItem>}
@@ -1212,9 +1214,9 @@ function PipelineTab() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
             <div style={{ position: 'relative', width: 220 }}>
               <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-              <input
+              <Input
                 type="text" placeholder="Search candidates…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-                style={{ ...inp, paddingLeft: 30 }}
+                style={{ paddingLeft: 30 }}
               />
             </div>
             <Button variant="outline" size="sm" disabled={filteredApplications.length === 0} onClick={() => downloadApplicationsCsv(filteredApplications, openings, selectedOpening?.title || '')}>
@@ -1284,9 +1286,9 @@ function PipelineTab() {
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                            <Button type="button" variant="ghost" size="sm" aria-label={`Actions for ${a.candidate_name}`}>
                               <Icon name="moreHorizontal" size={18} />
-                            </button>
+                            </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onSelect={() => setScheduleFor(a)}>

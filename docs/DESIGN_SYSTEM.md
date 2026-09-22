@@ -107,6 +107,18 @@ before *how*:
 4. **Respect `prefers-reduced-motion`.** Any transition longer than a
    button-hover fade should have a reduced-motion fallback.
 
+### Global modal motion
+
+All Radix dialogs inherit one motion pattern from `ui/dialog.tsx` and the
+`.ds-dialog-*` rules in `index.css`: the backdrop fades independently while
+the content enters from above with a restrained scale-up, then uses the
+shorter inverse motion when closing. Keep modal animation centralized there;
+individual dialog call sites must not add `animate-*`, `zoom-*`, or `slide-*`
+classes. The global pattern stays under 200ms and collapses to 1ms when the
+viewer prefers reduced motion. Radix remains responsible for focus trapping,
+Escape/outside-click behavior, and waiting for the exit animation before
+unmounting.
+
 ## Mechanical slop pre-flight
 
 `node scripts/check-slop-preflight.mjs` (or `npm run check:slop`) scans

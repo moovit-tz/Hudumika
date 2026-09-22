@@ -89,27 +89,21 @@ export const TrackingNewVehicle: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button type="button" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <Icon name="arrowLeft" size={16} color="var(--ink3)" />
-          </button>
-          <PageHeader
-            crumbs={['HuduFreight', 'New Vehicle']}
-            titlePlain="Add a"
-            titleEm="vehicle"
-          />
-        </div>
-        <div style={{ display: 'flex', gap: 12 }}>
+      <PageHeader
+        crumbs={['HuduFreight', 'New Vehicle']}
+        title="Add a vehicle"
+        subtitle="Register a vehicle and configure its fleet operating details."
+        variant="create"
+        onBack={() => navigate(-1)}
+        actions={<div style={{ display: 'flex', gap: 12 }}>
           <button type="button" style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             + Multiple Vehicles
           </button>
           <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             {saving ? 'Saving...' : 'Save Vehicle'}
           </button>
-        </div>
-      </div>
+        </div>}
+      />
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Sidebar */}

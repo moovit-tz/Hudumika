@@ -21,4 +21,5 @@ export * from './countries.js';
 export * from './lens.js';
 export * from './developer.js';
 export * from './project-os.js';
+export * from './agent.js';
 

@@ -3559,6 +3559,12 @@ export interface PackagesTable {
   popular: Generated<boolean>;
   is_active: Generated<boolean>;
   sort_order: Generated<number>;
+  // Migration 489 — platform-billed AI usage allowance per calendar month
+  // (apps/api/src/lib/ai-credits.ts computes the live balance from this
+  // minus agent_credit_ledger's debits; 0 = no platform-AI allowance for
+  // this tier) and whether this tier may override with its own key at all.
+  monthly_ai_credits: Generated<number>;
+  byok_ai_allowed: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -5396,6 +5402,15 @@ export interface Database {
   ai_conversations: AiConversationsTable;
   ai_messages: AiMessagesTable;
   ai_memory: AiMemoryTable;
+  agent_identities: AgentIdentitiesTable;
+  agent_tool_grants: AgentToolGrantsTable;
+  agent_runs: AgentRunsTable;
+  agent_run_steps: AgentRunStepsTable;
+  agent_approvals: AgentApprovalsTable;
+  agent_approval_decisions: AgentApprovalDecisionsTable;
+  agent_artifacts: AgentArtifactsTable;
+  agent_evidence: AgentEvidenceTable;
+  agent_credit_ledger: AgentCreditLedgerTable;
   payment_methods: PaymentMethodsTable;
   subscription_invoices: SubscriptionInvoicesTable;
   invoice_sequences: InvoiceSequencesTable;
@@ -7736,6 +7751,24 @@ export interface UserEmailAccountsTable {
   spam_blocklist: Generated<any>;
   last_synced_at: Date | null;
   last_sync_error: string | null;
+  // Per-user send identity (migration 491) — 'platform' (default, unchanged
+  // tenant/system-wide send behavior) | 'smtp' | 'outlook' | 'gmail'.
+  send_protocol: Generated<'platform' | 'smtp' | 'outlook' | 'gmail'>;
+  smtp_host: string | null;
+  smtp_port: Generated<number>;
+  smtp_user: string | null;
+  smtp_pass: string | null;
+  smtp_encryption: Generated<'ssl' | 'tls' | 'none'>;
+  from_name: string | null;
+  from_email: string | null;
+  outlook_access_token: string | null;
+  outlook_refresh_token: string | null;
+  outlook_token_expires_at: Date | null;
+  outlook_status: string | null;
+  gmail_access_token: string | null;
+  gmail_refresh_token: string | null;
+  gmail_token_expires_at: Date | null;
+  gmail_status: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -9810,6 +9843,137 @@ export interface AiMemoryTable {
   source_conversation_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+}
+
+// ── Agentic platform (migration 488) ──────────────────────────────────────
+
+export interface AgentIdentitiesTable {
+  id:            Generated<string>;
+  tenant_id:     string;
+  name:          string;
+  kind:          Generated<'platform' | 'specialist'>;
+  status:        Generated<'active' | 'disabled'>;
+  owner_user_id: string | null;
+  version:       Generated<number>;
+  created_at:    Generated<Date>;
+  updated_at:    Generated<Date>;
+}
+
+export interface AgentToolGrantsTable {
+  id:          Generated<string>;
+  tenant_id:   string;
+  agent_id:    string;
+  /** agent-registry.ts's AGENT_TOOL_REGISTRY id — code-defined, no FK target. */
+  tool_id:     string;
+  conditions:  Generated<string>; // JSONB
+  granted_by:  string | null;
+  expires_at:  Date | null;
+  created_at:  Generated<Date>;
+}
+
+export interface AgentRunsTable {
+  id:                Generated<string>;
+  tenant_id:         string;
+  agent_id:          string | null;
+  initiator_user_id: string;
+  status:            Generated<'pending' | 'running' | 'awaiting_approval' | 'completed' | 'failed' | 'cancelled'>;
+  goal:              string;
+  app_context:       string | null;
+  provider:          string | null;
+  model:             string | null;
+  correlation_id:    string | null;
+  cost_usd:          Generated<string>; // NUMERIC
+  error_message:     string | null;
+  created_at:        Generated<Date>;
+  updated_at:        Generated<Date>;
+  completed_at:      Date | null;
+}
+
+export interface AgentRunStepsTable {
+  id:         Generated<string>;
+  tenant_id:  string;
+  run_id:     string;
+  sequence:   number;
+  step_type:  'plan' | 'message' | 'tool_call' | 'tool_result' | 'approval_requested' | 'transition';
+  tool_id:    string | null;
+  input:      Generated<string | null>; // JSONB
+  output:     Generated<string | null>; // JSONB
+  status:     Generated<'ok' | 'error' | 'skipped' | 'simulated'>;
+  latency_ms: number | null;
+  tokens_in:  number | null;
+  tokens_out: number | null;
+  error:      string | null;
+  created_at: Generated<Date>;
+}
+
+export interface AgentApprovalsTable {
+  id:                 Generated<string>;
+  tenant_id:          string;
+  run_id:             string;
+  step_id:            string | null;
+  tool_id:            string;
+  requested_effect:   string;
+  preview:            Generated<string | null>; // JSONB
+  approver_role:      string;
+  required_approvals: Generated<number>;
+  status:             Generated<'pending' | 'approved' | 'rejected' | 'expired'>;
+  decided_by:         string | null;
+  decided_at:         Date | null;
+  decision_note:      string | null;
+  expires_at:         Date;
+  created_at:         Generated<Date>;
+}
+
+export interface AgentApprovalDecisionsTable {
+  id:          Generated<string>;
+  tenant_id:   string;
+  approval_id: string;
+  approver_id: string;
+  decision:    'approved' | 'rejected';
+  note:        string | null;
+  created_at:  Generated<Date>;
+}
+
+export interface AgentArtifactsTable {
+  id:                 Generated<string>;
+  tenant_id:          string;
+  run_id:             string;
+  kind:               'worklist' | 'draft' | 'report' | 'plan';
+  title:              string;
+  content:            string; // JSONB
+  classification:     Generated<'internal' | 'sensitive'>;
+  retention_days:     number | null;
+  source_entity_type: string | null;
+  source_entity_id:   string | null;
+  created_at:         Generated<Date>;
+}
+
+export interface AgentEvidenceTable {
+  id:              Generated<string>;
+  tenant_id:       string;
+  run_id:          string;
+  step_id:         string | null;
+  claim:           string;
+  entity_type:     string | null;
+  entity_id:       string | null;
+  entity_version:  string | null;
+  source_url:      string | null;
+  accessed_at:     Generated<Date>;
+  access_decision: Generated<'allowed' | 'denied'>;
+  created_at:      Generated<Date>;
+}
+
+// Migration 489 — see apps/api/src/lib/ai-credits.ts for the balance
+// computation this ledger feeds (plan's monthly_ai_credits minus this
+// table's debits for the current period).
+export interface AgentCreditLedgerTable {
+  id:         Generated<string>;
+  tenant_id:  string;
+  period:     string;
+  delta:      number;
+  run_id:     string | null;
+  reason:     string;
+  created_at: Generated<Date>;
 }
 
 export interface WorkflowStudioRunsTable {

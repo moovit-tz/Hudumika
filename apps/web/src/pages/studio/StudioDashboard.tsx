@@ -7,6 +7,7 @@ import { Badge } from '../../components/ui/badge.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { Button } from '../../components/ui/button.js';
+import { PageLoading } from '../../components/ui/spinner.js';
 
 interface Stats {
   workflows: { total: number; active: number; draft: number; paused: number; unrunnable: number };
@@ -73,14 +74,7 @@ export function StudioDashboard() {
   }, [runs, runFilter]);
 
   if (loading) {
-    return (
-      <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 14 }}>
-        <div style={{ display: 'inline-block', marginBottom: 12 }}>
-          <Icon name="sparkle" size={24} style={{ animation: 'ds-spin 2s linear infinite', color: 'var(--teal)' }} />
-        </div>
-        <div>Loading Workflow Studio Dashboard…</div>
-      </div>
-    );
+    return <PageLoading label="Loading Workflow Studio dashboard…" />;
   }
 
   if (error) {
@@ -100,43 +94,21 @@ export function StudioDashboard() {
     <div style={{ maxWidth: 1360, margin: '0 auto', paddingBottom: 32 }}>
 
       {/* ── Studio Premium Hero Command Banner ────────────────────────── */}
-      <div style={{
-        background: 'linear-gradient(135deg, #0e1f3d 0%, #1e1b4b 45%, #0d7a6b 100%)',
-        borderRadius: 16,
-        padding: '28px 32px',
-        color: '#ffffff',
-        marginBottom: 24,
-        boxShadow: '0 10px 30px rgba(14,31,61,0.2)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {/* Subtle decorative glass background circles */}
-        <div style={{
-          position: 'absolute', top: -40, right: -40, width: 260, height: 260,
-          borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)', pointerEvents: 'none'
-        }} />
-        <div style={{
-          position: 'absolute', bottom: -50, left: '30%', width: 200, height: 200,
-          borderRadius: '50%', background: 'radial-gradient(circle, rgba(13,122,107,0.2) 0%, transparent 70%)', pointerEvents: 'none'
-        }} />
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20, position: 'relative', zIndex: 1 }}>
+      <div className="studio-dashboard-hero">
+        <div className="studio-dashboard-hero-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
           <div style={{ maxWidth: 680 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)'
-              }}>
-                <Icon name="sparkle" size={18} color="#ffffff" />
+              <div className="studio-dashboard-hero-icon">
+                <Icon name="sparkle" size={18} />
               </div>
-              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)' }}>
+              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.85 }}>
                 Workflow Studio Engine
               </span>
             </div>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff' }}>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', color: 'inherit' }}>
               Automation &amp; Event Command Center
             </h1>
-            <p style={{ margin: '6px 0 0 0', fontSize: 13.5, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>
+            <p style={{ margin: '6px 0 0 0', fontSize: 13.5, color: 'inherit', opacity: 0.8, lineHeight: 1.5 }}>
               One central canvas for every automation across your workspace — configure triggers, multi-step actions, and live execution monitors.
             </p>
           </div>
@@ -147,11 +119,8 @@ export function StudioDashboard() {
               type="button"
               variant="outline"
               size="sm"
+              className="studio-hero-secondary"
               onClick={() => navigate('/studio/catalog')}
-              style={{
-                background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)',
-                backdropFilter: 'blur(4px)', fontWeight: 600
-              }}
             >
               <Icon name="layers" size={14} /> Browse Catalog
             </Button>
@@ -160,11 +129,8 @@ export function StudioDashboard() {
               type="button"
               variant="outline"
               size="sm"
+              className="studio-hero-secondary"
               onClick={() => navigate('/studio/templates')}
-              style={{
-                background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)',
-                backdropFilter: 'blur(4px)', fontWeight: 600
-              }}
             >
               <Icon name="copy" size={14} /> Templates ({stats.catalogue.templates})
             </Button>
@@ -172,13 +138,10 @@ export function StudioDashboard() {
             <Button
               type="button"
               size="sm"
+              className="studio-hero-primary"
               onClick={() => navigate('/studio/new')}
-              style={{
-                background: '#ffffff', color: '#0e1f3d', border: 'none',
-                fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-              }}
             >
-              <Icon name="plus" size={14} /> + Create Automation
+              <Icon name="plus" size={14} /> Create Automation
             </Button>
           </div>
         </div>
@@ -190,7 +153,7 @@ export function StudioDashboard() {
         {/* Workflows Total Card */}
         <div className="studio-card-interactive" style={{
           background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
-          padding: '20px 22px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+          padding: '20px 22px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Workflows</span>
@@ -209,7 +172,7 @@ export function StudioDashboard() {
         {/* Active Automations Card */}
         <div className="studio-card-interactive" style={{
           background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
-          padding: '20px 22px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+          padding: '20px 22px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Engines</span>
@@ -226,7 +189,7 @@ export function StudioDashboard() {
         {/* Total Runs Card */}
         <div className="studio-card-interactive" style={{
           background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
-          padding: '20px 22px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+          padding: '20px 22px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Executions</span>
@@ -243,7 +206,7 @@ export function StudioDashboard() {
         {/* Building Blocks / Unrunnable Status */}
         <div className="studio-card-interactive" style={{
           background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
-          padding: '20px 22px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+          padding: '20px 22px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Catalog Blocks</span>
@@ -266,7 +229,7 @@ export function StudioDashboard() {
         <div style={{
           padding: '14px 18px', borderRadius: 'var(--r)', background: 'var(--blue-l)', border: '1px solid var(--blue)',
           fontSize: 13, color: 'var(--ink2)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12,
-          boxShadow: '0 2px 6px var(--blue-l)'
+          boxShadow: 'var(--elev-sm)'
         }}>
           <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Icon name="info" size={16} color="var(--blue)" />
@@ -284,7 +247,7 @@ export function StudioDashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 20, alignItems: 'start' }} className="studio-dash-grid">
         
         {/* ── LEFT COLUMN: Recent Execution Runs ─────────────────────── */}
-        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <Icon name="clock" size={17} color="var(--teal)" />
@@ -326,14 +289,13 @@ export function StudioDashboard() {
               filteredRuns.map((r, idx) => (
                 <div
                   key={r.id}
+                  className="studio-dashboard-row"
                   onClick={() => navigate(`/studio/w/${r.workflow_id}`)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px',
                     borderBottom: idx < filteredRuns.length - 1 ? '1px solid var(--border)' : 'none',
-                    cursor: 'pointer', transition: 'background 0.12s ease'
+                    cursor: 'pointer'
                   }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg)'}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                 >
                   <Badge variant={VARIANT[r.status] ?? 'gray'} style={{ minWidth: 76, textAlign: 'center' }}>
                     {r.status}
@@ -371,7 +333,7 @@ export function StudioDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           
           {/* 1. Run Outcomes Distribution */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="barChart2" size={16} color="var(--purple)" />
               <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>Outcomes • Last 30 Days</span>
@@ -400,7 +362,7 @@ export function StudioDashboard() {
           </div>
 
           {/* 2. Automations By App */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="grid" size={16} color="var(--blue)" />
               <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>Automations By Workspace App</span>
@@ -409,13 +371,12 @@ export function StudioDashboard() {
               {stats.byApp.map(a => (
                 <div
                   key={a.app}
+                  className="studio-dashboard-row"
                   onClick={() => navigate(a.app === '__unregistered__' ? '/studio/workflows' : `/studio/workflows?app=${a.app}`)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 'var(--r)',
-                    fontSize: 13, cursor: 'pointer', transition: 'background 0.12s'
+                    fontSize: 13, cursor: 'pointer'
                   }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg)'}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                 >
                   <span style={{ width: 9, height: 9, borderRadius: '50%', background: a.color, flexShrink: 0 }} />
                   <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{a.name}</span>
@@ -427,7 +388,7 @@ export function StudioDashboard() {
           </div>
 
           {/* 3. Clearance Stage Workflows */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="layers" size={16} color="var(--teal)" />

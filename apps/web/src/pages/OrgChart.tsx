@@ -27,6 +27,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface OrgNode {
@@ -318,10 +320,10 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
 
   return (
     <div style={{
-      position: 'absolute', top: 0, right: 0, bottom: 0, width: 340,
+      position: 'absolute', top: 0, right: 0, bottom: 0, width: 'min(340px, 100%)',
       background: 'var(--white)', borderLeft: '1px solid var(--border)',
       zIndex: 10, display: 'flex', flexDirection: 'column',
-      boxShadow: '-6px 0 28px rgba(0,0,0,0.08)',
+      boxShadow: 'var(--elev-lg)',
     }}>
       {/* Drawer Header */}
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -333,10 +335,9 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
           <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.2 }}>{form.label || 'Edit Role'}</div>
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{form.job_title || 'Organization Member'}</div>
         </div>
-        <button type="button" title="Close" onClick={onClose}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+        <Button type="button" variant="ghost" size="sm" aria-label="Close" title="Close" onClick={onClose}>
           <Icon name="x" size={18} />
-        </button>
+        </Button>
       </div>
 
       {/* Drawer Content */}
@@ -360,7 +361,7 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
           <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Accent Color</label>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {palette.map(c => (
-              <button key={c} type="button" onClick={() => setForm(f => ({ ...f, color: c }))}
+              <button key={c} type="button" aria-label={`Use ${c} accent color`} onClick={() => setForm(f => ({ ...f, color: c }))}
                 style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: form.color === c ? '3px solid var(--ink)' : '3px solid transparent', cursor: 'pointer', transition: 'border-color 0.15s' }} />
             ))}
           </div>
@@ -375,10 +376,7 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
         ].map(({ key, label, placeholder }) => (
           <div key={key} style={{ marginBottom: 14 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>{label}</label>
-            <input value={form[key]} onChange={set(key)} placeholder={placeholder}
-              style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', fontSize: 13, borderRadius: 'var(--r)',
-                border: '1px solid var(--border)', fontFamily: 'var(--font)', color: 'var(--ink)',
-                background: 'var(--bg)', outline: 'none' }} />
+            <Input value={form[key]} onChange={set(key)} placeholder={placeholder} />
           </div>
         ))}
 
@@ -416,16 +414,12 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
 
       {/* Drawer Footer */}
       <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
-        <button type="button" onClick={() => onSave(node.id, form)} disabled={saving || !form.label.trim()}
-          style={{ flex: 1, padding: '10px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
-            background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)' }}>
+        <Button type="button" onClick={() => onSave(node.id, form)} disabled={saving || !form.label.trim()} style={{ flex: 1 }}>
           {saving ? 'Saving…' : 'Save Changes'}
-        </button>
-        <button type="button" onClick={() => onDelete(node.id)} disabled={saving}
-          style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', cursor: 'pointer',
-            background: 'none', color: 'var(--red)', fontSize: 13, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        </Button>
+        <Button type="button" variant="outline" aria-label="Delete node" onClick={() => onDelete(node.id)} disabled={saving} style={{ color: 'var(--red)', borderColor: 'var(--red)' }}>
           <Icon name="trash" size={15} color="var(--red)" />
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -592,17 +586,6 @@ export const OrgChart: React.FC = () => {
     finally { setSaving(false); }
   }, [load]);
 
-  /* ── Reset default tree ── */
-  const resetChart = useCallback(async () => {
-    if (!(await showConfirm('Reset org chart to default sample structure?', { confirmLabel: 'Reset' }))) return;
-    setSaving(true);
-    try {
-      await apiFetch('/v1/org-chart/reset', { method: 'POST' });
-      load();
-    } catch (err: any) { setError(err?.message || 'Failed to reset chart.'); }
-    finally { setSaving(false); }
-  }, [load]);
-
   /* ── Auto layout ── */
   const autoLayout = useCallback(() => {
     const laid = applyDagreLayout(nodes, edges);
@@ -638,18 +621,18 @@ export const OrgChart: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             {dirty && (
               <span style={{ fontSize: 11, color: 'var(--gold)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginRight: 4, whiteSpace: 'nowrap' }}>
-                <Icon name="clock" size={11} color="#f59e0b" /> Auto-saving…
+                <Icon name="clock" size={11} color="var(--gold)" /> Auto-saving…
               </span>
             )}
-            <button type="button" className="btn btn-secondary btn-sm" onClick={syncStaff} disabled={saving} title="Import unlinked staff from HR directory" style={{ whiteSpace: 'nowrap' }}>
+            <Button type="button" variant="outline" size="sm" onClick={syncStaff} disabled={saving} title="Import unlinked staff from HR directory" style={{ whiteSpace: 'nowrap' }}>
               <Icon name="users" size={13} /> Sync Staff
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={autoLayout} title="Auto-organize graph hierarchy" style={{ whiteSpace: 'nowrap' }}>
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={autoLayout} title="Auto-organize graph hierarchy" style={{ whiteSpace: 'nowrap' }}>
               <Icon name="zap" size={13} /> Auto Layout
-            </button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => { setAddForm({ label: '', job_title: '', department: '', color: '#0891b2', parent_id: '', user_id: '' }); setShowAdd(true); }} style={{ whiteSpace: 'nowrap' }}>
+            </Button>
+            <Button type="button" size="sm" onClick={() => { setAddForm({ label: '', job_title: '', department: '', color: '#0891b2', parent_id: '', user_id: '' }); setShowAdd(true); }} style={{ whiteSpace: 'nowrap' }}>
               <Icon name="userPlus" size={13} color="hsl(var(--primary-foreground))" /> Add Node
-            </button>
+            </Button>
           </div>
         }
       />
@@ -700,7 +683,7 @@ export const OrgChart: React.FC = () => {
             style: { stroke: 'var(--ink3)', strokeWidth: 2 },
             markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--ink2)', width: 14, height: 14 },
           }}
-          style={{ background: '#f8fafc' }}
+          style={{ background: 'var(--bg)' }}
           proOptions={{ hideAttribution: true }}
         >
           <Background color="var(--border)" gap={24} size={1.5} />
@@ -746,11 +729,8 @@ export const OrgChart: React.FC = () => {
                 ))}
               </div>
 
-              <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
                 <span style={{ fontSize: 10, color: 'var(--ink3)' }}>Drag handle → connect manager</span>
-                <button type="button" onClick={resetChart} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: 'var(--red)', textDecoration: 'underline' }}>
-                  Reset
-                </button>
               </div>
             </div>
           </Panel>
@@ -783,10 +763,9 @@ export const OrgChart: React.FC = () => {
                 <DialogTitle style={{ fontSize: 15 }}>Add Person / Role</DialogTitle>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Create a custom node or import from Staff Directory</div>
               </div>
-              <button type="button" title="Close" onClick={() => setShowAdd(false)}
-                style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+              <Button type="button" variant="ghost" size="sm" aria-label="Close" title="Close" onClick={() => setShowAdd(false)} style={{ marginLeft: 'auto' }}>
                 <Icon name="x" size={16} />
-              </button>
+              </Button>
             </DialogHeader>
 
             {/* Import from Staff selector */}
@@ -819,7 +798,7 @@ export const OrgChart: React.FC = () => {
               <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 7 }}>Accent Color</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 {palette.map(c => (
-                  <button key={c} type="button" onClick={() => setAddForm(f => ({ ...f, color: c }))}
+                  <button key={c} type="button" aria-label={`Use ${c} accent color`} onClick={() => setAddForm(f => ({ ...f, color: c }))}
                     style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: addForm.color === c ? '3px solid var(--ink)' : '3px solid transparent', cursor: 'pointer' }} />
                 ))}
               </div>
@@ -832,11 +811,9 @@ export const OrgChart: React.FC = () => {
             ].map(({ key, label, placeholder }) => (
               <div key={key} style={{ marginBottom: 12 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>{label}</label>
-                <input value={addForm[key]} onChange={e => setAddForm(f => ({ ...f, [key]: e.target.value }))}
+                <Input value={addForm[key]} onChange={e => setAddForm(f => ({ ...f, [key]: e.target.value }))}
                   placeholder={placeholder}
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 11px', fontSize: 13, borderRadius: 'var(--r)',
-                    border: '1px solid var(--border)', fontFamily: 'var(--font)', color: 'var(--ink)',
-                    background: 'var(--bg)', outline: 'none' }} />
+                />
               </div>
             ))}
 
@@ -849,17 +826,12 @@ export const OrgChart: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
-              <button type="button" onClick={() => setShowAdd(false)}
-                style={{ flex: 1, padding: '10px', borderRadius: 'var(--r)', border: '1px solid var(--border)',
-                  background: 'var(--bg)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)' }}>
+              <Button type="button" variant="outline" onClick={() => setShowAdd(false)} style={{ flex: 1 }}>
                 Cancel
-              </button>
-              <button type="button" onClick={onAddNode} disabled={saving || !addForm.label.trim()}
-                style={{ flex: 2, padding: '10px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))',
-                  cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)',
-                  opacity: !addForm.label.trim() ? 0.5 : 1 }}>
+              </Button>
+              <Button type="button" onClick={onAddNode} disabled={saving || !addForm.label.trim()} style={{ flex: 2 }}>
                 {saving ? 'Adding…' : 'Add to Chart'}
-              </button>
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

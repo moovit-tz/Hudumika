@@ -6,7 +6,6 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DateTimePicker } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
-import { BackButton } from '../components/ui/BackButton.js';
 
 /** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native
  *  <input type="datetime-local"> value had, so the existing string form
@@ -149,11 +148,12 @@ export const TrackingShipmentNew: React.FC = () => {
 
   return (
     <div style={{ padding: '0 0 24px', maxWidth: 760 }}>
-      <BackButton to="/tracking/vehicles" label="Vehicles" />
       <PageHeader
         crumbs={['HuduFreight', 'New Trip']}
-        titlePlain="New"
-        titleEm="trip"
+        title="New trip"
+        subtitle="Plan the route, vehicle, driver, schedule, and cargo."
+        variant="create"
+        backTo="/tracking/shipments"
       />
 
       <StepHeader step={step} />

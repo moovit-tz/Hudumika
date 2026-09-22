@@ -11,6 +11,7 @@ import { showConfirm } from '../../lib/confirm.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { useAuth } from '../../hooks/useAuth.js';
+import { Tip } from '../../components/ui/tooltip.js';
 
 export type { FieldCondition, AutoComm, WorkflowStep, WorkflowTrigger, Workflow } from '@hudumika/types';
 
@@ -353,15 +354,15 @@ export function ClearanceWorkflowList() {
                       </div>
                     </div>
                     <div className="wf-card-actions">
-                      <button className="wf-icon-btn" title="Edit" onClick={() => navigate(`/studio/clearance/${wf.id}`)}>
+                      <Tip label="Edit workflow"><button type="button" className="wf-icon-btn" aria-label="Edit workflow" onClick={() => navigate(`/studio/clearance/${wf.id}`)}>
                         <Icon name="edit" size={13} />
-                      </button>
-                      <button className="wf-icon-btn" title="Duplicate" onClick={() => handleDuplicate(wf)}>
+                      </button></Tip>
+                      <Tip label="Duplicate workflow"><button type="button" className="wf-icon-btn" aria-label="Duplicate workflow" onClick={() => handleDuplicate(wf)}>
                         <Icon name="copy" size={13} />
-                      </button>
-                      <button className="wf-icon-btn danger" title="Delete" onClick={() => handleDelete(wf.id)}>
+                      </button></Tip>
+                      <Tip label="Delete workflow"><button type="button" className="wf-icon-btn danger" aria-label="Delete workflow" onClick={() => handleDelete(wf.id)}>
                         <Icon name="trash" size={13} />
-                      </button>
+                      </button></Tip>
                     </div>
                   </div>
                   <div className="wf-card-desc">{wf.description}</div>
@@ -370,7 +371,7 @@ export function ClearanceWorkflowList() {
                       {wf.isActive ? '● Active' : '○ Inactive'}
                     </span>
                     <span className="wf-badge wf-badge-teal">{wf.steps.length} steps</span>
-                    {wf.isSystem && <span className="wf-badge wf-badge-gray" title="Platform default — delete once you've built your own">Default</span>}
+                    {wf.isSystem && <Tip label="Platform default — delete once you've built your own"><span className="wf-badge wf-badge-gray">Default</span></Tip>}
                     {wf.triggers.freightModes.map(m => (
                       <span key={m} className="wf-badge wf-badge-blue">{m}</span>
                     ))}

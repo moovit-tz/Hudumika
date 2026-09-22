@@ -10,7 +10,10 @@ import { CloudSync } from '../services/cloud-sync.service.js';
 import { buildSmtpTransporter } from '../integrations/email.js';
 import { encryptSecret, decryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 import { JOB_REGISTRY, isJobSchedulingConnected } from '../jobs/index.js';
-import { invalidatePlatformSettingsCache } from '../lib/platform-settings.js';
+import { invalidatePlatformSettingsCache, maskAiForClient, mergeAiForSave, getPlatformProviderKey } from '../lib/platform-settings.js';
+import { runProviderKeyTest } from '../lib/ai-key-test.js';
+import { getPlatformAgentUsage } from '../lib/agent-usage.js';
+import { AI_PROVIDERS, AI_PROVIDER_CONFIG } from '../lib/ai-providers.js';
 import { env } from '../config/env.js';
 import os from 'node:os';
 
@@ -667,10 +670,41 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     // "leave this unchanged" (see below), matching settings.routes.ts's own
     // SECRET_FIELDS_BY_KEY convention for tenant-level secrets.
     if (settings.smtp?.pass) settings.smtp = { ...settings.smtp, pass: MASKED_VALUE };
+    // Same convention for the platform AI provider's key (agentic platform
+    // milestone 0/2) — a SuperAdmin can enter one here as the fallback every
+    // tenant without their own key uses (lib/platform-settings.ts's
+    // resolveAiCredentials), but it never round-trips back to the browser.
+    if (settings.ai) settings.ai = maskAiForClient(settings.ai);
     return { settings };
   });
 
+  /** GET /v1/superadmin/ai/usage?days=30 — which tenants are drawing on the shared AI key. */
+  fastify.get('/ai/usage', async (request) => {
+    const { days } = z.object({ days: z.coerce.number().int().min(1).max(365).default(30) }).parse(request.query);
+    return getPlatformAgentUsage(days);
+  });
+
   // 7. POST /v1/superadmin/settings
+  /**
+   * POST /v1/superadmin/ai/test — the "Test" button on each AI provider card.
+   * Body: { provider, model?, apiKey? }. A key typed into the card (not yet
+   * saved) is tested as-is; a masked/empty one tests the STORED key for that
+   * provider, which never leaves the server. Always 200 with { ok, ... } so the
+   * screen can show the provider's own error (invalid key, no credits, model
+   * not found); the key is scrubbed from any error text before it is returned.
+   */
+  fastify.post('/ai/test', async (request, reply) => {
+    const body = z.object({
+      provider: z.enum(AI_PROVIDERS),
+      model: z.string().trim().max(120).optional(),
+      apiKey: z.string().max(500).optional(),
+    }).parse(request.body);
+    const typed = body.apiKey && body.apiKey !== MASKED_VALUE ? body.apiKey : null;
+    const apiKey = typed ?? await getPlatformProviderKey(body.provider);
+    if (!apiKey) return reply.status(400).send({ error: `No key saved for ${AI_PROVIDER_CONFIG[body.provider].label} — paste one first.` });
+    return runProviderKeyTest({ provider: body.provider, model: body.model, apiKey });
+  });
+
   fastify.post('/settings', async (request, reply) => {
     const body = platformSettingsSchema.parse(request.body);
     const existing = await dbPlatform.selectFrom('tenant_settings')
@@ -687,6 +721,11 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       if (body.smtp.pass === MASKED_VALUE) body.smtp = { ...body.smtp, pass: existingSettings?.smtp?.pass };
       else if (body.smtp.pass) body.smtp = { ...body.smtp, pass: encryptSecret(body.smtp.pass) };
     }
+    // Same round-trip-safe handling for the platform AI key — see the GET
+    // handler above.
+    // Per-provider keys: masked = unchanged, typed = encrypted, empty = removed
+    // (mergeAiForSave, lib/platform-settings.ts).
+    if (body.ai && typeof body.ai === 'object') body.ai = mergeAiForSave(body.ai, existingSettings?.ai);
 
     if (existing) {
       // Shallow-merge into the existing JSONB blob so unrelated sections (branding, feature
@@ -711,6 +750,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       .executeTakeFirst();
     const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : body;
     if (settings.smtp?.pass) settings.smtp = { ...settings.smtp, pass: MASKED_VALUE };
+    if (settings.ai) settings.ai = maskAiForClient(settings.ai);
 
     await PlatformAdminService.recordActivity({
       ...actor(request), category: 'system',

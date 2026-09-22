@@ -9,6 +9,8 @@ import { Checkbox } from '../components/ui/checkbox.js';
 import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -72,19 +74,19 @@ function CreateCourseDialog({ onClose, onCreated }: { onClose: () => void; onCre
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>New training course</DialogTitle></DialogHeader>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div><label style={lbl}>Title</label><input required autoFocus value={title} onChange={e => setTitle(e.target.value)} style={inp} /></div>
+          <div><label style={lbl}>Title</label><Input required autoFocus value={title} onChange={e => setTitle(e.target.value)} /></div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label style={lbl}>Category</label><input value={category} onChange={e => setCategory(e.target.value)} placeholder="Compliance, Technical…" style={inp} /></div>
-            <div><label style={lbl}>Provider</label><input value={provider} onChange={e => setProvider(e.target.value)} style={inp} /></div>
+            <div><label style={lbl}>Category</label><Input value={category} onChange={e => setCategory(e.target.value)} placeholder="Compliance, Technical…" /></div>
+            <div><label style={lbl}>Provider</label><Input value={provider} onChange={e => setProvider(e.target.value)} /></div>
           </div>
-          <div><label style={lbl}>Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} /></div>
+          <div><label style={lbl}>Description</label><Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} /></div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label style={lbl}>Duration (hours)</label><input type="number" min={0} value={durationHours} onChange={e => setDurationHours(e.target.value)} style={inp} /></div>
+            <div><label style={lbl}>Duration (hours)</label><Input type="number" min={0} value={durationHours} onChange={e => setDurationHours(e.target.value)} /></div>
             <div>
               <label style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                 <Checkbox checked={isCert} onCheckedChange={c => setIsCert(c === true)} /> Certification
               </label>
-              {isCert && <input type="number" min={1} value={validityMonths} onChange={e => setValidityMonths(e.target.value)} placeholder="Valid for (months)" style={inp} />}
+              {isCert && <Input type="number" min={1} value={validityMonths} onChange={e => setValidityMonths(e.target.value)} placeholder="Valid for (months)" />}
             </div>
           </div>
           <DialogFooter>

@@ -10,7 +10,14 @@ import { useAuth } from './useAuth.js';
 export const BRAND_LOGO_LIGHT = '/brand/hudumika-logo-light.png';
 export const BRAND_LOGO_DARK  = '/brand/hudumika-logo-dark.png';
 export const BRAND_ICON       = '/brand/hudumika-icon.png';
-export const BRAND_ACCENT     = '#0b1e3a';
+export const BRAND_ACCENT     = '#1257c6';
+
+// #0b1e3a was the old built-in fallback, not a colour taken from Hudumika's
+// actual mark. Normalising only that exact legacy value updates existing
+// workspaces while preserving every genuinely customised tenant/app colour.
+function currentBrandAccent(value: string | null | undefined, fallback: string): string {
+  return !value || value.toLowerCase() === '#0b1e3a' ? fallback : value;
+}
 
 export interface BrandingState {
   platformName:  string;
@@ -88,7 +95,7 @@ function readBranding(platformOnly = false): BrandingState {
     loginBgStyle:    (localStorage.getItem('hudumika_login_bg') as 'navy'|'teal'|'gradient'|'white') ?? 'white',
     // Hudumika navy — the platform's real accent, and what the stored
     // branding record holds. Was a teal (#0d7a6b) that matched nothing.
-    accentColor:     localStorage.getItem('hudumika_email_accent')     ?? BRAND_ACCENT,
+    accentColor:     currentBrandAccent(localStorage.getItem('hudumika_email_accent'), BRAND_ACCENT),
     supportEmail:    localStorage.getItem('hudumika_support_email')    ?? '',
     /**
      * Resolution order: design system v2's ("Mellon" in the SuperAdmin UI —
@@ -112,10 +119,10 @@ function readBranding(platformOnly = false): BrandingState {
     getAppColor: (id, fallback = '#64748b') => {
       const dsv = readDesignSystemVersion();
       if (dsv.version === 'v2') return dsv.v2Color;
-      return localStorage.getItem(`hudumika_tenant_app_color_${id}`)
+      const stored = localStorage.getItem(`hudumika_tenant_app_color_${id}`)
         ?? localStorage.getItem(`hudumika_app_color_${id}`)
-        ?? localStorage.getItem('hudumika_tenant_accent')
-        ?? fallback;
+        ?? localStorage.getItem('hudumika_tenant_accent');
+      return currentBrandAccent(stored, fallback);
     },
     getAppLogo:      (id) => localStorage.getItem(`hudumika_app_logo_${id}`) ?? '',
     getAppName:      (id, fallback = '') => localStorage.getItem(`hudumika_app_name_${id}`) ?? fallback,

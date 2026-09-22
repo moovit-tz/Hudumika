@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireUuidParams } from '../middleware/uuid-params.js';
 
 const MGMT = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
 const isMgmt = (role: string) => (MGMT as readonly string[]).includes(role);
@@ -29,6 +30,7 @@ const courseSchema = z.object({
 export async function hrTrainingRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
+  requireUuidParams(fastify);
 
   // ── Catalogue ────────────────────────────────────────────────
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,

@@ -230,18 +230,18 @@ export function CrmPipelineStages() {
 
   // Derived metrics
   const metrics = useMemo(() => {
-    if (!stages) return { total: 0, active: 0, openDeals: 0, wonDeals: 0, lostDeals: 0, totalDeals: 0 };
+    if (!stages) return { total: 0, active: 0, openDeals: 0, wonDeals: 0, lostDeals: 0, totalDeals: 0, wonLabel: '', lostLabel: '' };
     const total = stages.length;
     const active = stages.filter((s) => s.active).length;
-    const wonStage = stages.find((s) => s.is_won);
-    const lostStage = stages.find((s) => s.is_lost);
-    const wonDeals = wonStage?.deal_count ?? 0;
-    const lostDeals = lostStage?.deal_count ?? 0;
+    const wonStages = stages.filter((s) => s.is_won);
+    const lostStages = stages.filter((s) => s.is_lost);
+    const wonDeals = wonStages.reduce((sum, stage) => sum + (stage.deal_count || 0), 0);
+    const lostDeals = lostStages.reduce((sum, stage) => sum + (stage.deal_count || 0), 0);
     const openDeals = stages
       .filter((s) => !s.is_won && !s.is_lost)
       .reduce((acc, s) => acc + (s.deal_count || 0), 0);
     const totalDeals = stages.reduce((acc, s) => acc + (s.deal_count || 0), 0);
-    return { total, active, openDeals, wonDeals, lostDeals, totalDeals, wonStage, lostStage };
+    return { total, active, openDeals, wonDeals, lostDeals, totalDeals, wonLabel: wonStages.map(stage => stage.label).join(', '), lostLabel: lostStages.map(stage => stage.label).join(', ') };
   }, [stages]);
 
   // Filtered stage rows
@@ -335,9 +335,9 @@ export function CrmPipelineStages() {
               <span className="text-2xl font-extrabold tracking-tight text-foreground">
                 {stages ? metrics.wonDeals : '—'}
               </span>
-              {metrics.wonStage && (
+              {metrics.wonLabel && (
                 <span className="truncate text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                  {metrics.wonStage.label}
+                  {metrics.wonLabel}
                 </span>
               )}
             </div>
@@ -357,9 +357,9 @@ export function CrmPipelineStages() {
               <span className="text-2xl font-extrabold tracking-tight text-foreground">
                 {stages ? metrics.lostDeals : '—'}
               </span>
-              {metrics.lostStage && (
+              {metrics.lostLabel && (
                 <span className="truncate text-xs font-semibold text-rose-600 dark:text-rose-400">
-                  {metrics.lostStage.label}
+                  {metrics.lostLabel}
                 </span>
               )}
             </div>

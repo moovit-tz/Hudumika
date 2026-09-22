@@ -487,7 +487,9 @@
   background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
-  z-index: 9999;
+  /* Below the z-3000 tier every Radix popper (Combobox/Select/Popover) portals
+     at — a higher value hides the license modal's own Combobox dropdown. */
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;

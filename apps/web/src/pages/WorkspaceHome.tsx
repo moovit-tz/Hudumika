@@ -8,6 +8,7 @@ import { Icon } from '../components/Icon.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { SetupGuideWidget } from '../components/SetupGuideWidget.js';
 import { AttendanceStatusBanner } from '../components/AttendanceStatusBanner.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
@@ -243,9 +244,9 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                           <span className="wh-badge-cat">{app.category}</span>
                         </div>
                         {appSlogan && (
-                          <div className="wh-card-sub" title={appSlogan}>
-                            {appSlogan}
-                          </div>
+                          <Tip label={appSlogan} side="bottom">
+                            <div className="wh-card-sub">{appSlogan}</div>
+                          </Tip>
                         )}
                       </div>
                     </Link>
@@ -314,28 +315,29 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                         </div>
                         <div className="wh-grid-card-info">
                           <div className="wh-grid-name-row">
-                            <span className="wh-grid-workspace-name" title={appName}>
-                              {appName}
-                            </span>
+                            <Tip label={appName} side="bottom">
+                              <span className="wh-grid-workspace-name">{appName}</span>
+                            </Tip>
                             <span className="wh-badge-cat">{app.category}</span>
                           </div>
                           {appSlogan && (
-                            <p className="wh-grid-workspace-desc" title={appSlogan}>
-                              {appSlogan}
-                            </p>
+                            <Tip label={appSlogan} side="bottom">
+                              <p className="wh-grid-workspace-desc">{appSlogan}</p>
+                            </Tip>
                           )}
                         </div>
 
-                        <button
-                          type="button"
-                          className="wh-star-btn"
-                          data-starred={isStarred}
-                          onClick={(e) => toggleStar(app.id, e)}
-                          title={isStarred ? 'Unstar' : 'Star'}
-                          aria-label={isStarred ? `Unstar ${appName}` : `Star ${appName}`}
-                        >
-                          <Icon name="star" size={17} duotone={isStarred} />
-                        </button>
+                        <Tip label={isStarred ? 'Remove from favorites' : 'Add to favorites'}>
+                          <button
+                            type="button"
+                            className="wh-star-btn"
+                            data-starred={isStarred}
+                            onClick={(e) => toggleStar(app.id, e)}
+                            aria-label={isStarred ? `Unstar ${appName}` : `Star ${appName}`}
+                          >
+                            <Icon name="star" size={17} duotone={isStarred} />
+                          </button>
+                        </Tip>
                       </div>
                     </Link>
                   );
@@ -394,16 +396,17 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                             <tr key={appLeft.id} className="wh-joined-row" style={{ '--card-color-left': appColorLeft, '--card-color-right': appColorRight } as React.CSSProperties}>
                               {/* ── Left Side App (Hover Group: Left) ── */}
                               <td className="wh-td-cell wh-td-cell--left wh-td-center" onClick={() => handleAppClick(appLeft)}>
-                                <button
-                                  type="button"
-                                  className="wh-star-btn"
-                                  data-starred={isStarredLeft}
-                                  onClick={(e) => toggleStar(appLeft.id, e)}
-                                  title={isStarredLeft ? 'Unstar' : 'Star'}
-                                  aria-label={isStarredLeft ? `Unstar ${appNameLeft}` : `Star ${appNameLeft}`}
-                                >
-                                  <Icon name="star" size={17} duotone={isStarredLeft} />
-                                </button>
+                                <Tip label={isStarredLeft ? 'Remove from favorites' : 'Add to favorites'}>
+                                  <button
+                                    type="button"
+                                    className="wh-star-btn"
+                                    data-starred={isStarredLeft}
+                                    onClick={(e) => toggleStar(appLeft.id, e)}
+                                    aria-label={isStarredLeft ? `Unstar ${appNameLeft}` : `Star ${appNameLeft}`}
+                                  >
+                                    <Icon name="star" size={17} duotone={isStarredLeft} />
+                                  </button>
+                                </Tip>
                               </td>
                               <td className="wh-td-cell wh-td-cell--left" onClick={() => handleAppClick(appLeft)}>
                                 <Link to={appLeft.path} onClick={() => handleAppClick(appLeft)} className="wh-td-app-link">
@@ -416,7 +419,9 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                                 </Link>
                               </td>
                               <td className="wh-td-cell wh-td-cell--left" onClick={() => handleAppClick(appLeft)}>
-                                <div className="wh-td-workspace-desc" title={appSloganLeft}>{appSloganLeft}</div>
+                                <Tip label={appSloganLeft} side="bottom">
+                                  <div className="wh-td-workspace-desc">{appSloganLeft}</div>
+                                </Tip>
                               </td>
                               <td className="wh-td-cell wh-td-cell--left" style={{ textAlign: 'right', paddingRight: 18, borderRight: '1px solid var(--border)' }} onClick={() => handleAppClick(appLeft)}>
                                 <span className="wh-badge-cat">{appLeft.category}</span>
@@ -426,16 +431,17 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                               {appRight ? (
                                 <>
                                   <td className="wh-td-cell wh-td-cell--right wh-td-center" style={{ paddingLeft: 18 }} onClick={() => handleAppClick(appRight)}>
-                                    <button
-                                      type="button"
-                                      className="wh-star-btn"
-                                      data-starred={isStarredRight}
-                                      onClick={(e) => toggleStar(appRight.id, e)}
-                                      title={isStarredRight ? 'Unstar' : 'Star'}
-                                      aria-label={isStarredRight ? `Unstar ${appNameRight}` : `Star ${appNameRight}`}
-                                    >
-                                      <Icon name="star" size={17} duotone={isStarredRight} />
-                                    </button>
+                                    <Tip label={isStarredRight ? 'Remove from favorites' : 'Add to favorites'}>
+                                      <button
+                                        type="button"
+                                        className="wh-star-btn"
+                                        data-starred={isStarredRight}
+                                        onClick={(e) => toggleStar(appRight.id, e)}
+                                        aria-label={isStarredRight ? `Unstar ${appNameRight}` : `Star ${appNameRight}`}
+                                      >
+                                        <Icon name="star" size={17} duotone={isStarredRight} />
+                                      </button>
+                                    </Tip>
                                   </td>
                                   <td className="wh-td-cell wh-td-cell--right" onClick={() => handleAppClick(appRight)}>
                                     <Link to={appRight.path} onClick={() => handleAppClick(appRight)} className="wh-td-app-link">
@@ -448,7 +454,9 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                                     </Link>
                                   </td>
                                   <td className="wh-td-cell wh-td-cell--right" onClick={() => handleAppClick(appRight)}>
-                                    <div className="wh-td-workspace-desc" title={appSloganRight}>{appSloganRight}</div>
+                                    <Tip label={appSloganRight} side="bottom">
+                                      <div className="wh-td-workspace-desc">{appSloganRight}</div>
+                                    </Tip>
                                   </td>
                                   <td className="wh-td-cell wh-td-cell--right" style={{ textAlign: 'right', paddingRight: 18 }} onClick={() => handleAppClick(appRight)}>
                                     <span className="wh-badge-cat">{appRight.category}</span>

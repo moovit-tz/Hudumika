@@ -25,7 +25,7 @@ export function SectionCard({ title, action, padded = true, collapsible = true, 
   const [open, setOpen] = useState(defaultOpen);
   const showBody = !collapsible || open;
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {title && (
         <div
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: showBody ? '1px solid var(--border)' : 'none', gap: 8, cursor: collapsible ? 'pointer' : 'default', userSelect: collapsible ? 'none' : undefined, background: 'var(--white)' }}
@@ -38,7 +38,11 @@ export function SectionCard({ title, action, padded = true, collapsible = true, 
           {action && <span onClick={e => e.stopPropagation()}>{action}</span>}
         </div>
       )}
-      {showBody && <div style={{ padding: padded ? '18px' : 0, background: 'var(--card-sunken)' }}>{children}</div>}
+      {showBody && (
+        <div style={{ padding: padded ? '18px' : 0, background: 'var(--card-sunken)', flex: '1 1 auto', minHeight: 0, width: '100%', boxSizing: 'border-box' }}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }

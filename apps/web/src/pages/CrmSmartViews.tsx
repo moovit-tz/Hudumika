@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Button } from '../components/ui/button.js';
@@ -7,6 +8,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { Input } from '../components/ui/input.js';
+import { Banner } from '../components/ui/alert.js';
 
 type EntityType = 'lead' | 'deal' | 'customer';
 type FieldSpec = { kind: 'text' | 'uuid' | 'bool' | 'date' | 'num' | 'label'; col?: string; ops: string[] };
@@ -22,15 +25,18 @@ const OP_LABEL: Record<string, string> = {
 };
 const NO_VALUE_OPS = new Set(['is_set', 'is_empty', 'is_true', 'is_false']);
 
-function fmtRule(r: Rule): string {
+function fmtRule(r: Rule, resolveLabel: (id?: string | number | boolean | null) => string): string {
   const opl = OP_LABEL[r.op] ?? r.op;
   if (NO_VALUE_OPS.has(r.op)) return `${r.field} ${opl}`;
   if (r.op === 'within_days' || r.op === 'before_days') return `${r.field} ${opl.replace('…', String(r.value ?? '?'))}`;
+  // A label rule's value is a label id — shown by name, not the raw UUID a
+  // human reading their own saved view would have no way to recognize.
+  if (r.field === 'label') return `${r.field} ${opl} "${resolveLabel(r.value)}"`;
   return `${r.field} ${opl} ${r.value ?? ''}`;
 }
 
-function RuleEditor({ entity, catalog, rules, onChange }: {
-  entity: EntityType; catalog: Catalog; rules: Rule[]; onChange: (r: Rule[]) => void;
+function RuleEditor({ entity, catalog, rules, onChange, labels }: {
+  entity: EntityType; catalog: Catalog; rules: Rule[]; onChange: (r: Rule[]) => void; labels: { id: string; name: string }[];
 }) {
   const fields = Object.keys(catalog[entity] || {});
   function patch(i: number, p: Partial<Rule>) { onChange(rules.map((r, j) => j === i ? { ...r, ...p } : r)); }
@@ -52,48 +58,60 @@ function RuleEditor({ entity, catalog, rules, onChange }: {
               <SelectTrigger className="w-full sm:w-38"><SelectValue /></SelectTrigger>
               <SelectContent>{(spec?.ops || []).map(o => <SelectItem key={o} value={o}>{OP_LABEL[o] ?? o}</SelectItem>)}</SelectContent>
             </Select>
-            {!NO_VALUE_OPS.has(r.op) && (
-              <input
-                className="input-field w-full sm:w-40" style={{ height: 34 }}
+            {!NO_VALUE_OPS.has(r.op) && spec?.kind === 'label' ? (
+              // A label rule's value is a label id, not free text — the caller
+              // has no way to know a label's UUID by heart, so this needs a
+              // real picker over the tenant's own labels (GET /v1/crm/labels),
+              // not the plain text box every other field kind uses.
+              <Select value={String(r.value ?? '')} onValueChange={v => patch(i, { value: v })}>
+                <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder={labels.length ? 'Pick a label…' : 'No labels yet'} /></SelectTrigger>
+                <SelectContent>{labels.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}</SelectContent>
+              </Select>
+            ) : !NO_VALUE_OPS.has(r.op) && (
+              <Input
+                className="w-full sm:w-40"
                 type={spec?.kind === 'num' || r.op === 'within_days' || r.op === 'before_days' ? 'number' : 'text'}
                 value={String(r.value ?? '')}
                 onChange={e => patch(i, { value: e.target.value })}
                 placeholder="value"
               />
             )}
-            <button type="button" onClick={() => onChange(rules.filter((_, j) => j !== i))} disabled={rules.length === 1}
-              style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', width: 28, height: 28, cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0 }}>
+            <Button type="button" variant="outline" size="icon" onClick={() => onChange(rules.filter((_, j) => j !== i))} disabled={rules.length === 1} aria-label="Remove rule">
               <Icon name="x" size={12} />
-            </button>
+            </Button>
           </div>
         );
       })}
-      <button type="button" onClick={() => onChange([...rules, { field: Object.keys(catalog[entity])[0], op: 'eq', value: '' }])}
-        style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px dashed var(--border)', borderRadius: 'var(--r-sm)', background: 'none', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, padding: '6px 10px', cursor: 'pointer' }}>
+      <Button type="button" variant="outline" size="sm" onClick={() => onChange([...rules, { field: Object.keys(catalog[entity])[0], op: 'eq', value: '' }])} style={{ alignSelf: 'flex-start' }}>
         <Icon name="plus" size={12} /> Add rule
-      </button>
+      </Button>
     </div>
   );
 }
 
 export function CrmSmartViews() {
+  const navigate = useNavigate();
   const [entity, setEntity] = useState<EntityType>('lead');
   const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [labels, setLabels] = useState<{ id: string; name: string; color: string }[]>([]);
   const [views, setViews] = useState<SmartView[] | null>(null);
   const [selected, setSelected] = useState<SmartView | null>(null);
   const [results, setResults] = useState<any[] | null>(null);
   const [editing, setEditing] = useState<{ id?: string; name: string; match_type: 'all' | 'any'; rules: Rule[] } | null>(null);
+  const [loadErrors, setLoadErrors] = useState<string[]>([]);
 
-  useEffect(() => { apiFetch('/v1/crm/smart-views/catalog').then(setCatalog).catch(() => {}); }, []);
+  useEffect(() => { apiFetch('/v1/crm/smart-views/catalog').then(data => { setCatalog(data); setLoadErrors(e => e.filter(x => x !== 'filter catalog')); }).catch(() => setLoadErrors(e => e.includes('filter catalog') ? e : [...e, 'filter catalog'])); }, []);
+  useEffect(() => { apiFetch('/v1/crm/labels').then(data => { setLabels(data); setLoadErrors(e => e.filter(x => x !== 'labels')); }).catch(() => { setLabels([]); setLoadErrors(e => e.includes('labels') ? e : [...e, 'labels']); }); }, []);
+  const labelName = useCallback((id?: string | number | boolean | null) => labels.find(l => l.id === id)?.name ?? String(id ?? ''), [labels]);
 
   const load = useCallback(() => {
-    apiFetch(`/v1/crm/smart-views?entity_type=${entity}`).then(setViews).catch(() => setViews([]));
+    apiFetch(`/v1/crm/smart-views?entity_type=${entity}`).then(data => { setViews(data); setLoadErrors(e => e.filter(x => x !== 'saved views')); }).catch(() => { setViews([]); setLoadErrors(e => e.includes('saved views') ? e : [...e, 'saved views']); });
   }, [entity]);
   useEffect(() => { setSelected(null); setResults(null); load(); }, [load]);
 
   useEffect(() => {
     if (!selected) { setResults(null); return; }
-    apiFetch(`/v1/crm/smart-views/${selected.id}/results`).then(setResults).catch(() => setResults([]));
+    apiFetch(`/v1/crm/smart-views/${selected.id}/results`).then(data => { setResults(data); setLoadErrors(e => e.filter(x => x !== 'view results')); }).catch(() => { setResults([]); setLoadErrors(e => e.includes('view results') ? e : [...e, 'view results']); });
   }, [selected]);
 
   async function save() {
@@ -124,6 +142,8 @@ export function CrmSmartViews() {
     <div style={{ padding: '20px 0 40px' }}>
       <PageHeader crumbs={['CRM', 'Saved Views']} titlePlain="Saved" titleEm="views" subtitle="A filter you name once and reopen forever — membership recomputed every time." />
 
+      {loadErrors.length > 0 && <Banner variant="error" title="Some saved-view data could not be loaded">Unavailable: {loadErrors.join(', ')}. Refresh and try again.</Banner>}
+
       <div style={{ display: 'flex', gap: 8, margin: '18px 0 20px', flexWrap: 'wrap' }}>
         {ENTITIES.map(e => (
           <button key={e} type="button" onClick={() => setEntity(e)}
@@ -140,7 +160,7 @@ export function CrmSmartViews() {
       {editing && catalog && (
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 18, marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{editing.id ? 'Edit view' : `New ${entity} view`}</div>
-          <input className="input-field" placeholder="e.g. Nairobi leads over 10M" value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} autoFocus />
+          <Input placeholder="e.g. Nairobi leads over 10M" value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} autoFocus />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)' }}>
             Match
             <Select value={editing.match_type} onValueChange={v => setEditing({ ...editing, match_type: v as 'all' | 'any' })}>
@@ -149,7 +169,7 @@ export function CrmSmartViews() {
             </Select>
             of these rules
           </div>
-          <RuleEditor entity={entity} catalog={catalog} rules={editing.rules} onChange={r => setEditing({ ...editing, rules: r })} />
+          <RuleEditor entity={entity} catalog={catalog} rules={editing.rules} onChange={r => setEditing({ ...editing, rules: r })} labels={labels} />
           <div style={{ display: 'flex', gap: 10 }}>
             <Button type="button" size="sm" disabled={!editing.name.trim()} onClick={save}>{editing.id ? 'Save' : 'Create'}</Button>
             <Button type="button" variant="outline" size="sm" onClick={() => setEditing(null)}>Cancel</Button>
@@ -168,7 +188,7 @@ export function CrmSmartViews() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{v.name}</span>
                   <span className="mono" style={{ fontSize: 12, color: 'var(--ink3)' }}>{v.count}</span>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>{v.rules.map(fmtRule).join(v.match_type === 'any' ? '  ·  or  ·  ' : '  ·  and  ·  ')}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>{v.rules.map(r => fmtRule(r, labelName)).join(v.match_type === 'any' ? '  ·  or  ·  ' : '  ·  and  ·  ')}</div>
                 <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
                   <button type="button" onClick={e => { e.stopPropagation(); setEditing({ id: v.id, name: v.name, match_type: v.match_type, rules: v.rules }); }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal-d)', fontSize: 11, fontWeight: 600, padding: 0 }}>Edit</button>
@@ -189,13 +209,13 @@ export function CrmSmartViews() {
           ) : (
             <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
               <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>
-                {results.length} {entity}{results.length === 1 ? '' : 's'}
+                {results.length} {entity}{results.length === 1 ? '' : 's'}{results.length > 200 ? ' · showing first 200' : ''}
               </div>
               {results.slice(0, 200).map((row: any) => (
-                <div key={row.id} style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 12.5, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <button type="button" key={row.id} onClick={() => navigate(entity === 'lead' ? `/crm/leads?lead=${row.id}` : entity === 'deal' ? `/crm/pipeline?deal=${row.id}` : `/crm/customers?id=${row.id}`)} style={{ padding: '9px 14px', border: 0, borderBottom: '1px solid var(--border)', background: 'transparent', width: '100%', textAlign: 'left', cursor: 'pointer', fontSize: 12.5, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                   <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{row.company || row.name}</span>
                   <span className="mono" style={{ color: 'var(--ink3)' }}>{row.stage || row.account_status || ''}</span>
-                </div>
+                </button>
               ))}
             </div>
           )}

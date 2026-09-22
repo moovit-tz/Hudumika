@@ -72,8 +72,8 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100%',
-      background: 'var(--white)', borderLeft: '1px solid var(--border)',
-      ...(isMobile ? { position: 'fixed', inset: 0, zIndex: 300 } : { width: 360, flexShrink: 0 }),
+      background: 'var(--white)',
+      ...(isMobile ? { position: 'fixed', inset: 0, zIndex: 300 } : { width: '100%', minWidth: 0 }),
     }}>
       {/* Header */}
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -499,7 +499,7 @@ export function FinanceVendors() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--white)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       <PageHeader
         crumbs={['Finance', 'Vendors']}
         titlePlain="Vendor"
@@ -566,7 +566,7 @@ export function FinanceVendors() {
       {/* Split body */}
       <div style={{ display: 'flex', margin: '0 0 20px' }}>
         {/* Table */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, display: selected ? 'none' : 'block' }}>
         <SectionCard padded={false}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>

@@ -35,6 +35,14 @@ function parseCsv(buf: Buffer): Record<string, unknown>[] {
   return parse(buf, { columns: true, skip_empty_lines: true, trim: true, bom: true }) as Record<string, unknown>[];
 }
 
+// A malformed (non-UUID) :id used to reach the DB as-is and crash with a raw
+// "invalid input syntax for type uuid" driver error (sanitized to an opaque
+// 500 by the global handler, but still the wrong status code for a caller-
+// input problem) instead of the clean 404 every one of these routes already
+// gives a well-formed-but-nonexistent id — live-reproduced across every
+// :id route in this file before this fix.
+const idParamSchema = z.object({ id: z.string().uuid() });
+
 // Shape-guard only — the handler below still field-picks against its own
 // `allowed` allowlist before building the update patch, so this just
 // guarantees each value is the right primitive type before it reaches Kysely.
@@ -277,7 +285,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
    */
   fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'SALES') }, async (request, reply) => {
     const user = request.user;
-    const { id } = request.params as { id: string };
+    const { id } = idParamSchema.parse(request.params);
     const body = customerPatchSchema.parse(request.body) as Record<string, any>;
 
     const allowed = ['name', 'contact_name', 'contact_person', 'email', 'phone', 'phone_wa', 'phone_wechat',
@@ -330,7 +338,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/:id/claim-code', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'SALES') }, async (request, reply) => {
     const user = request.user;
-    const { id } = request.params as { id: string };
+    const { id } = idParamSchema.parse(request.params);
 
     return withTenant(user.tenant_id, async (trx) => {
       const customer = await trx.selectFrom('customers').select(['id', 'name', 'email', 'phone_wa'])
@@ -385,7 +393,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
    */
   fastify.delete('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request, reply) => {
     const user = request.user;
-    const { id } = request.params as { id: string };
+    const { id } = idParamSchema.parse(request.params);
 
     return withTenant(user.tenant_id, async (trx) => {
       await trx
@@ -406,7 +414,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
    */
   fastify.get('/:id', async (request, reply) => {
     const user = request.user;
-    const { id } = request.params as { id: string };
+    const { id } = idParamSchema.parse(request.params);
 
     // Customers can only view their own customer record
     if (user.role === 'CUSTOMER' && user.sub !== id) {
@@ -433,7 +441,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
    */
   fastify.get('/:id/shipments', async (request, reply) => {
     const user = request.user;
-    const { id } = request.params as { id: string };
+    const { id } = idParamSchema.parse(request.params);
 
     if (user.role === 'CUSTOMER' && user.sub !== id) {
       return reply.status(403).send({ error: 'Forbidden: Access denied' });
@@ -463,7 +471,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
    */
   fastify.get('/:id/analytics', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
     const user = request.user;
-    const { id } = request.params as { id: string };
+    const { id } = idParamSchema.parse(request.params);
 
     return withTenant(user.tenant_id, async (trx) => {
       const shipments = await trx
@@ -561,15 +569,33 @@ export async function customerRoutes(fastify: FastifyInstance) {
 
   /**
    * POST /v1/customers/:id/invite
-   * Send WhatsApp invite link to customer to download/login to portal
+   *
+   * Never wired to any frontend caller (grepped the whole web app — zero
+   * references) and, until this fix, never sent anything either: it logged
+   * to the server console and returned a fabricated `success: true` with no
+   * real WhatsApp dispatch behind it, unlike POST /:id/claim-code two routes
+   * above, which uses this exact same `WhatsAppIntegration` for a real send.
+   *
+   * A real customer portal login genuinely exists (a `users` row with
+   * role='CUSTOMER', linked via `users.customer_id` — migration 207,
+   * resolveCustomerId() in customer-identity.service.ts) — so unlike a
+   * feature this platform has no backing for at all, this one is a real
+   * gap: nothing anywhere creates that `users` row or issues its first-login
+   * credential. Provisioning a real login (choosing the credential/password-
+   * setup flow, deciding who else can trigger it) is a product decision this
+   * fix doesn't make unilaterally — left an honest "not implemented" 501
+   * rather than the fabricated success it returned before, or a guessed-at
+   * account-creation flow, matching this codebase's own disclosure
+   * convention for a configured-but-unwired provider (BongoLive SMS,
+   * integrations/sms.ts).
    */
   fastify.post('/:id/invite', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
-    const { id } = request.params as { id: string };
+    const { id } = idParamSchema.parse(request.params);
 
     const customer = await withTenant(user.tenant_id, trx => trx
       .selectFrom('customers')
-      .selectAll()
+      .select('id')
       .where('id', '=', id)
       .where('tenant_id', '=', user.tenant_id)
       .executeTakeFirst());
@@ -578,13 +604,9 @@ export async function customerRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ error: 'Customer not found' });
     }
 
-    console.log(`✉️ Sending portal invitation to customer ${customer.name} via WhatsApp...`);
-
-    // In a real app we'd dispatch a WhatsApp template.
-    return {
-      success: true,
-      message: `Invitation sent to ${customer.phone_wa || customer.phone || 'customer'}.`,
-    };
+    return reply.status(501).send({
+      error: 'Portal-login invitations are not built yet — nothing creates this customer a real login account. To let an organization self-link to this record instead, use "Send Claim Code."',
+    });
   });
 
   /**
@@ -627,7 +649,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
   // could flip the partner flag on any customer record in its own tenant.
   fastify.patch('/:id/partner', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'SALES') }, async (request, reply) => {
     const user = request.user;
-    const { id } = request.params as { id: string };
+    const { id } = idParamSchema.parse(request.params);
     const body = z.object({
       is_partner: z.boolean().optional(),
       partner_role: z.string().max(100).nullable().optional(),
@@ -695,7 +717,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
   // headers/try-catch-404 shape as invoices.routes.ts's own PDF route.
   fastify.get('/:id/statement/pdf', async (request, reply) => {
     const user = request.user;
-    const { id } = request.params as { id: string };
+    const { id } = idParamSchema.parse(request.params);
     const { from, to } = request.query as { from?: string; to?: string };
     const toDate = to || new Date().toISOString().slice(0, 10);
     const fromDate = from || new Date(new Date(toDate).getFullYear(), new Date(toDate).getMonth() - 1, 1).toISOString().slice(0, 10);
@@ -705,7 +727,13 @@ export async function customerRoutes(fastify: FastifyInstance) {
       reply.header('Content-Disposition', `inline; filename="statement.pdf"`);
       return reply.send(pdf);
     } catch (err) {
-      return reply.status(404).send({ error: (err as Error).message });
+      // Every failure used to map to 404 with the raw message, which is
+      // correct for the one real case (a customer that doesn't exist) but
+      // wrong for anything else — a genuine PDF-rendering or DB failure
+      // would falsely report as "not found" and leak its raw text at the
+      // wrong status code.
+      if ((err as Error).message === 'Customer not found') return reply.status(404).send({ error: 'Customer not found' });
+      throw err;
     }
   });
 
@@ -715,27 +743,45 @@ export async function customerRoutes(fastify: FastifyInstance) {
   // pass). CRM gap-analysis item: Customers never had this either.
   fastify.get('/duplicates', {
     preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER', 'FINANCE', 'SALES'),
-  }, async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      const rows = await withTenant(tenantId, async trx => {
-        const fuzzy = await sql<{ id: string; other_id: string }>`
-          SELECT a.id, b.id AS other_id
-          FROM customers a
-          JOIN customers b ON b.tenant_id = a.tenant_id AND b.id > a.id AND b.deleted_at IS NULL
-          WHERE a.tenant_id = ${tenantId} AND a.deleted_at IS NULL
-            AND similarity(a.name, b.name) >= 0.5
-        `.execute(trx);
-        if (fuzzy.rows.length === 0) return [];
-        const ids = [...new Set(fuzzy.rows.flatMap(r => [r.id, r.other_id]))];
-        const customers = await trx.selectFrom('customers').selectAll().where('id', 'in', ids).execute();
-        const byId = new Map(customers.map((c: any) => [c.id, c]));
-        return fuzzy.rows.map(r => ({ customers: [byId.get(r.id), byId.get(r.other_id)].filter(Boolean) }));
-      });
-      return rows;
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+  }, async (request: any) => {
+    const tenantId = request.user.tenant_id;
+    return withTenant(tenantId, async trx => {
+      const fuzzy = await sql<{ id: string; other_id: string }>`
+        SELECT a.id, b.id AS other_id
+        FROM customers a
+        JOIN customers b ON b.tenant_id = a.tenant_id AND b.id > a.id AND b.deleted_at IS NULL
+        WHERE a.tenant_id = ${tenantId} AND a.deleted_at IS NULL
+          AND similarity(a.name, b.name) >= 0.5
+      `.execute(trx);
+      if (fuzzy.rows.length === 0) return [];
+      const ids = [...new Set(fuzzy.rows.flatMap(r => [r.id, r.other_id]))];
+      const customers = await trx.selectFrom('customers').selectAll().where('id', 'in', ids).execute();
+      const byId = new Map(customers.map((c: any) => [c.id, c]));
+      const adjacency = new Map<string, Set<string>>();
+      for (const pair of fuzzy.rows) {
+        if (!adjacency.has(pair.id)) adjacency.set(pair.id, new Set());
+        if (!adjacency.has(pair.other_id)) adjacency.set(pair.other_id, new Set());
+        adjacency.get(pair.id)!.add(pair.other_id);
+        adjacency.get(pair.other_id)!.add(pair.id);
+      }
+      const seen = new Set<string>();
+      const groups: Array<{ customers: any[] }> = [];
+      for (const id of adjacency.keys()) {
+        if (seen.has(id)) continue;
+        const stack = [id];
+        const component: any[] = [];
+        while (stack.length) {
+          const current = stack.pop()!;
+          if (seen.has(current)) continue;
+          seen.add(current);
+          const row = byId.get(current);
+          if (row) component.push(row);
+          for (const neighbour of adjacency.get(current) ?? []) stack.push(neighbour);
+        }
+        if (component.length > 1) groups.push({ customers: component });
+      }
+      return groups;
+    });
   });
 
   // Merges duplicate_ids into primary_id — same repoint-then-delete shape
@@ -745,44 +791,82 @@ export async function customerRoutes(fastify: FastifyInstance) {
     preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'),
   }, async (request: any, reply) => {
     const b = customerMergeSchema.parse(request.body);
-    try {
-      const tenantId = request.user.tenant_id;
-      await withTenant(tenantId, async trx => {
-        const primary = await trx.selectFrom('customers').select('id')
-          .where('id', '=', b.primary_id).where('tenant_id', '=', tenantId).executeTakeFirst();
-        if (!primary) throw new Error('Primary customer not found');
-
-        for (const dupId of b.duplicate_ids) {
-          if (dupId === b.primary_id) continue;
-          await trx.updateTable('deals').set({ customer_id: b.primary_id })
-            .where('customer_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
-          await trx.updateTable('crm_activities').set({ subject_id: b.primary_id })
-            .where('subject_type', '=', 'customer').where('subject_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
-
-          const dupLabels = await trx.selectFrom('crm_label_mappings').select('label_id')
-            .where('subject_type', '=', 'customer').where('subject_id', '=', dupId).execute();
-          if (dupLabels.length) {
-            await trx.insertInto('crm_label_mappings')
-              .values(dupLabels.map(l => ({ label_id: l.label_id, subject_type: 'customer' as const, subject_id: b.primary_id })))
-              .onConflict(oc => oc.columns(['label_id', 'subject_type', 'subject_id']).doNothing())
-              .execute();
-          }
-          await trx.deleteFrom('crm_label_mappings')
-            .where('subject_type', '=', 'customer').where('subject_id', '=', dupId).execute();
-
-          // Customers soft-delete (338_customer_soft_delete.sql) — a real
-          // record with invoices/shipments attached can't be hard-deleted
-          // without breaking that history, unlike a lead or a duplicate
-          // label mapping. Marking deleted_at is the same "gone from every
-          // list, but not actually destroyed" contract every other
-          // soft-delete in this app already uses.
-          await trx.updateTable('customers').set({ deleted_at: new Date() })
-            .where('id', '=', dupId).where('tenant_id', '=', tenantId).execute();
-        }
-      });
-      return { success: true };
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+    const tenantId = request.user.tenant_id;
+    const primary = await withTenant(tenantId, trx =>
+      trx.selectFrom('customers').select('id')
+        .where('id', '=', b.primary_id).where('tenant_id', '=', tenantId).executeTakeFirst()
+    );
+    if (!primary) return reply.status(404).send({ error: 'Primary customer not found' });
+    const requestedDuplicates = [...new Set(b.duplicate_ids.filter(id => id !== b.primary_id))];
+    const ownedDuplicates = await withTenant(tenantId, trx => trx.selectFrom('customers').select('id')
+      .where('tenant_id', '=', tenantId).where('deleted_at', 'is', null).where('id', 'in', requestedDuplicates).execute());
+    if (ownedDuplicates.length !== requestedDuplicates.length) {
+      return reply.status(400).send({ error: 'One or more duplicate customers were not found in this workspace' });
     }
+
+    await withTenant(tenantId, async trx => {
+      let survivor = await trx.selectFrom('customers').selectAll()
+        .where('id', '=', b.primary_id).where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
+      for (const dupId of b.duplicate_ids) {
+        if (dupId === b.primary_id) continue;
+        const duplicate = await trx.selectFrom('customers').selectAll()
+          .where('id', '=', dupId).where('tenant_id', '=', tenantId).where('deleted_at', 'is', null).executeTakeFirstOrThrow();
+        const mergedNotes = [survivor.notes, duplicate.notes].filter(Boolean).filter((value, index, all) => all.indexOf(value) === index).join('\n\n');
+        survivor = await trx.updateTable('customers').set({
+          contact_name: survivor.contact_name || duplicate.contact_name,
+          email: survivor.email || duplicate.email,
+          phone: survivor.phone || duplicate.phone,
+          phone_wa: survivor.phone_wa || duplicate.phone_wa,
+          phone_wechat: survivor.phone_wechat || duplicate.phone_wechat,
+          tax_id: survivor.tax_id || duplicate.tax_id,
+          vat_number: survivor.vat_number || duplicate.vat_number,
+          registry_number: survivor.registry_number || duplicate.registry_number,
+          website: survivor.website || duplicate.website,
+          address: survivor.address || duplicate.address,
+          city: survivor.city || duplicate.city,
+          country: survivor.country || duplicate.country,
+          notes: mergedNotes || null,
+          updated_at: new Date(),
+        }).where('id', '=', b.primary_id).where('tenant_id', '=', tenantId).returningAll().executeTakeFirstOrThrow();
+
+        // Preserve operational and financial history. These are the primary
+        // customer-owned records surfaced across CRM, ClearOS and FinOps.
+        await trx.updateTable('shipment_cases').set({ customer_id: b.primary_id }).where('customer_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        await trx.updateTable('sales_invoices').set({ customer_id: b.primary_id }).where('customer_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        await trx.updateTable('client_invoices').set({ customer_id: b.primary_id }).where('customer_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        await trx.updateTable('quotations').set({ customer_id: b.primary_id }).where('customer_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        await trx.updateTable('contracts').set({ customer_id: b.primary_id }).where('customer_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        await trx.updateTable('support_tickets').set({ customer_id: b.primary_id }).where('customer_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        await trx.updateTable('freight_bookings').set({ customer_id: b.primary_id }).where('customer_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        await trx.updateTable('road_consignments').set({ customer_id: b.primary_id }).where('customer_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        await trx.updateTable('finance_expenses').set({ customer_id: b.primary_id }).where('customer_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        await trx.updateTable('projects').set({ customer_id: b.primary_id }).where('customer_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        await trx.updateTable('deals').set({ customer_id: b.primary_id })
+          .where('customer_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+        await trx.updateTable('crm_activities').set({ subject_id: b.primary_id })
+          .where('subject_type', '=', 'customer').where('subject_id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+
+        const dupLabels = await trx.selectFrom('crm_label_mappings').select('label_id')
+          .where('subject_type', '=', 'customer').where('subject_id', '=', dupId).execute();
+        if (dupLabels.length) {
+          await trx.insertInto('crm_label_mappings')
+            .values(dupLabels.map(l => ({ label_id: l.label_id, subject_type: 'customer' as const, subject_id: b.primary_id })))
+            .onConflict(oc => oc.columns(['label_id', 'subject_type', 'subject_id']).doNothing())
+            .execute();
+        }
+        await trx.deleteFrom('crm_label_mappings')
+          .where('subject_type', '=', 'customer').where('subject_id', '=', dupId).execute();
+
+        // Customers soft-delete (338_customer_soft_delete.sql) — a real
+        // record with invoices/shipments attached can't be hard-deleted
+        // without breaking that history, unlike a lead or a duplicate
+        // label mapping. Marking deleted_at is the same "gone from every
+        // list, but not actually destroyed" contract every other
+        // soft-delete in this app already uses.
+        await trx.updateTable('customers').set({ deleted_at: new Date() })
+          .where('id', '=', dupId).where('tenant_id', '=', tenantId).execute();
+      }
+    });
+    return { success: true };
   });
 }

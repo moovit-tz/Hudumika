@@ -69,8 +69,8 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
     ],
   },
   {
-    title: 'PEOPLE',
-    items: [
+    items: [{
+      label: 'People', icon: 'users', path: '/nexushr/employees', children: [
       { label: 'Manage Staff',    icon: 'users',    path: '/nexushr/employees'       },
       { label: 'Departments',     icon: 'building', path: '/nexushr/departments'     },
       { label: 'Designations',    icon: 'award',    path: '/nexushr/designations'    },
@@ -80,11 +80,12 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
       { label: 'Employment',      icon: 'fileText', path: '/nexushr/employment'      },
       { label: 'Workforce Planning', icon: 'target', path: '/nexushr/workforce-planning' },
       { label: 'Recruitment',     icon: 'userPlus', path: '/nexushr/recruitment'     },
-    ],
+      ],
+    }],
   },
   {
-    title: 'TIME & LEAVE',
-    items: [
+    items: [{
+      label: 'Time & Leave', icon: 'clock', path: '/nexushr/attendance', children: [
       { label: 'Clock-in & Timesheets', icon: 'clock', path: '/nexushr/clock-in' },
       { label: 'Attendance',     icon: 'check',    path: '/nexushr/attendance' },
       { label: 'Attendance Devices', icon: 'fingerprint', path: '/nexushr/devices' },
@@ -92,37 +93,41 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
       { label: 'Shift Roster',   icon: 'timer',    path: '/nexushr/shifts'     },
       { label: 'Overtime',       icon: 'zap',      path: '/nexushr/overtime'   },
       { label: 'Holidays',       icon: 'sun',      path: '/nexushr/holidays'   },
-    ],
+      ],
+    }],
   },
   {
-    title: 'PERFORMANCE',
-    items: [
+    items: [{
+      label: 'Performance', icon: 'target', path: '/nexushr/performance', children: [
       { label: 'Goals & Reviews', icon: 'target', path: '/nexushr/performance' },
       { label: 'Training & Development', icon: 'bookOpen', path: '/nexushr/training' },
-    ],
+      ],
+    }],
   },
   {
-    title: 'RECORDS',
-    items: [
+    items: [{
+      label: 'Records', icon: 'fileText', path: '/nexushr/documents', children: [
       { label: 'Documents', icon: 'fileText', path: '/nexushr/documents' },
       { label: 'Assets',    icon: 'package',  path: '/nexushr/assets'    },
       { label: 'Visitors',  icon: 'userPlus', path: '/nexushr/visitors'  },
-    ],
+      ],
+    }],
   },
   {
-    title: 'FINANCE',
-    items: [
+    items: [{
+      label: 'Finance', icon: 'dollarSign', path: '/nexushr/payroll', children: [
       { label: 'Payroll', icon: 'dollarSign', path: '/nexushr/payroll' },
       { label: 'My Payslips', icon: 'fileText', path: '/nexushr/my-payslips' },
       // Confirmed absent in the audit — no health/retirement enrollment
       // tracking anywhere. Real self-service, everyone sees it (not
       // MGMT-gated like the nav items above).
       { label: 'Benefits', icon: 'award', path: '/nexushr/benefits' },
-    ],
+      ],
+    }],
   },
   {
-    title: 'ACCESS & SECURITY',
-    items: [
+    items: [{
+      label: 'Access & Security', icon: 'shield', path: '/nexushr/activity-logs', children: [
       // Roles & Permissions used to be its own resource×action editor here
       // (org_permissions, via /v1/permissions) — discovered to be pure
       // decoration: nothing in the API actually reads that table to gate a
@@ -148,17 +153,19 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
       // checklists generate automatically on join/deactivate (see
       // subscribers/hr-checklists.subscribers.ts).
       { label: 'Checklists',           icon: 'check',          path: '/nexushr/checklists'   },
-    ],
+      ],
+    }],
   },
   {
-    title: 'COMMUNICATIONS',
-    items: [
+    items: [{
+      label: 'Communications', icon: 'volume2', path: '/nexushr/announcements', children: [
       { label: 'Announcements', icon: 'volume2', path: '/nexushr/announcements' },
       // Real backend (hr_survey_templates/instances/responses) existed with
       // no way to ever create one and no page — this is the first way to
       // reach it.
       { label: 'Surveys',       icon: 'clipboard', path: '/nexushr/surveys' },
-    ],
+      ],
+    }],
   },
   ];
 

@@ -9,6 +9,7 @@ import type { FastifyInstance } from 'fastify';
 import { withTenant, db } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireUuidParams } from '../middleware/uuid-params.js';
 import { computeBalances, persistBalances } from '../services/leave-entitlement.service.js';
 import { statutoryLeaveFor } from '../services/leave-statutory.service.js';
 
@@ -18,6 +19,7 @@ const canSeeOthers = (role: string) => (MGMT as readonly string[]).includes(role
 export async function leaveRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
+  requireUuidParams(fastify);
 
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,
   // fleet ops, HR, identity/access admin, or tenant configuration) with only

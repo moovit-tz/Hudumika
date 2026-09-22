@@ -80,7 +80,7 @@ export function GlPeriods() {
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading periods…</div>;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
       <PageHeader
         crumbs={['Finance', 'Accounts']}
         titlePlain="Period"

@@ -1117,6 +1117,63 @@ describe('CMS — pages, posts, search, autosave, SEO extras, webhooks, audit tr
     });
   });
 
+  // §5 — its own dedicated tenant, not A: this describe block alone adds
+  // several POSTs, and stacking onto the shared A tenant is exactly what
+  // pushed A over its monthly quota and broke an unrelated §34 test earlier
+  // this arc (see the §12-13 describe block's own header comment).
+  describe('the "embed" block type — allow-listed provider hostnames only (§5)', () => {
+    it('rejects a non-allow-listed host, http:// even on an allowed host, and a missing url', async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const { authorization } = authHeaders(t.token);
+        const model = (await app.inject({ method: 'POST', url: '/v1/cms/content-models', headers: { authorization }, payload: { key: 'embed_block_v1', name: 'Landing', name_plural: 'Landings' } })).json();
+        const blocksField = (await app.inject({ method: 'POST', url: `/v1/cms/content-models/${model.id}/fields`, headers: { authorization }, payload: { label: 'Content', field_type: 'blocks' } })).json();
+
+        const disallowedHost = await app.inject({
+          method: 'POST', url: `/v1/cms/content-models/${model.id}/entries`, headers: { authorization },
+          payload: { title: 'Bad host', status: 'draft', data: { [blocksField.key]: [{ type: 'embed', props: { url: 'https://evil.example.com/embed' } }] } },
+        });
+        expect(disallowedHost.statusCode).toBe(400);
+
+        const insecure = await app.inject({
+          method: 'POST', url: `/v1/cms/content-models/${model.id}/entries`, headers: { authorization },
+          payload: { title: 'Insecure', status: 'draft', data: { [blocksField.key]: [{ type: 'embed', props: { url: 'http://www.youtube.com/embed/dQw4w9WgXcQ' } }] } },
+        });
+        expect(insecure.statusCode).toBe(400);
+
+        const missingUrl = await app.inject({
+          method: 'POST', url: `/v1/cms/content-models/${model.id}/entries`, headers: { authorization },
+          payload: { title: 'No url', status: 'draft', data: { [blocksField.key]: [{ type: 'embed', props: {} }] } },
+        });
+        expect(missingUrl.statusCode).toBe(400);
+      } finally { await t.cleanup(); }
+    });
+
+    it('accepts an allow-listed provider url, stores the title, and round-trips through the public route', async () => {
+      const app = await getApp();
+      const t = await createTestTenant('TENANT_ADMIN');
+      try {
+        const { authorization } = authHeaders(t.token);
+        const model = (await app.inject({ method: 'POST', url: '/v1/cms/content-models', headers: { authorization }, payload: { key: 'embed_block_v2', name: 'Landing', name_plural: 'Landings' } })).json();
+        const blocksField = (await app.inject({ method: 'POST', url: `/v1/cms/content-models/${model.id}/fields`, headers: { authorization }, payload: { label: 'Content', field_type: 'blocks' } })).json();
+
+        const entry = await app.inject({
+          method: 'POST', url: `/v1/cms/content-models/${model.id}/entries`, headers: { authorization },
+          payload: { title: 'Landing Page', status: 'published', data: { [blocksField.key]: [{ type: 'embed', props: { url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', title: 'Demo video' } }] } },
+        });
+        expect(entry.statusCode).toBe(201);
+        expect(entry.json().data[blocksField.key][0].props.url).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+        expect(entry.json().data[blocksField.key][0].props.title).toBe('Demo video');
+
+        const tenantRow = await dbPlatform.selectFrom('tenants').select('slug').where('id', '=', t.tenantId).executeTakeFirstOrThrow();
+        const pub = await app.inject({ method: 'GET', url: `/v1/cms/public/${tenantRow.slug}/m/embed_block_v2/${entry.json().slug}` });
+        expect(pub.statusCode).toBe(200);
+        expect(pub.json().data[blocksField.key][0].props.url).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+      } finally { await t.cleanup(); }
+    });
+  });
+
   // §33 — Analytics. Deliberately just a count: no IP, no user agent, no
   // cookie, no per-visitor identity — per the brief's own "privacy-
   // conscious" framing. One row per (resource, day), incremented in place

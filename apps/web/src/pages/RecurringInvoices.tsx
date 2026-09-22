@@ -195,7 +195,7 @@ export function RecurringInvoices() {
   const totalBilled = recurring.reduce((s, r) => s + r.total_billed, 0);
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
       <PageHeader
         crumbs={['Finance', 'Invoices']}
         titlePlain="Recurring"

@@ -5,6 +5,12 @@ import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
+import type { UserRole } from '@hudumika/types';
+import { useAuth } from '../hooks/useAuth.js';
+
+// Mirrors the roles DELETE /v1/customers/:id accepts (customers.routes.ts).
+const DELETE_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'];
 import { PageHeader } from '../components/PageHeader.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
 import { SectionLoading } from '../components/ui/spinner.js';
@@ -36,6 +42,7 @@ interface Partner {
   registry_number?: string | null;
   tax_id?: string | null;
   account_status?: string | null;
+  is_customer?: boolean;
   created_at: string;
   updated_at?: string;
 }
@@ -69,6 +76,8 @@ function partnerCategory(partner: Partner) {
 }
 
 export function CrmChainPartners() {
+  const { user } = useAuth();
+  const canDelete = DELETE_ROLES.includes((user?.role ?? '') as UserRole);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -156,6 +165,29 @@ export function CrmChainPartners() {
     } finally {
       setHistoryLoading(false);
     }
+  }
+
+  // This directory lists customers.is_partner=true rows — there is no separate
+  // partners table. A company that is also a customer is only un-flagged (the
+  // same PATCH /:id/partner the Category tab uses); its customer record and
+  // history are untouched. A partner-only record has nowhere else to live, so
+  // "remove" would 409 — it's soft-deleted instead (DELETE /v1/customers/:id
+  // sets deleted_at; documents that already reference it keep its name).
+  async function removePartner(p: Partner) {
+    if (!(await showConfirm(`Remove "${p.name}" from the partners directory? It stays in your customers list.`, { confirmLabel: 'Remove' }))) return;
+    try {
+      await apiFetch(`/v1/customers/${p.id}/partner`, { method: 'PATCH', body: JSON.stringify({ is_partner: false }) });
+      setPartners(prev => prev.filter(x => x.id !== p.id));
+    } catch (err: any) { showAlert(err.message || 'Failed to remove partner'); }
+  }
+
+  async function deletePartner(p: Partner) {
+    if (!(await showConfirm(`Delete "${p.name}"? It will disappear from every company list. Documents that already reference it will keep showing its name.`, { confirmLabel: 'Delete' }))) return;
+    try {
+      await apiFetch(`/v1/customers/${p.id}`, { method: 'DELETE' });
+      setPartners(prev => prev.filter(x => x.id !== p.id));
+      if (selectedPartner?.id === p.id) setSelectedPartner(null);
+    } catch (err: any) { showAlert(err.message || 'Failed to delete partner'); }
   }
 
   async function updatePartnerCategory(value: string) {
@@ -384,18 +416,15 @@ export function CrmChainPartners() {
                               <DropdownMenuItem className="cursor-pointer" onClick={() => openPartner(p)}>
                                 <Icon name="building" size={13} /> View profile
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="cursor-pointer text-destructive focus:text-destructive"
-                                onClick={async () => {
-                                  if (!window.confirm(`Remove "${p.name}" from the partners directory?`)) return;
-                                  try {
-                                    await apiFetch(`/v1/customers/partners/${p.id}`, { method: 'DELETE' });
-                                    setPartners(prev => prev.filter(x => x.id !== p.id));
-                                  } catch (err: any) { showAlert(err.message || 'Failed to delete'); }
-                                }}
-                              >
-                                <Icon name="trash" size={13} /> Delete
-                              </DropdownMenuItem>
+                              {p.is_customer ? (
+                                <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => removePartner(p)}>
+                                  <Icon name="trash" size={13} /> Remove from directory
+                                </DropdownMenuItem>
+                              ) : canDelete && (
+                                <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => deletePartner(p)}>
+                                  <Icon name="trash" size={13} /> Delete partner
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </td>
@@ -495,7 +524,7 @@ export function CrmChainPartners() {
                   </div>
                 </div>
               </SheetHeader>
-              <Tabs defaultValue="profile" className="partner-profile-tabs">
+              <Tabs defaultValue="profile" className="partner-profile-tab-root">
                 <TabsList>
                   <TabsTrigger value="profile">Profile</TabsTrigger>
                   <TabsTrigger value="category">Category</TabsTrigger>

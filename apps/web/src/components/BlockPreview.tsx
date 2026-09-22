@@ -397,6 +397,20 @@ export function BlockPreview({ blocks, components, wrapClassName = 'block-previe
             }
             case 'button': return p.url ? <a href={p.url} className={buttonClassName} target="_blank" rel="noopener noreferrer">{p.label || p.url}</a> : null;
             case 'divider': return <hr />;
+            // §5 — the one block type that renders a real tenant-supplied
+            // <iframe> on the public site; the src is already constrained
+            // to an allow-listed provider hostname server-side
+            // (cms-content.service.ts's sanitizeBlock), so nothing further
+            // is validated here. `title` always resolves to something real
+            // (never a title-less iframe) for screen-reader users; 16:9 is
+            // a reasonable generic default for the provider list this
+            // supports (video, maps, calendar, scheduling, audio).
+            case 'embed': return p.url ? (
+              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 8 }}>
+                <iframe src={p.url} title={p.title || 'Embedded content'} loading="lazy" allowFullScreen
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }} />
+              </div>
+            ) : null;
             case 'component': {
               const inner = components?.[p.componentId];
               if (!inner) return null;

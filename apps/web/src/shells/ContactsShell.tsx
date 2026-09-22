@@ -37,8 +37,12 @@ interface GoogleStatus {
   contacts_synced_count: number;
 }
 
-/** Sidebar "Sync" control — real Google OAuth + People API connection, not a
- * decorative toggle. See contacts-sync.routes.ts for the backend half. */
+/** Sidebar "Import from Google" control — real Google OAuth + People API
+ * connection, not a decorative toggle. Manual, inbound-only: it fetches
+ * Google's contacts into Hudumika on connect or on demand, on request —
+ * there's no periodic background sync and no outbound write-back, which is
+ * why the UI says "import"/"refresh" rather than "sync". See
+ * contacts-sync.routes.ts for the backend half. */
 function GoogleSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced: () => void }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<GoogleStatus | null>(null);
@@ -68,11 +72,11 @@ function GoogleSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced:
     setBusy(true);
     try {
       const res = await apiFetch('/v1/contacts/google/sync', { method: 'POST' });
-      showAlert(`Synced ${res.synced} contact${res.synced === 1 ? '' : 's'} from Google.`);
+      showAlert(`Imported ${res.synced} contact${res.synced === 1 ? '' : 's'} from Google.`);
       loadStatus();
       onSynced();
     } catch (err: any) {
-      showAlert(err.message || 'Sync failed.');
+      showAlert(err.message || 'Import failed.');
     } finally {
       setBusy(false);
     }
@@ -96,10 +100,10 @@ function GoogleSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced:
         <button
           type="button"
           className={`csb-sys-item${collapsed ? ' csb-sys-item--icon' : ''}`}
-          title={collapsed ? 'Sync' : undefined}
+          title={collapsed ? 'Import from Google' : undefined}
         >
           <span className="csb-nav-icon"><Icon name="refresh" size={15} /></span>
-          {!collapsed && <span>Sync</span>}
+          {!collapsed && <span>Import from Google</span>}
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" side="right" className="w-72 p-3">
@@ -114,7 +118,7 @@ function GoogleSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced:
           </div>
         ) : !status.connected ? (
           <>
-            <div className="text-xs text-muted-foreground mb-3">Import and keep your contacts in sync with your real Google account.</div>
+            <div className="text-xs text-muted-foreground mb-3">Import your contacts from your real Google account. This is a one-time or on-demand import — it doesn't keep running in the background.</div>
             <button type="button" className="btn btn-primary btn-sm w-full" disabled={busy} onClick={handleConnect}>
               {busy ? 'Redirecting…' : 'Connect Google Account'}
             </button>
@@ -124,15 +128,16 @@ function GoogleSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced:
             <div className="text-xs text-foreground font-medium">{status.email}</div>
             <div className="text-xs text-muted-foreground mt-1">
               {status.last_synced_at
-                ? `Last synced ${new Date(status.last_synced_at).toLocaleString()} · ${status.contacts_synced_count} contacts`
-                : 'Not synced yet'}
+                ? `Last imported ${new Date(status.last_synced_at).toLocaleString()} · ${status.contacts_synced_count} contacts`
+                : 'Not imported yet'}
             </div>
             {status.last_sync_status === 'failed' && status.last_sync_error && (
               <div className="text-xs text-destructive mt-1">{status.last_sync_error}</div>
             )}
+            <div className="text-xs text-muted-foreground mt-2">Fetches the latest from Google right now — this doesn't run automatically.</div>
             <div className="flex gap-2 mt-3">
               <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={handleSync}>
-                {busy ? 'Syncing…' : 'Sync Now'}
+                {busy ? 'Importing…' : 'Refresh Imported Contacts'}
               </button>
               <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={handleDisconnect}>
                 Disconnect
@@ -155,8 +160,9 @@ interface MicrosoftStatus {
   contacts_synced_count: number;
 }
 
-/** Same shape as GoogleSyncItem — real Microsoft 365/Outlook OAuth + Graph
- * API connection, kept as its own component rather than a shared
+/** Same shape and same manual, inbound-only import semantics as
+ * GoogleSyncItem above — real Microsoft 365/Outlook OAuth + Graph API
+ * connection, kept as its own component rather than a shared
  * "ProviderSyncItem" for the same reason contacts-sync.routes.ts keeps
  * ensureFreshMicrosoftToken separate from Google's: two providers'
  * copy-pasted UI is safer to touch than one genericized version risking
@@ -190,11 +196,11 @@ function OutlookSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced
     setBusy(true);
     try {
       const res = await apiFetch('/v1/contacts/outlook/sync', { method: 'POST' });
-      showAlert(`Synced ${res.synced} contact${res.synced === 1 ? '' : 's'} from Outlook.`);
+      showAlert(`Imported ${res.synced} contact${res.synced === 1 ? '' : 's'} from Outlook.`);
       loadStatus();
       onSynced();
     } catch (err: any) {
-      showAlert(err.message || 'Sync failed.');
+      showAlert(err.message || 'Import failed.');
     } finally {
       setBusy(false);
     }
@@ -218,10 +224,10 @@ function OutlookSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced
         <button
           type="button"
           className={`csb-sys-item${collapsed ? ' csb-sys-item--icon' : ''}`}
-          title={collapsed ? 'Outlook sync' : undefined}
+          title={collapsed ? 'Import from Outlook' : undefined}
         >
           <span className="csb-nav-icon"><Icon name="mail" size={15} /></span>
-          {!collapsed && <span>Outlook sync</span>}
+          {!collapsed && <span>Import from Outlook</span>}
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" side="right" className="w-72 p-3">
@@ -236,7 +242,7 @@ function OutlookSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced
           </div>
         ) : !status.connected ? (
           <>
-            <div className="text-xs text-muted-foreground mb-3">Import and keep your contacts in sync with your real Microsoft 365/Outlook account.</div>
+            <div className="text-xs text-muted-foreground mb-3">Import your contacts from your real Microsoft 365/Outlook account. This is a one-time or on-demand import — it doesn't keep running in the background.</div>
             <button type="button" className="btn btn-primary btn-sm w-full" disabled={busy} onClick={handleConnect}>
               {busy ? 'Redirecting…' : 'Connect Outlook Account'}
             </button>
@@ -246,15 +252,16 @@ function OutlookSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced
             <div className="text-xs text-foreground font-medium">{status.email}</div>
             <div className="text-xs text-muted-foreground mt-1">
               {status.last_synced_at
-                ? `Last synced ${new Date(status.last_synced_at).toLocaleString()} · ${status.contacts_synced_count} contacts`
-                : 'Not synced yet'}
+                ? `Last imported ${new Date(status.last_synced_at).toLocaleString()} · ${status.contacts_synced_count} contacts`
+                : 'Not imported yet'}
             </div>
             {status.last_sync_status === 'failed' && status.last_sync_error && (
               <div className="text-xs text-destructive mt-1">{status.last_sync_error}</div>
             )}
+            <div className="text-xs text-muted-foreground mt-2">Fetches the latest from Outlook right now — this doesn't run automatically.</div>
             <div className="flex gap-2 mt-3">
               <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={handleSync}>
-                {busy ? 'Syncing…' : 'Sync Now'}
+                {busy ? 'Importing…' : 'Refresh Imported Contacts'}
               </button>
               <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={handleDisconnect}>
                 Disconnect

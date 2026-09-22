@@ -31,6 +31,10 @@ import { showConfirm } from '../lib/confirm.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 import { SwitchRow } from '../components/ui/list-item-row.js';
 import { getCompany } from '../data/companyStore.js';
+import { ActivityTimeline } from '../components/crm/ActivityTimeline.js';
+import { ComposeEmailButton } from '../components/crm/ComposeEmailButton.js';
+import { StartCallButton } from '../components/crm/StartCallButton.js';
+import { CustomFieldsPanel } from '../components/crm/CustomFieldsPanel.js';
 
 /* ── Statement of Account — print/PDF ──
    Same open-window/write-html/auto-print structure as Billing.tsx's
@@ -1823,6 +1827,7 @@ export const Customers: React.FC = () => {
 
   const MAIN_TABS = [
     { key: 'overview',   label: 'Overview',      icon: 'grid'       as IconName },
+    { key: 'activity',   label: 'Activity',      icon: 'activity'   as IconName },
     { key: 'profile',    label: 'Profile',        icon: 'user'       as IconName },
     { key: 'contacts',   label: 'Contacts',       icon: 'users'      as IconName },
     { key: 'finance',    label: 'Finance',        icon: 'barChart'   as IconName },
@@ -1971,31 +1976,62 @@ export const Customers: React.FC = () => {
               <div className="crm-card" style={{ padding: '18px' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', marginBottom: 12 }}>Quick Actions</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {([
-                    { label: 'Create Invoice',    icon: 'fileText'   as IconName, path: `/billing?customer_id=${sel.id}&new=1` },
-                    { label: 'Add Shipment',      icon: 'ship'       as IconName, action: () => setMainTab('shipments') },
-                    { label: 'Record Payment',    icon: 'creditCard' as IconName, action: () => { setMainTab('finance'); setFinanceTab('payments'); } },
-                    { label: 'Generate Statement',icon: 'barChart'   as IconName, action: () => { setMainTab('finance'); setFinanceTab('statement'); } },
-                  ] as { label: string; icon: IconName; path?: string; action?: () => void }[]).map(action => {
-                    const itemStyle = { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' as const, textDecoration: 'none' };
+                  {(() => {
+                    const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' as const, textDecoration: 'none', width: '100%' };
                     const hoverHandlers = {
                       onMouseEnter: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.background = 'var(--white)'),
                       onMouseLeave: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.background = 'var(--bg)'),
                     };
-                    return action.path ? (
-                      <Link key={action.label} to={action.path} style={itemStyle} {...hoverHandlers}>
-                        <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
-                      </Link>
-                    ) : (
-                      <button key={action.label} type="button" onClick={action.action} style={itemStyle} {...hoverHandlers}>
-                        <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
-                      </button>
+                    const actions: { label: string; icon: IconName; path?: string; action?: () => void }[] = [
+                      { label: 'Create Invoice',    icon: 'fileText'   as IconName, path: `/billing?customer_id=${sel.id}&new=1` },
+                      { label: 'Add Shipment',      icon: 'ship'       as IconName, action: () => setMainTab('shipments') },
+                      { label: 'Record Payment',    icon: 'creditCard' as IconName, action: () => { setMainTab('finance'); setFinanceTab('payments'); } },
+                      { label: 'Generate Statement',icon: 'barChart'   as IconName, action: () => { setMainTab('finance'); setFinanceTab('statement'); } },
+                    ];
+                    return (
+                      <>
+                        <ComposeEmailButton subjectType="customer" subjectId={sel.id} onSent={() => setMainTab('activity')}>
+                          <button type="button" style={itemStyle} {...hoverHandlers}>
+                            <Icon name="mail" size={13} color="var(--teal)" strokeWidth={1.75} /> Send Email
+                          </button>
+                        </ComposeEmailButton>
+                        <StartCallButton subjectType="customer" subjectId={sel.id} phone={sel.phone_wa} onLogged={() => setMainTab('activity')}>
+                          <button type="button" style={itemStyle} {...hoverHandlers}>
+                            <Icon name="phone" size={13} color="var(--teal)" strokeWidth={1.75} /> Start Call
+                          </button>
+                        </StartCallButton>
+                        {actions.map(action => action.path ? (
+                          <Link key={action.label} to={action.path} style={itemStyle} {...hoverHandlers}>
+                            <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
+                          </Link>
+                        ) : (
+                          <button key={action.label} type="button" onClick={action.action} style={itemStyle} {...hoverHandlers}>
+                            <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
+                          </button>
+                        ))}
+                      </>
                     );
-                  })}
+                  })()}
                 </div>
               </div>
             </div>
           </div>
+
+          <div style={{ marginTop: 20 }}>
+            <CustomFieldsPanel entityType="customer" subjectId={sel.id} heading="Custom Fields" />
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Activity — real chronological history (calls, emails, meetings,
+        stage changes), shared with Leads/Deals, backed by crm_activities
+        (migration 449). Previously the only CRM subject type this wasn't
+        wired to, despite the backend already supporting 'customer'. ── */
+    if (mainTab === 'activity') {
+      return (
+        <div style={{ padding: '24px 28px' }}>
+          <ActivityTimeline subjectType="customer" subjectId={sel.id} />
         </div>
       );
     }
@@ -3063,11 +3099,12 @@ export const Customers: React.FC = () => {
 
             {/* Action buttons */}
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <button type="button" style={btnS}
-                onClick={() => sel.email && window.open(`mailto:${sel.email}`, '_blank')}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
-                <Icon name="mail" size={13} strokeWidth={1.75} /> Email
-              </button>
+              <ComposeEmailButton subjectType="customer" subjectId={sel.id} onSent={() => setMainTab('activity')}>
+                <button type="button" style={btnS}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
+                  <Icon name="mail" size={13} strokeWidth={1.75} /> Email
+                </button>
+              </ComposeEmailButton>
               <button type="button" style={btnS}
                 onClick={() => { const p = sel.phone_wa?.replace(/\D/g, ''); if (p) window.open(`https://wa.me/${p}`, '_blank'); }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>

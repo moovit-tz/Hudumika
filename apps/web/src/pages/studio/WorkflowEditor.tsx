@@ -16,6 +16,8 @@ import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Combobox } from '../../components/ui/combobox.js';
+import { PageLoading } from '../../components/ui/spinner.js';
+import { Tip } from '../../components/ui/tooltip.js';
 import { STUDIO_NODE_TYPES, NODE_META, type StudioNodeData } from './StudioNodes.js';
 import type {
   WorkflowStudioApp, WorkflowStudioRun, WorkflowStudioNode, WorkflowStudioEdge,
@@ -268,7 +270,7 @@ export function WorkflowEditor() {
   // author activates something that would silently never fire.
   const triggerCarriesShipment = currentTrigger?.entityType === 'shipment';
 
-  if (loading) return <div style={{ padding: 40, color: 'var(--ink3)' }}>Loading workflow…</div>;
+  if (loading) return <PageLoading label="Loading workflow…" />;
   if (!workflow) return <div style={{ padding: 40, color: 'var(--red)' }}>{error || 'Workflow not found.'}</div>;
 
   const contextFields = currentTrigger ? Object.keys(currentTrigger.samplePayload).map(k => `payload.${k}`) : [];
@@ -281,6 +283,7 @@ export function WorkflowEditor() {
           <Icon name="arrowLeft" size={14} /> {returnTo ? 'Back' : 'Workflows'}
         </button>
         <input
+          aria-label="Workflow name"
           value={workflow.name}
           onChange={e => patchWorkflow(w => ({ ...w, name: e.target.value }))}
           className="studio-title-input"
@@ -296,10 +299,10 @@ export function WorkflowEditor() {
             style={{ borderColor: 'var(--teal)', color: 'var(--teal)' }}>
             {busy === 'live' ? 'Running…' : 'Run for real'}
           </Button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }} title={workflow.supersedes_subscriber ? `Activating stands down the ${workflow.supersedes_subscriber} code subscriber` : undefined}>
+          <Tip label={workflow.supersedes_subscriber ? `Activating stands down the ${workflow.supersedes_subscriber} code subscriber` : 'Toggle workflow status'}><div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>Active</span>
             <Switch checked={workflow.status === 'ACTIVE'} disabled={busy === 'status'} onCheckedChange={v => setStatus(v ? 'ACTIVE' : 'DRAFT')} />
-          </div>
+          </div></Tip>
           <Button type="button" size="sm" disabled={!dirty || busy === 'save'} onClick={save}>
             {busy === 'save' ? 'Saving…' : 'Save'}
           </Button>

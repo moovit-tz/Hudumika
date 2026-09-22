@@ -52,6 +52,8 @@ export const StepDomain: React.FC<StepProps> = ({ draft, update, onNext, onBack 
         <label className="reg-label">Choose your workspace address</label>
         <div className="ob-domain-row">
           <input
+            aria-describedby="workspace-domain-status"
+            aria-invalid={status === 'taken'}
             type="text"
             placeholder="mycompany"
             value={draft.subdomain}
@@ -61,9 +63,11 @@ export const StepDomain: React.FC<StepProps> = ({ draft, update, onNext, onBack 
           />
           <span className="ob-domain-suffix">.hudumika.tz</span>
         </div>
-        {status === 'checking' && <span className="ob-field-status ob-field-status--checking">Checking availability…</span>}
-        {status === 'available' && <span className="ob-field-status ob-field-status--ok"><Icon name="checkCircle" size={14} /> {draft.subdomain}.hudumika.tz is available</span>}
-        {status === 'taken' && <span className="login-field-err">{reason || 'This subdomain is already taken'}</span>}
+        <div id="workspace-domain-status" className="ob-domain-feedback" aria-live="polite">
+          {status === 'checking' && <span className="ob-field-status ob-field-status--checking">Checking availability…</span>}
+          {status === 'available' && <span className="ob-field-status ob-field-status--ok"><Icon name="checkCircle" size={14} /> {draft.subdomain}.hudumika.tz is available</span>}
+          {status === 'taken' && <span className="login-field-err"><Icon name="xCircle" size={14} /> {reason || 'This subdomain is already taken'}</span>}
+        </div>
       </div>
 
       <div className="login-form-actions">

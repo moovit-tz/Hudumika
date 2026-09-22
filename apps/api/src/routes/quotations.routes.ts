@@ -1,9 +1,18 @@
 import { requireEntitlement, requireAnyEntitlement } from '../middleware/entitlement.js';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { z } from 'zod';
 import { quotationService } from '../services/quotation.service.js';
 import { isTaxCodeUserError } from '../services/tax-code.service.js';
 import { withTenant } from '../db/client.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
+
+// A malformed (non-UUID) :id used to reach the DB as-is and crash with a raw
+// "invalid input syntax for type uuid" driver error (sanitized to an opaque
+// 500 by the global handler, but still the wrong status code for a caller-
+// input problem) instead of the clean 404 every one of these routes already
+// gives a well-formed-but-nonexistent id — live-reproduced across all four
+// :id routes in this file before this fix.
+const idParamSchema = z.object({ id: z.string().uuid() });
 
 // Matches the frontend's actual route grant for /quotations (FIN_ROLES +
 // SENIOR, apps/web/src/lib/permissions.ts) — the inline checks below used
@@ -45,7 +54,7 @@ export async function quotationRoutes(app: FastifyInstance) {
 
   app.get('/:id', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;
-    const { id } = req.params as any;
+    const { id } = idParamSchema.parse(req.params);
     const quote = await quotationService.getById(user.tenant_id, id);
     if (!quote) return reply.status(404).send({ error: 'Quotation not found' });
     if (user.role === 'CUSTOMER' && (quote as any).customer_id !== await resolveCustomerId(user)) {
@@ -92,9 +101,10 @@ export async function quotationRoutes(app: FastifyInstance) {
     if (!QUOTE_WRITE_ROLES.includes(user.role)) {
       return reply.code(403).send({ error: 'Insufficient permissions' });
     }
-    const { id } = req.params as any;
+    const { id } = idParamSchema.parse(req.params);
     const { status, reason } = req.body as any;
     const quote = await quotationService.updateStatus(user.tenant_id, id, status, user.sub, reason);
+    if (!quote) return reply.status(404).send({ error: 'Quotation not found' });
     return quote;
   });
 
@@ -109,9 +119,19 @@ export async function quotationRoutes(app: FastifyInstance) {
     // accepts a plain 'crm' entitlement.
     await requireEntitlement('clearos')(req, reply);
     if (reply.sent) return;
-    const { id } = req.params as any;
-    const result = await quotationService.convertToShipment(user.tenant_id, id, user.sub);
-    return result;
+    const { id } = idParamSchema.parse(req.params);
+    try {
+      const result = await quotationService.convertToShipment(user.tenant_id, id, user.sub);
+      if (!result) return reply.status(404).send({ error: 'Quotation not found' });
+      return result;
+    } catch (e: any) {
+      // "Only approved quotations can be converted" is the one business-rule
+      // throw convertToShipment makes — a bad request, not a server fault.
+      if (e instanceof Error && e.message === 'Only approved quotations can be converted') {
+        return reply.status(400).send({ error: e.message });
+      }
+      throw e;
+    }
   });
 
   // PATCH /:id — full quotation update (recomputes totals from lines)
@@ -120,7 +140,7 @@ export async function quotationRoutes(app: FastifyInstance) {
     if (!QUOTE_WRITE_ROLES.includes(user.role)) {
       return reply.code(403).send({ error: 'Insufficient permissions' });
     }
-    const { id } = req.params as any;
+    const { id } = idParamSchema.parse(req.params);
     const tenantId = user.tenant_id;
     const body = req.body as any;
 
@@ -214,7 +234,7 @@ export async function quotationRoutes(app: FastifyInstance) {
     if (!QUOTE_DELETE_ROLES.includes(user.role)) {
       return reply.code(403).send({ error: 'Insufficient permissions' });
     }
-    const { id } = req.params as any;
+    const { id } = idParamSchema.parse(req.params);
     const tenantId = user.tenant_id;
 
     return withTenant(tenantId, async (trx) => {

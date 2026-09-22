@@ -49,7 +49,7 @@ export async function runAiTool(tenantId: string, toolName: string, input: Recor
         const rows = await trx
           .selectFrom('shipment_cases')
           .innerJoin('customers', 'customers.id', 'shipment_cases.customer_id')
-          .select(['shipment_cases.ref_number', 'customers.name as customer', 'shipment_cases.stage', 'shipment_cases.free_time_end', 'shipment_cases.sla_deadline'])
+          .select(['shipment_cases.id', 'shipment_cases.ref_number', 'customers.name as customer', 'shipment_cases.stage', 'shipment_cases.free_time_end', 'shipment_cases.sla_deadline'])
           .where('shipment_cases.tenant_id', '=', tenantId)
           .where('shipment_cases.stage', 'not in', ['CLOSED', 'DELIVERY'])
           .where((eb) => eb.or([
@@ -59,6 +59,7 @@ export async function runAiTool(tenantId: string, toolName: string, input: Recor
           .limit(15)
           .execute();
         return rows.map(r => ({
+          id: r.id,
           ref_number: r.ref_number,
           customer: r.customer,
           stage: r.stage,
@@ -75,7 +76,7 @@ export async function runAiTool(tenantId: string, toolName: string, input: Recor
         const rows = await trx
           .selectFrom('shipment_cases')
           .innerJoin('customers', 'customers.id', 'shipment_cases.customer_id')
-          .select(['shipment_cases.ref_number', 'customers.name as customer', 'shipment_cases.stage', 'shipment_cases.vessel', 'shipment_cases.dest_port', 'shipment_cases.eta'])
+          .select(['shipment_cases.id', 'shipment_cases.ref_number', 'customers.name as customer', 'shipment_cases.stage', 'shipment_cases.vessel', 'shipment_cases.dest_port', 'shipment_cases.eta'])
           .where('shipment_cases.tenant_id', '=', tenantId)
           .where((eb) => eb.or([
             eb('shipment_cases.ref_number', 'ilike', `%${query}%`),
@@ -116,6 +117,7 @@ export async function runAiTool(tenantId: string, toolName: string, input: Recor
         const arRow = aged.rows.find(r => r.entity_name === customer.name);
 
         return {
+          id: customer.id,
           customer: customer.name,
           category: customer.category,
           total_shipments: Number(shipmentCount?.cnt ?? 0),

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
@@ -12,6 +13,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { showPrompt } from '../lib/prompt.js';
+import { showConfirm } from '../lib/confirm.js';
 import { ActivityTimeline } from '../components/crm/ActivityTimeline.js';
 import { LabelChips } from '../components/crm/LabelChips.js';
 import { ComposeEmailButton } from '../components/crm/ComposeEmailButton.js';
@@ -162,6 +164,21 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
     }
   }
 
+  async function remove() {
+    if (!deal) return;
+    if (!(await showConfirm(`Delete "${deal.name}"? This cannot be undone.`, { confirmLabel: 'Delete' }))) return;
+    setSaving(true);
+    try {
+      await apiFetch(`/v1/deals/${deal.id}`, { method: 'DELETE' });
+      onSaved();
+      onClose();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to delete deal');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
       <DialogContent size="md">
@@ -239,6 +256,11 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
         </DialogBody>
 
         <DialogFooter>
+          {deal && (
+            <button type="button" className="btn btn-secondary btn-sm" style={{ color: 'var(--red)', marginRight: 'auto' }} disabled={saving} onClick={remove}>
+              <Icon name="trash" size={13} /> Delete
+            </button>
+          )}
           <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
           <button type="button" className="btn btn-primary btn-sm" disabled={saving || !name.trim()} onClick={save}>
             {saving ? 'Saving…' : deal ? 'Save changes' : 'Create deal'}
@@ -251,6 +273,7 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
 
 /* ── Page ── */
 export function Pipeline() {
+  const [searchParams] = useSearchParams();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -275,6 +298,13 @@ export function Pipeline() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const id = searchParams.get('deal');
+    if (!id || loading || modalDeal?.id === id) return;
+    const match = deals.find(deal => deal.id === id);
+    if (match) setModalDeal(match);
+  }, [deals, loading, modalDeal?.id, searchParams]);
 
   const stageByKey = useMemo(() => new Map(stages.map(s => [s.key, s])), [stages]);
 

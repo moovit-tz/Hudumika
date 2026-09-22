@@ -237,7 +237,7 @@
 
 .inv-mode-badge { padding: var(--badge-py) var(--badge-px); border-radius: 4px; font-size: var(--badge-fs); font-weight: 700; }
 .inv-mode-badge[data-mode="SEA"]  { background: var(--blue-l); color: var(--blue); }
-.inv-mode-badge[data-mode="AIR"]  { background: #fce7f3; color: #be185d; }
+.inv-mode-badge[data-mode="AIR"]  { background: var(--purple-l); color: var(--purple); }
 .inv-mode-badge[data-mode="ROAD"] { background: var(--green-l); color: var(--green); }
 
 .inv-status-badge { padding: var(--badge-py) var(--badge-px); border-radius: 20px; font-size: var(--badge-fs); font-weight: 700; white-space: nowrap; }

@@ -23,7 +23,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/
 // Every app defaults to the single brand accent (matches WorkspaceApp.tsx's
 // APP_COLORS / index.css's --teal) rather than its own hue by default — the
 // color picker below still lets a SuperAdmin recolor individual apps.
-const DEFAULT_APP_COLOR = '#0b1e3a';
+const DEFAULT_APP_COLOR = '#1257c6';
 
 /** Derived from APP_REGISTRY, which is itself derived from ALL_APP_IDS, so an
  *  app added to the platform gets a branding row here without touching this

@@ -4,8 +4,8 @@ import crypto from 'crypto';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
-import { recordDevicePunches } from '../services/attendance-device.service.js';
-import { getDeviceProvider, DEVICE_PROVIDERS } from '../lib/device-providers/index.js';
+import { requireUuidParams } from '../middleware/uuid-params.js';
+import { DEVICE_PROVIDERS } from '../lib/device-providers/index.js';
 
 const MGMT = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
 
@@ -33,6 +33,7 @@ async function logDeviceActivity(trx: any, tenantId: string, userId: string, act
 export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
+  requireUuidParams(fastify);
 
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,
   // fleet ops, HR, identity/access admin, or tenant configuration) with only
@@ -222,25 +223,4 @@ export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
     );
   });
 
-  /**
-   * No physical device is reachable to test against — this drives one real
-   * synthetic punch through the exact same recordDevicePunches() pipeline a
-   * genuine device push uses, rather than a separate fake demo path.
-   */
-  fastify.post<{ Params: { id: string } }>('/:id/simulate-punch', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
-    const user = req.user;
-    const body = z.object({ externalPin: z.string().trim().min(1).max(50) }).parse(req.body);
-    const device = await withTenant(user.tenant_id, (trx) =>
-      trx.selectFrom('attendance_devices').select(['id', 'provider']).where('id', '=', req.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
-    );
-    if (!device) return reply.status(404).send({ error: 'Device not found' });
-    if (!getDeviceProvider(device.provider)) return reply.status(500).send({ error: 'Unsupported provider' });
-
-    const { received, matched } = await recordDevicePunches(user.tenant_id, device.id, [
-      { externalPin: body.externalPin, punchedAt: new Date(), rawStatus: null },
-    ]);
-    await withTenant(user.tenant_id, (trx) => logDeviceActivity(trx, user.tenant_id, user.sub, `Simulated a punch on device (PIN ${body.externalPin})`));
-
-    return { ok: true, received, matched };
-  });
 }

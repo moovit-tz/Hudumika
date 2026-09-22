@@ -17,6 +17,7 @@ import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireUuidParams } from '../middleware/uuid-params.js';
 import { overtimeAmount } from '../services/attendance.service.js';
 import { MailService } from '../services/mail.service.js';
 import { GLService } from '../services/gl.service.js';
@@ -85,6 +86,7 @@ async function loadSchemes(trx: any, tenantId: string, jurisdiction: string, onD
 export async function payrollRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
+  requireUuidParams(fastify);
 
   // ── Statutory settings ──────────────────────────────────────────────────
 
@@ -268,6 +270,25 @@ export async function payrollRoutes(fastify: FastifyInstance) {
         period_start: isoDate(start), period_end: isoDate(end),
         jurisdiction: String(b.jurisdiction ?? 'TZ'), status: 'DRAFT', created_by: user.sub,
       } as any).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  // A run could be created but never discarded (nothing set CANCELLED), so a
+  // mistaken click on "Add Payroll" left a stuck run for that month that also
+  // blocked creating another. Only a DRAFT — nothing calculated, nothing
+  // posted — can go; anything past that is financial record and stays.
+  fastify.delete('/runs/:id', { preHandler: requireRole(...PAYROLL_ROLES) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const run = await trx.selectFrom('payroll_runs').select(['id', 'status'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!run) return reply.status(404).send({ error: 'Payroll run not found' });
+      if (run.status !== 'DRAFT') {
+        return reply.status(409).send({ error: `Only a draft run can be deleted — this one is ${String(run.status).toLowerCase()}.` });
+      }
+      await trx.deleteFrom('payroll_runs').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      return reply.status(204).send();
     });
   });
 
@@ -623,7 +644,12 @@ export async function payrollRoutes(fastify: FastifyInstance) {
       reply.header('Content-Disposition', `inline; filename="paye-return-${id}.pdf"`);
       return reply.send(pdf);
     } catch (err: any) {
-      return reply.status(404).send({ error: err.message });
+      // Only the renderer's own "not found" is a 404 — it used to be every
+      // failure, including a raw DB error whose text went to the client.
+      if (err instanceof Error && err.message === 'Payroll run not found') {
+        return reply.status(404).send({ error: err.message });
+      }
+      throw err;
     }
   });
 

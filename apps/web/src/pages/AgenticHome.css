@@ -5,45 +5,438 @@
 
 /* ── Bespoke header ── */
 .ah-header {
-  display: flex; align-items: center; gap: 14px;
-  padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  height: 56px;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 20;
+  box-sizing: border-box;
+}
+
+.ah-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   flex-shrink: 0;
 }
+
 .ah-header-mark {
-  width: 30px; height: 30px; border-radius: 8px; background: var(--teal); border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm, 8px);
+  background: var(--teal);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.15s ease, transform 0.1s ease;
 }
-.ah-header-search { position: relative; flex: 1; max-width: 360px; }
-.ah-header-search > svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+
+.ah-header-mark:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+/* ── Dynamic App Brand Lockup in Header ── */
+.ah-header-brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: default;
+}
+
+.ah-app-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm, 8px);
+  overflow: hidden;
+  box-shadow: var(--elev-sm);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.ah-brand-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ah-brand-title {
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.ah-brand-divider {
+  color: var(--ink3);
+  font-size: 13px;
+  font-weight: 400;
+  margin: 0 2px;
+  opacity: 0.6;
+}
+
+.ah-assignee-label {
+  font-family: var(--font);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink2);
+}
+
+.ah-header-center {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  justify-content: center;
+  max-width: 860px;
+  min-width: 0;
+}
+
+/* ── Perfected Segmented Tabs ── */
+.ah-header-tabs {
+  flex-shrink: 0;
+}
+
+.ah-tabs-list {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  /* Four tabs never need to scroll. The shared .ds-tabs-list is
+     overflow-x:auto and sized to its own content, so a sub-pixel font-width
+     difference made a stray scrollbar appear at the row's right edge and
+     clip the last tab. Narrow windows collapse labels to icons instead
+     (see the media queries below), so there is nothing to scroll to. */
+  overflow: visible;
+  max-width: none;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+/* Waiting-on-you count on the Agent Flow tab. */
+.ah-tab-count {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: var(--gold-l);
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  box-sizing: border-box;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.ah-tab-trigger {
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ah-tab-trigger:hover {
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.ah-tab-trigger[data-state="active"] {
+  background: var(--white);
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: var(--elev-sm);
+}
+
+.ah-header-search {
+  position: relative;
+  flex: 1;
+  max-width: 340px;
+  min-width: 160px;
+}
+
+.ah-header-search > svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
 .ah-header-search input {
-  width: 100%; height: 32px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border);
-  padding: 0 12px 0 32px; font-size: 12.5px; color: var(--ink); font-family: var(--font); outline: none; box-sizing: border-box;
+  width: 100%;
+  height: 34px;
+  border-radius: 9999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 0 14px 0 34px;
+  font-size: 12.5px;
+  color: var(--ink);
+  font-family: var(--font);
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
 }
-.ah-header-search input:focus { border-color: var(--teal-m, var(--teal)); }
+
+.ah-header-search input:focus {
+  border-color: var(--teal);
+  background: var(--white);
+  box-shadow: 0 0 0 3px var(--teal-l);
+}
+
 .ah-search-dropdown {
-  position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--white); border: 1px solid var(--border);
-  border-radius: var(--r-sm); box-shadow: var(--elev); max-height: 320px; overflow-y: auto; z-index: 30;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--elev);
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 30;
 }
-.ah-search-row { display: block; width: 100%; text-align: left; padding: 9px 12px; border: none; background: none; cursor: pointer; border-top: 1px solid var(--border); }
-.ah-search-row:first-child { border-top: none; }
-.ah-search-row:hover { background: var(--bg); }
-.ah-search-primary { font-size: 12.5px; color: var(--ink); font-weight: 500; }
-.ah-search-secondary { font-size: 11px; color: var(--ink3); margin-top: 1px; }
 
-.ah-header-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.ah-search-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-top: 1px solid var(--border);
+}
+
+.ah-search-row:first-child {
+  border-top: none;
+}
+
+.ah-search-row:hover {
+  background: var(--bg);
+}
+
+.ah-search-primary {
+  font-size: 12.5px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.ah-search-secondary {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 1px;
+}
+
+.ah-header-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.ah-header-context-ref {
+  display: flex;
+  align-items: center;
+}
+
+.ah-context-ref-pill {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--teal-d, var(--teal));
+  background: var(--teal-l);
+  border: 1px solid var(--teal-m, var(--teal));
+  padding: 4px 10px;
+  border-radius: var(--r-sm, 6px);
+  letter-spacing: 0.02em;
+}
+
 .ah-header-icon-btn {
-  position: relative; width: 34px; height: 34px; border-radius: 8px; border: none; background: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm, 8px);
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
 }
-.ah-header-icon-btn:hover { background: var(--bg); }
-.ah-header-badge {
-  position: absolute; top: 2px; right: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px;
-  background: var(--red); color: hsl(var(--red-foreground)); font-size: 9.5px; font-weight: 700; display: flex; align-items: center; justify-content: center;
-}
-.ah-header-avatar-btn { border: none; background: none; cursor: pointer; padding: 0; border-radius: 50%; display: flex; }
-.ah-notif-menu { width: 300px; max-height: 320px; overflow-y: auto; }
 
-.ah-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; background: var(--bg); font-family: var(--font); position: relative; }
+.ah-header-icon-btn:hover {
+  background: var(--bg);
+}
+
+.ah-header-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: var(--red);
+  color: hsl(var(--red-foreground));
+  font-size: 9.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ah-header-avatar-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  transition: transform 0.15s ease;
+}
+
+.ah-header-avatar-btn:hover {
+  transform: scale(1.05);
+}
+
+.ah-notif-menu {
+  width: 300px;
+  max-height: 320px;
+  overflow-y: auto;
+  border-radius: var(--r-sm);
+  box-shadow: var(--elev);
+  border: 1px solid var(--border);
+  background: var(--white);
+}
+
+.ah-notif-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+}
+
+.ah-notif-count-pill {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--teal-d, var(--teal));
+  background: var(--teal-l);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* ── Profile Dropdown Menu in Design System ── */
+.ah-profile-dropdown-menu {
+  width: 250px;
+  border-radius: var(--r-sm);
+  box-shadow: var(--elev);
+  border: 1px solid var(--border);
+  background: var(--white);
+  padding: 4px;
+}
+
+.ah-profile-dropdown-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border-radius: var(--r-sm);
+  margin-bottom: 4px;
+}
+
+.ah-profile-dropdown-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ah-profile-dropdown-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.ah-profile-dropdown-role {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 2px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.ah-profile-menu-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ah-profile-menu-link:hover {
+  background: var(--bg);
+}
+
+.ah-profile-menu-logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red);
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  transition: background 0.15s ease;
+}
+
+.ah-profile-menu-logout:hover {
+  background: var(--red-l);
+}
+
+.ah-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg);
+  font-family: var(--font);
+  position: relative;
+}
 
 .agentic-home-root { padding: 24px 0 40px; }
 
@@ -104,6 +497,8 @@
 .ah-queue-main { flex: 1; min-width: 0; }
 .ah-queue-primary { font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ah-queue-secondary { font-size: 11.5px; color: var(--ink3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ah-queue-row--approval .ah-queue-primary, .ah-queue-row--approval .ah-queue-secondary { white-space: normal; }
+.ah-approval-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
 .ah-action-grid { display: flex; flex-direction: column; gap: 8px; }
 .ah-action-btn {
@@ -145,12 +540,155 @@
 .ah-chat-input-row { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
 .ah-chat-input { flex: 1; border: 1px solid var(--border); background: var(--bg); border-radius: 999px; padding: 8px 13px; font-size: 12.5px; color: var(--ink); font-family: var(--font); outline: none; }
 .ah-chat-input:focus { border-color: var(--teal-m, var(--teal)); }
+.ah-chat-input:disabled { opacity: 0.6; cursor: not-allowed; }
 .ah-chat-send { width: 32px; height: 32px; border-radius: 50%; background: var(--teal); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ah-chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+.ah-chat-msg--pending { align-self: flex-start; background: var(--bg); color: var(--ink3); font-style: italic; border-bottom-left-radius: 4px; }
+
+/* A run's held tool call, waiting on a real human decision before it
+   executes — never auto-approved client-side, matching agent.routes.ts's
+   own gate. */
+.ah-approval-card {
+  align-self: stretch; border: 1px solid var(--gold-m, var(--gold)); background: var(--gold-l);
+  border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
+}
+.ah-approval-head { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--ink); text-transform: uppercase; letter-spacing: 0.02em; }
+.ah-approval-effect { font-size: 12.5px; line-height: 1.4; color: var(--ink); }
+.ah-approval-hint { font-size: 11.5px; color: var(--ink3); }
+.ah-approval-actions { display: flex; gap: 8px; margin-top: 2px; }
+
+.ah-agent-flow-view {
+  width: 100%;
+  max-width: 100%;
+  padding: 18px 28px 48px;
+  box-sizing: border-box;
+}
+
+.ah-agent-feature-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 100%;
+  margin: 0 auto 20px;
+  padding: 14px 20px;
+  background: #ffffff;
+  border: 1px solid #fde68a;
+  border-radius: var(--r);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.08);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ah-agent-feature-banner:hover {
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.12);
+}
+
+.ah-agent-feature-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ah-agent-feature-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.ah-agent-feature-sub {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+@media (max-width: 1180px) {
+  .ah-header {
+    padding: 0 16px;
+    gap: 12px;
+  }
+  .ah-header-brand-lockup .ah-assignee-label {
+    display: none;
+  }
+  .ah-header-brand-lockup .ah-brand-divider {
+    display: none;
+  }
+  .ah-header-search {
+    max-width: 220px;
+  }
+}
+
+/* Tabs collapse to icon-only before they can crowd the search box out —
+   the label is also the tooltip and aria-label on each trigger, so nothing
+   becomes unreachable. */
+@media (max-width: 1040px) {
+  .ah-tab-label {
+    display: none;
+  }
+  .ah-tab-trigger {
+    padding: 6px 12px;
+  }
+  .ah-header-context-ref {
+    display: none;
+  }
+}
 
 @media (max-width: 900px) {
-  .ah-body { grid-template-columns: 1fr; padding: 0 20px; }
-  .ah-stat-row { padding: 0 20px; }
-  .hub2-welcome-band, .ah-role-line { padding-left: 20px; padding-right: 20px; }
-  .ah-headline { margin: 16px 20px; }
-  .ah-header-search { display: none; }
+  .ah-header {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .ah-header-search {
+    max-width: 200px;
+    min-width: 120px;
+  }
+  .ah-header-context-ref {
+    display: none;
+  }
+  .ah-body {
+    grid-template-columns: 1fr;
+    padding: 0 16px;
+  }
+  .ah-stat-row {
+    padding: 0 16px;
+  }
+  .hub2-welcome-band, .ah-role-line {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .ah-headline {
+    margin: 16px 16px;
+  }
+  .ah-agent-flow-view {
+    padding: 12px 12px 28px;
+  }
+  .ah-agent-feature-banner {
+    margin: 0 16px 16px;
+  }
 }
+
+@media (max-width: 640px) {
+  .ah-header-brand-lockup .ah-brand-meta {
+    display: none;
+  }
+  .ah-header-search {
+    display: none;
+  }
+  .ah-header-left {
+    gap: 8px;
+  }
+  .ah-header-center {
+    justify-content: flex-start;
+  }
+  .ah-header-tabs [role="tab"] {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  .ah-header-right {
+    gap: 4px;
+  }
+}
+
+

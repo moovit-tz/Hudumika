@@ -371,6 +371,24 @@ export async function updateNote(id: string, patch: Partial<NoteItem>): Promise<
   }
 }
 
+// Pushes an already-set reminder forward (its own lighter endpoint —
+// PATCH /:id/snooze — rather than routing a plain timestamp bump through
+// updateNote's full optimistic-lock/revision-snapshot machinery).
+export async function snoozeReminder(id: string, reminderAt: string) {
+  const prev = notesStore;
+  notesStore = notesStore.map(n => n.id === id ? { ...n, reminder: reminderAt } : n);
+  notify();
+  try {
+    const updated = await withRetry(() => apiFetch(`/v1/notes/${id}/snooze`, { method: 'PATCH', body: JSON.stringify({ reminderAt }) }));
+    notesStore = notesStore.map(n => n.id === id ? fromApiNote(updated) : n);
+    notify();
+  } catch (err: any) {
+    notesStore = prev;
+    notify();
+    await reportFailure('Snoozing the reminder', err);
+  }
+}
+
 // Pin/archive are personal view state (note_user_state), not a note edit —
 // their own endpoints, separate from updateNote's generic content PATCH.
 // One person pinning a note used to pin it for the entire tenant; this is
@@ -587,7 +605,12 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-export async function uploadNoteImage(file: File): Promise<string> {
+/** `fellBackToInline: true` means the real Drive upload failed (no Cloud
+ *  entitlement, network error, etc.) and this image is now embedded as
+ *  base64 instead — still a working image, but the caller should say so
+ *  rather than let it look identical to a normal upload, since inline
+ *  images are the thing that makes a note row large and slow to list. */
+export async function uploadNoteImage(file: File): Promise<{ ref: string; fellBackToInline: boolean }> {
   try {
     const driveId = await resolveNotesDriveId();
     const form = new FormData();
@@ -596,8 +619,8 @@ export async function uploadNoteImage(file: File): Promise<string> {
       method: 'POST',
       body: form,
     }));
-    return `drive:${uploaded.id}`;
+    return { ref: `drive:${uploaded.id}`, fellBackToInline: false };
   } catch {
-    return readFileAsDataUrl(file);
+    return { ref: await readFileAsDataUrl(file), fellBackToInline: true };
   }
 }

@@ -15,6 +15,8 @@ const packageCreateSchema = z.object({
   extra_seat_threshold: z.number().int().nullable().optional(),
   monthly_item_limit: z.number().int().nullable().optional(),
   storage_limit_bytes: z.number().nullable().optional(),
+  monthly_ai_credits: z.number().int().min(0).optional(),
+  byok_ai_allowed: z.boolean().optional(),
   features: z.array(z.any()).optional(),
   color: z.string().max(20).optional(),
   popular: z.boolean().optional(),
@@ -30,6 +32,8 @@ const packagePatchSchema = z.object({
   extra_seat_threshold: z.number().int().nullable().optional(),
   monthly_item_limit: z.number().int().nullable().optional(),
   storage_limit_bytes: z.number().nullable().optional(),
+  monthly_ai_credits: z.number().int().min(0).optional(),
+  byok_ai_allowed: z.boolean().optional(),
   features: z.array(z.any()).optional(),
   color: z.string().max(20).optional(),
   popular: z.boolean().optional(),
@@ -50,6 +54,8 @@ function toPackage(r: any): Package {
     extra_seat_threshold: r.extra_seat_threshold ?? null,
     monthly_item_limit: r.monthly_item_limit ?? null,
     storage_limit_bytes: r.storage_limit_bytes !== null && r.storage_limit_bytes !== undefined ? Number(r.storage_limit_bytes) : null,
+    monthly_ai_credits: r.monthly_ai_credits ?? 0,
+    byok_ai_allowed: r.byok_ai_allowed ?? false,
     features: r.features,
     color: r.color || '#0d7a6b',
     popular: r.popular,
@@ -114,6 +120,8 @@ export async function packagesRoutes(fastify: FastifyInstance) {
           extra_seat_threshold: body.extra_seat_threshold ?? null,
           monthly_item_limit: body.monthly_item_limit ?? null,
           storage_limit_bytes: body.storage_limit_bytes != null ? String(body.storage_limit_bytes) : null,
+          monthly_ai_credits: body.monthly_ai_credits ?? 0,
+          byok_ai_allowed: body.byok_ai_allowed ?? false,
           features: JSON.stringify(body.features ?? []) as unknown as string[],
           color: body.color ?? '#0d7a6b',
           popular: body.popular ?? false,
@@ -150,6 +158,8 @@ export async function packagesRoutes(fastify: FastifyInstance) {
       if (body.extra_seat_threshold !== undefined) updates.extra_seat_threshold = body.extra_seat_threshold;
       if (body.monthly_item_limit !== undefined) updates.monthly_item_limit = body.monthly_item_limit;
       if (body.storage_limit_bytes !== undefined) updates.storage_limit_bytes = body.storage_limit_bytes != null ? String(body.storage_limit_bytes) : null;
+      if (body.monthly_ai_credits !== undefined) updates.monthly_ai_credits = body.monthly_ai_credits;
+      if (body.byok_ai_allowed !== undefined) updates.byok_ai_allowed = body.byok_ai_allowed;
       if (body.features !== undefined) updates.features = JSON.stringify(body.features);
       if (body.color !== undefined) updates.color = body.color;
       if (body.popular !== undefined) updates.popular = body.popular;

@@ -63,7 +63,7 @@ export const APP_LABELS: Record<AppId, string> = {
 // via BrandingView (see useBranding.ts's getAppColor override), this is just
 // the out-of-the-box default so switching apps doesn't re-theme the sidebar/
 // avatar accent by default.
-const DEFAULT_APP_COLOR = '#0b1e3a';
+const DEFAULT_APP_COLOR = '#1257c6';
 export const APP_COLORS: Record<AppId, string> = {
   // Slate, deliberately unlike the customer apps — it should not look like
   // one of them in a screenshot.

@@ -80,6 +80,87 @@ async function persistRefreshedToken(tenantId: string, provider: 'outlook' | 'gm
   });
 }
 
+/** Same idea as persistRefreshedToken above, but for a per-user send
+ *  identity (migration 491) — the refreshed token belongs to this one
+ *  user's row on user_email_accounts, not the tenant's shared settings. */
+async function persistRefreshedUserToken(tenantId: string, userId: string, provider: 'outlook' | 'gmail', tokenInfo: { accessToken: string; expires?: number }): Promise<void> {
+  await withTenant(tenantId, async (trx) => {
+    const patch = provider === 'outlook'
+      ? { outlook_access_token: encryptSecret(tokenInfo.accessToken), ...(tokenInfo.expires ? { outlook_token_expires_at: new Date(tokenInfo.expires) } : {}) }
+      : { gmail_access_token: encryptSecret(tokenInfo.accessToken), ...(tokenInfo.expires ? { gmail_token_expires_at: new Date(tokenInfo.expires) } : {}) };
+    await trx.updateTable('user_email_accounts').set({ ...patch, updated_at: new Date() }).where('user_id', '=', userId).execute();
+  });
+}
+
+/**
+ * A user's own configured send identity (migration 491's send_protocol,
+ * smtp, outlook, and gmail columns on user_email_accounts) — null when the
+ * user hasn't set one up (send_protocol is 'platform', the default), so the
+ * caller falls through to the tenant/system identity exactly as before this
+ * feature existed. Built the same way the tenant-level branches below build
+ * theirs, just sourced from this one user's row instead of tenant_settings.
+ */
+async function buildUserTransporter(tenantId: string, userId: string): Promise<{ transporter: nodemailer.Transporter; fromName: string; fromAddress: string } | null> {
+  const row = await withTenant(tenantId, (trx) =>
+    trx.selectFrom('user_email_accounts').selectAll().where('user_id', '=', userId).executeTakeFirst());
+  if (!row || row.send_protocol === 'platform') return null;
+
+  if (row.send_protocol === 'smtp') {
+    if (!row.smtp_host || !row.smtp_user || !row.smtp_pass) return null;
+    const transporter = buildSmtpTransporter({
+      host: row.smtp_host, port: row.smtp_port, user: row.smtp_user,
+      pass: decryptIfEncrypted(row.smtp_pass), enc: row.smtp_encryption,
+    });
+    return { transporter, fromName: row.from_name || 'Hudumika', fromAddress: row.from_email || row.smtp_user };
+  }
+
+  // outlook | gmail — the token exchange never learns the authorized
+  // account's own address, so a from_email must already be on file or
+  // there's nothing valid to put in the SASL username/From header; falls
+  // through to the tenant/system identity rather than sending as "<>".
+  const refreshToken = row.send_protocol === 'outlook' ? row.outlook_refresh_token : row.gmail_refresh_token;
+  if (!refreshToken || !row.from_email) return null;
+  const accessToken = row.send_protocol === 'outlook' ? row.outlook_access_token : row.gmail_access_token;
+  const expiresAt = row.send_protocol === 'outlook' ? row.outlook_token_expires_at : row.gmail_token_expires_at;
+
+  // OAuth2 needs the tenant's registered app (Client ID/Secret) — only the
+  // resulting tokens are per-user, same reasoning as mail-oauth.routes.ts's
+  // authorize-personal route.
+  const settingsRow = await withTenant(tenantId, (trx) =>
+    trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst());
+  const settings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : {};
+  const emailConfig = settings?.email ?? {};
+  const clientId = emailConfig[`${row.send_protocol}ClientId`];
+  const clientSecret = emailConfig[`${row.send_protocol}ClientSecret`];
+  if (!clientId || !clientSecret) return null;
+
+  const transporter = nodemailer.createTransport({
+    ...(row.send_protocol === 'outlook'
+      ? { host: 'smtp.office365.com', port: 587, secure: false, requireTLS: true }
+      : { service: 'gmail' }),
+    auth: {
+      type: 'OAuth2',
+      user: row.from_email,
+      clientId,
+      clientSecret: decryptIfEncrypted(clientSecret),
+      refreshToken: decryptIfEncrypted(refreshToken),
+      accessToken: accessToken ? decryptIfEncrypted(accessToken) : undefined,
+      expires: expiresAt ? new Date(expiresAt).getTime() : undefined,
+    },
+  } as any);
+
+  transporter.on('token', (tokenInfo: { accessToken: string; expires?: number }) => {
+    persistRefreshedUserToken(tenantId, userId, row.send_protocol as 'outlook' | 'gmail', tokenInfo)
+      .catch(err => console.error(`[EmailIntegration] failed to persist refreshed user ${row.send_protocol} token:`, err.message));
+  });
+
+  // Same limitation the tenant-level OAuth branch below already has: the
+  // token exchange never learns the authorized account's own address, so
+  // fromEmail has to be set explicitly in Email Settings for OAuth sending
+  // to use the right address (the UI prompts for it once a provider connects).
+  return { transporter, fromName: row.from_name || 'Hudumika', fromAddress: row.from_email || '' };
+}
+
 export class EmailIntegration {
   /**
    * Send an email utilizing SMTP, Sendmail, or system defaults (no SMTP config needed)
@@ -99,8 +180,32 @@ export class EmailIntegration {
      *  fallback. */
     inReplyToMessageId?: string | null;
     referencesMessageIds?: string[];
+    /** The Email app's own compose/reply send (scheduled-email-send.job.ts
+     *  passes the owning row's user_id) — checked against that user's own
+     *  configured send identity (migration 491) before falling back to the
+     *  tenant/system identity below. Never set by system-generated mail
+     *  (payroll, workflow notifications, etc.), which should always use the
+     *  shared tenant identity regardless of who triggered it. */
+    userId?: string;
   }): Promise<{ success: boolean; messageId?: string; error?: string; simulated?: boolean }> {
     try {
+      if (input.tenantId && input.userId) {
+        const userIdentity = await buildUserTransporter(input.tenantId, input.userId).catch(() => null);
+        if (userIdentity) {
+          const info = await userIdentity.transporter.sendMail({
+            from: `"${userIdentity.fromName}" <${userIdentity.fromAddress}>`,
+            to: input.to,
+            cc: input.cc?.length ? input.cc.join(',') : undefined,
+            subject: input.subject,
+            html: input.bodyHtml,
+            attachments: input.attachments,
+            inReplyTo: input.inReplyToMessageId ?? undefined,
+            references: input.referencesMessageIds?.length ? input.referencesMessageIds : undefined,
+          });
+          return { success: true, messageId: info.messageId };
+        }
+      }
+
       let emailConfig: any = null;
 
       // 1. Fetch tenant email configuration if tenantId is provided

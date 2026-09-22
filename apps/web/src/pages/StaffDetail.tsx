@@ -75,6 +75,10 @@ interface StaffData {
   // null when this person (or their whole ancestor chain) isn't placed in
   // the chart yet.
   org_chart_manager?: { id: string; name: string } | null;
+  // What the API let this viewer see: 'full' (themselves/admin), 'team' (their
+  // manager — identity but never pay), 'directory' (an unrelated manager —
+  // profile only). Withheld fields are absent from the response, not empty.
+  record_access?: 'full' | 'team' | 'directory';
 }
 
 // Shared, so this page agrees with the header above it and with every other app.
@@ -537,13 +541,18 @@ export const StaffDetail: React.FC = () => {
         department_id: editForm.department_id || null,
         designation_id: editForm.designation_id || null,
         profile: editForm.profile,
-        hire_date: editForm.hire_date,
-        tax_residency: editForm.tax_residency,
-        national_id: editForm.national_id,
-        tax_id: editForm.tax_id,
-        social_security_no: editForm.social_security_no,
-        health_insurance_no: editForm.health_insurance_no,
-        pension_fund: editForm.pension_fund,
+        // A directory-only viewer (an unrelated manager) never received these
+        // values and may not write them; re-sending the blanks would be refused,
+        // or read as "clear this field", so leave them out of the save entirely.
+        ...(staff.record_access === 'directory' ? {} : {
+          hire_date: editForm.hire_date,
+          tax_residency: editForm.tax_residency,
+          national_id: editForm.national_id,
+          tax_id: editForm.tax_id,
+          social_security_no: editForm.social_security_no,
+          health_insurance_no: editForm.health_insurance_no,
+          pension_fund: editForm.pension_fund,
+        }),
       };
       if (canSetPay) {
         Object.assign(payload, {
@@ -728,17 +737,15 @@ export const StaffDetail: React.FC = () => {
     .filter(f => f && f !== 'Not set' && f !== '—').length;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
-      <div style={{ padding: '20px 32px 0 32px' }}>
-        <PageHeader crumbs={['NexusHR', 'Staff']} titlePlain="Staff" titleEm="profile" subtitle={staff.name} />
-      </div>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)', minWidth: 0 }}>
+      <PageHeader crumbs={['NexusHR', 'Staff']} titlePlain="Staff" titleEm="profile" subtitle={staff.name} />
       {/* Top Header Section */}
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ padding: '24px 32px 0 32px' }}>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxShadow: 'var(--elev-sm)', overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px 0' }}>
           <BackButton to="/nexushr/employees" label="Employees" color="var(--blue)" />
         </div>
         {/* Profile Info Row */}
-        <div style={{ padding: '24px 32px 16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Every account can have a picture, not only the ones whose owner
                 thought to set one. This also read staff.avatar_url directly,
@@ -775,20 +782,18 @@ export const StaffDetail: React.FC = () => {
               <div style={{ margin: '0 0 6px 0', fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{staff.name}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--ink2)', flexWrap: 'wrap' }}>
                 {staff.designation || 'No designation'} &bull; {staff.dept || 'No department'} &bull; <strong style={{ color: 'var(--ink)' }}>{staff.employee_code}</strong>
-                <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: ss.bg, color: ss.color }}>{ss.label}</span>
+                <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 'var(--badge-radius)', fontSize: 10, fontWeight: 700, background: ss.bg, color: ss.color }}>{ss.label}</span>
               </div>
             </div>
           </div>
           <div>
-            <button type="button" onClick={startEdit} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-              <Icon name="edit" size={14} color="hsl(var(--primary-foreground))" /> Edit
-            </button>
+            <Button type="button" size="sm" onClick={startEdit}><Icon name="edit" size={14} /> Edit</Button>
           </div>
         </div>
 
         {/* Horizontal Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} variant="segmented">
-        <TabsList style={{ margin: '14px 32px 16px' }}>
+        <TabsList style={{ margin: '0 20px 16px' }}>
           {TABS.map(t => (
             <TabsTrigger key={t} value={t}>
               {t}
@@ -799,7 +804,7 @@ export const StaffDetail: React.FC = () => {
       </div>
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', paddingTop: 'var(--space-md)' }}>
         {tab === 'Profile' && (
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 24, alignItems: 'flex-start' }}>
             
@@ -843,7 +848,12 @@ export const StaffDetail: React.FC = () => {
               {/* Everything payroll needs to file a return. Blank until somebody
                   enters it — the engine treats missing as missing, not zero. */}
               <ProfileCard icon={<Icon name="shield" size={14} />} title="Statutory identity" filled={statutoryFilled} total={6}>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
+                {staff.record_access === 'directory' && (
+                  <div style={{ fontSize: 12.5, color: 'var(--ink2)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px' }}>
+                    Restricted — identity numbers are only visible to this person, their reporting line and administrators.
+                  </div>
+                )}
+                {staff.record_access !== 'directory' && <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
                   <FieldItem label="NIDA / National ID" value={staff.national_id} />
                   <FieldItem label="TIN" value={staff.tax_id} />
                   <FieldItem label="Social security no." value={staff.social_security_no} />
@@ -853,7 +863,7 @@ export const StaffDetail: React.FC = () => {
                     label="Tax residency"
                     value={staff.tax_residency === 'NON_RESIDENT' ? 'Non-resident' : staff.tax_residency === 'RESIDENT' ? 'Resident' : null}
                   />
-                </div>
+                </div>}
                 {staff.tax_residency === 'NON_RESIDENT' && (
                   <div style={{ fontSize: 12, color: 'var(--ink2)', background: 'var(--gold-l)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '8px 10px', marginBottom: 16 }}>
                     PAYE is a flat 15% with no tax-free band for a non-resident.
@@ -903,7 +913,7 @@ export const StaffDetail: React.FC = () => {
               <SectionCard title="Account">
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Status</span>
-                    <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: ss.bg, color: ss.color }}>{ss.label}</span>
+                    <span style={{ padding: '2px 8px', borderRadius: 'var(--badge-radius)', fontSize: 10, fontWeight: 700, background: ss.bg, color: ss.color }}>{ss.label}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Role</span>

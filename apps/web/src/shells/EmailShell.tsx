@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { AppSidebar } from '../components/AppSidebar.js';
@@ -7,8 +8,9 @@ import { EmailApp } from '../pages/EmailApp.js';
 import { EmailTemplates } from '../pages/EmailTemplates.js';
 import { Icon } from '../components/Icon.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
+import { apiFetch } from '../lib/api.js';
 
-const NAV: SidebarSection[] = [
+const BASE_NAV: SidebarSection[] = [
   {
     title: 'MAIL',
     items: [
@@ -47,12 +49,24 @@ function ComposeButton({ collapsed }: { collapsed: boolean }) {
 }
 
 export function EmailShell() {
+  // Fetched here (not lifted from EmailApp.tsx) so the sidebar's "Labels"
+  // section works independent of whether EmailApp itself has mounted/loaded
+  // yet — same cheap GET, just called from wherever it's needed.
+  const [labels, setLabels] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    apiFetch('/v1/email/labels').then(res => setLabels(Array.isArray(res) ? res : [])).catch(() => {});
+  }, []);
+
+  const nav: SidebarSection[] = labels.length > 0
+    ? [...BASE_NAV, { title: 'LABELS', items: labels.map(l => ({ label: l.name, icon: 'tag' as const, path: `/email?label=${encodeURIComponent(l.name)}` })) }]
+    : BASE_NAV;
+
   return (
     <WorkspaceApp appId="email">
       <div className="app-shell">
         <AppSidebar
           appId="email"
-          sections={NAV}
+          sections={nav}
           beforeNav={({ collapsed }) => <ComposeButton collapsed={collapsed} />}
         />
         <div className="app-main">

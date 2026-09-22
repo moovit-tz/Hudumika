@@ -460,6 +460,7 @@ const AppContentBody: React.FC = () => {
           <Route path="/workspace/*"element={<AdminShell />} />
           <Route path="/admin/*"    element={<SuperAdminShell />} />
           <Route path="/ai/*"       element={<AIShell />} />
+          <Route path="/agent"      element={<Navigate to="/ai/agent" replace />} />
           <Route path="/complyos/*" element={<ComplyOSShell />} />
           <Route path="/seal/*"     element={<SealShell />} />
           <Route path="/inventory/*" element={<InventoryShell />} />

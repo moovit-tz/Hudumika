@@ -13,6 +13,7 @@ import { SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import type { WorkflowStudioApp, WorkflowStudioTriggerDef, WorkflowStudioActionDef } from '@hudumika/types';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Tip } from '../../components/ui/tooltip.js';
 
 /**
  * The workflow list.
@@ -188,9 +189,9 @@ export function WorkflowList() {
             >
               <div className="studio-workflow-item-header">
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <div onClick={e => e.stopPropagation()} title={w.supersedes_subscriber ? `Activating stands down the ${w.supersedes_subscriber} code subscriber` : undefined}>
+                  <Tip label={w.supersedes_subscriber ? `Activating stands down the ${w.supersedes_subscriber} code subscriber` : 'Toggle workflow status'}><div onClick={e => e.stopPropagation()}>
                     <Switch checked={w.status === 'ACTIVE'} disabled={busyId === w.id || !trig} onCheckedChange={v => toggle(w, v)} />
-                  </div>
+                  </div></Tip>
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{w.name}</span>
                   <Badge variant={w.status === 'ACTIVE' ? 'success' : w.status === 'PAUSED' ? 'warning' : 'gray'}>{w.status}</Badge>
                   {!trig && <Badge variant="error">Trigger not registered</Badge>}

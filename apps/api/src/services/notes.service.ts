@@ -91,6 +91,53 @@ function computeCanEdit(row: { visibility: string; created_by: string | null }, 
   return false;
 }
 
+// The only subject types a client can ever actually set — matches
+// NotesApp.tsx's own LINKABLE_CATEGORIES exactly, the sole UI path that
+// writes subjectType/subjectId. Neither the route schema nor this service
+// checked that the type was one of these, that the id existed, or that it
+// belonged to this tenant — a caller hitting the API directly could attach a
+// note to a bogus type, a nonexistent record, or (since only the mapped
+// table's own tenant_id is what's actually checked here) another tenant's
+// record id, producing a stale or misleading link with no error anywhere.
+const SUBJECT_TABLES: Record<string, string> = {
+  customer: 'customers',
+  invoice: 'sales_invoices',
+  shipment: 'shipment_cases',
+};
+
+async function assertValidSubject(trx: any, tenantId: string, subjectType: string | null | undefined, subjectId: string | null | undefined): Promise<void> {
+  if (!subjectType && !subjectId) return;
+  if (!subjectType || !subjectId) {
+    throw new Error('A linked record needs both a type and an id.');
+  }
+  const table = SUBJECT_TABLES[subjectType];
+  if (!table) {
+    throw new Error(`"${subjectType}" is not a linkable record type.`);
+  }
+  const exists = await trx.selectFrom(table).select('id')
+    .where('id', '=', subjectId).where('tenant_id', '=', tenantId).executeTakeFirst();
+  if (!exists) {
+    throw new Error('The linked record was not found.');
+  }
+}
+
+// Share entries only checked that userId was a well-formed UUID — never
+// that it belonged to a real user, let alone this tenant. A share row for a
+// foreign or nonexistent user still can't actually grant that id access
+// (every read/write here is tenant-scoped regardless), but it's dead,
+// misleading data sitting on the note's own share list.
+async function assertValidShares(trx: any, tenantId: string, shares: NoteShareEntry[] | undefined): Promise<void> {
+  if (!shares?.length) return;
+  const ids = [...new Set(shares.map(s => s.userId))];
+  const rows = await trx.selectFrom('users').select('id')
+    .where('id', 'in', ids).where('tenant_id', '=', tenantId).execute();
+  const found = new Set(rows.map((r: { id: string }) => r.id));
+  const missing = ids.filter(id => !found.has(id));
+  if (missing.length) {
+    throw new Error(`These users don't belong to this tenant: ${missing.join(', ')}`);
+  }
+}
+
 function mapNote(row: any, viewerId: string, shares: NoteShareEntry[] = []) {
   const myShare = shares.find(s => s.userId === viewerId);
   return {
@@ -253,7 +300,9 @@ export async function listNotes(tenantId: string, userId: string, filter?: Notes
 
 export async function createNote(tenantId: string, userId: string, input: NoteInput) {
   return withTenant(tenantId, async (trx) => {
+    await assertValidSubject(trx, tenantId, input.subjectType, input.subjectId);
     const visibility: NoteVisibility = input.visibility ?? 'team';
+    if (visibility === 'shared') await assertValidShares(trx, tenantId, input.shares);
     const row = await trx.insertInto('notes').values({
       tenant_id: tenantId,
       created_by: userId,
@@ -300,6 +349,14 @@ export async function updateNote(tenantId: string, userId: string, id: string, i
       throw new NoteForbiddenError("Only this note's creator can change who it's shared with.");
     }
 
+    // Legal hold is a retention/compliance control, not a content edit — the
+    // frontend only renders the toggle for the owner (NotesApp.tsx), but
+    // nothing stopped a collaborator with plain edit access from setting or
+    // clearing it via a direct PATCH. Same ownership rule as visibility/shares.
+    if (input.legalHold !== undefined && !isCreator) {
+      throw new NoteForbiddenError("Only this note's creator can change its legal hold status.");
+    }
+
     let myPermission: string | undefined;
     if (existing.visibility === 'shared' && !isCreator) {
       const share = await trx.selectFrom('note_shares').select('permission')
@@ -307,6 +364,11 @@ export async function updateNote(tenantId: string, userId: string, id: string, i
       myPermission = share?.permission;
     }
     if (!computeCanEdit(existing, userId, myPermission)) throw new NoteForbiddenError();
+
+    if (input.subjectType !== undefined || input.subjectId !== undefined) {
+      await assertValidSubject(trx, tenantId, input.subjectType, input.subjectId);
+    }
+    if (input.shares !== undefined) await assertValidShares(trx, tenantId, input.shares);
 
     if (input.expectedUpdatedAt && new Date(input.expectedUpdatedAt).getTime() !== new Date(existing.updated_at).getTime()) {
       const shares = existing.visibility === 'shared' ? await listShareEntries(trx, tenantId, id) : [];
@@ -389,6 +451,21 @@ export async function setArchived(tenantId: string, userId: string, id: string, 
       .values({ note_id: id, tenant_id: tenantId, user_id: userId, is_pinned: false, is_archived: archived, updated_at: new Date() })
       .onConflict((oc: any) => oc.columns(['note_id', 'user_id']).doUpdateSet({ is_archived: archived, updated_at: new Date() }))
       .execute();
+    return loadForViewer(trx, tenantId, id, userId);
+  });
+}
+
+// Pushes a reminder forward and re-arms it — same re-arm logic updateNote
+// already applies whenever reminderAt changes, factored out so the
+// "Snooze 1 hour" action on the in-app notification (notes-reminder.job.ts)
+// doesn't have to round-trip the note's full content through updateNote's
+// optimistic-lock/revision-snapshot machinery just to move one timestamp.
+export async function snoozeReminder(tenantId: string, userId: string, id: string, reminderAt: string) {
+  return withTenant(tenantId, async (trx) => {
+    await assertCanEdit(trx, tenantId, id, userId);
+    await trx.updateTable('notes')
+      .set({ reminder_at: new Date(reminderAt), reminder_notified_at: null, updated_at: new Date(), updated_by: userId })
+      .where('id', '=', id).where('tenant_id', '=', tenantId).execute();
     return loadForViewer(trx, tenantId, id, userId);
   });
 }

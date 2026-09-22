@@ -33,7 +33,7 @@
   min-width: 0;
 }
 
-.partner-profile-tabs {
+.partner-profile-tab-root {
   display: flex;
   min-height: 0;
   flex: 1;
@@ -104,7 +104,18 @@
 .partner-history-item strong { color: var(--ink); font-size: 13px; font-weight: 600; }
 .partner-history-item div span { color: var(--ink3); font-size: 11px; }
 
+[data-theme="dark"] [data-crm="true"] .partner-profile-field,
+[data-theme="dark"] [data-crm="true"] .partner-profile-notes {
+  background: var(--crm-night-sunken, var(--bg));
+  border-color: var(--crm-night-edge, var(--border));
+}
+
+[data-theme="dark"] [data-crm="true"] .partner-category-card {
+  background: var(--teal-l);
+  border-color: color-mix(in srgb, var(--teal) 38%, var(--border));
+}
+
 @media (max-width: 600px) {
   .partner-profile-grid { grid-template-columns: 1fr; }
-  .partner-profile-tabs { padding-inline: 14px; }
+  .partner-profile-tab-root { padding-inline: 14px; }
 }

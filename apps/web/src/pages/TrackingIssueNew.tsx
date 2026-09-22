@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
-import { BackButton } from '../components/ui/BackButton.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -54,11 +53,12 @@ export const TrackingIssueNew: React.FC = () => {
 
   return (
     <div style={{ padding: '0 0 24px'}}>
-      <BackButton to="/tracking/issues" label="Issues" />
       <PageHeader
         crumbs={['HuduFreight', 'Report Issue']}
-        titlePlain="Report an"
-        titleEm="issue"
+        title="Report an issue"
+        subtitle="Create a trackable vehicle problem for the fleet team."
+        variant="create"
+        backTo="/tracking/issues"
       />
 
       <SectionCard>

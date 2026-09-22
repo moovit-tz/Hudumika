@@ -153,7 +153,7 @@ export const FinanceLedger: React.FC = () => {
   if (loading) return <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>Loading ledger…</div>;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
+    <div className="finance-ledger-page" style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
       {/* Header */}
       <PageHeader
         crumbs={['Finance', 'Accounts']}
@@ -245,7 +245,7 @@ export const FinanceLedger: React.FC = () => {
             <span style={{ fontSize:11, color:'var(--ink3)' }}>— {grouped[t]!.length} accounts</span>
           </div>
 
-          <div style={{ border:'1px solid var(--border)', borderTop:'none', borderRadius: `0 0 var(--r) var(--r)`, overflow:'hidden', overflowX:'auto' }}>
+          <div className="finance-ledger-group" style={{ border:'1px solid var(--border)', borderTop:'none', borderRadius: `0 0 var(--r) var(--r)`, overflow:'hidden', overflowX:'auto' }}>
             {/* Account rows */}
             {grouped[t]!.map((acc, ai) => {
               const open = acc.opening_debit - acc.opening_credit;
@@ -259,8 +259,11 @@ export const FinanceLedger: React.FC = () => {
                 <div key={acc.account_code} style={{ borderBottom: ai < grouped[t]!.length-1 ? '1px solid var(--border)' : 'none' }}>
                   {/* Account header row */}
                   <button type="button" title={`Expand ${acc.account_name}`}
+                    className="finance-ledger-account-row"
+                    data-open={isOpen ? 'true' : 'false'}
+                    aria-expanded={isOpen}
                     onClick={() => toggleExpand(acc)}
-                    style={{ width:'100%', display:'grid', gridTemplateColumns:'28px 70px 1fr 140px 140px 140px 28px', alignItems:'center', gap:0, padding:'var(--ds-btn-py) 14px', background: isOpen ? 'var(--bg)' : 'var(--white)', border:'none', cursor:'pointer', fontFamily:'var(--font)', textAlign:'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    style={{ width:'100%', display:'grid', gridTemplateColumns:'28px 70px minmax(180px, 1fr) 140px 140px 140px 50px', alignItems:'center', gap:0, padding:'var(--ds-btn-py) 14px', border:'none', cursor:'pointer', fontFamily:'var(--font)', textAlign:'left', minHeight: 'var(--ctl-h)', minWidth: 790, boxSizing: 'border-box', lineHeight: 1.25}}>
                     <span style={{ fontSize:11, color:cfg.color, fontWeight:700 }}>{isOpen ? '−' : '+'}</span>
                     <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--ink3)', fontWeight:600 }}>{acc.account_code}</span>
                     <span style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{acc.account_name}</span>
@@ -276,7 +279,7 @@ export const FinanceLedger: React.FC = () => {
 
                   {/* Transaction detail */}
                   {isOpen && (
-                    <div style={{ background:'var(--bg)' }}>
+                    <div className="finance-ledger-detail" style={{ background:'var(--bg)', minWidth: 790 }}>
                       {isLoadingLedger ? (
                         <div style={{ padding:'16px', fontSize:12, color:'var(--ink3)', textAlign:'center' }}>Loading entries…</div>
                       ) : !ledger ? (
@@ -300,7 +303,7 @@ export const FinanceLedger: React.FC = () => {
                       </div>
                       {/* Entries */}
                       {ledger.entries.map((e, ei) => (
-                        <div key={e.id} style={{ display:'grid', gridTemplateColumns:'28px 70px 120px 1fr 130px 130px 130px', gap:0, padding:'8px 14px', borderBottom:'1px solid var(--border)', background: ei%2===1 ? 'var(--white)' : 'var(--bg)' }}>
+                        <div key={e.id} className="finance-ledger-entry-row" data-stripe={ei % 2 === 1 ? 'true' : 'false'} style={{ display:'grid', gridTemplateColumns:'28px 70px 120px 1fr 130px 130px 130px', gap:0, padding:'8px 14px', borderBottom:'1px solid var(--border)' }}>
                           <span/>
                           <span style={{ fontSize:11, fontFamily:'var(--mono)', color:'var(--ink3)' }}>{e.entry_number}</span>
                           <span style={{ fontSize:11, color:'var(--ink3)' }}>{fmtDate(e.date)}</span>

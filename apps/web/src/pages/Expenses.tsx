@@ -478,7 +478,7 @@ export const Expenses: React.FC = () => {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'var(--white)' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <PageHeader
         crumbs={['FINANCE', 'EXPENSES']}
         titlePlain="Expense "
@@ -575,7 +575,7 @@ export const Expenses: React.FC = () => {
       <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
 
       {/* ── Left: List Panel ── */}
-      <div style={{ width: isSplit ? '42%' : '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'width 0.2s ease', borderRight: isSplit ? '1px solid var(--border)' : 'none' }}>
+      <div style={{ width: '100%', flexShrink: 0, display: isSplit ? 'none' : 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Table Header */}
         <div style={{ display: 'flex', padding: '8px 20px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
@@ -596,7 +596,7 @@ export const Expenses: React.FC = () => {
               <div
                 key={`${e.source}-${e.id}`}
                 onClick={() => selectRow(e)}
-                style={{ display: 'flex', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--border)', background: isSel ? '#f0f9ff' : 'var(--white)', cursor: 'pointer', transition: 'background 0.15s' }}
+                style={{ display: 'flex', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--border)', background: isSel ? 'var(--teal-l)' : 'var(--white)', cursor: 'pointer', transition: 'background 0.15s' }}
               >
 
                 {/* Description */}
@@ -625,7 +625,7 @@ export const Expenses: React.FC = () => {
                 {!isSplit && (
                   <div style={{ flex: 1 }}>
                     {e.source !== 'finance' ? (
-                      <span style={{ fontSize: 11, color: '#0891b2', background: '#ecfeff', padding: '2px 6px', borderRadius: 'var(--r-sm)', width: 'fit-content' }}>{SOURCE_LABEL[e.source]}</span>
+                      <span style={{ fontSize: 11, color: 'var(--blue)', background: 'var(--blue-l)', padding: '2px 6px', borderRadius: 'var(--r-sm)', width: 'fit-content' }}>{SOURCE_LABEL[e.source]}</span>
                     ) : (
                       <>
                         {e.shipment_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--navy)', background: 'hsl(var(--muted))', padding: '2px 6px', borderRadius: 'var(--r-sm)', width: 'fit-content', marginBottom: 2 }}><Icon name="package" size={10} /> Job Link</div>}

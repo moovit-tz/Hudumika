@@ -1,0 +1,930 @@
+/* ─── Route6 / Agentic Execution Stage CSS (Hudumika Design System) ─── */
+
+.r6-stage-wrapper {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  font-family: var(--font);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+/* ── Top Bar Controls & Presets (Workflow navigation on top) ── */
+.r6-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  padding: 10px 20px;
+  border-radius: var(--r);
+  box-shadow: var(--elev-sm);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.r6-preset-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.r6-controls-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 4px;
+}
+
+.r6-preset-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--bg);
+  color: var(--ink2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font);
+}
+
+.r6-preset-pill:hover {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--border2, var(--border));
+}
+
+.r6-preset-pill.active {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: transparent;
+  box-shadow: var(--elev-sm);
+}
+
+.r6-preset-pill-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.r6-preset-ref {
+  opacity: 0.8;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.r6-playback-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.r6-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--white);
+  color: var(--ink2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font);
+}
+
+.r6-action-btn:hover {
+  background: var(--bg);
+  color: var(--ink);
+  border-color: var(--border2, var(--border));
+}
+
+.r6-action-btn.primary {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: transparent;
+}
+
+.r6-speed-select {
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink2);
+  cursor: pointer;
+  outline: none;
+  font-family: var(--font);
+  transition: border-color 0.15s ease;
+}
+
+.r6-speed-select:focus {
+  border-color: var(--teal);
+}
+
+/* ── Main Canvas Stage ── */
+.r6-stage-canvas {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--elev);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 580px;
+  position: relative;
+  transition: all 0.25s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Canvas Header (Rendered only when not hoisted) ── */
+.r6-canvas-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+}
+
+.r6-brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.r6-brand-title {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.r6-brand-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 2px;
+}
+
+.r6-assignee-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink2);
+}
+
+.r6-header-ref {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* ── Canvas Body Split ── */
+.r6-canvas-body {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  flex: 1;
+  min-height: 540px;
+}
+
+/* ── Left Stepper Column ── */
+.r6-left-sidebar {
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.r6-assigned-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--elev-sm);
+}
+
+.r6-assigned-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.r6-assigned-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink3);
+}
+
+.r6-assigned-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.r6-assigned-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+/* Stepper items */
+.r6-stepper-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.r6-step-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: var(--r-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+.r6-step-row:hover {
+  background: var(--white);
+  border-color: var(--border);
+}
+
+.r6-step-row.completed {
+  background: var(--green-l);
+  border-color: var(--green-m, var(--green-l));
+}
+
+.r6-step-row.active {
+  background: var(--white);
+  border-color: var(--teal);
+  box-shadow: var(--elev-sm);
+}
+
+.r6-step-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.r6-step-badge.num {
+  background: var(--border);
+  color: var(--ink3);
+}
+
+.r6-step-badge.check {
+  background: var(--green);
+  color: #ffffff;
+}
+
+.r6-step-badge.active-num {
+  background: var(--teal);
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 0 0 3px var(--teal-l);
+}
+
+.r6-step-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink2);
+  line-height: 1.3;
+}
+
+.r6-step-row.completed .r6-step-title {
+  color: var(--green-d, var(--green));
+  font-weight: 700;
+}
+
+.r6-step-row.active .r6-step-title {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* ── Right Stage Column ── */
+.r6-main-stage {
+  padding: 32px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 22px;
+  background: var(--white);
+  position: relative;
+}
+
+/* Stage Top Bar */
+.r6-stage-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.r6-stage-ref {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.r6-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.r6-status-indicator.working {
+  color: var(--gold-d, #d97706);
+}
+
+.r6-status-indicator.completed {
+  color: var(--green);
+}
+
+.r6-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: r6-pulse 1.4s infinite ease-in-out;
+}
+
+@keyframes r6-pulse {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 8px currentColor; }
+  100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+/* Dynamic Action Header */
+.r6-action-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: r6-fade-in-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.r6-action-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink3);
+}
+
+.r6-action-headline {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  line-height: 1.15;
+}
+
+/* ── Interactive Card Containers ── */
+.r6-artifact-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 26px 30px;
+  box-shadow: var(--elev-sm);
+  animation: r6-card-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
+}
+
+@keyframes r6-fade-in-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes r6-card-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Card 1: Trip Closed ── */
+.r6-trip-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.r6-trip-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.r6-tag-small {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink3);
+  margin-bottom: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.r6-plate-big {
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.r6-trip-meta {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink2);
+  margin-top: 6px;
+}
+
+.r6-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.r6-pill-badge.green {
+  background: var(--green-l);
+  color: var(--green);
+  border: 1px solid var(--green-m, var(--green));
+}
+
+/* ── Card 2: Delivery Note Checked ── */
+.r6-dn-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.r6-dn-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.r6-dn-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.r6-dn-desc {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink2);
+}
+
+.r6-dn-audit {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* ── Card 3: Maintenance Scheduled ── */
+.r6-maint-card-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.r6-calendar-widget {
+  width: 95px;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--white);
+  border: 1px solid var(--gold-m, var(--gold));
+  box-shadow: var(--elev-sm);
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.r6-cal-header {
+  background: var(--gold);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 4px 0;
+  text-transform: uppercase;
+}
+
+.r6-cal-body {
+  background: var(--gold-l);
+  padding: 6px 0 4px;
+}
+
+.r6-cal-day {
+  font-size: 36px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.r6-cal-footer {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--gold-d, #854d0e);
+  letter-spacing: 0.05em;
+  padding-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.r6-maint-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.r6-maint-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-top: 2px;
+}
+
+.r6-maint-meta {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink2);
+  margin-top: 4px;
+}
+
+/* ── Card 4: Invoice Created ── */
+.r6-invoice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.r6-invoice-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.r6-bill-to-name {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.r6-invoice-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.r6-invoice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.r6-invoice-row.highlighted {
+  background: var(--gold-l);
+  padding: 12px 16px;
+  border-radius: var(--r-sm);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--gold-d, #854d0e);
+  border: 1px solid var(--gold-m, var(--gold));
+  margin: 4px 0;
+}
+
+.r6-amount {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+}
+
+.r6-invoice-footer {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink3);
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+/* ── Card 5: Gmail Client ── */
+.r6-gmail-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid var(--border);
+  background: var(--white);
+}
+
+.r6-gmail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.r6-gmail-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.r6-gmail-m-icon {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--red);
+}
+
+.r6-gmail-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink3);
+}
+
+.r6-gmail-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.r6-gmail-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.r6-gmail-field-label {
+  width: 60px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink3);
+  flex-shrink: 0;
+}
+
+.r6-gmail-field-val {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.r6-gmail-body {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  padding: 10px 0;
+}
+
+.r6-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  width: fit-content;
+}
+
+.r6-pdf-badge {
+  background: var(--red);
+  color: hsl(var(--red-foreground));
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+.r6-gmail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.r6-send-btn {
+  background: var(--blue);
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 8px 24px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.r6-send-btn:hover {
+  opacity: 0.9;
+}
+
+.r6-msg-sent-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ink);
+  color: var(--white);
+  padding: 8px 16px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: var(--elev);
+}
+
+/* ── Interactive Command Prompt Bar (Matches workflow and stage width) ── */
+.r6-prompt-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: var(--r);
+  box-shadow: var(--elev-sm);
+  width: 100%;
+  height: 52px;
+  box-sizing: border-box;
+}
+
+.r6-prompt-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  background: transparent;
+  font-family: var(--font);
+}
+
+.r6-prompt-input::placeholder {
+  color: var(--ink3);
+}
+
+.r6-prompt-submit {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  padding: 8px 18px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+  font-family: var(--font);
+}
+
+.r6-prompt-submit:hover {
+  opacity: 0.9;
+}
+
+/* ── Responsive rules ── */
+@media (max-width: 1100px) {
+  .r6-canvas-body {
+    grid-template-columns: 280px 1fr;
+  }
+  .r6-main-stage {
+    padding: 24px 28px;
+  }
+  .r6-action-headline {
+    font-size: 28px;
+  }
+  .r6-plate-big {
+    font-size: 34px;
+  }
+}
+
+@media (max-width: 860px) {
+  .r6-canvas-body {
+    grid-template-columns: 1fr;
+  }
+  .r6-left-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 14px;
+    gap: 14px;
+  }
+  .r6-stepper-list {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+  .r6-step-row {
+    white-space: nowrap;
+    min-height: 40px;
+    padding: 6px 10px;
+    flex-shrink: 0;
+  }
+  .r6-main-stage {
+    padding: 20px 16px;
+    gap: 16px;
+  }
+  .r6-action-headline {
+    font-size: 24px;
+  }
+  .r6-plate-big {
+    font-size: 28px;
+  }
+  .r6-artifact-card {
+    padding: 18px 16px;
+  }
+  .r6-prompt-box {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+  }
+  .r6-prompt-input {
+    min-width: 180px;
+  }
+}
+
+@media (max-width: 540px) {
+  .r6-controls-bar {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .r6-preset-pill {
+    padding: 5px 10px;
+    font-size: 11.5px;
+  }
+  .r6-action-btn {
+    padding: 5px 10px;
+    font-size: 11.5px;
+  }
+  .r6-action-headline {
+    font-size: 20px;
+  }
+  .r6-plate-big {
+    font-size: 24px;
+  }
+  .r6-maint-card-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}

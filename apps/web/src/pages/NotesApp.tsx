@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
 import { Checkbox } from '../components/ui/checkbox.js';
-import { SectionLoading } from '../components/ui/spinner.js';
+import { SectionLoading, Spinner } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { ReminderPicker } from '../components/ReminderPicker.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
@@ -25,6 +26,7 @@ import {
   setNotesViewMode,
   addNote,
   updateNote,
+  snoozeReminder,
   togglePinNote,
   toggleArchiveNote,
   trashNote,
@@ -98,6 +100,10 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [drawing, setDrawing] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  /** How many images are currently mid-upload, per target — 'composer' for
+   *  the not-yet-saved note, or a note id. Silent fire-and-forget before
+   *  this (no loading state at all while the request was in flight). */
+  const [uploadingImages, setUploadingImages] = useState<Record<string, number>>({});
   const [reminder, setReminder] = useState<string | null>(null);
   const [category, setCategory] = useState<string | null>(null);
   const [categorySubjectId, setCategorySubjectId] = useState<string | null>(null);
@@ -253,17 +259,26 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, targetNoteId?: string) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    const key = targetNoteId ?? 'composer';
 
     Array.from(files).forEach(async file => {
-      const ref = await uploadNoteImage(file);
-      if (targetNoteId) {
-        const targetNote = notes.find(n => n.id === targetNoteId);
-        if (targetNote) {
-          updateNote(targetNoteId, { images: [...targetNote.images, ref] });
+      setUploadingImages(prev => ({ ...prev, [key]: (prev[key] ?? 0) + 1 }));
+      try {
+        const { ref, fellBackToInline } = await uploadNoteImage(file);
+        if (targetNoteId) {
+          const targetNote = notes.find(n => n.id === targetNoteId);
+          if (targetNote) {
+            updateNote(targetNoteId, { images: [...targetNote.images, ref] });
+          }
+        } else {
+          setImages(prev => [...prev, ref]);
+          setIsExpanded(true);
         }
-      } else {
-        setImages(prev => [...prev, ref]);
-        setIsExpanded(true);
+        if (fellBackToInline) {
+          showAlert(`"${file.name}" couldn't reach Drive, so it was saved directly on the note instead. It still works, but large or many such images will slow this note down — try again later to move it to Drive.`, { title: 'Saved locally, not to Drive' });
+        }
+      } finally {
+        setUploadingImages(prev => { const next = { ...prev, [key]: (prev[key] ?? 1) - 1 }; if (next[key] <= 0) delete next[key]; return next; });
       }
     });
     e.target.value = '';
@@ -330,30 +345,33 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
       {/* ── Toolbar: view controls (search now lives in the global header) ── */}
       <div className="notes-header-bar">
         <div className="notes-header-actions">
-          <button
-            type="button"
-            className={`notes-icon-btn${viewMode === 'grid' ? ' active' : ''}`}
-            title="Grid view"
-            onClick={() => setNotesViewMode('grid')}
-          >
-            <Icon name="grid" size={18} />
-          </button>
-          <button
-            type="button"
-            className={`notes-icon-btn${viewMode === 'list' ? ' active' : ''}`}
-            title="List view"
-            onClick={() => setNotesViewMode('list')}
-          >
-            <Icon name="list" size={18} />
-          </button>
-          <button
-            type="button"
-            className="notes-icon-btn"
-            title="Refresh notes"
-            onClick={() => loadNotes(true)}
-          >
-            <Icon name="refresh" size={18} />
-          </button>
+          <Tip label="Grid view">
+            <button
+              type="button"
+              className={`notes-icon-btn${viewMode === 'grid' ? ' active' : ''}`}
+              onClick={() => setNotesViewMode('grid')}
+            >
+              <Icon name="grid" size={18} />
+            </button>
+          </Tip>
+          <Tip label="List view">
+            <button
+              type="button"
+              className={`notes-icon-btn${viewMode === 'list' ? ' active' : ''}`}
+              onClick={() => setNotesViewMode('list')}
+            >
+              <Icon name="list" size={18} />
+            </button>
+          </Tip>
+          <Tip label="Refresh notes">
+            <button
+              type="button"
+              className="notes-icon-btn"
+              onClick={() => loadNotes(true)}
+            >
+              <Icon name="refresh" size={18} />
+            </button>
+          </Tip>
         </div>
       </div>
 
@@ -486,7 +504,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                     </div>
                   )}
 
-                  {images.length > 0 && (
+                  {(images.length > 0 || uploadingImages['composer'] > 0) && (
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {images.map((img, idx) => (
                         <div key={idx} style={{ position: 'relative', width: 80, height: 80, borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--border)' }}>
@@ -498,6 +516,11 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                           >
                             ×
                           </button>
+                        </div>
+                      ))}
+                      {Array.from({ length: uploadingImages['composer'] ?? 0 }).map((_, i) => (
+                        <div key={`uploading-${i}`} style={{ width: 80, height: 80, borderRadius: 'var(--r-sm)', border: '1px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}>
+                          <Spinner size={16} />
                         </div>
                       ))}
                     </div>
@@ -791,13 +814,17 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                 </span>
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
-                <button type="button" className="notes-icon-btn" title="Version history" onClick={() => setShowHistoryPanel(true)}>
-                  <Icon name="timer" size={15} />
-                </button>
-                {editingNote.isOwner && (
-                  <button type="button" className="notes-icon-btn" title="Share & visibility" onClick={() => setShowSharePanel(true)}>
-                    <Icon name={VISIBILITY_META[editingNote.visibility].icon} size={15} />
+                <Tip label="Version history">
+                  <button type="button" className="notes-icon-btn" onClick={() => setShowHistoryPanel(true)}>
+                    <Icon name="timer" size={15} />
                   </button>
+                </Tip>
+                {editingNote.isOwner && (
+                  <Tip label="Share & visibility">
+                    <button type="button" className="notes-icon-btn" onClick={() => setShowSharePanel(true)}>
+                      <Icon name={VISIBILITY_META[editingNote.visibility].icon} size={15} />
+                    </button>
+                  </Tip>
                 )}
               </div>
             </div>
@@ -849,22 +876,24 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
               <div className="notes-tool-icons">
                 {editingNote.canEdit && (
                   <>
-                    <button
-                      type="button"
-                      className="notes-icon-btn"
-                      onClick={() => trashNote(editingNote.id)}
-                      title="Delete note"
-                    >
-                      <Icon name="trash" size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      className="notes-icon-btn"
-                      onClick={() => toggleArchiveNote(editingNote.id)}
-                      title="Archive note"
-                    >
-                      <Icon name="archive" size={16} />
-                    </button>
+                    <Tip label="Delete note">
+                      <button
+                        type="button"
+                        className="notes-icon-btn"
+                        onClick={() => trashNote(editingNote.id)}
+                      >
+                        <Icon name="trash" size={16} />
+                      </button>
+                    </Tip>
+                    <Tip label="Archive note">
+                      <button
+                        type="button"
+                        className="notes-icon-btn"
+                        onClick={() => toggleArchiveNote(editingNote.id)}
+                      >
+                        <Icon name="archive" size={16} />
+                      </button>
+                    </Tip>
                     <CategoryPicker
                       value={{ subjectType: editingNote.subjectType ?? null, subjectId: editingNote.subjectId ?? null }}
                       onChange={v => {
@@ -874,29 +903,31 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                       open={activeCategoryPopover === editingNote.id}
                       onOpenChange={o => setActiveCategoryPopover(o ? editingNote.id : null)}
                     />
-                    <button
-                      type="button"
-                      className={`notes-icon-btn${editingNote.meetingUrl ? ' active' : ''}`}
-                      onClick={() => setShowMeetingPanel(v => !v)}
-                      title={editingNote.meetingUrl ? 'Video call attached' : 'Add video call'}
-                    >
-                      <Icon name="video" size={16} />
-                    </button>
+                    <Tip label={editingNote.meetingUrl ? 'Video call attached' : 'Add video call'}>
+                      <button
+                        type="button"
+                        className={`notes-icon-btn${editingNote.meetingUrl ? ' active' : ''}`}
+                        onClick={() => setShowMeetingPanel(v => !v)}
+                      >
+                        <Icon name="video" size={16} />
+                      </button>
+                    </Tip>
                   </>
                 )}
                 {editingNote.isOwner && (
-                  <button
-                    type="button"
-                    className={`notes-icon-btn${editingNote.legalHold ? ' active' : ''}`}
-                    title={editingNote.legalHold ? 'Remove legal hold (allow deletion)' : 'Put on legal hold (exempt from trash auto-purge, block deletion)'}
-                    onClick={() => {
-                      const legalHold = !editingNote.legalHold;
-                      updateNote(editingNote.id, { legalHold });
-                      setEditingNote(prev => prev ? { ...prev, legalHold } : prev);
-                    }}
-                  >
-                    <Icon name="shield" size={16} />
-                  </button>
+                  <Tip label={editingNote.legalHold ? 'Remove legal hold (allow deletion)' : 'Put on legal hold (exempt from trash auto-purge, block deletion)'}>
+                    <button
+                      type="button"
+                      className={`notes-icon-btn${editingNote.legalHold ? ' active' : ''}`}
+                      onClick={() => {
+                        const legalHold = !editingNote.legalHold;
+                        updateNote(editingNote.id, { legalHold });
+                        setEditingNote(prev => prev ? { ...prev, legalHold } : prev);
+                      }}
+                    >
+                      <Icon name="shield" size={16} />
+                    </button>
+                  </Tip>
                 )}
               </div>
 
@@ -1025,6 +1056,17 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
             <span className="note-badge-reminder">
               <Icon name="clock" size={12} />
               <span>{new Date(note.reminder).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+              {new Date(note.reminder).getTime() <= Date.now() && (
+                <Tip label="Snooze 1 hour">
+                  <button
+                    type="button"
+                    className="note-badge-reminder-snooze"
+                    onClick={e => { e.stopPropagation(); snoozeReminder(note.id, new Date(Date.now() + 3600000).toISOString()); }}
+                  >
+                    <Icon name="refresh" size={11} />
+                  </button>
+                </Tip>
+              )}
             </span>
           )}
           {note.labels.map(lblId => {

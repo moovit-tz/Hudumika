@@ -152,7 +152,11 @@ export function HrDocuments() {
         apiFetch('/v1/hr/documents/templates'),
         apiFetch('/v1/hr/document-requirements').catch(() => []),
         apiFetch('/v1/hr/documents/expiry-radar').catch(() => null),
-        apiFetch('/v1/hr/employees').catch(() => []),
+        // /v1/hr/employees no longer exists (people and logins are one record,
+        // /v1/hr/staff) — the 404 was swallowed here, so this list was always
+        // empty and no document could be attached to, or letter generated for,
+        // a person.
+        apiFetch('/v1/hr/staff').catch(() => []),
         apiFetch('/v1/identity/me').catch(() => null),
       ]);
       setDocs(Array.isArray(d) ? d : []);

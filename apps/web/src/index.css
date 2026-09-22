@@ -185,9 +185,9 @@
      LeftNav, were imported by nothing and have been removed. */
   --nav-guide: rgba(0, 0, 0, 0.12);
 
-  --teal:   #e8461a;
-  --teal-l: #fef0ec;
-  --teal-m: #fdd5c8;
+  --teal:   #1257c6;
+  --teal-l: #e8f0ff;
+  --teal-m: #c9dbfa;
 
   --navy:         #0e1f3d;
   --navy2:        #1a3260;
@@ -366,8 +366,9 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
   --blue-foreground:   216 68% 14%;
   --purple-foreground: 216 68% 14%;
 
-  --teal-l:   rgba(232,70,26,0.14);
-  --teal-m:   rgba(232,70,26,0.26);
+  --teal:     #4f8fe8;
+  --teal-l:   rgba(18,87,198,0.18);
+  --teal-m:   rgba(18,87,198,0.32);
   --gold-l:   rgba(180,130,0,0.18);
   --red-l:    rgba(232,64,64,0.14);
   --green-l:  rgba(45,184,88,0.13);
@@ -446,6 +447,18 @@ body, .card, .modal-overlay,
 [data-theme="dark"] option {
   background: var(--white);
   color: var(--ink);
+}
+
+/* Radix tooltips share the same floating-surface treatment as the rest of
+   the design system, with the logo blue providing definition in night mode. */
+[data-theme="dark"] .ds-tooltip-content {
+  border-color: rgba(79, 143, 232, 0.34);
+  background: color-mix(in srgb, var(--white) 92%, #1257c6 8%);
+  box-shadow: var(--elev-lg), 0 0 0 1px rgba(18, 87, 198, 0.08);
+}
+
+[data-theme="dark"] .ds-tooltip-arrow {
+  fill: color-mix(in srgb, var(--white) 92%, #1257c6 8%);
 }
 
 /* ── Dark mode — scrollbars (also hidden) ── */
@@ -3599,6 +3612,23 @@ html:not([data-theme="dark"]) .page-layout {
   color: var(--ink);
 }
 
+.page-header--create {
+  margin-bottom: 24px;
+}
+.page-header--create .page-header-title--create {
+  font-family: var(--font);
+  font-size: clamp(24px, 2.4vw, 30px);
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.page-header--create > a:first-child,
+.page-header--create > button:first-child {
+  margin-bottom: 28px !important;
+}
+
 .page-header-sub {
   font-size: 13.5px;
   color: var(--ink3);
@@ -3614,6 +3644,55 @@ html:not([data-theme="dark"]) .page-layout {
 }
 @media (max-width: 480px) {
   .page-header { padding: 0; margin-bottom: 8px; }
+}
+
+/* Global modal motion — a short backdrop fade paired with an elevated
+   scale/translate entrance. Radix still owns mounting, focus trapping,
+   Escape, outside-click and exit completion; these rules only define the
+   visual transition shared by every DialogContent call site. */
+.ds-dialog-overlay {
+  background: rgba(23, 25, 37, 0.6);
+  will-change: opacity;
+}
+.ds-dialog-overlay[data-state='open'] {
+  animation: ds-modal-backdrop-in 180ms ease-out both;
+}
+.ds-dialog-overlay[data-state='closed'] {
+  animation: ds-modal-backdrop-out 140ms ease-in both;
+}
+.ds-dialog-content {
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+.ds-dialog-content[data-state='open'] {
+  animation: ds-modal-content-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.ds-dialog-content[data-state='closed'] {
+  animation: ds-modal-content-out 140ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes ds-modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ds-modal-backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes ds-modal-content-in {
+  from { opacity: 0; transform: translate(-50%, calc(-50% - 48px)) scale(0.9); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes ds-modal-content-out {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to { opacity: 0; transform: translate(-50%, calc(-50% - 24px)) scale(0.96); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-dialog-overlay[data-state],
+  .ds-dialog-content[data-state] {
+    animation-duration: 1ms;
+    animation-timing-function: linear;
+  }
 }
 
 /* ── Responsive tables ──
@@ -5587,25 +5666,6 @@ html:not([data-theme="dark"]) .page-layout {
   .fin-arch-col--status { width: 90px; }
   .fin-narrow-strip { width: 120px; }
 }
-
-/* ── Billing More dropdown ── */
-.billing-more-wrap { position: relative; }
-.billing-more-menu {
-  position: absolute; top: calc(100% + 4px); right: 0; z-index: 200;
-  background: var(--white); border: 1px solid var(--border); border-radius: var(--r);
-  box-shadow: var(--elev-lg); min-width: 190px;
-  display: flex; flex-direction: column; padding: 4px;
-}
-.billing-more-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px; border-radius: 6px; border: none; background: transparent;
-  color: var(--ink2); font-size: 12.5px; font-weight: 500; cursor: pointer;
-  font-family: var(--font); text-align: left; width: 100%;
-}
-.billing-more-item:hover { background: var(--bg); }
-.billing-more-item--danger { color: var(--red); }
-.billing-more-item--danger:hover { background: var(--red-l); }
-.billing-more-sep { height: 1px; background: var(--border); margin: 3px 0; }
 
 /* ── Invoice Detail Panel — tab content ── */
 .inv-tab-panel { display: flex; flex-direction: column; gap: 0; flex: 1; min-height: 0; overflow: hidden; }

@@ -4,7 +4,6 @@ import { apiFetch } from '../lib/api.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
-import { BackButton } from '../components/ui/BackButton.js';
 
 const TRAILER_TYPES = ['FLATBED', 'CONTAINER_CHASSIS', 'TANKER', 'REEFER', 'LOWBED', 'CURTAIN_SIDE', 'OTHER'];
 const OWNERSHIP_TYPES = ['OWNED', 'LEASED', 'RENTED', 'SUBCONTRACTED'];
@@ -57,11 +56,12 @@ export const TrackingTrailerNew: React.FC = () => {
 
   return (
     <div style={{ padding: '0 0 24px' }}>
-      <BackButton to="/tracking/trailers" label="Trailers" />
       <PageHeader
         crumbs={['HuduFreight', 'Register Trailer']}
-        titlePlain="Register a"
-        titleEm="trailer"
+        title="Register a trailer"
+        subtitle="Add a trailer and its operating details to your fleet."
+        variant="create"
+        backTo="/tracking/trailers"
       />
 
       <SectionCard>

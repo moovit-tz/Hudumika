@@ -26,8 +26,11 @@ const BLOCK_META: Record<CmsBlockType, { label: string; glyph: string; empty: ()
   form:      { label: 'Form',      glyph: '📝', empty: () => ({ formKey: '' }) },
   // §35 — same self-fetching-by-key convention as 'form' above.
   experiment: { label: 'A/B Test', glyph: '⚗',  empty: () => ({ experimentKey: '' }) },
+  // §5 — url must clear an allow-listed-provider check server-side
+  // (cms-content.service.ts's checkEmbedUrl), not any https:// url.
+  embed:     { label: 'Embed',     glyph: '▶',  empty: () => ({ url: '', title: '' }) },
 };
-const BLOCK_ORDER: CmsBlockType[] = ['paragraph', 'heading', 'image', 'list', 'quote', 'button', 'divider', 'component', 'form', 'experiment'];
+const BLOCK_ORDER: CmsBlockType[] = ['paragraph', 'heading', 'image', 'list', 'quote', 'button', 'divider', 'component', 'form', 'experiment', 'embed'];
 
 export interface ComponentOption { id: string; name: string }
 
@@ -180,6 +183,7 @@ function CollapsedBlock({ block, components, componentBlocks, onClick }: {
   const isEmptyText = ['paragraph', 'heading', 'quote'].includes(block.type) && !p.text;
   const isEmptyImage = block.type === 'image' && !p.url;
   const isEmptyButton = block.type === 'button' && !p.label && !p.url;
+  const isEmptyEmbed = block.type === 'embed' && !p.url;
 
   if (block.type === 'component') {
     const resolved = componentBlocks?.[p.componentId];
@@ -207,7 +211,7 @@ function CollapsedBlock({ block, components, componentBlocks, onClick }: {
       </div>
     );
   }
-  if (isEmptyText || isEmptyImage || isEmptyButton) {
+  if (isEmptyText || isEmptyImage || isEmptyButton || isEmptyEmbed) {
     return <div className="be-canvas-block be-canvas-empty" onClick={onClick}>Click to edit this {BLOCK_META[block.type].label.toLowerCase()}…</div>;
   }
   // A divider has nothing to edit (BlockContent's own case is just the same
@@ -441,6 +445,13 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
           <input className="be-input" autoFocus placeholder="Button label" value={p.label || ''} onChange={e => onChange({ label: e.target.value })} />
           <input className="be-input" placeholder="https://…" value={p.url || ''} onChange={e => onChange({ url: e.target.value })} />
           {slotField}
+        </div>
+      );
+    case 'embed':
+      return (
+        <div className="be-stack">
+          <input className="be-input" autoFocus placeholder="https://www.youtube.com/embed/… (YouTube, Vimeo, Google Maps/Calendar, Calendly, Spotify)" value={p.url || ''} onChange={e => onChange({ url: e.target.value })} />
+          <input className="be-input" placeholder="Title (for accessibility — what is this embed?)" value={p.title || ''} onChange={e => onChange({ title: e.target.value })} />
         </div>
       );
     case 'divider':

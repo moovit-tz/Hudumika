@@ -441,7 +441,7 @@ export type CmsRepeatableItemType = 'text' | 'number' | 'url' | 'email';
 // cms-content.service.ts's evaluateFormula/checkComputedConfig.
 
 // ── Block Editor (§5) ────────────────────────────────────────────────────
-export type CmsBlockType = 'paragraph' | 'heading' | 'image' | 'list' | 'quote' | 'button' | 'divider' | 'component' | 'form' | 'experiment';
+export type CmsBlockType = 'paragraph' | 'heading' | 'image' | 'list' | 'quote' | 'button' | 'divider' | 'component' | 'form' | 'experiment' | 'embed';
 
 // §34 — a personalization rule attachable to ANY block, not one more
 // per-type prop — a "rules layer on top of the renderer," per the master

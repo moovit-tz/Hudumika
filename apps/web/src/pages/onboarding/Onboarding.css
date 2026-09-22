@@ -384,10 +384,40 @@
 .ob-domain-row { display: flex; align-items: center; gap: 8px; }
 .ob-domain-input { flex: 1; }
 .ob-domain-suffix { font-size: 13.5px; color: var(--lp-ink3, #5f6368); white-space: nowrap; }
+.ob-domain-feedback {
+  display: flex;
+  align-items: flex-start;
+  min-height: 17px;
+  margin-top: 1px;
+}
+.ob-domain-feedback:empty { visibility: hidden; }
+.ob-domain-feedback .ob-field-status,
+.ob-domain-feedback .login-field-err {
+  position: static;
+  transform: none;
+}
 
 /* ── Payment step ── */
 .ob-payment-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .ob-payment-note { font-size: 12px; color: var(--lp-ink3, #5f6368); text-align: center; margin: 0; }
+.ob-payment-method-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 286px;
+}
+.ob-payment-security {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 20px;
+  color: var(--lp-ink3, #5f6368);
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+}
+.ob-payment-security svg { color: var(--lp-link-accent, var(--lp-accent, #0b1e3a)); }
+.ob-payment-security strong { color: var(--lp-ink2, #444746); font-weight: 700; }
 
 /* ── Review summary ── */
 .ob-review { border: 1px solid var(--lp-row-border, #e2e8f0); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }

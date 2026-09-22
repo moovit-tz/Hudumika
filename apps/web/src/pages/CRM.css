@@ -239,27 +239,110 @@
   color-scheme: dark;
 }
 
-[data-theme="dark"] .crm-card {
-  background: var(--card-bg, #111827);
-  border-color: var(--border, #1f2937);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+[data-theme="dark"] [data-crm="true"] .page-layout {
+  /* CRM pages contain many legacy inline surfaces that correctly read the
+     platform tokens but predate a CRM-specific night palette. Scoping the
+     overrides here reaches every CRM route without recolouring global chrome. */
+  --crm-night-brand: #1257c6;
+  --crm-night-surface: #111827;
+  --crm-night-raised: #162238;
+  --crm-night-sunken: #0d1422;
+  --crm-night-edge: rgba(96, 165, 250, 0.18);
+  --crm-night-edge-strong: rgba(96, 165, 250, 0.42);
+  --white: var(--crm-night-surface);
+  --card-bg: var(--crm-night-surface);
+  --card-sunken: var(--crm-night-sunken);
+  --border: var(--crm-night-edge);
+  --border2: rgba(148, 184, 235, 0.3);
 }
 
-[data-theme="dark"] .crm-table th {
-  background: var(--bg, #0b0f17);
-  color: var(--ink3, #9ca3af);
-  border-color: var(--border, #1f2937);
+[data-theme="dark"] [data-crm="true"] .page-layout,
+[data-theme="dark"] [data-crm="true"] .page-layout-main {
+  background: #080c14;
 }
 
-[data-theme="dark"] .crm-table td {
-  border-color: var(--border, #1f2937);
-  color: var(--ink, #f3f4f6);
+[data-theme="dark"] [data-crm="true"] .crm-card {
+  background: var(--crm-night-surface);
+  border-color: var(--crm-night-edge);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), var(--elev-sm);
 }
 
-[data-theme="dark"] .crm-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.04) !important;
+[data-theme="dark"] [data-crm="true"] .crm-card-header,
+[data-theme="dark"] [data-crm="true"] .crm-toolbar {
+  background: color-mix(in srgb, var(--crm-night-surface) 94%, var(--crm-night-brand) 6%);
+  border-color: var(--crm-night-edge);
 }
 
-[data-theme="dark"] .crm-toolbar {
-  border-color: var(--border, #1f2937);
+[data-theme="dark"] [data-crm="true"] .crm-table th {
+  background: color-mix(in srgb, var(--crm-night-sunken) 90%, var(--crm-night-brand) 10%);
+  color: var(--ink2);
+  border-color: var(--crm-night-edge);
+}
+
+[data-theme="dark"] [data-crm="true"] .crm-table td {
+  border-color: var(--crm-night-edge);
+  color: var(--ink);
+}
+
+[data-theme="dark"] [data-crm="true"] .crm-table tbody tr:hover {
+  background: color-mix(in srgb, var(--teal) 10%, var(--crm-night-surface)) !important;
+}
+
+[data-theme="dark"] [data-crm="true"] .crm-table tbody tr:has(input[type="checkbox"]:checked) {
+  background: color-mix(in srgb, var(--teal) 16%, var(--crm-night-surface));
+}
+
+[data-theme="dark"] [data-crm="true"] .input-field,
+[data-theme="dark"] [data-crm="true"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+[data-theme="dark"] [data-crm="true"] textarea,
+[data-theme="dark"] [data-crm="true"] select {
+  background: var(--crm-night-sunken);
+  border-color: var(--crm-night-edge);
+}
+
+[data-theme="dark"] [data-crm="true"] .input-field:hover,
+[data-theme="dark"] [data-crm="true"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
+[data-theme="dark"] [data-crm="true"] textarea:hover,
+[data-theme="dark"] [data-crm="true"] select:hover {
+  background: color-mix(in srgb, var(--crm-night-sunken) 90%, var(--crm-night-brand) 10%);
+  border-color: var(--crm-night-edge-strong);
+}
+
+[data-theme="dark"] [data-crm="true"] .input-field:focus,
+[data-theme="dark"] [data-crm="true"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+[data-theme="dark"] [data-crm="true"] textarea:focus,
+[data-theme="dark"] [data-crm="true"] select:focus {
+  background: var(--crm-night-raised);
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 20%, transparent);
+}
+
+[data-theme="dark"] [data-crm="true"] .btn-secondary,
+[data-theme="dark"] [data-crm="true"] .btn-outline {
+  background: var(--crm-night-surface);
+  border-color: var(--crm-night-edge);
+}
+
+[data-theme="dark"] [data-crm="true"] .btn-secondary:hover,
+[data-theme="dark"] [data-crm="true"] .btn-outline:hover {
+  background: var(--teal-l);
+  border-color: var(--crm-night-edge-strong);
+  box-shadow: 0 6px 18px rgba(0, 28, 74, 0.28);
+}
+
+[data-theme="dark"] [data-crm="true"] button:not(:disabled):not([role="tab"]):hover {
+  border-color: var(--crm-night-edge-strong);
+}
+
+[data-theme="dark"] [data-crm="true"] [role="dialog"],
+[data-theme="dark"] [data-crm="true"] [data-radix-popper-content-wrapper] > div {
+  border-color: var(--crm-night-edge);
+}
+
+[data-theme="dark"] [data-crm="true"] .crm-card:has(> .crm-card-header):hover {
+  border-color: color-mix(in srgb, var(--teal) 48%, var(--crm-night-edge));
+}
+
+[data-theme="dark"] [data-crm="true"] .crm-checkbox {
+  color-scheme: dark;
 }

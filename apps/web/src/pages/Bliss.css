@@ -34,6 +34,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -56,62 +57,19 @@
 .bliss-inbox-tabs-wrap {
   display: flex;
   align-items: center;
+  flex: 1 1 auto;
   min-width: 0;
-}
-
-.bliss-inbox-tabs {
-  display: inline-flex;
   max-width: 100%;
 }
 
-.bliss-inbox-tabs-list {
+.bliss-inbox-view-switcher {
   display: inline-flex;
-  align-items: center;
-  gap: 8px !important;
-  height: 40px !important;
-  min-height: 40px !important;
-  background: transparent !important;
-  padding: 0 !important;
-  border: none !important;
+  min-width: 0;
   max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.bliss-inbox-tabs-list::-webkit-scrollbar {
-  display: none;
 }
 
-.bliss-inbox-tab-trigger {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  height: 38px !important;
-  padding: 0 16px !important;
-  font-size: 13.5px !important;
-  font-weight: 600 !important;
-  border-radius: 9999px !important;
-  border: 1px solid var(--border) !important;
-  background: var(--card-bg, var(--white)) !important;
-  color: var(--ink2) !important;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-  user-select: none;
-}
-
-.bliss-inbox-tab-trigger:hover:not([data-state="active"]):not(:disabled) {
-  border-color: var(--ink3) !important;
-  color: var(--ink) !important;
-  background: var(--bg) !important;
-}
-
-.bliss-inbox-tab-trigger[data-state="active"] {
-  border: 1.5px solid var(--ink) !important;
-  color: var(--ink) !important;
-  font-weight: 700 !important;
-  background: var(--card-bg, var(--white)) !important;
-  box-shadow: var(--elev-sm) !important;
+.bliss-inbox-view-list {
+  max-width: 100%;
 }
 
 .bliss-inbox-tab-label-full {
@@ -206,21 +164,15 @@
     grid-row: 2;
     width: 100%;
   }
-  .bliss-inbox-tabs {
+  .bliss-inbox-view-switcher {
     width: 100%;
   }
-  .bliss-inbox-tabs-list {
+  .bliss-inbox-view-list {
     width: 100%;
-    gap: 6px !important;
-    height: 38px !important;
-    min-height: 38px !important;
   }
-  .bliss-inbox-tab-trigger {
+  .bliss-inbox-view-list .ds-tabs-trigger {
     flex: 1 1 0;
-    height: 36px !important;
-    padding: 0 10px !important;
-    font-size: 13px !important;
-    gap: 6px !important;
+    min-width: 0;
   }
   .bliss-inbox-tab-label-full {
     display: none;

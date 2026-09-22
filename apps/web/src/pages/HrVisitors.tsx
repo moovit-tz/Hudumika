@@ -17,6 +17,8 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { showAlert } from '../lib/alert.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 
 interface Visitor {
   id: string; name: string; company: string | null; purpose: string | null;
@@ -39,7 +41,7 @@ export const HrVisitors: React.FC = () => {
   const staffCache = useRef<PickerItem[] | null>(null);
 
   const reload = useCallback(async () => {
-    try { setVisitors(await apiFetch('/v1/ondi/org/visitors')); } catch { setVisitors([]); }
+    try { setVisitors(await apiFetch('/v1/ondi/org/visitors')); } catch (err: any) { setVisitors([]); showAlert(err?.message || 'Could not load visitors.'); }
   }, []);
   useEffect(() => { reload(); }, [reload]);
 
@@ -80,8 +82,6 @@ export const HrVisitors: React.FC = () => {
   const present = visitors?.filter(v => !v.checked_out_at) ?? [];
   const past = visitors?.filter(v => v.checked_out_at) ?? [];
 
-  const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' };
-
   return (
     <div>
       <PageHeader
@@ -90,10 +90,9 @@ export const HrVisitors: React.FC = () => {
         titleEm="visitors"
         subtitle="Who's on-site right now, and who's been in recently."
         actions={!showNew ? (
-          <button type="button" onClick={() => setShowNew(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+          <Button type="button" onClick={() => setShowNew(true)}>
             <Icon name="userPlus" size={15} /> Check in a visitor
-          </button>
+          </Button>
         ) : undefined}
       />
 
@@ -103,11 +102,11 @@ export const HrVisitors: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 12 }}>
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Name</label>
-                <input value={name} onChange={e => setName(e.target.value)} placeholder="Visitor's name" style={inputStyle} />
+                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Visitor's name" />
               </div>
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Company (optional)</label>
-                <input value={company} onChange={e => setCompany(e.target.value)} style={inputStyle} />
+                <Input value={company} onChange={e => setCompany(e.target.value)} />
               </div>
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Visiting</label>
@@ -116,17 +115,15 @@ export const HrVisitors: React.FC = () => {
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Purpose (optional)</label>
-              <input value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="e.g. Interview, delivery, meeting" style={inputStyle} />
+              <Input value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="e.g. Interview, delivery, meeting" />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button type="button" disabled={saving} onClick={checkIn}
-                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+              <Button type="button" disabled={saving} onClick={checkIn}>
                 {saving ? 'Checking in…' : 'Check in'}
-              </button>
-              <button type="button" onClick={() => { setShowNew(false); resetForm(); }}
-                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+              </Button>
+              <Button type="button" variant="outline" onClick={() => { setShowNew(false); resetForm(); }}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </SectionCard>
         </div>
@@ -148,10 +145,9 @@ export const HrVisitors: React.FC = () => {
                 </div>
               </div>
               <span style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink3)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '3px 8px' }}>{v.badge_code}</span>
-              <button type="button" onClick={() => checkOut(v)}
-                style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '6px 12px', cursor: 'pointer' }}>
+              <Button type="button" variant="outline" size="sm" onClick={() => checkOut(v)}>
                 Check out
-              </button>
+              </Button>
             </div>
           ))}
         </SectionCard>

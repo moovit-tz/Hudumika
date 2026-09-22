@@ -68,7 +68,7 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>Invite a New Team Member</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>An invitation link will be sent to their email.</div>
           </div>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+          <button type="button" className="ondi-icon-action" onClick={onClose} style={{ background: 'none', border: '1px solid transparent', borderRadius: 'var(--r-sm)', padding: 6, cursor: 'pointer', color: 'var(--ink3)' }}>
             <Icon name="x" size={18} />
           </button>
         </div>
@@ -89,8 +89,8 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
           </div>
           {error && <div style={{ fontSize: 12, color: 'var(--red)', background: 'var(--red-l)', padding: '8px 12px', borderRadius: 'var(--r-sm)'}}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
-            <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-            <button type="submit" disabled={saving} style={{ padding: '8px 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, boxShadow: '0 2px 8px var(--teal-m)' }}>
+            <button type="button" className="ondi-secondary-action" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+            <button type="submit" className="ondi-primary-action" disabled={saving} style={{ padding: '8px 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, boxShadow: '0 2px 8px var(--teal-m)' }}>
               {saving ? 'Sending…' : 'Send Invitation'}
             </button>
           </div>
@@ -254,7 +254,7 @@ export const OndiUsers: React.FC = () => {
         titleEm="directory"
         subtitle="Manage seated members, assigned administrative roles, and pending tenant invitations."
         actions={canManage ? (
-          <button type="button" onClick={() => setShowInvite(true)}
+          <button type="button" className="ondi-primary-action" onClick={() => setShowInvite(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px var(--teal-m)' }}>
             <Icon name="userPlus" size={15} /> Invite User
           </button>
@@ -361,7 +361,7 @@ export const OndiUsers: React.FC = () => {
                 options={ROLES.map(r => ({ value: r, label: r }))}
               />
 
-              <button type="button" onClick={exportCSV}
+              <button type="button" className="ondi-secondary-action" onClick={exportCSV}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }}>
                 <Icon name="download" size={14} /> Export CSV
               </button>
@@ -414,7 +414,7 @@ export const OndiUsers: React.FC = () => {
                       <td style={{ textAlign: 'right' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6, borderRadius: 'var(--r-sm)'}}>
+                            <button type="button" className="ondi-icon-action" style={{ background: 'none', border: '1px solid transparent', cursor: 'pointer', color: 'var(--ink3)', padding: 6, borderRadius: 'var(--r-sm)'}}>
                               <Icon name="moreVertical" size={16} />
                             </button>
                           </DropdownMenuTrigger>
@@ -481,7 +481,7 @@ export const OndiUsers: React.FC = () => {
                         {i.status === 'PENDING' && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
+                              <button type="button" className="ondi-icon-action" style={{ background: 'none', border: '1px solid transparent', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
                                 <Icon name="moreVertical" size={16} />
                               </button>
                             </DropdownMenuTrigger>
@@ -545,7 +545,7 @@ export const OndiUsers: React.FC = () => {
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+                            <button type="button" className="ondi-primary-action" style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
                               Approve as…
                             </button>
                           </DropdownMenuTrigger>
@@ -557,7 +557,7 @@ export const OndiUsers: React.FC = () => {
                             ))}
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        <button type="button" onClick={() => denyJoinRequest(r.id)}
+                        <button type="button" className="ondi-secondary-action" onClick={() => denyJoinRequest(r.id)}
                           style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red)', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
                           Deny
                         </button>

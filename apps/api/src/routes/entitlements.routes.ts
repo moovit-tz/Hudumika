@@ -3,6 +3,7 @@ import { withTenant } from '../db/client.js';
 import type { FeatureKey } from '@hudumika/types';
 import { ALL_FEATURE_KEYS } from '@hudumika/types';
 import { getUsageSummary, getUsageHistory } from '../lib/usage.js';
+import { getAiCreditBalance, isByokAllowed } from '../lib/ai-credits.js';
 import { agencyManagedOnsiteGrant, hasActiveAddonGrant } from '../middleware/entitlement.js';
 import { isLicensedForApp } from '../lib/app-license.js';
 
@@ -32,7 +33,7 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
   fastify.get('/', async (request, reply) => {
     const user = request.user;
 
-    const [[appStatusRows, settingsRow, tenant], usage, history] = await Promise.all([
+    const [[appStatusRows, settingsRow, tenant], usage, history, aiCredits, byokAllowed] = await Promise.all([
       withTenant(user.tenant_id, trx => Promise.all([
         trx.selectFrom('app_status').select(['app_id', 'status', 'is_beta']).execute(),
         trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
@@ -40,6 +41,12 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
       ])),
       getUsageSummary(user.tenant_id),
       getUsageHistory(user.tenant_id, 12),
+      // Platform-billed AI usage allowance (migration 489) — surfaced here
+      // so Settings.tsx's AI Integration section can show "X of Y credits
+      // used this month" and gate the BYOK fields the same way every other
+      // plan-derived UI decision already reads off this one endpoint.
+      getAiCreditBalance(user.tenant_id),
+      isByokAllowed(user.tenant_id),
     ]);
 
     const appStatus: Record<string, string> = {};
@@ -121,6 +128,6 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
       }));
     }
 
-    return { features, appStatus, betaApps, usage: { ...usage, history } };
+    return { features, appStatus, betaApps, usage: { ...usage, history }, aiCredits, byokAllowed };
   });
 }

@@ -17,6 +17,11 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { getJobs } from './clearanceData.js';
+import {
+  DocumentDetailShell, DocumentDetailMain, DocumentDetailSidebar,
+  DocumentHeaderCard, DocumentActionsCard, DocumentMetaCard, DocumentPartyCard,
+  DocumentLineItemsCard, type DocumentAction,
+} from '../components/DocumentDetail.js';
 
 /**
  * Delivery Documents — the merge of ClearOS's Release/Delivery Orders
@@ -35,9 +40,14 @@ interface DocLine { description?: string; qty_ordered?: number; qty_delivered?: 
 interface DeliveryDocument {
   id: string; doc_type: DocType; doc_number: string | null; status: string;
   subject_type: 'shipment' | 'adhoc'; subject_id: string | null;
-  customer_name: string | null; carrier_name: string | null;
+  customer_id: string | null; customer_name: string | null; customer_address: string | null;
+  contact_person: string | null; contact_phone: string | null; contact_email: string | null;
+  delivery_address: string | null; city: string | null;
+  carrier_name: string | null; vessel_voyage: string | null;
   containers: ContainerLine[] | string; valid_from: string | null; valid_until: string | null;
-  delivery_date: string | null; driver_name: string | null; vehicle_no: string | null;
+  delivery_date: string | null; driver_name: string | null; vehicle_no: string | null; driver_contact: string | null;
+  release_conditions: string | null; discrepancy_notes: string | null;
+  lines?: DocLine[];
   created_at: string;
 }
 
@@ -57,6 +67,13 @@ function parseContainers(c: ContainerLine[] | string): ContainerLine[] {
   try { return JSON.parse(c) ?? []; } catch { return []; }
 }
 
+function fmtDate(d: string | null | undefined) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return '—';
+  return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 const emptyForm = {
   docType: 'DELIVERY_ORDER' as DocType,
   customerName: '', customerAddress: '', contactPerson: '', contactPhone: '', contactEmail: '',
@@ -65,6 +82,122 @@ const emptyForm = {
   releaseConditions: '', discrepancyNotes: '',
   validFrom: '', validUntil: '', deliveryDate: '',
 };
+
+function DeliveryDocumentDetailView({ doc, loading, busy, shipmentLabel, onBack, onIssue, onMarkUsed, onSetStatus, onOpenPdf }: {
+  doc: DeliveryDocument;
+  loading: boolean;
+  busy: boolean;
+  shipmentLabel: (id: string | null) => string | null;
+  onBack: () => void;
+  onIssue: () => void;
+  onMarkUsed: () => void;
+  onSetStatus: (status: string) => void;
+  onOpenPdf: () => void;
+}) {
+  const isRelease = doc.doc_type !== 'DELIVERY_NOTE';
+  const containers = parseContainers(doc.containers);
+  const lines = doc.lines ?? [];
+
+  const actionGroups: DocumentAction[][] = [
+    [
+      { key: 'pdf', label: 'View / Print PDF', icon: 'printer', onClick: onOpenPdf },
+    ],
+    [
+      { key: 'issue', label: 'Issue', icon: 'send', loading: busy, loadingLabel: 'Issuing…', hidden: !(isRelease && doc.status === 'draft'), onClick: onIssue },
+      { key: 'markUsed', label: 'Mark Used', icon: 'checkCircle', loading: busy, loadingLabel: 'Updating…', hidden: !(isRelease && doc.status === 'issued'), onClick: onMarkUsed },
+      { key: 'dispatch', label: 'Dispatch', icon: 'send', loading: busy, loadingLabel: 'Updating…', hidden: !(!isRelease && doc.status === 'draft'), onClick: () => onSetStatus('dispatched') },
+      { key: 'delivered', label: 'Mark Delivered', icon: 'checkCircle', loading: busy, loadingLabel: 'Updating…', hidden: !(!isRelease && doc.status === 'dispatched'), onClick: () => onSetStatus('delivered') },
+    ],
+  ];
+
+  return (
+    <DocumentDetailShell backLabel="Delivery Documents" onBack={onBack} docNumber={doc.doc_number ?? 'DRAFT'}>
+      <DocumentDetailMain>
+        {loading && <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Refreshing…</div>}
+        <DocumentHeaderCard
+          eyebrow={DOC_TYPE_LABEL[doc.doc_type]}
+          number={doc.doc_number ?? 'DRAFT'}
+          subtitle={doc.customer_name ?? 'No customer name'}
+          status={<Badge variant={STATUS_VARIANT[doc.status] ?? 'gray'}>{doc.status}</Badge>}
+          meta={doc.subject_type === 'shipment' && doc.subject_id ? (
+            <div style={{ marginTop: 4, fontSize: 12.5 }}>
+              <Link to={`/clearance/${doc.subject_id}`} style={{ color: 'var(--teal)', fontWeight: 600 }}>
+                {shipmentLabel(doc.subject_id) ?? 'View linked shipment'}
+              </Link>
+            </div>
+          ) : undefined}
+        />
+
+        {isRelease ? (
+          <DocumentLineItemsCard
+            title="Containers"
+            columns={[
+              { key: 'n', header: '#', width: 36, render: (_c, i) => i + 1 },
+              { key: 'num', header: 'Container Number', render: c => <span style={{ fontWeight: 600, fontFamily: 'var(--mono)' }}>{c.number}</span> },
+              { key: 'size', header: 'Size', render: c => c.size },
+              { key: 'seal', header: 'Seal Number', render: c => c.seal_number || '—' },
+              { key: 'wt', header: 'Weight (kg)', align: 'right', render: c => c.weight_kg ?? '—' },
+            ]}
+            rows={containers}
+            emptyLabel="No containers on this document."
+          />
+        ) : (
+          <DocumentLineItemsCard
+            title="Goods"
+            columns={[
+              { key: 'n', header: '#', width: 36, render: (_l, i) => i + 1 },
+              { key: 'desc', header: 'Description', render: l => l.description || '—' },
+              { key: 'sent', header: 'Qty Sent', align: 'right', render: l => l.qty_ordered ?? '—' },
+              { key: 'recv', header: 'Qty Received', align: 'right', render: l => l.qty_delivered ?? '—' },
+              { key: 'cond', header: 'Condition', render: l => l.condition || '—' },
+              { key: 'rem', header: 'Remarks', render: l => l.remarks || '—' },
+            ]}
+            rows={lines}
+            emptyLabel="No goods lines on this document."
+          />
+        )}
+
+        {(isRelease ? doc.release_conditions : doc.discrepancy_notes) && (
+          <SectionCard title={isRelease ? 'Release Conditions' : 'Discrepancy Notes'}>
+            <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
+              {isRelease ? doc.release_conditions : doc.discrepancy_notes}
+            </div>
+          </SectionCard>
+        )}
+      </DocumentDetailMain>
+
+      <DocumentDetailSidebar>
+        <DocumentActionsCard groups={actionGroups} />
+        {isRelease ? (
+          <DocumentMetaCard rows={[
+            ['Carrier', doc.carrier_name || '—'],
+            ['Vessel / Voyage', doc.vessel_voyage || '—'],
+            ['Valid From', fmtDate(doc.valid_from)],
+            ['Valid Until', fmtDate(doc.valid_until)],
+            ['Created', fmtDate(doc.created_at)],
+          ]} />
+        ) : (
+          <DocumentMetaCard rows={[
+            ['Driver / Agent', doc.driver_name || '—'],
+            ['Vehicle No.', doc.vehicle_no || '—'],
+            ['Driver Contact', doc.driver_contact || '—'],
+            ['Delivery Date', fmtDate(doc.delivery_date)],
+            ['Created', fmtDate(doc.created_at)],
+          ]} />
+        )}
+        <DocumentPartyCard
+          title={isRelease ? 'Consignee' : 'Delivery To'}
+          name={doc.customer_name || 'No customer name'}
+          company={doc.contact_person}
+          avatarKind="customers"
+          avatarId={doc.customer_id}
+          email={doc.contact_email}
+          phone={doc.contact_phone}
+        />
+      </DocumentDetailSidebar>
+    </DocumentDetailShell>
+  );
+}
 
 export function DeliveryDocumentsPage() {
   usePageSEO('Delivery Documents', 'Release orders, delivery orders and delivery notes — one combined document, container list or goods table, real PDF, linked to the shipment they’re for.');
@@ -81,6 +214,8 @@ export function DeliveryDocumentsPage() {
   const [lines, setLines] = useState<DocLine[]>([emptyLine()]);
   const [selectedJobId, setSelectedJobId] = useState(shipmentFilter || '');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<DeliveryDocument | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const jobs = getJobs();
   const shipmentLabel = (id: string | null) => {
@@ -157,9 +292,18 @@ export function DeliveryDocumentsPage() {
     }
   };
 
+  const openDetail = (id: string) => {
+    setDetailLoading(true);
+    apiFetch(`/v1/delivery-documents/${id}`)
+      .then((doc: any) => setSelected(doc))
+      .catch(() => showAlert('Could not open this document.', { variant: 'error' }))
+      .finally(() => setDetailLoading(false));
+  };
+  const refreshDetail = (id: string) => { if (selected?.id === id) openDetail(id); };
+
   const issue = async (id: string) => {
     setBusyId(id);
-    try { await apiFetch(`/v1/delivery-documents/${id}/issue`, { method: 'PATCH' }); load(); }
+    try { await apiFetch(`/v1/delivery-documents/${id}/issue`, { method: 'PATCH' }); load(); refreshDetail(id); }
     catch (err: any) { showAlert(err.message || 'Could not issue.', { variant: 'error' }); }
     finally { setBusyId(null); }
   };
@@ -167,19 +311,35 @@ export function DeliveryDocumentsPage() {
     const ok = await showConfirm('Mark this order as used? This records that the gate pass has been redeemed.', { confirmLabel: 'Mark used' });
     if (!ok) return;
     setBusyId(id);
-    try { await apiFetch(`/v1/delivery-documents/${id}/mark-used`, { method: 'PATCH' }); load(); }
+    try { await apiFetch(`/v1/delivery-documents/${id}/mark-used`, { method: 'PATCH' }); load(); refreshDetail(id); }
     catch (err: any) { showAlert(err.message || 'Could not mark as used.', { variant: 'error' }); }
     finally { setBusyId(null); }
   };
   const setStatus = async (id: string, status: string) => {
     setBusyId(id);
-    try { await apiFetch(`/v1/delivery-documents/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }); load(); }
+    try { await apiFetch(`/v1/delivery-documents/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }); load(); refreshDetail(id); }
     catch (err: any) { showAlert(err.message || 'Could not update status.', { variant: 'error' }); }
     finally { setBusyId(null); }
   };
   const openPdf = (id: string) => {
     apiViewBlob(`/v1/delivery-documents/${id}/pdf`).catch(() => showAlert('Could not open the document.', { variant: 'error' }));
   };
+
+  if (selected) {
+    return (
+      <DeliveryDocumentDetailView
+        doc={selected}
+        loading={detailLoading}
+        busy={busyId === selected.id}
+        shipmentLabel={shipmentLabel}
+        onBack={() => setSelected(null)}
+        onIssue={() => issue(selected.id)}
+        onMarkUsed={() => markUsed(selected.id)}
+        onSetStatus={(s) => setStatus(selected.id, s)}
+        onOpenPdf={() => openPdf(selected.id)}
+      />
+    );
+  }
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -394,13 +554,15 @@ export function DeliveryDocumentsPage() {
                   const cs = parseContainers(row.containers);
                   const isRelease = row.doc_type !== 'DELIVERY_NOTE';
                   return (
-                    <tr key={row.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <tr key={row.id} onClick={() => openDetail(row.id)} tabIndex={0} role="button"
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(row.id); } }}
+                      style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
                       <td style={{ padding: '12px 16px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>
                         {DOC_TYPE_LABEL[row.doc_type]}
                         {row.doc_number && <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{row.doc_number}</div>}
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{row.customer_name || '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5 }}>
+                      <td style={{ padding: '12px 16px', fontSize: 12.5 }} onClick={e => e.stopPropagation()}>
                         {row.subject_type === 'shipment' && row.subject_id
                           ? <Link to={`/clearance/${row.subject_id}`} style={{ color: 'var(--teal)', fontWeight: 600 }}>{shipmentLabel(row.subject_id) ?? 'View shipment'}</Link>
                           : <span style={{ color: 'var(--ink3)' }}>—</span>}
@@ -411,7 +573,7 @@ export function DeliveryDocumentsPage() {
                           : (row.driver_name || row.vehicle_no ? `${row.driver_name || ''}${row.vehicle_no ? ` · ${row.vehicle_no}` : ''}` : '—')}
                       </td>
                       <td style={{ padding: '12px 16px' }}><Badge variant={STATUS_VARIANT[row.status] ?? 'gray'}>{row.status}</Badge></td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'inline-flex', gap: 6 }}>
                           {isRelease && row.status === 'draft' && <Button size="xs" disabled={busyId === row.id} onClick={() => issue(row.id)}>Issue</Button>}
                           {isRelease && row.status === 'issued' && <Button size="xs" variant="outline" disabled={busyId === row.id} onClick={() => markUsed(row.id)}>Mark used</Button>}

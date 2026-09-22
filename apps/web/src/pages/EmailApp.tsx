@@ -7,6 +7,8 @@ import { apiFetch } from '../lib/api.js';
 import { MobileNavContext } from '../shells/WorkspaceApp.js';
 import { showAlert } from '../lib/alert.js';
 import { addTodo } from '../data/calendarStore.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
+import { Tip } from '../components/ui/tooltip.js';
 import './EmailApp.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -139,6 +141,16 @@ interface EmailAccountSettings {
   spamBlocklist: string[];
   lastSyncedAt: string | null;
   lastSyncError: string | null;
+  sendProtocol: 'platform' | 'smtp' | 'outlook' | 'gmail';
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpPass: string;
+  smtpEncryption: 'ssl' | 'tls' | 'none';
+  fromName: string;
+  fromEmail: string;
+  outlookStatus: string | null;
+  gmailStatus: string | null;
 }
 
 const PAGE_SIZE = 15;
@@ -205,6 +217,10 @@ export const EmailApp: React.FC = () => {
 
   const [emails, setEmails] = useState<Email[]>([]);
   const [emailsLoading, setEmailsLoading] = useState(false);
+  /** Total messages matching the current folder+search on the server —
+   *  drives the pagination footer now that GET /v1/emails only returns one
+   *  page at a time. */
+  const [emailsTotal, setEmailsTotal] = useState(0);
   const [activeFolder, setActiveFolder] = useState<Folder>(folderFromPath);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
@@ -223,6 +239,31 @@ export const EmailApp: React.FC = () => {
     setSearch('');
     setSelected(new Set());
   }, [folderFromPath]);
+
+  // Arriving from EmailShell's "Labels" sidebar section (/email?label=Name)
+  // — lands on Inbox pre-filtered to that label, via the same within-folder
+  // filterByLabel mechanism the in-list Label dropdown above also drives.
+  // Runs after the folder-reset effect above (which clears filterByLabel),
+  // since a label link's pathname change fires that effect in the same commit.
+  useEffect(() => {
+    const label = new URLSearchParams(location.search).get('label');
+    if (label) setFilterByLabel(label);
+  }, [location.search]);
+
+  // Landing back from mail-oauth.routes.ts's authorize-personal/callback
+  // round trip (connectPersonalMail below) — a one-time toast, then the
+  // query params are stripped so a refresh doesn't re-show it.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const oauth = params.get('oauth');
+    if (!oauth) return;
+    const provider = params.get('provider') === 'outlook' ? 'Microsoft' : 'Google';
+    if (oauth === 'success') showAlert(`${provider} connected — you can now send from it in Email Settings.`);
+    else showAlert(params.get('msg') || `Could not connect to ${provider}.`);
+    params.delete('oauth'); params.delete('provider'); params.delete('msg');
+    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   // Reply composer
   const [replyOpen, setReplyOpen] = useState(false);
@@ -257,6 +298,8 @@ export const EmailApp: React.FC = () => {
   const [blocklistInput, setBlocklistInput] = useState('');
   const [imapTesting, setImapTesting] = useState(false);
   const [imapTestResult, setImapTestResult] = useState<{ success: boolean; error?: string } | null>(null);
+  const [smtpTesting, setSmtpTesting] = useState(false);
+  const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; error?: string } | null>(null);
 
   // User-defined labels (email_labels) — replaces the old hardcoded set.
   const [labelDefs, setLabelDefs] = useState<EmailLabel[]>([]);
@@ -372,9 +415,19 @@ export const EmailApp: React.FC = () => {
   const loadEmails = useCallback(async () => {
     setEmailsLoading(true);
     try {
-      const qs = new URLSearchParams({ folder: activeFolder });
+      const qs = new URLSearchParams({ folder: activeFolder, limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE) });
       if (searchDebounced) qs.set('search', searchDebounced);
-      const data = await apiFetch(`/v1/emails?${qs.toString()}`);
+      const res = await apiFetch(`/v1/emails?${qs.toString()}`);
+      // Real server pagination — this used to return the whole matched
+      // folder as a bare array and get sliced into pages of 15 client-side,
+      // which degrades badly for a real mailbox. `total` drives the
+      // pagination footer; unread/starred/label filters below still apply
+      // only within whatever page is currently loaded (a fetched page can
+      // come back with fewer matching rows than PAGE_SIZE once filtered —
+      // an accepted tradeoff, not a bug, since the fix this addresses is
+      // fetch cost, not filter/pagination composition).
+      const data = res?.items;
+      setEmailsTotal(Number(res?.total ?? 0));
       setEmails(Array.isArray(data) ? data.map((e: any) => ({
         id: String(e.id),
         folder: (e.folder ?? activeFolder) as Folder,
@@ -406,7 +459,7 @@ export const EmailApp: React.FC = () => {
     } finally {
       setEmailsLoading(false);
     }
-  }, [activeFolder, searchDebounced]);
+  }, [activeFolder, searchDebounced, page]);
 
   useEffect(() => { loadEmails(); }, [loadEmails]);
   useEffect(() => {
@@ -475,8 +528,12 @@ export const EmailApp: React.FC = () => {
     return list;
   })();
 
-  const totalPages = Math.ceil(allVisible.length / PAGE_SIZE);
-  const pageEmails = allVisible.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  // `allVisible` is now already just the current server page, filtered
+  // client-side for unread/starred/label — pagination itself (page count,
+  // "N–M of total") is driven by the server's own `emailsTotal`, not this
+  // page's post-filter length.
+  const totalPages = Math.max(1, Math.ceil(emailsTotal / PAGE_SIZE));
+  const pageEmails = allVisible;
 
   // ── Handlers ──────────────────────────────────────────────────────────────────
 
@@ -515,6 +572,41 @@ export const EmailApp: React.FC = () => {
   function toggleSelect(id: string, evt: React.MouseEvent) {
     evt.stopPropagation();
     setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  /** Apply/remove one label on a single message — the "Labels" dropdown in
+   *  the detail toolbar. */
+  function toggleMessageLabel(id: string, labelName: string) {
+    const em = emails.find(e => e.id === id);
+    if (!em) return;
+    const has = em.labels.includes(labelName);
+    const nextLabels = has ? em.labels.filter(l => l !== labelName) : [...em.labels, labelName];
+    setEmails(prev => prev.map(e => e.id === id ? { ...e, labels: nextLabels } : e));
+    apiFetch(`/v1/emails/${id}`, { method: 'PATCH', body: JSON.stringify({ labels: nextLabels }) })
+      .catch(() => { setEmails(prev => prev.map(e => e.id === id ? { ...e, labels: em.labels } : e)); showAlert('Failed to update label'); });
+  }
+
+  /** Bulk-apply one label to every selected message. */
+  function bulkLabelAction(labelName: string) {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    setEmails(prev => prev.map(e => selected.has(e.id) && !e.labels.includes(labelName) ? { ...e, labels: [...e.labels, labelName] } : e));
+    setSelected(new Set());
+    apiFetch('/v1/emails/bulk', { method: 'POST', body: JSON.stringify({ ids, action: 'label', label: labelName }) })
+      .catch(() => { showAlert('Some messages failed to update'); loadEmails(); });
+  }
+
+  /** Dev-only affordance for a brand-new, empty mailbox — used to happen
+   *  automatically on every GET / against an empty inbox, which meant an
+   *  empty production mailbox got real (fake) correspondence written into
+   *  it. Now it's this one explicit, non-production action instead. */
+  const [seedingDemo, setSeedingDemo] = useState(false);
+  function loadSampleMessages() {
+    setSeedingDemo(true);
+    apiFetch('/v1/emails/seed-demo', { method: 'POST' })
+      .then(() => loadEmails())
+      .catch((err: any) => showAlert(err?.message || 'Could not load sample messages.'))
+      .finally(() => setSeedingDemo(false));
   }
 
   /** The bulk-select toolbar's actions — one call to POST /v1/emails/bulk
@@ -852,6 +944,37 @@ export const EmailApp: React.FC = () => {
     }
   }
 
+  /** Same as testImapConnection, for the SMTP send-identity option. */
+  async function testSmtpConnection() {
+    if (!settings) return;
+    setSmtpTesting(true);
+    setSmtpTestResult(null);
+    try {
+      const res = await apiFetch('/v1/email/account/test-smtp', {
+        method: 'POST',
+        body: JSON.stringify({
+          smtpHost: settings.smtpHost, smtpPort: settings.smtpPort, smtpUser: settings.smtpUser,
+          smtpPass: settings.smtpPass, smtpEncryption: settings.smtpEncryption,
+        }),
+      });
+      setSmtpTestResult(res);
+    } catch (err: any) {
+      setSmtpTestResult({ success: false, error: err.message || 'Connection failed.' });
+    } finally {
+      setSmtpTesting(false);
+    }
+  }
+
+  /** "Connect my own mailbox for sending" — mail-oauth.routes.ts's per-user
+   *  authorize-personal route, same shape as the tenant-level connect button
+   *  elsewhere in this codebase (Settings.tsx): fetch the provider's consent
+   *  URL, then navigate the browser there directly. */
+  function connectPersonalMail(provider: 'outlook' | 'gmail') {
+    apiFetch(`/v1/settings/email/${provider}/authorize-personal`)
+      .then((res: any) => { if (res?.url) window.location.href = res.url; })
+      .catch((err: any) => showAlert(err?.message || `Could not start ${provider === 'outlook' ? 'Microsoft' : 'Google'} sign-in.`));
+  }
+
   // ── Labels (email_labels) ────────────────────────────────────────────────────
 
   async function createLabel() {
@@ -976,12 +1099,16 @@ export const EmailApp: React.FC = () => {
                 <span className="em-search-icon"><Icon name="search" size={16} /></span>
                 <input className="em-search-input" placeholder="Search in mail" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
-              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={loadEmails} title="Refresh">
-                <Icon name="refresh" size={15} />
-              </button>
-              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={openSettingsPanel} title="Email settings">
-                <Icon name="settings" size={15} />
-              </button>
+              <Tip label="Refresh">
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={loadEmails}>
+                  <Icon name="refresh" size={15} />
+                </button>
+              </Tip>
+              <Tip label="Email settings">
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={openSettingsPanel}>
+                  <Icon name="settings" size={15} />
+                </button>
+              </Tip>
             </div>
 
             <div className="em-filter-bar" role="tablist" aria-label="Message filter">
@@ -990,16 +1117,52 @@ export const EmailApp: React.FC = () => {
                   {f.charAt(0).toUpperCase() + f.slice(1)}
                 </button>
               ))}
+              {labelDefs.length > 0 && selected.size === 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" className={`em-filter-tab${filterByLabel ? ' em-filter-tab--active' : ''}`}>
+                      <Icon name="tag" size={12} /> {filterByLabel ?? 'Label'}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {labelDefs.map(l => (
+                      <DropdownMenuCheckboxItem key={l.id} checked={filterByLabel === l.name} onCheckedChange={() => setFilterByLabel(prev => prev === l.name ? null : l.name)}>
+                        {l.name}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                    {filterByLabel && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setFilterByLabel(null)}>Clear filter</DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               {selected.size > 0 && (
                 <div className="em-bulk-actions">
                   <span className="em-bulk-count">{selected.size} selected</span>
-                  <button type="button" className="em-bulk-btn" onClick={() => bulkAction('read')} title="Mark read"><Icon name="eye" size={13} /></button>
-                  <button type="button" className="em-bulk-btn" onClick={() => bulkAction('unread')} title="Mark unread"><Icon name="eyeOff" size={13} /></button>
-                  <button type="button" className="em-bulk-btn" onClick={() => bulkAction('archive')} title="Archive"><Icon name="folder" size={13} /></button>
-                  <button type="button" className="em-bulk-btn" onClick={() => bulkAction('spam')} title="Report spam"><Icon name="alertCircle" size={13} /></button>
-                  <button type="button" className="em-bulk-btn em-bulk-btn--danger" onClick={() => bulkAction(activeFolder === 'trash' ? 'delete' : 'trash')} title={activeFolder === 'trash' ? 'Delete permanently' : 'Move to Trash'}>
-                    <Icon name="trash" size={13} />
-                  </button>
+                  <Tip label="Mark read"><button type="button" className="em-bulk-btn" onClick={() => bulkAction('read')}><Icon name="eye" size={13} /></button></Tip>
+                  <Tip label="Mark unread"><button type="button" className="em-bulk-btn" onClick={() => bulkAction('unread')}><Icon name="eyeOff" size={13} /></button></Tip>
+                  {labelDefs.length > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button type="button" className="em-bulk-btn" title="Apply label"><Icon name="tag" size={13} /></button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        {labelDefs.map(l => (
+                          <DropdownMenuItem key={l.id} onClick={() => bulkLabelAction(l.name)}>{l.name}</DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                  <Tip label="Archive"><button type="button" className="em-bulk-btn" onClick={() => bulkAction('archive')}><Icon name="folder" size={13} /></button></Tip>
+                  <Tip label="Report spam"><button type="button" className="em-bulk-btn" onClick={() => bulkAction('spam')}><Icon name="alertCircle" size={13} /></button></Tip>
+                  <Tip label={activeFolder === 'trash' ? 'Delete permanently' : 'Move to Trash'}>
+                    <button type="button" className="em-bulk-btn em-bulk-btn--danger" onClick={() => bulkAction(activeFolder === 'trash' ? 'delete' : 'trash')}>
+                      <Icon name="trash" size={13} />
+                    </button>
+                  </Tip>
                 </div>
               )}
             </div>
@@ -1015,6 +1178,11 @@ export const EmailApp: React.FC = () => {
                 <div className="em-rows-empty">
                   <Icon name="mail" size={36} color="var(--border)" />
                   <span>No emails</span>
+                  {import.meta.env.DEV && activeFolder === 'inbox' && !search && filter === 'all' && (
+                    <button type="button" className="em-text-btn" onClick={loadSampleMessages} disabled={seedingDemo}>
+                      {seedingDemo ? 'Loading…' : 'Load sample messages (dev only)'}
+                    </button>
+                  )}
                 </div>
               ) : pageEmails.map(email => (
                 <div
@@ -1087,7 +1255,7 @@ export const EmailApp: React.FC = () => {
 
             {totalPages > 1 && (
               <div className="em-pagination">
-                <span className="em-pagination-info">{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, allVisible.length)} of {allVisible.length}</span>
+                <span className="em-pagination-info">{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, emailsTotal)} of {emailsTotal}</span>
                 <div className="em-pagination-btns">
                   <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
                     <Icon name="chevronLeft" size={16} />
@@ -1111,33 +1279,55 @@ export const EmailApp: React.FC = () => {
         {selectedEmail && (!isMobile || selectedId) ? (
           <div className="em-detail">
             <div className="em-detail-toolbar">
-              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setSelectedId(null)} title="Back">
-                <Icon name="arrowLeft" size={16} />
-              </button>
+              <Tip label="Back">
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setSelectedId(null)}>
+                  <Icon name="arrowLeft" size={16} />
+                </button>
+              </Tip>
               <div className="em-toolbar-sep" />
               {selectedEmail.folder === 'scheduled' ? (
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => cancelScheduled(selectedEmail.id)} title="Cancel send">
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => cancelScheduled(selectedEmail.id)}>
                   <Icon name="x" size={16} /> Cancel send
                 </button>
               ) : (
                 <>
-                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'archive')} title="Archive"><Icon name="folder" size={16} /></button>
-                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'trash')} title="Delete"><Icon name="trash" size={16} /></button>
-                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => markUnread(selectedEmail.id)} title="Mark unread"><Icon name="mail" size={16} /></button>
-                  <button type="button" className={`em-icon-btn em-icon-btn--ghost${selectedEmail.starred ? ' em-icon-btn--starred' : ''}`} onClick={e => toggleStar(selectedEmail.id, e)} title={selectedEmail.starred ? 'Unstar' : 'Star'}>
-                    <Icon name="star" size={16} color={selectedEmail.starred ? 'var(--gold)' : undefined} />
-                  </button>
+                  <Tip label="Archive"><button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'archive')}><Icon name="folder" size={16} /></button></Tip>
+                  <Tip label="Delete"><button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'trash')}><Icon name="trash" size={16} /></button></Tip>
+                  <Tip label="Mark unread"><button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => markUnread(selectedEmail.id)}><Icon name="mail" size={16} /></button></Tip>
+                  <Tip label={selectedEmail.starred ? 'Unstar' : 'Star'}>
+                    <button type="button" className={`em-icon-btn em-icon-btn--ghost${selectedEmail.starred ? ' em-icon-btn--starred' : ''}`} onClick={e => toggleStar(selectedEmail.id, e)}>
+                      <Icon name="star" size={16} color={selectedEmail.starred ? 'var(--gold)' : undefined} />
+                    </button>
+                  </Tip>
                 </>
               )}
               {selectedEmail.folder === 'inbox' && (
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Report spam" onClick={() => moveToFolder(selectedEmail.id, 'spam')}>
-                  <Icon name="alertCircle" size={16} />
-                </button>
+                <Tip label="Report spam">
+                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'spam')}>
+                    <Icon name="alertCircle" size={16} />
+                  </button>
+                </Tip>
               )}
               {selectedEmail.folder === 'spam' && (
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Not spam — move to Inbox" onClick={() => moveToFolder(selectedEmail.id, 'inbox')}>
-                  <Icon name="checkCircle" size={16} />
-                </button>
+                <Tip label="Not spam — move to Inbox">
+                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'inbox')}>
+                    <Icon name="checkCircle" size={16} />
+                  </button>
+                </Tip>
+              )}
+              {labelDefs.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Labels"><Icon name="tag" size={16} /></button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {labelDefs.map(l => (
+                      <DropdownMenuCheckboxItem key={l.id} checked={selectedEmail.labels.includes(l.name)} onCheckedChange={() => toggleMessageLabel(selectedEmail.id, l.name)}>
+                        {l.name}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
               <div style={{ flex: 1 }} />
               <button type="button" className="em-icon-btn em-icon-btn--primary" onClick={aiSummarise} disabled={aiLoading}>
@@ -1312,14 +1502,18 @@ export const EmailApp: React.FC = () => {
                       <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 20 }} onClick={sendReply} disabled={replyAttachments.some(a => a.uploading)}>
                         <Icon name="send" size={13} /> Send
                       </button>
-                      <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Attach file" onClick={() => replyFileInputRef.current?.click()}>
-                        <Icon name="paperclip" size={15} />
-                      </button>
+                      <Tip label="Attach file">
+                        <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => replyFileInputRef.current?.click()}>
+                          <Icon name="paperclip" size={15} />
+                        </button>
+                      </Tip>
                       <input ref={replyFileInputRef} type="file" multiple style={{ display: 'none' }} onChange={e => { const files = Array.from(e.target.files ?? []); if (files.length) uploadAttachments(files, 'reply'); e.target.value = ''; }} />
                       {quickTemplates.length > 0 && (
-                        <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Insert quick reply" onClick={() => setTemplatePickerOpen(v => !v)}>
-                          <Icon name="layers" size={15} />
-                        </button>
+                        <Tip label="Insert quick reply">
+                          <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setTemplatePickerOpen(v => !v)}>
+                            <Icon name="layers" size={15} />
+                          </button>
+                        </Tip>
                       )}
                       {templatePickerOpen && (
                         <div className="em-template-picker">
@@ -1405,24 +1599,30 @@ export const EmailApp: React.FC = () => {
                 <span className="em-compose-label">Send at</span>
                 <input type="datetime-local" className="em-compose-input" value={compose.sendAt} min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                   onChange={e => setCompose(p => ({ ...p, sendAt: e.target.value }))} />
-                <button type="button" className="em-attach-chip-remove" title="Send now instead" onClick={() => setCompose(p => ({ ...p, sendAt: null }))}><Icon name="x" size={11} /></button>
+                <Tip label="Send now instead"><button type="button" className="em-attach-chip-remove" onClick={() => setCompose(p => ({ ...p, sendAt: null }))}><Icon name="x" size={11} /></button></Tip>
               </div>
             )}
             <div className="em-compose-footer" style={{ position: 'relative' }}>
               <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 20, padding: 'var(--ds-btn-py) 24px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={sendCompose} disabled={compose.attachments.some(a => a.uploading)}>
                 <Icon name="send" size={14} /> {compose.sendAt ? 'Schedule send' : 'Send'}
               </button>
-              <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Schedule send for later" onClick={() => setCompose(p => ({ ...p, sendAt: p.sendAt !== null ? null : new Date(Date.now() + 3600000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) }))}>
-                <Icon name="clock" size={16} />
-              </button>
-              <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Attach file" onClick={() => composeFileInputRef.current?.click()}>
-                <Icon name="paperclip" size={16} />
-              </button>
+              <Tip label="Schedule send for later">
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setCompose(p => ({ ...p, sendAt: p.sendAt !== null ? null : new Date(Date.now() + 3600000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) }))}>
+                  <Icon name="clock" size={16} />
+                </button>
+              </Tip>
+              <Tip label="Attach file">
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => composeFileInputRef.current?.click()}>
+                  <Icon name="paperclip" size={16} />
+                </button>
+              </Tip>
               <input ref={composeFileInputRef} type="file" multiple style={{ display: 'none' }} onChange={e => { const files = Array.from(e.target.files ?? []); if (files.length) uploadAttachments(files, 'compose'); e.target.value = ''; }} />
               {quickTemplates.length > 0 && (
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Insert quick reply" onClick={() => setTemplatePickerOpen(v => !v)}>
-                  <Icon name="layers" size={16} />
-                </button>
+                <Tip label="Insert quick reply">
+                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setTemplatePickerOpen(v => !v)}>
+                    <Icon name="layers" size={16} />
+                  </button>
+                </Tip>
               )}
               {templatePickerOpen && (
                 <div className="em-template-picker">
@@ -1434,9 +1634,11 @@ export const EmailApp: React.FC = () => {
               <span className="em-compose-savestate">{composeSaving ? 'Saving…' : compose.draftId ? 'Saved to Drafts' : ''}</span>
               <div style={{ flex: 1 }} />
               <button type="button" className="em-text-btn" onClick={() => saveDraft()}>Save draft</button>
-              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={discardCompose} title="Discard">
-                <Icon name="trash" size={18} />
-              </button>
+              <Tip label="Discard">
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={discardCompose}>
+                  <Icon name="trash" size={18} />
+                </button>
+              </Tip>
             </div>
           </div>
         </div>
@@ -1517,6 +1719,87 @@ export const EmailApp: React.FC = () => {
                       </div>
                     </>
                   )}
+                </div>
+
+                <div className="em-settings-section">
+                  <div className="em-settings-section-hdr">Sending</div>
+                  <p className="em-settings-hint">
+                    Messages you send will show as: <strong>{settings.fromName || 'Hudumika'} &lt;{settings.fromEmail || (settings.sendProtocol === 'smtp' ? settings.smtpUser : 'your workspace address')}&gt;</strong>
+                  </p>
+                  <div className="em-settings-row">
+                    <span className="em-compose-label">Send using</span>
+                    <select className="em-settings-select" value={settings.sendProtocol === 'platform' || settings.sendProtocol === 'smtp' ? settings.sendProtocol : 'platform'}
+                      onChange={e => setSettings({ ...settings, sendProtocol: e.target.value as any })}>
+                      <option value="platform">Workspace default</option>
+                      <option value="smtp">Custom SMTP</option>
+                    </select>
+                  </div>
+                  {settings.sendProtocol === 'smtp' && (
+                    <>
+                      <div className="em-settings-row">
+                        <span className="em-compose-label">Host</span>
+                        <input className="em-compose-input em-settings-input" value={settings.smtpHost} onChange={e => setSettings({ ...settings, smtpHost: e.target.value })} placeholder="smtp.example.com" />
+                      </div>
+                      <div className="em-settings-row">
+                        <span className="em-compose-label">Port</span>
+                        <input className="em-compose-input em-settings-input" type="number" value={settings.smtpPort} onChange={e => setSettings({ ...settings, smtpPort: parseInt(e.target.value, 10) || 587 })} />
+                        <select className="em-settings-select" value={settings.smtpEncryption} onChange={e => setSettings({ ...settings, smtpEncryption: e.target.value as any })}>
+                          <option value="ssl">SSL</option>
+                          <option value="tls">TLS</option>
+                          <option value="none">None</option>
+                        </select>
+                      </div>
+                      <div className="em-settings-row">
+                        <span className="em-compose-label">User</span>
+                        <input className="em-compose-input em-settings-input" value={settings.smtpUser} onChange={e => setSettings({ ...settings, smtpUser: e.target.value })} placeholder="you@example.com" />
+                      </div>
+                      <div className="em-settings-row">
+                        <span className="em-compose-label">Password</span>
+                        <input className="em-compose-input em-settings-input" type="password" value={settings.smtpPass} onChange={e => setSettings({ ...settings, smtpPass: e.target.value })} placeholder="••••••••" />
+                      </div>
+                      <div className="em-settings-row">
+                        <button type="button" className="em-text-btn" onClick={testSmtpConnection} disabled={smtpTesting || !settings.smtpHost || !settings.smtpUser}>
+                          {smtpTesting ? 'Testing…' : 'Test connection'}
+                        </button>
+                        {smtpTestResult && (
+                          <span className={smtpTestResult.success ? 'em-settings-success' : 'em-settings-error'}>
+                            {smtpTestResult.success ? 'Connected successfully.' : smtpTestResult.error}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  )}
+                  {(settings.sendProtocol === 'smtp' || settings.sendProtocol === 'outlook' || settings.sendProtocol === 'gmail') && (
+                    <>
+                      <div className="em-settings-row">
+                        <span className="em-compose-label">Display name</span>
+                        <input className="em-compose-input em-settings-input" value={settings.fromName} onChange={e => setSettings({ ...settings, fromName: e.target.value })} placeholder="Your name" />
+                      </div>
+                      <div className="em-settings-row">
+                        <span className="em-compose-label">From address</span>
+                        <input className="em-compose-input em-settings-input" value={settings.fromEmail} onChange={e => setSettings({ ...settings, fromEmail: e.target.value })} placeholder="you@example.com" />
+                      </div>
+                    </>
+                  )}
+                  <div className="em-settings-row">
+                    {settings.sendProtocol === 'outlook' ? (
+                      <span className="em-settings-success">Connected — sending via Outlook.</span>
+                    ) : settings.outlookStatus === 'authorized' ? (
+                      <button type="button" className="em-text-btn" onClick={() => setSettings({ ...settings, sendProtocol: 'outlook' })}>Switch to Outlook (already connected)</button>
+                    ) : (
+                      <button type="button" className="em-text-btn" onClick={() => connectPersonalMail('outlook')}>Connect Outlook</button>
+                    )}
+                    {settings.sendProtocol === 'gmail' ? (
+                      <span className="em-settings-success">Connected — sending via Gmail.</span>
+                    ) : settings.gmailStatus === 'authorized' ? (
+                      <button type="button" className="em-text-btn" onClick={() => setSettings({ ...settings, sendProtocol: 'gmail' })}>Switch to Gmail (already connected)</button>
+                    ) : (
+                      <button type="button" className="em-text-btn" onClick={() => connectPersonalMail('gmail')}>Connect Gmail</button>
+                    )}
+                    {(settings.sendProtocol === 'outlook' || settings.sendProtocol === 'gmail') && (
+                      <button type="button" className="em-text-btn" onClick={() => setSettings({ ...settings, sendProtocol: 'platform' })}>Use workspace default instead</button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="em-settings-section">

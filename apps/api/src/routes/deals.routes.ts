@@ -35,6 +35,13 @@ const stageMoveSchema = z.object({
   stage: z.string().trim().min(1).max(60),
   lost_reason: z.string().max(500).nullish(),
 });
+// A malformed (non-UUID) :id used to reach Postgres as-is and crash with a
+// raw "invalid input syntax for type uuid" driver error, forwarded verbatim
+// to the client by this file's own local catch blocks below (they bypass
+// the platform's global sanitizing error handler entirely) instead of the
+// clean 404 every one of these routes already gives a well-formed-but-
+// nonexistent id — live-reproduced across every :id route in this file.
+const idParamSchema = z.object({ id: z.string().uuid() });
 
 /** Loads this tenant's live pipeline stages (seeding defaults if needed) and
  *  hands back the lookups every stage-aware handler below needs: the valid
@@ -89,147 +96,132 @@ export async function dealsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireEntitlement('crm'));
   fastify.addHook('preHandler', requireRole(...DEAL_ROLES));
 
-  fastify.get('/', async (request: any, reply) => {
-    try {
-      const rows = await withTenant<any[]>(request.user.tenant_id, trx =>
-        dealSelect(trx).where('deals.tenant_id', '=', request.user.tenant_id)
-          .orderBy('deals.created_at', 'desc').execute()
-      );
-      return rows.map(mapDeal);
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+  fastify.get('/', async (request: any) => {
+    const rows = await withTenant<any[]>(request.user.tenant_id, trx =>
+      dealSelect(trx).where('deals.tenant_id', '=', request.user.tenant_id)
+        .orderBy('deals.created_at', 'desc').execute()
+    );
+    return rows.map(mapDeal);
   });
 
   // Pipeline metrics for the dashboard header — value by stage, this
   // month's win rate, and a per-rep leaderboard. All from `deals` alone;
   // no separate rollup table to keep in sync.
-  fastify.get('/metrics', async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      const [rows, { stages, byKey }] = await withTenant(tenantId, async (trx) => {
-        const dealRows = await trx.selectFrom('deals').leftJoin('users', 'users.id', 'deals.owner_id')
-          .select([
-            'deals.stage', 'deals.value', 'deals.owner_id', 'deals.closed_at',
-            'users.name as owner_name',
-          ])
-          .where('deals.tenant_id', '=', tenantId).execute();
-        return [dealRows, await loadStages(trx, tenantId)];
-      });
+  fastify.get('/metrics', async (request: any) => {
+    const tenantId = request.user.tenant_id;
+    const [rows, { stages, byKey }] = await withTenant(tenantId, async (trx) => {
+      const dealRows = await trx.selectFrom('deals').leftJoin('users', 'users.id', 'deals.owner_id')
+        .select([
+          'deals.stage', 'deals.value', 'deals.owner_id', 'deals.closed_at',
+          'users.name as owner_name',
+        ])
+        .where('deals.tenant_id', '=', tenantId).execute();
+      return [dealRows, await loadStages(trx, tenantId)];
+    });
 
-      const byStage: Record<string, { count: number; value: number }> = {};
-      for (const s of stages) byStage[s.key] = { count: 0, value: 0 };
-      for (const r of rows) {
-        (byStage[r.stage] ??= { count: 0, value: 0 });
-        byStage[r.stage].count++;
-        byStage[r.stage].value += Number(r.value);
-      }
-
-      const isClosed = (stageKey: string) => { const s = byKey.get(stageKey); return !!s && (s.is_won || s.is_lost); };
-      const isWon = (stageKey: string) => byKey.get(stageKey)?.is_won === true;
-
-      const open = rows.filter(r => !isClosed(r.stage));
-      const openValue = open.reduce((sum, r) => sum + Number(r.value), 0);
-
-      const thirtyDaysAgo = Date.now() - 30 * 86_400_000;
-      const closedRecent = rows.filter(r => r.closed_at && new Date(r.closed_at).getTime() >= thirtyDaysAgo);
-      const wonRecent = closedRecent.filter(r => isWon(r.stage));
-      const winRate = closedRecent.length ? Math.round((wonRecent.length / closedRecent.length) * 100) : null;
-
-      const leaderboardMap = new Map<string, { owner_id: string; owner_name: string; won: number; value: number }>();
-      for (const r of rows) {
-        if (!isWon(r.stage) || !r.owner_id) continue;
-        const cur = leaderboardMap.get(r.owner_id) ?? { owner_id: r.owner_id, owner_name: r.owner_name ?? 'Unassigned', won: 0, value: 0 };
-        cur.won++;
-        cur.value += Number(r.value);
-        leaderboardMap.set(r.owner_id, cur);
-      }
-      const leaderboard = [...leaderboardMap.values()].sort((a, b) => b.value - a.value).slice(0, 10);
-
-      return {
-        by_stage: byStage,
-        open_count: open.length,
-        open_value: openValue,
-        win_rate_30d: winRate,
-        closed_30d: closedRecent.length,
-        leaderboard,
-      };
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+    const byStage: Record<string, { count: number; value: number }> = {};
+    for (const s of stages) byStage[s.key] = { count: 0, value: 0 };
+    for (const r of rows) {
+      (byStage[r.stage] ??= { count: 0, value: 0 });
+      byStage[r.stage].count++;
+      byStage[r.stage].value += Number(r.value);
     }
+
+    const isClosed = (stageKey: string) => { const s = byKey.get(stageKey); return !!s && (s.is_won || s.is_lost); };
+    const isWon = (stageKey: string) => byKey.get(stageKey)?.is_won === true;
+
+    const open = rows.filter(r => !isClosed(r.stage));
+    const openValue = open.reduce((sum, r) => sum + Number(r.value), 0);
+
+    const thirtyDaysAgo = Date.now() - 30 * 86_400_000;
+    const closedRecent = rows.filter(r => r.closed_at && new Date(r.closed_at).getTime() >= thirtyDaysAgo);
+    const wonRecent = closedRecent.filter(r => isWon(r.stage));
+    const winRate = closedRecent.length ? Math.round((wonRecent.length / closedRecent.length) * 100) : null;
+
+    const leaderboardMap = new Map<string, { owner_id: string; owner_name: string; won: number; value: number }>();
+    for (const r of rows) {
+      if (!isWon(r.stage) || !r.owner_id) continue;
+      const cur = leaderboardMap.get(r.owner_id) ?? { owner_id: r.owner_id, owner_name: r.owner_name ?? 'Unassigned', won: 0, value: 0 };
+      cur.won++;
+      cur.value += Number(r.value);
+      leaderboardMap.set(r.owner_id, cur);
+    }
+    const leaderboard = [...leaderboardMap.values()].sort((a, b) => b.value - a.value).slice(0, 10);
+
+    return {
+      by_stage: byStage,
+      open_count: open.length,
+      open_value: openValue,
+      win_rate_30d: winRate,
+      closed_30d: closedRecent.length,
+      leaderboard,
+    };
   });
 
   fastify.post('/', async (request: any, reply) => {
     const b = dealCreateSchema.parse(request.body);
-    try {
-      const tenantId = request.user.tenant_id;
-      const { validKeys, entryKey } = await withTenant(tenantId, trx => loadStages(trx, tenantId));
-      if (b.stage && !validKeys.has(b.stage)) {
-        return reply.status(400).send({ error: `"${b.stage}" is not one of this tenant's pipeline stages` });
-      }
-      const id = await withTenant(tenantId, async trx => {
-        const [row] = await trx.insertInto('deals').values({
-          tenant_id: tenantId,
-          name: b.name,
-          customer_id: b.customer_id || null,
-          lead_id: b.lead_id || null,
-          stage: b.stage || entryKey,
-          value: String(b.value ?? 0),
-          currency: b.currency || 'TZS',
-          probability: b.probability ?? 50,
-          owner_id: b.owner_id || null,
-          source: b.source || null,
-          expected_close: b.expected_close ? new Date(b.expected_close) : null,
-          notes: b.notes || null,
-          created_by: request.user.sub,
-        }).returning('id').execute();
-        await logCrmActivity(trx, {
-          tenantId, subjectType: 'deal', subjectId: row.id, type: 'created',
-          body: `Deal created${b.lead_id ? ' from a converted lead' : ''}`,
-          actorId: request.user.sub, actorName: request.user.name,
-        });
-        await emitDomainEvent(trx, tenantId, {
-          type: 'deal.created', sourceApp: 'crm', entityType: 'deal', entityId: row.id,
-          payload: { name: b.name, value: Number(b.value ?? 0), fromLead: !!b.lead_id },
-          actorId: request.user.sub,
-        }).catch(e => console.error('[CRM] deal.created emit failed:', e.message));
-        return row.id;
-      });
-      const [row] = await withTenant<any[]>(tenantId, trx => dealSelect(trx).where('deals.id', '=', id).execute());
-      return mapDeal(row);
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+    const tenantId = request.user.tenant_id;
+    const { validKeys, entryKey } = await withTenant(tenantId, trx => loadStages(trx, tenantId));
+    if (b.stage && !validKeys.has(b.stage)) {
+      return reply.status(400).send({ error: `"${b.stage}" is not one of this tenant's pipeline stages` });
     }
+    const id = await withTenant(tenantId, async trx => {
+      const [row] = await trx.insertInto('deals').values({
+        tenant_id: tenantId,
+        name: b.name,
+        customer_id: b.customer_id || null,
+        lead_id: b.lead_id || null,
+        stage: b.stage || entryKey,
+        value: String(b.value ?? 0),
+        currency: b.currency || 'TZS',
+        probability: b.probability ?? 50,
+        owner_id: b.owner_id || null,
+        source: b.source || null,
+        expected_close: b.expected_close ? new Date(b.expected_close) : null,
+        notes: b.notes || null,
+        created_by: request.user.sub,
+      }).returning('id').execute();
+      await logCrmActivity(trx, {
+        tenantId, subjectType: 'deal', subjectId: row.id, type: 'created',
+        body: `Deal created${b.lead_id ? ' from a converted lead' : ''}`,
+        actorId: request.user.sub, actorName: request.user.name,
+      });
+      await emitDomainEvent(trx, tenantId, {
+        type: 'deal.created', sourceApp: 'crm', entityType: 'deal', entityId: row.id,
+        payload: { name: b.name, value: Number(b.value ?? 0), fromLead: !!b.lead_id },
+        actorId: request.user.sub,
+      }).catch(e => console.error('[CRM] deal.created emit failed:', e.message));
+      return row.id;
+    });
+    const [row] = await withTenant<any[]>(tenantId, trx => dealSelect(trx).where('deals.id', '=', id).execute());
+    return mapDeal(row);
   });
 
   fastify.patch('/:id', async (request: any, reply) => {
+    const { id } = idParamSchema.parse(request.params);
     const b = dealPatchSchema.parse(request.body);
-    try {
-      const tenantId = request.user.tenant_id;
-      const patch: Record<string, unknown> = { updated_at: new Date() };
-      if (b.name !== undefined) patch.name = b.name;
-      if (b.customer_id !== undefined) patch.customer_id = b.customer_id || null;
-      if (b.lead_id !== undefined) patch.lead_id = b.lead_id || null;
-      if (b.value !== undefined) patch.value = String(b.value);
-      if (b.currency !== undefined) patch.currency = b.currency;
-      if (b.probability !== undefined) patch.probability = b.probability;
-      if (b.owner_id !== undefined) patch.owner_id = b.owner_id || null;
-      if (b.source !== undefined) patch.source = b.source || null;
-      if (b.expected_close !== undefined) patch.expected_close = b.expected_close ? new Date(b.expected_close) : null;
-      if (b.notes !== undefined) patch.notes = b.notes || null;
-      // Stage changes go through PATCH /:id/stage, which also stamps
-      // stage_changed_at/closed_at — not duplicated here.
+    const tenantId = request.user.tenant_id;
+    const patch: Record<string, unknown> = { updated_at: new Date() };
+    if (b.name !== undefined) patch.name = b.name;
+    if (b.customer_id !== undefined) patch.customer_id = b.customer_id || null;
+    if (b.lead_id !== undefined) patch.lead_id = b.lead_id || null;
+    if (b.value !== undefined) patch.value = String(b.value);
+    if (b.currency !== undefined) patch.currency = b.currency;
+    if (b.probability !== undefined) patch.probability = b.probability;
+    if (b.owner_id !== undefined) patch.owner_id = b.owner_id || null;
+    if (b.source !== undefined) patch.source = b.source || null;
+    if (b.expected_close !== undefined) patch.expected_close = b.expected_close ? new Date(b.expected_close) : null;
+    if (b.notes !== undefined) patch.notes = b.notes || null;
+    // Stage changes go through PATCH /:id/stage, which also stamps
+    // stage_changed_at/closed_at — not duplicated here.
 
-      await withTenant<any>(tenantId, trx =>
-        trx.updateTable('deals').set(patch).where('id', '=', request.params.id)
-          .where('tenant_id', '=', tenantId).execute()
-      );
-      const [row] = await withTenant<any[]>(tenantId, trx => dealSelect(trx).where('deals.id', '=', request.params.id).execute());
-      if (!row) return reply.status(404).send({ error: 'Deal not found' });
-      return mapDeal(row);
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+    await withTenant<any>(tenantId, trx =>
+      trx.updateTable('deals').set(patch).where('id', '=', id)
+        .where('tenant_id', '=', tenantId).execute()
+    );
+    const [row] = await withTenant<any[]>(tenantId, trx => dealSelect(trx).where('deals.id', '=', id).execute());
+    if (!row) return reply.status(404).send({ error: 'Deal not found' });
+    return mapDeal(row);
   });
 
   // Dedicated stage-move endpoint — the kanban board's drag-and-drop hits
@@ -237,78 +229,72 @@ export async function dealsRoutes(fastify: FastifyInstance) {
   // clock) and closed_at (won/lost reporting) are always kept honest
   // together rather than relying on every future caller to remember both.
   fastify.patch('/:id/stage', async (request: any, reply) => {
+    const { id } = idParamSchema.parse(request.params);
     const b = stageMoveSchema.parse(request.body);
-    try {
-      const tenantId = request.user.tenant_id;
-      const { byKey } = await withTenant(tenantId, trx => loadStages(trx, tenantId));
-      const target = byKey.get(b.stage);
-      if (!target) return reply.status(400).send({ error: `"${b.stage}" is not one of this tenant's pipeline stages` });
+    const tenantId = request.user.tenant_id;
+    const { byKey } = await withTenant(tenantId, trx => loadStages(trx, tenantId));
+    const target = byKey.get(b.stage);
+    if (!target) return reply.status(400).send({ error: `"${b.stage}" is not one of this tenant's pipeline stages` });
 
-      const row = await withTenant(tenantId, async trx => {
-        const existing = await trx.selectFrom('deals').select(['id', 'stage', 'name', 'value', 'customer_id'])
-          .where('id', '=', request.params.id).where('tenant_id', '=', tenantId).executeTakeFirst();
-        if (!existing) return null;
+    const row = await withTenant(tenantId, async trx => {
+      const existing = await trx.selectFrom('deals').select(['id', 'stage', 'name', 'value', 'customer_id'])
+        .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!existing) return null;
 
-        const patch: Record<string, unknown> = {
-          stage: b.stage,
-          stage_changed_at: new Date(),
-          updated_at: new Date(),
-          closed_at: (target.is_won || target.is_lost) ? new Date() : null,
-          lost_reason: target.is_lost ? (b.lost_reason || null) : null,
-        };
-        await trx.updateTable('deals').set(patch).where('id', '=', request.params.id).execute();
+      const patch: Record<string, unknown> = {
+        stage: b.stage,
+        stage_changed_at: new Date(),
+        updated_at: new Date(),
+        closed_at: (target.is_won || target.is_lost) ? new Date() : null,
+        lost_reason: target.is_lost ? (b.lost_reason || null) : null,
+      };
+      await trx.updateTable('deals').set(patch).where('id', '=', id).execute();
 
-        if (existing.stage !== b.stage) {
-          const val = Number(existing.value);
-          const dealId: string = request.params.id;
-          const actorId: string = request.user.sub;
-          await logCrmActivity(trx, {
-            tenantId, subjectType: 'deal', subjectId: dealId, type: 'stage_change',
-            body: `Stage moved from ${existing.stage} to ${b.stage}${target.is_lost && b.lost_reason ? ` — ${b.lost_reason}` : ''}`,
-            meta: { from: existing.stage, to: b.stage, lost_reason: b.lost_reason || undefined },
-            actorId, actorName: request.user.name,
-          });
+      if (existing.stage !== b.stage) {
+        const val = Number(existing.value);
+        const dealId: string = id;
+        const actorId: string = request.user.sub;
+        await logCrmActivity(trx, {
+          tenantId, subjectType: 'deal', subjectId: dealId, type: 'stage_change',
+          body: `Stage moved from ${existing.stage} to ${b.stage}${target.is_lost && b.lost_reason ? ` — ${b.lost_reason}` : ''}`,
+          meta: { from: existing.stage, to: b.stage, lost_reason: b.lost_reason || undefined },
+          actorId, actorName: request.user.name,
+        });
+        await emitDomainEvent(trx, tenantId, {
+          type: 'deal.stage_changed', sourceApp: 'crm', entityType: 'deal', entityId: dealId,
+          payload: { from: existing.stage, to: b.stage, name: existing.name, value: val }, actorId,
+        }).catch(e => console.error('[CRM] deal.stage_changed emit failed:', e.message));
+        if (target.is_won) {
           await emitDomainEvent(trx, tenantId, {
-            type: 'deal.stage_changed', sourceApp: 'crm', entityType: 'deal', entityId: dealId,
-            payload: { from: existing.stage, to: b.stage, name: existing.name, value: val }, actorId,
-          }).catch(e => console.error('[CRM] deal.stage_changed emit failed:', e.message));
-          if (target.is_won) {
-            await emitDomainEvent(trx, tenantId, {
-              type: 'deal.won', sourceApp: 'crm', entityType: 'deal', entityId: dealId,
-              payload: { name: existing.name, value: val, customerId: existing.customer_id }, actorId,
-            }).catch(e => console.error('[CRM] deal.won emit failed:', e.message));
-          }
-          if (target.is_lost) {
-            await emitDomainEvent(trx, tenantId, {
-              type: 'deal.lost', sourceApp: 'crm', entityType: 'deal', entityId: dealId,
-              payload: { name: existing.name, value: val, reason: b.lost_reason || null }, actorId,
-            }).catch(e => console.error('[CRM] deal.lost emit failed:', e.message));
-          }
+            type: 'deal.won', sourceApp: 'crm', entityType: 'deal', entityId: dealId,
+            payload: { name: existing.name, value: val, customerId: existing.customer_id }, actorId,
+          }).catch(e => console.error('[CRM] deal.won emit failed:', e.message));
         }
-        return dealSelect(trx).where('deals.id', '=', request.params.id).execute();
-      });
-      if (!row) return reply.status(404).send({ error: 'Deal not found' });
-      return mapDeal((row as any[])[0]);
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+        if (target.is_lost) {
+          await emitDomainEvent(trx, tenantId, {
+            type: 'deal.lost', sourceApp: 'crm', entityType: 'deal', entityId: dealId,
+            payload: { name: existing.name, value: val, reason: b.lost_reason || null }, actorId,
+          }).catch(e => console.error('[CRM] deal.lost emit failed:', e.message));
+        }
+      }
+      return dealSelect(trx).where('deals.id', '=', id).execute();
+    });
+    if (!row) return reply.status(404).send({ error: 'Deal not found' });
+    return mapDeal((row as any[])[0]);
   });
 
   fastify.delete('/:id', async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      await withTenant(tenantId, async trx => {
-        // Same orphan-prevention as leads.routes.ts's DELETE — crm_activities
-        // has no FK to deals (polymorphic subject_id, migration 449).
-        await trx.deleteFrom('crm_activities')
-          .where('tenant_id', '=', tenantId).where('subject_type', '=', 'deal').where('subject_id', '=', request.params.id).execute();
-        await trx.deleteFrom('deals').where('id', '=', request.params.id)
-          .where('tenant_id', '=', tenantId).execute();
-      });
-      reply.status(204);
-      return null;
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+    const { id } = idParamSchema.parse(request.params);
+    const tenantId = request.user.tenant_id;
+    await withTenant(tenantId, async trx => {
+      // Same orphan-prevention as leads.routes.ts's DELETE — crm_activities
+      // has no FK to deals (polymorphic subject_id, migration 449).
+      await trx.deleteFrom('crm_activities')
+        .where('tenant_id', '=', tenantId).where('subject_type', '=', 'deal').where('subject_id', '=', id).execute();
+      await trx.deleteFrom('deals').where('id', '=', id)
+        .where('tenant_id', '=', tenantId).execute();
+    });
+    reply.status(204);
+    return null;
   });
 }

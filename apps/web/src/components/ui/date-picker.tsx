@@ -68,6 +68,13 @@ export function DatePicker({ date: controlledDate, defaultDate, onChange, name, 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <div className="relative w-full">
+        {/* Radix unmounts PopoverContent's subtree the instant the popover
+            closes — and handleSelect closes it immediately on pick — so a
+            hidden input placed inside PopoverContent (as this used to be) is
+            gone from the DOM before a caller's <form> ever submits, and
+            `new FormData(form)` silently never sees the date at all. Kept
+            here, a sibling of the popover content, so it survives close. */}
+        {name && <input type="hidden" name={name} value={toDateOnlyString(date)} />}
         <PopoverTrigger asChild>
           <button type="button" disabled={disabled} className={cn(triggerClass, date && "pr-9", !date && "text-muted-foreground", triggerClassName)}>
             <CalendarIcon className="h-4 w-4 shrink-0 opacity-60" />
@@ -77,7 +84,6 @@ export function DatePicker({ date: controlledDate, defaultDate, onChange, name, 
         {date && <ClearDateButton label="Clear date" disabled={disabled} onClear={() => handleSelect(undefined)} />}
       </div>
       <PopoverContent align="start" className={cn("w-auto p-2", className)}>
-        {name && <input type="hidden" name={name} value={toDateOnlyString(date)} />}
         <Calendar
           mode="single"
           selected={date}

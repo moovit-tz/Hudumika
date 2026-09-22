@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -295,6 +295,7 @@ function StagePipeline({ current, onSelect, interactive }: { current: string; on
 export const Leads: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [view, setView]       = useState<'list' | 'profile'>('list');
   const [leads, setLeads]     = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -521,6 +522,13 @@ export const Leads: React.FC = () => {
     setEditMode(false);
     setView('profile');
   }
+
+  useEffect(() => {
+    const id = searchParams.get('lead');
+    if (!id || loading || selected?.id === id) return;
+    const match = leads.find(lead => lead.id === id);
+    if (match) openProfile(match);
+  }, [leads, loading, searchParams, selected?.id]);
 
   function openEdit(lead: Lead) {
     setEditingId(lead.id);

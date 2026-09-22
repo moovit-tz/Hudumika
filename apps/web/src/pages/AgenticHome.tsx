@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
@@ -13,6 +14,8 @@ import { resolveLandingStyle } from '../lib/landingStyle.js';
 import { useEnabledApps } from '../hooks/useEnabledApps.js';
 import { WorkspaceHome } from './WorkspaceHome.js';
 import { STAGE_LABELS } from '@hudumika/types';
+import { AgenticExecutionStage, PRESET_WORKFLOWS, AgentWorkflow } from '../components/agentic/AgenticExecutionStage.js';
+import { LauncherAppSvg } from '../components/LauncherApps.js';
 import './AgenticHome.css';
 
 /** Mirrors apps/api/src/routes/search.routes.ts's SearchHit — not imported
@@ -78,36 +81,33 @@ function buildSuggestions(data: CockpitData): Suggestion[] {
   return out;
 }
 
-function agentReply(data: CockpitData, msgRaw: string): string {
-  const msg = msgRaw.toLowerCase();
-  if (/overdue|late|behind/.test(msg)) {
-    const overdue = data.tasks.filter(t => t.due && new Date(t.due).getTime() < new Date(new Date().toDateString()).getTime());
-    return overdue.length ? `${overdue.length} overdue: ${overdue.map(t => t.title).join('; ')}.` : "Nothing's overdue right now.";
-  }
-  if (/task/.test(msg)) return data.tasks.length ? `You have ${data.tasks.length} open task${data.tasks.length === 1 ? '' : 's'}, soonest: "${data.tasks[0]?.title}".` : 'No open tasks.';
-  if (/ticket/.test(msg)) return data.tickets.length ? `${data.tickets.length} open ticket${data.tickets.length === 1 ? '' : 's'} assigned to you.` : 'No tickets assigned to you.';
-  if (/shipment/.test(msg)) return data.shipments?.length ? `${data.shipments.length} shipment${data.shipments.length === 1 ? '' : 's'} on your plate.` : 'No shipments assigned to you.';
-  if (/leave/.test(msg)) return data.leave?.pendingRequests?.length ? `${data.leave.pendingRequests.length} leave request${data.leave.pendingRequests.length === 1 ? '' : 's'} pending.` : 'No pending leave requests.';
-  if (/petty|cash|wallet/.test(msg)) return data.pettyCash ? `${data.pettyCash.myRequests?.length ?? 0} of your own requests pending, ${data.pettyCash.pendingMyApproval?.length ?? 0} waiting on your approval.` : "Petty cash isn't part of your workspace.";
-  if (/help|what can you do/.test(msg)) return 'Ask me about your tasks, tickets, shipments, leave, or petty cash — I answer from what\'s actually on your plate right now.';
-  if (/pending|waiting|plate|today|going on|status/.test(msg)) {
-    const parts: string[] = [];
-    if (data.tasks.length) parts.push(`${data.tasks.length} task${data.tasks.length === 1 ? '' : 's'}`);
-    if (data.tickets.length) parts.push(`${data.tickets.length} ticket${data.tickets.length === 1 ? '' : 's'}`);
-    if (data.shipments?.length) parts.push(`${data.shipments.length} shipment${data.shipments.length === 1 ? '' : 's'}`);
-    const approvals = (data.pettyCash?.pendingMyApproval?.length ?? 0) + (data.leave?.pendingRequests?.length ?? 0);
-    if (approvals) parts.push(`${approvals} item${approvals === 1 ? '' : 's'} waiting on your approval`);
-    return parts.length ? `Right now: ${parts.join(', ')}.` : "You're all caught up — nothing pending right now.";
-  }
-  return "I can tell you about your tasks, tickets, shipments, leave, or petty cash — try asking about one of those.";
+/** What GET/POST /v1/agent/* returns for a pending approval — see
+ *  apps/api/src/routes/agent.routes.ts's LoopResultSummary. */
+interface PendingApproval {
+  id: string;
+  toolId: string;
+  toolLabel: string;
+  requestedEffect: string;
+  approverRole: string;
+  requiredApprovals: number;
 }
 
-type Tab = 'feed' | 'operations' | 'reports' | 'profile';
+/** Client-side mirror of agent.routes.ts's canDecideApproval() — for UI
+ *  gating only (whether to show Approve/Reject at all); the server enforces
+ *  the real check independently on every decision it receives. */
+function canDecideApproval(userRole: string | undefined, approverRole: string): boolean {
+  if (!userRole) return false;
+  return approverRole === 'MANAGER'
+    ? ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(userRole)
+    : userRole === approverRole;
+}
+
+type Tab = 'agent' | 'feed' | 'operations' | 'reports';
 const TABS: { key: Tab; label: string; icon: any }[] = [
+  { key: 'agent', label: 'Agent Flow', icon: 'sparkle' },
   { key: 'feed', label: 'Feed', icon: 'activity' },
   { key: 'operations', label: 'Operations', icon: 'grid' },
   { key: 'reports', label: 'Reports', icon: 'barChart' },
-  { key: 'profile', label: 'Profile', icon: 'user' },
 ];
 
 export const AgenticHome: React.FC = () => {
@@ -115,11 +115,18 @@ export const AgenticHome: React.FC = () => {
   const navigate = useNavigate();
   const enabledApps = useEnabledApps();
   const [data, setData] = useState<CockpitData | null>(null);
-  const [tab, setTab] = useState<Tab>('feed');
+  const [tab, setTab] = useState<Tab>('agent');
+  const [activeWorkflow, setActiveWorkflow] = useState<AgentWorkflow>(PRESET_WORKFLOWS[0]);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMsgs, setChatMsgs] = useState<{ role: 'agent' | 'user'; text: string }[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
+  // Real /v1/agent/runs state — a run persists across the whole chat session
+  // once started; a follow-up message continues the same run via
+  // POST /runs/:id/messages rather than starting a new one each time.
+  const [runId, setRunId] = useState<string | null>(null);
+  const [pendingApproval, setPendingApproval] = useState<PendingApproval | null>(null);
+  const [decisionBusy, setDecisionBusy] = useState(false);
   const [momentum, setMomentum] = useState(0);
   const [switching, setSwitching] = useState(false);
 
@@ -146,6 +153,31 @@ export const AgenticHome: React.FC = () => {
     }).catch(() => {});
   }, []);
   useEffect(() => { loadNotifs(); const t = setInterval(loadNotifs, 45000); return () => clearInterval(t); }, [loadNotifs]);
+
+  // ── Agent approvals waiting on this user (real GET /v1/agent/approvals,
+  // milestone 3) — the only place a run's approval gate is visible to
+  // anyone other than whoever happened to be chatting when it opened, e.g.
+  // a manager approving something an employee's agent run asked for. ──
+  const [agentApprovals, setAgentApprovals] = useState<any[]>([]);
+  const [decidingApprovalId, setDecidingApprovalId] = useState<string | null>(null);
+  const loadAgentApprovals = useCallback(() => {
+    apiFetch('/v1/agent/approvals').then(res => setAgentApprovals(Array.isArray(res) ? res : [])).catch(() => {});
+  }, []);
+  useEffect(() => { loadAgentApprovals(); const t = setInterval(loadAgentApprovals, 45000); return () => clearInterval(t); }, [loadAgentApprovals]);
+
+  async function decideSidebarApproval(approvalId: string, decision: 'approved' | 'rejected') {
+    if (decidingApprovalId) return;
+    setDecidingApprovalId(approvalId);
+    try {
+      await apiFetch(`/v1/agent/approvals/${approvalId}/decision`, { method: 'POST', body: JSON.stringify({ decision }) });
+    } catch {
+      // Real state wins on the next reload if this failed — same
+      // "trust the reload" convention toggleTaskDone above already uses.
+    } finally {
+      loadAgentApprovals();
+      setDecidingApprovalId(null);
+    }
+  }
 
   useEffect(() => {
     apiFetch('/v1/workspace/cockpit').then(setData).catch(() => setData(EMPTY));
@@ -175,16 +207,68 @@ export const AgenticHome: React.FC = () => {
     } catch {} finally { setSwitching(false); }
   }
 
-  function sendChat() {
+  /** Renders the outcome of one round of the real agent loop (a fresh run,
+   *  a follow-up message, or a just-resumed approved run) — whichever of
+   *  finalText/errorMessage/pendingApproval the backend sent back. Never
+   *  invents a reply: if the backend returns nothing usable, that itself is
+   *  shown as a plain status line rather than a fabricated response. */
+  function applyRunSummary(status: string, summary: { finalText?: string; errorMessage?: string; pendingApproval?: PendingApproval }) {
+    if (summary.pendingApproval) {
+      setPendingApproval(summary.pendingApproval);
+      return;
+    }
+    setPendingApproval(null);
+    if (status === 'completed') {
+      setChatMsgs(prev => [...prev, { role: 'agent', text: summary.finalText || 'Done.' }]);
+    } else if (status === 'failed') {
+      setChatMsgs(prev => [...prev, { role: 'agent', text: `Something went wrong: ${summary.errorMessage || 'Unknown error'}` }]);
+    } else if (status === 'cancelled' || status === 'rejected') {
+      setChatMsgs(prev => [...prev, { role: 'agent', text: 'This step was not carried out.' }]);
+    }
+  }
+
+  async function sendChat() {
     const text = chatInput.trim();
-    if (!text || chatBusy) return;
+    if (!text || chatBusy || pendingApproval) return;
     setChatMsgs(prev => [...prev, { role: 'user', text }]);
     setChatInput('');
     setChatBusy(true);
-    setTimeout(() => {
-      setChatMsgs(prev => [...prev, { role: 'agent', text: agentReply(d, text) }]);
+    try {
+      const res = runId
+        ? await apiFetch(`/v1/agent/runs/${runId}/messages`, { method: 'POST', body: JSON.stringify({ message: text }) })
+        : await apiFetch('/v1/agent/runs', { method: 'POST', body: JSON.stringify({ goal: text }) });
+      setRunId(res.id);
+      applyRunSummary(res.status, res);
+    } catch (err: any) {
+      setChatMsgs(prev => [...prev, { role: 'agent', text: err?.message || "I couldn't reach the workspace agent — try again in a moment." }]);
+    } finally {
       setChatBusy(false);
-    }, 350);
+    }
+  }
+
+  async function decideApproval(decision: 'approved' | 'rejected') {
+    if (!pendingApproval || decisionBusy) return;
+    setDecisionBusy(true);
+    try {
+      const res = await apiFetch(`/v1/agent/approvals/${pendingApproval.id}/decision`, { method: 'POST', body: JSON.stringify({ decision }) });
+      if (res.status === 'pending') {
+        // Quorum not yet met — this approver's decision is recorded, but a
+        // dual-control tool (agent-registry.ts's critical/always tier)
+        // still needs another, distinct approver before anything runs.
+        setPendingApproval(null);
+        const more = res.approvalsRequired - res.approvalsReceived;
+        setChatMsgs(prev => [...prev, { role: 'agent', text: `Recorded. Waiting on ${more} more approver${more === 1 ? '' : 's'} before this continues.` }]);
+      } else if (res.status === 'rejected') {
+        setPendingApproval(null);
+        applyRunSummary('cancelled', {});
+      } else {
+        applyRunSummary(res.runStatus, res);
+      }
+    } catch (err: any) {
+      setChatMsgs(prev => [...prev, { role: 'agent', text: err?.message || "Couldn't record that decision — try again." }]);
+    } finally {
+      setDecisionBusy(false);
+    }
   }
 
   const suggestions = useMemo(() => buildSuggestions(d), [d]);
@@ -203,72 +287,249 @@ export const AgenticHome: React.FC = () => {
     return out;
   }, [searchResults]);
 
+  // ── Active app brand details based on current tab and active workflow ──
+  const activeAppBrand = useMemo(() => {
+    if (tab === 'agent') {
+      if (activeWorkflow.id === 'route6-trip') {
+        return {
+          appId: 'route6',
+          name: 'Route6',
+          color: '#f59e0b',
+          assignee: activeWorkflow.assigneeName,
+          contextRef: activeWorkflow.contextRef,
+          sub: 'Fleet Ops',
+        };
+      }
+      if (activeWorkflow.id === 'clearos-customs') {
+        return {
+          appId: 'clearos',
+          name: 'ClearOS',
+          color: '#ea580c',
+          assignee: activeWorkflow.assigneeName,
+          contextRef: activeWorkflow.contextRef,
+          sub: 'Customs Clearance',
+        };
+      }
+      if (activeWorkflow.id === 'finops-petti') {
+        return {
+          appId: 'petti',
+          name: 'FinOps',
+          color: '#16a34a',
+          assignee: activeWorkflow.assigneeName,
+          contextRef: activeWorkflow.contextRef,
+          sub: 'Petty Cash',
+        };
+      }
+      return {
+        appId: 'ai',
+        name: activeWorkflow.brandName || 'Hudumika AI',
+        color: '#6d28d9',
+        assignee: activeWorkflow.assigneeName || 'Autonomous Agent',
+        contextRef: activeWorkflow.contextRef || 'AGENT-RUN',
+        sub: 'AI Workflow',
+      };
+    }
+
+    if (tab === 'feed') {
+      return {
+        appId: 'workspace',
+        name: 'Hudumika',
+        color: 'var(--teal)',
+        assignee: 'Live Feed',
+        contextRef: null,
+        sub: 'Cockpit',
+      };
+    }
+
+    if (tab === 'operations') {
+      return {
+        appId: 'workspace',
+        name: 'Operations',
+        color: '#0f766e',
+        assignee: 'Workspace Hub',
+        contextRef: null,
+        sub: 'Applications',
+      };
+    }
+
+    if (tab === 'reports') {
+      return {
+        appId: 'hudubi',
+        name: 'Reports',
+        color: '#18181b',
+        assignee: 'Daily Metrics',
+        contextRef: null,
+        sub: 'Analytics',
+      };
+    }
+
+    return {
+      appId: 'workspace',
+      name: 'Hudumika',
+      color: 'var(--teal)',
+      assignee: '',
+      contextRef: null,
+      sub: '',
+    };
+  }, [tab, activeWorkflow]);
+
   return (
     <div className="app-shell">
       <div className="app-main">
         <div className="ah-header">
-          <button type="button" className="ah-header-mark" onClick={switchToAdvanced} disabled={switching} title="Switch to Advanced landing">
-            <Icon name="layoutDashboard" size={14} color="#fff" />
-          </button>
-          <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented">
-            <TabsList>
-              {TABS.map(t => (
-                <TabsTrigger key={t.key} value={t.key}>
-                  <Icon name={t.icon} size={13} strokeWidth={tab === t.key ? 2.3 : 1.8} />{t.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-          <div className="ah-header-search">
-            <Icon name="search" size={13} color="var(--ink3)" />
-            <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search…" />
-            {searchFlat.length > 0 && (
-              <div className="ah-search-dropdown">
-                {searchFlat.map(hit => (
-                  <button key={hit.id} type="button" className="ah-search-row" onClick={() => { navigate(hit.path); setSearchQ(''); setSearchResults(null); }}>
-                    <div className="ah-search-primary">{hit.label}</div>
-                    {hit.sublabel && <div className="ah-search-secondary">{hit.sublabel}</div>}
-                  </button>
-                ))}
+          <div className="ah-header-left">
+            <button
+              type="button"
+              className="ah-header-mark"
+              onClick={switchToAdvanced}
+              disabled={switching}
+              title="Switch to Advanced landing"
+            >
+              <Icon name="layoutDashboard" size={15} color="#fff" />
+            </button>
+
+            {/* Dynamic App Brand Switching */}
+            <div className="ah-header-brand-lockup" title={`${activeAppBrand.name} · ${activeAppBrand.sub}`}>
+              <div className="ah-app-icon-wrapper">
+                <LauncherAppSvg
+                  id={activeAppBrand.appId}
+                  color={activeAppBrand.color}
+                  size={28}
+                />
+              </div>
+              <div className="ah-brand-meta">
+                <span className="ah-brand-title">{activeAppBrand.name}</span>
+                {activeAppBrand.assignee && (
+                  <>
+                    <span className="ah-brand-divider">/</span>
+                    <span className="ah-assignee-label">{activeAppBrand.assignee}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="ah-header-center">
+            <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented" className="ah-header-tabs">
+              <TabsList className="ah-tabs-list">
+                {TABS.map(t => {
+                  // Real count of agent approvals waiting on this user (the
+                  // same GET /v1/agent/approvals the sidebar card reads) —
+                  // shown on the Agent Flow tab so it's visible from any tab.
+                  const count = t.key === 'agent' ? agentApprovals.length : 0;
+                  return (
+                    <TabsTrigger
+                      key={t.key} value={t.key} className="ah-tab-trigger"
+                      title={count > 0 ? `${t.label} — ${count} waiting on you` : t.label}
+                      aria-label={count > 0 ? `${t.label}, ${count} waiting on you` : t.label}
+                    >
+                      <Icon name={t.icon} size={14} strokeWidth={tab === t.key ? 2.3 : 1.8} />
+                      <span className="ah-tab-label">{t.label}</span>
+                      {count > 0 && <span className="ah-tab-count">{count > 9 ? '9+' : count}</span>}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </Tabs>
+
+            <div className="ah-header-search">
+              <Icon name="search" size={14} color="var(--ink3)" />
+              <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search workspace, tasks, shipments…" />
+              {searchFlat.length > 0 && (
+                <div className="ah-search-dropdown">
+                  {searchFlat.map(hit => (
+                    <button key={hit.id} type="button" className="ah-search-row" onClick={() => { navigate(hit.path); setSearchQ(''); setSearchResults(null); }}>
+                      <div className="ah-search-primary">{hit.label}</div>
+                      {hit.sublabel && <div className="ah-search-secondary">{hit.sublabel}</div>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="ah-header-right">
+            {/* Context Ref Pill */}
+            {activeAppBrand.contextRef && (
+              <div className="ah-header-context-ref">
+                <span className="ah-context-ref-pill">{activeAppBrand.contextRef}</span>
               </div>
             )}
-          </div>
-          <div className="ah-header-right">
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button type="button" className="ah-header-icon-btn" title="Notifications">
-                  <Icon name="bell" size={17} color="var(--ink)" />
+                  <Icon name="bell" size={18} color="var(--ink)" />
                   {unreadCount > 0 && <span className="ah-header-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="ah-notif-menu">
+                <div className="ah-notif-head">
+                  <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>Notifications</span>
+                  {unreadCount > 0 && (
+                    <span className="ah-notif-count-pill">{unreadCount} new</span>
+                  )}
+                </div>
+                <DropdownMenuSeparator />
                 {notifs.length === 0 && <div className="ah-empty-row">No notifications.</div>}
                 {notifs.slice(0, 6).map(n => (
                   <DropdownMenuItem key={n.id} onSelect={() => n.link && navigate(n.link)}>
                     <div>
-                      <div style={{ fontWeight: n.read ? 400 : 700 }}>{n.title}</div>
-                      {n.message && <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{n.message}</div>}
+                      <div style={{ fontWeight: n.read ? 400 : 700, color: 'var(--ink)' }}>{n.title}</div>
+                      {n.message && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{n.message}</div>}
                     </div>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button type="button" className="ah-header-avatar-btn">
-                  <PersonAvatar userId={user?.id} name={user?.name || ''} size={30} />
+                <button type="button" className="ah-header-avatar-btn" title={user?.name || 'Account menu'}>
+                  <PersonAvatar userId={user?.id} name={user?.name || ''} size={32} />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild><Link to="/profile">My Profile</Link></DropdownMenuItem>
+              <DropdownMenuContent align="end" className="ah-profile-dropdown-menu">
+                <div className="ah-profile-dropdown-user">
+                  <PersonAvatar userId={user?.id} name={user?.name || ''} size={36} />
+                  <div className="ah-profile-dropdown-meta">
+                    <div className="ah-profile-dropdown-name">{user?.name || 'User'}</div>
+                    <div className="ah-profile-dropdown-role">{roleLabel(user?.role)}</div>
+                  </div>
+                </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => logout()}>Sign out</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="ah-profile-menu-link">
+                    <Icon name="user" size={14} color="var(--ink2)" />
+                    <span>My Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/tasks" className="ah-profile-menu-link">
+                    <Icon name="check" size={14} color="var(--ink2)" />
+                    <span>My Tasks ({openTaskCount})</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => logout()} className="ah-profile-menu-logout">
+                  <Icon name="logOut" size={14} color="var(--red)" />
+                  <span>Sign out</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
 
         <div className="ah-scroll">
+          {tab === 'agent' && (
+            <div className="ah-agent-flow-view">
+              <AgenticExecutionStage
+                hideHeader={true}
+                onWorkflowChange={setActiveWorkflow}
+              />
+            </div>
+          )}
+
           {tab === 'feed' && (
             <div className="agentic-home-root">
               <div className="hub2-welcome-band">
@@ -290,6 +551,20 @@ export const AgenticHome: React.FC = () => {
                 </div>
                 <div className="ah-headline-text">
                   {totalOnPlate === 0 ? "You're all caught up — nothing on your plate right now." : <><b>{totalOnPlate}</b> thing{totalOnPlate === 1 ? '' : 's'} on your plate right now.</>}
+                </div>
+              </div>
+
+              <div className="ah-agent-feature-banner" onClick={() => setTab('agent')}>
+                <div className="ah-agent-feature-left">
+                  <div className="r6-logo-badge" style={{ fontSize: 13, padding: '3px 7px' }}>R6</div>
+                  <div>
+                    <div className="ah-agent-feature-title">Route6 Autonomous Agent Flow</div>
+                    <div className="ah-agent-feature-sub">TRP-1042 · Live stepped execution for trip closing, inspection, invoice generation & customer dispatch</div>
+                  </div>
+                </div>
+                <div className="r6-action-btn primary" style={{ pointerEvents: 'none' }}>
+                  <span>Open Live Stage</span>
+                  <Icon name="arrowRight" size={13} />
                 </div>
               </div>
 
@@ -356,6 +631,26 @@ export const AgenticHome: React.FC = () => {
                 </div>
 
                 <div className="ah-col-side">
+                  {agentApprovals.length > 0 && (
+                    <SectionCard title={`Agent Approvals (${agentApprovals.length})`} padded={false}>
+                      {agentApprovals.map(a => (
+                        <div key={a.id} className="ah-queue-row ah-queue-row--approval">
+                          <div className="ah-queue-main">
+                            <div className="ah-queue-primary">{a.requested_effect}</div>
+                            <div className="ah-queue-secondary">
+                              from “{a.run_goal}”{a.initiator_name ? ` · ${a.initiator_name}` : ''}
+                              {a.required_approvals > 1 ? ` · ${a.decisionsSoFar}/${a.required_approvals} approved` : ''}
+                            </div>
+                          </div>
+                          <div className="ah-approval-row-actions">
+                            <Button size="xs" variant="outline" disabled={decidingApprovalId === a.id} onClick={() => decideSidebarApproval(a.id, 'rejected')}>Reject</Button>
+                            <Button size="xs" disabled={decidingApprovalId === a.id} onClick={() => decideSidebarApproval(a.id, 'approved')}>Approve</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </SectionCard>
+                  )}
+
                   {d.pettyCash && ((d.pettyCash.pendingMyApproval?.length ?? 0) > 0 || (d.pettyCash.myRequests?.length ?? 0) > 0) && (
                     <SectionCard title="Petty Cash" padded={false}>
                       {(d.pettyCash.pendingMyApproval ?? []).map(p => (
@@ -427,27 +722,6 @@ export const AgenticHome: React.FC = () => {
               </div>
             </div>
           )}
-
-          {tab === 'profile' && (
-            <div className="agentic-home-root">
-              <div className="hub2-welcome-band">
-                <p className="hub2-welcome-title"><em className="hub2-welcome-em">{user?.name}</em></p>
-                <p className="hub2-welcome-sub">{roleLabel(user?.role)}{(user?.profile as any)?.department ? ` · ${(user?.profile as any).department}` : ''}</p>
-              </div>
-              <div className="ah-body" style={{ gridTemplateColumns: '1fr' }}>
-                <SectionCard title="Snapshot">
-                  <div className="ah-profile-meta">
-                    <div><b>{enabledApps ? Object.values(enabledApps).filter(Boolean).length : '—'}</b><span>apps in workspace</span></div>
-                    <div><b>{openTaskCount}</b><span>open tasks</span></div>
-                    <div><b>Hudumika Workspace</b><span>signed in via Ondi</span></div>
-                  </div>
-                </SectionCard>
-                <div className="ah-action-grid" style={{ marginTop: 16 }}>
-                  <Link to="/profile" className="ah-action-btn"><Icon name="user" size={15} color="var(--teal)" />Edit your profile</Link>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         <button type="button" className="ah-chat-fab" onClick={() => setChatOpen(o => !o)} title="Ask your workspace agent">
@@ -460,16 +734,39 @@ export const AgenticHome: React.FC = () => {
               <span>Workspace Agent</span>
             </div>
             <div className="ah-chat-msgs">
-              {chatMsgs.length === 0 && <div className="ah-chat-msg ah-chat-msg--agent">Ask me about your tasks, tickets, shipments, leave, or petty cash.</div>}
+              {chatMsgs.length === 0 && <div className="ah-chat-msg ah-chat-msg--agent">Ask me to look something up or do something — I can act across your workspace, not just answer questions.</div>}
               {chatMsgs.map((m, i) => <div key={i} className={`ah-chat-msg ah-chat-msg--${m.role}`}>{m.text}</div>)}
+              {chatBusy && <div className="ah-chat-msg ah-chat-msg--agent ah-chat-msg--pending">Working on it…</div>}
+              {pendingApproval && (
+                <div className="ah-approval-card">
+                  <div className="ah-approval-head">
+                    <Icon name="shield" size={13} color="var(--gold)" />
+                    <span>Needs approval</span>
+                  </div>
+                  <div className="ah-approval-effect">{pendingApproval.requestedEffect}</div>
+                  {pendingApproval.requiredApprovals > 1 && (
+                    <div className="ah-approval-hint">Needs {pendingApproval.requiredApprovals} distinct approvers.</div>
+                  )}
+                  {canDecideApproval(user?.role, pendingApproval.approverRole) ? (
+                    <div className="ah-approval-actions">
+                      <Button size="xs" variant="outline" disabled={decisionBusy} onClick={() => decideApproval('rejected')}>Reject</Button>
+                      <Button size="xs" disabled={decisionBusy} onClick={() => decideApproval('approved')}>Approve</Button>
+                    </div>
+                  ) : (
+                    <div className="ah-approval-hint">Waiting for a {roleLabel(pendingApproval.approverRole)} to decide.</div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="ah-chat-input-row">
               <input
-                className="ah-chat-input" value={chatInput} placeholder="Ask about today…"
+                className="ah-chat-input" value={chatInput}
+                placeholder={pendingApproval ? 'Waiting on an approval decision…' : 'Ask or ask me to do something…'}
+                disabled={!!pendingApproval || chatBusy}
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') sendChat(); }}
               />
-              <button type="button" className="ah-chat-send" onClick={sendChat} aria-label="Send"><Icon name="send" size={14} color="#fff" /></button>
+              <button type="button" className="ah-chat-send" onClick={sendChat} disabled={!!pendingApproval || chatBusy} aria-label="Send"><Icon name="send" size={14} color="#fff" /></button>
             </div>
           </div>
         )}

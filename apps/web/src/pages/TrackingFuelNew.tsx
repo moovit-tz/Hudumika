@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
-import { BackButton } from '../components/ui/BackButton.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 
@@ -52,11 +51,12 @@ export const TrackingFuelNew: React.FC = () => {
 
   return (
     <div style={{ padding: '0 0 24px'}}>
-      <BackButton to="/tracking/fuel" label="Fuel" />
       <PageHeader
         crumbs={['HuduFreight', 'Log Fuel']}
-        titlePlain="Log a fuel"
-        titleEm="entry"
+        title="Log a fuel entry"
+        subtitle="Record fuel volume, cost, driver, and odometer details."
+        variant="create"
+        backTo="/tracking/fuel"
       />
 
       <SectionCard>

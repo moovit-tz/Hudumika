@@ -2,18 +2,11 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
-import { AI_TOOL_DEFINITIONS, runAiTool } from '../services/ai-tools.service.js';
-import {
-  loadMemory, memoryPromptSection, resolveConversation, saveTurn, loadHistory, parseRememberCommand,
-} from '../services/ai-memory.service.js';
-
-const CHAT_SYSTEM_PROMPT = `You are the Hudumika assistant, embedded in a freight-clearance and finance SaaS.
-Answer questions about the tenant's own operational data (shipments, customers, receivables) using the
-tools provided — never guess numbers. If a question isn't about the tenant's data, answer normally from
-general knowledge. Keep answers concise and concrete (cite actual reference numbers/customer names/amounts
-returned by tools, not vague summaries).`;
-
-const MAX_TOOL_ROUNDS = 4;
+import { runAiTool } from '../services/ai-tools.service.js';
+import { loadMemory } from '../services/ai-memory.service.js';
+import { resolveAiCredentials } from '../lib/platform-settings.js';
+import { describeAiUnavailable } from '../lib/ai-credits.js';
+import { AI_PROVIDER_CONFIG, detectAiProvider, generationParams } from '../lib/ai-providers.js';
 
 /** Postgres raises 22P02 on a malformed uuid, which Fastify turns into a 500
  *  carrying the driver's own error text. A bad id is a "not found", not an
@@ -39,110 +32,24 @@ const extractTaskSchema = z.object({
   body: z.string().trim().min(1).max(8000),
 });
 const automationGenerateSchema = z.object({ prompt: z.string().trim().min(1) });
-const chatSchema = z.object({
-  message: z.string().optional(),
-  conversation_id: z.string().nullable().optional(),
-  messages: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string() })).optional(),
-});
-
-interface ChatToolCallLog { name: string; input: Record<string, any>; result: any }
-
-/** Agentic loop: lets the model call read-only tools (ai-tools.service.ts) and
- *  re-prompts with results until it produces a final answer or MAX_TOOL_ROUNDS
- *  is hit. Anthropic and OpenAI have different tool-calling wire formats, so
- *  each provider gets its own loop rather than forcing a shared shape. */
-async function runAgenticChat(
-  tenantId: string, apiKey: string, model: string, provider: string,
-  history: { role: 'user' | 'assistant'; content: string }[],
-  /** Facts the user asked to be remembered, appended to the system prompt. */
-  memorySection = ''
-): Promise<{ reply: string; toolCalls: ChatToolCallLog[] }> {
-  const toolCalls: ChatToolCallLog[] = [];
-  const isAnthropic = provider === 'anthropic' || model.startsWith('claude');
-  const systemPrompt = CHAT_SYSTEM_PROMPT + memorySection;
-
-  if (isAnthropic) {
-    const messages: any[] = history.map(m => ({ role: m.role, content: m.content }));
-    const tools = AI_TOOL_DEFINITIONS.map(t => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
-
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({ model, max_tokens: 1024, temperature: 0.3, system: systemPrompt, messages, tools }),
-      });
-      if (!res.ok) { const err: any = await res.json(); throw new Error(err.error?.message || `Anthropic error ${res.status}`); }
-      const data: any = await res.json();
-
-      const toolUseBlocks = (data.content || []).filter((b: any) => b.type === 'tool_use');
-      if (data.stop_reason !== 'tool_use' || toolUseBlocks.length === 0) {
-        const text = (data.content || []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n');
-        return { reply: text, toolCalls };
-      }
-
-      messages.push({ role: 'assistant', content: data.content });
-      const toolResults = [];
-      for (const block of toolUseBlocks) {
-        const result = await runAiTool(tenantId, block.name, block.input || {});
-        toolCalls.push({ name: block.name, input: block.input || {}, result });
-        toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(result) });
-      }
-      messages.push({ role: 'user', content: toolResults });
-    }
-    return { reply: "I wasn't able to finish gathering that information — try narrowing your question.", toolCalls };
-  }
-
-  // OpenAI function-calling path
-  const messages: any[] = [{ role: 'system', content: systemPrompt }, ...history];
-  const tools = AI_TOOL_DEFINITIONS.map(t => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } }));
-
-  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, max_tokens: 1024, temperature: 0.3, messages, tools }),
-    });
-    if (!res.ok) { const err: any = await res.json(); throw new Error(err.error?.message || `OpenAI error ${res.status}`); }
-    const data: any = await res.json();
-    const message = data.choices?.[0]?.message;
-
-    if (!message?.tool_calls?.length) {
-      return { reply: message?.content || '', toolCalls };
-    }
-
-    messages.push(message);
-    for (const call of message.tool_calls) {
-      let input: Record<string, any> = {};
-      try { input = JSON.parse(call.function.arguments || '{}'); } catch {}
-      const result = await runAiTool(tenantId, call.function.name, input);
-      toolCalls.push({ name: call.function.name, input, result });
-      messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) });
-    }
-  }
-  return { reply: "I wasn't able to finish gathering that information — try narrowing your question.", toolCalls };
-}
-
 export async function callAI(apiKey: string, model: string, provider: string, messages: any[], maxTokens = 1024, temperature = 0.3) {
-  if (provider === 'anthropic' || model.startsWith('claude')) {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const providerCfg = AI_PROVIDER_CONFIG[detectAiProvider(provider, model)];
+  if (providerCfg.kind === 'anthropic') {
+    const res = await fetch(providerCfg.baseUrl, {
       method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({ model, max_tokens: maxTokens, temperature, messages }),
+      headers: { ...providerCfg.authHeaders(apiKey), 'content-type': 'application/json' },
+      body: JSON.stringify({ model, ...generationParams(detectAiProvider(provider, model), model, maxTokens, temperature), messages }),
     });
-    if (!res.ok) { const err: any = await res.json(); throw new Error(err.error?.message || `Anthropic error ${res.status}`); }
+    if (!res.ok) { const err: any = await res.json(); throw new Error(err.error?.message || `${providerCfg.label} error ${res.status}`); }
     const data: any = await res.json();
     return data.content?.[0]?.text || '';
   } else {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetch(providerCfg.baseUrl, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, max_tokens: maxTokens, temperature, messages }),
+      headers: { ...providerCfg.authHeaders(apiKey), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, ...generationParams(detectAiProvider(provider, model), model, maxTokens, temperature), messages }),
     });
-    if (!res.ok) { const err: any = await res.json(); throw new Error(err.error?.message || `OpenAI error ${res.status}`); }
+    if (!res.ok) { const err: any = await res.json(); throw new Error(err.error?.message || `${providerCfg.label} error ${res.status}`); }
     const data: any = await res.json();
     return data.choices?.[0]?.message?.content || '';
   }
@@ -192,9 +99,9 @@ export async function aiRoutes(fastify: FastifyInstance) {
       return row?.settings as any ?? {};
     });
 
-    const aiCfg = settings['int-ai'] ?? {};
-    if (!aiCfg.on || !aiCfg.apiKey) {
-      return reply.status(400).send({ error: 'AI is not configured. Enable it in Settings > Integrations > AI Integration.' });
+    const creds = await resolveAiCredentials(user.tenant_id, settings['int-ai'], user.role);
+    if (!creds) {
+      return reply.status(400).send({ error: await describeAiUnavailable(user.tenant_id) });
     }
 
     const systemPrompt = `You are a search assistant for a freight clearance SaaS called ClearOS.
@@ -210,9 +117,9 @@ Respond ONLY with a valid JSON object matching the appropriate structure. Nothin
 
     try {
       const raw = await callAI(
-        aiCfg.apiKey,
-        aiCfg.model || 'claude-sonnet-4-6',
-        aiCfg.provider || 'anthropic',
+        creds.apiKey,
+        creds.model,
+        creds.provider,
         [
           { role: 'user', content: `${systemPrompt}\n\nQuery: "${query}"` },
         ],
@@ -241,15 +148,15 @@ Respond ONLY with a valid JSON object matching the appropriate structure. Nothin
       return row?.settings as any ?? {};
     });
 
-    const aiCfg = settings['int-ai'] ?? {};
-    if (!aiCfg.on || !aiCfg.apiKey) return reply.status(400).send({ error: 'AI not configured.' });
+    const creds = await resolveAiCredentials(user.tenant_id, settings['int-ai'], user.role);
+    if (!creds) return reply.status(400).send({ error: await describeAiUnavailable(user.tenant_id) });
 
     const instruction = mode === 'brief'
       ? 'Summarise the following in 2-3 sentences, focusing on key facts and action items:'
       : 'Provide a detailed summary with bullet points covering key facts, parties involved, dates, and any action items:';
 
     try {
-      const summary = await callAI(aiCfg.apiKey, aiCfg.model || 'claude-sonnet-4-6', aiCfg.provider || 'anthropic',
+      const summary = await callAI(creds.apiKey, creds.model, creds.provider,
         [{ role: 'user', content: `${instruction}\n\n${text.slice(0, 8000)}` }],
         512, 0.3);
       return { summary };
@@ -276,8 +183,8 @@ Respond ONLY with a valid JSON object matching the appropriate structure. Nothin
       return row?.settings as any ?? {};
     });
 
-    const aiCfg = settings['int-ai'] ?? {};
-    if (!aiCfg.on || !aiCfg.apiKey) return reply.status(400).send({ error: 'AI not configured.' });
+    const creds = await resolveAiCredentials(user.tenant_id, settings['int-ai'], user.role);
+    if (!creds) return reply.status(400).send({ error: await describeAiUnavailable(user.tenant_id) });
 
     const today = new Date().toISOString().slice(0, 10);
     const systemPrompt = `You read one email and decide whether it genuinely implies a task the recipient needs to do — a request, a deadline, a document to send, something to review or approve. Most emails do not (newsletters, FYI notices, confirmations, casual replies) — only flag a real action item.
@@ -292,7 +199,7 @@ Rules:
 
     try {
       const raw = await callAI(
-        aiCfg.apiKey, aiCfg.model || 'claude-sonnet-4-6', aiCfg.provider || 'anthropic',
+        creds.apiKey, creds.model, creds.provider,
         [{ role: 'user', content: `${systemPrompt}\n\nSubject: ${subject || '(no subject)'}\n\nBody:\n${body}` }],
         256, 0.1,
       );
@@ -325,9 +232,9 @@ Rules:
       return row?.settings as any ?? {};
     });
 
-    const aiCfg = settings['int-ai'] ?? {};
-    if (!aiCfg.on || !aiCfg.apiKey) {
-      return reply.status(400).send({ error: 'AI is not configured. Enable it in Settings > Integrations > AI Integration.' });
+    const creds = await resolveAiCredentials(user.tenant_id, settings['int-ai'], user.role);
+    if (!creds) {
+      return reply.status(400).send({ error: await describeAiUnavailable(user.tenant_id) });
     }
 
     const systemPrompt = `You design automation workflows for a freight/logistics SaaS called Hudumika.
@@ -347,9 +254,9 @@ Limit to at most 6 steps.`;
 
     try {
       const raw = await callAI(
-        aiCfg.apiKey,
-        aiCfg.model || 'claude-sonnet-4-6',
-        aiCfg.provider || 'anthropic',
+        creds.apiKey,
+        creds.model,
+        creds.provider,
         [{ role: 'user', content: `${systemPrompt}\n\nDescription: "${prompt}"` }],
         512,
         0.2
@@ -364,87 +271,8 @@ Limit to at most 6 steps.`;
     }
   });
 
-  /**
-   * POST /v1/ai/chat
-   * Conversational assistant with tool-calling access to real tenant data
-   * (ai-tools.service.ts). Body: { messages: {role:'user'|'assistant', content:string}[] }
-   */
-  /**
-   * POST /v1/ai/chat
-   *
-   * Takes the new message and a conversation id, not the whole transcript:
-   * history now comes from the database, so a reload, a different device or a
-   * new browser continues the same thread. The old shape — a client-supplied
-   * `messages` array — is still accepted so nothing breaks mid-deploy, but it
-   * is only used to pull out the latest user turn.
-   */
-  fastify.post('/chat', async (request, reply) => {
-    const user = request.user;
-    const body = chatSchema.parse(request.body);
-
-    const incoming = (body.message ?? [...(body.messages ?? [])].reverse().find(m => m.role === 'user')?.content ?? '').trim();
-    if (!incoming) return reply.status(400).send({ error: 'message is required' });
-
-    if (body.conversation_id && !isUuid(body.conversation_id)) {
-      return reply.status(404).send({ error: 'Conversation not found' });
-    }
-
-    // "Remember that …" is handled before the AI-configured check on purpose:
-    // it is answered by this code, not by a model, so it needs no API key.
-    // Gating it behind one would mean a workspace that has not set up a
-    // provider cannot record anything — and confirming a save is only honest
-    // if the code that performed the save is what says so.
-    const remember = parseRememberCommand(incoming);
-    if (remember) {
-      const saved = await withTenant(user.tenant_id, async (trx) => {
-        const conversationId = await resolveConversation(trx, user.tenant_id, user.sub, body.conversation_id ?? null, incoming);
-        if (!conversationId) return null;
-        await trx.insertInto('ai_memory').values({
-          tenant_id: user.tenant_id, user_id: user.sub, content: remember,
-          source: 'user', source_conversation_id: conversationId,
-        }).execute();
-        const text = `Saved. I'll remember: ${remember}`;
-        await saveTurn(trx, user.tenant_id, conversationId, incoming, text, []);
-        return { conversationId, text };
-      });
-      if (!saved) return reply.status(404).send({ error: 'Conversation not found' });
-      return { reply: saved.text, toolCalls: [], conversation_id: saved.conversationId, remembered: remember };
-    }
-
-    const settings = await withTenant(user.tenant_id, async (trx) => {
-      const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      return row?.settings as any ?? {};
-    });
-
-    const aiCfg = settings['int-ai'] ?? {};
-    if (!aiCfg.on || !aiCfg.apiKey) {
-      return reply.status(400).send({ error: 'AI is not configured. Enable it in Settings > Integrations > AI Integration.' });
-    }
-
-    // The thread, memory and history are resolved before the model is called,
-    // so a provider failure cannot leave a half-written conversation.
-    const prepared = await withTenant(user.tenant_id, async (trx) => {
-      const conversationId = await resolveConversation(trx, user.tenant_id, user.sub, body.conversation_id ?? null, incoming);
-      if (!conversationId) return null;
-      const facts = await loadMemory(trx, user.tenant_id, user.sub);
-      const history = await loadHistory(trx, user.tenant_id, conversationId);
-      return { conversationId, facts, history };
-    });
-    if (!prepared) return reply.status(404).send({ error: 'Conversation not found' });
-
-    try {
-      const { reply: text, toolCalls } = await runAgenticChat(
-        user.tenant_id, aiCfg.apiKey, aiCfg.model || 'claude-sonnet-4-6', aiCfg.provider || 'anthropic',
-        [...prepared.history, { role: 'user', content: incoming }],
-        memoryPromptSection(prepared.facts),
-      );
-      await withTenant(user.tenant_id, trx =>
-        saveTurn(trx, user.tenant_id, prepared.conversationId, incoming, text, toolCalls));
-      return { reply: text, toolCalls, conversation_id: prepared.conversationId };
-    } catch (e: any) {
-      return reply.status(500).send({ error: e.message });
-    }
-  });
+  // POST /v1/ai/chat was retired: the assistant now runs on the governed
+  // agent runtime (routes/agent.routes.ts, POST /v1/agent/runs).
 
   // ── Conversations ────────────────────────────────────────────────────────
 
@@ -549,9 +377,9 @@ Limit to at most 6 steps.`;
       const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       return row?.settings as any ?? {};
     });
-    const aiCfg = settings['int-ai'] ?? {};
-    if (!aiCfg.on || !aiCfg.apiKey) {
-      return reply.status(400).send({ error: 'AI is not configured. Enable it in Settings > Integrations > AI Integration.' });
+    const creds = await resolveAiCredentials(user.tenant_id, settings['int-ai'], user.role);
+    if (!creds) {
+      return reply.status(400).send({ error: await describeAiUnavailable(user.tenant_id) });
     }
 
     const [atRisk, aged] = await Promise.all([
@@ -574,9 +402,9 @@ Limit to at most 6 steps.`;
 
     try {
       const digest = await callAI(
-        aiCfg.apiKey,
-        aiCfg.model || 'claude-sonnet-4-6',
-        aiCfg.provider || 'anthropic',
+        creds.apiKey,
+        creds.model,
+        creds.provider,
         [{
           role: 'user',
           content: `You are an operations analyst for a freight-clearance company. Given this real, computed data (JSON below), write a short digest (3-5 bullet points, plain text with "- " prefixes, no markdown headers) highlighting what needs attention today. Be specific — use real reference numbers, customer names, and amounts from the data. If a section is empty, skip it rather than noting its absence.\n\n${JSON.stringify(signals, null, 2)}`,

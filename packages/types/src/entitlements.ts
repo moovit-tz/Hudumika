@@ -126,6 +126,17 @@ export interface TenantUsage {
  *  apps/api/src/lib/usage.ts's return type, one in
  *  apps/web/src/hooks/useEntitlements.ts) that had already drifted — the
  *  frontend one didn't know about `history` until this field existed here. */
+/** Platform-billed AI usage allowance for the current calendar month
+ *  (migration 489) — apps/api/src/lib/ai-credits.ts computes this live off
+ *  the tenant's current plan minus this month's debits, never a stored
+ *  balance. `limit` is 0 when the tenant's plan includes no platform-AI
+ *  allowance at all (still meaningfully different from "used it all up"). */
+export interface TenantAiCredits {
+  used: number;
+  limit: number;
+  remaining: number;
+}
+
 export interface TenantEntitlements {
   features: Record<string, boolean>;
   appStatus: Record<string, AppStatusValue>;
@@ -135,4 +146,11 @@ export interface TenantEntitlements {
    *  pill straight off membership in this list. */
   betaApps: string[];
   usage: TenantUsage;
+  aiCredits: TenantAiCredits;
+  /** Whether this tenant's plan tier allows overriding the platform AI key
+   *  with their own (packages.byok_ai_allowed) — Settings.tsx's AI
+   *  Integration section locks the Provider/API Key/Model fields when
+   *  false, since a key typed in there would otherwise silently do
+   *  nothing (resolveAiCredentials() ignores it for an ineligible tier). */
+  byokAllowed: boolean;
 }

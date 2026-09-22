@@ -4,6 +4,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Icon } from '../components/Icon.js';
 import { Banner } from '../components/ui/alert.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Badge } from '../components/ui/badge.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { getCompany, subscribeCompany } from '../data/companyStore.js';
 import { useIsDarkMode } from '../hooks/useIsDarkMode.js';
 import { useCurrency } from '../hooks/useCurrency.js';
@@ -178,21 +180,6 @@ export function mapApiInvoice(d: any): Invoice {
       currency: (it.currency || 'TZS') as Currency,
     })) : [],
   };
-}
-
-const tbBtn: React.CSSProperties = {
-  height: 30, padding: '0 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)',
-  background: 'var(--bg)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600,
-  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
-  fontFamily: 'var(--font)', whiteSpace: 'nowrap' as const,
-};
-
-function MoreItem({ icon, label, onClick, danger }: { icon: import('../components/Icon.js').IconName; label: string; onClick: () => void; danger?: boolean }) {
-  return (
-    <button type="button" onClick={onClick} className={`billing-more-item${danger ? ' billing-more-item--danger' : ''}`}>
-      <Icon name={icon} size={14} color={danger ? 'var(--red)' : 'var(--ink3)'} /> {label}
-    </button>
-  );
 }
 
 /* ── Print / PDF ── */
@@ -663,9 +650,13 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
 }
 
 /* ── Invoice Editor (Create + Edit) ── */
-export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = false, presetCustomer = null }: {
+export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = false, presetCustomer = null, presetShipment = null }: {
   initial: Invoice | null; nextId: string;
   onSave: (inv: Invoice) => void; onCancel: () => void; isMobile?: boolean; presetCustomer?: PickerItem | null;
+  /** The full shipment record when arriving back from "create a new
+   *  shipment" mid-invoice (see createShipment below) — already has
+   *  everything handleShipmentChange needs, no second fetch required. */
+  presetShipment?: any | null;
 }) {
   const navigate = useNavigate();
   const today = new Date().toLocaleDateString('en-GB').split('/').join('-');
@@ -698,10 +689,56 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
     initial?.customerId ? { id: initial.customerId, label: initial.client } : presetCustomer,
   );
   const [shipment, setShipment] = useState<PickerItem | null>(
-    initial?.shipmentRef ? { id: initial.shipmentRef, label: initial.shipmentRef } : null,
+    initial?.shipmentRef ? { id: initial.shipmentRef, label: initial.shipmentRef }
+      : presetShipment ? { id: presetShipment.ref_number, label: presetShipment.ref_number } : null,
   );
   const customerCacheRef = useRef<Map<string, any>>(new Map());
   const shipmentCacheRef = useRef<Map<string, any>>(new Map());
+
+  /** The full company address a selected customer's own record carries —
+   *  name/address/city/country/VAT — not their contact details. Selecting a
+   *  customer is supposed to mean never typing this by hand. */
+  function applyAddressFromCustomer(full: any) {
+    if (!full) return;
+    const lines = [
+      full.name || null,
+      full.address || null,
+      [full.city, full.country].filter(Boolean).join(', ') || null,
+      (full.vat_number || full.tax_id) ? `VAT: ${full.vat_number || full.tax_id}` : null,
+    ].filter(Boolean);
+    if (lines.length) setAddr(lines.join('\n'));
+  }
+
+  /** Same as applyAddressFromCustomer, but fetches the full record first
+   *  when only an id/name is known — e.g. a customer that arrived attached
+   *  to a linked shipment rather than picked directly from the customer field. */
+  function ensureCustomerAddress(id: string) {
+    if (!id) return;
+    const cached = customerCacheRef.current.get(id);
+    if (cached) { applyAddressFromCustomer(cached); return; }
+    apiFetch(`/v1/customers/${id}`)
+      .then((full: any) => { customerCacheRef.current.set(id, full); applyAddressFromCustomer(full); })
+      .catch(() => {});
+  }
+
+  // Arriving back from "create new customer" (createCustomer below) —
+  // presetCustomer only carries {id, label}, not the full record the address
+  // block needs, so fetch it once instead of leaving the address blank.
+  useEffect(() => {
+    if (!presetCustomer) return;
+    ensureCustomerAddress(presetCustomer.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Arriving back from "create new shipment" (createShipment below) — the
+  // caller already has the full row, so just seed the cache and run the same
+  // fill logic a manual pick would.
+  useEffect(() => {
+    if (!presetShipment) return;
+    shipmentCacheRef.current.set(presetShipment.ref_number, presetShipment);
+    handleShipmentChange({ id: presetShipment.ref_number, label: presetShipment.ref_number });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function searchCustomers(q: string): Promise<PickerItem[]> {
     const res = await apiFetch('/v1/customers').catch(() => ({ data: [] }));
@@ -740,16 +777,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
     setCustomer(item);
     if (!item) return;
     setClient(item.label);
-    const full = customerCacheRef.current.get(item.id);
-    if (full && !addr.trim()) {
-      const lines = [
-        full.contact_name ? `Attn: ${full.contact_name}` : null,
-        full.email || null,
-        full.phone || full.phone_wa || null,
-        full.tax_id ? `VAT: ${full.tax_id}` : null,
-      ].filter(Boolean);
-      if (lines.length) setAddr(lines.join('\n'));
-    }
+    ensureCustomerAddress(item.id);
   }
 
   async function searchShipments(q: string): Promise<PickerItem[]> {
@@ -773,7 +801,22 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
     if (!dest.trim()) setDest(full.dest_port || '');
     const t = String(full.type || '');
     if (t.startsWith('SEA')) setMode('SEA'); else if (t.startsWith('AIR')) setMode('AIR'); else if (t.startsWith('ROAD')) setMode('ROAD');
-    if (!client.trim() && full.customer_name) handleCustomerChange({ id: full.customer_id, label: full.customer_name });
+    if (!client.trim() && full.customer_id && full.customer_name) handleCustomerChange({ id: full.customer_id, label: full.customer_name });
+  }
+
+  // A shipment that doesn't exist yet gets the same "hand off, come back"
+  // treatment as a brand-new customer above — CreateShipmentPage.tsx's
+  // `returnTo` support lands back here with the new shipment's id via
+  // Billing()'s own preset-from-query-param effect.
+  function createShipment(): Promise<PickerItem> {
+    saveInvoiceDraft({
+      client, addr, billDate, dueDate, agent, blNo, origin, dest, mode, exRate, terms,
+      clearing, shipping, other,
+    });
+    const qs = new URLSearchParams({ returnTo: '/finance/invoices' });
+    if (customer?.id) qs.set('customer_id', customer.id);
+    navigate(`/clearos/ops/new?${qs.toString()}`);
+    return new Promise<PickerItem>(() => {});
   }
 
   const toEditItems = (g: ChargeGroup) =>
@@ -871,7 +914,8 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
           <div style={{ marginBottom: 10 }}>
             <EntityPicker
               label="Linked Shipment (optional)" value={shipment} onChange={handleShipmentChange}
-              search={searchShipments}
+              search={searchShipments} onCreate={createShipment}
+              createLabel={() => 'Create a new shipment…'}
               placeholder="Search by ref, BL number or goods description…"
               hint={shipment ? undefined : 'Link a shipment to auto-fill BL/AWB, origin, destination and mode below.'}
             />
@@ -1039,7 +1083,6 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   const isDark = useIsDarkMode();
   const docLogoSrc = isDark ? (co.logoUrlDark || co.logoUrl) : co.logoUrl;
   const [tab, setTab]                 = useState<DetailTab>('invoice');
-  const [showMore, setShowMore]       = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [traSubmitting, setTraSubmitting] = useState(false);
   const [traError, setTraError]           = useState<string | null>(null);
@@ -1205,20 +1248,16 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   ];
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--white)', overflow: 'hidden', minWidth: 0 }}
-      onClick={() => showMore && setShowMore(false)}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--white)', overflow: 'hidden', minWidth: 0 }}>
 
       {/* Tab bar */}
       <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0 16px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', overflowX: 'auto', flex: 1, minWidth: 0 }}>
-          {TABS.map(t => (
-            <button key={t.id} type="button" onClick={() => setTab(t.id)}
-              style={{ padding: 'var(--ds-btn-py) 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: tab === t.id ? 'var(--ink)' : 'var(--ink3)', borderBottom: tab === t.id ? '2px solid var(--ink)' : '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap', flexShrink: 0, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+        <Tabs value={tab} onValueChange={v => setTab(v as DetailTab)} style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
+          <TabsList>
+            {TABS.map(t => <TabsTrigger key={t.id} value={t.id}>{t.label}</TabsTrigger>)}
+          </TabsList>
+        </Tabs>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
           {/* Was three icons (mail / eye / maximize) — "Export PDF" opened the
               exact same print window as "View / Print" (there's no separate
               PDF export, just the browser's own print-to-PDF), and the mail
@@ -1226,28 +1265,25 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               proper message lived only in sendEmail() below. Down to the two
               that do something distinct, both routed through the real
               implementations. */}
-          {!isMobile && (['mail', 'eye'] as const).map((icon, i) => (
-            <button key={icon} type="button"
-              title={i === 0 ? 'Send email' : 'View / Print'}
-              onClick={() => i === 0 ? sendEmail() : openPrintWindow(inv)}
-              style={{ width: 32, height: 32, borderRadius: 'var(--r)', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-              <Icon name={icon} size={15} color="var(--ink3)" />
-            </button>
-          ))}
-          <button type="button" onClick={onClose}
-            style={{ width: 32, height: 32, borderRadius: 'var(--r)', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 2 }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+          {!isMobile && (
+            <>
+              <Button type="button" size="icon" variant="ghost" title="Send email" onClick={sendEmail}>
+                <Icon name="mail" size={15} color="var(--ink3)" />
+              </Button>
+              <Button type="button" size="icon" variant="ghost" title="View / Print" onClick={() => openPrintWindow(inv)}>
+                <Icon name="eye" size={15} color="var(--ink3)" />
+              </Button>
+            </>
+          )}
+          <Button type="button" size="icon" variant="ghost" title="Close" onClick={onClose}>
             <Icon name="x" size={15} color="var(--ink3)" />
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Action bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <span style={{ padding: '4px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: st.bg, color: st.color }}>{st.label}</span>
+        <Badge style={{ background: st.bg, color: st.color }}>{st.label}</Badge>
         {traFiscalized ? (
           <span title={`Verification #: ${inv.traRctvnum}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: 'var(--green-l)', color: 'var(--green)' }}>
             <Icon name="checkCircle" size={12} color="var(--green)" /> TRA Fiscalized
@@ -1287,31 +1323,31 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           ) : null
         )}
         <div style={{ flex: 1 }} />
-        <button type="button" onClick={onEdit} style={tbBtn} title="Edit"><Icon name="edit" size={13} color="var(--ink2)" /></button>
-        <button type="button" onClick={onCopy} style={tbBtn} title="Duplicate"><Icon name="copy" size={13} color="var(--ink2)" /></button>
-        <div className="billing-more-wrap">
-          <button type="button" onClick={e => { e.stopPropagation(); setShowMore(v => !v); }} style={tbBtn}>More <Icon name="chevronDown" size={10} color="var(--ink3)" /></button>
-          {showMore && (
-            <div onClick={e => e.stopPropagation()} className="billing-more-menu">
-              <MoreItem icon="mail"        label="Send by Email" onClick={() => { sendEmail(); setShowMore(false); }} />
-              <MoreItem icon="eye"         label="View / Print"  onClick={() => { openPrintWindow(inv); setShowMore(false); }} />
-              <div className="billing-more-sep" />
-              {/* Add Note / Assign Task / Audit Log dropped — each just
-                  switched to a tab that's already one click away in the tab
-                  bar above, with no other effect. Add Reminder earns its
-                  keep by also pre-opening the new-reminder form. */}
-              <MoreItem icon="bell"        label="Add Reminder"  onClick={() => { setShowMore(false); setTab('reminders'); setShowRemForm(true); }} />
-              <div className="billing-more-sep" />
-              <MoreItem icon="minusCircle" label="Issue Credit Note" onClick={() => { setShowMore(false); handleIssueCreditNote(); }} />
-              <div className="billing-more-sep" />
-              <MoreItem icon="trash" label="Delete Invoice" onClick={() => { setShowMore(false); onDelete(); }} danger />
-            </div>
-          )}
-        </div>
-        <button type="button" onClick={() => { setShowPayment(v => !v); setPayAmt(String(Math.round(due))); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green)', color: 'hsl(var(--green-foreground))', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        <Button type="button" size="icon" variant="outline" onClick={onEdit} title="Edit"><Icon name="edit" size={13} color="var(--ink2)" /></Button>
+        <Button type="button" size="icon" variant="outline" onClick={onCopy} title="Duplicate"><Icon name="copy" size={13} color="var(--ink2)" /></Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="outline" size="sm">More <Icon name="chevronDown" size={10} color="var(--ink3)" /></Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={sendEmail}><Icon name="mail" size={14} color="var(--ink3)" /> Send by Email</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openPrintWindow(inv)}><Icon name="eye" size={14} color="var(--ink3)" /> View / Print</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {/* Add Note / Assign Task / Audit Log dropped — each just
+                switched to a tab that's already one click away in the tab
+                bar above, with no other effect. Add Reminder earns its
+                keep by also pre-opening the new-reminder form. */}
+            <DropdownMenuItem onClick={() => { setTab('reminders'); setShowRemForm(true); }}><Icon name="bell" size={14} color="var(--ink3)" /> Add Reminder</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleIssueCreditNote}><Icon name="minusCircle" size={14} color="var(--ink3)" /> Issue Credit Note</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive"><Icon name="trash" size={14} color="var(--red)" /> Delete Invoice</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Button type="button" size="sm" onClick={() => { setShowPayment(v => !v); setPayAmt(String(Math.round(due))); }}
+          style={{ background: 'var(--green)', color: 'hsl(var(--green-foreground))' }}>
           <Icon name="dollarSign" size={13} color="hsl(var(--green-foreground))" /> Payment
-        </button>
+        </Button>
       </div>
 
       {traError && (
@@ -1345,8 +1381,8 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>Outstanding: <strong style={{ color: due > 0 ? 'var(--red)' : 'var(--green)', fontFamily: 'var(--mono)' }}>{fmt(due, 'TZS')}</strong></div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={submitPayment} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green)', color: 'hsl(var(--green-foreground))', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Save Payment</button>
-            <button type="button" onClick={() => setShowPayment(false)} style={tbBtn}>Cancel</button>
+            <Button type="button" onClick={submitPayment} style={{ background: 'var(--green)', color: 'hsl(var(--green-foreground))' }}>Save Payment</Button>
+            <Button type="button" variant="outline" onClick={() => setShowPayment(false)}>Cancel</Button>
           </div>
         </div>
       )}
@@ -1640,6 +1676,7 @@ export const Billing: React.FC = () => {
   const [apiLoading, setApiLoading] = useState(true);
   const [selectedId, setSelectedId]     = useState<string | null>(null);
   const [presetCustomer, setPresetCustomer] = useState<PickerItem | null>(null);
+  const [presetShipment, setPresetShipment] = useState<any | null>(null);
 
   useEffect(() => {
     apiFetch('/v1/invoices')
@@ -1672,6 +1709,18 @@ export const Billing: React.FC = () => {
           setSearch(c.name);
         }
       })
+      .catch(() => {});
+  }, [location.search]);
+
+  // Arriving back from "create a new shipment" mid-invoice (Billing's
+  // InvoiceEditor createShipment() → CreateShipmentPage.tsx's `returnTo`) —
+  // same round trip as the customer_id effect above.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const shipmentId = params.get('shipment_id');
+    if (!shipmentId || params.get('new') !== '1') return;
+    apiFetch(`/v1/shipments/${shipmentId}`)
+      .then((s: any) => { setPresetShipment(s); setSelectedId(null); setMode('create'); })
       .catch(() => {});
   }, [location.search]);
 
@@ -1927,7 +1976,7 @@ export const Billing: React.FC = () => {
       {/* While creating or editing, the form takes the whole body — the list
           panel is hidden rather than the form being squeezed into the right
           column beside it, matching how Quotations gives its form the page. */}
-      <div className={`inv-body${isSplit ? ' inv-body--split' : ''}${selectedInvoice || mode === 'create' ? ' inv-body--has-selection' : ''}${mode === 'create' || mode === 'edit' ? ' inv-body--form' : ''}`}>
+      <div className={`inv-body${isSplit ? ' inv-body--split' : ''}${selectedInvoice || mode === 'create' ? ' inv-body--has-selection' : ''}${mode === 'create' || mode === 'edit' || mode === 'view' ? ' inv-body--form' : ''}`}>
         {/* List panel */}
         <div className="inv-list-panel">
 
@@ -2139,7 +2188,7 @@ export const Billing: React.FC = () => {
             <InvoiceEditor initial={selectedInvoice} nextId={nextId} onSave={handleSaveInvoice} onCancel={() => setMode('view')} isMobile={isMobile} />
           )}
           {mode === 'create' && (
-            <InvoiceEditor initial={null} nextId={nextId} onSave={handleSaveInvoice} onCancel={() => { setMode('list'); setSelectedId(null); }} isMobile={isMobile} presetCustomer={presetCustomer} />
+            <InvoiceEditor initial={null} nextId={nextId} onSave={handleSaveInvoice} onCancel={() => { setMode('list'); setSelectedId(null); }} isMobile={isMobile} presetCustomer={presetCustomer} presetShipment={presetShipment} />
           )}
         </div>
       </div>

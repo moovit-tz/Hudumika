@@ -112,6 +112,10 @@ export interface ContactsCtxValue {
   duplicates: DuplicateGroup[];
   companies: RegisteredCompany[];
   loading: boolean;
+  /** Which of loadData's parallel requests actually failed on the last load
+   *  — distinguishes "genuinely empty" from "couldn't fetch" per section,
+   *  instead of every failure silently collapsing into an empty array. */
+  loadErrors: { contacts?: boolean; labels?: boolean; smartGroups?: boolean; duplicates?: boolean; companies?: boolean };
   currentView: ContactView;
   setCurrentView: (v: ContactView) => void;
   selectedLabelId: string | null;
@@ -159,6 +163,7 @@ export const ContactsCtx = createContext<ContactsCtxValue>({
   duplicates: [],
   companies: [],
   loading: false,
+  loadErrors: {},
   currentView: 'contacts',
   setCurrentView: noop,
   selectedLabelId: null,
@@ -207,6 +212,7 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
   const [duplicates, setDuplicates]           = useState<DuplicateGroup[]>([]);
   const [companies, setCompanies]             = useState<RegisteredCompany[]>([]);
   const [loading, setLoading]                 = useState(true);
+  const [loadErrors, setLoadErrors]           = useState<ContactsCtxValue['loadErrors']>({});
   const [currentView, setCurrentView]         = useState<ContactView>('contacts');
   const [selectedLabelId, setSelectedLabelId] = useState<string | null>(null);
   const [selectedSmartGroupId, setSelectedSmartGroupId] = useState<string | null>(null);
@@ -227,28 +233,40 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loadData = useCallback(async () => {
+    // Each request is tagged with whether it actually succeeded, instead of
+    // the old `.catch(() => [])` — which made a failed request look exactly
+    // like a genuinely empty result, so the whole loader could "succeed"
+    // while, say, labels silently vanished with no indication why.
+    const tagged = <T,>(p: Promise<T>) => p.then(data => ({ ok: true as const, data })).catch(() => ({ ok: false as const, data: null }));
     try {
       setLoading(true);
-      const [activeData, trashedData, labelsData, smartGroupsData, dupData, customersRes] = await Promise.all([
-        apiFetch('/v1/contacts?status=ACTIVE').catch(() => []),
-        apiFetch('/v1/contacts?status=TRASHED').catch(() => []),
-        apiFetch('/v1/contacts/labels').catch(() => []),
-        apiFetch('/v1/contacts/smart-groups').catch(() => []),
-        apiFetch('/v1/contacts/duplicates').catch(() => []),
-        apiFetch('/v1/customers').catch(() => []),
+      const [active, trashed, labelsRes, smartGroupsRes, dupRes, customersRes] = await Promise.all([
+        tagged(apiFetch('/v1/contacts?status=ACTIVE')),
+        tagged(apiFetch('/v1/contacts?status=TRASHED')),
+        tagged(apiFetch('/v1/contacts/labels')),
+        tagged(apiFetch('/v1/contacts/smart-groups')),
+        tagged(apiFetch('/v1/contacts/duplicates')),
+        tagged(apiFetch('/v1/customers')),
       ]);
 
       const allContacts: Contact[] = [
-        ...(Array.isArray(activeData)  ? activeData  : []).map((c: any) => ({ ...c, status: 'ACTIVE'  as const })),
-        ...(Array.isArray(trashedData) ? trashedData : []).map((c: any) => ({ ...c, status: 'TRASHED' as const })),
+        ...(Array.isArray(active.data)  ? active.data  : []).map((c: any) => ({ ...c, status: 'ACTIVE'  as const })),
+        ...(Array.isArray(trashed.data) ? trashed.data : []).map((c: any) => ({ ...c, status: 'TRASHED' as const })),
       ];
 
       setContacts(allContacts);
-      setLabels(Array.isArray(labelsData) ? labelsData : []);
-      setSmartGroups(Array.isArray(smartGroupsData) ? smartGroupsData : []);
-      setDuplicates(Array.isArray(dupData) ? dupData : []);
-      const customerList = (customersRes as any)?.data ?? customersRes ?? [];
+      setLabels(Array.isArray(labelsRes.data) ? labelsRes.data : []);
+      setSmartGroups(Array.isArray(smartGroupsRes.data) ? smartGroupsRes.data : []);
+      setDuplicates(Array.isArray(dupRes.data) ? dupRes.data : []);
+      const customerList = (customersRes.data as any)?.data ?? customersRes.data ?? [];
       setCompanies(Array.isArray(customerList) ? customerList.map((c: any) => ({ id: c.id, name: c.name })) : []);
+      setLoadErrors({
+        contacts: !active.ok || !trashed.ok,
+        labels: !labelsRes.ok,
+        smartGroups: !smartGroupsRes.ok,
+        duplicates: !dupRes.ok,
+        companies: !customersRes.ok,
+      });
 
       setActiveContactRaw(prev => {
         if (!prev) return null;
@@ -376,7 +394,7 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ContactsCtx.Provider value={{
-      contacts, labels, smartGroups, duplicates, companies, loading,
+      contacts, labels, smartGroups, duplicates, companies, loading, loadErrors,
       currentView, setCurrentView,
       selectedLabelId, setSelectedLabelId,
       selectedSmartGroupId, setSelectedSmartGroupId,

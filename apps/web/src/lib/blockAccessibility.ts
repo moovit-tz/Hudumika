@@ -42,6 +42,15 @@ export function auditBlocksAccessibility(blocks: CmsBlock[]): AccessibilityIssue
     if (block.type === 'button' && p.url && !p.label?.trim()) {
       issues.push({ blockId: block.id, position, message: `Button block ${position} has a link but no label — it has no accessible name.` });
     }
+
+    // §5 — an embed always renders with SOME title (BlockPreview.tsx falls
+    // back to "Embedded content" so the <iframe> is never title-less), but
+    // that fallback tells a screen-reader user nothing about what it is —
+    // same "present but not actually useful" gap image's alt text check
+    // above already flags.
+    if (block.type === 'embed' && p.url && !p.title?.trim()) {
+      issues.push({ blockId: block.id, position, message: `Embed block ${position} has no title — screen readers will only hear "Embedded content," not what it actually is.` });
+    }
   });
 
   return issues;

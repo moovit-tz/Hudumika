@@ -3,6 +3,14 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { ContactsService } from '../services/contacts.service.js';
 import { parse } from 'csv-parse/sync';
+import { requireRole } from '../middleware/rbac.js';
+
+// Hard delete, bulk delete, export, import, and merge are irreversible or
+// data-exfiltration-shaped, unlike everything else in this file — gated to
+// the platform's standard management tier (the same one shipment delete and
+// other destructive actions elsewhere already use), not the flat access the
+// rest of this file deliberately keeps (see the comment below).
+const CONTACTS_MGMT_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
 
 const mergeSchema = z.object({
   primary_id: z.string().min(1),
@@ -47,15 +55,21 @@ const bulkLabelSchema = z.object({
 export async function contactsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('contacts'));
-  // Production-readiness audit HUD-0024/0027: Contacts has no per-route role
-  // check anywhere in this file (neither does the frontend — it's a flat,
-  // shared address book any internal staff role can manage, by design). But
-  // "any authenticated tenant member" also includes CUSTOMER — an external
-  // portal account — which had no route to this at all otherwise. Proven
-  // live: a CUSTOMER JWT could GET /v1/contacts (200, this tenant's contacts
-  // happened to be empty) and, by the same missing check, bulk-delete/
-  // import/merge them. This blocks only the external role; every internal
-  // role keeps exactly the flat access it already had.
+  // Production-readiness audit HUD-0024/0027: Contacts originally had no
+  // per-route role check anywhere in this file — a flat, shared address book
+  // any internal staff role could view/create/edit, by design. That flat
+  // access still holds for viewing, creating, editing, labeling, and
+  // restoring from trash. A later audit found the same flat access also
+  // covered hard delete, bulk delete, export, and merge — genuinely
+  // irreversible or data-exfiltration-shaped actions with no reason to be
+  // open to every role — so those specific routes now carry their own
+  // CONTACTS_MGMT_ROLES gate below instead. "Any authenticated tenant
+  // member" also includes CUSTOMER — an external portal account — which had
+  // no route to this at all otherwise. Proven live: a CUSTOMER JWT could GET
+  // /v1/contacts (200, this tenant's contacts happened to be empty) and, by
+  // the same missing check, bulk-delete/import/merge them. This blocks only
+  // the external role; every internal role keeps the flat access described
+  // above, minus the five routes now gated to management.
   fastify.addHook('preHandler', async (request: any, reply) => {
     if (request.user.role === 'CUSTOMER') {
       return reply.status(403).send({ error: 'Not available for this account type.' });
@@ -107,12 +121,19 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Delete a contact (optional hard delete query)
+  // Delete a contact (optional hard delete query). This one route handles
+  // both the everyday "move to trash" (soft, every internal role) and
+  // "delete forever" (hard, irreversible) — a route-level preHandler can't
+  // tell them apart, so the management gate is checked inline, only when
+  // ?hard=true is actually requested.
   fastify.delete('/:id', async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const { id } = request.params as { id: string };
       const { hard } = request.query as { hard?: string };
+      if (hard === 'true' && !CONTACTS_MGMT_ROLES.includes(request.user.role)) {
+        return reply.status(403).send({ error: 'Only a workspace manager can permanently delete a contact.' });
+      }
       return await ContactsService.deleteContact(tenantId, id, hard === 'true');
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -140,8 +161,9 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Merge duplicate contacts
-  fastify.post('/merge', async (request: any, reply) => {
+  // Merge duplicate contacts — irreversible (duplicate rows are deleted),
+  // so gated to management.
+  fastify.post('/merge', { preHandler: requireRole(...CONTACTS_MGMT_ROLES) }, async (request: any, reply) => {
     const { primary_id, duplicate_ids } = mergeSchema.parse(request.body);
     try {
       const tenantId = request.user.tenant_id;
@@ -195,9 +217,15 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Bulk Delete
+  // Bulk Delete — also carries bulk "move to trash" (TRASHED) and bulk
+  // restore (ACTIVE), both left open to every internal role; only the
+  // irreversible DELETE status is gated to management, same reasoning as
+  // the single-contact DELETE /:id route above.
   fastify.post('/bulk-delete', async (request: any, reply) => {
     const { ids, status } = bulkDeleteSchema.parse(request.body);
+    if (status === 'DELETE' && !CONTACTS_MGMT_ROLES.includes(request.user.role)) {
+      return reply.status(403).send({ error: 'Only a workspace manager can permanently delete contacts.' });
+    }
     try {
       const tenantId = request.user.tenant_id;
       return await ContactsService.bulkDelete(tenantId, ids, status);
@@ -268,7 +296,9 @@ export async function contactsRoutes(fastify: FastifyInstance) {
   // Export contacts — mirrors the CSV/vCard shapes /import already accepts,
   // so a round-trip (export, edit, re-import) works. `?ids=` is an optional
   // comma-separated list to export a selection; omitted means "all active".
-  fastify.get('/export.csv', async (request: any, reply) => {
+  // A full-directory export is data-exfiltration-shaped, so it's gated to
+  // management like the other routes in this section.
+  fastify.get('/export.csv', { preHandler: requireRole(...CONTACTS_MGMT_ROLES) }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const { ids } = request.query as { ids?: string };
@@ -281,7 +311,7 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/export.vcf', async (request: any, reply) => {
+  fastify.get('/export.vcf', { preHandler: requireRole(...CONTACTS_MGMT_ROLES) }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const { ids } = request.query as { ids?: string };
@@ -313,7 +343,9 @@ export async function contactsRoutes(fastify: FastifyInstance) {
   // export CSV or .vcf (Outlook, Apple Contacts, phone contact apps, a
   // second Google export path, etc.) works here without its own OAuth
   // integration — see contacts-sync.routes.ts for the real Google OAuth sync.
-  fastify.post('/import', async (request, reply) => {
+  // Gated to management — a bulk-write path into the shared directory is the
+  // same class of risk as export/merge above.
+  fastify.post('/import', { preHandler: requireRole(...CONTACTS_MGMT_ROLES) }, async (request, reply) => {
     const user = request.user;
     const file = await request.file();
     if (!file) return reply.status(400).send({ error: 'No file uploaded' });

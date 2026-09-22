@@ -22,6 +22,11 @@ interface EnqueueInput {
   /** Real RFC 5322 threading — see EmailIntegration.sendEmail's own doc. */
   inReplyToMessageId?: string | null;
   referencesMessageIds?: string[];
+  /** Only ever set by the Email app's own scheduled-send delivery (the
+   *  message's owning user) — see EmailIntegration.sendEmail's own doc for
+   *  why every other caller (payroll, workflow AutoComms, etc.) must leave
+   *  this unset. */
+  userId?: string;
 }
 
 interface SendResult {
@@ -97,6 +102,7 @@ export const MailService = {
       to: input.to, subject: input.subject, bodyHtml: input.bodyHtml, cc: input.cc, tenantId,
       attachments: attachments.length ? attachments : undefined,
       inReplyToMessageId: input.inReplyToMessageId, referencesMessageIds: input.referencesMessageIds,
+      userId: input.userId,
     });
     const outboxId = await withTenant(tenantId, async (trx) => {
       const row = await trx.insertInto('email_outbox').values({

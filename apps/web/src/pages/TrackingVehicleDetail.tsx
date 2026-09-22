@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend,
@@ -22,6 +22,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { PageHeader } from '../components/PageHeader.js';
 import { BackButton } from '../components/ui/BackButton.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Button } from '../components/ui/button.js';
+import { Banner } from '../components/ui/alert.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -67,13 +69,15 @@ type Tab = typeof TABS[number];
 
 export const TrackingVehicleDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [maintenance, setMaintenance] = useState<MaintenanceRow[]>([]);
   const [fuel, setFuel] = useState<FuelRow[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [sensorSnapshots, setSensorSnapshots] = useState<SensorSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>('Overview');
+  const requestedTab = searchParams.get('tab');
+  const [tab, setTab] = useState<Tab>(TABS.includes(requestedTab as Tab) ? requestedTab as Tab : 'Overview');
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -162,6 +166,8 @@ export const TrackingVehicleDetail: React.FC = () => {
     { key: 'renewal', label: 'Add Vehicle Renewal Reminder', icon: 'refresh' },
     { key: 'meter', label: 'Add Meter Entry', icon: 'barChart2' },
   ];
+  const createdEntry = searchParams.get('created');
+  const createdLabel = addActions.find(action => action.key === createdEntry)?.label.replace(/^Add /, '') || 'Entry';
 
   return (
     <div style={{ padding: '0 0 24px'}}>
@@ -171,6 +177,21 @@ export const TrackingVehicleDetail: React.FC = () => {
         titleEm="detail"
       />
       <BackButton to="/tracking/vehicles" label="Back to Vehicles" />
+
+      {createdEntry && (
+        <Banner
+          variant="success"
+          title={`${createdLabel} saved`}
+          onDismiss={() => {
+            const next = new URLSearchParams(searchParams);
+            next.delete('created');
+            setSearchParams(next, { replace: true });
+          }}
+          style={{ marginBottom: 16 }}
+        >
+          The vehicle record has been updated successfully.
+        </Banner>
+      )}
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -190,10 +211,9 @@ export const TrackingVehicleDetail: React.FC = () => {
           </span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button"
-                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              <Button type="button">
                 <Icon name="plus" size={15} /> Add <Icon name="chevronDown" size={12} />
-              </button>
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60">
               {addActions.map(a => (
@@ -208,7 +228,7 @@ export const TrackingVehicleDetail: React.FC = () => {
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} variant="segmented">
+      <Tabs value={tab} onValueChange={(v) => { setTab(v as Tab); setSearchParams(v === 'Overview' ? {} : { tab: v }, { replace: true }); }} variant="segmented">
         <TabsList style={{ marginBottom: 20 }}>
           {TABS.map(t => (
             <TabsTrigger key={t} value={t}>{t}</TabsTrigger>

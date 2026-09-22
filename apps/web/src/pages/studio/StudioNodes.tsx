@@ -3,6 +3,7 @@ import { Handle, Position } from '@xyflow/react';
 import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
 import type { WorkflowStudioNodeType } from '@hudumika/types';
+import { Tip } from '../../components/ui/tooltip.js';
 
 /**
  * Canvas nodes for Workflow Studio.
@@ -65,9 +66,9 @@ export function StudioNode({ data, selected }: { data: StudioNodeData; selected?
           <Icon name={meta.icon} size={11} color={meta.accent} /> {meta.label}
         </span>
         {data.restricted && (
-          <span className="studio-node-pill" style={{ background: 'var(--gold-l)', color: 'var(--gold)' }} title="Writes to a regulated ledger — restricted action">
+          <Tip label="Writes to a regulated ledger — restricted action"><span className="studio-node-pill" style={{ background: 'var(--gold-l)', color: 'var(--gold)' }}>
             <Icon name="lock" size={10} color="var(--gold)" /> Restricted
-          </span>
+          </span></Tip>
         )}
         {badge && (
           <span className="studio-node-pill" style={{ background: badge.bg, color: badge.color, marginLeft: 'auto' }}>

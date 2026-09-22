@@ -21,7 +21,19 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-[9999] bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      // z-3000, not a bespoke higher value — every Radix floating-content
+      // primitive (Select, Popover/EntityPicker, Combobox, DropdownMenu,
+      // DatePicker, Tooltip, Menubar, ContextMenu, HoverCard, Sheet, Drawer)
+      // shares that one tier. A Select opened from inside an open Dialog
+      // portals its content to document.body *after* the Dialog's own portal,
+      // so equal z-index + later DOM order correctly paints it on top; this
+      // used to be a bespoke z-[9999], which instead put every one of those
+      // controls' dropdowns underneath the dialog's own opaque content the
+      // moment they were opened from inside a dialog — invisible, and a click
+      // on the (actually-on-top) DialogOverlay closed the whole dialog instead
+      // of picking anything. Live-reproduced via elementFromPoint() before
+      // this fix; every Select/EntityPicker inside every Dialog was affected.
+      "ds-dialog-overlay fixed inset-0 z-3000",
       className
     )}
     {...props}
@@ -91,7 +103,7 @@ const DialogContent = React.forwardRef<
         ref={ref}
         className={cn(
           // shared frame
-          "fixed left-[50%] top-[50%] z-[9999] translate-x-[-50%] translate-y-[-50%] border bg-card text-foreground shadow-[var(--elev-lg)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-(--r-lg) opacity-100",
+          "ds-dialog-content fixed left-[50%] top-[50%] z-3000 border bg-card text-foreground shadow-[var(--elev-lg)] sm:rounded-(--r-lg) opacity-100",
           sized
             // steady-size: fixed box (via inline style below), only the body scrolls
             ? "flex flex-col overflow-hidden p-0"

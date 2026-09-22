@@ -172,16 +172,13 @@ export function AttendanceStatusBanner() {
   return (
     <>
       <div className="asb-card">
-        {/* Three columns: identity (name + id), centred welcome/time/weather/
-            location, and the session box — collapses to one stacked column
-            on mobile (see the CSS media query). */}
         <div className="asb-main-row">
-          {/* Left column: avatar + name, id below it */}
-          <div className="asb-identity">
+          {/* Column 1: Profile identity */}
+          <div className="asb-identity-group">
             <div className="asb-avatar-wrap">
               <PersonAvatar
                 name={user?.name || 'Employee'}
-                size={48}
+                size={44}
                 userId={user?.id}
                 statusRingColor="var(--asb-bg)"
                 style={{
@@ -190,66 +187,65 @@ export function AttendanceStatusBanner() {
               />
             </div>
 
-            <div className="asb-info-col">
-              <h1 className="asb-name-title">{user?.name || 'Valued Team Member'}</h1>
-              <span className="asb-id-label">ID: EMP-{user?.id?.slice(0, 8).toUpperCase() ?? '2026'}</span>
-            </div>
-          </div>
-
-          {/* Centre column: workspace welcome + date/time/weather/location */}
-          <div className="asb-center-col">
-            <h2 className="asb-greeting">
-              Welcome to your <em>workspace</em><span className="asb-greeting-dot">.</span>
-            </h2>
-            <div className="asb-context-grid">
-              <div className="asb-context-column">
-                <div className="asb-context-value">
-                  <span className="asb-date">{dateStr}</span>
-                  <span className="asb-dot-sep">·</span>
-                  <span className="asb-time-badge">{timeStr}</span>
-                </div>
+            <div className="asb-details-stack">
+              {/* Clean Primary Greeting with signature Hudumika typography */}
+              <div className="asb-heading-wrap">
+                <h1 className="asb-name-title">
+                  Welcome to your workspace, <em className="asb-name-em">{user?.name?.split(' ')[0] || 'there'}</em><span className="asb-name-dot">.</span>
+                </h1>
               </div>
-              {weather && (
-                <div className="asb-context-column">
-                  <div className="asb-context-value">
-                    <span className="asb-weather-item">{weather.desc}, {weather.temp}°C</span>
-                    <span className="asb-dot-sep">·</span>
-                    <span className="asb-weather-item">{weather.humidDesc}</span>
-                    {userCity && (
-                      <>
-                        <span className="asb-dot-sep">·</span>
-                        <span className="asb-weather-item">{userCity}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
+
+              {/* Sub-tags: ID and Role */}
+              <div className="asb-tags-line">
+                <span className="asb-id-chip">ID: EMP-{user?.id?.slice(0, 8).toUpperCase() ?? '2026'}</span>
+                {user?.role && (
+                  <span className="asb-role-chip">
+                    {user.role.replace(/_/g, ' ')}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Right Block: Live Clock-In Action Control Box */}
+          {/* Column 2: Live date, time, and weather context */}
+          <div className="asb-context-column">
+            <div className="asb-meta-line">
+              <span className="asb-meta-date">{dateStr}</span>
+              <span className="asb-dot-sep">·</span>
+              <span className="asb-meta-time">{timeStr}</span>
+            </div>
+            {weather && (
+              <div className="asb-meta-weather">
+                <span>{weather.desc}, {weather.temp}°C</span>
+                <span style={{ opacity: 0.6 }}>·</span>
+                <span>{userCity || weather.city}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Column 3: Attendance shift control */}
           {timesheetExempt ? (
             <div className="asb-session-box">
               <div className="asb-session-info">
                 <div className="asb-session-label inactive">
-                  <span>Not tracked by timesheet</span>
+                  <span>Exempt Account</span>
                 </div>
-                <div className="asb-session-sub">Your account isn't measured by clock-in hours.</div>
+                <div className="asb-session-sub">Not tracked by timesheet</div>
               </div>
             </div>
           ) : (
-            <div className="asb-session-box">
+            <div className={`asb-session-box ${isCheckedIn ? 'is-active' : ''}`}>
               <div className="asb-session-info">
                 <div className={`asb-session-label ${isCheckedIn ? 'active' : 'inactive'}`}>
                   <span className="asb-pulse-dot" />
-                  <span>{isCheckedIn ? 'Active Session Counter' : 'Attendance Status'}</span>
+                  <span>{isCheckedIn ? 'Active Session' : 'Attendance Status'}</span>
                 </div>
                 <div className={`asb-session-timer ${isCheckedIn ? 'is-active' : 'is-off'}`}>
                   {isCheckedIn ? formatTimer(elapsedSecs) : 'CLOCKED OUT'}
                 </div>
-                <div className="asb-session-sub">
+                <div className="asb-session-sub" title={isCheckedIn ? (currentEntry?.task_name ?? undefined) : 'Ready to begin shift'}>
                   {isCheckedIn
-                    ? (currentEntry?.task_name ? `Working on: ${currentEntry.task_name}` : 'Started your session')
+                    ? (currentEntry?.task_name ? `Task: ${currentEntry.task_name}` : 'Session in progress')
                     : 'Ready to begin?'}
                 </div>
               </div>

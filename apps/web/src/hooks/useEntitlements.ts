@@ -10,6 +10,7 @@ import type { TenantEntitlements, TenantUsage } from '@hudumika/types';
 export type Entitlements = TenantEntitlements;
 
 const EMPTY_USAGE: TenantUsage = { used: 0, limit: null, period: '', history: [] };
+const EMPTY_AI_CREDITS = { used: 0, limit: 0, remaining: 0 };
 
 let cache: Entitlements | null = null;
 let inflight: Promise<Entitlements> | null = null;
@@ -19,10 +20,10 @@ async function fetchEntitlements(): Promise<Entitlements> {
   if (!inflight) {
     inflight = apiFetch('/v1/entitlements')
       .then((r: any) => {
-        cache = { features: r?.features || {}, appStatus: r?.appStatus || {}, betaApps: r?.betaApps || [], usage: r?.usage || EMPTY_USAGE };
+        cache = { features: r?.features || {}, appStatus: r?.appStatus || {}, betaApps: r?.betaApps || [], usage: r?.usage || EMPTY_USAGE, aiCredits: r?.aiCredits || EMPTY_AI_CREDITS, byokAllowed: !!r?.byokAllowed };
         return cache!;
       })
-      .catch(() => ({ features: {}, appStatus: {}, betaApps: [], usage: EMPTY_USAGE }))
+      .catch(() => ({ features: {}, appStatus: {}, betaApps: [], usage: EMPTY_USAGE, aiCredits: EMPTY_AI_CREDITS, byokAllowed: false }))
       .finally(() => { inflight = null; });
   }
   return inflight;

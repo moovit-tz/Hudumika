@@ -33,6 +33,7 @@ import { showConfirm } from '../lib/confirm.js';
 import { useEntitlements, resetEntitlementsCache } from '../hooks/useEntitlements.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { APP_META } from './Utilities.js';
+import { AI_PROVIDERS } from '../lib/aiProviders.js';
 
 // -- Settings API context ---------------------------------------------------
 interface SettingsCtxType {
@@ -1531,50 +1532,95 @@ const GpswoxSection: React.FC = () => {
   );
 };
 
+// Shared with SuperAdmin.tsx's platform-default AI key section — see
+// apps/web/src/lib/aiProviders.ts (mirrors apps/api/src/lib/ai-providers.ts's
+// AI_PROVIDER_CONFIG) so the tenant BYOK picker and the SuperAdmin
+// platform-key picker can't drift on which models exist for which provider.
+
 // -- section: OpenAI ---------------------------------------------------------
 const OpenAISection: React.FC = () => {
   const [on, setOn] = useState(false);
-  const [f, set] = useSettingsFields('int-ai', { apiKey: '', org: '', model: 'claude-sonnet-4-6', temp: '0.7', maxTokens: '2048' });
+  const [f, set] = useSettingsFields('int-ai', { apiKey: '', org: '', provider: 'anthropic', model: 'claude-sonnet-5', temp: '0.7', maxTokens: '2048' });
   const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const hydratedExtra = useRef(false);
+  const entitlements = useEntitlements();
+  const byokAllowed = entitlements?.byokAllowed ?? false;
+  const aiCredits = entitlements?.aiCredits;
 
   useEffect(() => {
     if (hydratedExtra.current) return;
     if (s['int-ai']) { setOn(s['int-ai'].on ?? false); hydratedExtra.current = true; }
   }, [s]);
 
+  const activeProvider = AI_PROVIDERS.find(p => p.value === f.provider) ?? AI_PROVIDERS[0];
+
+  function changeProvider(value: string) {
+    set('provider', value);
+    // Switching provider without also switching the model would silently
+    // send e.g. "gpt-4o" to Groq's endpoint — always land on that
+    // provider's own recommended model instead.
+    const next = AI_PROVIDERS.find(p => p.value === value);
+    if (next) set('model', next.models[0].value);
+  }
+
   async function handleSave() { setSaving(true); try { await save('int-ai', { on, ...f }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
+
+  // Credits/limit come from GET /v1/entitlements (packages.monthly_ai_credits
+  // minus this month's agent_credit_ledger debits) — a plan with no
+  // platform-AI allowance at all (limit === 0) has nothing informative to
+  // show here, so the line is skipped rather than showing "0 of 0 used".
+  const creditsLine = aiCredits && aiCredits.limit > 0
+    ? `${aiCredits.used} of ${aiCredits.limit} platform AI credits used this month — resets at the start of next month.`
+    : null;
+
   return (
     <>
       <Card title="AI Configuration" desc="Power AI-assisted features throughout the app.">
-        <ToggleRow label="Enable AI Features" value={on} onChange={setOn} />
-        {on && <>
-          <Field label="API Key" hint="sk- key for OpenAI, or your Anthropic key" full>
-            <input className="input-field" type="password" placeholder="sk-…" value={f.apiKey} onChange={e => set('apiKey', e.target.value)} />
-          </Field>
-          <Field label="Organization ID (optional)"><input className="input-field" placeholder="org-…" value={f.org} onChange={e => set('org', e.target.value)} /></Field>
-          <Field label="Model">
-            <Select value={f.model} onValueChange={v => set('model', v)}>
-              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6 (Recommended)</SelectItem>
-                <SelectItem value="claude-opus-4-8">Claude Opus 4.8</SelectItem>
-                <SelectItem value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Fast)</SelectItem>
-                <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-                <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Temperature" hint="0 = deterministic · 1 = creative">
-            <input className="input-field" type="number" step="0.1" min="0" max="2" value={f.temp} onChange={e => set('temp', e.target.value)} />
-          </Field>
-          <Field label="Max Tokens"><input className="input-field" type="number" value={f.maxTokens} onChange={e => set('maxTokens', e.target.value)} /></Field>
-        </>}
+        {creditsLine && <div className="s-fld-hint" style={{ margin: '0 0 14px' }}>{creditsLine}</div>}
+        {byokAllowed ? (
+          <>
+            <ToggleRow label="Enable AI Features" value={on} onChange={setOn} />
+            {on && <>
+              <Field label="Provider" hint="Groq and Google Gemini both offer a free API key — no credit card needed.">
+                <Select value={f.provider} onValueChange={changeProvider}>
+                  <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {AI_PROVIDERS.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="API Key" hint={`Your ${activeProvider.label.split(' — ')[0]} API key`} full>
+                <input className="input-field" type="password" placeholder="sk-…" value={f.apiKey} onChange={e => set('apiKey', e.target.value)} />
+              </Field>
+              {activeProvider.value === 'openai' &&
+                <Field label="Organization ID (optional)"><input className="input-field" placeholder="org-…" value={f.org} onChange={e => set('org', e.target.value)} /></Field>}
+              <Field label="Model">
+                <Select value={f.model} onValueChange={v => set('model', v)}>
+                  <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {activeProvider.models.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Temperature" hint="0 = deterministic · 1 = creative">
+                <input className="input-field" type="number" step="0.1" min="0" max="2" value={f.temp} onChange={e => set('temp', e.target.value)} />
+              </Field>
+              <Field label="Max Tokens"><input className="input-field" type="number" value={f.maxTokens} onChange={e => set('maxTokens', e.target.value)} /></Field>
+            </>}
+          </>
+        ) : (
+          // Not eligible to bring an own key on this plan — a key typed here
+          // would silently be ignored server-side (resolveAiCredentials()),
+          // so there's nothing to save; show why instead of a dead form.
+          <div className="s-fld-hint" style={{ margin: 0 }}>
+            AI is already available on your plan through Hudumika's shared assistant, billed to your workspace's monthly credits above — no setup needed.
+            Bringing your own provider key (unlimited, billed directly to you instead) is available on the <b>Hudu Advanced</b> plan.
+          </div>
+        )}
       </Card>
-      <SaveRow saving={saving} saved={saved} onSave={handleSave} />
+      {byokAllowed && <SaveRow saving={saving} saved={saved} onSave={handleSave} />}
     </>
   );
 };

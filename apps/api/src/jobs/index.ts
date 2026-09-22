@@ -44,6 +44,7 @@ import { runMeetingDurationLimitJob } from './meeting-duration-limit.job.js';
 import { runMetricAlertsJob } from './metric-alerts.job.js';
 import { runDataQualityJob } from './data-quality.job.js';
 import { runSignForensicVerifyJob, runSignForensicJobCleanupJob } from './sign-forensic-verify.job.js';
+import { runAgentApprovalExpiryJob } from './agent-approval-expiry.job.js';
 
 /**
  * Real registry of every background job this file actually schedules —
@@ -105,6 +106,7 @@ export const JOB_REGISTRY: { name: string; schedule: string; fallbackOnly?: bool
   { name: 'Onsite Uptime Monitors', schedule: 'Every 1 minute', fallbackOnly: true },
   { name: 'Onsite Server Reachability', schedule: 'Every 1 minute', fallbackOnly: true },
   { name: 'Onsite SSL Certificate Sweep', schedule: 'Every 6 hours', fallbackOnly: true },
+  { name: 'Agent Approval Expiry Sweep', schedule: 'Every hour' },
 ];
 
 let redisConnection: Redis | null = null;
@@ -315,6 +317,8 @@ function startBullMQ(): void {
           await runCmsScheduledPublishJob();
         } else if (job.name === 'cms-trash-purge') {
           await runCmsTrashPurgeJob();
+        } else if (job.name === 'agent-approval-expiry') {
+          await runAgentApprovalExpiryJob();
         }
       },
       { connection: redisConnection as any }
@@ -570,6 +574,10 @@ function startBullMQ(): void {
 
     reminderQueue.add('sign-anchor-confirm', {}, {
       repeat: { every: 60 * 60 * 1000 } // Every hour — re-check pending Sign envelope anchors for Bitcoin confirmation
+    }).catch(console.error);
+
+    reminderQueue.add('agent-approval-expiry', {}, {
+      repeat: { every: 60 * 60 * 1000 } // Every hour — flip pending agent_approvals past their expires_at to 'expired' and fail the run they were gating
     }).catch(console.error);
 
     reminderQueue.add('sign-anchor-stamp', {}, {
@@ -861,6 +869,14 @@ function startIntervalFallback(): void {
   // takes hours to days regardless of how soon it's submitted).
   setInterval(() => {
     runSignAnchorConfirmJob().catch(console.error);
+  }, 60 * 60 * 1000);
+
+  // Agent approval expiry sweep — hourly. Approvals get a 24h window
+  // (agent.routes.ts), so hourly resolution is enough to catch one soon
+  // after it lapses without the daily cadence letting a stuck run sit for
+  // up to a day past its own deadline.
+  setInterval(() => {
+    runAgentApprovalExpiryJob().catch(console.error);
   }, 60 * 60 * 1000);
 
   // Sign envelope anchor stamp submission — every 15 minutes, not daily

@@ -111,11 +111,12 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
     try {
       const ids: string[] = JSON.parse(localStorage.getItem('hudumika_recently_viewed') ?? '[]');
       setRecentApps(
-        ids.slice(0, 4)
+        ids
           .map(id => LAUNCHER_APPS.find(a => a.id === id))
           .filter((a): a is (typeof LAUNCHER_APPS)[0] => Boolean(a))
           .filter(a => isAppEnabled(a.id, enabledApps))
           .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id))
+          .slice(0, 4)
       );
     } catch { setRecentApps([]); }
   }, [launcherOpen, enabledApps]);

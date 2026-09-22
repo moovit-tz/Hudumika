@@ -12,6 +12,7 @@ import './Workflows.css';
 import { ClearanceWorkflowInsights } from './ClearanceWorkflowInsights.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { Switch } from '../../components/ui/switch.js';
+import { Tip } from '../../components/ui/tooltip.js';
 
 function uid() { return `${Date.now()}-${Math.random().toString(36).slice(2,6)}`; }
 
@@ -305,8 +306,8 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
       <div className="wfb-panel-head">
         <div className="wfb-panel-step-dot" style={{background:step.color}}>{step.order}</div>
         <span className="wfb-panel-title">{step.name}</span>
-        <button className="wf-icon-btn danger" title="Delete step" onClick={()=>onDeleteStep(step.id)}><I n="trash" s={13}/></button>
-        <button className="wf-icon-btn" onClick={onClose}><I n="x" s={13}/></button>
+        <Tip label="Delete step"><button type="button" className="wf-icon-btn danger" aria-label="Delete step" onClick={()=>onDeleteStep(step.id)}><I n="trash" s={13}/></button></Tip>
+        <Tip label="Close panel"><button type="button" className="wf-icon-btn" aria-label="Close panel" onClick={onClose}><I n="x" s={13}/></button></Tip>
       </div>
       <div className="wfb-panel-body">
 
@@ -717,9 +718,9 @@ export function ClearanceWorkflowBuilder() {
                 if(!fp||!tp) return null;
                 const x1=fp.x+NW, y1=fp.y+NH/2, x2=tp.x, y2=tp.y+NH/2;
                 const mx=(x1+x2)/2, my=(y1+y2)/2;
-                return <button key={`add-${from}-${to}`} className="wfb-add-between"
-                  style={{left:mx-11, top:my-11}} title="Insert step here"
-                  onClick={e=>{e.stopPropagation(); addStep(from,to);}}>+</button>;
+                return <Tip key={`add-${from}-${to}`} label="Insert step here"><button type="button" className="wfb-add-between"
+                  style={{left:mx-11, top:my-11}} aria-label="Insert step here"
+                  onClick={e=>{e.stopPropagation(); addStep(from,to);}}>+</button></Tip>;
               })}
 
               {/* Append button after each terminal step */}
@@ -756,10 +757,10 @@ export function ClearanceWorkflowBuilder() {
                           first because it is the one badge that changes what
                           you are allowed to do to the node. */}
                       {(usage.byStep[step.id] ?? 0) > 0 && (
-                        <span className="wf-badge wf-badge-green" title={`${usage.byStep[step.id]} shipment${usage.byStep[step.id] === 1 ? ' is' : 's are'} on this step now — editing or deleting it will move them`}
+                        <Tip label={`${usage.byStep[step.id]} shipment${usage.byStep[step.id] === 1 ? ' is' : 's are'} on this step now — editing or deleting it will move them`}><span className="wf-badge wf-badge-green"
                           style={{fontSize:9.5,padding:'1px 7px'}}>
                           <Icon name="package" size={9} /> {usage.byStep[step.id]} live
-                        </span>
+                        </span></Tip>
                       )}
                       {step.entryConditions.length>0&&<span className="wf-badge wf-badge-orange" style={{fontSize:9.5,padding:'1px 7px'}}><Icon name="lock" size={9} /> {step.entryConditions.length}</span>}
                       {step.autoComms.length>0&&<span className="wf-badge wf-badge-blue" style={{fontSize:9.5,padding:'1px 7px'}}><Icon name="zap" size={9} /> {step.autoComms.length}</span>}
@@ -781,15 +782,15 @@ export function ClearanceWorkflowBuilder() {
 
           {/* Zoom bar */}
           <div className="wfb-zoom-bar">
-            <button className="wfb-zoom-btn" onClick={zoomOut} title="Zoom out"><I n="zoomOut" s={13}/></button>
+            <Tip label="Zoom out"><button type="button" className="wfb-zoom-btn" onClick={zoomOut} aria-label="Zoom out"><I n="zoomOut" s={13}/></button></Tip>
             <span className="wfb-zoom-label">{Math.round(zoom*100)}%</span>
-            <button className="wfb-zoom-btn" onClick={zoomIn} title="Zoom in"><I n="zoomIn" s={13}/></button>
+            <Tip label="Zoom in"><button type="button" className="wfb-zoom-btn" onClick={zoomIn} aria-label="Zoom in"><I n="zoomIn" s={13}/></button></Tip>
             <div className="wfb-zoom-divider"/>
-            <button className="wfb-zoom-btn" onClick={()=>setZoom(1)} title="Reset to 100%"><I n="fit" s={13}/></button>
+            <Tip label="Reset to 100%"><button type="button" className="wfb-zoom-btn" onClick={()=>setZoom(1)} aria-label="Reset zoom to 100%"><I n="fit" s={13}/></button></Tip>
             <div className="wfb-zoom-divider"/>
-            <button className="wfb-zoom-btn" style={{gap:5,fontSize:12,fontWeight:700,color:'var(--teal)',width:'auto',padding:'0 6px'}} onClick={()=>{setSelectedId(null); setPanel(true);}} title="Workflow settings">
+            <Tip label="Workflow settings"><button type="button" className="wfb-zoom-btn" style={{gap:5,fontSize:12,fontWeight:700,color:'var(--teal)',width:'auto',padding:'0 6px'}} onClick={()=>{setSelectedId(null); setPanel(true);}}>
               <I n="settings" s={12} c="var(--teal)"/>Settings
-            </button>
+            </button></Tip>
           </div>
         </div>
 

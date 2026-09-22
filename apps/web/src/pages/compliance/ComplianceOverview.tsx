@@ -87,7 +87,7 @@ export function ComplianceOverview() {
 
   // Theme-resolved chart colors (SVG fill/stroke need concrete hex, not var()).
   const C = useMemo(() => ({
-    teal: isDark ? '#6c8ec4' : '#0b1e3a',
+    teal: isDark ? '#4f8fe8' : '#1257c6',
     gold: isDark ? '#c8920a' : '#9a6700',
     red:  isDark ? '#e84040' : '#cf222e',
     green: isDark ? '#10b981' : 'var(--green)',

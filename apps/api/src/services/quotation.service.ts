@@ -205,10 +205,15 @@ export const quotationService = {
     });
   },
 
+  // Returns undefined (not a throw) when the quotation doesn't exist — a
+  // well-formed-but-nonexistent id used to reach executeTakeFirstOrThrow(),
+  // whose NoResultError carries no Postgres SQLSTATE, so it fell through the
+  // global handler's driver-error check to a bare 500 "no result" instead of
+  // the 404 every other :id route in this file already gives.
   async updateStatus(tenantId: string, quoteId: string, status: string, userId: string, reason?: string) {
     return withTenant(tenantId, async (trx) => {
       const updateData: any = { status, updated_at: new Date() };
-      
+
       if (status === 'APPROVED') {
         updateData.approved_by = userId;
         updateData.approved_at = new Date();
@@ -224,7 +229,7 @@ export const quotationService = {
         .where('id', '=', quoteId)
         .where('tenant_id', '=', tenantId)
         .returningAll()
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
     });
   },
 
@@ -235,7 +240,8 @@ export const quotationService = {
         .where('id', '=', quoteId)
         .where('tenant_id', '=', tenantId)
         .selectAll()
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+      if (!quote) return null;
 
       if (quote.status !== 'APPROVED') {
         throw new Error('Only approved quotations can be converted');

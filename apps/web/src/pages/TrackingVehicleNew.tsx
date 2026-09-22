@@ -5,7 +5,6 @@ import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
-import { BackButton } from '../components/ui/BackButton.js';
 
 const VEHICLE_TYPES = ['TRUCK', 'VAN', 'MOTORBIKE', 'OTHER'];
 const FUEL_TYPES = ['DIESEL', 'PETROL', 'ELECTRIC', 'HYBRID'];
@@ -68,11 +67,12 @@ export const TrackingVehicleNew: React.FC = () => {
 
   return (
     <div style={{ padding: '0 0 24px'}}>
-      <BackButton to="/tracking/vehicles" label="Vehicles" />
       <PageHeader
         crumbs={['HuduFreight', 'Register Vehicle']}
-        titlePlain="Register a"
-        titleEm="vehicle"
+        title="Register a vehicle"
+        subtitle="Add a vehicle and its operating details to your fleet."
+        variant="create"
+        backTo="/tracking/vehicles"
       />
 
       <SectionCard>

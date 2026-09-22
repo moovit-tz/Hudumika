@@ -99,7 +99,7 @@ export function FinanceEquityStatement() {
   const totals = report?.totals;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
       <PageHeader
         crumbs={['Finance', 'Reports']}
         titlePlain="Statement of changes in"

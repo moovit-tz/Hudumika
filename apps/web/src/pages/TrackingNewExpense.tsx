@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -101,22 +101,17 @@ export const TrackingNewExpense: React.FC = () => {
 
   return (
     <div className="exp-page">
-      <div className="exp-header-row">
-        <div className="exp-title-area">
-          <Link to="/tracking/vehicles" className="exp-back-link">
-            <Icon name="arrowLeft" size={14} /> Expense Entries
-          </Link>
-          <PageHeader
-            crumbs={['HuduFreight', 'New Expense']}
-            titlePlain="New"
-            titleEm="expense"
-          />
-        </div>
-        <div className="exp-actions">
+      <PageHeader
+        crumbs={['HuduFreight', 'New Expense']}
+        title="New expense"
+        subtitle="Record a fleet operating cost and attach its supporting details."
+        variant="create"
+        backTo="/tracking/vehicles"
+        actions={<div className="exp-actions">
           <button className="exp-btn-secondary" onClick={() => navigate(-1)}>Cancel</button>
           <button className="exp-btn-primary" onClick={handleSubmit} disabled={saving}>Save Expense Entry</button>
-        </div>
-      </div>
+        </div>}
+      />
 
       <div className="exp-form-container">
         {error && (
