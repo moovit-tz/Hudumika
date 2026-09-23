@@ -14,6 +14,7 @@ import {
 import type { ExpenseListItem } from './Expenses.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showConfirm } from '../lib/confirm.js';
+import { showAlert } from '../lib/alert.js';
 import { SectionCard } from '../components/SectionCard.js';
 
 function mapApiSupplier(s: any, balancesById: Map<string, { balance: number; totalPaid: number }>): Vendor {
@@ -370,7 +371,7 @@ export function FinanceVendors() {
   const [expenses, setExpenses] = useState<ExpenseListItem[]>([]);
 
   useEffect(() => {
-    apiFetch('/v1/finance/expenses').then((res: any) => setExpenses(res?.data ?? [])).catch(() => {});
+    apiFetch('/v1/finance/expenses').then((res: any) => setExpenses(res?.data ?? [])).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load vendor expenses.'));
   }, []);
 
   const [search, setSearch]           = useState('');
@@ -382,7 +383,7 @@ export function FinanceVendors() {
 
   function loadVendors() {
     Promise.all([
-      apiFetch('/v1/suppliers').catch(() => []),
+      apiFetch('/v1/suppliers').catch((err: unknown) => { showAlert(err instanceof Error ? err.message : 'Could not load vendors.'); return []; }),
       apiFetch('/v1/bills').catch(() => []),
       apiFetch('/v1/purchase-orders').catch(() => ({ purchase_orders: [] })),
       apiFetch('/v1/bills/payments').catch(() => []),
@@ -471,18 +472,22 @@ export function FinanceVendors() {
       category: v.category, currency: v.currency, payment_terms: v.paymentTerms, status: v.status,
       bank_name: v.bankName, bank_account: v.bankAccount, notes: v.notes,
     };
-    if (v.id) await apiFetch(`/v1/suppliers/${v.id}`, { method: 'PATCH', body: JSON.stringify(payload) }).catch(() => {});
-    else await apiFetch('/v1/suppliers', { method: 'POST', body: JSON.stringify(payload) }).catch(() => {});
-    setShowForm(false);
-    setEditVendor(null);
-    loadVendors();
+    try {
+      if (v.id) await apiFetch(`/v1/suppliers/${v.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      else await apiFetch('/v1/suppliers', { method: 'POST', body: JSON.stringify(payload) });
+      setShowForm(false);
+      setEditVendor(null);
+      await loadVendors();
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not save this vendor.');
+    }
   }
 
   async function handleDelete(id: string) {
     if (!(await showConfirm('Delete this vendor? This cannot be undone.', { confirmLabel: 'Delete' }))) return;
     apiFetch(`/v1/suppliers/${id}`, { method: 'DELETE' })
       .then(() => { setVendors(prev => prev.filter(v => v.id !== id)); if (selected?.id === id) setSelected(null); })
-      .catch(() => {});
+      .catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not delete this vendor.'));
   }
 
   // The create/edit form replaces the list rather than layering over it, the

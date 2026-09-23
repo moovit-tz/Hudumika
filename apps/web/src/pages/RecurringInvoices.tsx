@@ -148,7 +148,7 @@ export function RecurringInvoices() {
   const [editing, setEditing] = useState<RecurringInvoice | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
 
-  const load = () => apiFetch('/v1/invoices/recurring').then((d: any) => { if (Array.isArray(d)) setRecurring(d.map(mapApi)); }).catch(() => {}).finally(() => setLoading(false));
+  const load = () => apiFetch('/v1/invoices/recurring').then((d: any) => { if (Array.isArray(d)) setRecurring(d.map(mapApi)); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load recurring invoices.')).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
   async function handleSave(data: any) {
@@ -176,14 +176,22 @@ export function RecurringInvoices() {
 
   async function handleToggle(r: RecurringInvoice) {
     const nextState = r.state === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
-    await apiFetch(`/v1/invoices/recurring/${r.id}`, { method: 'PATCH', body: JSON.stringify({ state: nextState }) }).catch(() => {});
-    await load();
+    try {
+      await apiFetch(`/v1/invoices/recurring/${r.id}`, { method: 'PATCH', body: JSON.stringify({ state: nextState }) });
+      await load();
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not update this template.');
+    }
   }
 
   async function handleDelete(r: RecurringInvoice) {
     if (!(await showConfirm(`Delete the recurring template "${r.name}"? This does not affect invoices already generated.`, { variant: 'danger', confirmLabel: 'Delete' }))) return;
-    await apiFetch(`/v1/invoices/recurring/${r.id}`, { method: 'DELETE' }).catch(() => {});
-    await load();
+    try {
+      await apiFetch(`/v1/invoices/recurring/${r.id}`, { method: 'DELETE' });
+      await load();
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not delete this template.');
+    }
   }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading recurring invoices…</div>;

@@ -9,6 +9,7 @@ import { RequireAppEnabled } from '../components/RequireAppEnabled.js';
 import { parseHex, darkenHex, lightenHex, hexToHslTriplet, pickForegroundHsl, enforceContrastFloor } from '../lib/color.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 import { ActivityMonitorIndicator } from '../components/ActivityMonitorIndicator.js';
+import { recordRecentApp } from '../lib/recentApps.js';
 
 // The SuperAdmin platform panel is never gated by a tenant's enabled-apps config —
 // it's how a SuperAdmin fixes their own mistakes, so it can never lock itself out.
@@ -159,6 +160,15 @@ export function WorkspaceApp({ appId, children, bypassGatePaths }: WorkspaceAppP
     window.addEventListener('hudumika-ds-updated', handler);
     return () => window.removeEventListener('hudumika-ds-updated', handler);
   }, []);
+
+  // The one place every app visit gets recorded — see recentApps.ts for why
+  // this replaced two narrower, incomplete trackers. Every app shell mounts
+  // a WorkspaceApp regardless of its internal page structure, so this fires
+  // for a full-screen app (Email, Drive, Calendar, Tasks, Studio) exactly
+  // the same as any list-page app.
+  useEffect(() => {
+    recordRecentApp(appId);
+  }, [appId]);
 
   // Per-app accent colors (APP_COLORS/BrandingView) are picked for light-mode
   // contrast and can go nearly invisible as text/highlight on a dark sidebar —

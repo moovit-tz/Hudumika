@@ -11,8 +11,11 @@ import { useTenantPlan } from '../hooks/useTenantPlan.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { lightenHex } from '../lib/color.js';
 import { toggleThemeWithAnimation } from '../lib/theme.js';
+import { squirclePath } from '../lib/squircle.js';
 import type { AppId } from '@hudumika/types';
 import './AppSidebar.css';
+
+const SIDEBAR_APP_ICON_CLIP = `path('${squirclePath(34)}')`;
 
 export interface SidebarNavItem {
   label: string;
@@ -287,7 +290,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
 
         {/* ── Brand header ── */}
         <div className="app-sb-brand">
-          <div className="app-sb-brand-icon">
+          <div className="app-sb-brand-icon" style={{ clipPath: SIDEBAR_APP_ICON_CLIP }}>
             {branding.getAppLogo(appId) ? (
               <img src={branding.getAppLogo(appId)} alt={appLabel} className="app-sb-brand-logo-img" />
             ) : appId === 'ondi' ? (

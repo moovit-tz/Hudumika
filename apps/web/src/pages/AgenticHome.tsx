@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
@@ -11,11 +11,14 @@ import { PersonAvatar } from '../components/PersonAvatar.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { getMood } from '../lib/greeting.js';
 import { resolveLandingStyle } from '../lib/landingStyle.js';
-import { useEnabledApps } from '../hooks/useEnabledApps.js';
+import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { WorkspaceHome } from './WorkspaceHome.js';
 import { STAGE_LABELS } from '@hudumika/types';
 import { AgenticExecutionStage, PRESET_WORKFLOWS, AgentWorkflow } from '../components/agentic/AgenticExecutionStage.js';
 import { LauncherAppSvg } from '../components/LauncherApps.js';
+import { AIInsights } from './AIInsights.js';
+import { AgentControls } from './AgentControls.js';
+import { AIAutomations } from './AIAutomations.js';
 import './AgenticHome.css';
 
 /** Mirrors apps/api/src/routes/search.routes.ts's SearchHit — not imported
@@ -102,11 +105,14 @@ function canDecideApproval(userRole: string | undefined, approverRole: string): 
     : userRole === approverRole;
 }
 
-type Tab = 'agent' | 'feed' | 'operations' | 'reports';
+type Tab = 'agent' | 'feed' | 'operations' | 'automations' | 'insights' | 'controls' | 'reports';
 const TABS: { key: Tab; label: string; icon: any }[] = [
   { key: 'agent', label: 'Agent Flow', icon: 'sparkle' },
   { key: 'feed', label: 'Feed', icon: 'activity' },
   { key: 'operations', label: 'Operations', icon: 'grid' },
+  { key: 'automations', label: 'Automations', icon: 'zap' },
+  { key: 'insights', label: 'Insights', icon: 'trendingUp' },
+  { key: 'controls', label: 'Controls', icon: 'settings' },
   { key: 'reports', label: 'Reports', icon: 'barChart' },
 ];
 
@@ -114,6 +120,17 @@ export const AgenticHome: React.FC = () => {
   const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const enabledApps = useEnabledApps();
+  // Automations/Insights/Controls call the same /v1/ai/* and /v1/agent/*
+  // routes the old standalone /ai app did, still gated behind the 'ai'
+  // entitlement — folding them into unconditional tabs here would show a
+  // tab to every tenant regardless of plan, where opening it just surfaces
+  // a 403 from the API instead of the tab never appearing, which is how
+  // every other entitlement-gated surface in this app behaves.
+  const hasAi = isAppEnabled('ai', enabledApps);
+  const visibleTabs = useMemo(
+    () => TABS.filter(t => hasAi || !(['automations', 'insights', 'controls'] as Tab[]).includes(t.key)),
+    [hasAi],
+  );
   const [data, setData] = useState<CockpitData | null>(null);
   const [tab, setTab] = useState<Tab>('agent');
   const [activeWorkflow, setActiveWorkflow] = useState<AgentWorkflow>(PRESET_WORKFLOWS[0]);
@@ -182,6 +199,14 @@ export const AgenticHome: React.FC = () => {
   useEffect(() => {
     apiFetch('/v1/workspace/cockpit').then(setData).catch(() => setData(EMPTY));
   }, []);
+
+  // If the tenant loses the 'ai' entitlement (or enabledApps hasn't
+  // resolved yet on first paint) while one of its tabs is active, land back
+  // on Agent Flow rather than showing a hidden tab's content with no way
+  // back to it in the tab bar.
+  useEffect(() => {
+    if (!hasAi && (['automations', 'insights', 'controls'] as Tab[]).includes(tab)) setTab('agent');
+  }, [hasAi, tab]);
 
   const mood = useMemo(() => getMood(), []);
   const firstName = (user?.name || '').split(' ')[0] || 'there';
@@ -294,9 +319,9 @@ export const AgenticHome: React.FC = () => {
         return {
           appId: 'route6',
           name: 'Route6',
-          color: '#f59e0b',
-          assignee: activeWorkflow.assigneeName,
-          contextRef: activeWorkflow.contextRef,
+          color: '#ea580c',
+          assignee: activeWorkflow.assigneeName || 'Sinza',
+          contextRef: activeWorkflow.contextRef || 'TRP-1042',
           sub: 'Fleet Ops',
         };
       }
@@ -305,19 +330,19 @@ export const AgenticHome: React.FC = () => {
           appId: 'clearos',
           name: 'ClearOS',
           color: '#ea580c',
-          assignee: activeWorkflow.assigneeName,
-          contextRef: activeWorkflow.contextRef,
+          assignee: activeWorkflow.assigneeName || 'Rashid K.',
+          contextRef: activeWorkflow.contextRef || 'JOB-9821',
           sub: 'Customs Clearance',
         };
       }
       if (activeWorkflow.id === 'finops-petti') {
         return {
-          appId: 'petti',
+          appId: 'finops',
           name: 'FinOps',
-          color: '#16a34a',
-          assignee: activeWorkflow.assigneeName,
-          contextRef: activeWorkflow.contextRef,
-          sub: 'Petty Cash',
+          color: '#0284c7',
+          assignee: activeWorkflow.assigneeName || 'Amani M.',
+          contextRef: activeWorkflow.contextRef || 'REQ-4091',
+          sub: 'Finance & Accounts',
         };
       }
       return {
@@ -352,6 +377,39 @@ export const AgenticHome: React.FC = () => {
       };
     }
 
+    if (tab === 'automations') {
+      return {
+        appId: 'studio',
+        name: 'Automations',
+        color: '#4361ee',
+        assignee: 'Workflow Engine',
+        contextRef: null,
+        sub: 'Automations',
+      };
+    }
+
+    if (tab === 'insights') {
+      return {
+        appId: 'ai',
+        name: 'Insights',
+        color: '#6d28d9',
+        assignee: 'Daily Digest',
+        contextRef: null,
+        sub: 'Insights',
+      };
+    }
+
+    if (tab === 'controls') {
+      return {
+        appId: 'seal',
+        name: 'Controls',
+        color: '#0f766e',
+        assignee: 'Agent Permissions',
+        contextRef: null,
+        sub: 'Controls',
+      };
+    }
+
     if (tab === 'reports') {
       return {
         appId: 'hudubi',
@@ -372,6 +430,20 @@ export const AgenticHome: React.FC = () => {
       sub: '',
     };
   }, [tab, activeWorkflow]);
+
+  // ⌘K shortcut listener
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   return (
     <div className="app-shell">
@@ -394,7 +466,7 @@ export const AgenticHome: React.FC = () => {
                 <LauncherAppSvg
                   id={activeAppBrand.appId}
                   color={activeAppBrand.color}
-                  size={28}
+                  size={30}
                 />
               </div>
               <div className="ah-brand-meta">
@@ -412,10 +484,7 @@ export const AgenticHome: React.FC = () => {
           <div className="ah-header-center">
             <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented" className="ah-header-tabs">
               <TabsList className="ah-tabs-list">
-                {TABS.map(t => {
-                  // Real count of agent approvals waiting on this user (the
-                  // same GET /v1/agent/approvals the sidebar card reads) —
-                  // shown on the Agent Flow tab so it's visible from any tab.
+                {visibleTabs.map(t => {
                   const count = t.key === 'agent' ? agentApprovals.length : 0;
                   return (
                     <TabsTrigger
@@ -432,15 +501,58 @@ export const AgenticHome: React.FC = () => {
               </TabsList>
             </Tabs>
 
-            <div className="ah-header-search">
-              <Icon name="search" size={14} color="var(--ink3)" />
-              <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search workspace, tasks, shipments…" />
-              {searchFlat.length > 0 && (
+            <div className={`ah-header-search${searchFocused ? ' ah-header-search--focused' : ''}`}>
+              <Icon name="search" size={14} className="ah-search-icon" />
+              <input
+                ref={searchInputRef}
+                value={searchQ}
+                onChange={e => setSearchQ(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setTimeout(() => setSearchFocused(false), 250)}
+                placeholder="Search workspace, tasks, shipments…"
+                className="ah-search-input"
+              />
+              {searchQ ? (
+                <button
+                  type="button"
+                  className="ah-search-clear"
+                  onClick={() => { setSearchQ(''); setSearchResults(null); }}
+                  title="Clear search"
+                >
+                  <Icon name="close" size={12} />
+                </button>
+              ) : (
+                <kbd className="ah-search-kbd">⌘K</kbd>
+              )}
+              {searchFlat.length > 0 && searchFocused && (
                 <div className="ah-search-dropdown">
+                  <div className="ah-search-dropdown-header">
+                    <span>Quick Results</span>
+                    <span className="ah-search-count">{searchFlat.length} matches</span>
+                  </div>
                   {searchFlat.map(hit => (
-                    <button key={hit.id} type="button" className="ah-search-row" onClick={() => { navigate(hit.path); setSearchQ(''); setSearchResults(null); }}>
-                      <div className="ah-search-primary">{hit.label}</div>
-                      {hit.sublabel && <div className="ah-search-secondary">{hit.sublabel}</div>}
+                    <button
+                      key={hit.id}
+                      type="button"
+                      className="ah-search-row"
+                      onMouseDown={() => { navigate(hit.path); setSearchQ(''); setSearchResults(null); }}
+                    >
+                      <div className="ah-search-row-icon">
+                        <Icon
+                          name={
+                            hit.path.includes('tasks') ? 'check' :
+                            hit.path.includes('clearos') || hit.path.includes('shipment') ? 'package' :
+                            hit.path.includes('finance') || hit.path.includes('petti') ? 'wallet' :
+                            'fileText'
+                          }
+                          size={14}
+                        />
+                      </div>
+                      <div className="ah-search-row-body">
+                        <div className="ah-search-primary">{hit.label}</div>
+                        {hit.sublabel && <div className="ah-search-secondary">{hit.sublabel}</div>}
+                      </div>
+                      <span className="ah-search-jump">Jump →</span>
                     </button>
                   ))}
                 </div>
@@ -694,6 +806,12 @@ export const AgenticHome: React.FC = () => {
           )}
 
           {tab === 'operations' && <div className="ah-operations-embed"><WorkspaceHome externalSearch="" /></div>}
+
+          {tab === 'automations' && <div className="ah-automations-embed"><AIAutomations /></div>}
+
+          {tab === 'insights' && <div className="agentic-home-root ah-subpage-embed"><AIInsights /></div>}
+
+          {tab === 'controls' && <div className="agentic-home-root ah-subpage-embed"><AgentControls /></div>}
 
           {tab === 'reports' && (
             <div className="agentic-home-root">

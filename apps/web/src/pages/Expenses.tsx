@@ -341,15 +341,15 @@ export const Expenses: React.FC = () => {
     setLoading(true);
     return apiFetch('/v1/finance/expenses')
       .then((res: any) => setItems(res?.data ?? []))
-      .catch(() => setItems([]))
+      .catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load expenses.'))
       .finally(() => setLoading(false));
   }
 
   useEffect(() => {
     refresh();
-    apiFetch('/v1/shipments').then((res: any) => setShipments(res?.data ?? res ?? [])).catch(() => {});
-    apiFetch('/v1/customers').then((res: any) => setCustomers(res.data ?? res ?? [])).catch(() => {});
-    apiFetch('/v1/suppliers').then((res: any) => setSuppliers(Array.isArray(res) ? res : [])).catch(() => {});
+    apiFetch('/v1/shipments').then((res: any) => setShipments(res?.data ?? res ?? [])).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load shipments.'));
+    apiFetch('/v1/customers').then((res: any) => setCustomers(res.data ?? res ?? [])).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load customers.'));
+    apiFetch('/v1/suppliers').then((res: any) => setSuppliers(Array.isArray(res) ? res : [])).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load suppliers.'));
   }, []);
 
   const [filterCat, setFilterCat] = useState('');
@@ -433,8 +433,9 @@ export const Expenses: React.FC = () => {
     try {
       const detail = await apiFetch(`/v1/finance/expenses/${item.id}`);
       setSelectedDetail(detail);
-    } catch {
+    } catch (err) {
       setSelectedDetail(null);
+      showAlert(err instanceof Error ? err.message : 'Could not load this expense.');
     } finally {
       setDetailLoading(false);
     }
@@ -450,13 +451,19 @@ export const Expenses: React.FC = () => {
     setBulkSaving(true);
 
     const lines = bulkCsv.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) {
+      setBulkSaving(false);
+      showAlert('Add at least one CSV row to import.');
+      return;
+    }
     if (lines[0].toLowerCase().includes('name') || lines[0].toLowerCase().includes('amount')) {
       lines.shift();
     }
 
-    for (const line of lines) {
-      const cols = line.split(',');
-      if (cols.length >= 2) {
+    try {
+      for (const line of lines) {
+        const cols = line.split(',');
+        if (cols.length < 2) throw new Error(`Invalid CSV row: ${line}`);
         await apiFetch('/v1/finance/expenses', {
           method: 'POST',
           body: JSON.stringify({
@@ -467,14 +474,16 @@ export const Expenses: React.FC = () => {
             payment_mode: cols[4] ? cols[4].trim() : 'Cash',
             note: 'Imported via Bulk Upload',
           }),
-        }).catch(() => {});
+        });
       }
+      setShowBulkUpload(false);
+      setBulkCsv('');
+      await refresh();
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Bulk expense import failed.');
+    } finally {
+      setBulkSaving(false);
     }
-
-    setShowBulkUpload(false);
-    setBulkCsv('');
-    setBulkSaving(false);
-    refresh();
   };
 
   return (
@@ -697,7 +706,7 @@ export const Expenses: React.FC = () => {
         <ExpenseDetailPanel
           expense={selectedDetail}
           onClose={closeDetail}
-          onChanged={() => { refresh(); apiFetch(`/v1/finance/expenses/${selectedDetail.id}`).then(setSelectedDetail).catch(() => {}); }}
+          onChanged={() => { refresh(); apiFetch(`/v1/finance/expenses/${selectedDetail.id}`).then(setSelectedDetail).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not refresh this expense.')); }}
           shipments={shipments}
           customers={customers}
           suppliers={suppliers}

@@ -2,33 +2,37 @@
    AppLauncher — Adobe-style App Launcher Popover
 ══════════════════════════════════════════════════ */
 
-/* ── Custom-logo icon ── */
+/* ── Custom-logo icon ──
+   Shape comes from the squircle `clip-path` set inline per instance
+   (LauncherApps.tsx — it depends on the rendered `size`, which a CSS class
+   alone can't express). Icon-level shadows are deliberately avoided: they
+   create a dark perimeter that reads as a second holder around the logo. */
 .app-lnch-custom-icon {
   width: var(--lnch-sz, 46px);
   height: var(--lnch-sz, 46px);
-  border-radius: var(--lnch-r, 12px);
   background: var(--lnch-bg, #64748b);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: var(--elev);
+  filter: none;
 }
 .app-lnch-custom-icon-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  transform: scale(1.04);
 }
 
-/* ── SVG app icon in launcher ── */
+/* ── SVG app icon in launcher — shape is the squircle <path> drawn inside
+   plus a matching inline clip-path (see LauncherApps.tsx); no CSS radius. ── */
 .app-lnch-svg-icon {
   display: block;
-  border-radius: 12px;
   flex-shrink: 0;
-  box-shadow: var(--elev);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  filter: none;
+  transition: transform 0.18s ease;
 }
 
 /* ══ Launcher — Adobe Floating Popover Panel ══ */
@@ -53,23 +57,20 @@
      min-width:0 fix below (which lets ellipsis actually do its job for the
      genuinely long names — "Account & Security", "Inventory Control") is
      the combination that fits everything else without truncation. */
-  width: 344px;
+  width: 310px;
   max-height: calc(100dvh - 80px);
   background: color-mix(in srgb, var(--white) 96%, transparent);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  /* Matches the visual bar every Radix popover in the platform shares
-     (PopoverContent/SelectContent/DropdownMenuContent — see CLAUDE.md):
-     layered shadow + a 1px inner ring, not just a flat border. */
+  border-radius: var(--card-radius, var(--r-lg));
   box-shadow: var(--elev-lg);
   outline: 1px solid rgba(0, 0, 0, 0.05);
   outline-offset: -1px;
   z-index: 1001;
   display: flex;
   flex-direction: column;
-  padding: 12px 14px 12px 14px;
+  padding: 10px 10px 8px 10px;
   transform-origin: top right;
   transform: scale(0.94) translateY(-10px);
   opacity: 0;
@@ -91,15 +92,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 6px 10px 6px;
+  padding: 2px 4px 6px 4px;
   flex-shrink: 0;
 }
 
 .app-lnch-panel-title {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--ink);
-  font-family: var(--font, system-ui, -apple-system, sans-serif);
+  font-family: var(--font);
   letter-spacing: -0.02em;
 }
 
@@ -179,8 +180,8 @@
 
 /* Edit hint strip */
 .app-lnch-edit-hint {
-  margin: 0 0 10px 0;
-  padding: 6px 12px;
+  margin: 0 0 8px 0;
+  padding: 5px 10px;
   font-size: 10px;
   font-weight: 600;
   color: var(--teal);
@@ -191,103 +192,61 @@
   flex-shrink: 0;
 }
 
-/* Section label */
 .app-lnch-section-label {
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--ink3);
   font-family: var(--font);
-  margin: 0 0 6px 4px;
+  margin: 0 0 3px 2px;
 }
 
 /* Section divider */
 .app-lnch-section-divider {
   height: 1px;
   background: var(--border);
-  margin: 8px 0 10px;
+  margin: 4px 0 6px;
 }
 
-/* Recently viewed — a horizontally-snapping carousel, not a static grid.
-   Extra left/right padding (half a card's width) is what lets the first and
-   last cards scroll all the way to center, which is also what reveals their
-   neighbors peeking in at the row's edges rather than the row just clipping
-   flush. The item nearest that center gets pushed forward — larger,
-   opaque, elevated, white — via the scroll-tracked --focused class from
-   AppLauncher.tsx (no reliable scroll-snap-only CSS for "style whichever
-   child is currently centered" exists across browsers yet). */
+/* Recently viewed — clean 4-column grid displaying the last 4 apps viewed */
 .app-lnch-recent-row {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  padding: 6px calc(50% - 44px) 10px;
-  margin: 0 -2px 2px;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
-  mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px 2px;
+  margin: 0 0 2px;
 }
-
-.app-lnch-recent-row::-webkit-scrollbar { display: none; }
 
 .app-lnch-panel-item--recent {
-  flex: 0 0 auto;
-  width: 88px;
-  padding: 10px 6px 8px;
-  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 2px 3px 2px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  font-family: var(--font);
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
   background: transparent;
   box-shadow: none;
-  transform: scale(0.86);
-  opacity: 0.6;
-  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease, background 0.32s ease, box-shadow 0.32s ease;
-}
-
-.app-lnch-panel-item--recent:hover {
-  background: transparent;
-  transform: scale(0.9);
-}
-
-.app-lnch-panel-item--recent.app-lnch-panel-item--focused {
-  background: var(--white);
-  box-shadow: var(--elev-lg);
-  transform: scale(1.08);
+  transform: none;
   opacity: 1;
 }
 
-.app-lnch-panel-item--recent.app-lnch-panel-item--focused:hover {
-  background: var(--white);
-  transform: scale(1.08);
+.app-lnch-panel-item--recent:hover {
+  background: var(--card-sunken);
+  transform: translateY(-1px);
 }
 
 /* Scrollable grid area */
 .app-lnch-panel-scroll {
-  /* A hard 380px here, under a panel already capped to the viewport, meant the
-     list was cut at 380 whatever the window size — and 380 does not divide into
-     the tile grid, so it always severed a row mid-tile. The half-icons left
-     above the footer read as the footer overlapping the grid.
-
-     flex + min-height:0 lets it take what the panel has spare instead: on a
-     normal window every app fits and nothing is cut, and on a short one it
-     scrolls properly rather than clipping at an arbitrary number. */
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 2px 2px 6px 2px;
-
-  /* 25 tiles will not fit a laptop viewport, so the list does have to scroll.
-     What made it look broken was that the cut row had nothing marking it as a
-     scroll edge — a severed icon directly above the footer card reads as the
-     card covering it. Fading the last 40px turns that same cut into an
-     obvious "there is more below".
-
-     The fade has to be a mask, not a background gradient: a background paints
-     *behind* the tiles and so leaves the severed icon just as hard-edged. And
-     it is applied only while `data-more-below` is set, because a permanent
-     mask would dim the final row once you had scrolled to the end. */
+  padding: 1px 1px 4px 1px;
   transition: mask-image 0.15s ease;
 }
 
@@ -298,17 +257,13 @@
 
 .app-lnch-panel-scroll::-webkit-scrollbar { width: 4px; }
 .app-lnch-panel-scroll::-webkit-scrollbar-track { background: transparent; }
-.app-lnch-panel-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+.app-lnch-panel-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: var(--r-sm); }
 
-/* Adobe-style app grid — 4 columns (matches the Recently Viewed row above
-   it) rather than 3, so the same app count settles into fewer rows without
-   shrinking icons into illegibility. This is the main lever on the panel's
-   total height: at 3 columns, 23 apps ran to 8 rows and forced a scroll on
-   most laptop windows; at 4 it's 6. */
+/* Adobe-style app grid — 4 columns */
 .app-lnch-panel-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px 4px;
+  gap: 2px 2px;
 }
 
 /* App item tile */
@@ -316,38 +271,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 7px 3px 6px 3px;
-  border-radius: var(--r);
+  gap: 4px;
+  padding: 4px 2px 3px 2px;
+  border-radius: var(--r-sm);
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease;
   font-family: var(--font);
   text-decoration: none;
   color: inherit;
-  /* This is a grid item (both here and in the recently-viewed row). Its
-     default min-width is `auto`, which resolves to the max-content width of
-     its own children — so the nowrap app-name label refused to shrink
-     below its full unclipped text width no matter what overflow/ellipsis
-     rules were set on it. Each column silently grew to fit its widest
-     label, "1fr" stopped meaning "an equal quarter", and whatever fell in
-     the 4th column (NexusHR, ComplyOS, CargoTracker, Inventory Control,
-     Onsite, SMS, Account & Security, on any given panel width) rendered
-     partly or fully past the panel's own right edge with no ellipsis ever
-     engaging — this is what made those tiles look physically clipped.
-     min-width: 0 removes that content-based floor, so the grid track's 1fr
-     share actually constrains the item, and .app-lnch-panel-name's own
-     ellipsis rule (below) finally has something to truncate against. */
   min-width: 0;
 }
 
 .app-lnch-panel-item:hover {
   background: var(--card-sunken);
-  transform: translateY(-2px);
-}
-
-.app-lnch-panel-item:hover .app-lnch-svg-icon,
-.app-lnch-panel-item:hover .app-lnch-custom-icon {
-  box-shadow: var(--elev);
+  transform: translateY(-1px);
 }
 
 .app-lnch-panel-item--over {
@@ -355,17 +292,17 @@
 }
 
 .app-lnch-panel-name {
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 600;
   color: var(--ink);
   text-align: center;
   font-family: var(--font);
-  line-height: 1.2;
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  padding: 0 2px;
+  padding: 0 1px;
 }
 
 /* Edit mode — wiggle + grab cursor */
@@ -395,10 +332,10 @@
 
 /* ── Adobe Bottom Card Footer ── */
 .app-lnch-adobe-footer-card {
-  margin-top: 9px;
+  margin-top: 6px;
   background: var(--card-sunken);
   border-radius: var(--r);
-  padding: 7px 10px;
+  padding: 8px 6px;
   display: flex;
   align-items: center;
   justify-content: space-around;
@@ -408,12 +345,12 @@
 .app-lnch-adobe-footer-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   text-decoration: none;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
-  padding: 5px 8px;
+  padding: 6px 10px;
   border-radius: var(--r-sm);
   transition: background 0.15s ease, color 0.15s ease;
 }
@@ -424,22 +361,23 @@
 }
 
 .app-lnch-adobe-brand-icon {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: var(--r-sm);
 }
 
 .app-lnch-adobe-footer-label {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .app-lnch-adobe-footer-divider {
   width: 1px;
-  height: 20px;
+  height: 22px;
   background: var(--border2);
 }
 
@@ -479,7 +417,7 @@
     top: auto;
     bottom: 0;
     right: 0;
-    border-radius: 24px 24px 0 0;
+    border-radius: var(--card-radius, var(--r-lg)) var(--card-radius, var(--r-lg)) 0 0;
     border-bottom: none;
     transform-origin: bottom center;
     transform: translateY(100%);

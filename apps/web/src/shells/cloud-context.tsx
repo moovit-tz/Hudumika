@@ -87,7 +87,10 @@ export interface FileAccessLogEntry {
   created_at: string;
 }
 
-export type DriveType = 'personal' | 'shared';
+// 'business' (migration 498) is the tenant-wide, system-managed records
+// drive every automatic app folder (Customers/Shipments/Employees/SEAL/
+// Meetings) lives in — visible to all staff, never user-creatable.
+export type DriveType = 'personal' | 'shared' | 'business';
 export type DriveRole = 'manager' | 'content_manager' | 'contributor' | 'commenter' | 'viewer';
 
 export interface CloudDrive {
@@ -105,6 +108,16 @@ export interface DriveMember {
   person_name: string;
   role: DriveRole;
   created_at: string;
+  principal_type: string | null;
+  principal_id: string | null;
+}
+
+/** A real tenant staff account offered by GET /v1/drives/:id/member-candidates
+ *  — what the "Add member" picker searches, replacing a free-text name. */
+export interface DriveMemberCandidate {
+  id: string;
+  name: string | null;
+  email: string | null;
 }
 
 export interface CloudCtxValue {
@@ -120,14 +133,18 @@ export interface CloudCtxValue {
   currentDrive: CloudDrive | null;
   loadDrives: () => Promise<void>;
   switchDrive: (driveId: string) => void;
-  createDrive: (name: string, type: DriveType) => Promise<void>;
+  /** Always creates a 'shared' drive — Personal (one per user) and Business
+   *  Records (one per tenant) are both system-managed and never user-created. */
+  createDrive: (name: string) => Promise<void>;
   renameDrive: (id: string, name: string) => Promise<void>;
   deleteDrive: (id: string) => Promise<void>;
 
   driveMembers: DriveMember[];
   driveMembersLoading: boolean;
   loadDriveMembers: (driveId: string) => Promise<void>;
-  addDriveMember: (driveId: string, personName: string, role: DriveRole) => Promise<void>;
+  /** Real tenant staff only, from GET /v1/drives/:id/member-candidates. */
+  searchDriveMemberCandidates: (driveId: string, q: string) => Promise<DriveMemberCandidate[]>;
+  addDriveMember: (driveId: string, principalId: string, role: DriveRole) => Promise<void>;
   updateDriveMemberRole: (driveId: string, memberId: string, role: DriveRole) => Promise<void>;
   removeDriveMember: (driveId: string, memberId: string) => Promise<void>;
 
@@ -216,6 +233,7 @@ export const CloudCtx = createContext<CloudCtxValue>({
   driveMembers: [],
   driveMembersLoading: false,
   loadDriveMembers: noopAsync,
+  searchDriveMemberCandidates: async () => [],
   addDriveMember: noopAsync,
   updateDriveMemberRole: noopAsync,
   removeDriveMember: noopAsync,
@@ -404,9 +422,9 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
     resetNav(drive?.name ?? 'My Drive');
   }, [drives]);
 
-  const createDrive = useCallback(async (name: string, type: DriveType) => {
+  const createDrive = useCallback(async (name: string) => {
     try {
-      const drive = await apiFetch('/v1/drives', { method: 'POST', body: JSON.stringify({ name, type }) });
+      const drive = await apiFetch('/v1/drives', { method: 'POST', body: JSON.stringify({ name }) });
       await loadDrives();
       setCurrentDriveId(drive.id);
       resetNav(drive.name);
@@ -449,9 +467,18 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const addDriveMember = useCallback(async (driveId: string, personName: string, role: DriveRole) => {
+  const searchDriveMemberCandidates = useCallback(async (driveId: string, q: string): Promise<DriveMemberCandidate[]> => {
     try {
-      await apiFetch(`/v1/drives/${driveId}/members`, { method: 'POST', body: JSON.stringify({ person_name: personName, role }) });
+      const data = await apiFetch(`/v1/drives/${driveId}/member-candidates?q=${encodeURIComponent(q)}`);
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const addDriveMember = useCallback(async (driveId: string, principalId: string, role: DriveRole) => {
+    try {
+      await apiFetch(`/v1/drives/${driveId}/members`, { method: 'POST', body: JSON.stringify({ principal_id: principalId, role }) });
       await loadDriveMembers(driveId);
     } catch (err: any) {
       setError(err.message || 'Failed to add member');
@@ -735,7 +762,7 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
     <CloudCtx.Provider value={{
       files, loading, error, dismissError, loadData,
       drives, drivesLoading, currentDriveId, currentDrive, loadDrives, switchDrive, createDrive, renameDrive, deleteDrive,
-      driveMembers, driveMembersLoading, loadDriveMembers, addDriveMember, updateDriveMemberRole, removeDriveMember,
+      driveMembers, driveMembersLoading, loadDriveMembers, searchDriveMemberCandidates, addDriveMember, updateDriveMemberRole, removeDriveMember,
       storageQuota, loadStorageQuota,
       currentView, currentFolderId, breadcrumb,
       goToView, openFolder, navToBreadcrumb,

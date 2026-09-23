@@ -71,6 +71,7 @@ export async function runScheduledEmailSendJob(): Promise<void> {
           // (migration 491) — this is a message the owning user composed
           // through the Email app, not a system-generated notification.
           userId: row.user_id,
+          fromIdentityId: row.from_identity_id,
         });
 
         await withTenant(row.tenant_id, async (trx) => {

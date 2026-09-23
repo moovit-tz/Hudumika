@@ -29,7 +29,7 @@ export function GlPeriods() {
   const [reopening, setReopening] = useState<Period | null>(null);
   const [reopenReason, setReopenReason] = useState('');
 
-  const load = () => apiFetch('/v1/finance/gl-periods').then((d: any) => { if (Array.isArray(d)) setPeriods(d); }).catch(() => {}).finally(() => setLoading(false));
+  const load = () => apiFetch('/v1/finance/gl-periods').then((d: any) => { if (Array.isArray(d)) setPeriods(d); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load accounting periods.')).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
   async function createPeriod() {

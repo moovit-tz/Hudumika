@@ -7,6 +7,7 @@ import { useLocale } from '../hooks/useLocale.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { LAUNCHER_APPS, LauncherAppSvg, INTERNAL_APP_IDS } from './LauncherApps.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { getRecentApps } from '../lib/recentApps.js';
 import './AppLauncher.css';
 
 interface AppLauncherProps {
@@ -34,38 +35,6 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
   const dragItemId = useRef<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [recentApps, setRecentApps] = useState<(typeof LAUNCHER_APPS)[0][]>([]);
-
-  // Recently-viewed row: a horizontally-snapping carousel where the card
-  // nearest the container's center pops forward (scaled up, elevated,
-  // white) while its neighbors sit smaller and flatter — tracked by scroll
-  // position rather than CSS alone, since there's no reliable cross-browser
-  // way to style "whichever snapped child is currently centered" from CSS
-  // alone.
-  const recentTrackRef = useRef<HTMLDivElement | null>(null);
-  const [focusedRecentId, setFocusedRecentId] = useState<string | null>(null);
-  const recentRafRef = useRef<number | null>(null);
-
-  const measureFocusedRecent = () => {
-    const track = recentTrackRef.current;
-    if (!track) return;
-    const trackRect = track.getBoundingClientRect();
-    const center = trackRect.left + trackRect.width / 2;
-    let closestId: string | null = null;
-    let closestDist = Infinity;
-    for (const child of Array.from(track.children)) {
-      const id = (child as HTMLElement).dataset.appId;
-      if (!id) continue;
-      const r = (child as HTMLElement).getBoundingClientRect();
-      const dist = Math.abs(r.left + r.width / 2 - center);
-      if (dist < closestDist) { closestDist = dist; closestId = id; }
-    }
-    setFocusedRecentId(closestId);
-  };
-
-  function handleRecentScroll() {
-    if (recentRafRef.current) cancelAnimationFrame(recentRafRef.current);
-    recentRafRef.current = requestAnimationFrame(measureFocusedRecent);
-  }
 
   // The app list is taller than any laptop viewport, so it has to scroll. Left
   // unmarked, the row the scroll edge cuts through looks like the footer card
@@ -106,33 +75,28 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
     };
   }, [launcherOpen, recentApps.length]);
 
+  // Compute the 4 most recently viewed apps, backfilling from allowed apps if needed
   useEffect(() => {
     if (!launcherOpen) return;
-    try {
-      const ids: string[] = JSON.parse(localStorage.getItem('hudumika_recently_viewed') ?? '[]');
-      setRecentApps(
-        ids
-          .map(id => LAUNCHER_APPS.find(a => a.id === id))
-          .filter((a): a is (typeof LAUNCHER_APPS)[0] => Boolean(a))
-          .filter(a => isAppEnabled(a.id, enabledApps))
-          .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id))
-          .slice(0, 4)
-      );
-    } catch { setRecentApps([]); }
-  }, [launcherOpen, enabledApps]);
+    const ids = getRecentApps(['clearos', 'finops', 'nexushr', 'bliss', 'complyos']);
+    const allowed = LAUNCHER_APPS
+      .filter(a => isAppEnabled(a.id, enabledApps))
+      .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id));
 
-  // Establish the initial focused card once the row has actually rendered
-  // (layout must settle first, or getBoundingClientRect reads stale zeros),
-  // and clean up any in-flight scroll measurement when the panel closes.
-  useEffect(() => {
-    if (!launcherOpen || recentApps.length === 0) return;
-    const id = requestAnimationFrame(measureFocusedRecent);
-    return () => cancelAnimationFrame(id);
-  }, [launcherOpen, recentApps]);
+    const fromRecent = ids
+      .map(id => allowed.find(a => a.id === id))
+      .filter((a): a is (typeof LAUNCHER_APPS)[0] => Boolean(a));
 
-  useEffect(() => {
-    return () => { if (recentRafRef.current) cancelAnimationFrame(recentRafRef.current); };
-  }, []);
+    const result = [...fromRecent];
+    for (const app of allowed) {
+      if (result.length >= 4) break;
+      if (!result.some(a => a.id === app.id)) {
+        result.push(app);
+      }
+    }
+
+    setRecentApps(result.slice(0, 4));
+  }, [launcherOpen, enabledApps, canSeeInternal]);
 
   const orderedApps = useMemo(() => {
     const ordered = appOrder
@@ -253,16 +217,15 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
           {recentApps.length > 0 && !editMode && (
             <>
               <p className="app-lnch-section-label">{t('launcher.recentlyViewed')}</p>
-              <div className="app-lnch-recent-row" ref={recentTrackRef} onScroll={handleRecentScroll}>
+              <div className="app-lnch-recent-row">
                 {recentApps.map(app => (
                   <Link
                     key={app.id}
                     to={app.path}
-                    data-app-id={app.id}
-                    className={`app-lnch-panel-item app-lnch-panel-item--recent${app.id === focusedRecentId ? ' app-lnch-panel-item--focused' : ''}`}
+                    className="app-lnch-panel-item app-lnch-panel-item--recent"
                     onClick={() => closeLauncher()}
                   >
-                    <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={38} />
+                    <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={32} />
                     <span className="app-lnch-panel-name">{branding.getAppName(app.id, app.name)}</span>
                   </Link>
                 ))}
@@ -285,7 +248,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
                 onDragEnd={editMode ? handleDragEnd : undefined}
                 onClick={e => { if (editMode) { e.preventDefault(); return; } closeLauncher(); }}
               >
-                <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={38} />
+                <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={32} />
                 <span className="app-lnch-panel-name">{branding.getAppName(app.id, app.name)}</span>
               </Link>
             ))}

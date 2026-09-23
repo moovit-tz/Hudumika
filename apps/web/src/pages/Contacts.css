@@ -22,32 +22,6 @@
    Contacts sidebar content (csb-*)
 ══════════════════════════════════════════════════ */
 
-/* Create contact button */
-.csb-create-wrap {
-  padding: 10px 12px 8px;
-  flex-shrink: 0;
-}
-.csb-create-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: var(--ds-btn-py) 20px 10px 14px;
-  border-radius: 24px;
-  border: none;
-  background: var(--white);
-  color: var(--ink);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  box-shadow: var(--elev-sm);
-  transition: box-shadow .15s;
-  white-space: nowrap;
-  width: 100%;
-}
-.csb-create-btn:hover {
-  box-shadow: var(--elev);
-}
-
 /* Main nav */
 .csb-nav {
   display: flex;
@@ -609,14 +583,6 @@
 }
 
 /* Sidebar content */
-[data-theme="dark"] .csb-create-btn {
-  background: var(--bg);
-  color: var(--ink, #e2e8f0);
-  box-shadow: var(--elev-sm);
-}
-[data-theme="dark"] .csb-create-btn:hover {
-  box-shadow: var(--elev);
-}
 [data-theme="dark"] .csb-nav-item { color: var(--ink2, #94a3b8); }
 [data-theme="dark"] .csb-nav-item:hover { background: var(--bg); }
 [data-theme="dark"] .csb-labels { border-top-color: var(--border, #334155); }

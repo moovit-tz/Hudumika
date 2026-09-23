@@ -75,7 +75,6 @@ import { BlissShell }   from './shells/BlissShell.js';
 import { CloudShell }   from './shells/CloudShell.js';
 import { AdminShell }        from './shells/AdminShell.js';
 import { SuperAdminShell }   from './shells/SuperAdminShell.js';
-import { AIShell }      from './shells/AIShell.js';
 import { ComplyOSShell } from './shells/ComplyOSShell.js';
 import { SealShell } from './shells/SealShell.js';
 import { InventoryShell } from './shells/InventoryShell.js';
@@ -459,8 +458,12 @@ const AppContentBody: React.FC = () => {
           <Route path="/cloud/*"    element={<CloudShell />} />
           <Route path="/workspace/*"element={<AdminShell />} />
           <Route path="/admin/*"    element={<SuperAdminShell />} />
-          <Route path="/ai/*"       element={<AIShell />} />
-          <Route path="/agent"      element={<Navigate to="/ai/agent" replace />} />
+          {/* The standalone AI app is retired — Agent Flow, Automations,
+              Insights and Controls all live as tabs on the Agentic home
+              (HubPage below) now. Old links redirect to "/" rather than
+              404ing or resurrecting the shell. */}
+          <Route path="/ai/*"       element={<Navigate to="/" replace />} />
+          <Route path="/agent"      element={<Navigate to="/" replace />} />
           <Route path="/complyos/*" element={<ComplyOSShell />} />
           <Route path="/seal/*"     element={<SealShell />} />
           <Route path="/inventory/*" element={<InventoryShell />} />

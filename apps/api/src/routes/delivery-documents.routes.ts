@@ -8,6 +8,10 @@ import {
 } from '../services/delivery-document.service.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
 import { withTenant } from '../db/client.js';
+import { requireRole } from '../middleware/rbac.js';
+
+const requireDocumentWriter = requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR');
+const requireDocumentAdmin = requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE');
 
 const containerSchema = z.object({
   number: z.string().trim().min(1),
@@ -90,7 +94,7 @@ export async function deliveryDocumentsRoutes(fastify: FastifyInstance) {
     return row;
   });
 
-  fastify.post('/', async (request: any, reply) => {
+  fastify.post('/', { preHandler: requireDocumentWriter }, async (request: any, reply) => {
     const input = createSchema.parse(request.body);
     try {
       return reply.status(201).send(
@@ -101,7 +105,7 @@ export async function deliveryDocumentsRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.patch('/:id', async (request: any, reply) => {
+  fastify.patch('/:id', { preHandler: requireDocumentWriter }, async (request: any, reply) => {
     const { id } = request.params as { id: string };
     const input = updateSchema.parse(request.body);
     try {
@@ -111,7 +115,7 @@ export async function deliveryDocumentsRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.patch('/:id/status', async (request: any, reply) => {
+  fastify.patch('/:id/status', { preHandler: requireDocumentWriter }, async (request: any, reply) => {
     const { id } = request.params as { id: string };
     const { status } = statusSchema.parse(request.body);
     try {
@@ -121,7 +125,7 @@ export async function deliveryDocumentsRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.patch('/:id/issue', async (request: any, reply) => {
+  fastify.patch('/:id/issue', { preHandler: requireDocumentWriter }, async (request: any, reply) => {
     const { id } = request.params as { id: string };
     try {
       const doc = await issueDeliveryDocument(request.user.tenant_id, id, request.user.sub);
@@ -165,7 +169,7 @@ export async function deliveryDocumentsRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.patch('/:id/mark-used', async (request: any, reply) => {
+  fastify.patch('/:id/mark-used', { preHandler: requireDocumentWriter }, async (request: any, reply) => {
     const { id } = request.params as { id: string };
     try {
       return await markDeliveryDocumentUsed(request.user.tenant_id, id);
@@ -174,7 +178,7 @@ export async function deliveryDocumentsRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.delete('/:id', async (request: any, reply) => {
+  fastify.delete('/:id', { preHandler: requireDocumentAdmin }, async (request: any, reply) => {
     const { id } = request.params as { id: string };
     const deleted = await deleteDeliveryDocument(request.user.tenant_id, id);
     if (!deleted) return reply.status(404).send({ error: 'Delivery document not found' });

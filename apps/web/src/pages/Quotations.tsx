@@ -1047,7 +1047,7 @@ export const Quotations: React.FC = () => {
       const qs = f!=='ALL' ? `?status=${f}` : '';
       const data = await apiFetch(`/v1/quotations${qs}`);
       setQuotes(Array.isArray(data)?data:(data.data??[]));
-    } catch { setQuotes([]); } finally { setLoading(false); }
+    } catch(e:any) { setQuotes([]); showAlert(e?.message || 'Could not load quotations.'); } finally { setLoading(false); }
   };
 
   const fetchDetail = async (id:string) => {
@@ -1057,8 +1057,8 @@ export const Quotations: React.FC = () => {
 
   useEffect(()=>{
     fetchQuotes();
-    apiFetch('/v1/customers').then(d=>setCustomers(Array.isArray(d)?d:(d.data??[]))).catch(()=>{});
-    apiFetch('/v1/leads').then(d=>setLeads(Array.isArray(d)?d:(d.data??[]))).catch(()=>{});
+    apiFetch('/v1/customers').then(d=>setCustomers(Array.isArray(d)?d:(d.data??[]))).catch((e:any)=>showAlert(e?.message || 'Could not load customers.'));
+    apiFetch('/v1/leads').then(d=>setLeads(Array.isArray(d)?d:(d.data??[]))).catch((e:any)=>showAlert(e?.message || 'Could not load leads.'));
   },[]);
   useEffect(()=>{ fetchQuotes(filter); },[filter]);
   useEffect(() => {
@@ -1080,8 +1080,13 @@ export const Quotations: React.FC = () => {
     await fetchQuotes(); if(selected?.id===id) await fetchDetail(id);
   }
   async function handleSend(id:string,email:string,msg:string){
-    try{ await apiFetch(`/v1/quotations/${id}/send`,{method:'POST',body:JSON.stringify({email,message:msg})}); showAlert('Quotation sent!'); }
-    catch{ showAlert('Could not send via API – please email manually to: '+email); }
+    try{
+      await apiFetch(`/v1/quotations/${id}/send`,{method:'POST',body:JSON.stringify({email,message:msg})});
+      await fetchQuotes();
+      await fetchDetail(id);
+      showAlert('Quotation queued for delivery.');
+    }
+    catch(e:any){ showAlert(e?.message || 'Could not send this quotation.'); }
   }
   async function handleDelete(id:string){
     if(!(await showConfirm('Delete this quotation? This cannot be undone.', { confirmLabel: 'Delete' }))) return;
@@ -1090,7 +1095,7 @@ export const Quotations: React.FC = () => {
   }
   async function handleDuplicate(id:string){
     try{ const r=await apiFetch(`/v1/quotations/${id}/duplicate`,{method:'POST'}); await fetchQuotes(); if(r?.id) await fetchDetail(r.id); else showAlert('Quotation duplicated.'); }
-    catch{ showAlert('Duplicate not supported by API yet.'); }
+    catch(e:any){ showAlert(e?.message || 'Could not duplicate this quotation.'); }
   }
   async function handleSave(id:string|null, data:QuoteFormData, asDraft:boolean){
     const body = {

@@ -7,156 +7,13 @@
   font-family: var(--font);
 }
 
-/* ── Sidebar ─────────────────────────────────────────────────────────── */
-.em-sidebar {
-  width: 220px;
-  flex-shrink: 0;
-  background: var(--bg);
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: 8px 0 24px;
-  border-right: 1px solid var(--border);
-}
-
-.em-compose-wrap {
-  padding: 8px 12px 16px;
-}
-
-.em-compose-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: var(--ds-btn-py-lg) 20px;
-  border-radius: 18px;
-  background: var(--white);
-  border: none;
-  box-shadow: var(--elev-sm);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink);
-  font-family: var(--font);
-  transition: box-shadow 0.15s, background 0.12s;
-}
-.em-compose-btn:hover {
-  box-shadow: var(--elev);
-}
-
-.em-nav {
-  display: flex;
-  flex-direction: column;
-  padding-right: 8px;
-}
-
-.em-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  padding: 10px 12px 10px 24px;
-  /* Same selected-item shape every other app's sidebar uses (AppSidebar.css's
-     .app-sb-item — --nav-item-r), not a bespoke Gmail-style right-only pill. */
-  border-radius: var(--nav-item-r, 8px);
-  border: none;
-  background: transparent;
-  color: var(--ink);
-  font-size: 13.5px;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: left;
-  font-family: var(--font);
-  transition: background 0.1s;
-}
-.em-nav-item:hover { background: var(--bg2, rgba(0,0,0,.04)); }
-.em-nav-item--active {
-  background: #d3e3fd;
-  color: #041e49;
-  font-weight: 600;
-}
-.em-nav-label { flex: 1; }
-.em-nav-badge { font-size: var(--badge-fs); font-weight: 700; }
-
-.em-labels-section { margin-top: 8px; }
-
-.em-labels-hdr {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 16px 16px 8px 24px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: var(--font);
-}
-.em-labels-hdr span {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink3);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.em-labels-list {
-  display: flex;
-  flex-direction: column;
-  padding-right: 8px;
-}
-
-.em-label-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 9px 12px 9px 24px;
-  border-radius: var(--nav-item-r, 8px);
-  cursor: pointer;
-  font-size: 13.5px;
-  color: var(--ink);
-  font-family: var(--font);
-  font-weight: 500;
-  transition: background 0.1s;
-}
-.em-label-item:hover { background: var(--bg2, rgba(0,0,0,.04)); }
-.em-label-item--active {
-  background: #d3e3fd;
-  color: #041e49;
-  font-weight: 600;
-}
-.em-label-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-/* ── Mobile drawer overlay ───────────────────────────────────────────── */
-.em-mob-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.4);
-  z-index: 998;
-  display: flex;
-}
-.em-mob-drawer {
-  width: 280px;
-  height: 100%;
-  background: var(--bg);
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: 12px 0 24px;
-  box-shadow: 2px 0 16px rgba(0,0,0,.18);
-}
-
 /* ── Body (list + detail) ────────────────────────────────────────────── */
 .em-body {
   flex: 1;
   display: flex;
   overflow: hidden;
-  padding: 8px;
-  gap: 8px;
+  padding: 12px 16px 16px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -170,6 +27,7 @@
   border-radius: var(--r);
   overflow: hidden;
   box-shadow: var(--elev-sm);
+  border: 1px solid var(--border);
 }
 .em-list--has-detail {
   flex: 0 0 var(--em-list-w, 360px);
@@ -201,9 +59,9 @@
 .em-search-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: var(--bg);
+  gap: 6px;
+  padding: 14px 16px 12px;
+  background: var(--white);
   flex-shrink: 0;
 }
 .em-search-wrap {
@@ -222,45 +80,55 @@
 .em-search-input {
   width: 100%;
   box-sizing: border-box;
-  padding: 9px 16px 9px 40px;
-  border-radius: 24px;
-  border: none;
-  background: #eaf1fb;
+  min-height: var(--ctl-h);
+  padding: 9px 42px 9px 40px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--bg);
   font-size: 14px;
   color: var(--ink);
   outline: none;
   font-family: var(--font);
-  transition: background 0.15s, box-shadow 0.15s;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 .em-search-input:focus {
   background: var(--white);
-  box-shadow: var(--elev-sm);
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px var(--teal-l);
 }
+.em-search-clear {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+}
+.em-search-clear:hover { background: var(--teal-l); color: var(--teal); }
 
 .em-filter-bar {
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  padding: 0 4px;
+  gap: 6px;
+  min-height: 52px;
+  padding: 8px 16px 10px;
 }
-.em-filter-tab {
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 500;
+.em-filter-meta {
+  margin-left: auto;
   color: var(--ink3);
-  background: none;
-  border: none;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: all 0.1s;
-  font-family: var(--font);
-}
-.em-filter-tab--active {
+  font-size: 12px;
   font-weight: 600;
-  color: #0b57d0;
-  border-bottom-color: #0b57d0;
+  white-space: nowrap;
 }
 .em-bulk-actions {
   margin-left: auto;
@@ -292,6 +160,7 @@
 .em-rows {
   flex: 1;
   overflow-y: auto;
+  background: var(--white);
 }
 .em-rows-empty {
   display: flex;
@@ -317,17 +186,17 @@
 .em-row {
   display: flex;
   align-items: center;
-  padding: 0 14px;
-  height: 52px;
+  padding: 0 16px;
+  min-height: 60px;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
-  transition: background 0.07s;
+  transition: background 0.15s, box-shadow 0.15s;
   position: relative;
   background: var(--white);
 }
-.em-row:hover { background: var(--bg, #f5f5f5); }
-.em-row--unread { background: #f2f6fc; }
-.em-row--selected { background: var(--blue-l) !important; }
+.em-row:hover { background: var(--teal-l); box-shadow: inset 3px 0 0 var(--teal); }
+.em-row--unread { background: var(--teal-l); }
+.em-row--selected { background: var(--teal-l) !important; box-shadow: inset 3px 0 0 var(--teal); }
 
 .em-row-check-wrap {
   margin-right: 6px;
@@ -340,15 +209,15 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  border-radius: 50%;
+  border-radius: var(--r-sm);
   border: 1.5px solid var(--border);
   background: transparent;
   transition: all 0.1s;
   flex-shrink: 0;
 }
 .em-row-check--on {
-  background: #0b57d0;
-  border-color: #0b57d0;
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
 }
 
 .em-row-star {
@@ -359,12 +228,12 @@
 }
 
 .em-row-sender {
-  width: 148px;
+  width: clamp(150px, 14vw, 220px);
   flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--ink);
   margin-right: 10px;
@@ -376,28 +245,19 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13.5px;
+  font-size: 13px;
   min-width: 0;
 }
 .em-row-subject { color: var(--ink); }
 .em-row-subject--bold { font-weight: 600; }
 .em-row-snip { font-weight: 400; color: var(--ink3); }
 
-.em-row-label {
-  margin-left: 8px;
-  font-size: 10.5px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
 .em-row-date {
   font-size: 12px;
   color: var(--ink3);
   margin-left: 10px;
   flex-shrink: 0;
-  width: 44px;
+  width: 58px;
   text-align: right;
   font-weight: 400;
 }
@@ -440,26 +300,6 @@
   to   { opacity: 1; transform: translateX(0); }
 }
 
-.em-empty-state {
-  flex: 1;
-  background: var(--white);
-  border-radius: 16px;
-  box-shadow: var(--elev-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 10px;
-}
-.em-empty-state-title {
-  font-size: 16px;
-  color: var(--ink2);
-}
-.em-empty-state-sub {
-  font-size: 13px;
-  color: var(--ink3);
-}
-
 .em-detail-toolbar {
   display: flex;
   align-items: center;
@@ -475,7 +315,10 @@
   justify-content: center;
   gap: 6px;
   padding: var(--ds-btn-py-sm) 10px;
-  border-radius: 6px;
+  min-height: var(--ctl-h-sm);
+  box-sizing: border-box;
+  line-height: 1.25;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: transparent;
   color: var(--ink3);
@@ -490,14 +333,14 @@
 .em-icon-btn:disabled { opacity: 0.4; cursor: default; }
 .em-icon-btn--ghost { border-color: transparent; }
 .em-icon-btn--ghost:hover { background: var(--bg); border-color: transparent; }
-.em-icon-btn--pill { border-radius: 20px; padding: var(--ds-btn-py) 18px; }
+.em-icon-btn--pill { border-radius: 999px; padding: var(--ds-btn-py) 18px; min-height: var(--ctl-h); }
 .em-icon-btn--primary {
   background: var(--blue-l);
-  border-color: #c5d7f7;
-  color: #0b57d0;
+  border-color: var(--blue-m, var(--blue-l));
+  color: var(--blue);
   font-weight: 600;
 }
-.em-icon-btn--starred { color: #f4b400; border-color: var(--border); }
+.em-icon-btn--starred { color: var(--gold); border-color: var(--border); }
 
 .em-toolbar-sep {
   width: 1px;
@@ -524,19 +367,10 @@
   flex-wrap: wrap;
   gap: 8px;
 }
-.em-label-chip {
-  font-size: var(--badge-fs);
-  font-weight: 600;
-  padding: var(--badge-py) var(--badge-px);
-  border-radius: 4px;
-}
 
-/* AI-suggested task banner — real CSS tokens (unlike .em-ai-panel below,
-   which hardcodes its own blue instead of var(--blue)/var(--blue-l)) so it
-   already renders correctly in dark mode with no extra override block. */
 .em-task-banner {
   margin: 0 0 20px;
-  border-radius: 12px;
+  border-radius: var(--r);
   border: 1px solid var(--teal);
   background: var(--teal-l);
   padding: 12px 14px;
@@ -580,7 +414,7 @@
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   border: none;
-  border-radius: 20px;
+  border-radius: 999px;
   padding: var(--ds-btn-py-sm) 16px;
   font-size: 12.5px;
   font-weight: 700;
@@ -667,7 +501,7 @@
 
 .em-ai-panel {
   margin-top: 28px;
-  border-radius: 12px;
+  border-radius: var(--r);
   border: 1px solid var(--blue);
   background: var(--blue-l);
 }
@@ -691,7 +525,7 @@
 
 .em-reply-box {
   margin-top: 28px;
-  border-radius: 12px;
+  border-radius: var(--r);
   border: 1px solid var(--border);
   background: var(--white);
   box-shadow: var(--elev);
@@ -706,11 +540,32 @@
   align-items: center;
   justify-content: space-between;
 }
+.em-reply-recipients {
+  padding: 4px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+}
 .em-reply-body {
   padding: 12px 16px 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+/* Left behind inline when the reply pops out into its own floating window
+   (.em-compose-modal, shared with Compose) — see replyPoppedOut. */
+.em-reply-popout-placeholder {
+  margin-top: 28px;
+  padding: 12px 16px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--surface2, var(--bg));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink3);
 }
 .em-reply-textarea {
   width: 100%;
@@ -742,89 +597,13 @@
   flex-shrink: 0;
 }
 
-/* ── Companion ───────────────────────────────────────────────────────── */
-.em-companion {
-  display: flex;
-  align-items: stretch;
-  flex-shrink: 0;
-  border-left: 1px solid var(--border);
-}
-
-.em-companion-panel {
-  width: 320px;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--border);
-  background: var(--white);
-  overflow: hidden;
-  animation: em-comp-in 0.22s ease;
-}
-@keyframes em-comp-in {
-  from { opacity: 0; width: 0; min-width: 0; }
-  to   { opacity: 1; width: 320px; }
-}
-
-.em-companion-panel-hdr {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 16px 12px 20px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.em-companion-panel-title {
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--ink);
-  text-transform: capitalize;
-}
-
-.em-companion-panel-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-}
-
-.em-companion-bar {
-  width: 48px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 0;
-  gap: 8px;
-  background: var(--bg);
-  flex-shrink: 0;
-}
-.em-companion-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.12s;
-  flex-shrink: 0;
-}
-.em-companion-btn:hover { background: rgba(0,0,0,.06); }
-.em-companion-btn--active { background: var(--blue-l); }
-.em-companion-bar-sep {
-  width: 24px;
-  height: 1px;
-  background: var(--border);
-  margin: 8px 0;
-}
-.em-companion-spacer { flex: 1; }
-
 /* ── Compose modal ───────────────────────────────────────────────────── */
 .em-compose-modal {
   position: fixed;
   bottom: 0;
   right: 24px;
   width: min(560px, calc(100vw - 48px));
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
   background: var(--white);
   box-shadow: 0 -2px 24px rgba(0,0,0,.2);
   border: 1px solid var(--border);
@@ -843,16 +622,44 @@
   height: 100vh;
   border-radius: 0;
 }
+/* Full screen — same popup, expanded to cover the viewport instead of
+   docked to the corner (Gmail's own compose "pop out" button). */
+.em-compose-modal--full {
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+}
+/* Minimized — collapses to just the header strip (its fields are removed
+   from the DOM entirely while minimized, not just hidden, so nothing in
+   there keeps running/validating unseen). Clicking the header restores it. */
+.em-compose-modal--min {
+  width: min(280px, calc(100vw - 48px));
+  cursor: pointer;
+}
+.em-compose-modal--min .em-compose-hdr { border-radius: var(--r-lg); cursor: pointer; }
 
 .em-compose-hdr {
   display: flex;
   align-items: center;
   padding: 10px 16px;
   background: #404040;
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
   flex-shrink: 0;
 }
 .em-compose-modal--mobile .em-compose-hdr { border-radius: 0; }
+/* The header's own minimize/full-screen/dock/close buttons are .em-icon-btn
+   --ghost with a forced white icon (style={{color:'#fff'}}), but the base
+   hover rule (.em-icon-btn--ghost:hover { background: var(--bg) }) paints a
+   near-white patch behind them — a white icon on a near-white hover blob is
+   almost invisible against this always-dark header, in both themes. Scoped
+   to a translucent-white hover instead, which reads correctly on #404040
+   regardless of the app's light/dark mode. */
+.em-compose-hdr .em-icon-btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
 .em-compose-title {
   font-weight: 500;
   font-size: 14px;
@@ -891,14 +698,12 @@
   font-family: var(--font);
   background: transparent;
 }
-.em-compose-cc-btn {
-  background: none;
-  border: none;
-  font-size: 12px;
-  color: var(--ink3);
-  cursor: pointer;
-  padding: var(--ds-btn-py-xs) 6px;
-  font-family: var(--font);
+/* RecipientChips draws its own bottom border and can wrap to more than one
+   line as chips accumulate — the row's own border would double up under it. */
+.em-compose-row--chips {
+  align-items: flex-start;
+  border-bottom: none;
+  padding-bottom: 0;
 }
 .em-compose-body {
   flex: 1;
@@ -916,6 +721,21 @@
   box-sizing: border-box;
 }
 .em-compose-modal--mobile .em-compose-body { min-height: 300px; }
+/* A fixed, non-editable block after the body — not folded into the
+   textarea's own value — so it's genuinely always last. Anything that
+   modifies the body (typing, "Describe your message", a meeting-time
+   insert, a future file/image insert) only ever touches the textarea
+   above this, which is what keeps it there; see signedBody() in
+   EmailApp.tsx for where it's actually appended, once, at send time. */
+.em-signature-preview {
+  padding: 10px 0 14px;
+  border-top: 1px solid var(--border);
+  color: var(--ink3);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  font-family: var(--font);
+}
 .em-compose-footer {
   display: flex;
   align-items: center;
@@ -926,44 +746,32 @@
 }
 
 /* ── Dark mode ───────────────────────────────────────────────────────── */
-[data-theme="dark"] .em-nav-item--active {
-  background: rgba(11,87,208,.22);
-  color: #a8c7fa;
-}
-[data-theme="dark"] .em-label-item--active {
-  background: rgba(11,87,208,.22);
-  color: #a8c7fa;
-}
+/* .em-nav-item--active / .em-label-item--active need no dark-mode override
+   any more — they read var(--teal-l)/var(--teal-d), which are already
+   theme-aware (WorkspaceApp writes fresh values for whichever theme is
+   active), so a hardcoded pair here would only fight the real one. */
 [data-theme="dark"] .em-search-input {
-  background: rgba(255,255,255,.07);
+  background: var(--bg);
 }
 [data-theme="dark"] .em-search-input:focus {
-  background: rgba(255,255,255,.1);
-  box-shadow: none;
+  background: var(--white);
+  box-shadow: 0 0 0 3px var(--teal-l);
 }
 [data-theme="dark"] .em-row {
   background: var(--white);
 }
 [data-theme="dark"] .em-row:hover {
-  background: rgba(255,255,255,.04);
+  background: var(--teal-l);
 }
 [data-theme="dark"] .em-row--unread {
-  background: rgba(11,87,208,.1);
+  background: var(--teal-l);
 }
 [data-theme="dark"] .em-row--selected {
-  background: rgba(11,87,208,.22) !important;
+  background: var(--teal-l) !important;
 }
-[data-theme="dark"] .em-filter-tab--active {
-  color: #a8c7fa;
-  border-bottom-color: #a8c7fa;
-}
-[data-theme="dark"] .em-ai-panel {
-  background: rgba(11,87,208,.1);
-  border-color: rgba(168,199,250,.2);
-}
-[data-theme="dark"] .em-ai-panel-hdr { border-bottom-color: rgba(168,199,250,.2); }
-[data-theme="dark"] .em-ai-panel-hdr span { color: #a8c7fa; }
-[data-theme="dark"] .em-companion-btn--active { background: rgba(11,87,208,.22); }
+/* .em-ai-panel and .em-companion-btn--active need no override either —
+   same reason: their base rules already read var(--blue)/var(--blue-l),
+   already theme-aware. */
 [data-theme="dark"] .em-compose-hdr { background: #2a2d35; }
 
 /* ── Responsive ──────────────────────────────────────────────────────── */
@@ -1006,8 +814,23 @@
   }
 
   .em-row-sender {
-    width: 100px;
+    width: min(34vw, 150px);
   }
+
+  .em-row { padding: 0 10px; min-height: 64px; }
+  .em-row-check-wrap { display: none; }
+  .em-row-star { margin-right: 5px; }
+  .em-row-mid { display: flex; flex-direction: column; gap: 3px; }
+  .em-row-snip { display: block; overflow: hidden; text-overflow: ellipsis; }
+  .em-row-date { width: auto; margin-left: 6px; align-self: flex-start; padding-top: 4px; }
+  .em-search-bar { padding: 10px; }
+  .em-filter-bar { padding-inline: 10px; overflow-x: auto; }
+  .em-filter-meta { display: none; }
+}
+
+@media (max-width: 1120px) and (min-width: 769px) {
+  .em-row-sender { width: 140px; }
+  .em-row-snip { display: none; }
 }
 
 @media (max-width: 900px) and (min-width: 769px) {
@@ -1100,61 +923,748 @@
   font-family: var(--font);
 }
 
-/* ── Email account settings modal ────────────────────────────────────── */
-.em-settings-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.35);
+/* ── Email account settings — Master-Detail vertical tabbed dialog ── */
+.em-settings-dialog {
+  width: min(1040px, 94vw) !important;
+  height: min(780px, 88vh) !important;
+  max-height: 88vh !important;
+  border-radius: var(--card-radius, var(--r-lg)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--bg) !important;
+  overflow: hidden !important;
+}
+
+.em-settings-dialog-header {
+  padding: 18px 24px 16px !important;
+  background: var(--white) !important;
+  border-bottom: 1px solid var(--border) !important;
+  flex-shrink: 0;
+}
+
+.em-settings-body {
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  background: var(--bg) !important;
+  min-height: 0;
+  flex: 1 1 0% !important;
+}
+
+.em-settings-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Left Sidebar Rail */
+.em-settings-sidebar {
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  padding: 16px 12px;
+  overflow-y: auto;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.em-settings-nav-label {
+  margin: 0 8px 6px;
+  color: var(--ink3);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  font-family: var(--font);
+}
+
+.em-settings-nav.ds-tabs-list {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 4px !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  overflow: visible !important;
+}
+
+.em-settings-nav .ds-tabs-trigger {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  width: 100% !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+  font-weight: 550 !important;
+  color: var(--ink2) !important;
+  border-radius: var(--nav-item-r, 8px) !important;
+  white-space: nowrap !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  text-align: left !important;
+  transition: all 0.15s ease !important;
+  cursor: pointer !important;
+  font-family: var(--font) !important;
+}
+
+.em-settings-nav .ds-tabs-trigger:hover:not([data-state="active"]) {
+  color: var(--ink) !important;
+  background: var(--card-sunken) !important;
+}
+
+.em-settings-nav .ds-tabs-trigger[data-state="active"] {
+  background: var(--teal-l) !important;
+  color: var(--teal) !important;
+  font-weight: 700 !important;
+  border-color: var(--teal-m) !important;
+  box-shadow: none !important;
+}
+
+/* Right Content Area */
+.em-settings-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+.em-settings-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 28px 32px;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Section Cards */
+.em-settings-section {
+  padding: 20px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, var(--r));
+  background: var(--white);
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.em-settings-section-hdr {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.em-settings-section-hdr svg {
+  color: var(--teal);
+  flex-shrink: 0;
+}
+
+.em-settings-hint {
+  font-size: 12.5px;
+  color: var(--ink3);
+  margin: 0;
+  line-height: 1.5;
+  font-family: var(--font);
+}
+
+.em-settings-error {
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.em-settings-success {
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Rows & Controls */
+.em-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.em-settings-row > .em-compose-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2);
+  min-width: 100px;
+  flex-shrink: 0;
+  font-family: var(--font);
+}
+
+.em-field-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-bottom: 4px;
+  display: block;
+  font-family: var(--font);
+}
+
+.em-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.em-settings-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.em-settings-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 38px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 6px);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.em-settings-input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px var(--teal-l);
+}
+
+.em-settings-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 6px);
+  outline: none;
+  resize: vertical;
+  line-height: 1.45;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.em-settings-textarea:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px var(--teal-l);
+}
+
+.em-settings-subform {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--card-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 6px);
+}
+
+.em-settings-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.em-settings-form-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--card-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 6px);
+}
+
+.em-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.em-settings-action-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.em-test-result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.em-sync-status-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--card-sunken);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-sm, 6px);
+  font-size: 12px;
+  color: var(--ink3);
+  font-family: var(--font);
+}
+
+.em-sync-status-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Manage lists (Labels & Quick Replies) */
+.em-label-manage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.em-label-manage-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 6px);
+  background: var(--white);
+  transition: border-color 0.15s ease;
+}
+
+.em-label-manage-row:hover {
+  border-color: var(--border-strong);
+}
+
+.em-label-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  font-family: var(--font);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.em-label-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.em-btn-danger {
+  color: var(--red) !important;
+}
+
+.em-btn-danger:hover {
+  background: var(--red-l, rgba(239, 68, 68, 0.1)) !important;
+}
+
+/* Blocklist chips */
+.em-blocklist-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.em-attach-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--card-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full, 9999px);
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--ink2);
+  font-family: var(--font);
+}
+
+.em-attach-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--ink3);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: color 0.15s ease;
+}
+
+.em-attach-chip-remove:hover {
+  color: var(--red);
+}
+
+/* OAuth connect box */
+.em-oauth-connect-box {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 6px);
+  background: var(--card-sunken);
+}
+
+.em-oauth-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.em-oauth-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink2);
+  font-family: var(--font);
+}
+
+.em-oauth-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+/* ── Collapsible Signatures & Manager ── */
+.em-sig-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.em-sig-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.em-sig-card {
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, var(--r));
+  background: var(--white);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+}
+
+.em-sig-card:hover {
+  border-color: var(--border-strong);
+}
+
+.em-sig-card.is-expanded {
+  border-color: var(--teal-m);
+  box-shadow: var(--elev-sm);
+}
+
+.em-sig-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: var(--white);
+  user-select: none;
+}
+
+.em-sig-card-header:hover {
+  background: var(--card-sunken);
+}
+
+.em-sig-toggle-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1100;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  border-radius: var(--r-sm, 6px);
+  transition: color 0.15s ease, background 0.15s ease;
 }
-.em-settings-modal {
-  width: min(480px, calc(100vw - 32px));
-  max-height: min(720px, calc(100vh - 64px));
-  background: var(--white);
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  box-shadow: var(--elev-lg, 0 12px 40px rgba(0,0,0,.25));
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+
+.em-sig-toggle-btn:hover {
+  color: var(--teal);
+  background: var(--teal-l);
 }
-.em-settings-hdr {
+
+.em-sig-header-info {
   display: flex;
   align-items: center;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
-.em-settings-hdr .em-compose-title { flex: 1; }
-.em-settings-body {
-  padding: 4px 18px 18px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-.em-settings-section {
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
-}
-.em-settings-section:first-child { border-top: none; padding-top: 0; }
-.em-settings-section-hdr {
-  font-size: 12.5px;
+
+.em-sig-name {
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--ink);
-  margin-bottom: 6px;
   font-family: var(--font);
 }
-.em-settings-hint {
-  font-size: 11.5px;
-  color: var(--ink3);
-  margin: 0 0 8px;
-  line-height: 1.5;
+
+.em-sig-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.em-settings-error { color: var(--red); }
+
+.em-sig-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.em-sig-card-body {
+  padding: 12px 14px 14px 44px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--card-sunken);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.em-sig-preview-wrapper {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 6px);
+  padding: 12px 14px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.em-sig-rendered-box {
+  padding: 0 !important;
+  border-top: 0 !important;
+  color: var(--ink) !important;
+}
+
+.em-sig-rendered-box img,
+.em-signature-preview img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.em-sig-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.em-sig-editor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--card-sunken);
+  border: 1px solid var(--teal-m);
+  border-radius: var(--card-radius, var(--r));
+  box-shadow: var(--elev-sm);
+}
+
+.em-sig-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.em-sig-editor-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+.em-sig-editor-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.em-sig-default-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 6px);
+}
+
+.em-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--ink2);
+  cursor: pointer;
+  font-family: var(--font);
+}
+
+.em-checkbox-label input[type="checkbox"] {
+  accent-color: var(--teal);
+}
+
+.em-sig-add-bar {
+  display: flex;
+  align-items: center;
+}
+
+/* Dialog Footer */
+.em-settings-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  padding: 14px 24px !important;
+  background: var(--white) !important;
+  border-top: 1px solid var(--border) !important;
+  flex-shrink: 0;
+}
+
+/* Responsive Styles */
+@media (max-width: 820px) {
+  .em-settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .em-settings-sidebar {
+    padding: 10px 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .em-settings-nav-label {
+    display: none;
+  }
+  .em-settings-nav.ds-tabs-list {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px !important;
+  }
+  .em-settings-nav .ds-tabs-trigger {
+    justify-content: center !important;
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+    text-align: center;
+  }
+  .em-settings-pane {
+    padding: 18px 16px 26px;
+  }
+  .em-settings-grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .em-settings-dialog {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+  }
+  .em-settings-dialog-header {
+    padding: 14px 16px 12px !important;
+  }
+  .em-settings-nav.ds-tabs-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .em-settings-pane {
+    padding: 12px 12px 20px;
+    gap: 12px;
+  }
+  .em-settings-section {
+    padding: 14px 14px;
+  }
+  .em-settings-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px;
+  }
+  .em-settings-row > .em-compose-label {
+    min-width: 0;
+  }
+  .em-settings-footer {
+    padding: 12px 16px !important;
+  }
+  .em-settings-footer button {
+    flex: 1;
+  }
+}
+
+/* Advanced Search popover (chevron beside the search box) */
+.em-adv-search {
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.em-adv-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.em-adv-search-row label {
+  width: 96px;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  color: var(--ink3);
+}
+.em-adv-search-row input,
+.em-adv-search-row > div {
+  flex: 1;
+}
+.em-adv-search-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
 .em-settings-row {
   display: flex;
   align-items: center;
@@ -1163,23 +1673,14 @@
 }
 .em-settings-input {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 7px 10px;
   background: var(--bg);
-}
-.em-settings-select {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 7px 10px;
-  background: var(--bg);
-  color: var(--ink);
-  font-size: 13px;
-  font-family: var(--font);
 }
 .em-settings-textarea {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 8px 10px;
   background: var(--bg);
   color: var(--ink);
@@ -1194,14 +1695,6 @@
   gap: 6px;
   margin-top: 8px;
 }
-.em-settings-footer {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 4px;
-}
-
-[data-theme="dark"] .em-settings-overlay { background: rgba(0,0,0,.55); }
-
 /* ── Multi-attachment list (compose/reply/detail) ────────────────────── */
 .em-attach-list {
   display: flex;
@@ -1211,13 +1704,6 @@
 }
 
 /* ── Scheduled-folder row badge + banner ─────────────────────────────── */
-.em-row-label--scheduled {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  background: var(--gold-l);
-  color: var(--gold);
-}
 .em-scheduled-banner {
   display: flex;
   align-items: center;
@@ -1248,40 +1734,63 @@
 }
 .em-undo-toast .em-text-btn { color: var(--teal-l, var(--teal)); font-weight: 700; }
 
-/* ── Merged conversation (thread) view ───────────────────────────────── */
+/* ── Nested conversation (thread) view — every other message in the
+   thread, collapsed to one line, stacked above the message actually open
+   below. Auto-loaded (EmailApp.tsx's own effect on selectedId), not a
+   manual "view conversation" toggle. ── */
 .em-thread-view { margin: 6px 0 10px; }
-.em-thread-list {
+.em-thread-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 2px;
+  font-size: 12.5px;
+  color: var(--ink3);
+}
+.em-thread-stack {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: 8px;
   border: 1px solid var(--border);
   border-radius: var(--r);
   overflow: hidden;
 }
-.em-thread-item {
+.em-thread-row {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  font-size: 12.5px;
   cursor: pointer;
   border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
 }
-.em-thread-item:last-child { border-bottom: none; }
-.em-thread-item:hover { background: var(--bg); }
-.em-thread-item--active { background: var(--teal-l); }
-.em-thread-item-folder {
-  text-transform: uppercase;
-  font-size: 9.5px;
-  font-weight: 700;
+.em-thread-row:last-child { border-bottom: none; }
+.em-thread-row:hover { background: var(--bg); }
+.em-thread-row--unread .em-thread-row-from,
+.em-thread-row--unread .em-thread-row-snip { font-weight: 700; color: var(--ink); }
+.em-thread-row-main { flex: 1; min-width: 0; }
+.em-thread-row-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.em-thread-row-from {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.em-thread-row-date { flex-shrink: 0; font-size: 11.5px; color: var(--ink3); }
+.em-thread-row-snip {
+  font-size: 12px;
   color: var(--ink3);
-  flex-shrink: 0;
-  width: 52px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.em-thread-item-from { font-weight: 600; color: var(--ink); flex-shrink: 0; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.em-thread-item-snip { flex: 1; color: var(--ink3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.em-thread-item-date { flex-shrink: 0; color: var(--ink3); }
 
 /* ── Read-receipt honesty disclaimer ─────────────────────────────────── */
 .em-receipt-disclaimer { color: var(--ink3); font-size: 10.5px; margin-left: 2px; }

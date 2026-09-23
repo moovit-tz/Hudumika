@@ -15,6 +15,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Button } from '../components/ui/button.js';
+import { Textarea } from '../components/ui/textarea.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
@@ -23,7 +24,7 @@ import { useTaxCodes } from '../data/taxCodeData.js';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type BillStatus = 'DRAFT'|'POSTED'|'PARTIAL'|'PAID'|'OVERDUE'|'VOID';
+type BillStatus = 'DRAFT'|'PENDING_APPROVAL'|'POSTED'|'PARTIAL'|'PAID'|'OVERDUE'|'VOID';
 type RecurFreq  = 'WEEKLY'|'MONTHLY'|'QUARTERLY'|'ANNUAL';
 type RecurState = 'ACTIVE'|'PAUSED'|'ENDED';
 type BillCat    = 'FREIGHT'|'CUSTOMS'|'PORT'|'TRANSPORT'|'WAREHOUSE'|'INSURANCE'|'PROFESSIONAL'|'UTILITIES'|'OTHER';
@@ -75,6 +76,7 @@ interface RecurForm {
 
 const STATUS_CFG: Record<BillStatus, { label: string; color: string; bg: string }> = {
   DRAFT:   { label: 'Draft',    color: 'var(--ink3)',  bg: 'var(--bg)'       },
+  PENDING_APPROVAL: { label: 'Pending approval', color: 'var(--gold)', bg: 'var(--gold-l)' },
   POSTED:  { label: 'Posted',   color: 'var(--blue)',  bg: 'var(--blue-l)'   },
   PARTIAL: { label: 'Partial',  color: 'var(--gold)',  bg: 'var(--gold-l)'   },
   PAID:    { label: 'Paid',     color: 'var(--green)', bg: 'var(--green-l)'  },
@@ -193,7 +195,7 @@ function newKey() { return Math.random().toString(36).slice(2, 9); }
 // ── StatusBadge ────────────────────────────────────────────────────────────────
 
 const STATUS_VARIANT: Record<BillStatus, 'gray' | 'info' | 'warning' | 'success' | 'error'> = {
-  DRAFT: 'gray', POSTED: 'info', PARTIAL: 'warning', PAID: 'success', OVERDUE: 'error', VOID: 'gray',
+  DRAFT: 'gray', PENDING_APPROVAL: 'warning', POSTED: 'info', PARTIAL: 'warning', PAID: 'success', OVERDUE: 'error', VOID: 'gray',
 };
 function StatusBadge({ status }: { status: BillStatus }) {
   const c = STATUS_CFG[status];
@@ -652,7 +654,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Billed {fmtDate(bill.bill_date)} · Due {fmtDate(bill.due_date)}{over ? ` — ${daysOverdue(bill.due_date)} days overdue` : ''}</div>
           </div>
           <div style={{ display:'flex', gap:8 }}>
-            {bill.status === 'DRAFT' && <button type="button" title="Post bill" onClick={onPost} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--blue)', borderRadius: 'var(--r)', background:'var(--blue-l)', color:'var(--blue)', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="send" size={13} /> Post</button>}
+            {(bill.status === 'DRAFT' || bill.status === 'PENDING_APPROVAL') && <button type="button" title={bill.status === 'DRAFT' ? 'Submit bill' : 'Approve bill'} onClick={onPost} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--blue)', borderRadius: 'var(--r)', background:'var(--blue-l)', color:'var(--blue)', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="send" size={13} /> {bill.status === 'DRAFT' ? 'Submit' : 'Approve'}</button>}
             {(bill.status === 'POSTED'||bill.status === 'PARTIAL'||bill.status === 'OVERDUE') && <button type="button" title="Record payment" onClick={onPay} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="dollarSign" size={13} /> Pay</button>}
             <button type="button" title="Edit bill" onClick={onEdit} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="edit" size={13} /> Edit</button>
             <button type="button" title="Print bill" onClick={() => window.print()} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="printer" size={13} /></button>
@@ -916,21 +918,22 @@ export const Bills: React.FC = () => {
   const [sortBy, setSortBy]         = useState<'bill_date'|'due_date'|'total'|'supplier'>('due_date');
   const [sortDir, setSortDir]       = useState<'asc'|'desc'>('asc');
   const [voidTarget, setVoidTarget] = useState<Bill | null>(null);
+  const [voidReason, setVoidReason] = useState('');
 
   // Load from API on mount
   useEffect(() => {
     apiFetch('/v1/bills')
       .then((d: any) => { if (Array.isArray(d)) setBills(d.map(mapApiBill)); })
-      .catch(() => {});
+      .catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load bills.'));
     apiFetch('/v1/bills/recurring')
       .then((d: any) => { if (Array.isArray(d)) setRecurring(d.map(mapApiRecurring)); })
-      .catch(() => {});
+      .catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load recurring bills.'));
     apiFetch('/v1/bills/payments')
       .then((d: any) => { if (Array.isArray(d)) setPayments(d.map(mapApiPayment)); })
-      .catch(() => {});
+      .catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load bill payments.'));
     apiFetch('/v1/suppliers')
       .then((d: any) => { if (Array.isArray(d)) setSuppliers(d); })
-      .catch(() => {});
+      .catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load suppliers.'));
   }, []);
 
   const supplierMap = useMemo(() => buildSupplierMap(suppliers), [suppliers]);
@@ -976,60 +979,67 @@ export const Bills: React.FC = () => {
 
   // ── CRUD ────────────────────────────────────────────────────────────────────
 
-  function handleSaveBill(f: BillForm) {
-    const t = calcTotals(f.lines);
-    const now = new Date().toISOString();
+  async function handleSaveBill(f: BillForm) {
     const isEdit = !!formBill;
-    if (isEdit) {
-      setBills(p => p.map(b => b.id === formBill!.id ? { ...b, ...f, ...t } : b));
-      if (selected?.id === formBill!.id) setSelected({ ...selected, ...f, ...t });
-    } else {
-      const nb: Bill = { id:genId(), bill_number:genNum(bills), ...f, ...t, supplier_name: supplierMap[f.supplier_id]?.name ?? f.supplier_id, paid_amount:0, status:'DRAFT', created_at:now };
-      setBills(p => [nb, ...p]);
-    }
-    setShowBillForm(false); setFormBill(null);
     const payload = {
       supplier_id: f.supplier_id, supplier_name: supplierMap[f.supplier_id]?.name || f.supplier_id,
       bill_date: f.bill_date, due_date: f.due_date, currency: f.currency,
       po_number: f.po_number || null, shipment_ref: f.shipment_ref || null, notes: f.notes || null,
       items: f.lines.map((l, i) => ({ description: l.description, category: l.category, qty: l.qty, unit_price: l.unit_price, tax_rate: l.tax_rate, tax_code_id: l.tax_code_id, sort_order: i })),
     };
-    apiFetch(isEdit ? `/v1/bills/${formBill!.id}` : '/v1/bills', {
-      method: isEdit ? 'PATCH' : 'POST', body: JSON.stringify(payload),
-    }).then(() => apiFetch('/v1/bills'))
-      .then((d: any) => { if (Array.isArray(d)) setBills(d.map(mapApiBill)); })
-      .catch(() => {});
-  }
-
-  function handleSaveRecur(f: RecurForm) {
-    const now = new Date().toISOString();
-    const isEdit = !!formRecur;
-    if (isEdit) {
-      setRecurring(p => p.map(r => r.id === formRecur!.id ? { ...r, ...f } : r));
-    } else {
-      const nr: RecurringBill = { id:'rec-'+genId(), ...f, supplier_name: supplierMap[f.supplier_id]?.name ?? f.supplier_id, state:'ACTIVE', bills_generated:0, total_spend:0, created_at:now };
-      setRecurring(p => [nr, ...p]);
+    try {
+      await apiFetch(isEdit ? `/v1/bills/${formBill!.id}` : '/v1/bills', {
+        method: isEdit ? 'PATCH' : 'POST', body: JSON.stringify(payload),
+      });
+      const data = await apiFetch('/v1/bills');
+      if (Array.isArray(data)) setBills(data.map(mapApiBill));
+      setShowBillForm(false); setFormBill(null);
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not save this bill.');
     }
-    setShowRecurForm(false); setFormRecur(null);
+  }
+
+  async function handleSaveRecur(f: RecurForm) {
+    const isEdit = !!formRecur;
     const payload = { ...f, supplier_name: supplierMap[f.supplier_id]?.name || f.supplier_id };
-    apiFetch(isEdit ? `/v1/bills/recurring/${formRecur!.id}` : '/v1/bills/recurring', {
-      method: isEdit ? 'PATCH' : 'POST', body: JSON.stringify(payload),
-    }).then(() => apiFetch('/v1/bills/recurring'))
-      .then((d: any) => { if (Array.isArray(d)) setRecurring(d.map(mapApiRecurring)); })
-      .catch(() => {});
+    try {
+      await apiFetch(isEdit ? `/v1/bills/recurring/${formRecur!.id}` : '/v1/bills/recurring', {
+        method: isEdit ? 'PATCH' : 'POST', body: JSON.stringify(payload),
+      });
+      const data = await apiFetch('/v1/bills/recurring');
+      if (Array.isArray(data)) setRecurring(data.map(mapApiRecurring));
+      setShowRecurForm(false); setFormRecur(null);
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not save this recurring bill.');
+    }
   }
 
-  function handlePost(bill: Bill) {
-    setBills(p => p.map(b => b.id === bill.id ? { ...b, status:'POSTED' } : b));
-    if (selected?.id === bill.id) setSelected({ ...selected, status:'POSTED' });
-    apiFetch(`/v1/bills/${bill.id}`, { method:'PATCH', body:JSON.stringify({ status:'POSTED' }) }).catch(() => {});
+  async function handlePost(bill: Bill) {
+    try {
+      const action = bill.status === 'PENDING_APPROVAL' ? 'approve' : 'submit';
+      const updated = await apiFetch(`/v1/bills/${bill.id}/${action}`, { method:'POST' });
+      const mapped = mapApiBill(updated);
+      setBills(p => p.map(b => b.id === bill.id ? mapped : b));
+      if (selected?.id === bill.id) setSelected(mapped);
+      showAlert(mapped.status === 'PENDING_APPROVAL' ? 'Bill submitted for approval.' : 'Bill posted successfully.');
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not submit this bill.');
+    }
   }
 
-  function handleVoid(bill: Bill) {
-    setBills(p => p.map(b => b.id === bill.id ? { ...b, status:'VOID' } : b));
-    if (selected?.id === bill.id) setSelected({ ...selected, status:'VOID' });
-    setVoidTarget(null);
-    apiFetch(`/v1/bills/${bill.id}`, { method:'PATCH', body:JSON.stringify({ status:'VOID' }) }).catch(() => {});
+  async function handleVoid(bill: Bill) {
+    if (!voidReason.trim()) return showAlert('A reason is required to void this bill.');
+    try {
+      await apiFetch(`/v1/bills/${bill.id}/void`, { method:'POST', body:JSON.stringify({ reason:voidReason.trim() }) });
+      const updated = { ...bill, status:'VOID' as BillStatus };
+      setBills(p => p.map(b => b.id === bill.id ? updated : b));
+      if (selected?.id === bill.id) setSelected(updated);
+      setVoidTarget(null);
+      setVoidReason('');
+      showAlert('Bill voided and its journal entries were reversed.');
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not void this bill.');
+    }
   }
 
   async function handleVerifyEfd(bill: Bill, rctvnum: string) {
@@ -1048,22 +1058,23 @@ export const Bills: React.FC = () => {
     return result;
   }
 
-  function handlePay(bill: Bill, amount: number, date: string, method: string, ref: string, note: string) {
-    const newPaid = bill.paid_amount + amount;
-    const newStatus: BillStatus = newPaid >= bill.total ? 'PAID' : 'PARTIAL';
-    const pid = 'pay-' + genId();
-    setPayments(p => [...p, { id:pid, bill_id:bill.id, amount, currency:bill.currency, date, method, reference:ref, note }]);
-    setBills(p => p.map(b => b.id === bill.id ? { ...b, paid_amount:newPaid, status:newStatus } : b));
-    if (selected?.id === bill.id) setSelected({ ...selected, paid_amount:newPaid, status:newStatus });
-    setPayTarget(null);
-    apiFetch(`/v1/bills/${bill.id}/payment`, {
-      method: 'POST', body: JSON.stringify({ amount, currency: bill.currency, payment_date: date, method, reference: ref, note }),
-    }).then(() => Promise.all([apiFetch('/v1/bills'), apiFetch('/v1/bills/payments')]))
-      .then(([billsRes, paymentsRes]: any) => {
-        if (Array.isArray(billsRes)) setBills(billsRes.map(mapApiBill));
-        if (Array.isArray(paymentsRes)) setPayments(paymentsRes.map(mapApiPayment));
-      })
-      .catch(() => {});
+  async function handlePay(bill: Bill, amount: number, date: string, method: string, ref: string, note: string) {
+    try {
+      await apiFetch(`/v1/bills/${bill.id}/payment`, {
+        method: 'POST', body: JSON.stringify({ amount, currency: bill.currency, payment_date: date, method, reference: ref, note }),
+      });
+      const [billsRes, paymentsRes] = await Promise.all([apiFetch('/v1/bills'), apiFetch('/v1/bills/payments')]);
+      if (Array.isArray(billsRes)) {
+        const mapped = billsRes.map(mapApiBill);
+        setBills(mapped);
+        const refreshed = mapped.find(b => b.id === bill.id);
+        if (refreshed && selected?.id === bill.id) setSelected(refreshed);
+      }
+      if (Array.isArray(paymentsRes)) setPayments(paymentsRes.map(mapApiPayment));
+      setPayTarget(null);
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not record this payment.');
+    }
   }
 
   function handleGenerate(r: RecurringBill) {
@@ -1116,12 +1127,13 @@ export const Bills: React.FC = () => {
         <PayModal bill={payTarget} onClose={() => setPayTarget(null)}
           onPay={(a,d,m,r,n) => handlePay(payTarget, a, d, m, r, n)} />
       )}
-      <Dialog open={!!voidTarget} onOpenChange={o => { if (!o) setVoidTarget(null); }}>
+      <Dialog open={!!voidTarget} onOpenChange={o => { if (!o) { setVoidTarget(null); setVoidReason(''); } }}>
         <DialogContent className="max-w-100 gap-0" style={{ padding:28 }}>
           {voidTarget && (
             <>
               <DialogTitle style={{ fontSize:16, fontWeight:700, marginBottom:8 }}>Void Bill</DialogTitle>
-              <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:20 }}>Void <strong>{voidTarget.bill_number}</strong>? This cannot be undone. Payments already recorded will remain.</div>
+              <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:12 }}>Void <strong>{voidTarget.bill_number}</strong>? The related journal entries will be reversed.</div>
+              <Textarea value={voidReason} onChange={e => setVoidReason(e.target.value)} placeholder="Reason for voiding" className="mb-5" />
               <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
                 <button type="button" title="Cancel" onClick={() => setVoidTarget(null)} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
                 <Button type="button" variant="destructive" title="Confirm void" onClick={() => handleVoid(voidTarget)}>Void Bill</Button>
@@ -1179,7 +1191,7 @@ export const Bills: React.FC = () => {
                 <>
                   <SingleSelectFilter
                     label="Status"
-                    options={(['DRAFT','POSTED','PARTIAL','OVERDUE','PAID','VOID'] as const).map(s => ({ value: s, label: STATUS_CFG[s]?.label ?? s }))}
+                    options={(['DRAFT','PENDING_APPROVAL','POSTED','PARTIAL','OVERDUE','PAID','VOID'] as const).map(s => ({ value: s, label: STATUS_CFG[s]?.label ?? s }))}
                     value={statusFilter === 'ALL' ? null : statusFilter}
                     onChange={v => setStatusFilter((v as BillStatus) ?? 'ALL')}
                   />
@@ -1216,15 +1228,23 @@ export const Bills: React.FC = () => {
             <RecurringTab
               recurring={recurring}
               onEdit={r => { setFormRecur(r); setShowRecurForm(true); }}
-              onToggle={r => {
+              onToggle={async r => {
                 const newState = r.state === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
-                setRecurring(p => p.map(x => x.id===r.id ? { ...x, state:newState } : x));
-                apiFetch(`/v1/bills/recurring/${r.id}`, { method:'PATCH', body:JSON.stringify({ state:newState }) }).catch(() => {});
+                try {
+                  await apiFetch(`/v1/bills/recurring/${r.id}`, { method:'PATCH', body:JSON.stringify({ state:newState }) });
+                  setRecurring(p => p.map(x => x.id===r.id ? { ...x, state:newState } : x));
+                } catch (err) {
+                  showAlert(err instanceof Error ? err.message : 'Could not update this recurring bill.');
+                }
               }}
               onGenerate={handleGenerate}
-              onDelete={r => {
-                setRecurring(p => p.filter(x => x.id!==r.id));
-                apiFetch(`/v1/bills/recurring/${r.id}`, { method:'DELETE' }).catch(() => {});
+              onDelete={async r => {
+                try {
+                  await apiFetch(`/v1/bills/recurring/${r.id}`, { method:'DELETE' });
+                  setRecurring(p => p.filter(x => x.id!==r.id));
+                } catch (err) {
+                  showAlert(err instanceof Error ? err.message : 'Could not delete this recurring bill.');
+                }
               }}
               isMobile={isMobile}
             />

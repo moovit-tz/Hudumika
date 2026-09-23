@@ -31,6 +31,13 @@ const extractTaskSchema = z.object({
   subject: z.string().trim().max(500).optional(),
   body: z.string().trim().min(1).max(8000),
 });
+const composeDraftSchema = z.object({
+  instruction: z.string().trim().min(1).max(2000),
+  subject: z.string().trim().max(500).optional(),
+  /** The message being replied to, if any — truncated the same way
+   *  extract-task's own body is, so a long thread can't blow the prompt. */
+  replyContext: z.string().trim().max(4000).optional(),
+});
 const automationGenerateSchema = z.object({ prompt: z.string().trim().min(1) });
 export async function callAI(apiKey: string, model: string, provider: string, messages: any[], maxTokens = 1024, temperature = 0.3) {
   const providerCfg = AI_PROVIDER_CONFIG[detectAiProvider(provider, model)];
@@ -212,6 +219,61 @@ Rules:
         hasTask: true,
         title: String(parsed.title).slice(0, 60),
         dueDate: typeof parsed.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(parsed.dueDate) ? parsed.dueDate : null,
+      };
+    } catch (e: any) {
+      return reply.status(500).send({ error: e.message });
+    }
+  });
+
+  /**
+   * POST /v1/ai/compose-draft
+   * "Describe your message" — turns a short instruction into a full email
+   * body draft, aware of what's being replied to (if anything). The
+   * subject/body split mirrors EmailApp.tsx's own compose model; a reply
+   * never needs a new subject, so `subject` is only ever set for a fresh
+   * message where none has been typed yet.
+   */
+  fastify.post('/compose-draft', async (request, reply) => {
+    const user = request.user;
+    const { instruction, subject, replyContext } = composeDraftSchema.parse(request.body);
+
+    const settings = await withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      return row?.settings as any ?? {};
+    });
+
+    const creds = await resolveAiCredentials(user.tenant_id, settings['int-ai'], user.role);
+    if (!creds) return reply.status(400).send({ error: await describeAiUnavailable(user.tenant_id) });
+
+    const systemPrompt = `You write one email on behalf of ${user.name || 'the sender'}, from a short instruction describing what it should say.
+
+Rules:
+- Plain text only — no markdown, no HTML, no bullet-point asterisks, no signature or sign-off name (the app appends the sender's own signature separately).
+- Write the body only. If a subject line genuinely improves on the one given (or none was given), you may suggest one, but only when it clearly helps.
+- Match a normal, professional business-email tone — concise, no filler, no "I hope this email finds you well".
+- If replying to a previous message (given below), address it directly rather than restating it.
+- Respond ONLY with valid JSON: {"subject": "new subject or null", "body": "the email body"}`;
+
+    const contextParts = [
+      subject ? `Current subject: ${subject}` : null,
+      replyContext ? `Replying to:\n${replyContext.slice(0, 4000)}` : null,
+      `Instruction: ${instruction}`,
+    ].filter(Boolean).join('\n\n');
+
+    try {
+      const raw = await callAI(creds.apiKey, creds.model, creds.provider,
+        [{ role: 'user', content: `${systemPrompt}\n\n${contextParts}` }],
+        700, 0.5);
+      let parsed: any = {};
+      try { parsed = JSON.parse(raw.replace(/```json?/g, '').replace(/```/g, '').trim()); } catch {
+        // A model that ignores the JSON instruction still wrote something
+        // usable — fall back to the raw text as the body rather than
+        // failing the whole request over a formatting slip.
+        return { body: raw.trim() };
+      }
+      return {
+        body: String(parsed.body ?? raw).trim(),
+        subject: typeof parsed.subject === 'string' && parsed.subject.trim() ? parsed.subject.trim() : undefined,
       };
     } catch (e: any) {
       return reply.status(500).send({ error: e.message });

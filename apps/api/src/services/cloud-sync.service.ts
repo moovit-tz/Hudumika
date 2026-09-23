@@ -21,12 +21,24 @@ function extOf(filename: string): string {
   return m ? m[1].toLowerCase() : 'file';
 }
 
-async function ensureDrive(trx: any, tenantId: string): Promise<string> {
+/** Every automatic folder this service creates (Customers, Shipments,
+ *  Employees, SEAL, Meetings) is a system-managed business record, not
+ *  anyone's personal file — it always lands in the tenant's one Business
+ *  Records drive (migration 498), never "whichever drive happened to be
+ *  created first," which before personal-drive isolation landed could have
+ *  been — and after it, definitely would be — an arbitrary staff member's
+ *  private drive. */
+/** Exported for document.service.ts — the new centralized saveDocument()
+ *  entrypoint files every generated business document (starting with
+ *  Finance) into the same one Business Records drive this module's own
+ *  automatic folders (Customers/Shipments/Employees/SEAL/Meetings) use,
+ *  rather than duplicating this lookup a second time. */
+export async function ensureDrive(trx: any, tenantId: string): Promise<string> {
   const existing = await trx.selectFrom('cloud_drives').select(['id'])
-    .where('tenant_id', '=', tenantId).orderBy('created_at').executeTakeFirst();
+    .where('tenant_id', '=', tenantId).where('type', '=', 'business').orderBy('created_at').executeTakeFirst();
   if (existing) return existing.id;
   const row = await trx.insertInto('cloud_drives').values({
-    tenant_id: tenantId, name: 'My Drive', type: 'personal', owner_name: 'System',
+    tenant_id: tenantId, name: 'Business Records', type: 'business', owner_name: 'System',
   }).returning('id').executeTakeFirstOrThrow();
   return row.id;
 }
@@ -36,7 +48,7 @@ async function ensureDrive(trx: any, tenantId: string): Promise<string> {
  *  (untagged, pre-existing) row is found, tag it in place — this doubles as
  *  the backfill for folders created before entity linking existed, so there
  *  is no separate matching logic to keep in sync. */
-async function ensureFolder(
+export async function ensureFolder(
   trx: any, tenantId: string, driveId: string, name: string, parentId: string | null,
   entity?: { type: string; id: string } | null,
 ): Promise<string> {

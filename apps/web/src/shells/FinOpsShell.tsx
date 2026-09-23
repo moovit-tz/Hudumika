@@ -52,6 +52,7 @@ function buildNav(t: TFunction): SidebarSection[] {
         { label: 'Budgets',                         icon: 'target',      path: '/finance/accounts/budgets'             },
         { label: 'Bank Reconciliation',              icon: 'building',    path: '/finance/accounts/bank-reconciliation' },
         { label: 'Period Close',                     icon: 'lock',        path: '/finance/accounts/gl-periods'          },
+        { label: 'Approval Workflows',                icon: 'userCheck',  path: '/finance/accounts/approval-workflows'  },
       ],
     },
     {
@@ -120,6 +121,7 @@ import { FixedAssets }                 from '../pages/FixedAssets.js';
 import { Budgets }                     from '../pages/Budgets.js';
 import { BankReconciliation }          from '../pages/BankReconciliation.js';
 import { GlPeriods }                   from '../pages/GlPeriods.js';
+import { ApApprovalWorkflows }         from '../pages/ApApprovalWorkflows.js';
 
 export function FinOpsShell() {
   const { t } = useLocale();
@@ -175,6 +177,7 @@ export function FinOpsShell() {
             <Route path="budgets"         element={<RequireRoles roles={FIN_ROLES}><Budgets /></RequireRoles>} />
             <Route path="bank-reconciliation" element={<RequireRoles roles={FIN_ROLES}><BankReconciliation /></RequireRoles>} />
             <Route path="gl-periods"      element={<RequireRoles roles={FIN_ROLES}><GlPeriods /></RequireRoles>} />
+            <Route path="approval-workflows" element={<RequireRoles roles={FIN_ROLES}><ApApprovalWorkflows /></RequireRoles>} />
           </Route>
 
           {/* Reports */}

@@ -128,6 +128,9 @@ import { contactsSyncRoutes } from './routes/contacts-sync.routes.js';
 import { emailRoutes, emailSendRoutes } from './routes/email.routes.js';
 import { emailReceiptRoutes } from './routes/email-receipt.routes.js';
 import { emailAccountRoutes } from './routes/email-account.routes.js';
+import { emailSignaturesRoutes } from './routes/email-signatures.routes.js';
+import { emailIdentitiesRoutes } from './routes/email-identities.routes.js';
+import { emailFiltersRoutes } from './routes/email-filters.routes.js';
 import { emailMetaRoutes } from './routes/email-meta.routes.js';
 import { emailTemplatesRoutes } from './routes/email-templates.routes.js';
 import { complyRoutes } from './routes/comply.routes.js';
@@ -627,6 +630,9 @@ export async function registerApp() {
     // below: a mail client fetches this pixel with no Hudumika session.
     await server.register(emailReceiptRoutes, { prefix: '/v1/email' });
     await server.register(emailAccountRoutes, { prefix: '/v1/email/account' });
+    await server.register(emailSignaturesRoutes, { prefix: '/v1/email/signatures' });
+    await server.register(emailIdentitiesRoutes, { prefix: '/v1/email/identities' });
+    await server.register(emailFiltersRoutes, { prefix: '/v1/email/filters' });
     await server.register(emailMetaRoutes, { prefix: '/v1/email' });
     await server.register(emailTemplatesRoutes, { prefix: '/v1/email-templates' });
     await server.register(complyRoutes, { prefix: '/v1/comply' });

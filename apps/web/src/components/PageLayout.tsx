@@ -1,24 +1,7 @@
-import React, { useEffect } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { useActiveApp } from '../shells/WorkspaceApp.js';
+import React from 'react';
+import { Outlet, Link } from 'react-router-dom';
 export const PageLayout: React.FC = () => {
-  const location = useLocation();
-  const activeAppId = useActiveApp();
   const year = new Date().getFullYear();
-
-  // Track app navigation into recently viewed history
-  useEffect(() => {
-    if (!activeAppId) return;
-    try {
-      const saved = localStorage.getItem('hudumika_recently_viewed');
-      const prev: string[] = saved ? JSON.parse(saved) : ['clearos', 'finops', 'nexushr', 'bliss', 'complyos'];
-      const filtered = prev.filter(x => x !== activeAppId);
-      const next = [activeAppId, ...filtered].slice(0, 5);
-      localStorage.setItem('hudumika_recently_viewed', JSON.stringify(next));
-    } catch {
-      // ignore
-    }
-  }, [activeAppId, location.pathname]);
 
   return (
     <div className="page-layout">

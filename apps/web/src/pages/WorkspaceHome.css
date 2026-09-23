@@ -135,8 +135,6 @@
 }
 
 .wh-card-logo-wrap .app-lnch-svg-icon {
-  border-radius: 12px;
-  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.12);
   transition: transform 0.2s ease;
 }
 
@@ -478,8 +476,6 @@
 }
 
 .wh-td-icon-wrap .app-lnch-svg-icon {
-  border-radius: 12px;
-  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.12);
   transition: transform 0.2s ease;
 }
 
@@ -662,8 +658,6 @@
 }
 
 .wh-grid-icon-wrap .app-lnch-svg-icon {
-  border-radius: 12px;
-  box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.12);
   transition: transform 0.2s ease;
 }
 

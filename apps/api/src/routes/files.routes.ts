@@ -23,6 +23,7 @@ import { getStorageQuota, wouldExceedStorageQuota } from '../lib/storage-quota.j
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { resolveServedContentType } from '../lib/safe-file-serving.js';
 import { bumpCloudFolderCount } from '../lib/cloud-folder-count.js';
+import { resolveDriveAccess } from '../lib/cloud-drive-access.js';
 
 /** Records one read of a file's bytes (download / preview / version /
  *  public-link) into cloud_file_access_log — the domain-event stream only
@@ -70,15 +71,17 @@ function extOf(name: string) {
 const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 
 /** A CUSTOMER-role upload has no drive of its own to post into — it lands in
- *  the tenant's default (first-created) drive, auto-creating one the same
- *  way GET /v1/drives does for a brand-new tenant, rather than trusting
- *  whatever drive_id the client happened to send. */
+ *  the tenant's Business Records drive (migration 498 retyped the original
+ *  tenant-wide drive to 'business' — this used to grab "whichever drive was
+ *  created first," which after personal-drive isolation landed would have
+ *  been unpredictable and could even land a customer's upload in a staff
+ *  member's private drive). Auto-creates one if a tenant somehow has none. */
 async function ensureDefaultDrive(trx: Transaction<Database>, tenantId: string): Promise<string> {
   const existing = await trx.selectFrom('cloud_drives').select('id')
-    .where('tenant_id', '=', tenantId).orderBy('created_at').executeTakeFirst();
+    .where('tenant_id', '=', tenantId).where('type', '=', 'business').orderBy('created_at').executeTakeFirst();
   if (existing) return existing.id;
   const created = await trx.insertInto('cloud_drives').values({
-    tenant_id: tenantId, name: 'My Drive', type: 'personal', owner_name: 'You',
+    tenant_id: tenantId, name: 'Business Records', type: 'business', owner_name: 'System',
   }).returningAll().executeTakeFirstOrThrow();
   return created.id;
 }
@@ -433,8 +436,30 @@ export async function filesRoutes(fastify: FastifyInstance) {
       try {
         return await withTenant(user.tenant_id, async (trx) => {
           const term = (q ?? '').trim();
+
+          // A tenant-wide search used to reach every file in every drive,
+          // including other staff members' private personal drives — the
+          // same isolation gap as the explicit drive_id branch above, just
+          // reachable through Search instead of Browse. Scope to the same
+          // set of drives GET /v1/drives itself would return for this user.
+          const memberDriveIds = (await trx.selectFrom('cloud_drive_members').select('drive_id')
+            .where('tenant_id', '=', user.tenant_id).where('principal_type', '=', 'user').where('principal_id', '=', user.sub).execute())
+            .map(m => m.drive_id);
+          const visibleDrives = await trx.selectFrom('cloud_drives').select('id')
+            .where('tenant_id', '=', user.tenant_id)
+            .where(eb => eb.or([
+              eb.and([eb('type', '=', 'personal'), eb('owner_id', '=', user.sub)]),
+              eb('type', '=', 'business'),
+              eb.and([eb('type', '=', 'shared'), eb('owner_id', '=', user.sub)]),
+              ...(memberDriveIds.length > 0 ? [eb.and([eb('type', '=', 'shared'), eb('id', 'in', memberDriveIds)])] : []),
+            ]))
+            .execute();
+          const visibleDriveIds = visibleDrives.map(d => d.id);
+          if (visibleDriveIds.length === 0) return [];
+
           let query = trx.selectFrom('cloud_files').selectAll()
             .where('tenant_id', '=', user.tenant_id)
+            .where('drive_id', 'in', visibleDriveIds)
             .where('type', '!=', 'folder').where('is_trash', '=', false);
 
           if (term) {
@@ -476,9 +501,8 @@ export async function filesRoutes(fastify: FastifyInstance) {
     if (!drive_id) return reply.status(400).send({ error: 'drive_id is required' });
     try {
       return await withTenant(user.tenant_id, async (trx) => {
-        const drive = await trx.selectFrom('cloud_drives').selectAll()
-          .where('id', '=', drive_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-        if (!drive) return reply.status(404).send({ error: 'Drive not found' });
+        const access = await resolveDriveAccess(trx, user.tenant_id, user.sub, user.role, drive_id);
+        if (!access) return reply.status(404).send({ error: 'Drive not found' });
 
         const rows = await trx.selectFrom('cloud_files').selectAll()
           .where('tenant_id', '=', user.tenant_id).where('drive_id', '=', drive_id).orderBy('created_at').execute();
@@ -498,6 +522,9 @@ export async function filesRoutes(fastify: FastifyInstance) {
     if (!body.drive_id) return reply.status(400).send({ error: 'drive_id is required' });
     try {
       return await withTenant(user.tenant_id, async (trx) => {
+        const access = await resolveDriveAccess(trx, user.tenant_id, user.sub, user.role, body.drive_id!);
+        if (!access?.canWrite) return reply.status(access ? 403 : 404).send({ error: access ? 'You cannot create folders in this drive' : 'Drive not found' });
+
         // A folder created directly inside an already entity-tagged folder
         // (e.g. browsing into Customers ▸ Acme ▸ BL12345 and adding
         // "Photos") inherits that tag — every ancestor already carries the
@@ -591,7 +618,12 @@ export async function filesRoutes(fastify: FastifyInstance) {
       const searchText = await extractText(buffer, extOf(data.filename), data.mimetype).catch(() => null);
 
       return await withTenant(user.tenant_id, async (trx) => {
-        if (isCustomer) driveId = await ensureDefaultDrive(trx, user.tenant_id);
+        if (isCustomer) {
+          driveId = await ensureDefaultDrive(trx, user.tenant_id);
+        } else {
+          const access = await resolveDriveAccess(trx, user.tenant_id, user.sub, user.role, driveId!);
+          if (!access?.canWrite) return reply.status(access ? 403 : 404).send({ error: access ? 'You cannot upload to this drive' : 'Drive not found' });
+        }
 
         // A staff upload straight into an already entity-tagged folder (e.g.
         // browsing into Customers ▸ Acme ▸ BL12345 and clicking Upload)
@@ -658,6 +690,9 @@ export async function filesRoutes(fastify: FastifyInstance) {
       if (user.role === 'CUSTOMER') {
         const cid = await resolveCustomerId(user);
         if (!(await canCustomerAccessFile(trx, user.tenant_id, cid, file))) return reply.status(403).send({ error: 'Not found' });
+      } else {
+        const access = await resolveDriveAccess(trx, user.tenant_id, user.sub, user.role, file.drive_id);
+        if (!access?.canRead) return reply.status(403).send({ error: 'Not found' });
       }
       const buf = await MinioIntegration.readFile(file.storage_key);
       if (!buf) return reply.status(404).send({ error: 'File content not found' });
@@ -704,6 +739,9 @@ export async function filesRoutes(fastify: FastifyInstance) {
       if (user.role === 'CUSTOMER') {
         const cid = await resolveCustomerId(user);
         if (!(await canCustomerAccessFile(trx, user.tenant_id, cid, file))) return reply.status(403).send({ error: 'Not found' });
+      } else {
+        const access = await resolveDriveAccess(trx, user.tenant_id, user.sub, user.role, file.drive_id);
+        if (!access?.canRead) return reply.status(403).send({ error: 'Not found' });
       }
       const buf = await MinioIntegration.readFile(file.storage_key);
       if (!buf) return reply.status(404).send({ error: 'File content not found' });
@@ -784,6 +822,12 @@ export async function filesRoutes(fastify: FastifyInstance) {
     const body = req.body as any;
     try {
       return await withTenant(user.tenant_id, async (trx) => {
+        const existing = await trx.selectFrom('cloud_files').select(['drive_id'])
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!existing) return reply.status(404).send({ error: 'Not found' });
+        const access = await resolveDriveAccess(trx, user.tenant_id, user.sub, user.role, existing.drive_id);
+        if (!access?.canWrite) return reply.status(403).send({ error: 'You cannot edit this file' });
+
         const update: Record<string, any> = { updated_at: new Date() };
         for (const f of ['name', 'color', 'description', 'starred', 'entity_type', 'entity_id']) {
           if (body[f] !== undefined) update[f] = body[f];
@@ -825,6 +869,8 @@ export async function filesRoutes(fastify: FastifyInstance) {
         const item = await trx.selectFrom('cloud_files').selectAll()
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         if (!item) return reply.status(404).send({ error: 'Not found' });
+        const access = await resolveDriveAccess(trx, user.tenant_id, user.sub, user.role, item.drive_id);
+        if (!access?.canWrite) return reply.status(403).send({ error: 'You cannot move this file' });
         if (item.parent_id === parent_id) return serialize(item);
 
         // An untagged item dragged into an already entity-tagged folder
@@ -874,6 +920,12 @@ export async function filesRoutes(fastify: FastifyInstance) {
     const { id } = req.params as { id: string };
     try {
       return await withTenant(user.tenant_id, async (trx) => {
+        const existing = await trx.selectFrom('cloud_files').select(['drive_id'])
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!existing) return reply.status(404).send({ error: 'Not found' });
+        const access = await resolveDriveAccess(trx, user.tenant_id, user.sub, user.role, existing.drive_id);
+        if (!access?.canWrite) return reply.status(403).send({ error: 'You cannot trash this file' });
+
         const row = await trx.updateTable('cloud_files')
           .set({ is_trash: true, trashed_at: new Date(), updated_at: new Date() })
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
@@ -898,6 +950,12 @@ export async function filesRoutes(fastify: FastifyInstance) {
     const { id } = req.params as { id: string };
     try {
       return await withTenant(user.tenant_id, async (trx) => {
+        const existing = await trx.selectFrom('cloud_files').select(['drive_id'])
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!existing) return reply.status(404).send({ error: 'Not found' });
+        const access = await resolveDriveAccess(trx, user.tenant_id, user.sub, user.role, existing.drive_id);
+        if (!access?.canWrite) return reply.status(403).send({ error: 'You cannot restore this file' });
+
         const row = await trx.updateTable('cloud_files')
           .set({ is_trash: false, trashed_at: null, updated_at: new Date() })
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id)

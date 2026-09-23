@@ -3,11 +3,16 @@ import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Textarea } from '../components/ui/textarea.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../components/ui/accordion.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { apiFetch } from '../lib/api.js';
 import { showConfirm } from '../lib/confirm.js';
+import { showAlert } from '../lib/alert.js';
 import type { EmailTemplateView, EmailTemplateCategory } from '@hudumika/types';
+import './EmailTemplates.css';
 
 const CATEGORY_LABEL: Record<EmailTemplateCategory, string> = {
   transactional: 'Transactional & Billing',
@@ -23,6 +28,7 @@ export function EmailTemplates() {
   const [subject, setSubject] = useState('');
   const [bodyHtml, setBodyHtml] = useState('');
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   function load() {
     setLoading(true);
@@ -37,6 +43,7 @@ export function EmailTemplates() {
         if (current) selectTemplate(current);
         else if (!selectedKey && rows.length) selectTemplate(rows[0]);
       })
+      .catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load email templates.'))
       .finally(() => setLoading(false));
   }
 
@@ -59,6 +66,9 @@ export function EmailTemplates() {
         body: JSON.stringify({ subject, body_html: bodyHtml }),
       });
       load();
+      showAlert('Template saved.', { variant: 'success' });
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not save this template.');
     } finally {
       setSaving(false);
     }
@@ -67,97 +77,98 @@ export function EmailTemplates() {
   async function handleRevert() {
     if (!selected) return;
     if (!(await showConfirm(`Revert "${selected.template_key}" to its default content? Your customization will be lost.`, { confirmLabel: 'Revert' }))) return;
-    await apiFetch(`/v1/email-templates/${selected.template_key}`, { method: 'DELETE' });
-    load();
+    try {
+      await apiFetch(`/v1/email-templates/${selected.template_key}`, { method: 'DELETE' });
+      load();
+      showAlert('Template restored to its default content.', { variant: 'success' });
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not restore this template.');
+    }
   }
 
   const grouped = CATEGORY_ORDER.map(cat => ({
     category: cat,
-    items: templates.filter(t => t.category === cat),
+    items: templates.filter(t => t.category === cat && (!search.trim() || t.subject.toLowerCase().includes(search.toLowerCase()) || t.template_key.toLowerCase().includes(search.toLowerCase()))),
   })).filter(g => g.items.length > 0);
 
+  const dirty = !!selected && (subject !== selected.subject || bodyHtml !== selected.body_html);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div style={{ padding: '20px 24px 0' }}>
+    <div className="email-templates-page">
+      <div className="email-templates-header">
         <PageHeader crumbs={['Email', 'Templates']} titlePlain="Email" titleEm="templates" subtitle="Every automated email the platform sends, grouped by category." />
       </div>
-      <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-      <div style={{ width: 340, flexShrink: 0, borderRight: '1px solid var(--border)', overflowY: 'auto', padding: 16 }}>
-        {loading ? (
-          <SectionLoading />
-        ) : (
-          <Accordion type="multiple" defaultValue={CATEGORY_ORDER} className="flex flex-col gap-2">
+      <div className="email-templates-workspace">
+        <aside className="email-templates-nav">
+          <div className="email-template-search">
+            <Icon name="search" size={15} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search templates" aria-label="Search templates" />
+            {search && (
+              <Tip label="Clear search">
+                <button type="button" onClick={() => setSearch('')} aria-label="Clear search"><Icon name="x" size={13} /></button>
+              </Tip>
+            )}
+          </div>
+          <div className="email-template-nav-summary">
+            <span>{templates.length} templates</span>
+            <span>{templates.filter(t => t.is_customized).length} customized</span>
+          </div>
+          {loading ? <SectionLoading /> : grouped.length ? <Accordion type="multiple" defaultValue={CATEGORY_ORDER} className="flex flex-col gap-2">
             {grouped.map(g => (
-              <AccordionItem key={g.category} value={g.category}>
-                <AccordionTrigger>{CATEGORY_LABEL[g.category]} <span style={{ fontWeight: 400, color: 'var(--ink3)', marginLeft: 4 }}>({g.items.length})</span></AccordionTrigger>
-                <AccordionContent>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {g.items.map(t => (
-                      <button
-                        key={t.template_key}
-                        onClick={() => selectTemplate(t)}
-                        style={{
-                          textAlign: 'left', padding: '8px 10px', borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer',
-                          background: t.template_key === selectedKey ? 'var(--teal-l)' : 'transparent',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</span>
-                          {t.is_customized && <Badge variant="brand">Customized</Badge>}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{t.template_key}</div>
-                      </button>
-                    ))}
-                  </div>
-                </AccordionContent>
+              <AccordionItem key={g.category} value={g.category} className="email-template-category-card">
+                <AccordionTrigger>{CATEGORY_LABEL[g.category]} <span className="email-template-category-count">{g.items.length}</span></AccordionTrigger>
+                <AccordionContent><div className="email-template-nav-list">{g.items.map(t => (
+                  <button key={t.template_key} type="button" onClick={() => selectTemplate(t)} className={`email-template-nav-item${t.template_key === selectedKey ? ' is-active' : ''}`}>
+                    <div className="email-template-nav-title"><span>{t.subject}</span>{t.is_customized && <Badge variant="brand">Customized</Badge>}</div>
+                    <div className="email-template-nav-key">{t.template_key}</div>
+                  </button>
+                ))}</div></AccordionContent>
               </AccordionItem>
             ))}
-          </Accordion>
-        )}
-      </div>
+          </Accordion> : <div className="email-template-no-results">No templates match “{search}”.</div>
+          }
+        </aside>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+      <main className="email-template-editor">
         {!selected ? (
           <div style={{ color: 'var(--ink3)', fontSize: 13.5 }}>Select a template to edit.</div>
         ) : (
-          <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="email-template-editor-inner">
+            <div className="email-template-editor-titlebar">
               <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{selected.template_key}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{CATEGORY_LABEL[selected.category]}</div>
+                <div className="email-template-editor-key">{selected.template_key}</div>
+                <div className="email-template-editor-meta">{CATEGORY_LABEL[selected.category]} {dirty && <Badge variant="warning">Unsaved changes</Badge>}</div>
               </div>
               {selected.is_customized && (
-                <button onClick={handleRevert} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <button className="email-template-revert" onClick={handleRevert}>
                   <Icon name="refresh" size={13} color="var(--red)" /> Revert to default
                 </button>
               )}
             </div>
 
-            <div>
-              <label style={{ fontSize: 11, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Subject</label>
-              <input
+            <div className="email-template-field">
+              <label>Subject line</label>
+              <Input
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
-                className="input-field"
-                style={{ width: '100%', boxSizing: 'border-box' }}
               />
             </div>
 
-            <div>
-              <label style={{ fontSize: 11, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Body (HTML)</label>
-              <Textarea value={bodyHtml} onChange={e => setBodyHtml(e.target.value)} rows={12} style={{ fontFamily: 'var(--mono)', fontSize: 12.5 }} />
+            <div className="email-template-field email-template-body-field">
+              <div className="email-template-field-label"><label>Message body</label><span>HTML supported</span></div>
+              <Textarea value={bodyHtml} onChange={e => setBodyHtml(e.target.value)} rows={16} className="email-template-code" />
             </div>
 
             {selected.available_vars.length > 0 && (
-              <div>
-                <label style={{ fontSize: 11, color: 'var(--ink3)', display: 'block', marginBottom: 6 }}>Merge tags — click to insert</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div className="email-template-tags">
+                <label>Merge tags <span>Click to insert</span></label>
+                <div className="email-template-tag-list">
                   {selected.available_vars.map(v => (
                     <button
                       key={v}
                       type="button"
                       onClick={() => setBodyHtml(prev => `${prev}{{${v}}}`)}
-                      style={{ fontSize: 11, fontFamily: 'var(--mono)', padding: '4px 8px', borderRadius: 20, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--teal)', cursor: 'pointer' }}
+                      className="email-template-tag"
                     >
                       {`{{${v}}}`}
                     </button>
@@ -166,12 +177,23 @@ export function EmailTemplates() {
               </div>
             )}
 
-            <button onClick={handleSave} disabled={saving || !subject.trim() || !bodyHtml.trim()} className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
+            <div className="email-template-actions">
+            <Button onClick={handleSave} disabled={saving || !dirty || !subject.trim() || !bodyHtml.trim()}>
               {saving ? 'Saving…' : 'Save template'}
-            </button>
+            </Button>
+            </div>
           </div>
         )}
-      </div>
+      </main>
+      {selected && <aside className="email-template-preview">
+        <div className="email-template-preview-header"><div><span>Live preview</span><small>Desktop email</small></div><Icon name="eye" size={16} /></div>
+        <div className="email-template-preview-envelope">
+          <div className="email-template-preview-subject">{subject || 'Untitled email'}</div>
+          <div className="email-template-preview-from">Hudumika notifications</div>
+          <iframe title="Email template preview" sandbox="" srcDoc={`<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;color:#172033;padding:24px;line-height:1.55;font-size:14px}a{color:#0d7a6b}</style></head><body>${bodyHtml}</body></html>`} />
+        </div>
+        <div className="email-template-preview-note"><Icon name="info" size={14} /> Merge tags remain as placeholders in preview.</div>
+      </aside>}
       </div>
     </div>
   );

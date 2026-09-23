@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Icon } from './Icon.js';
 
 interface ToolbarButton {
@@ -21,33 +21,22 @@ const TOOLBAR: ToolbarButton[] = [
 ];
 
 /**
- * A small contentEditable + execCommand rich text editor — no new npm
- * dependency (no RTE library exists in this codebase; AGENTS.md calls out
- * dependency hygiene, and this app's own pattern is to hand-build UI on
- * primitives rather than pull in component libraries). Emits/accepts a raw
- * HTML string; the server sanitizes on save (see cms.service.ts), so this
- * component doesn't need to worry about what a malicious paste might smuggle
- * in — only about giving an editor experience for the CMS's fixed toolbar.
+ * A contentEditable + execCommand rich text editor with image resizing capabilities.
+ * Emits/accepts a raw HTML string. Clicking any image inside the editor opens size presets
+ * (Small, Medium, Large, Fit Width) and a width slider to easily adjust to fit.
  */
 export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
-  /** Resolves to a URL to insert at the cursor, or null if the caller
-   *  cancelled — omitted entirely hides the image button, so a caller with
-   *  no media backend of its own (AdminCMSPages.tsx) is unaffected. */
+  /** Resolves to a URL to insert at the cursor, or null if the caller cancelled. */
   onInsertImage?: () => Promise<string | null>;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  // Starts as null (not `value`) so the very first effect run below always
-  // syncs the initial content into the contentEditable div — it has no
-  // React-managed children, so without this the editor opens empty even
-  // though `value` is non-empty.
   const lastValue = useRef<string | null>(null);
+  const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
+  const [imgWidth, setImgWidth] = useState<number>(240);
 
-  // Only push external value changes into the DOM when they didn't originate
-  // from this editor's own onInput — otherwise every keystroke would reset
-  // the cursor to the start of the content.
   useEffect(() => {
     if (ref.current && value !== lastValue.current) {
       ref.current.innerHTML = value;
@@ -66,6 +55,100 @@ export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: 
     document.execCommand(cmd, false, val);
     handleInput();
   }, [handleInput]);
+
+  // Track image selection inside the editor
+  useEffect(() => {
+    const editor = ref.current;
+    if (!editor) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && target.tagName === 'IMG') {
+        const img = target as HTMLImageElement;
+        editor.querySelectorAll('img.rte-img-selected').forEach(el => el.classList.remove('rte-img-selected'));
+        img.classList.add('rte-img-selected');
+        setSelectedImg(img);
+        const curW = img.offsetWidth || parseInt(img.style.width, 10) || 240;
+        setImgWidth(curW);
+      } else {
+        if (!(e.target as HTMLElement)?.closest('.rte-img-toolbar')) {
+          editor.querySelectorAll('img.rte-img-selected').forEach(el => el.classList.remove('rte-img-selected'));
+          setSelectedImg(null);
+        }
+      }
+    };
+
+    editor.addEventListener('click', handleClick);
+    return () => editor.removeEventListener('click', handleClick);
+  }, []);
+
+  const applyImageWidth = useCallback((width: string | number) => {
+    if (!selectedImg) return;
+    if (typeof width === 'number') {
+      selectedImg.style.width = `${width}px`;
+      selectedImg.style.maxWidth = '100%';
+      selectedImg.style.height = 'auto';
+      selectedImg.setAttribute('width', String(width));
+      setImgWidth(width);
+    } else if (width === '100%') {
+      selectedImg.style.width = '100%';
+      selectedImg.style.maxWidth = '100%';
+      selectedImg.style.height = 'auto';
+      selectedImg.removeAttribute('width');
+      setImgWidth(ref.current?.clientWidth || 500);
+    } else if (width === 'original') {
+      selectedImg.style.width = '';
+      selectedImg.style.maxWidth = '100%';
+      selectedImg.style.height = 'auto';
+      selectedImg.removeAttribute('width');
+      setImgWidth(selectedImg.naturalWidth || 300);
+    }
+    handleInput();
+  }, [selectedImg, handleInput]);
+
+  const applyImageAlign = useCallback((align: 'left' | 'center' | 'right') => {
+    if (!selectedImg) return;
+    if (align === 'left') {
+      selectedImg.style.display = 'inline-block';
+      selectedImg.style.marginLeft = '0';
+      selectedImg.style.marginRight = 'auto';
+    } else if (align === 'center') {
+      selectedImg.style.display = 'block';
+      selectedImg.style.marginLeft = 'auto';
+      selectedImg.style.marginRight = 'auto';
+    } else if (align === 'right') {
+      selectedImg.style.display = 'inline-block';
+      selectedImg.style.marginLeft = 'auto';
+      selectedImg.style.marginRight = '0';
+    }
+    handleInput();
+  }, [selectedImg, handleInput]);
+
+  const deleteSelectedImage = useCallback(() => {
+    if (!selectedImg) return;
+    selectedImg.remove();
+    setSelectedImg(null);
+    handleInput();
+  }, [selectedImg, handleInput]);
+
+  const handleInsertImage = () => {
+    if (!onInsertImage) return;
+    onInsertImage().then(url => {
+      if (url) {
+        runCommand('insertImage', url);
+        setTimeout(() => {
+          if (ref.current) {
+            const imgs = ref.current.querySelectorAll('img');
+            imgs.forEach(img => {
+              if (!img.style.maxWidth) img.style.maxWidth = '100%';
+              if (!img.style.height) img.style.height = 'auto';
+            });
+            handleInput();
+          }
+        }, 50);
+      }
+    });
+  };
 
   return (
     <div className="rte-wrap">
@@ -100,19 +183,96 @@ export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: 
             title="Insert image"
             onMouseDown={e => {
               e.preventDefault();
-              // Cursor position is lost the instant focus leaves the editor
-              // (e.g. while the media picker modal is open), so execCommand
-              // would insert at the wrong spot — or nowhere — once the
-              // promise resolves. Re-focusing right before running the
-              // command is enough for a contentEditable div to restore its
-              // own last selection.
-              onInsertImage().then(url => { if (url) runCommand('insertImage', url); });
+              handleInsertImage();
             }}
           >
             <Icon name="image" size={13} />
           </button>
         )}
       </div>
+
+      {/* Image Resizer & Fit Controls when an image is clicked */}
+      {selectedImg && (
+        <div className="rte-img-toolbar" onMouseDown={e => e.preventDefault()}>
+          <div className="rte-img-toolbar-label">
+            <Icon name="image" size={13} />
+            <span>Resize:</span>
+          </div>
+
+          <div className="rte-img-presets">
+            <button
+              type="button"
+              className={`rte-img-btn ${imgWidth === 120 ? 'is-active' : ''}`}
+              onClick={() => applyImageWidth(120)}
+              title="Small width (120px)"
+            >
+              Small (120px)
+            </button>
+            <button
+              type="button"
+              className={`rte-img-btn ${imgWidth === 240 ? 'is-active' : ''}`}
+              onClick={() => applyImageWidth(240)}
+              title="Medium width (240px)"
+            >
+              Medium (240px)
+            </button>
+            <button
+              type="button"
+              className={`rte-img-btn ${imgWidth === 400 ? 'is-active' : ''}`}
+              onClick={() => applyImageWidth(400)}
+              title="Large width (400px)"
+            >
+              Large (400px)
+            </button>
+            <button
+              type="button"
+              className="rte-img-btn"
+              onClick={() => applyImageWidth('100%')}
+              title="Fit to editor width"
+            >
+              Fit Width (100%)
+            </button>
+            <button
+              type="button"
+              className="rte-img-btn"
+              onClick={() => applyImageWidth('original')}
+              title="Original dimensions"
+            >
+              Original
+            </button>
+          </div>
+
+          <div className="rte-img-slider-wrap">
+            <input
+              type="range"
+              min="40"
+              max="800"
+              step="10"
+              value={imgWidth}
+              onChange={e => applyImageWidth(Number(e.target.value))}
+              className="rte-img-slider"
+              title="Adjust image width"
+            />
+            <span className="rte-img-size-val">{imgWidth}px</span>
+          </div>
+
+          <div className="rte-img-align-group">
+            <button type="button" className="rte-img-btn" onClick={() => applyImageAlign('left')} title="Align left">Left</button>
+            <button type="button" className="rte-img-btn" onClick={() => applyImageAlign('center')} title="Align center">Center</button>
+            <button type="button" className="rte-img-btn" onClick={() => applyImageAlign('right')} title="Align right">Right</button>
+          </div>
+
+          <button
+            type="button"
+            className="rte-img-btn rte-img-btn--danger"
+            onClick={deleteSelectedImage}
+            title="Remove image"
+          >
+            <Icon name="trash" size={13} />
+          </button>
+        </div>
+      )}
+
       <div
         ref={ref}
         className="rte-body"

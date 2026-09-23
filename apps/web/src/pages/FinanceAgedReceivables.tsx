@@ -44,7 +44,7 @@ export const FinanceAgedReceivables: React.FC = () => {
         }
         setCustomerIdByName(map);
       })
-      .catch(() => {});
+      .catch((err: any) => { if (alive) setError(err?.message ?? 'Failed to load customer names'); });
     return () => { alive = false; };
   }, []);
 

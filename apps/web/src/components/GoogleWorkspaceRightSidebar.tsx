@@ -413,25 +413,6 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   }
   useEffect(() => { loadInboxEmails(); }, [emailEnabled]);
 
-  const [emailComposerOpen, setEmailComposerOpen] = useState(false);
-  const [emailTo, setEmailTo] = useState('');
-  const [emailSubject, setEmailSubject] = useState('');
-  const [emailBody, setEmailBody] = useState('');
-  const [emailSending, setEmailSending] = useState(false);
-  async function handleSendEmail(e: React.FormEvent) {
-    e.preventDefault();
-    if (!emailTo.trim() || !emailSubject.trim() || !emailBody.trim() || emailSending) return;
-    setEmailSending(true);
-    try {
-      await apiFetch('/v1/email/send', { method: 'POST', body: JSON.stringify({ to: emailTo.trim(), subject: emailSubject.trim(), body: emailBody.trim() }) });
-      setEmailTo(''); setEmailSubject(''); setEmailBody(''); setEmailComposerOpen(false);
-    } catch (err: any) {
-      showAlert(err?.message || 'Could not send email.');
-    } finally {
-      setEmailSending(false);
-    }
-  }
-
   // ── AI Assistant — the governed agent runtime (/v1/agent/runs): saved
   // memory + "remember that…" (same ai_memory as before), read/write tools
   // across apps, and an inline approval card when a tool needs a human
@@ -1127,24 +1108,21 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* EMAIL PANEL — real, /v1/emails?folder=inbox + /v1/emails/send */}
+            {/* EMAIL PANEL — real, /v1/emails?folder=inbox + /v1/emails/send.
+                Compose used to be its own bare to/subject/body form here,
+                a second, much thinner composer than the real one in
+                EmailApp.tsx (no Cc/Bcc, no signature, no scheduling, no
+                attachments) — easy to open by mistake since both are
+                labeled "Compose", and confusing when features present in
+                one silently weren't in the other. This now always opens
+                the one real compose window, navigating to /email first if
+                that's not already the open app (EmailApp.tsx checks for
+                ?compose=1 on mount and strips it once handled). */}
             {activePanel === 'email' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {emailComposerOpen ? (
-                  <form onSubmit={handleSendEmail} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
-                    <input autoFocus type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} placeholder="To" style={composerInputStyle} />
-                    <input value={emailSubject} onChange={e => setEmailSubject(e.target.value)} placeholder="Subject" style={composerInputStyle} />
-                    <textarea value={emailBody} onChange={e => setEmailBody(e.target.value)} placeholder="Write your message…" rows={4} style={{ ...composerInputStyle, resize: 'vertical' }} />
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <Button type="submit" size="xs" disabled={emailSending} style={{ flex: 1 }}>{emailSending ? 'Sending…' : 'Send'}</Button>
-                      <Button type="button" size="xs" variant="outline" onClick={() => setEmailComposerOpen(false)}>Cancel</Button>
-                    </div>
-                  </form>
-                ) : (
-                  <button type="button" onClick={() => setEmailComposerOpen(true)} style={composerToggleStyle}>
-                    <Icon name="plus" size={14} /> Compose
-                  </button>
-                )}
+                <a href="/email?compose=1" style={{ ...composerToggleStyle, textDecoration: 'none' }}>
+                  <Icon name="plus" size={14} /> Compose
+                </a>
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Inbox</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {inboxEmails.filter(m => matches(m.from?.name, m.subject, m.snippet)).map(m => (

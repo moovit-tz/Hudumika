@@ -53,6 +53,17 @@ const saveSchema = z.object({
   smtpEncryption: z.enum(['ssl', 'tls', 'none']).optional(),
   fromName: z.string().trim().max(255).optional(),
   fromEmail: z.string().trim().max(255).optional(),
+  vacationEnabled: z.boolean().optional(),
+  vacationStart: z.string().datetime().nullable().optional(),
+  vacationEnd: z.string().datetime().nullable().optional(),
+  vacationSubject: z.string().trim().max(500).optional(),
+  vacationMessage: z.string().max(5000).optional(),
+  vacationContactsOnly: z.boolean().optional(),
+  vacationDomainOnly: z.boolean().optional(),
+  forwardToEmail: z.string().trim().max(255).nullable().optional(),
+  forwardKeepCopy: z.boolean().optional(),
+  inboxSort: z.enum(['default', 'unread_first', 'starred_first']).optional(),
+  autoAdvance: z.enum(['list', 'newer', 'older']).optional(),
 });
 
 /**
@@ -86,6 +97,9 @@ export async function emailAccountRoutes(fastify: FastifyInstance) {
           sendProtocol: 'platform', smtpHost: '', smtpPort: 587, smtpUser: '', smtpPass: '',
           smtpEncryption: 'ssl', fromName: '', fromEmail: '',
           outlookStatus: null, gmailStatus: null,
+          vacationEnabled: false, vacationStart: null, vacationEnd: null,
+          vacationSubject: '', vacationMessage: '', vacationContactsOnly: false, vacationDomainOnly: false,
+          forwardToEmail: null, forwardKeepCopy: true, inboxSort: 'default', autoAdvance: 'list',
         };
       }
       return {
@@ -110,6 +124,17 @@ export async function emailAccountRoutes(fastify: FastifyInstance) {
         fromEmail: row.from_email ?? '',
         outlookStatus: row.outlook_status,
         gmailStatus: row.gmail_status,
+        vacationEnabled: row.vacation_enabled,
+        vacationStart: row.vacation_start,
+        vacationEnd: row.vacation_end,
+        vacationSubject: row.vacation_subject,
+        vacationMessage: row.vacation_message,
+        vacationContactsOnly: row.vacation_contacts_only,
+        vacationDomainOnly: row.vacation_domain_only,
+        forwardToEmail: row.forward_to_email,
+        forwardKeepCopy: row.forward_keep_copy,
+        inboxSort: row.inbox_sort,
+        autoAdvance: row.auto_advance,
       };
     });
   });
@@ -141,6 +166,11 @@ export async function emailAccountRoutes(fastify: FastifyInstance) {
         : (b.sendProtocol === 'outlook' || b.sendProtocol === 'gmail') && canSwitchTo(b.sendProtocol) ? { send_protocol: b.sendProtocol }
         : {};
 
+      // A changed vacation window is a new vacation period — the "already
+      // replied to this sender" list from the last one shouldn't suppress
+      // fresh auto-replies for this one.
+      const vacationWindowChanged = b.vacationStart !== undefined || b.vacationEnd !== undefined;
+
       if (existing) {
         await trx.updateTable('user_email_accounts').set({
           ...(b.imapEnabled !== undefined ? { imap_enabled: b.imapEnabled } : {}),
@@ -160,6 +190,18 @@ export async function emailAccountRoutes(fastify: FastifyInstance) {
           ...(b.smtpEncryption !== undefined ? { smtp_encryption: b.smtpEncryption } : {}),
           ...(b.fromName !== undefined ? { from_name: b.fromName || null } : {}),
           ...(b.fromEmail !== undefined ? { from_email: b.fromEmail || null } : {}),
+          ...(b.vacationEnabled !== undefined ? { vacation_enabled: b.vacationEnabled } : {}),
+          ...(b.vacationStart !== undefined ? { vacation_start: b.vacationStart ? new Date(b.vacationStart) : null } : {}),
+          ...(b.vacationEnd !== undefined ? { vacation_end: b.vacationEnd ? new Date(b.vacationEnd) : null } : {}),
+          ...(b.vacationSubject !== undefined ? { vacation_subject: b.vacationSubject } : {}),
+          ...(b.vacationMessage !== undefined ? { vacation_message: b.vacationMessage } : {}),
+          ...(b.vacationContactsOnly !== undefined ? { vacation_contacts_only: b.vacationContactsOnly } : {}),
+          ...(b.vacationDomainOnly !== undefined ? { vacation_domain_only: b.vacationDomainOnly } : {}),
+          ...(vacationWindowChanged ? { vacation_replied_to: JSON.stringify([]) } : {}),
+          ...(b.forwardToEmail !== undefined ? { forward_to_email: b.forwardToEmail || null } : {}),
+          ...(b.forwardKeepCopy !== undefined ? { forward_keep_copy: b.forwardKeepCopy } : {}),
+          ...(b.inboxSort !== undefined ? { inbox_sort: b.inboxSort } : {}),
+          ...(b.autoAdvance !== undefined ? { auto_advance: b.autoAdvance } : {}),
           updated_at: new Date(),
         }).where('user_id', '=', user.sub).execute();
       } else {
@@ -183,6 +225,17 @@ export async function emailAccountRoutes(fastify: FastifyInstance) {
           smtp_encryption: b.smtpEncryption ?? 'ssl',
           from_name: b.fromName || null,
           from_email: b.fromEmail || null,
+          vacation_enabled: b.vacationEnabled ?? false,
+          vacation_start: b.vacationStart ? new Date(b.vacationStart) : null,
+          vacation_end: b.vacationEnd ? new Date(b.vacationEnd) : null,
+          vacation_subject: b.vacationSubject ?? '',
+          vacation_message: b.vacationMessage ?? '',
+          vacation_contacts_only: b.vacationContactsOnly ?? false,
+          vacation_domain_only: b.vacationDomainOnly ?? false,
+          forward_to_email: b.forwardToEmail || null,
+          forward_keep_copy: b.forwardKeepCopy ?? true,
+          inbox_sort: b.inboxSort ?? 'default',
+          auto_advance: b.autoAdvance ?? 'list',
         }).execute();
       }
       return { success: true };

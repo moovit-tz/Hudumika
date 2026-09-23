@@ -478,14 +478,14 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
   return (
     <>
       {/* Create contact button */}
-      <div className="csb-create-wrap">
+      <div className={`app-sidebar-create-action-wrap${collapsed ? ' app-sidebar-create-action-wrap--collapsed' : ''}`}>
         <button
           type="button"
-          className="csb-create-btn"
+          className="app-sidebar-create-action"
           onClick={() => openContactModalRef.current(null)}
-          title="Create contact"
+          title={collapsed ? 'Create contact' : undefined}
         >
-          <Icon name="plus" size={18} strokeWidth={2.5} color="var(--cts-accent)" />
+          <span className="app-sidebar-create-action-icon"><Icon name="plus" size={16} strokeWidth={2.5} /></span>
           {!collapsed && <span>Create contact</span>}
         </button>
       </div>

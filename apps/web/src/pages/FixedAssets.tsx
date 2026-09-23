@@ -10,6 +10,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { FormPage, FormPageActions } from '../components/FormPage.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 
 const CATEGORIES = ['OFFICE_EQUIPMENT', 'MOTOR_VEHICLE', 'IT_EQUIPMENT', 'FURNITURE', 'MACHINERY', 'OTHER'];
 const CATEGORY_LABEL: Record<string, string> = { OFFICE_EQUIPMENT: 'Office Equipment', MOTOR_VEHICLE: 'Motor Vehicle', IT_EQUIPMENT: 'IT Equipment', FURNITURE: 'Furniture', MACHINERY: 'Machinery', OTHER: 'Other' };
@@ -24,7 +26,8 @@ interface Asset {
 const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', background: 'var(--white)', boxSizing: 'border-box', color: 'var(--ink)', fontFamily: 'inherit' };
 const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 };
 
-function NewAssetPanel({ onSave, onClose }: { onSave: (data: any) => Promise<void>; onClose: () => void }) {
+function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise<void>; onClose: () => void; fmt: (n: number) => string }) {
+  const isMobile = useIsMobile();
   const [name, setName] = useState('');
   const [category, setCategory] = useState('OFFICE_EQUIPMENT');
   const [acquisitionDate, setAcquisitionDate] = useState(new Date().toISOString().slice(0, 10));
@@ -33,6 +36,10 @@ function NewAssetPanel({ onSave, onClose }: { onSave: (data: any) => Promise<voi
   const [usefulLifeMonths, setUsefulLifeMonths] = useState(36);
   const [saving, setSaving] = useState(false);
 
+  const depreciableBase = Math.max(0, cost - salvageValue);
+  const monthlyDepreciation = usefulLifeMonths > 0 ? depreciableBase / usefulLifeMonths : 0;
+  const annualDepreciation = monthlyDepreciation * 12;
+
   async function submit() {
     if (!name.trim()) return showAlert('An asset name is required.');
     if (cost <= 0) return showAlert('Cost must be greater than zero.');
@@ -40,46 +47,182 @@ function NewAssetPanel({ onSave, onClose }: { onSave: (data: any) => Promise<voi
     setSaving(true);
     try {
       await onSave({
-        name: name.trim(), category,
+        name: name.trim(),
+        category,
         asset_account_code: category === 'MOTOR_VEHICLE' ? '1502' : '1501',
-        acquisition_date: acquisitionDate, cost, salvage_value: salvageValue, useful_life_months: usefulLifeMonths,
+        acquisition_date: acquisitionDate,
+        cost,
+        salvage_value: salvageValue,
+        useful_life_months: usefulLifeMonths,
       });
     } finally {
       setSaving(false);
     }
   }
 
+  const sec: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14 };
+  const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r, 12px)', padding: '22px 24px', marginBottom: 20, boxShadow: 'var(--elev-sm, 0 1px 3px rgba(0,0,0,0.04))' };
+
   return (
-    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
-      <SheetContent className="w-115 sm:max-w-115 flex flex-col p-0 gap-0">
-        <SheetHeader style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
-          <SheetTitle style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)' }}>New Fixed Asset</SheetTitle>
-        </SheetHeader>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px' }}>
-          <div style={{ marginBottom: 14 }}><label style={lbl}>Asset Name *</label><input style={inp} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Toyota Hilux — KDX 123A" /></div>
-          <div style={{ marginBottom: 14 }}>
-            <label style={lbl}>Category</label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c}>{CATEGORY_LABEL[c]}</SelectItem>)}</SelectContent>
-            </Select>
+    <FormPage
+      title="New Fixed Asset"
+      subtitle="Register an asset and initialize straight-line depreciation schedule."
+      onCancel={onClose}
+      actions={
+        <FormPageActions
+          onCancel={onClose}
+          onSave={submit}
+          saving={saving}
+          saveLabel="Add Asset"
+        />
+      }
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 340px', gap: 24, alignItems: 'start' }}>
+        {/* Left Column: Form Fields */}
+        <div>
+          {/* Card 1: Asset Information */}
+          <div style={card}>
+            <div style={sec}>Asset Information</div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={lbl}>Asset Name *</label>
+              <input
+                style={inp}
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="e.g. Toyota Hilux — KDX 123A or Server Rack Switch"
+                autoFocus
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div>
+                <label style={lbl}>Category</label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{CATEGORY_LABEL[c]}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label style={lbl}>Asset GL Account Code</label>
+                <div style={{ ...inp, background: 'var(--bg)', color: 'var(--ink2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>{category === 'MOTOR_VEHICLE' ? '1502 · Motor Vehicles' : '1501 · Office Equipment & Fixtures'}</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 4 }}>Auto</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label style={lbl}>Acquisition Date</label>
+              <DatePicker date={parseDateOnly(acquisitionDate)} onChange={d => setAcquisitionDate(toDateOnlyString(d) ?? '')} />
+            </div>
           </div>
-          <div style={{ marginBottom: 14 }}><label style={lbl}>Acquisition Date</label><DatePicker date={parseDateOnly(acquisitionDate)} onChange={d => setAcquisitionDate(toDateOnlyString(d) ?? '')} /></div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-            <div><label style={lbl}>Cost</label><input type="number" min={0} style={inp} value={cost} onChange={e => setCost(parseFloat(e.target.value) || 0)} /></div>
-            <div><label style={lbl}>Salvage Value</label><input type="number" min={0} style={inp} value={salvageValue} onChange={e => setSalvageValue(parseFloat(e.target.value) || 0)} /></div>
-          </div>
-          <div style={{ marginBottom: 14 }}><label style={lbl}>Useful Life (months)</label><input type="number" min={1} style={inp} value={usefulLifeMonths} onChange={e => setUsefulLifeMonths(parseInt(e.target.value) || 0)} /></div>
-          <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--ink2)' }}>
-            Monthly depreciation: <strong style={{ color: 'var(--teal)' }}>{((cost - salvageValue) / (usefulLifeMonths || 1)).toLocaleString('en-US', { maximumFractionDigits: 2 })}</strong>
+
+          {/* Card 2: Cost & Depreciation Parameters */}
+          <div style={card}>
+            <div style={sec}>Valuation &amp; Useful Life</div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div>
+                <label style={lbl}>Acquisition Cost *</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  style={inp}
+                  value={cost || ''}
+                  onChange={e => setCost(parseFloat(e.target.value) || 0)}
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <label style={lbl}>Salvage / Residual Value</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  style={inp}
+                  value={salvageValue || ''}
+                  onChange={e => setSalvageValue(parseFloat(e.target.value) || 0)}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+            <div>
+              <label style={lbl}>Useful Life (Months) *</label>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <input
+                  type="number"
+                  min={1}
+                  style={{ ...inp, maxWidth: 160 }}
+                  value={usefulLifeMonths || ''}
+                  onChange={e => setUsefulLifeMonths(parseInt(e.target.value) || 0)}
+                />
+                <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
+                  ({(usefulLifeMonths / 12).toFixed(1)} years straight-line depreciation)
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-        <div style={{ padding: '16px 22px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={submit}>{saving ? 'Saving…' : 'Add Asset'}</button>
+
+        {/* Right Column: Live Depreciation & Summary Card */}
+        <div>
+          <div style={{ ...card, position: 'sticky', top: 20 }}>
+            <div style={sec}>Depreciation Preview</div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: 'var(--r, 8px)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Monthly Depreciation
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--teal)', marginTop: 4, fontFamily: 'var(--mono)' }}>
+                  {fmt(monthlyDepreciation)}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 3 }}>
+                  Straight-line across {usefulLifeMonths} months
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--ink3)' }}>Acquisition Cost</span>
+                <span style={{ fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{fmt(cost)}</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--ink3)' }}>Salvage Value</span>
+                <span style={{ fontWeight: 600, fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>{fmt(salvageValue)}</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--ink3)' }}>Depreciable Base</span>
+                <span style={{ fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{fmt(depreciableBase)}</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--ink3)' }}>Annual Depr.</span>
+                <span style={{ fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{fmt(annualDepreciation)}</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '4px 0' }}>
+                <span style={{ color: 'var(--ink3)' }}>Net Book Value at Start</span>
+                <span style={{ fontWeight: 800, fontFamily: 'var(--mono)', color: 'var(--green)' }}>{fmt(cost)}</span>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ width: '100%', justifyContent: 'center' }}
+                disabled={saving}
+                onClick={submit}
+              >
+                <Icon name="save" size={14} /> {saving ? 'Saving…' : 'Add Fixed Asset'}
+              </button>
+            </div>
+          </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </FormPage>
   );
 }
 
@@ -93,7 +236,7 @@ export function FixedAssets() {
   const [disposing, setDisposing] = useState<Asset | null>(null);
   const [disposalProceeds, setDisposalProceeds] = useState(0);
 
-  const load = () => apiFetch('/v1/fixed-assets').then((d: any) => { if (Array.isArray(d)) setAssets(d); }).catch(() => {}).finally(() => setLoading(false));
+  const load = () => apiFetch('/v1/fixed-assets').then((d: any) => { if (Array.isArray(d)) setAssets(d); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load fixed assets.')).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
   async function handleSave(data: any) {
@@ -135,6 +278,10 @@ export function FixedAssets() {
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not delete this asset.');
     }
+  }
+
+  if (showForm) {
+    return <NewAssetForm onSave={handleSave} onClose={() => setShowForm(false)} fmt={fmt} />;
   }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading fixed assets…</div>;
@@ -230,8 +377,6 @@ export function FixedAssets() {
           </table>
         </div>
       </div>
-
-      {showForm && <NewAssetPanel onSave={handleSave} onClose={() => setShowForm(false)} />}
 
       <Sheet open={!!scheduleFor} onOpenChange={o => { if (!o) setScheduleFor(null); }}>
         <SheetContent className="w-115 sm:max-w-115 flex flex-col p-0 gap-0">

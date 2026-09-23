@@ -208,23 +208,13 @@ function TodoSidebarContent({ collapsed }: { collapsed: boolean }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
-      {/* Google Calendar style "+ Create" pill button */}
-      <div style={{ padding: '16px 12px 8px' }}>
+      <div className="app-sidebar-create-action-wrap">
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent('calendar:open-create'))}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-            padding: '10px 18px', borderRadius: 24, background: 'var(--card-bg, #fff)',
-            border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)',
-            cursor: 'pointer', fontSize: 14, fontWeight: 600, color: 'var(--ink)', transition: 'box-shadow .2s, background .15s'
-          }}
-          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 10px rgba(0,0,0,0.15)'; e.currentTarget.style.background = 'var(--bg)'; }}
-          onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)'; e.currentTarget.style.background = 'var(--card-bg, #fff)'; }}
+          className="app-sidebar-create-action"
         >
-          <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="plus" size={16} />
-          </div>
+          <span className="app-sidebar-create-action-icon"><Icon name="plus" size={16} /></span>
           Create Event
         </button>
       </div>

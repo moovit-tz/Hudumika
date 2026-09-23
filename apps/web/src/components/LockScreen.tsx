@@ -54,28 +54,35 @@ export function LockScreen() {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 99999,
-      background: 'rgba(15, 17, 21, 0.6)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+      background: 'rgba(15, 17, 21, 0.54)', backdropFilter: 'blur(9px)', WebkitBackdropFilter: 'blur(9px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
     }}>
-      <div className="card" style={{ width: '100%', maxWidth: 360, padding: 28, boxShadow: 'var(--elev-lg)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+      <div className="card" style={{
+        width: '100%', maxWidth: 460, padding: 'clamp(32px, 5vw, 44px)',
+        background: 'color-mix(in srgb, var(--white) 88%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--border) 72%, transparent)',
+        boxShadow: 'var(--elev-lg)',
+        backdropFilter: 'blur(20px) saturate(1.12)',
+        WebkitBackdropFilter: 'blur(20px) saturate(1.12)',
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 28 }}>
           <PersonAvatar
             userId={(user as any)?.id}
             name={user?.name ?? 'User'}
-            size={56}
+            size={76}
             style={{ border: '1px solid var(--border)' }}
           />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>{user?.name}</div>
-            <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Session locked after 15 minutes of inactivity</div>
+            <div style={{ fontWeight: 700, fontSize: 20, color: 'var(--ink)' }}>{user?.name}</div>
+            <div style={{ fontSize: 14, color: 'var(--ink3)', marginTop: 4 }}>Session locked after 15 minutes of inactivity</div>
           </div>
         </div>
 
         {error && (
-          <div style={{ marginBottom: 14 }}><Banner variant="error">{error}</Banner></div>
+          <div style={{ marginBottom: 18 }}><Banner variant="error">{error}</Banner></div>
         )}
 
-        <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ position: 'relative' }}>
             <Input
               type={showPass ? 'text' : 'password'}
@@ -84,20 +91,20 @@ export function LockScreen() {
               onChange={e => setPassword(e.target.value)}
               autoComplete="current-password"
               autoFocus
-              style={{ paddingRight: 40 }}
+              style={{ minHeight: 'var(--ctl-h-lg)', paddingRight: 52, fontSize: 15 }}
             />
             <button
               type="button"
               onClick={() => setShowPass(p => !p)}
               title={showPass ? 'Hide password' : 'Show password'}
               style={{
-                position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
-                width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 'var(--r-sm)',
                 color: 'var(--ink3)',
               }}
             >
-              <Icon name={showPass ? 'eyeOff' : 'eye'} size={16} />
+              <Icon name={showPass ? 'eyeOff' : 'eye'} size={19} />
             </button>
           </div>
 
@@ -110,14 +117,15 @@ export function LockScreen() {
               onChange={e => setTotp(e.target.value)}
               autoComplete="one-time-code"
               autoFocus
+              style={{ minHeight: 'var(--ctl-h-lg)', fontSize: 15 }}
             />
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, gap: 10 }}>
-            <Button type="button" variant="ghost" onClick={logout} style={{ color: 'var(--ink3)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, gap: 12 }}>
+            <Button type="button" variant="ghost" size="lg" onClick={logout} style={{ color: 'var(--ink3)' }}>
               Log out instead
             </Button>
-            <Button type="submit" disabled={submitting || !password}>
+            <Button type="submit" size="lg" disabled={submitting || !password}>
               {submitting ? 'Unlocking…' : 'Unlock'}
             </Button>
           </div>

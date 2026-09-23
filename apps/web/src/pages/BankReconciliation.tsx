@@ -28,7 +28,7 @@ export function BankReconciliation() {
   const [bankName, setBankName] = useState('');
   const [pendingLine, setPendingLine] = useState<StatementLine | null>(null);
 
-  const load = () => apiFetch('/v1/bank-reconciliation/statements').then((d: any) => { if (Array.isArray(d)) setStatements(d); }).catch(() => {}).finally(() => setLoading(false));
+  const load = () => apiFetch('/v1/bank-reconciliation/statements').then((d: any) => { if (Array.isArray(d)) setStatements(d); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load bank statements.')).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
   const loadDetail = (id: string) => apiFetch(`/v1/bank-reconciliation/statements/${id}`).then((d: any) => setDetail({ lines: d.lines, candidates: d.candidates })).catch(() => setDetail(null));
@@ -68,16 +68,24 @@ export function BankReconciliation() {
 
   async function handleUnmatch(lineId: string) {
     if (!selectedId) return;
-    await apiFetch(`/v1/bank-reconciliation/statements/${selectedId}/lines/${lineId}/unmatch`, { method: 'POST' }).catch(() => {});
-    await loadDetail(selectedId);
-    await load();
+    try {
+      await apiFetch(`/v1/bank-reconciliation/statements/${selectedId}/lines/${lineId}/unmatch`, { method: 'POST' });
+      await loadDetail(selectedId);
+      await load();
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not unmatch this line.');
+    }
   }
 
   async function handleDelete(s: Statement) {
     if (!(await showConfirm(`Delete this statement (${s.bank_name || 'Bank'}, ${new Date(s.statement_date_from).toLocaleDateString()}–${new Date(s.statement_date_to).toLocaleDateString()})? Matches are lost, not the underlying ledger entries.`, { variant: 'danger', confirmLabel: 'Delete' }))) return;
-    await apiFetch(`/v1/bank-reconciliation/statements/${s.id}`, { method: 'DELETE' }).catch(() => {});
-    if (selectedId === s.id) { setSelectedId(null); setDetail(null); }
-    await load();
+    try {
+      await apiFetch(`/v1/bank-reconciliation/statements/${s.id}`, { method: 'DELETE' });
+      if (selectedId === s.id) { setSelectedId(null); setDetail(null); }
+      await load();
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not delete this statement.');
+    }
   }
 
   const selected = statements.find(s => s.id === selectedId);

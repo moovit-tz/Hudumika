@@ -21,6 +21,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Checkbox } from '../components/ui/checkbox.js';
 import { Input } from '../components/ui/input.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
+import { Badge as UiBadge } from '../components/ui/badge.js';
 import { LAUNCHER_APPS } from '../components/LauncherApps.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -2411,6 +2413,16 @@ const SETTINGS_SECTIONS: { id: string; label: string; icon: IconName }[] = [
   { id: 'server',    label: 'System & Server Info', icon: 'monitor' },
 ];
 
+// Third-party brand marks for the AI provider cards — literal brand identity
+// (like the Google/Microsoft/Apple colors on the SSO cards below), not the
+// app's own --teal accent, so these stay hardcoded on purpose.
+const AI_PROVIDER_BRAND: Record<string, { icon: IconName; color: string }> = {
+  anthropic: { icon: 'sparkle', color: '#D97757' },
+  openai:    { icon: 'layers',  color: '#10A37F' },
+  groq:      { icon: 'zap',     color: '#F55036' },
+  google:    { icon: 'gemini',  color: '#4285F4' },
+};
+
 export function SettingsView() {
   const [saved, setSaved] = useState<string|null>(null);
   const [maintenance, setMaintenance] = useState(false);
@@ -2455,7 +2467,19 @@ export function SettingsView() {
   const [testingOcr, setTestingOcr] = useState(false);
   const [ocrTested, setOcrTested] = useState(false);
   const [jobs, setJobs] = useState<{ connected: boolean; jobs: { name: string; schedule: string; fallbackOnly?: boolean }[] }>({ connected: false, jobs: [] });
+  const [cronPage, setCronPage] = useState(1);
+  const [cronPageSize, setCronPageSize] = useState(10);
   const [serverInfo, setServerInfo] = useState<Record<string, string | number> | null>(null);
+
+  const pagedCronJobs = useMemo(
+    () => jobs.jobs.slice((cronPage - 1) * cronPageSize, cronPage * cronPageSize),
+    [jobs.jobs, cronPage, cronPageSize],
+  );
+
+  useEffect(() => {
+    const lastPage = Math.max(1, Math.ceil(jobs.jobs.length / cronPageSize));
+    if (cronPage > lastPage) setCronPage(lastPage);
+  }, [jobs.jobs.length, cronPage, cronPageSize]);
 
   // 8 sections in one long scroll with no way to jump to one — tabbed instead,
   // same ?section= deep-link convention DesignSystemView already established
@@ -2611,16 +2635,23 @@ export function SettingsView() {
   }
 
   const SectionCard = ({ title, sub, children, section, readOnly }: { title:string; sub:string; children:React.ReactNode; section:string; readOnly?:boolean }) => (
-    <div className="card" style={{ padding:'24px 26px', marginBottom:20 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20 }}>
+    <div className="sa-settings-card">
+      <div className="sa-settings-card-hdr">
         <div>
-          <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>{title}</div>
-          <div style={{ fontSize:12, color:'var(--ink3)', marginTop:3 }}>{sub}</div>
+          <div className="sa-settings-card-title">{title}</div>
+          <div className="sa-settings-card-sub">{sub}</div>
         </div>
         {!readOnly && (
-          <button type="button" title={`Save ${title}`} onClick={() => save(section)} className="btn btn-primary btn-sm" style={{ gap:6 }}>
-            {saved === section ? <><Icon name="check" size={12} />Saved</> : <><Icon name="save" size={12} />Save</>}
-          </button>
+          <Button
+            type="button"
+            size="sm"
+            variant="default"
+            title={`Save ${title}`}
+            onClick={() => save(section)}
+            className="sa-app-save-btn"
+          >
+            {saved === section ? <><Icon name="check" size={13} /> Saved</> : <><Icon name="save" size={13} /> Save</>}
+          </Button>
         )}
       </div>
       {children}
@@ -2636,54 +2667,64 @@ export function SettingsView() {
   );
 
   const SAToggle = ({ value, onChange, label }: { value:boolean; onChange:(v:boolean)=>void; label:string }) => (
-    <button type="button" title={`Toggle ${label}`} onClick={() => onChange(!value)}
-      style={{ width:38, height:22, borderRadius:99, border:'none', cursor:'pointer', background:value?'var(--teal)':'var(--border)', position:'relative', transition:'background .2s', flexShrink:0 }}>
-      <span style={{ position:'absolute', top:3, left:value?18:3, width:16, height:16, borderRadius:99, background:'var(--white)', transition:'left .2s', display:'block', boxShadow: 'var(--elev-sm)' }} />
-    </button>
+    <Switch
+      checked={value}
+      onCheckedChange={onChange}
+      aria-label={label}
+    />
   );
 
-  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading configurations…</div>;
+  if (loading) return <SectionLoading label="Loading platform settings" />;
 
   return (
-    <div style={{ width:'100%' }}>
+    <div className="sa-settings-page">
       <PageHdr title="Platform Settings" sub="Platform-wide configuration applied across all tenants" />
 
       {/* ── Maintenance Mode ── */}
-      <div className="card" style={{ padding:'20px 26px', marginBottom:20, borderLeft:`4px solid ${maintenance ? 'var(--red)' : 'var(--border)'}` }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:24 }}>
-          <div>
-            <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>Maintenance Mode</div>
-            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:3 }}>
+      <div className={`sa-settings-card sa-maintenance-card${maintenance ? ' is-active' : ''}`}>
+        <div className="sa-maintenance-card-inner">
+          <div className="sa-maintenance-copy">
+            <div className="sa-maintenance-title">
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Maintenance Mode</span>
+              <UiBadge variant={maintenance ? 'error' : 'success'}>
+                {maintenance ? 'Active — Platform Offline' : 'Operational'}
+              </UiBadge>
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.45 }}>
               {maintenance
                 ? 'Platform is in maintenance mode — all tenants see a maintenance page. API endpoints return 503.'
-                : 'Platform is live and fully accessible to all tenants.'}
+                : 'Platform is live and fully accessible to all tenants and staff.'}
             </div>
           </div>
-          <button type="button" title="Toggle maintenance mode" onClick={toggleMaintenance}
-            style={{ padding:'var(--ds-btn-py) 20px', borderRadius:'var(--r)', border:'none', cursor:'pointer', fontWeight:700, fontSize:13, flexShrink:0,
-              background: maintenance ? 'var(--red)' : 'hsl(var(--primary))', color: maintenance ? 'hsl(var(--red-foreground))' : 'hsl(var(--primary-foreground))', fontFamily:'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <Button
+            type="button"
+            variant={maintenance ? 'destructive' : 'default'}
+            onClick={toggleMaintenance}
+            style={{ fontWeight: 700, minHeight: 'var(--ctl-h)' }}
+          >
             {maintenance ? 'Disable Maintenance' : 'Enable Maintenance'}
-          </button>
+          </Button>
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          {SETTINGS_SECTIONS.map(s => (
-            <TabsTrigger key={s.id} value={s.id}>
-              <Icon name={s.icon} size={13} />
-              {s.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="sa-settings-layout">
+        <aside className="sa-settings-sidebar">
+          <div className="sa-settings-nav-label">Configuration</div>
+          <TabsList className="sa-settings-nav">
+            {SETTINGS_SECTIONS.map(s => (
+              <TabsTrigger key={s.id} value={s.id}>
+                <Icon name={s.icon} size={14} />
+                <span>{s.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </aside>
 
+        <div className="sa-settings-content">
         <TabsContent value="security">
       {/* ── Security & Sessions ── */}
       <SectionCard title="Security & Sessions" sub="Password policy, session management, and access controls" section="security">
-        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--teal)', background:'var(--teal-l)', border:'1px solid var(--teal)', borderRadius: 'var(--r)', padding:'8px 12px', marginBottom:16 }}>
-          <Icon name="shield" size={13} />
-          Enforced platform-wide on every login and request. SUPER_ADMIN accounts are exempt from the IP allowlist so a misconfiguration here can never lock the console itself out.
-        </div>
+        <Banner variant="brand" icon="shield" className="sa-settings-banner">Enforced platform-wide on every login and request. SUPER_ADMIN accounts are exempt from the IP allowlist so a misconfiguration here can never lock the console itself out.</Banner>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
           <Field label="Minimum Password Length" hint="Characters required for all user passwords">
             <input title="Min password length" type="number" min={6} max={32} value={security.minPasswordLength}
@@ -2732,7 +2773,7 @@ export function SettingsView() {
               <input title="SMTP Port" placeholder="587" value={smtp.port}
                 onChange={e => setSmtp(p=>({...p,port:e.target.value}))} className="input-field" style={{ flex:1 }} />
               <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--ink2)', whiteSpace:'nowrap', cursor:'pointer' }}>
-                <SAToggle value={smtp.tls} onChange={v => setSmtp(p=>({...p,tls:v}))} label="TLS" />
+                <Switch checked={smtp.tls} onCheckedChange={v => setSmtp(p=>({...p,tls:v}))} aria-label="TLS" />
                 TLS
               </label>
             </div>
@@ -2750,9 +2791,9 @@ export function SettingsView() {
               onChange={e => setSmtp(p=>({...p,from:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <div style={{ display:'flex', alignItems:'flex-end' }}>
-            <button type="button" className="btn btn-outline btn-sm" onClick={testSmtp} disabled={testingSmtp} style={{ gap:6 }}>
+            <Button type="button" variant="outline" size="sm" onClick={testSmtp} disabled={testingSmtp} style={{ gap:6 }}>
               {testingSmtp ? 'Testing...' : smtpTested ? <><Icon name="check" size={12}/>Connection OK</> : <><Icon name="mail" size={12}/>Send Test Email</>}
-            </button>
+            </Button>
           </div>
         </div>
       </SectionCard>
@@ -2761,52 +2802,56 @@ export function SettingsView() {
         <TabsContent value="ai">
       {/* ── AI Providers (platform-wide fallback): one key per provider ── */}
       <SectionCard title="AI Providers" sub="Add a key for each provider you want available, then choose which one is the platform default. Billed to the platform — a tenant's own key (Hudu Advanced plan) always wins over these." section="ai">
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:24 }}>
-          <div>
-            <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>Enable platform-default AI</div>
-            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:3 }}>
+        <div className="sa-setting-row" style={{ paddingTop: 0 }}>
+          <div className="sa-setting-row-main">
+            <div className="sa-setting-row-title">
+              <span>Enable platform-default AI</span>
+              <UiBadge variant={ai.enabled ? 'brand' : 'gray'}>
+                {ai.enabled ? 'Enabled' : 'Disabled'}
+              </UiBadge>
+            </div>
+            <div className="sa-setting-row-desc">
               {ai.enabled
                 ? 'On — tenants with no key of their own get a working agent, billed to the platform.'
                 : 'Off — a tenant without their own key sees "AI is not configured" until they add one.'}
             </div>
           </div>
-          <SAToggle value={ai.enabled} onChange={v => setAi(p=>({...p, enabled: v}))} label="Enable platform-default AI" />
+          <Switch checked={ai.enabled} onCheckedChange={v => setAi(p=>({...p, enabled: v}))} size="lg" aria-label="Enable platform-default AI" />
         </div>
 
         {ai.enabled && !ai.providers[ai.provider]?.apiKey && (
-          <div style={{ marginTop:14, padding:'10px 12px', borderRadius:'var(--r)', background:'var(--gold-l)', border:'1px solid var(--gold)', fontSize:12, color:'var(--ink)' }}>
-            The default provider ({AI_PROVIDERS.find(x => x.value === ai.provider)?.label.split(' — ')[0]}) has no key yet, so AI stays off until you add one or make another provider the default.
-          </div>
+          <Banner variant="warning" className="sa-settings-banner">The default provider ({AI_PROVIDERS.find(x => x.value === ai.provider)?.label.split(' — ')[0]}) has no key yet, so AI stays off until you add one or make another provider the default.</Banner>
         )}
 
-        <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:18 }}>
+        <div className="sa-ai-provider-grid">
           {AI_PROVIDERS.map(prov => {
             const row = ai.providers[prov.value] ?? { apiKey: '', model: '' };
             const hasKey = !!row.apiKey;
             const isDefault = ai.provider === prov.value;
             const [name, freeNote] = prov.label.split(' — ');
+            const brand = AI_PROVIDER_BRAND[prov.value] ?? { icon: 'sparkle' as IconName, color: 'var(--teal)' };
+            const saveKey = `ai-${prov.value}`;
             return (
-              <div key={prov.value} data-testid={`ai-provider-${prov.value}`}
-                style={{ border:`1px solid ${isDefault ? 'var(--teal)' : 'var(--border)'}`, borderRadius:'var(--r)', padding:'14px 16px', background: isDefault ? 'var(--teal-l)' : 'var(--white)' }}>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:12 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <span style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>{name}</span>
-                    {isDefault && <span className="badge badge-teal" style={{ fontSize:11 }}>Default</span>}
-                    {hasKey
-                      ? <span style={{ fontSize:11, color:'var(--teal)', fontWeight:600 }}>● Key saved</span>
-                      : <span style={{ fontSize:11, color:'var(--ink3)' }}>○ No key</span>}
+              <div key={prov.value} data-testid={`ai-provider-${prov.value}`} className={`sa-ai-provider-card${isDefault ? ' is-active' : ''}`}>
+                <div className="sa-sso-provider-hdr">
+                  <div className="sa-sso-provider-info">
+                    <div className="sa-sso-provider-icon" style={{ color: brand.color }}>
+                      <Icon name={brand.icon} size={16} />
+                    </div>
+                    <div>
+                      <div className="sa-sso-provider-name">{name}</div>
+                      <div className="sa-sso-provider-type">{freeNote || 'Paid API'}</div>
+                    </div>
                   </div>
-                  <div style={{ display:'flex', gap:8 }}>
-                    <Button type="button" size="xs" variant="outline" disabled={!hasKey || aiTest[prov.value]?.busy} title={hasKey ? 'Send a one-word request with this key and the agent\'s real tool definitions' : 'Add a key first'}
-                      onClick={() => testAiProvider(prov.value)}>{aiTest[prov.value]?.busy ? 'Testing…' : 'Test'}</Button>
-                    {hasKey && <Button type="button" size="xs" variant="outline" onClick={() => { setAiRow(prov.value, { apiKey: '' }); setAiTest(prev => ({ ...prev, [prov.value]: { busy: false } })); }}>Remove key</Button>}
-                    <Button type="button" size="xs" variant={isDefault ? 'default' : 'outline'} disabled={!hasKey || isDefault}
-                      title={hasKey ? undefined : 'Add a key first'} onClick={() => setAi(p => ({ ...p, provider: prov.value }))}>
-                      {isDefault ? 'Default' : 'Make default'}
-                    </Button>
+                  <div className="sa-ai-provider-badges">
+                    {isDefault && <UiBadge variant="brand">Default</UiBadge>}
+                    {hasKey
+                      ? <UiBadge variant="success">Key saved</UiBadge>
+                      : <UiBadge variant="gray">No key</UiBadge>}
                   </div>
                 </div>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
+
+                <div className="sa-ai-provider-fields">
                   <Field label="API key" hint={freeNote ? `Free — ${freeNote}. Shown masked once saved.` : 'Shown masked once saved.'}>
                     <input title={`${name} API key`} type="password" placeholder="Paste API key" autoComplete="off" value={row.apiKey}
                       onChange={e => setAiRow(prov.value, { apiKey: e.target.value })} className="input-field" style={{ width:'100%' }} />
@@ -2820,11 +2865,32 @@ export function SettingsView() {
                     </Select>
                   </Field>
                 </div>
+
                 {aiTest[prov.value]?.message && (
-                  <div role="status" style={{ marginTop:12, fontSize:12, padding:'8px 10px', borderRadius:'var(--r-sm)', border:`1px solid ${aiTest[prov.value].ok ? 'var(--green)' : 'var(--red)'}`, background: aiTest[prov.value].ok ? 'var(--green-l)' : 'var(--red-l)', color:'var(--ink)' }}>
+                  <Banner role="status" variant={aiTest[prov.value].ok ? 'success' : 'error'} className="sa-ai-provider-result">
                     {aiTest[prov.value].message}
-                  </div>
+                  </Banner>
                 )}
+
+                <div className="sa-provider-card-footer">
+                  <div className="sa-ai-provider-actions">
+                    <Tip label={hasKey ? 'Test this provider with its saved key and current model' : 'Add and save an API key first'}>
+                      <span><Button type="button" size="xs" variant="outline" disabled={!hasKey || aiTest[prov.value]?.busy}
+                        onClick={() => testAiProvider(prov.value)}>{aiTest[prov.value]?.busy ? 'Testing…' : 'Test'}</Button></span>
+                    </Tip>
+                    {hasKey && <Button type="button" size="xs" variant="outline" onClick={() => { setAiRow(prov.value, { apiKey: '' }); setAiTest(prev => ({ ...prev, [prov.value]: { busy: false } })); }}>Remove key</Button>}
+                    <Tip label={isDefault ? 'Current platform-default provider' : hasKey ? `Use ${name} as the platform default` : 'Add and save an API key first'}>
+                      <span><Button type="button" size="xs" variant={isDefault ? 'default' : 'outline'} disabled={!hasKey || isDefault}
+                        onClick={() => setAi(p => ({ ...p, provider: prov.value }))}>
+                        {isDefault ? 'Default' : 'Make default'}
+                      </Button></span>
+                    </Tip>
+                  </div>
+                  <Button type="button" size="xs" variant="default" title={`Save ${name}`}
+                    onClick={() => save(saveKey)} className="sa-app-save-btn">
+                    {saved === saveKey ? <><Icon name="check" size={12} /> Saved</> : <><Icon name="save" size={12} /> Save</>}
+                  </Button>
+                </div>
               </div>
             );
           })}
@@ -2841,68 +2907,178 @@ export function SettingsView() {
               onChange={e => setOcr(p=>({...p,geminiApiKey:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <div style={{ display:'flex', alignItems:'flex-end' }}>
-            <button type="button" className="btn btn-outline btn-sm" onClick={testOcr} disabled={testingOcr} style={{ gap:6 }}>
+            <Button type="button" variant="outline" size="sm" onClick={testOcr} disabled={testingOcr} style={{ gap:6 }}>
               {testingOcr ? 'Testing...' : ocrTested ? <><Icon name="check" size={12}/>Connection OK</> : <><Icon name="zap" size={12}/>Test Connection</>}
-            </button>
+            </Button>
           </div>
         </div>
-        <div style={{ fontSize:11, color:'var(--ink3)', marginTop:2 }}>
-          {ocr.geminiApiKey ? <span style={{ color:'var(--teal)' }}>● Live — scans use Gemini vision extraction</span> : <span>○ Simulated — no key configured, scans return demo data</span>}
+        <div style={{ fontSize:11, color:'var(--ink3)', marginTop:6, display:'flex', alignItems:'center', gap:8 }}>
+          {ocr.geminiApiKey ? <UiBadge variant="success">Live — Gemini Vision Extraction Active</UiBadge> : <UiBadge variant="gray">Simulated — No API Key Configured</UiBadge>}
         </div>
       </SectionCard>
         </TabsContent>
 
         <TabsContent value="ondiSso">
-      {/* ── Ondi SSO (M7 dark-launch flag) ── */}
-      <SectionCard title="Ondi SSO" sub="Default sign-in experience for every tenant — phone/authenticator/passkey/Google/Microsoft/Apple first, or password first" section="ondiSso">
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:24 }}>
-          <div>
-            <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>Make Ondi the default sign-in page</div>
-            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:3 }}>
+      {/* ── Ondi SSO (Dark-launch flag & Social Auth) ── */}
+      <SectionCard
+        title="Ondi SSO & Social Authentication"
+        sub="Default sign-in experience and OAuth 2.0 social identity providers for all tenant accounts"
+        section="ondiSso"
+      >
+        {/* Primary default sign-in toggle */}
+        <div className="sa-setting-row" style={{ paddingTop: 0 }}>
+          <div className="sa-setting-row-main">
+            <div className="sa-setting-row-title">
+              <span>Make Ondi the default sign-in page</span>
+              <UiBadge variant={ondiSso.enabled ? 'brand' : 'gray'}>
+                {ondiSso.enabled ? 'Ondi First' : 'Standard Password'}
+              </UiBadge>
+            </div>
+            <div className="sa-setting-row-desc">
               {ondiSso.enabled
-                ? 'On — visitors land on Ondi (phone code / authenticator / passkey / Google / Microsoft / Apple) first. Password sign-in stays fully reachable via the link on that page.'
-                : 'Off — visitors land on the password sign-in page first, same as today. Ondi is reachable via its own link, but is not the default.'}
+                ? 'Visitors land on Ondi (phone OTP, authenticator app, passkey, Google, Microsoft, Apple) first. Standard password login remains reachable via direct link.'
+                : 'Visitors land on the traditional password sign-in page first. Ondi is accessible via direct link, but is not the default landing flow.'}
             </div>
           </div>
-          <SAToggle value={ondiSso.enabled} onChange={v => setOndiSso(p => ({ ...p, enabled: v }))} label="Ondi SSO default" />
+          <Switch
+            checked={ondiSso.enabled}
+            onCheckedChange={v => setOndiSso(p => ({ ...p, enabled: v }))}
+            size="lg"
+            aria-label="Make Ondi the default sign-in page"
+          />
         </div>
 
-        {/* Social sign-in is platform-wide, not per-tenant: the sign-in page
-            runs before anyone has identified themselves, so there is no
-            tenant whose credentials could be looked up. A Client ID is not a
-            secret — the browser sends it to Google on every sign-in — and
-            this flow uses no client secret at all. */}
-        <div style={{ borderTop:'1px solid var(--border)', marginTop:18, paddingTop:18 }}>
-          <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)', marginBottom:3 }}>Social sign-in</div>
-          <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:14 }}>
-            Paste a Client ID to switch Google, Microsoft, or Apple sign-in on for every tenant. Leave blank to hide that button.
-            Add this app's URL as an authorized JavaScript origin (Google/Microsoft) or Return URL (Apple) in the provider's console, or the button renders but fails on click.
-            The Client ID/Secret under a workspace's Settings ▸ Integrations ▸ Google is a different setting — it drives Contacts sync, not sign-in.
+        {/* Social sign-in providers */}
+        <div style={{ marginTop: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Social Sign-in Providers</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+              {[ondiSso.googleClientId, ondiSso.microsoftClientId, ondiSso.appleClientId].filter(x => x?.trim()).length} of 3 configured
+            </div>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
-            <Field label="Google Client ID" hint="From console.cloud.google.com — ends in .apps.googleusercontent.com">
-              <input title="Google Client ID" placeholder="1234567890-abc123.apps.googleusercontent.com" value={ondiSso.googleClientId ?? ''}
-                onChange={e => setOndiSso(p => ({ ...p, googleClientId: e.target.value }))} className="input-field" style={{ width:'100%' }} />
-            </Field>
-            <Field label="Microsoft Client ID" hint="The Application (client) ID from your Azure AD app registration.">
-              <input title="Microsoft Client ID" placeholder="00000000-0000-0000-0000-000000000000" value={ondiSso.microsoftClientId ?? ''}
-                onChange={e => setOndiSso(p => ({ ...p, microsoftClientId: e.target.value }))} className="input-field" style={{ width:'100%' }} />
-            </Field>
-            <Field label="Apple Client ID" hint="The Services ID (not a Bundle ID) from your 'Sign in with Apple' setup in developer.apple.com.">
-              <input title="Apple Client ID" placeholder="com.yourcompany.web" value={ondiSso.appleClientId ?? ''}
-                onChange={e => setOndiSso(p => ({ ...p, appleClientId: e.target.value }))} className="input-field" style={{ width:'100%' }} />
-            </Field>
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16, lineHeight: 1.5 }}>
+            Provide Client IDs to activate one-click social authentication platform-wide. Leave blank to hide a provider from the sign-in screen.
           </div>
-          <div style={{ fontSize:11, color:'var(--ink3)', marginTop:2, display:'flex', flexDirection:'column', gap:2 }}>
-            {ondiSso.googleClientId?.trim()
-              ? <span style={{ color:'var(--teal)' }}>● Google sign-in is live on the sign-in page</span>
-              : <span>○ Google sign-in hidden — no Client ID configured</span>}
-            {ondiSso.microsoftClientId?.trim()
-              ? <span style={{ color:'var(--teal)' }}>● Microsoft sign-in is live on the sign-in page</span>
-              : <span>○ Microsoft sign-in hidden — no Client ID configured</span>}
-            {ondiSso.appleClientId?.trim()
-              ? <span style={{ color:'var(--teal)' }}>● Apple sign-in is live on the sign-in page</span>
-              : <span>○ Apple sign-in hidden — no Client ID configured</span>}
+
+          <div className="sa-sso-provider-grid">
+            {/* Google Provider Card */}
+            <div className={`sa-sso-provider-card${ondiSso.googleClientId?.trim() ? ' is-active' : ''}`}>
+              <div className="sa-sso-provider-hdr">
+                <div className="sa-sso-provider-info">
+                  <div className="sa-sso-provider-icon" style={{ color: '#4285F4' }}>
+                    <Icon name="globe" size={16} />
+                  </div>
+                  <div>
+                    <div className="sa-sso-provider-name">Google OAuth 2.0</div>
+                    <div className="sa-sso-provider-type">Google Accounts / Workspace</div>
+                  </div>
+                </div>
+                <UiBadge variant={ondiSso.googleClientId?.trim() ? 'success' : 'gray'}>
+                  {ondiSso.googleClientId?.trim() ? 'Live' : 'Not configured'}
+                </UiBadge>
+              </div>
+              <div className="sa-sso-provider-field">
+                <label htmlFor="google-client-id">Google Client ID</label>
+                <Input
+                  id="google-client-id"
+                  placeholder="1234567890-abc.apps.googleusercontent.com"
+                  value={ondiSso.googleClientId ?? ''}
+                  onChange={e => setOndiSso(p => ({ ...p, googleClientId: e.target.value }))}
+                  style={{ fontFamily: 'var(--mono)', fontSize: 12 }}
+                />
+                <span className="sa-sso-provider-hint">
+                  From Google Cloud Console ▸ Credentials (ends in .apps.googleusercontent.com)
+                </span>
+              </div>
+              <div className="sa-provider-card-footer sa-provider-card-footer--end">
+                <Button type="button" size="xs" variant="default" title="Save Google OAuth 2.0"
+                  onClick={() => save('ondi-google')} className="sa-app-save-btn">
+                  {saved === 'ondi-google' ? <><Icon name="check" size={12} /> Saved</> : <><Icon name="save" size={12} /> Save</>}
+                </Button>
+              </div>
+            </div>
+
+            {/* Microsoft Provider Card */}
+            <div className={`sa-sso-provider-card${ondiSso.microsoftClientId?.trim() ? ' is-active' : ''}`}>
+              <div className="sa-sso-provider-hdr">
+                <div className="sa-sso-provider-info">
+                  <div className="sa-sso-provider-icon" style={{ color: '#00A4EF' }}>
+                    <Icon name="monitor" size={16} />
+                  </div>
+                  <div>
+                    <div className="sa-sso-provider-name">Microsoft Entra ID</div>
+                    <div className="sa-sso-provider-type">Azure AD / Office 365</div>
+                  </div>
+                </div>
+                <UiBadge variant={ondiSso.microsoftClientId?.trim() ? 'success' : 'gray'}>
+                  {ondiSso.microsoftClientId?.trim() ? 'Live' : 'Not configured'}
+                </UiBadge>
+              </div>
+              <div className="sa-sso-provider-field">
+                <label htmlFor="microsoft-client-id">Application (Client) ID</label>
+                <Input
+                  id="microsoft-client-id"
+                  placeholder="00000000-0000-0000-0000-000000000000"
+                  value={ondiSso.microsoftClientId ?? ''}
+                  onChange={e => setOndiSso(p => ({ ...p, microsoftClientId: e.target.value }))}
+                  style={{ fontFamily: 'var(--mono)', fontSize: 12 }}
+                />
+                <span className="sa-sso-provider-hint">
+                  From Azure Portal ▸ App registrations ▸ Application (client) ID
+                </span>
+              </div>
+              <div className="sa-provider-card-footer sa-provider-card-footer--end">
+                <Button type="button" size="xs" variant="default" title="Save Microsoft Entra ID"
+                  onClick={() => save('ondi-microsoft')} className="sa-app-save-btn">
+                  {saved === 'ondi-microsoft' ? <><Icon name="check" size={12} /> Saved</> : <><Icon name="save" size={12} /> Save</>}
+                </Button>
+              </div>
+            </div>
+
+            {/* Apple Provider Card */}
+            <div className={`sa-sso-provider-card${ondiSso.appleClientId?.trim() ? ' is-active' : ''}`}>
+              <div className="sa-sso-provider-hdr">
+                <div className="sa-sso-provider-info">
+                  <div className="sa-sso-provider-icon" style={{ color: 'var(--ink)' }}>
+                    <Icon name="shield" size={16} />
+                  </div>
+                  <div>
+                    <div className="sa-sso-provider-name">Sign in with Apple</div>
+                    <div className="sa-sso-provider-type">Apple ID / Web Auth</div>
+                  </div>
+                </div>
+                <UiBadge variant={ondiSso.appleClientId?.trim() ? 'success' : 'gray'}>
+                  {ondiSso.appleClientId?.trim() ? 'Live' : 'Not configured'}
+                </UiBadge>
+              </div>
+              <div className="sa-sso-provider-field">
+                <label htmlFor="apple-client-id">Apple Services ID</label>
+                <Input
+                  id="apple-client-id"
+                  placeholder="com.yourcompany.web"
+                  value={ondiSso.appleClientId ?? ''}
+                  onChange={e => setOndiSso(p => ({ ...p, appleClientId: e.target.value }))}
+                  style={{ fontFamily: 'var(--mono)', fontSize: 12 }}
+                />
+                <span className="sa-sso-provider-hint">
+                  From developer.apple.com ▸ Identifiers ▸ Services ID (not Bundle ID)
+                </span>
+              </div>
+              <div className="sa-provider-card-footer sa-provider-card-footer--end">
+                <Button type="button" size="xs" variant="default" title="Save Sign in with Apple"
+                  onClick={() => save('ondi-apple')} className="sa-app-save-btn">
+                  {saved === 'ondi-apple' ? <><Icon name="check" size={12} /> Saved</> : <><Icon name="save" size={12} /> Save</>}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Informational Guidance */}
+          <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: 'var(--card-sunken)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, color: 'var(--ink3)' }}>
+            <Icon name="info" size={15} color="var(--teal)" style={{ flexShrink: 0, marginTop: 1 }} />
+            <div style={{ lineHeight: 1.5 }}>
+              Add this platform's origin as an authorized JavaScript origin (Google/Microsoft) or Return URL (Apple) in the respective provider's console.
+            </div>
           </div>
         </div>
       </SectionCard>
@@ -2931,13 +3107,17 @@ export function SettingsView() {
             <div style={{ display:'flex', gap:8 }}>
               <input title="Webhook secret" type={showWebhookSecret ? 'text' : 'password'} value={api.webhookSecret}
                 onChange={e => setApi(p=>({...p,webhookSecret:e.target.value}))} className="input-field" style={{ flex:1 }} />
-              <button type="button" title="Toggle visibility" className="btn btn-outline btn-sm"
-                onClick={() => setShowWebhookSecret(s => !s)} style={{ flexShrink:0 }}>
-                <Icon name={showWebhookSecret ? 'eyeOff' : 'eye'} size={14} />
-              </button>
-              <button type="button" title="Regenerate secret" className="btn btn-outline btn-sm" onClick={() => regenerateWebhookSecret()} style={{ flexShrink:0, gap:5 }}>
-                <Icon name="refresh" size={13} />{saved==='api-regen'?'Done':'Regen'}
-              </button>
+              <Tip label={showWebhookSecret ? 'Hide webhook secret' : 'Show webhook secret'}>
+                <Button type="button" variant="outline" size="xs" aria-label={showWebhookSecret ? 'Hide webhook secret' : 'Show webhook secret'}
+                  onClick={() => setShowWebhookSecret(s => !s)} style={{ flexShrink:0 }}>
+                  <Icon name={showWebhookSecret ? 'eyeOff' : 'eye'} size={14} />
+                </Button>
+              </Tip>
+              <Tip label="Generate a new webhook signing secret">
+                <Button type="button" variant="outline" size="xs" onClick={() => regenerateWebhookSecret()} style={{ flexShrink:0, gap:5 }}>
+                  <Icon name="refresh" size={13} />{saved==='api-regen'?'Done':'Regen'}
+                </Button>
+              </Tip>
             </div>
           </Field>
         </div>
@@ -2984,10 +3164,10 @@ export function SettingsView() {
               </tr>
             </thead>
             <tbody>
-              {jobs.jobs.map((j, i) => {
+              {pagedCronJobs.map(j => {
                 const runs = !j.fallbackOnly || !jobs.connected;
                 return (
-                  <tr key={i} className="sa-cron-row">
+                  <tr key={`${j.name}-${j.schedule}`} className="sa-cron-row">
                     <td className="sa-cron-td">{j.name}</td>
                     <td className="sa-cron-td--sched">{j.schedule}</td>
                     <td className="sa-cron-td--status">
@@ -3004,6 +3184,17 @@ export function SettingsView() {
             </tbody>
           </table>
         </div>
+        {jobs.jobs.length > 0 && (
+          <PaginationBar
+            page={cronPage}
+            pageSize={cronPageSize}
+            total={jobs.jobs.length}
+            onPageChange={setCronPage}
+            onPageSizeChange={size => { setCronPageSize(size); setCronPage(1); }}
+            pageSizeOptions={[10, 20, 50, 100]}
+            itemLabel="cron jobs"
+          />
+        )}
       </SectionCard>
         </TabsContent>
 
@@ -3033,6 +3224,7 @@ export function SettingsView() {
         </div>
       </SectionCard>
         </TabsContent>
+        </div>
       </Tabs>
     </div>
   );

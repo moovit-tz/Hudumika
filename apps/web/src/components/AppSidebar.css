@@ -128,7 +128,10 @@ html[data-expanded="true"] .app-sidebar {
   height: 34px;
   min-width: 34px;
   background: var(--sb-color, #64748b);
-  border-radius: var(--r);
+  /* True superellipse clip is supplied by AppSidebar.tsx; this percentage is
+     only the graceful fallback for browsers without CSS path clipping. */
+  border-radius: 33%;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -712,51 +715,67 @@ html[data-expanded="true"] .app-sidebar {
   to   { opacity: 1; }
 }
 
-/* ── Email Compose button (beforeNav slot) ── */
-.em-shell-compose {
-  padding: 4px 12px 16px;
+/* ── Primary sidebar create action ──
+   Shared by Calendar, Email, and Contacts. The icon itself remains app-
+   specific; only the action's shape, spacing, elevation, and states are
+   standardized here. */
+.app-sidebar-create-action-wrap {
+  padding: 16px 12px 8px;
+  flex-shrink: 0;
 }
-.em-shell-compose--collapsed {
-  padding: 4px 8px 16px;
-}
-.em-shell-compose-btn {
+.app-sidebar-create-action {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
   width: 100%;
-  padding: var(--ds-btn-py-lg) 20px;
-  border-radius: 18px;
-  background: #fff;
-  border: none;
+  min-height: var(--ctl-h-lg);
+  padding: 10px 18px;
+  border-radius: var(--badge-radius);
+  background: var(--white);
+  border: 1px solid var(--border);
   box-shadow: var(--elev-sm);
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  color: #202124;
+  font-weight: 600;
+  color: var(--ink);
   font-family: var(--font);
-  transition: box-shadow 0.15s, background 0.12s;
+  transition: box-shadow .18s ease, background .15s ease, border-color .15s ease, transform .15s ease;
   white-space: nowrap;
   overflow: hidden;
 }
-.em-shell-compose--collapsed .em-shell-compose-btn {
+.app-sidebar-create-action-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--teal-l);
+  color: var(--teal);
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  padding: 14px;
+  flex: 0 0 24px;
+}
+.app-sidebar-create-action:hover {
+  background: var(--bg);
+  border-color: var(--border2);
+  box-shadow: var(--elev);
+  transform: translateY(-1px);
+}
+.app-sidebar-create-action:active { transform: translateY(0); }
+.app-sidebar-create-action:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+.app-sidebar-create-action-wrap--collapsed {
+  padding: 4px 8px 16px;
+}
+.app-sidebar-create-action-wrap--collapsed .app-sidebar-create-action {
+  justify-content: center;
+  padding: 0;
   border-radius: 50%;
   width: 48px;
   height: 48px;
-}
-.em-shell-compose-btn:hover {
-  box-shadow: var(--elev);
-}
-
-[data-theme="dark"] .em-shell-compose-btn {
-  background: rgba(255,255,255,.08);
-  color: rgba(255,255,255,.85);
-  box-shadow: var(--elev-sm);
-}
-[data-theme="dark"] .em-shell-compose-btn:hover {
-  background: rgba(255,255,255,.12);
+  min-height: 48px;
 }
 
 /* ── Top loading progress bar for Sidebar ── */
@@ -886,4 +905,3 @@ html[data-expanded="true"] .app-sidebar {
 [data-semi-dark="true"] .app-sb-skeleton-text {
   background: rgba(255, 255, 255, 0.08);
 }
-

@@ -8,8 +8,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 0 24px;
+  gap: 12px;
+  padding: 0 18px;
   height: 56px;
   border-bottom: 1px solid var(--border);
   background: var(--white);
@@ -22,14 +22,15 @@
 .ah-header-left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   flex-shrink: 0;
+  min-width: fit-content;
 }
 
 .ah-header-mark {
   width: 32px;
   height: 32px;
-  border-radius: var(--r-sm, 8px);
+  border-radius: var(--r-sm);
   background: var(--teal);
   border: none;
   cursor: pointer;
@@ -49,15 +50,17 @@
 .ah-header-brand-lockup {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   cursor: default;
+  user-select: none;
+  flex-shrink: 0;
 }
 
 .ah-app-icon-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--r-sm, 8px);
+  border-radius: var(--r-sm);
   overflow: hidden;
   box-shadow: var(--elev-sm);
   flex-shrink: 0;
@@ -68,27 +71,28 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 .ah-brand-title {
   font-family: var(--font);
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 800;
   color: var(--ink);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
 }
 
 .ah-brand-divider {
   color: var(--ink3);
   font-size: 13px;
   font-weight: 400;
-  margin: 0 2px;
+  margin: 0 1px;
   opacity: 0.6;
 }
 
 .ah-assignee-label {
   font-family: var(--font);
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--ink2);
 }
@@ -96,35 +100,37 @@
 .ah-header-center {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   flex: 1;
   justify-content: center;
-  max-width: 860px;
   min-width: 0;
 }
 
-/* ── Perfected Segmented Tabs ── */
+/* ── Perfected Segmented Tabs (Hudumika Design System) ── */
 .ah-header-tabs {
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .ah-tabs-list {
-  background: var(--bg);
+  background: var(--card-sunken);
   border: 1px solid var(--border);
   border-radius: 9999px;
   padding: 3px;
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  /* Four tabs never need to scroll. The shared .ds-tabs-list is
-     overflow-x:auto and sized to its own content, so a sub-pixel font-width
-     difference made a stray scrollbar appear at the row's right edge and
-     clip the last tab. Narrow windows collapse labels to icons instead
-     (see the media queries below), so there is nothing to scroll to. */
-  overflow: visible;
-  max-width: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
   flex-wrap: nowrap;
   white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.ah-tabs-list::-webkit-scrollbar {
+  display: none;
 }
 
 /* Waiting-on-you count on the Agent Flow tab. */
@@ -137,18 +143,19 @@
   color: var(--gold);
   border: 1px solid var(--gold);
   box-sizing: border-box;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
-  line-height: 16px;
+  line-height: 14px;
   text-align: center;
   font-variant-numeric: tabular-nums;
+  margin-left: 2px;
 }
 
 .ah-tab-trigger {
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 9999px;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--ink2);
   display: flex;
   align-items: center;
@@ -157,11 +164,14 @@
   border: none;
   background: transparent;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: var(--font);
 }
 
 .ah-tab-trigger:hover {
   color: var(--ink);
-  background: rgba(0, 0, 0, 0.03);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .ah-tab-trigger[data-state="active"] {
@@ -171,28 +181,39 @@
   box-shadow: var(--elev-sm);
 }
 
-.ah-header-search {
-  position: relative;
-  flex: 1;
-  max-width: 340px;
-  min-width: 160px;
+[data-theme="dark"] .ah-tab-trigger[data-state="active"] {
+  background: var(--bg);
+  color: var(--white);
 }
 
-.ah-header-search > svg {
+/* ── Search Bar (Live AJAX Search + Shortcut) ── */
+.ah-header-search {
+  position: relative;
+  flex: 0 1 240px;
+  min-width: 130px;
+  transition: flex-basis 0.2s ease, max-width 0.2s ease;
+}
+
+.ah-header-search--focused {
+  flex: 0 1 290px;
+}
+
+.ah-search-icon {
   position: absolute;
-  left: 12px;
+  left: 10px;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
+  color: var(--ink3);
 }
 
-.ah-header-search input {
+.ah-search-input {
   width: 100%;
   height: 34px;
-  border-radius: 9999px;
+  border-radius: var(--r);
   background: var(--bg);
   border: 1px solid var(--border);
-  padding: 0 14px 0 34px;
+  padding: 0 32px 0 30px;
   font-size: 12.5px;
   color: var(--ink);
   font-family: var(--font);
@@ -201,55 +222,157 @@
   transition: all 0.15s ease;
 }
 
-.ah-header-search input:focus {
+.ah-search-input:focus {
   border-color: var(--teal);
   background: var(--white);
   box-shadow: 0 0 0 3px var(--teal-l);
 }
 
+.ah-search-kbd {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink3);
+  background: var(--card-sunken);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: var(--mono);
+  pointer-events: none;
+}
+
+.ah-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: var(--card-sunken);
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.ah-search-clear:hover {
+  background: var(--border2);
+  color: var(--ink);
+}
+
+/* AJAX Search dropdown */
 .ah-search-dropdown {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  right: 0;
+  width: 320px;
+  max-width: calc(100vw - 32px);
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  box-shadow: var(--elev);
-  max-height: 320px;
+  border-radius: var(--r);
+  box-shadow: var(--elev-lg);
+  max-height: 340px;
   overflow-y: auto;
-  z-index: 30;
+  z-index: 50;
+}
+
+.ah-search-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+  border-bottom: 1px solid var(--border);
+  background: var(--card-sunken);
+  font-family: var(--font);
+}
+
+.ah-search-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink2);
 }
 
 .ah-search-row {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   text-align: left;
-  padding: 9px 12px;
+  padding: 8px 12px;
   border: none;
   background: none;
   cursor: pointer;
-  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s ease;
+  font-family: var(--font);
 }
 
-.ah-search-row:first-child {
-  border-top: none;
+.ah-search-row:last-child {
+  border-bottom: none;
 }
 
 .ah-search-row:hover {
   background: var(--bg);
 }
 
+.ah-search-row-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-sm);
+  background: var(--teal-l);
+  color: var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ah-search-row-body {
+  flex: 1;
+  min-width: 0;
+}
+
 .ah-search-primary {
   font-size: 12.5px;
   color: var(--ink);
-  font-weight: 500;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ah-search-secondary {
   font-size: 11px;
   color: var(--ink3);
   margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ah-search-jump {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--teal);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  flex-shrink: 0;
+}
+
+.ah-search-row:hover .ah-search-jump {
+  opacity: 1;
 }
 
 .ah-header-right {
@@ -521,6 +644,21 @@
 
 .ah-operations-embed { display: flex; flex-direction: column; min-height: 0; height: 100%; }
 
+/* Automations' ReactFlow canvas resolves its own `height: 100%` against
+   this element the same way WorkspaceHome resolves against
+   .ah-operations-embed just above — a wrapper with no explicit height
+   would collapse it to zero instead of filling the tab. */
+.ah-automations-embed { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+
+/* Insights/Controls keep their own PageHeader + centered-column layout
+   (same components AIShell.tsx renders standalone) — this only adds the
+   horizontal breathing room .ah-scroll itself doesn't provide, matching
+   .hub2-welcome-band's 40px gutter used elsewhere on this page. */
+.ah-subpage-embed { padding-left: 40px; padding-right: 40px; }
+@media (max-width: 640px) {
+  .ah-subpage-embed { padding-left: 16px; padding-right: 16px; }
+}
+
 /* ── Chat FAB + panel ── */
 .ah-chat-fab {
   position: absolute; bottom: 24px; right: 24px; width: 48px; height: 48px; border-radius: 50%;
@@ -604,10 +742,10 @@
   margin-top: 2px;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1200px) {
   .ah-header {
-    padding: 0 16px;
-    gap: 12px;
+    padding: 0 14px;
+    gap: 10px;
   }
   .ah-header-brand-lockup .ah-assignee-label {
     display: none;
@@ -616,36 +754,29 @@
     display: none;
   }
   .ah-header-search {
-    max-width: 220px;
+    flex: 0 1 200px;
   }
 }
 
-/* Tabs collapse to icon-only before they can crowd the search box out —
-   the label is also the tooltip and aria-label on each trigger, so nothing
-   becomes unreachable. */
-@media (max-width: 1040px) {
-  .ah-tab-label {
-    display: none;
-  }
-  .ah-tab-trigger {
-    padding: 6px 12px;
-  }
-  .ah-header-context-ref {
-    display: none;
-  }
-}
-
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   .ah-header {
-    padding: 8px 12px;
+    padding: 0 12px;
     gap: 8px;
   }
-  .ah-header-search {
-    max-width: 200px;
-    min-width: 120px;
+  .ah-tab-trigger {
+    padding: 5px 10px;
+    font-size: 12px;
+    gap: 4px;
   }
   .ah-header-context-ref {
     display: none;
+  }
+  .ah-header-search {
+    flex: 0 1 170px;
+    min-width: 110px;
+  }
+  .ah-header-search--focused {
+    flex: 0 1 240px;
   }
   .ah-body {
     grid-template-columns: 1fr;
@@ -669,25 +800,50 @@
   }
 }
 
-@media (max-width: 640px) {
-  .ah-header-brand-lockup .ah-brand-meta {
-    display: none;
-  }
-  .ah-header-search {
-    display: none;
+@media (max-width: 680px) {
+  .ah-header {
+    height: auto;
+    min-height: 52px;
+    padding: 6px 10px;
+    flex-wrap: wrap;
+    gap: 6px;
   }
   .ah-header-left {
     gap: 8px;
   }
-  .ah-header-center {
-    justify-content: flex-start;
+  .ah-header-brand-lockup .ah-brand-title {
+    font-size: 13.5px;
   }
-  .ah-header-tabs [role="tab"] {
+  .ah-header-center {
+    order: 3;
+    width: 100%;
+    flex-basis: 100%;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: 2px;
+    padding-bottom: 2px;
+  }
+  .ah-header-tabs {
+    flex: 1;
+    min-width: 0;
+  }
+  .ah-tab-trigger {
     padding: 4px 8px;
-    font-size: 12px;
+    font-size: 11.5px;
+  }
+  .ah-header-search {
+    flex: 0 1 120px;
+    min-width: 80px;
+  }
+  .ah-header-search--focused {
+    flex: 1 1 100%;
+  }
+  .ah-search-kbd {
+    display: none;
   }
   .ah-header-right {
     gap: 4px;
+    margin-left: auto;
   }
 }
 

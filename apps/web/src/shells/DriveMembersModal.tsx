@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useCloud, DriveRole } from './cloud-context.js';
+import { useCloud, DriveRole, DriveMemberCandidate } from './cloud-context.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 
@@ -13,19 +13,43 @@ const ROLE_OPTIONS: { value: DriveRole; label: string }[] = [
 ];
 
 export function DriveMembersModal({ driveId, driveName, onClose }: { driveId: string; driveName: string; onClose: () => void }) {
-  const { driveMembers, driveMembersLoading, loadDriveMembers, addDriveMember, updateDriveMemberRole, removeDriveMember } = useCloud();
-  const [name, setName] = useState('');
+  const {
+    driveMembers, driveMembersLoading, loadDriveMembers, searchDriveMemberCandidates, addDriveMember, updateDriveMemberRole, removeDriveMember,
+  } = useCloud();
+  const [query, setQuery] = useState('');
+  const [candidates, setCandidates] = useState<DriveMemberCandidate[]>([]);
+  const [picked, setPicked] = useState<DriveMemberCandidate | null>(null);
   const [role, setRole] = useState<DriveRole>('viewer');
   const [busy, setBusy] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { loadDriveMembers(driveId); }, [driveId, loadDriveMembers]);
 
+  // Real tenant staff only — replaces the old free-text "type a name" field,
+  // which never identified a real workspace account (drives.routes.ts used
+  // to store whatever string was typed as person_name, with no principal_id
+  // to actually gate access on).
+  useEffect(() => {
+    if (picked) return; // a candidate is already selected; don't keep searching under it
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!query.trim()) { setCandidates([]); return; }
+    searchTimer.current = setTimeout(async () => {
+      const already = new Set(driveMembers.map(m => m.principal_id).filter(Boolean));
+      const results = await searchDriveMemberCandidates(driveId, query.trim());
+      setCandidates(results.filter(c => !already.has(c.id)));
+    }, 250);
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [query, picked, driveId, driveMembers, searchDriveMemberCandidates]);
+
   async function handleAdd() {
-    const n = name.trim();
-    if (!n) return;
+    if (!picked) return;
     setBusy(true);
-    try { await addDriveMember(driveId, n, role); setName(''); setRole('viewer'); }
-    finally { setBusy(false); }
+    try {
+      await addDriveMember(driveId, picked.id, role);
+      setPicked(null); setQuery(''); setCandidates([]); setRole('viewer');
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -39,23 +63,54 @@ export function DriveMembersModal({ driveId, driveName, onClose }: { driveId: st
           Everyone with access to this shared drive and what they can do in it.
         </p>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <input
-            autoFocus
-            value={name}
-            onChange={e => setName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
-            placeholder="Add a person by name…"
-            className="input-field"
-            style={{ flex: 1 }}
-          />
-          <Select value={role} onValueChange={v => setRole(v as DriveRole)}>
-            <SelectTrigger className="input-field" style={{ width: 150, fontSize: 'var(--text-sm)' }}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {ROLE_OPTIONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <button onClick={handleAdd} className="btn btn-primary btn-sm" disabled={!name.trim() || busy}>Add</button>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              {picked ? (
+                <div className="input-field" style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{picked.name || picked.email}</span>
+                  <button onClick={() => { setPicked(null); setQuery(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+                    <Icon name="x" size={13} />
+                  </button>
+                </div>
+              ) : (
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Search staff by name or email…"
+                  className="input-field"
+                  style={{ width: '100%' }}
+                />
+              )}
+              {!picked && candidates.length > 0 && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, zIndex: 10,
+                  background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
+                  boxShadow: 'var(--elev)', maxHeight: 180, overflowY: 'auto',
+                }}>
+                  {candidates.map(c => (
+                    <div
+                      key={c.id}
+                      onClick={() => { setPicked(c); setCandidates([]); }}
+                      style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 'var(--text-sm)', color: 'var(--ink)' }}
+                      onMouseDown={e => e.preventDefault()}
+                    >
+                      <div style={{ fontWeight: 600 }}>{c.name || 'Unnamed'}</div>
+                      {c.email && <div style={{ color: 'var(--ink3)', fontSize: 'var(--text-xs)' }}>{c.email}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Select value={role} onValueChange={v => setRole(v as DriveRole)}>
+              <SelectTrigger className="input-field" style={{ width: 150, fontSize: 'var(--text-sm)' }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ROLE_OPTIONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <button onClick={handleAdd} className="btn btn-primary btn-sm" disabled={!picked || busy}>Add</button>
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 280, overflowY: 'auto' }}>
@@ -67,7 +122,10 @@ export function DriveMembersModal({ driveId, driveName, onClose }: { driveId: st
           )}
           {driveMembers.map(m => (
             <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px' }}>
-              <span style={{ flex: 1, fontSize: 'var(--text-base)', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.person_name}</span>
+              <span style={{ flex: 1, fontSize: 'var(--text-base)', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {m.person_name}
+                {!m.principal_id && <span style={{ color: 'var(--ink3)', fontSize: 'var(--text-xs)' }}> (unresolved — added before real accounts were required)</span>}
+              </span>
               <Select value={m.role} onValueChange={v => updateDriveMemberRole(driveId, m.id, v as DriveRole)}>
                 <SelectTrigger className="input-field" style={{ width: 150, fontSize: 'var(--text-xs)' }}><SelectValue /></SelectTrigger>
                 <SelectContent>

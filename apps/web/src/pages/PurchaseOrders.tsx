@@ -14,6 +14,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showConfirm } from '../lib/confirm.js';
+import { showAlert } from '../lib/alert.js';
 import { getCompany } from '../data/companyStore.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Tip } from '../components/ui/tooltip.js';
@@ -259,8 +260,8 @@ export const PurchaseOrders: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   useEffect(() => {
-    apiFetch('/v1/products').then((d: any) => { if (Array.isArray(d)) setProducts(d.map(mapApiProduct)); }).catch(() => {});
-    apiFetch('/v1/inventory/warehouses').then((d: any) => { if (Array.isArray(d)) setWarehouses(d.map(mapApiWarehouse)); }).catch(() => {});
+    apiFetch('/v1/products').then((d: any) => { if (Array.isArray(d)) setProducts(d.map(mapApiProduct)); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load products.'));
+    apiFetch('/v1/inventory/warehouses').then((d: any) => { if (Array.isArray(d)) setWarehouses(d.map(mapApiWarehouse)); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load warehouses.'));
   }, []);
 
   const loadPOs = React.useCallback(async () => {
@@ -271,13 +272,13 @@ export const PurchaseOrders: React.FC = () => {
         try {
           const detail: any = await apiFetch(`/v1/purchase-orders/${po.id}`);
           return apiToPO(po, detail?.lines || [], products);
-        } catch {
-          return apiToPO(po, [], products);
+        } catch (err) {
+          throw new Error(err instanceof Error ? err.message : `Could not load ${po.po_number || 'a purchase order'}.`);
         }
       }));
       setPOs(withLines);
-    } catch {
-      setPOs([]);
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not load purchase orders.');
     } finally {
       setLoadingPOs(false);
     }
@@ -317,7 +318,7 @@ export const PurchaseOrders: React.FC = () => {
   // Real suppliers (from the backend) — sole source for the vendor picker.
   const [apiSuppliers, setApiSuppliers] = useState<any[]>([]);
   useEffect(() => {
-    apiFetch('/v1/suppliers').then((d: any) => { if (Array.isArray(d)) setApiSuppliers(d); }).catch(() => {});
+    apiFetch('/v1/suppliers').then((d: any) => { if (Array.isArray(d)) setApiSuppliers(d); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load suppliers.'));
   }, []);
   const allSuppliers: Supplier[] = useMemo(() => (
     apiSuppliers.map((s) => ({ id: s.id, name: s.name, email: s.email || '', billingAddress: s.address || '', shippingAddress: s.address || '' }))

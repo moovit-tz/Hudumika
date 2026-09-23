@@ -1,4 +1,5 @@
 import React from 'react';
+import { squirclePath, SQUIRCLE_PATH_40 } from '../lib/squircle.js';
 
 // ── Launcher app list ──────────────────────────────────────────
 // Shared between AppHeader (mobile app icon, collapsed-sidebar icon) and
@@ -20,7 +21,6 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'cloud',     name: 'Cloud',    color: '#0369a1', path: '/cloud'     },
   { id: 'email',     name: 'Email',    color: '#0078d4', path: '/email'     },
   { id: 'contacts',  name: 'Contacts', color: '#1a73e8', path: '/contacts'  },
-  { id: 'ai',        name: 'AI',       color: '#6d28d9', path: '/ai'        },
   { id: 'store',     name: 'Store',    color: '#8b5cf6', path: '/store'     },
   { id: 'ondi',     name: 'Account & Security', color: '#4253d1', path: '/ondi/personal' },
   { id: 'tracking',  name: 'HuduFreight', color: '#0891b2', path: '/tracking'  },
@@ -103,21 +103,27 @@ export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
 };
 
 export function LauncherAppSvg({ id, color, logoUrl, size = 52 }: { id: string; color: string; logoUrl?: string; size?: number }) {
-  const r = Math.round(size * 0.275);
   const [broken, setBroken] = React.useState(false);
+  React.useEffect(() => setBroken(false), [logoUrl]);
+  // Every app icon platform-wide — vector brand icon or a custom uploaded
+  // logo — is clipped to the same squircle, not a fixed-pixel border-radius.
+  // The vector path (SQUIRCLE_PATH_40) is precomputed once for the shared
+  // 40×40 viewBox; the custom-logo div clips to its own rendered `size`
+  // since it isn't drawn in viewBox units.
+  const customClip = React.useMemo(() => `path('${squirclePath(size)}')`, [size]);
   // A stale/invalid saved logo URL (deleted upload, bad path) must never show
   // the browser's broken-image glyph — fall back to the vector brand icon.
   if (logoUrl && !broken) {
     return (
       <div className="app-lnch-custom-icon"
-        style={{ '--lnch-bg': color, '--lnch-sz': `${size}px`, '--lnch-r': `${r}px` } as React.CSSProperties}>
+        style={{ '--lnch-bg': color, '--lnch-sz': `${size}px`, clipPath: customClip } as React.CSSProperties}>
         <img src={logoUrl} alt={id} className="app-lnch-custom-icon-img" onError={() => setBroken(true)} />
       </div>
     );
   }
   return (
-    <svg viewBox="0 0 40 40" width={size} height={size} className="app-lnch-svg-icon">
-      <rect width={40} height={40} rx={11} fill={color} />
+    <svg viewBox="0 0 40 40" width={size} height={size} className="app-lnch-svg-icon" style={{ clipPath: customClip }}>
+      <path d={SQUIRCLE_PATH_40} fill={color} />
       {LAUNCHER_SVG_ICONS[id] ?? <rect x="10" y="10" width="20" height="20" rx="4" fill="white" opacity="0.7"/>}
     </svg>
   );

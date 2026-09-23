@@ -859,10 +859,11 @@
 
 /* ── AppSidebar brand logo image (custom logo override) ── */
 .app-sb-brand-logo-img {
-  width: 70%;
-  height: 70%;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
+  transform: scale(1.04);
 }
 
 /* ── Mobile (<768px) ── */
@@ -878,11 +879,6 @@
     padding: 0;
     border-radius: 8px;
     overflow: hidden;
-  }
-
-  /* App icon in mobile hamburger — rounded square, no extra padding */
-  .app-header-hamburger .app-lnch-svg-icon {
-    border-radius: 8px;
   }
 
   .app-header-search {
@@ -962,10 +958,6 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-}
-
-.app-header-mobile-app-icon .app-lnch-svg-icon {
-  border-radius: 6px;
 }
 
 /* ── Header announcement pill ──────────────────────────────────────────────
@@ -1369,5 +1361,4 @@
   background: rgba(220, 38, 38, 0.15) !important;
   color: #ef4444 !important;
 }
-
 

@@ -228,7 +228,7 @@ export function DeliveryDocumentsPage() {
     setLoading(true);
     apiFetch(shipmentFilter ? `/v1/delivery-documents?shipment_id=${shipmentFilter}` : '/v1/delivery-documents')
       .then((res: any) => setRows(Array.isArray(res) ? res : []))
-      .catch(() => setRows([]))
+      .catch((err: any) => showAlert(err?.message || 'Could not load delivery documents.', { variant: 'error' }))
       .finally(() => setLoading(false));
   }, [shipmentFilter]);
   useEffect(load, [load]);

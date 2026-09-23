@@ -2,11 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
-import { useCloud, CloudView, CloudDrive, DriveType } from './cloud-context.js';
+import { useCloud, CloudView, CloudDrive } from './cloud-context.js';
 import { ConnectedAppsModal, STORAGE_PROVIDERS } from './ConnectedAppsModal.js';
 import { DriveMembersModal } from './DriveMembersModal.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '../components/ui/dropdown-menu.js';
-import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { fmtSize } from '../pages/cloud/lib/format.js';
 import { CATEGORY_EXT, categorizeBytes } from '../pages/cloud/lib/categories.js';
@@ -37,19 +36,18 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
 
   const [showCreateDrive, setShowCreateDrive] = useState(false);
   const [newDriveName, setNewDriveName] = useState('');
-  const [newDriveType, setNewDriveType] = useState<DriveType>('personal');
   const [renamingDrive, setRenamingDrive] = useState<CloudDrive | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [membersForDrive, setMembersForDrive] = useState<CloudDrive | null>(null);
 
   const personalDrives = drives.filter(d => d.type === 'personal');
   const sharedDrives = drives.filter(d => d.type === 'shared');
+  const businessDrives = drives.filter(d => d.type === 'business');
 
   function handleCreateDrive() {
     if (!newDriveName.trim()) return;
-    createDrive(newDriveName.trim(), newDriveType);
+    createDrive(newDriveName.trim());
     setNewDriveName('');
-    setNewDriveType('personal');
     setShowCreateDrive(false);
   }
 
@@ -59,8 +57,10 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
     setRenamingDrive(null);
   }
 
+  // Personal and Business Records drives are system-managed and the API
+  // flatly refuses to delete either — not offered as an option at all,
+  // rather than letting someone click Delete and land on an error toast.
   async function handleDeleteDrive(drive: CloudDrive) {
-    if (drives.length <= 1) { showAlert('You must keep at least one drive.'); return; }
     if ((await showConfirm(`Delete "${drive.name}" and everything in it? This can't be undone.`, { confirmLabel: 'Delete' }))) deleteDrive(drive.id);
   }
 
@@ -135,37 +135,37 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64 max-h-[360px] overflow-y-auto">
-            <DropdownMenuLabel>My Drives</DropdownMenuLabel>
+            <DropdownMenuLabel>My Drive</DropdownMenuLabel>
             {personalDrives.map(d => (
               <DropdownMenuItem key={d.id} onClick={() => switchDrive(d.id)}
                 className={d.id === currentDriveId ? 'bg-accent text-accent-foreground' : ''}>
                 <Icon name="folder" size={14} color={d.id === currentDriveId ? 'var(--teal)' : 'var(--ink3)'} />
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      title="Drive actions"
-                      onClick={e => e.stopPropagation()}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--ink3)' }}
-                    ><Icon name="moreHorizontal" size={14} /></button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => { setRenamingDrive(d); setRenameValue(d.name); }}>
-                      <Icon name="edit" size={14} color="var(--ink3)" /> Rename
-                    </DropdownMenuItem>
-                    {d.type === 'shared' && (
-                      <DropdownMenuItem onClick={() => setMembersForDrive(d)}>
-                        <Icon name="userPlus" size={14} color="var(--ink3)" /> Manage members
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleDeleteDrive(d)} className="text-destructive focus:text-destructive">
-                      <Icon name="trash" size={14} /> Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {/* Private — only its owner ever sees this entry at all
+                    (GET /v1/drives scopes personal drives to owner_id), so
+                    no rename/delete menu is needed beyond what's already
+                    reachable elsewhere; system-managed, never deletable. */}
+                <button
+                  title="Rename"
+                  onClick={e => { e.stopPropagation(); setRenamingDrive(d); setRenameValue(d.name); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--ink3)' }}
+                ><Icon name="edit" size={13} /></button>
               </DropdownMenuItem>
             ))}
+
+            {businessDrives.length > 0 && (
+              <>
+                <DropdownMenuLabel>Business Records</DropdownMenuLabel>
+                {businessDrives.map(d => (
+                  <DropdownMenuItem key={d.id} onClick={() => switchDrive(d.id)}
+                    className={d.id === currentDriveId ? 'bg-accent text-accent-foreground' : ''}>
+                    <Icon name="briefcase" size={14} color={d.id === currentDriveId ? 'var(--teal)' : 'var(--ink3)'} />
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ink3)' }}>Shared with everyone</span>
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )}
 
             <DropdownMenuLabel>Shared Drives</DropdownMenuLabel>
             {sharedDrives.length === 0 && (
@@ -188,11 +188,9 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
                     <DropdownMenuItem onClick={() => { setRenamingDrive(d); setRenameValue(d.name); }}>
                       <Icon name="edit" size={14} color="var(--ink3)" /> Rename
                     </DropdownMenuItem>
-                    {d.type === 'shared' && (
-                      <DropdownMenuItem onClick={() => setMembersForDrive(d)}>
-                        <Icon name="userPlus" size={14} color="var(--ink3)" /> Manage members
-                      </DropdownMenuItem>
-                    )}
+                    <DropdownMenuItem onClick={() => setMembersForDrive(d)}>
+                      <Icon name="userPlus" size={14} color="var(--ink3)" /> Manage members
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => handleDeleteDrive(d)} className="text-destructive focus:text-destructive">
                       <Icon name="trash" size={14} /> Delete
@@ -389,26 +387,11 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
                 style={{ width: '100%' }}
               />
             </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 8 }}>Type</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => setNewDriveType('personal')}
-                  className={newDriveType === 'personal' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-                  style={{ flex: 1 }}
-                ><Icon name="folder" size={13} /> Personal</button>
-                <button
-                  onClick={() => setNewDriveType('shared')}
-                  className={newDriveType === 'shared' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-                  style={{ flex: 1 }}
-                ><Icon name="users" size={13} /> Shared</button>
-              </div>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--ink3)', margin: '8px 0 0' }}>
-                {newDriveType === 'shared'
-                  ? 'A shared drive has its own member list with roles, separate from your personal drives.'
-                  : 'A personal drive is your own — you can still share individual files or folders from it.'}
-              </p>
-            </div>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--ink3)', margin: '0 0 20px' }}>
+              A shared drive has its own member list with roles, separate from your own Drive. Your personal
+              drive and the tenant's Business Records are both created automatically — this always creates a
+              new shared drive.
+            </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={() => setShowCreateDrive(false)} className="btn btn-secondary btn-sm">Cancel</button>
               <button onClick={handleCreateDrive} className="btn btn-primary btn-sm" disabled={!newDriveName.trim()}>Create</button>

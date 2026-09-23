@@ -92,19 +92,22 @@ async function persistRefreshedUserToken(tenantId: string, userId: string, provi
   });
 }
 
-/**
- * A user's own configured send identity (migration 491's send_protocol,
- * smtp, outlook, and gmail columns on user_email_accounts) — null when the
- * user hasn't set one up (send_protocol is 'platform', the default), so the
- * caller falls through to the tenant/system identity exactly as before this
- * feature existed. Built the same way the tenant-level branches below build
- * theirs, just sourced from this one user's row instead of tenant_settings.
- */
-async function buildUserTransporter(tenantId: string, userId: string): Promise<{ transporter: nodemailer.Transporter; fromName: string; fromAddress: string } | null> {
-  const row = await withTenant(tenantId, (trx) =>
-    trx.selectFrom('user_email_accounts').selectAll().where('user_id', '=', userId).executeTakeFirst());
-  if (!row || row.send_protocol === 'platform') return null;
+interface SendIdentityRow {
+  send_protocol: string;
+  smtp_host: string | null; smtp_port: number; smtp_user: string | null; smtp_pass: string | null; smtp_encryption: string;
+  from_name: string | null; from_email: string | null;
+  outlook_access_token: string | null; outlook_refresh_token: string | null; outlook_token_expires_at: Date | null;
+  gmail_access_token: string | null; gmail_refresh_token: string | null; gmail_token_expires_at: Date | null;
+}
 
+/** Shared by the legacy single identity on user_email_accounts (migration
+ *  491) and the newer multi-alias email_send_identities table (migration
+ *  494, "Send mail as") — same column shape, same three protocols, just a
+ *  different source row and a different place to persist a refreshed OAuth
+ *  token back to. */
+async function transporterFromIdentityRow(
+  tenantId: string, row: SendIdentityRow, persistToken: (provider: 'outlook' | 'gmail', tokenInfo: { accessToken: string; expires?: number }) => void,
+): Promise<{ transporter: nodemailer.Transporter; fromName: string; fromAddress: string } | null> {
   if (row.send_protocol === 'smtp') {
     if (!row.smtp_host || !row.smtp_user || !row.smtp_pass) return null;
     const transporter = buildSmtpTransporter({
@@ -150,8 +153,7 @@ async function buildUserTransporter(tenantId: string, userId: string): Promise<{
   } as any);
 
   transporter.on('token', (tokenInfo: { accessToken: string; expires?: number }) => {
-    persistRefreshedUserToken(tenantId, userId, row.send_protocol as 'outlook' | 'gmail', tokenInfo)
-      .catch(err => console.error(`[EmailIntegration] failed to persist refreshed user ${row.send_protocol} token:`, err.message));
+    persistToken(row.send_protocol as 'outlook' | 'gmail', tokenInfo);
   });
 
   // Same limitation the tenant-level OAuth branch below already has: the
@@ -159,6 +161,49 @@ async function buildUserTransporter(tenantId: string, userId: string): Promise<{
   // fromEmail has to be set explicitly in Email Settings for OAuth sending
   // to use the right address (the UI prompts for it once a provider connects).
   return { transporter, fromName: row.from_name || 'Hudumika', fromAddress: row.from_email || '' };
+}
+
+/**
+ * A user's own configured send identity — checked in two places, in order:
+ * (1) a default row in email_send_identities (migration 494's "Send mail
+ * as" list — multiple named aliases, one marked default), then (2) the
+ * older single identity directly on user_email_accounts (migration 491).
+ * Null when neither is configured, so the caller falls through to the
+ * tenant/system identity exactly as before either feature existed — every
+ * existing user who never touches "Send mail as" is completely unaffected.
+ */
+async function buildUserTransporter(tenantId: string, userId: string, fromIdentityId?: string | null): Promise<{ transporter: nodemailer.Transporter; fromName: string; fromAddress: string } | null> {
+  const identity = await withTenant(tenantId, (trx) => {
+    let q = trx.selectFrom('email_send_identities').selectAll().where('user_id', '=', userId);
+    // An explicit per-message choice (Compose's "From" picker) wins over
+    // whatever's marked default; falls through to the default-row lookup
+    // when unset, same as always.
+    q = fromIdentityId ? q.where('id', '=', fromIdentityId) : q.where('is_default', '=', true);
+    return q.executeTakeFirst();
+  });
+  if (identity) {
+    const result = await transporterFromIdentityRow(tenantId, identity, (provider, tokenInfo) => {
+      // Aliases are SMTP-only for now (see email-identities.routes.ts) — no
+      // code path ever writes an outlook/gmail refresh token onto this
+      // table yet, so this branch is unreachable today but kept correct
+      // rather than throwing, in case that changes.
+      withTenant(tenantId, async (trx2) => {
+        const patch = provider === 'outlook'
+          ? { outlook_access_token: encryptSecret(tokenInfo.accessToken), ...(tokenInfo.expires ? { outlook_token_expires_at: new Date(tokenInfo.expires) } : {}) }
+          : { gmail_access_token: encryptSecret(tokenInfo.accessToken), ...(tokenInfo.expires ? { gmail_token_expires_at: new Date(tokenInfo.expires) } : {}) };
+        await trx2.updateTable('email_send_identities').set({ ...patch, updated_at: new Date() }).where('id', '=', identity.id).execute();
+      }).catch(err => console.error('[EmailIntegration] failed to persist refreshed identity token:', err.message));
+    });
+    if (result) return result;
+  }
+
+  const row = await withTenant(tenantId, (trx) =>
+    trx.selectFrom('user_email_accounts').selectAll().where('user_id', '=', userId).executeTakeFirst());
+  if (!row || row.send_protocol === 'platform') return null;
+  return transporterFromIdentityRow(tenantId, row, (provider, tokenInfo) => {
+    persistRefreshedUserToken(tenantId, userId, provider, tokenInfo)
+      .catch(err => console.error(`[EmailIntegration] failed to persist refreshed user ${provider} token:`, err.message));
+  });
 }
 
 export class EmailIntegration {
@@ -187,10 +232,15 @@ export class EmailIntegration {
      *  (payroll, workflow notifications, etc.), which should always use the
      *  shared tenant identity regardless of who triggered it. */
     userId?: string;
+    /** An explicit "Send mail as" alias chosen in Compose's From picker
+     *  (email_send_identities id) — overrides whichever alias is marked
+     *  default for this send only. Unset (the common case) uses the
+     *  default, exactly as before this feature existed. */
+    fromIdentityId?: string | null;
   }): Promise<{ success: boolean; messageId?: string; error?: string; simulated?: boolean }> {
     try {
       if (input.tenantId && input.userId) {
-        const userIdentity = await buildUserTransporter(input.tenantId, input.userId).catch(() => null);
+        const userIdentity = await buildUserTransporter(input.tenantId, input.userId, input.fromIdentityId).catch(() => null);
         if (userIdentity) {
           const info = await userIdentity.transporter.sendMail({
             from: `"${userIdentity.fromName}" <${userIdentity.fromAddress}>`,

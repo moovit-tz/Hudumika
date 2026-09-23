@@ -21,6 +21,7 @@ import { runMailOutboxJob } from './mail-outbox.job.js';
 import { runImapTicketIngestJob } from './imap-ticket-ingest.job.js';
 import { runImapEmailIngestJob } from './imap-email-ingest.job.js';
 import { runScheduledEmailSendJob } from './scheduled-email-send.job.js';
+import { runFinanceDocumentFilingJob } from './finance-document-filing.job.js';
 import { runSanctionsSyncJob } from './sanctions-sync.job.js';
 import { runDailyShipmentReportJob } from './daily-shipment-report.job.js';
 import { runSignExpiryJob } from './sign-expiry.job.js';
@@ -120,6 +121,7 @@ let mailOutboxQueue: Queue | null = null;
 let imapTicketQueue: Queue | null = null;
 let imapEmailQueue: Queue | null = null;
 let scheduledEmailSendQueue: Queue | null = null;
+let financeDocFilingQueue: Queue | null = null;
 let smsOutboxQueue: Queue | null = null;
 let meetingDurationQueue: Queue | null = null;
 let signForensicVerifyQueue: Queue | null = null;
@@ -235,6 +237,7 @@ function startBullMQ(): void {
     imapTicketQueue = track(new Queue('imap-ticket-ingest', { connection: redisConnection as any }));
     imapEmailQueue = track(new Queue('imap-email-ingest', { connection: redisConnection as any }));
     scheduledEmailSendQueue = track(new Queue('scheduled-email-send', { connection: redisConnection as any }));
+    financeDocFilingQueue = track(new Queue('finance-document-filing', { connection: redisConnection as any }));
     meetingDurationQueue = track(new Queue('meeting-duration-limit', { connection: redisConnection as any }));
     smsOutboxQueue = track(new Queue('sms-outbox', { connection: redisConnection as any }));
     signForensicVerifyQueue = track(new Queue('sign-forensic-verify', { connection: redisConnection as any }));
@@ -465,6 +468,16 @@ function startBullMQ(): void {
       { connection: redisConnection as any }
     ));
 
+    track(new Worker(
+      'finance-document-filing',
+      async (job) => {
+        if (job.name === 'sweep') {
+          await runFinanceDocumentFilingJob();
+        }
+      },
+      { connection: redisConnection as any }
+    ));
+
     // Worker for the meeting duration limit sweep — its own queue, same
     // "needs to happen promptly" 1-min cadence as mail/SMS outbox above:
     // a meeting running past its cap should be ended within about a
@@ -683,6 +696,10 @@ function startBullMQ(): void {
 
     scheduledEmailSendQueue.add('sweep', {}, {
       repeat: { every: 15 * 1000 } // Every 15 seconds — finer than the default 10s undo window needs
+    }).catch(console.error);
+
+    financeDocFilingQueue.add('sweep', {}, {
+      repeat: { every: 60 * 1000 } // Every minute — filing is idempotent, and a document appearing in Drive within about a minute of being issued is prompt enough
     }).catch(console.error);
 
     meetingDurationQueue.add('sweep', {}, {
@@ -955,6 +972,12 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runScheduledEmailSendJob().catch(console.error);
   }, 15 * 1000);
+
+  // Finance document filing sweep — every minute; idempotent by design (see
+  // finance-document-filing.job.ts), safe to overlap the inline invoice path.
+  setInterval(() => {
+    runFinanceDocumentFilingJob().catch(console.error);
+  }, 60 * 1000);
 
   // Meeting duration limit sweep — every 1 minute, same cadence and
   // safe-to-rerun reasoning as mail/SMS outbox: each meeting is only ever

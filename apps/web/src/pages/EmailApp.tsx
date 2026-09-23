@@ -9,6 +9,22 @@ import { showAlert } from '../lib/alert.js';
 import { addTodo } from '../data/calendarStore.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { Badge } from '../components/ui/badge.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '../components/ui/dialog.js';
+import { Button } from '../components/ui/button.js';
+import { DateRangePicker } from '../components/ui/date-picker.js';
+import { CheckboxRow, SwitchRow } from '../components/ui/list-item-row.js';
+import { RecipientChips, parseAddressList, formatAddressList, type RecipientChip } from '../components/RecipientChips.js';
+import { MeetingTimeSuggestor } from '../components/MeetingTimeSuggestor.js';
+import { DescribeMessageInput } from '../components/DescribeMessageInput.js';
+import { SignatureManager, type EmailSignature } from '../components/SignatureManager.js';
+import { IdentityManager, type EmailSendIdentity } from '../components/IdentityManager.js';
+import { AdvancedEmailSearch, type AdvancedSearchQuery } from '../components/AdvancedEmailSearch.js';
+import { FilterManager } from '../components/FilterManager.js';
+import { useAuth } from '../hooks/useAuth.js';
 import './EmailApp.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -26,6 +42,7 @@ interface EmailLabel {
   id: string;
   name: string;
   color: string;
+  hidden?: boolean;
 }
 
 /** A per-user canned-reply/quick-response snippet (email_quick_templates) —
@@ -112,8 +129,6 @@ interface ComposeData {
   bcc: string;
   subject: string;
   body: string;
-  showCc: boolean;
-  showBcc: boolean;
   requestReadReceipt: boolean;
   attachments: PendingAttachment[];
   /** Set once this compose has been saved as a draft at least once, so
@@ -127,6 +142,14 @@ interface ComposeData {
    *  (still goes through the short undo-send window, just not a caller-
    *  chosen future time). */
   sendAt: string | null;
+  /** True when this compose is a Forward — Gmail's signature defaults treat
+   *  forward the same as reply (one "on reply/forward" default), even
+   *  though forwarding otherwise reuses the plain Compose window/state. */
+  isForward: boolean;
+  /** Compose's "From" picker (email_send_identities) — null = whichever
+   *  alias is marked default at send time, hidden entirely when the user
+   *  has no additional aliases configured. */
+  fromIdentityId: string | null;
 }
 
 interface EmailAccountSettings {
@@ -151,6 +174,17 @@ interface EmailAccountSettings {
   fromEmail: string;
   outlookStatus: string | null;
   gmailStatus: string | null;
+  vacationEnabled: boolean;
+  vacationStart: string | null;
+  vacationEnd: string | null;
+  vacationSubject: string;
+  vacationMessage: string;
+  vacationContactsOnly: boolean;
+  vacationDomainOnly: boolean;
+  forwardToEmail: string | null;
+  forwardKeepCopy: boolean;
+  inboxSort: 'default' | 'unread_first' | 'starred_first';
+  autoAdvance: 'list' | 'newer' | 'older';
 }
 
 const PAGE_SIZE = 15;
@@ -201,6 +235,7 @@ export const EmailApp: React.FC = () => {
   const location = useLocation();
   const navigate  = useNavigate();
   const { setMobileOpen } = useContext(MobileNavContext);
+  const { user } = useAuth();
 
   // Derive active folder from URL path
   const folderFromPath = ((): Folder => {
@@ -228,6 +263,14 @@ export const EmailApp: React.FC = () => {
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filterByLabel, setFilterByLabel] = useState<Label | null>(null);
+
+  // Folder/label counts live in EmailShell. Any optimistic mailbox change
+  // schedules a server recount; the shell also polls as a recovery path for
+  // new mail arriving in another process or browser tab.
+  useEffect(() => {
+    if (emailsLoading) return;
+    window.dispatchEvent(new CustomEvent('hudumika:email-counts-changed'));
+  }, [emails, emailsLoading]);
 
   // Sync folder state when URL changes (sidebar nav click)
   useEffect(() => {
@@ -258,7 +301,7 @@ export const EmailApp: React.FC = () => {
     const oauth = params.get('oauth');
     if (!oauth) return;
     const provider = params.get('provider') === 'outlook' ? 'Microsoft' : 'Google';
-    if (oauth === 'success') showAlert(`${provider} connected — you can now send from it in Email Settings.`);
+    if (oauth === 'success') showAlert(`${provider} connected — you can now send from it in Email Settings.`, { variant: 'success' });
     else showAlert(params.get('msg') || `Could not connect to ${provider}.`);
     params.delete('oauth'); params.delete('provider'); params.delete('msg');
     navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
@@ -269,12 +312,40 @@ export const EmailApp: React.FC = () => {
   const [replyOpen, setReplyOpen] = useState(false);
   const [replySubject, setReplySubject] = useState('');
   const [replyBody, setReplyBody] = useState('');
+  // Recipients are only ever populated by openReply() below (Reply vs Reply
+  // All) — never defaulted in selectEmail(), since most opens are read-only
+  // and never touch the reply box at all.
+  const [replyTo, setReplyTo] = useState<RecipientChip[]>([]);
+  const [replyCc, setReplyCc] = useState<RecipientChip[]>([]);
+  const [replyBcc, setReplyBcc] = useState<RecipientChip[]>([]);
+  // Feature parity with Compose: read receipt, schedule send, and
+  // save-as-draft all exist there and were missing here for no real
+  // reason — a reply is still a message someone might want to defer or
+  // request a receipt on.
+  const [replyRequestReadReceipt, setReplyRequestReadReceipt] = useState(false);
+  const [replySendAt, setReplySendAt] = useState<string | null>(null);
+  const [replyDraftId, setReplyDraftId] = useState<string | null>(null);
+  const [replySaving, setReplySaving] = useState(false);
+  const replyDraftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Compose modal
   const [composeOpen, setComposeOpen] = useState(false);
+  // Gmail-style compose chrome: minimized collapses to just the header
+  // strip, full-screen expands to cover the viewport instead of the docked
+  // corner popup — the popup itself (position/size) is unchanged from
+  // before, these are two additional states layered on top of it.
+  const [composeMinimized, setComposeMinimized] = useState(false);
+  const [composeFullScreen, setComposeFullScreen] = useState(false);
+  // Reply can pop out of the inline thread panel into its own floating
+  // window — same chrome/behavior as Compose (minimize/full-screen/close),
+  // reused rather than duplicated. Docked (false) is the default, matching
+  // every reply before this feature existed.
+  const [replyPoppedOut, setReplyPoppedOut] = useState(false);
+  const [replyMinimized, setReplyMinimized] = useState(false);
+  const [replyFullScreen, setReplyFullScreen] = useState(false);
   const [compose, setCompose] = useState<ComposeData>({
-    to: '', cc: '', bcc: '', subject: '', body: '', showCc: false, showBcc: false,
-    requestReadReceipt: false, attachments: [], draftId: null, replyToId: null, sendAt: null,
+    to: '', cc: '', bcc: '', subject: '', body: '',
+    requestReadReceipt: false, attachments: [], draftId: null, replyToId: null, sendAt: null, isForward: false, fromIdentityId: null,
   });
   const [composeSaving, setComposeSaving] = useState(false);
   const composeDraftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -296,6 +367,27 @@ export const EmailApp: React.FC = () => {
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [blocklistInput, setBlocklistInput] = useState('');
+  // Which Settings tab is active — mirrors Gmail's own General / Labels /
+  // Inbox / Accounts / Filters and blocked addresses / Forwarding and
+  // POP-IMAP / Advanced strip. Settings outgrew a single-column dialog once
+  // multi-signature/multi-identity/filters landed, so it's now size="full"
+  // with real tabs instead of stacked sections in one scroll.
+  const [settingsTab, setSettingsTab] = useState<'general' | 'labels' | 'inbox' | 'accounts' | 'filters' | 'forwarding' | 'advanced'>('general');
+  // Fetched eagerly (not just when the Settings dialog opens) so a brand new
+  // Compose/Reply can show the signature it's about to send with — the
+  // dialog's own fetch still runs when opened, to guarantee freshness after
+  // an edit.
+  useEffect(() => { apiFetch('/v1/email/account').then(setSettings).catch(() => {}); }, []);
+  // Multiple named, rich signatures (email_signatures) — fetched eagerly for
+  // the same reason `settings` is: Compose/Reply need to resolve the right
+  // default the moment they open, not only after Settings has been opened
+  // once. SignatureManager's onChange keeps this in sync after any edit.
+  const [signatures, setSignatures] = useState<EmailSignature[]>([]);
+  useEffect(() => { apiFetch('/v1/email/signatures').then(setSignatures).catch(() => {}); }, []);
+  // "Send mail as" aliases (email_send_identities) — same eager-fetch
+  // reasoning: Compose's From picker needs the list the moment it opens.
+  const [identities, setIdentities] = useState<EmailSendIdentity[]>([]);
+  useEffect(() => { apiFetch('/v1/email/identities').then(setIdentities).catch(() => {}); }, []);
   const [imapTesting, setImapTesting] = useState(false);
   const [imapTestResult, setImapTestResult] = useState<{ success: boolean; error?: string } | null>(null);
   const [smtpTesting, setSmtpTesting] = useState(false);
@@ -337,12 +429,33 @@ export const EmailApp: React.FC = () => {
     return () => { clearInterval(id); clearTimeout(hideTimer); };
   }, [undoToast]);
 
-  // Listen for compose trigger from sidebar button
+  // Listen for compose trigger from sidebar button. Kept current via a ref
+  // (not a raw closure) since openCompose is a new function every render —
+  // a plain `() => openCompose()` captured only the mount-time version,
+  // whose `settings` closure was still null (the eager fetch hadn't
+  // resolved yet), so a sidebar-triggered compose could open without a
+  // signature depending on exactly when it was clicked.
+  const openComposeRef = useRef(openCompose);
+  openComposeRef.current = openCompose;
   useEffect(() => {
-    const handler = () => openCompose();
+    const handler = () => openComposeRef.current();
     window.addEventListener('hudumika:email-compose', handler);
     return () => window.removeEventListener('hudumika:email-compose', handler);
   }, []);
+
+  // The right-sidebar's own "Compose" button isn't always on this page —
+  // it links to /email?compose=1 so clicking it from another app lands
+  // here and opens the real compose window, rather than duplicating a
+  // second, thinner composer inline in that sidebar (see
+  // GoogleWorkspaceRightSidebar.tsx's own note on why that was removed).
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('compose') !== '1') return;
+    openComposeRef.current();
+    const params = new URLSearchParams(location.search);
+    params.delete('compose');
+    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   // Mobile (for list/detail split only — sidebar handled by AppSidebar)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -411,12 +524,38 @@ export const EmailApp: React.FC = () => {
     const t = setTimeout(() => setSearchDebounced(search.trim()), 350);
     return () => clearTimeout(t);
   }, [search]);
+  // Advanced Search's structured form (From/To/Subject/Has the words/
+  // Doesn't have/Size/Date within/Scope/Has attachment) — independent of,
+  // and combinable with, the plain search box above.
+  const [advancedSearch, setAdvancedSearch] = useState<AdvancedSearchQuery | null>(null);
+  // "Create filter" from the Advanced Search popover — opens Settings on
+  // the Filters tab, pre-filled with exactly what was just searched.
+  const [pendingFilterCriteria, setPendingFilterCriteria] = useState<AdvancedSearchQuery | null>(null);
+  function createFilterFromSearch(q: AdvancedSearchQuery) {
+    setPendingFilterCriteria(q);
+    setSettingsTab('filters');
+    setSettingsOpen(true);
+  }
 
   const loadEmails = useCallback(async () => {
     setEmailsLoading(true);
     try {
       const qs = new URLSearchParams({ folder: activeFolder, limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE) });
       if (searchDebounced) qs.set('search', searchDebounced);
+      if (advancedSearch) {
+        if (advancedSearch.from) qs.set('advFrom', advancedSearch.from);
+        if (advancedSearch.to) qs.set('advTo', advancedSearch.to);
+        if (advancedSearch.subject) qs.set('advSubject', advancedSearch.subject);
+        if (advancedSearch.hasWords) qs.set('advHasWords', advancedSearch.hasWords);
+        if (advancedSearch.doesntHave) qs.set('advDoesntHave', advancedSearch.doesntHave);
+        if (advancedSearch.hasAttachment) qs.set('advHasAttachment', '1');
+        if (advancedSearch.sizeCmp) qs.set('advSizeCmp', advancedSearch.sizeCmp);
+        if (advancedSearch.sizeMb != null) qs.set('advSizeMb', String(advancedSearch.sizeMb));
+        if (advancedSearch.dateWithin) qs.set('advDateWithin', advancedSearch.dateWithin);
+        if (advancedSearch.dateAfter) qs.set('advDateAfter', advancedSearch.dateAfter);
+        if (advancedSearch.dateBefore) qs.set('advDateBefore', advancedSearch.dateBefore);
+        if (advancedSearch.scope) qs.set('advScope', advancedSearch.scope);
+      }
       const res = await apiFetch(`/v1/emails?${qs.toString()}`);
       // Real server pagination — this used to return the whole matched
       // folder as a bare array and get sliced into pages of 15 client-side,
@@ -459,7 +598,7 @@ export const EmailApp: React.FC = () => {
     } finally {
       setEmailsLoading(false);
     }
-  }, [activeFolder, searchDebounced, page]);
+  }, [activeFolder, searchDebounced, page, advancedSearch]);
 
   useEffect(() => { loadEmails(); }, [loadEmails]);
   useEffect(() => {
@@ -470,6 +609,21 @@ export const EmailApp: React.FC = () => {
   // ── Derived list ──────────────────────────────────────────────────────────────
 
   const selectedEmail = emails.find(e => e.id === selectedId) ?? null;
+
+  // Nested/stacked conversation view — auto-loads the rest of the thread
+  // the moment a multi-message email opens (Gmail shows every message in a
+  // conversation without a separate click), rather than the old manual
+  // "View entire conversation" toggle. Keyed on selectedId, not the
+  // selectedEmail object (a new reference every fetch), so this only
+  // re-runs when the user actually navigates to a different message.
+  useEffect(() => {
+    if (selectedEmail?.threadId && (selectedEmail.threadCount ?? 1) > 1) {
+      openThreadView(selectedEmail.threadId);
+    } else {
+      setThreadMessages(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
   // Inbox only — a "suggested task" on a message you sent or discarded
   // doesn't make sense. Skips near-empty bodies too (nothing for the model
@@ -545,9 +699,69 @@ export const EmailApp: React.FC = () => {
     selectEmail(email.id);
   }
 
+  /** Appends the signature exactly once, at send time — the one place a
+   *  message's final body is actually assembled, so every send path
+   *  (compose, reply, forward-via-compose) gets it in the same place
+   *  (last) regardless of what was typed or inserted before it. */
+  /** Resolves the right signature for the context (new-message vs
+   *  reply/forward — see ComposeData.isForward) and appends its rich HTML
+   *  once, at actual send time. The plain-text compose/reply body and the
+   *  signature's HTML are simply concatenated — this app's message body has
+   *  always been plain text end to end (search, snippets, quoting), so a
+   *  rich signature renders correctly in the real outbound email (which
+   *  wraps the whole body in one HTML shell at send time) at the cost of
+   *  the signature's tags showing literally if this stored copy is ever
+   *  re-displayed as plain text — the same trade a Sent-folder view of any
+   *  HTML-signed message already makes elsewhere. */
+  function defaultSignature(context: 'new' | 'reply'): EmailSignature | null {
+    return signatures.find(s => context === 'new' ? s.is_default_new : s.is_default_reply) ?? null;
+  }
+  function signedBody(content: string, context: 'new' | 'reply'): string {
+    const sig = defaultSignature(context);
+    if (sig?.body_html?.trim()) return `${content}${content.trim() ? '\n\n' : ''}--\n${sig.body_html}`;
+    return content;
+  }
+
+  /** Reply always addresses the sender; Reply All adds every other original
+   *  To/Cc recipient (minus the current user, who doesn't need to CC
+   *  themselves on their own reply) — standard mail-client semantics. */
+  function openReply(mode: 'reply' | 'replyAll') {
+    if (!selectedEmail) return;
+    const selfEmail = user?.email?.toLowerCase();
+    const toChips: RecipientChip[] = [{ email: selectedEmail.from.email, name: selectedEmail.from.name || undefined }];
+    let ccChips: RecipientChip[] = [];
+    if (mode === 'replyAll') {
+      const seen = new Set([selectedEmail.from.email.toLowerCase()]);
+      for (const a of selectedEmail.to) {
+        const key = a.email.toLowerCase();
+        if (key === selfEmail || seen.has(key)) continue;
+        seen.add(key);
+        toChips.push({ email: a.email, name: a.name || undefined });
+      }
+      for (const a of selectedEmail.cc ?? []) {
+        const key = a.email.toLowerCase();
+        if (key === selfEmail || seen.has(key)) continue;
+        seen.add(key);
+        ccChips.push({ email: a.email, name: a.name || undefined });
+      }
+    }
+    setReplyTo(toChips);
+    setReplyCc(ccChips);
+    setReplyBcc([]);
+    setReplyBody('');
+    setReplyRequestReadReceipt(false);
+    setReplySendAt(null);
+    setReplyDraftId(null);
+    setReplyPoppedOut(false);
+    setReplyMinimized(false);
+    setReplyFullScreen(false);
+    setReplyOpen(true);
+  }
+
   function selectEmail(id: string) {
     setSelectedId(id);
     setReplyOpen(false);
+    setReplyPoppedOut(false);
     setAiSummary(null);
     setAiPanelOpen(false);
     setTaskAdded(false);
@@ -637,9 +851,22 @@ export const EmailApp: React.FC = () => {
   /** "Archive", "Delete" (→ Trash — a permanent delete only ever happens
    *  from within Trash itself), "Report spam" (Inbox → Spam) and "Not
    *  spam" (Spam → Inbox) all share this: a plain folder move. */
+  /** After archiving/trashing the open message, what to show next — Settings
+   *  ▸ Advanced ▸ Auto-advance. 'list' (default) matches every prior
+   *  behavior here (always deselect back to the list); 'newer'/'older' step
+   *  to the adjacent row in the currently displayed (newest-first) list
+   *  instead, falling back to the list when there's no such neighbor. */
+  function advanceSelectionAfterRemoving(id: string) {
+    const mode = settings?.autoAdvance ?? 'list';
+    if (mode === 'list') { setSelectedId(null); return; }
+    const idx = emails.findIndex(e => e.id === id);
+    const neighbor = mode === 'newer' ? emails[idx - 1] : emails[idx + 1];
+    setSelectedId(neighbor && neighbor.id !== id ? neighbor.id : null);
+  }
+
   function moveToFolder(id: string, folder: Folder) {
     setEmails(prev => prev.map(e => e.id === id ? { ...e, folder } : e));
-    setSelectedId(null);
+    advanceSelectionAfterRemoving(id);
     apiFetch(`/v1/emails/${id}`, { method: 'PATCH', body: JSON.stringify({ folder }) }).catch(() => showAlert('Failed to move message'));
   }
 
@@ -750,6 +977,59 @@ export const EmailApp: React.FC = () => {
     return () => { if (composeDraftTimer.current) clearTimeout(composeDraftTimer.current); };
   }, [compose.to, compose.cc, compose.bcc, compose.subject, compose.body, composeOpen, saveDraft]);
 
+  /** Reply's own save-as-draft — same POST-then-PATCH-the-same-row pattern
+   *  as saveDraft above, just addressed with the reply's own recipient/
+   *  subject/body state instead of ComposeData (Reply was never folded
+   *  into the compose modal's own state, it's a separate always-open-
+   *  inline surface — see the reply state's own declarations). */
+  async function saveReplyDraft(silent = false) {
+    if (!selectedEmail) return;
+    if (replyTo.length === 0 && !replyBody.trim()) return;
+    if (!silent) setReplySaving(true);
+    const attachments = replyAttachments.filter(a => a.storageKey).map(a => ({ storageKey: a.storageKey!, filename: a.filename!, size: a.size }));
+    const payload = {
+      to: formatAddressList(replyTo), cc: formatAddressList(replyCc), bcc: formatAddressList(replyBcc),
+      subject: replySubject || `Re: ${selectedEmail.subject}`, body: replyBody, attachments,
+    };
+    try {
+      if (replyDraftId) {
+        await apiFetch(`/v1/emails/${replyDraftId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      } else {
+        const res = await apiFetch('/v1/emails/drafts', { method: 'POST', body: JSON.stringify(payload) });
+        setReplyDraftId(res.id);
+      }
+      if (activeFolder === 'drafts') loadEmails();
+    } catch {
+      if (!silent) showAlert('Failed to save draft');
+    } finally {
+      if (!silent) setReplySaving(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!replyOpen) return;
+    if (replyDraftTimer.current) clearTimeout(replyDraftTimer.current);
+    replyDraftTimer.current = setTimeout(() => { saveReplyDraft(true); }, 2000);
+    return () => { if (replyDraftTimer.current) clearTimeout(replyDraftTimer.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replyTo, replyCc, replyBcc, replySubject, replyBody, replyOpen]);
+
+  /** Mirrors discardCompose — deletes the autosaved draft row rather than
+   *  leaving an abandoned reply sitting in Drafts with no way to tell it
+   *  apart from one still in progress. */
+  function discardReply() {
+    if (replyDraftTimer.current) clearTimeout(replyDraftTimer.current);
+    const draftId = replyDraftId;
+    setReplyOpen(false);
+    setReplyPoppedOut(false);
+    setReplyAttachments([]);
+    if (draftId) {
+      apiFetch(`/v1/emails/${draftId}`, { method: 'DELETE' })
+        .then(() => { if (activeFolder === 'drafts') loadEmails(); })
+        .catch(() => {});
+    }
+  }
+
   /** Opens an existing Drafts-folder row back into the compose modal,
    *  continuing the same draft row rather than starting a new one. */
   function openDraft(email: Email) {
@@ -759,8 +1039,6 @@ export const EmailApp: React.FC = () => {
       bcc: (email.bcc ?? []).map(c => c.email).join(', '),
       subject: email.subject,
       body: email.body,
-      showCc: (email.cc ?? []).length > 0,
-      showBcc: (email.bcc ?? []).length > 0,
       requestReadReceipt: false,
       attachments: email.attachments.map(a => ({
         localId: crypto.randomUUID(), uploading: false, storageKey: a.storageKey, filename: a.filename, size: a.size ?? undefined,
@@ -768,7 +1046,11 @@ export const EmailApp: React.FC = () => {
       draftId: email.id,
       replyToId: null,
       sendAt: null,
+      isForward: email.subject.toLowerCase().startsWith('fwd:'),
+      fromIdentityId: null,
     });
+    setComposeMinimized(false);
+    setComposeFullScreen(false);
     setComposeOpen(true);
   }
 
@@ -796,36 +1078,56 @@ export const EmailApp: React.FC = () => {
   }
 
   async function sendReply() {
-    if (!replyBody.trim() || !selectedEmail) return;
-    if (replyAttachments.some(a => a.uploading)) return;
+    if (!selectedEmail) return;
+    if (replyTo.length === 0) return showAlert('Add at least one recipient before sending.');
+    if (!replyBody.trim()) return showAlert('Write a reply before sending.');
+    if (replyAttachments.some(a => a.uploading)) return showAlert('Wait for attachments to finish uploading before sending.');
     try {
+      if (replyDraftTimer.current) clearTimeout(replyDraftTimer.current);
       const attachments = replyAttachments.filter(a => a.storageKey).map(a => ({ storageKey: a.storageKey!, filename: a.filename!, size: a.size }));
       const res = await apiFetch('/v1/email/send', {
         method: 'POST',
         body: JSON.stringify({
-          to: selectedEmail.from.email,
+          to: formatAddressList(replyTo),
+          cc: replyCc.length > 0 ? formatAddressList(replyCc) : undefined,
+          bcc: replyBcc.length > 0 ? formatAddressList(replyBcc) : undefined,
           subject: replySubject || `Re: ${selectedEmail.subject}`,
-          body: replyBody,
+          body: signedBody(replyBody, 'reply'),
           inReplyTo: selectedEmail.id,
+          draftId: replyDraftId ?? undefined,
+          requestReadReceipt: replyRequestReadReceipt,
           attachments,
+          sendAt: replySendAt ? new Date(replySendAt).toISOString() : undefined,
         }),
       });
       setReplyOpen(false);
+      setReplyPoppedOut(false);
       setReplyBody('');
       setReplyAttachments([]);
+      setReplyDraftId(null);
+      setReplySendAt(null);
       startUndoToast(res.id, res.undoWindowMs);
-      if (activeFolder === 'sent' || activeFolder === 'scheduled') loadEmails();
+      if (activeFolder === 'sent' || activeFolder === 'drafts' || activeFolder === 'scheduled') loadEmails();
     } catch (err: any) {
       showAlert(err.message || 'Failed to send reply');
     }
   }
 
   function openCompose(prefill?: Partial<ComposeData>) {
+    // The signature is NOT folded into `body` here — it's rendered as its
+    // own fixed block after the textarea (see em-compose-signature-preview
+    // below) and appended once at actual send time. Baking it into `body`
+    // used to mean anything added afterwards — typing, a meeting-time
+    // insert, an AI draft — landed AFTER the signature instead of before
+    // it, since both just appended to the same flat string.
     setCompose({
-      to: '', cc: '', bcc: '', subject: '', body: '', showCc: false, showBcc: false,
+      to: '', cc: '', bcc: '', subject: '', body: prefill?.body ?? '',
       requestReadReceipt: false, attachments: [], draftId: null, replyToId: null, sendAt: null,
+      isForward: false, fromIdentityId: null,
       ...prefill,
     });
+    setComposeMinimized(false);
+    setComposeFullScreen(false);
     setComposeOpen(true);
   }
 
@@ -840,12 +1142,14 @@ export const EmailApp: React.FC = () => {
       attachments: selectedEmail.attachments.map(a => ({
         localId: crypto.randomUUID(), uploading: false, storageKey: a.storageKey, filename: a.filename, size: a.size ?? undefined,
       })),
+      isForward: true,
     });
   }
 
   async function sendCompose() {
-    if (!compose.to.trim() || !compose.subject.trim()) return;
-    if (compose.attachments.some(a => a.uploading)) return;
+    if (!compose.to.trim()) return showAlert('Add at least one recipient before sending.');
+    if (!compose.subject.trim()) return showAlert('Add a subject before sending.');
+    if (compose.attachments.some(a => a.uploading)) return showAlert('Wait for attachments to finish uploading before sending.');
     try {
       if (composeDraftTimer.current) clearTimeout(composeDraftTimer.current);
       const attachments = compose.attachments.filter(a => a.storageKey).map(a => ({ storageKey: a.storageKey!, filename: a.filename!, size: a.size }));
@@ -853,11 +1157,12 @@ export const EmailApp: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({
           to: compose.to, cc: compose.cc || undefined, bcc: compose.bcc || undefined,
-          subject: compose.subject, body: compose.body,
+          subject: compose.subject, body: signedBody(compose.body, compose.isForward ? 'reply' : 'new'),
           inReplyTo: compose.replyToId ?? undefined,
           draftId: compose.draftId ?? undefined,
           requestReadReceipt: compose.requestReadReceipt,
           attachments,
+          fromIdentityId: compose.fromIdentityId ?? undefined,
           sendAt: compose.sendAt ? new Date(compose.sendAt).toISOString() : undefined,
         }),
       });
@@ -905,6 +1210,22 @@ export const EmailApp: React.FC = () => {
       showAlert(err.message || 'Failed to save Email settings');
     } finally {
       setSettingsSaving(false);
+    }
+  }
+
+  /** "Block sender" from the detail view's More menu — the Settings dialog
+   *  isn't open here, so this persists straight to the account instead of
+   *  waiting for a manual Save the user has no reason to know is needed. */
+  async function blockSenderFromDetail(email: string) {
+    if (!settings) return showAlert('Settings are still loading — try again in a moment.');
+    if (settings.spamBlocklist.includes(email)) return showAlert(`${email} is already blocked.`);
+    const next = { ...settings, spamBlocklist: [...settings.spamBlocklist, email] };
+    try {
+      await apiFetch('/v1/email/account', { method: 'PUT', body: JSON.stringify(next) });
+      setSettings(next);
+      showAlert(`Future mail from ${email} will go straight to Spam.`, { variant: 'success' });
+    } catch (err: any) {
+      showAlert(err.message || 'Could not block this sender.');
     }
   }
 
@@ -1006,6 +1327,15 @@ export const EmailApp: React.FC = () => {
     }
   }
 
+  async function toggleLabelHidden(id: string, hidden: boolean) {
+    try {
+      const row = await apiFetch(`/v1/email/labels/${id}`, { method: 'PATCH', body: JSON.stringify({ hidden }) });
+      setLabelDefs(prev => prev.map(l => l.id === id ? row : l));
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to update label');
+    }
+  }
+
   async function deleteLabel(id: string) {
     const label = labelDefs.find(l => l.id === id);
     if (!label) return;
@@ -1076,6 +1406,96 @@ export const EmailApp: React.FC = () => {
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
+  /** The reply form's fields — identical whether it's docked inline under
+   *  the thread or popped out into its own floating window (see
+   *  replyPoppedOut), so it's built once here rather than duplicated. */
+  function renderReplyFields() {
+    if (!selectedEmail) return null;
+    return (
+      <>
+        <div className="em-reply-recipients">
+          <RecipientChips label="To" value={replyTo} onChange={setReplyTo} />
+          <RecipientChips label="Cc" value={replyCc} onChange={setReplyCc} />
+          <RecipientChips label="Bcc" value={replyBcc} onChange={setReplyBcc} />
+        </div>
+        <div className="em-reply-body">
+          <DescribeMessageInput
+            subject={replySubject}
+            replyContext={selectedEmail.body}
+            onGenerated={result => { setReplyBody(result.body); if (result.subject) setReplySubject(result.subject); }}
+          />
+          <textarea className="em-reply-textarea" value={replyBody} onChange={e => setReplyBody(e.target.value)} placeholder="Reply…" rows={5} />
+          {defaultSignature('reply')?.body_html?.trim() && (
+            <div className="em-signature-preview" dangerouslySetInnerHTML={{ __html: defaultSignature('reply')!.body_html }} />
+          )}
+          {replyAttachments.length > 0 && (
+            <div className="em-attach-list">
+              {replyAttachments.map(a => (
+                <div key={a.localId} className="em-attach-chip">
+                  <Icon name="paperclip" size={12} />
+                  <span>{a.uploading ? 'Uploading…' : a.filename}</span>
+                  {a.error && <span className="em-attach-chip-error">{a.error}</span>}
+                  <button type="button" className="em-attach-chip-remove" onClick={() => removeAttachment(a.localId, 'reply')}><Icon name="x" size={11} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+          <label className="em-compose-receipt-row">
+            <input type="checkbox" checked={replyRequestReadReceipt} onChange={e => setReplyRequestReadReceipt(e.target.checked)} />
+            Request read receipt <span className="em-receipt-disclaimer">— best-effort; many mail clients block tracking images by default</span>
+          </label>
+          {replySendAt !== null && (
+            <div className="em-compose-row">
+              <span className="em-compose-label">Send at</span>
+              <input type="datetime-local" className="em-compose-input" value={replySendAt} min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                onChange={e => setReplySendAt(e.target.value)} />
+              <Tip label="Send now instead"><button type="button" className="em-attach-chip-remove" onClick={() => setReplySendAt(null)}><Icon name="x" size={11} /></button></Tip>
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+            <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 20 }} onClick={sendReply} disabled={replyAttachments.some(a => a.uploading)}>
+              <Icon name="send" size={13} /> {replySendAt ? 'Schedule send' : 'Send'}
+            </button>
+            <Tip label="Schedule send for later">
+              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setReplySendAt(prev => prev !== null ? null : new Date(Date.now() + 3600000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16))}>
+                <Icon name="clock" size={15} />
+              </button>
+            </Tip>
+            <Tip label="Attach file">
+              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => replyFileInputRef.current?.click()}>
+                <Icon name="paperclip" size={15} />
+              </button>
+            </Tip>
+            <input ref={replyFileInputRef} type="file" multiple style={{ display: 'none' }} onChange={e => { const files = Array.from(e.target.files ?? []); if (files.length) uploadAttachments(files, 'reply'); e.target.value = ''; }} />
+            <MeetingTimeSuggestor onInsert={text => setReplyBody(prev => prev.trim() ? `${prev}\n\n${text}` : text)} />
+            {quickTemplates.length > 0 && (
+              <Tip label="Insert quick reply">
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setTemplatePickerOpen(v => !v)}>
+                  <Icon name="layers" size={15} />
+                </button>
+              </Tip>
+            )}
+            {templatePickerOpen && (
+              <div className="em-template-picker">
+                {quickTemplates.map(t => (
+                  <button key={t.id} type="button" className="em-template-picker-item" onClick={() => applyTemplate(t, 'reply')}>{t.name}</button>
+                ))}
+              </div>
+            )}
+            <span className="em-compose-savestate">{replySaving ? 'Saving…' : replyDraftId ? 'Saved to Drafts' : ''}</span>
+            <div style={{ flex: 1 }} />
+            <button type="button" className="em-text-btn" onClick={() => saveReplyDraft()}>Save draft</button>
+            <Tip label="Discard">
+              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={discardReply}>
+                <Icon name="trash" size={16} />
+              </button>
+            </Tip>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <div className="em-root">
 
@@ -1096,9 +1516,30 @@ export const EmailApp: React.FC = () => {
                 </button>
               )}
               <div className="em-search-wrap">
-                <span className="em-search-icon"><Icon name="search" size={16} /></span>
-                <input className="em-search-input" placeholder="Search in mail" value={search} onChange={e => setSearch(e.target.value)} />
+                <span className="em-search-icon">
+                  {emailsLoading && (search.trim() || advancedSearch) ? <Spinner size={14} /> : <Icon name="search" size={16} />}
+                </span>
+                <input
+                  className="em-search-input"
+                  aria-label="Search mail"
+                  placeholder="Search messages, senders and subjects"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') setSearchDebounced(search.trim()); }}
+                />
+                {search && (
+                  <Tip label="Clear search">
+                    <button type="button" className="em-search-clear" aria-label="Clear search" onClick={() => setSearch('')}>
+                      <Icon name="x" size={14} />
+                    </button>
+                  </Tip>
+                )}
               </div>
+              <AdvancedEmailSearch
+                labelDefs={labelDefs}
+                onSearch={q => setAdvancedSearch(Object.values(q).some(v => v !== undefined && v !== '') ? q : null)}
+                onCreateFilter={createFilterFromSearch}
+              />
               <Tip label="Refresh">
                 <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={loadEmails}>
                   <Icon name="refresh" size={15} />
@@ -1111,33 +1552,22 @@ export const EmailApp: React.FC = () => {
               </Tip>
             </div>
 
-            <div className="em-filter-bar" role="tablist" aria-label="Message filter">
-              {(['all', 'unread', 'starred'] as Filter[]).map(f => (
-                <button key={f} type="button" role="tab" aria-selected={filter === f} className={`em-filter-tab${filter === f ? ' em-filter-tab--active' : ''}`} onClick={() => setFilter(f)}>
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              ))}
+            <div className="em-filter-bar">
+              <Tabs value={filter} onValueChange={v => setFilter(v as Filter)}>
+                <TabsList aria-label="Message filter">
+                  {(['all', 'unread', 'starred'] as Filter[]).map(f => (
+                    <TabsTrigger key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
               {labelDefs.length > 0 && selected.size === 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button type="button" className={`em-filter-tab${filterByLabel ? ' em-filter-tab--active' : ''}`}>
-                      <Icon name="tag" size={12} /> {filterByLabel ?? 'Label'}
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    {labelDefs.map(l => (
-                      <DropdownMenuCheckboxItem key={l.id} checked={filterByLabel === l.name} onCheckedChange={() => setFilterByLabel(prev => prev === l.name ? null : l.name)}>
-                        {l.name}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                    {filterByLabel && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setFilterByLabel(null)}>Clear filter</DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <SingleSelectFilter
+                  label="Label"
+                  icon={<Icon name="tag" size={12} />}
+                  options={labelDefs.map(l => ({ value: l.name, label: l.name }))}
+                  value={filterByLabel}
+                  onChange={setFilterByLabel}
+                />
               )}
               {selected.size > 0 && (
                 <div className="em-bulk-actions">
@@ -1164,6 +1594,11 @@ export const EmailApp: React.FC = () => {
                     </button>
                   </Tip>
                 </div>
+              )}
+              {selected.size === 0 && (
+                <span className="em-filter-meta">
+                  {emailsTotal === 1 ? '1 message' : `${emailsTotal.toLocaleString()} messages`}
+                </span>
               )}
             </div>
 
@@ -1210,44 +1645,43 @@ export const EmailApp: React.FC = () => {
                   <div className="em-row-mid">
                     <span className={`em-row-subject${!email.read ? ' em-row-subject--bold' : ''}`}>{email.subject}</span>
                     {(email.threadCount ?? 1) > 1 && (
-                      <span className="em-thread-badge" title="Messages in this conversation">{email.threadCount}</span>
+                      <Tip label="Messages in this conversation"><span className="em-thread-badge">{email.threadCount}</span></Tip>
                     )}
                     <span className="em-row-snip"> — {email.snippet}</span>
                   </div>
                   {email.labels.length > 0 && !isMobile && (() => {
                     const c = labelColors(email.labels[0], labelDefs);
-                    return <span className="em-row-label" style={{ background: c.bg, color: c.fg }}>{email.labels[0]}</span>;
+                    return <Badge variant="gray" className="ml-2 shrink-0" style={{ background: c.bg, color: c.fg }}>{email.labels[0]}</Badge>;
                   })()}
                   {email.folder === 'scheduled' && email.scheduledAt && (
-                    <span className="em-row-label em-row-label--scheduled" title="Still cancellable">
-                      <Icon name="clock" size={11} /> {fmtDate(email.scheduledAt)}
-                    </span>
+                    <Tip label="Still cancellable">
+                      <Badge variant="warning" className="ml-2 shrink-0 inline-flex items-center gap-1">
+                        <Icon name="clock" size={11} /> {fmtDate(email.scheduledAt)}
+                      </Badge>
+                    </Tip>
                   )}
                   {email.folder === 'drafts' && email.sendError && (
-                    <span className="em-row-label" title={email.sendError} style={{ background: 'var(--red-l)', color: 'var(--red)' }}>
-                      Send failed
-                    </span>
+                    <Tip label={email.sendError}>
+                      <Badge variant="error" className="ml-2 shrink-0">Send failed</Badge>
+                    </Tip>
                   )}
                   {(email.deliveryStatus === 'pending' || email.deliveryStatus === 'sending' || email.deliveryStatus === 'failed') && (
-                    <span
-                      className="em-row-label"
-                      title={email.deliveryStatus === 'failed' ? 'Delivery failed — will retry automatically' : 'Queued for delivery'}
-                      style={{
-                        background: email.deliveryStatus === 'failed' ? 'var(--red-l)' : 'var(--gold-l)',
-                        color: email.deliveryStatus === 'failed' ? 'var(--red)' : 'var(--gold)',
-                      }}
-                    >
-                      {email.deliveryStatus === 'failed' ? 'Failed' : 'Pending'}
-                    </span>
+                    <Tip label={email.deliveryStatus === 'failed' ? 'Delivery failed — will retry automatically' : 'Queued for delivery'}>
+                      <Badge variant={email.deliveryStatus === 'failed' ? 'error' : 'warning'} className="ml-2 shrink-0">
+                        {email.deliveryStatus === 'failed' ? 'Failed' : 'Pending'}
+                      </Badge>
+                    </Tip>
                   )}
                   {email.hasAttachment && <Icon name="paperclip" size={13} color="var(--ink3)" style={{ marginLeft: 6, flexShrink: 0 }} />}
                   <div className={`em-row-date${!email.read ? ' em-row-date--bold' : ''}`}>
                     {fmtDate(email.date)}
                   </div>
                   {email.folder === 'scheduled' && (
-                    <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Cancel" onClick={ev => { ev.stopPropagation(); cancelScheduled(email.id); }}>
-                      <Icon name="x" size={14} />
-                    </button>
+                    <Tip label="Cancel">
+                      <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={ev => { ev.stopPropagation(); cancelScheduled(email.id); }}>
+                        <Icon name="x" size={14} />
+                      </button>
+                    </Tip>
                   )}
                 </div>
               ))}
@@ -1329,6 +1763,20 @@ export const EmailApp: React.FC = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className="em-icon-btn em-icon-btn--ghost" title="More"><Icon name="moreVertical" size={16} /></button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => window.print()}>
+                    <Icon name="printer" size={13} /> Print
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => blockSenderFromDetail(selectedEmail.from.email)} className="text-destructive focus:text-destructive">
+                    <Icon name="alertCircle" size={13} /> Block {selectedEmail.from.name || selectedEmail.from.email}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <div style={{ flex: 1 }} />
               <button type="button" className="em-icon-btn em-icon-btn--primary" onClick={aiSummarise} disabled={aiLoading}>
                 {aiLoading ? <Icon name="refresh" size={14} color="var(--teal)" /> : <Icon name="zap" size={14} color="var(--teal)" />}
@@ -1348,28 +1796,34 @@ export const EmailApp: React.FC = () => {
                 {selectedEmail.subject}
                 {selectedEmail.labels.map(l => {
                   const c = labelColors(l, labelDefs);
-                  return <span key={l} className="em-label-chip" style={{ background: c.bg, color: c.fg }}>{l}</span>;
+                  return <Badge key={l} variant="gray" className="ml-2" style={{ background: c.bg, color: c.fg }}>{l}</Badge>;
                 })}
               </h2>
 
               {(selectedEmail.threadCount ?? 1) > 1 && (
                 <div className="em-thread-view">
-                  <button
-                    type="button"
-                    className="em-text-btn"
-                    onClick={() => { if (threadMessages) setThreadMessages(null); else if (selectedEmail.threadId) openThreadView(selectedEmail.threadId); }}
-                  >
-                    {threadMessages ? 'Hide' : 'View'} entire conversation ({selectedEmail.threadCount})
-                  </button>
-                  {threadLoading && <Spinner size={14} />}
-                  {threadMessages && (
-                    <div className="em-thread-list">
-                      {threadMessages.map(m => (
-                        <div key={m.id} className={`em-thread-item${m.id === selectedEmail.id ? ' em-thread-item--active' : ''}`} onClick={() => selectEmail(m.id)} role="button" tabIndex={0}>
-                          <span className="em-thread-item-folder">{m.folder}</span>
-                          <span className="em-thread-item-from">{m.from.name}</span>
-                          <span className="em-thread-item-snip">{m.snippet}</span>
-                          <span className="em-thread-item-date">{fmtDate(m.date)}</span>
+                  {threadLoading && (
+                    <div className="em-thread-loading"><Spinner size={13} /> Loading conversation…</div>
+                  )}
+                  {!threadLoading && threadMessages && threadMessages.filter(m => m.id !== selectedEmail.id).length > 0 && (
+                    <div className="em-thread-stack">
+                      {threadMessages.filter(m => m.id !== selectedEmail.id).map(m => (
+                        <div
+                          key={m.id}
+                          className={`em-thread-row${!m.read ? ' em-thread-row--unread' : ''}`}
+                          onClick={() => selectEmail(m.id)}
+                          role="button" tabIndex={0}
+                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectEmail(m.id); } }}
+                        >
+                          <PersonAvatar userId={m.from.userId} name={m.from.name} size={26} hideStatus />
+                          <div className="em-thread-row-main">
+                            <div className="em-thread-row-top">
+                              <span className="em-thread-row-from">{m.from.name}</span>
+                              <span className="em-thread-row-date">{fmtDate(m.date)}</span>
+                            </div>
+                            <div className="em-thread-row-snip">{m.snippet}</div>
+                          </div>
+                          {m.hasAttachment && <Icon name="paperclip" size={13} color="var(--ink3)" />}
                         </div>
                       ))}
                     </div>
@@ -1397,9 +1851,11 @@ export const EmailApp: React.FC = () => {
                     ) : (
                       <button type="button" className="em-task-banner-btn" onClick={addSuggestedTask}>Remind me</button>
                     )}
-                    <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Dismiss" onClick={() => setTaskDismissed(true)}>
-                      <Icon name="x" size={14} />
-                    </button>
+                    <Tip label="Dismiss">
+                      <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setTaskDismissed(true)}>
+                        <Icon name="x" size={14} />
+                      </button>
+                    </Tip>
                   </div>
                   <div className="em-task-banner-hint">AI-suggested from this email's content — double-check before relying on it.</div>
                 </div>
@@ -1435,9 +1891,9 @@ export const EmailApp: React.FC = () => {
                       {selectedEmail.readReceiptConfirmedAt
                         ? `Read ${fmtDateLong(selectedEmail.readReceiptConfirmedAt)}`
                         : 'Not read yet'}
-                      <span className="em-receipt-disclaimer" title="Most mail clients block remote images by default, so a confirmation only ever proves a best case — never treat 'not read yet' as certain.">
-                        · best-effort
-                      </span>
+                      <Tip label="Most mail clients block remote images by default, so a confirmation only ever proves a best case — never treat 'not read yet' as certain.">
+                        <span className="em-receipt-disclaimer">· best-effort</span>
+                      </Tip>
                     </div>
                   )}
                 </div>
@@ -1476,63 +1932,39 @@ export const EmailApp: React.FC = () => {
                 </div>
               )}
 
-              {replyOpen && (
+              {replyOpen && !replyPoppedOut && (
                 <div className="em-reply-box">
                   <div className="em-reply-hdr">
-                    <span>Reply to {selectedEmail.from.name}</span>
+                    <span>{replyCc.length > 0 ? 'Reply all' : 'Reply'}</span>
+                    <div style={{ flex: 1 }} />
+                    <Tip label="Pop out to a separate window">
+                      <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setReplyPoppedOut(true)}>
+                        <Icon name="externalLink" size={13} />
+                      </button>
+                    </Tip>
                     <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setReplyOpen(false)}>
                       <Icon name="x" size={14} />
                     </button>
                   </div>
-                  <div className="em-reply-body">
-                    <textarea className="em-reply-textarea" value={replyBody} onChange={e => setReplyBody(e.target.value)} placeholder="Reply…" rows={5} />
-                    {replyAttachments.length > 0 && (
-                      <div className="em-attach-list">
-                        {replyAttachments.map(a => (
-                          <div key={a.localId} className="em-attach-chip">
-                            <Icon name="paperclip" size={12} />
-                            <span>{a.uploading ? 'Uploading…' : a.filename}</span>
-                            {a.error && <span className="em-attach-chip-error">{a.error}</span>}
-                            <button type="button" className="em-attach-chip-remove" onClick={() => removeAttachment(a.localId, 'reply')}><Icon name="x" size={11} /></button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
-                      <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 20 }} onClick={sendReply} disabled={replyAttachments.some(a => a.uploading)}>
-                        <Icon name="send" size={13} /> Send
-                      </button>
-                      <Tip label="Attach file">
-                        <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => replyFileInputRef.current?.click()}>
-                          <Icon name="paperclip" size={15} />
-                        </button>
-                      </Tip>
-                      <input ref={replyFileInputRef} type="file" multiple style={{ display: 'none' }} onChange={e => { const files = Array.from(e.target.files ?? []); if (files.length) uploadAttachments(files, 'reply'); e.target.value = ''; }} />
-                      {quickTemplates.length > 0 && (
-                        <Tip label="Insert quick reply">
-                          <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setTemplatePickerOpen(v => !v)}>
-                            <Icon name="layers" size={15} />
-                          </button>
-                        </Tip>
-                      )}
-                      {templatePickerOpen && (
-                        <div className="em-template-picker">
-                          {quickTemplates.map(t => (
-                            <button key={t.id} type="button" className="em-template-picker-item" onClick={() => applyTemplate(t, 'reply')}>{t.name}</button>
-                          ))}
-                        </div>
-                      )}
-                      <button type="button" className="em-text-btn" onClick={() => { setReplyOpen(false); setReplyAttachments([]); }}>Discard</button>
-                    </div>
-                  </div>
+                  {renderReplyFields()}
+                </div>
+              )}
+              {replyOpen && replyPoppedOut && (
+                <div className="em-reply-popout-placeholder">
+                  <Icon name="externalLink" size={14} color="var(--ink3)" />
+                  <span>You're replying in a separate window.</span>
+                  <button type="button" className="em-text-btn" onClick={() => setReplyPoppedOut(false)}>Return here</button>
                 </div>
               )}
             </div>
 
             {!replyOpen && selectedEmail.folder !== 'scheduled' && (
               <div className="em-detail-footer">
-                <button type="button" className="em-icon-btn em-icon-btn--pill" onClick={() => setReplyOpen(true)}>
+                <button type="button" className="em-icon-btn em-icon-btn--pill" onClick={() => openReply('reply')}>
                   <Icon name="arrowLeft" size={14} /> Reply
+                </button>
+                <button type="button" className="em-icon-btn em-icon-btn--pill" onClick={() => openReply('replyAll')}>
+                  <Icon name="arrowLeft" size={14} /> Reply all
                 </button>
                 <button type="button" className="em-icon-btn em-icon-btn--pill" onClick={forwardEmail}>
                   <Icon name="send" size={14} /> Forward
@@ -1544,39 +1976,118 @@ export const EmailApp: React.FC = () => {
 
       </div>{/* /em-body */}
 
-      {/* Compose modal */}
-      {composeOpen && (
-        <div className={`em-compose-modal${isMobile ? ' em-compose-modal--mobile' : ''}`}>
-          <div className="em-compose-hdr">
-            <span className="em-compose-title">New Message</span>
-            <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={() => setComposeOpen(false)}>
+      {/* Reply, popped out into its own floating window — same chrome as
+          Compose (minimize/full-screen/close), plus a "dock" button to
+          return it inline. Offset left of Compose when both happen to be
+          open at once so the two docked windows don't overlap. */}
+      {replyOpen && replyPoppedOut && selectedEmail && (
+        <div
+          className={`em-compose-modal${isMobile ? ' em-compose-modal--mobile' : ''}${replyFullScreen ? ' em-compose-modal--full' : ''}${replyMinimized ? ' em-compose-modal--min' : ''}`}
+          style={!isMobile && !replyFullScreen && composeOpen ? { right: 600 } : undefined}
+        >
+          <div className="em-compose-hdr" onClick={() => { if (replyMinimized) setReplyMinimized(false); }}>
+            <span className="em-compose-title">{replyCc.length > 0 ? 'Reply all' : 'Reply'}</span>
+            {!isMobile && (
+              <Tip label="Dock inline">
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setReplyPoppedOut(false); }}>
+                  <Icon name="externalLink" size={14} color="#fff" />
+                </button>
+              </Tip>
+            )}
+            {!isMobile && (
+              <Tip label={replyMinimized ? 'Expand' : 'Minimize'}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setReplyMinimized(m => !m); }}>
+                  <Icon name="minus" size={14} color="#fff" />
+                </button>
+              </Tip>
+            )}
+            {!isMobile && (
+              <Tip label={replyFullScreen ? 'Exit full screen' : 'Full screen'}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setReplyFullScreen(f => !f); setReplyMinimized(false); }}>
+                  <Icon name={replyFullScreen ? 'minimize' : 'maximize'} size={14} color="#fff" />
+                </button>
+              </Tip>
+            )}
+            <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setReplyOpen(false); setReplyPoppedOut(false); }}>
               <Icon name="x" size={16} color="#fff" />
             </button>
           </div>
-          <div className="em-compose-fields">
-            <div className="em-compose-row">
-              <span className="em-compose-label">To</span>
-              <input className="em-compose-input" value={compose.to} onChange={e => setCompose(p => ({ ...p, to: e.target.value }))} placeholder="recipients@domain.com" />
-              <button type="button" className="em-compose-cc-btn" onClick={() => setCompose(p => ({ ...p, showCc: !p.showCc }))}>Cc</button>
-              <button type="button" className="em-compose-cc-btn" onClick={() => setCompose(p => ({ ...p, showBcc: !p.showBcc }))}>Bcc</button>
+          {!replyMinimized && (
+            <div className="em-compose-fields">
+              {renderReplyFields()}
             </div>
-            {compose.showCc && (
+          )}
+        </div>
+      )}
+
+      {/* Compose modal */}
+      {composeOpen && (
+        <div className={`em-compose-modal${isMobile ? ' em-compose-modal--mobile' : ''}${composeFullScreen ? ' em-compose-modal--full' : ''}${composeMinimized ? ' em-compose-modal--min' : ''}`}>
+          <div className="em-compose-hdr" onClick={() => { if (composeMinimized) setComposeMinimized(false); }}>
+            <span className="em-compose-title">New Message</span>
+            {!isMobile && (
+              <Tip label={composeMinimized ? 'Expand' : 'Minimize'}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeMinimized(m => !m); }}>
+                  <Icon name="minus" size={14} color="#fff" />
+                </button>
+              </Tip>
+            )}
+            {!isMobile && (
+              <Tip label={composeFullScreen ? 'Exit full screen' : 'Full screen'}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeFullScreen(f => !f); setComposeMinimized(false); }}>
+                  <Icon name={composeFullScreen ? 'minimize' : 'maximize'} size={14} color="#fff" />
+                </button>
+              </Tip>
+            )}
+            <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeOpen(false); }}>
+              <Icon name="x" size={16} color="#fff" />
+            </button>
+          </div>
+          {!composeMinimized && (
+          <div className="em-compose-fields">
+            {identities.length > 0 && (
               <div className="em-compose-row">
-                <span className="em-compose-label">Cc</span>
-                <input className="em-compose-input" value={compose.cc} onChange={e => setCompose(p => ({ ...p, cc: e.target.value }))} />
+                <span className="em-compose-label">From</span>
+                <Select
+                  value={compose.fromIdentityId ?? '__default__'}
+                  onValueChange={v => setCompose(p => ({ ...p, fromIdentityId: v === '__default__' ? null : v }))}
+                >
+                  <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__default__">{settings?.fromEmail || user?.email || 'Workspace default'}</SelectItem>
+                    {identities.map(id => (
+                      <SelectItem key={id.id} value={id.id}>{id.fromName ? `${id.fromName} <${id.fromEmail}>` : id.fromEmail}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
-            {compose.showBcc && (
-              <div className="em-compose-row">
-                <span className="em-compose-label">Bcc</span>
-                <input className="em-compose-input" value={compose.bcc} onChange={e => setCompose(p => ({ ...p, bcc: e.target.value }))} />
-              </div>
-            )}
+            <div className="em-compose-row em-compose-row--chips">
+              <RecipientChips
+                label="To"
+                value={parseAddressList(compose.to)}
+                onChange={chips => setCompose(p => ({ ...p, to: formatAddressList(chips) }))}
+                placeholder="recipients@domain.com"
+              />
+            </div>
+            <div className="em-compose-row em-compose-row--chips">
+              <RecipientChips label="Cc" value={parseAddressList(compose.cc)} onChange={chips => setCompose(p => ({ ...p, cc: formatAddressList(chips) }))} />
+            </div>
+            <div className="em-compose-row em-compose-row--chips">
+              <RecipientChips label="Bcc" value={parseAddressList(compose.bcc)} onChange={chips => setCompose(p => ({ ...p, bcc: formatAddressList(chips) }))} />
+            </div>
             <div className="em-compose-row">
               <span className="em-compose-label">Subject</span>
               <input className="em-compose-input" value={compose.subject} onChange={e => setCompose(p => ({ ...p, subject: e.target.value }))} />
             </div>
+            <DescribeMessageInput
+              subject={compose.subject}
+              onGenerated={result => setCompose(p => ({ ...p, body: result.body, subject: result.subject && !p.subject.trim() ? result.subject : p.subject }))}
+            />
             <textarea className="em-compose-body" value={compose.body} onChange={e => setCompose(p => ({ ...p, body: e.target.value }))} placeholder="Write your email here…" />
+            {defaultSignature(compose.isForward ? 'reply' : 'new')?.body_html?.trim() && (
+              <div className="em-signature-preview" dangerouslySetInnerHTML={{ __html: defaultSignature(compose.isForward ? 'reply' : 'new')!.body_html }} />
+            )}
             {compose.attachments.length > 0 && (
               <div className="em-attach-list">
                 {compose.attachments.map(a => (
@@ -1617,6 +2128,7 @@ export const EmailApp: React.FC = () => {
                 </button>
               </Tip>
               <input ref={composeFileInputRef} type="file" multiple style={{ display: 'none' }} onChange={e => { const files = Array.from(e.target.files ?? []); if (files.length) uploadAttachments(files, 'compose'); e.target.value = ''; }} />
+              <MeetingTimeSuggestor onInsert={text => setCompose(p => ({ ...p, body: p.body.trim() ? `${p.body}\n\n${text}` : text }))} />
               {quickTemplates.length > 0 && (
                 <Tip label="Insert quick reply">
                   <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setTemplatePickerOpen(v => !v)}>
@@ -1641,6 +2153,7 @@ export const EmailApp: React.FC = () => {
               </Tip>
             </div>
           </div>
+          )}
         </div>
       )}
 
@@ -1653,245 +2166,562 @@ export const EmailApp: React.FC = () => {
         </div>
       )}
 
-      {/* Email account settings — IMAP mailbox connection, signature, spam blocklist */}
-      {settingsOpen && (
-        <div className="em-settings-overlay" onClick={() => setSettingsOpen(false)}>
-          <div className="em-settings-modal" onClick={e => e.stopPropagation()}>
-            <div className="em-settings-hdr">
-              <span className="em-compose-title" style={{ color: 'var(--ink)' }}>Email settings</span>
-              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setSettingsOpen(false)}>
-                <Icon name="x" size={16} />
-              </button>
-            </div>
-            {settingsLoading || !settings ? (
-              <div className="em-loading"><Spinner size={18} /><span>Loading…</span></div>
-            ) : (
-              <div className="em-settings-body">
-                <div className="em-settings-section">
-                  <div className="em-settings-section-hdr">
-                    <label className="em-compose-receipt-row">
-                      <input type="checkbox" checked={settings.imapEnabled} onChange={e => setSettings({ ...settings, imapEnabled: e.target.checked })} />
-                      Connect my mailbox (real inbound mail via IMAP)
-                    </label>
-                  </div>
-                  <p className="em-settings-hint">
-                    Fetched automatically every few minutes into your Inbox. {settings.lastSyncedAt
-                      ? `Last synced ${new Date(settings.lastSyncedAt).toLocaleString()}.`
-                      : 'Not synced yet.'}
-                    {settings.lastSyncError && <span className="em-settings-error"> Last error: {settings.lastSyncError}</span>}
-                  </p>
-                  {settings.imapEnabled && (
-                    <>
-                      <div className="em-settings-row">
-                        <span className="em-compose-label">Host</span>
-                        <input className="em-compose-input em-settings-input" value={settings.imapHost} onChange={e => setSettings({ ...settings, imapHost: e.target.value })} placeholder="imap.example.com" />
-                      </div>
-                      <div className="em-settings-row">
-                        <span className="em-compose-label">Port</span>
-                        <input className="em-compose-input em-settings-input" type="number" value={settings.imapPort} onChange={e => setSettings({ ...settings, imapPort: parseInt(e.target.value, 10) || 993 })} />
-                        <select className="em-settings-select" value={settings.imapEncryption} onChange={e => setSettings({ ...settings, imapEncryption: e.target.value as any })}>
-                          <option value="ssl">SSL</option>
-                          <option value="tls">TLS</option>
-                          <option value="none">None</option>
-                        </select>
-                      </div>
-                      <div className="em-settings-row">
-                        <span className="em-compose-label">User</span>
-                        <input className="em-compose-input em-settings-input" value={settings.imapUser} onChange={e => setSettings({ ...settings, imapUser: e.target.value })} placeholder="you@example.com" />
-                      </div>
-                      <div className="em-settings-row">
-                        <span className="em-compose-label">Password</span>
-                        <input className="em-compose-input em-settings-input" type="password" value={settings.imapPass} onChange={e => setSettings({ ...settings, imapPass: e.target.value })} placeholder="••••••••" />
-                      </div>
-                      <label className="em-compose-receipt-row">
-                        <input type="checkbox" checked={settings.imapMarkAsRead} onChange={e => setSettings({ ...settings, imapMarkAsRead: e.target.checked })} />
-                        Mark messages as read on the mail server once fetched
-                      </label>
-                      <div className="em-settings-row">
-                        <button type="button" className="em-text-btn" onClick={testImapConnection} disabled={imapTesting || !settings.imapHost || !settings.imapUser}>
-                          {imapTesting ? 'Testing…' : 'Test connection'}
-                        </button>
-                        {imapTestResult && (
-                          <span className={imapTestResult.success ? 'em-settings-success' : 'em-settings-error'}>
-                            {imapTestResult.success ? 'Connected successfully.' : imapTestResult.error}
-                          </span>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
+      {/* Email settings — a real tabbed page-in-a-dialog now (Gmail's own
+          General/Labels/Inbox/Accounts/Filters/Forwarding/Advanced strip),
+          not a single scrolling column — it outgrew that once multi-
+          signature/multi-identity/filters/vacation-responder landed. */}
+      {/* Email settings — Master-Detail vertical tabbed dialog following Hudumika Design System */}
+      <Dialog open={settingsOpen} onOpenChange={o => { if (!o) setSettingsOpen(false); }}>
+        <DialogContent size="full" className="em-settings-dialog">
+          <DialogHeader className="em-settings-dialog-header">
+            <DialogTitle>Email settings</DialogTitle>
+            <DialogDescription>Manage your inbox, sending accounts, signatures, filters, and delivery preferences.</DialogDescription>
+          </DialogHeader>
+          {settingsLoading || !settings ? (
+            <DialogBody className="em-loading"><Spinner size={18} /><span>Loading…</span></DialogBody>
+          ) : (
+            <>
+              <DialogBody className="em-settings-body">
+                <Tabs value={settingsTab} onValueChange={v => setSettingsTab(v as any)} className="em-settings-layout">
+                  <aside className="em-settings-sidebar">
+                    <div className="em-settings-nav-label">Settings Navigation</div>
+                    <TabsList className="em-settings-nav" aria-label="Email settings sections">
+                      <TabsTrigger value="general">
+                        <Icon name="sliders" size={15} />
+                        <span>General</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="labels">
+                        <Icon name="tag" size={15} />
+                        <span>Labels</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="inbox">
+                        <Icon name="inbox" size={15} />
+                        <span>Inbox</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="accounts">
+                        <Icon name="mail" size={15} />
+                        <span>Accounts &amp; Sync</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="filters">
+                        <Icon name="shield" size={15} />
+                        <span>Filters &amp; Blocked</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="forwarding">
+                        <Icon name="send" size={15} />
+                        <span>Forwarding &amp; POP/IMAP</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="advanced">
+                        <Icon name="settings" size={15} />
+                        <span>Advanced</span>
+                      </TabsTrigger>
+                    </TabsList>
+                  </aside>
 
-                <div className="em-settings-section">
-                  <div className="em-settings-section-hdr">Sending</div>
-                  <p className="em-settings-hint">
-                    Messages you send will show as: <strong>{settings.fromName || 'Hudumika'} &lt;{settings.fromEmail || (settings.sendProtocol === 'smtp' ? settings.smtpUser : 'your workspace address')}&gt;</strong>
-                  </p>
-                  <div className="em-settings-row">
-                    <span className="em-compose-label">Send using</span>
-                    <select className="em-settings-select" value={settings.sendProtocol === 'platform' || settings.sendProtocol === 'smtp' ? settings.sendProtocol : 'platform'}
-                      onChange={e => setSettings({ ...settings, sendProtocol: e.target.value as any })}>
-                      <option value="platform">Workspace default</option>
-                      <option value="smtp">Custom SMTP</option>
-                    </select>
-                  </div>
-                  {settings.sendProtocol === 'smtp' && (
-                    <>
-                      <div className="em-settings-row">
-                        <span className="em-compose-label">Host</span>
-                        <input className="em-compose-input em-settings-input" value={settings.smtpHost} onChange={e => setSettings({ ...settings, smtpHost: e.target.value })} placeholder="smtp.example.com" />
-                      </div>
-                      <div className="em-settings-row">
-                        <span className="em-compose-label">Port</span>
-                        <input className="em-compose-input em-settings-input" type="number" value={settings.smtpPort} onChange={e => setSettings({ ...settings, smtpPort: parseInt(e.target.value, 10) || 587 })} />
-                        <select className="em-settings-select" value={settings.smtpEncryption} onChange={e => setSettings({ ...settings, smtpEncryption: e.target.value as any })}>
-                          <option value="ssl">SSL</option>
-                          <option value="tls">TLS</option>
-                          <option value="none">None</option>
-                        </select>
-                      </div>
-                      <div className="em-settings-row">
-                        <span className="em-compose-label">User</span>
-                        <input className="em-compose-input em-settings-input" value={settings.smtpUser} onChange={e => setSettings({ ...settings, smtpUser: e.target.value })} placeholder="you@example.com" />
-                      </div>
-                      <div className="em-settings-row">
-                        <span className="em-compose-label">Password</span>
-                        <input className="em-compose-input em-settings-input" type="password" value={settings.smtpPass} onChange={e => setSettings({ ...settings, smtpPass: e.target.value })} placeholder="••••••••" />
-                      </div>
-                      <div className="em-settings-row">
-                        <button type="button" className="em-text-btn" onClick={testSmtpConnection} disabled={smtpTesting || !settings.smtpHost || !settings.smtpUser}>
-                          {smtpTesting ? 'Testing…' : 'Test connection'}
-                        </button>
-                        {smtpTestResult && (
-                          <span className={smtpTestResult.success ? 'em-settings-success' : 'em-settings-error'}>
-                            {smtpTestResult.success ? 'Connected successfully.' : smtpTestResult.error}
-                          </span>
-                        )}
-                      </div>
-                    </>
-                  )}
-                  {(settings.sendProtocol === 'smtp' || settings.sendProtocol === 'outlook' || settings.sendProtocol === 'gmail') && (
-                    <>
-                      <div className="em-settings-row">
-                        <span className="em-compose-label">Display name</span>
-                        <input className="em-compose-input em-settings-input" value={settings.fromName} onChange={e => setSettings({ ...settings, fromName: e.target.value })} placeholder="Your name" />
-                      </div>
-                      <div className="em-settings-row">
-                        <span className="em-compose-label">From address</span>
-                        <input className="em-compose-input em-settings-input" value={settings.fromEmail} onChange={e => setSettings({ ...settings, fromEmail: e.target.value })} placeholder="you@example.com" />
-                      </div>
-                    </>
-                  )}
-                  <div className="em-settings-row">
-                    {settings.sendProtocol === 'outlook' ? (
-                      <span className="em-settings-success">Connected — sending via Outlook.</span>
-                    ) : settings.outlookStatus === 'authorized' ? (
-                      <button type="button" className="em-text-btn" onClick={() => setSettings({ ...settings, sendProtocol: 'outlook' })}>Switch to Outlook (already connected)</button>
-                    ) : (
-                      <button type="button" className="em-text-btn" onClick={() => connectPersonalMail('outlook')}>Connect Outlook</button>
-                    )}
-                    {settings.sendProtocol === 'gmail' ? (
-                      <span className="em-settings-success">Connected — sending via Gmail.</span>
-                    ) : settings.gmailStatus === 'authorized' ? (
-                      <button type="button" className="em-text-btn" onClick={() => setSettings({ ...settings, sendProtocol: 'gmail' })}>Switch to Gmail (already connected)</button>
-                    ) : (
-                      <button type="button" className="em-text-btn" onClick={() => connectPersonalMail('gmail')}>Connect Gmail</button>
-                    )}
-                    {(settings.sendProtocol === 'outlook' || settings.sendProtocol === 'gmail') && (
-                      <button type="button" className="em-text-btn" onClick={() => setSettings({ ...settings, sendProtocol: 'platform' })}>Use workspace default instead</button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="em-settings-section">
-                  <div className="em-settings-section-hdr">Labels</div>
-                  <p className="em-settings-hint">Custom labels you can apply to any message — replaces any fixed set.</p>
-                  <div className="em-settings-row">
-                    <input className="em-compose-input em-settings-input" value={newLabelName} onChange={e => setNewLabelName(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); createLabel(); } }}
-                      placeholder="New label name" />
-                    <button type="button" className="em-text-btn" onClick={createLabel}>Add</button>
-                  </div>
-                  <div className="em-label-manage-list">
-                    {labelDefs.map(l => {
-                      const c = labelColors(l.name, labelDefs);
-                      return (
-                        <div key={l.id} className="em-label-manage-row">
-                          <span className="em-label-chip" style={{ background: c.bg, color: c.fg }}>{l.name}</span>
-                          <input className="em-compose-input em-settings-input" defaultValue={l.name}
-                            onBlur={e => { if (e.target.value.trim() && e.target.value.trim() !== l.name) renameLabel(l.id, e.target.value); }} />
-                          <button type="button" className="em-attach-chip-remove" onClick={() => deleteLabel(l.id)}><Icon name="trash" size={13} /></button>
+                  <div className="em-settings-content">
+                    {/* ── General Tab ── */}
+                    {settingsTab === 'general' && (
+                      <div className="em-settings-pane">
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="edit" size={16} />
+                            <span>Signatures</span>
+                          </div>
+                          <p className="em-settings-hint">Multiple signatures, each with its own rich text and images — pick which one is used for new messages and which for replies/forwards.</p>
+                          <SignatureManager onChange={setSignatures} />
                         </div>
-                      );
-                    })}
-                    {labelDefs.length === 0 && <p className="em-settings-hint">No labels yet.</p>}
-                  </div>
-                </div>
 
-                <div className="em-settings-section">
-                  <div className="em-settings-section-hdr">Quick replies</div>
-                  <p className="em-settings-hint">Canned-response snippets you can insert into any compose or reply window.</p>
-                  <div className="em-label-manage-list">
-                    {quickTemplates.map(t => (
-                      <div key={t.id} className="em-label-manage-row">
-                        <span>{t.name}</span>
-                        <button type="button" className="em-text-btn" onClick={() => setTemplateEditing(t)}>Edit</button>
-                        <button type="button" className="em-attach-chip-remove" onClick={() => deleteTemplate(t.id)}><Icon name="trash" size={13} /></button>
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="messageSquare" size={16} />
+                            <span>Quick Replies</span>
+                          </div>
+                          <p className="em-settings-hint">Canned-response snippets you can insert into any compose or reply window.</p>
+                          <div className="em-label-manage-list">
+                            {quickTemplates.map(t => (
+                              <div key={t.id} className="em-label-manage-row">
+                                <span className="em-label-name">{t.name}</span>
+                                <div className="em-label-actions">
+                                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateEditing(t)}>Edit</button>
+                                  <button type="button" className="em-icon-btn em-icon-btn--ghost em-btn-danger" onClick={() => deleteTemplate(t.id)} title="Delete template">
+                                    <Icon name="trash" size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                            {quickTemplates.length === 0 && <p className="em-settings-hint">No quick replies yet.</p>}
+                          </div>
+                          {templateEditing ? (
+                            <div className="em-settings-form-box">
+                              <div className="em-settings-field">
+                                <label className="em-field-label">Template Name</label>
+                                <input className="em-settings-input" value={templateEditing.name} placeholder="e.g. Follow-up inquiry"
+                                  onChange={e => setTemplateEditing(prev => prev ? { ...prev, name: e.target.value } : prev)} />
+                              </div>
+                              <div className="em-settings-field">
+                                <label className="em-field-label">Subject (optional)</label>
+                                <input className="em-settings-input" value={templateEditing.subject} placeholder="e.g. Following up on our meeting"
+                                  onChange={e => setTemplateEditing(prev => prev ? { ...prev, subject: e.target.value } : prev)} />
+                              </div>
+                              <div className="em-settings-field">
+                                <label className="em-field-label">Body</label>
+                                <textarea className="em-settings-textarea" value={templateEditing.body} placeholder="Write template content here…" rows={4}
+                                  onChange={e => setTemplateEditing(prev => prev ? { ...prev, body: e.target.value } : prev)} />
+                              </div>
+                              <div className="em-form-actions">
+                                <button type="button" className="btn btn-primary btn-sm" onClick={saveTemplate}>Save Template</button>
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateEditing(null)}>Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateEditing({ id: null, name: '', subject: '', body: '' })}>
+                                <Icon name="plus" size={14} />
+                                <span>New quick reply</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="calendar" size={16} />
+                            <span>Vacation Responder</span>
+                          </div>
+                          <SwitchRow
+                            title="Vacation responder on"
+                            description="Auto-reply once to each sender while it's active — never to yourself, and never twice to the same person during one vacation."
+                            checked={settings.vacationEnabled}
+                            onCheckedChange={v => setSettings({ ...settings, vacationEnabled: v })}
+                          />
+                          {settings.vacationEnabled && (
+                            <div className="em-settings-subform">
+                              <div className="em-settings-field">
+                                <label className="em-field-label">Active Period</label>
+                                <DateRangePicker
+                                  range={{
+                                    from: settings.vacationStart ? new Date(settings.vacationStart) : undefined,
+                                    to: settings.vacationEnd ? new Date(settings.vacationEnd) : undefined,
+                                  }}
+                                  onChange={r => setSettings({
+                                    ...settings,
+                                    vacationStart: r?.from ? r.from.toISOString() : null,
+                                    vacationEnd: r?.to ? r.to.toISOString() : null,
+                                  })}
+                                />
+                              </div>
+                              <div className="em-settings-field">
+                                <label className="em-field-label">Subject</label>
+                                <input className="em-settings-input" value={settings.vacationSubject}
+                                  onChange={e => setSettings({ ...settings, vacationSubject: e.target.value })} placeholder="Out of office" />
+                              </div>
+                              <div className="em-settings-field">
+                                <label className="em-field-label">Message</label>
+                                <textarea className="em-settings-textarea" rows={4} value={settings.vacationMessage}
+                                  onChange={e => setSettings({ ...settings, vacationMessage: e.target.value })} placeholder="I'm away and will respond when I'm back…" />
+                              </div>
+                              <div className="em-settings-checkbox-group">
+                                <CheckboxRow
+                                  title="Only send a response to people in my Contacts"
+                                  checked={settings.vacationContactsOnly}
+                                  onCheckedChange={v => setSettings({ ...settings, vacationContactsOnly: v })}
+                                />
+                                <CheckboxRow
+                                  title="Only send a response to people in my organization"
+                                  description="Anyone emailing from the same domain as your own address."
+                                  checked={settings.vacationDomainOnly}
+                                  onCheckedChange={v => setSettings({ ...settings, vacationDomainOnly: v })}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    ))}
-                    {quickTemplates.length === 0 && <p className="em-settings-hint">No quick replies yet.</p>}
-                  </div>
-                  {templateEditing ? (
-                    <div className="em-settings-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
-                      <input className="em-compose-input em-settings-input" value={templateEditing.name} placeholder="Template name"
-                        onChange={e => setTemplateEditing(prev => prev ? { ...prev, name: e.target.value } : prev)} />
-                      <input className="em-compose-input em-settings-input" value={templateEditing.subject} placeholder="Subject (optional)"
-                        onChange={e => setTemplateEditing(prev => prev ? { ...prev, subject: e.target.value } : prev)} />
-                      <textarea className="em-settings-textarea" value={templateEditing.body} placeholder="Body" rows={3}
-                        onChange={e => setTemplateEditing(prev => prev ? { ...prev, body: e.target.value } : prev)} />
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button type="button" className="btn btn-primary" onClick={saveTemplate}>Save</button>
-                        <button type="button" className="em-text-btn" onClick={() => setTemplateEditing(null)}>Cancel</button>
+                    )}
+
+                    {/* ── Labels Tab ── */}
+                    {settingsTab === 'labels' && (
+                      <div className="em-settings-pane">
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="tag" size={16} />
+                            <span>Labels</span>
+                          </div>
+                          <p className="em-settings-hint">Custom labels you can apply to any message — organized with distinct colors across your inbox.</p>
+                          <div className="em-settings-row">
+                            <input className="em-settings-input" value={newLabelName} onChange={e => setNewLabelName(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); createLabel(); } }}
+                              placeholder="New label name" />
+                            <button type="button" className="btn btn-primary btn-sm" onClick={createLabel} disabled={!newLabelName.trim()}>
+                              <Icon name="plus" size={14} />
+                              <span>Add Label</span>
+                            </button>
+                          </div>
+                          <div className="em-label-manage-list">
+                            {labelDefs.map(l => {
+                              const c = labelColors(l.name, labelDefs);
+                              return (
+                                <div key={l.id} className="em-label-manage-row">
+                                  <Badge variant="gray" style={{ background: c.bg, color: c.fg, flexShrink: 0 }}>{l.name}</Badge>
+                                  <input className="em-settings-input" defaultValue={l.name}
+                                    onBlur={e => { if (e.target.value.trim() && e.target.value.trim() !== l.name) renameLabel(l.id, e.target.value); }} />
+                                  <div className="em-label-actions">
+                                    <Tip label={l.hidden ? 'Show in label list' : 'Hide from label list'}>
+                                      <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => toggleLabelHidden(l.id, !l.hidden)}>
+                                        <Icon name={l.hidden ? 'eyeOff' : 'eye'} size={15} />
+                                      </button>
+                                    </Tip>
+                                    <button type="button" className="em-icon-btn em-icon-btn--ghost em-btn-danger" onClick={() => deleteLabel(l.id)} title="Delete label">
+                                      <Icon name="trash" size={15} />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {labelDefs.length === 0 && <p className="em-settings-hint">No labels yet.</p>}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <button type="button" className="em-text-btn" onClick={() => setTemplateEditing({ id: null, name: '', subject: '', body: '' })}>+ New quick reply</button>
-                  )}
-                </div>
+                    )}
 
-                <div className="em-settings-section">
-                  <div className="em-settings-section-hdr">Signature</div>
-                  <textarea className="em-settings-textarea" value={settings.signature} onChange={e => setSettings({ ...settings, signature: e.target.value })} placeholder="Appended to every message you send…" rows={3} />
-                </div>
+                    {/* ── Inbox Tab ── */}
+                    {settingsTab === 'inbox' && (
+                      <div className="em-settings-pane">
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="inbox" size={16} />
+                            <span>Inbox Type &amp; Sorting</span>
+                          </div>
+                          <p className="em-settings-hint">
+                            Configure how your messages are sorted and grouped in the inbox view.
+                          </p>
+                          <div className="em-settings-row">
+                            <span className="em-compose-label">Message list</span>
+                            <Select value={settings.inboxSort} onValueChange={v => setSettings({ ...settings, inboxSort: v as any })}>
+                              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="default">Default (newest first)</SelectItem>
+                                <SelectItem value="unread_first">Unread first</SelectItem>
+                                <SelectItem value="starred_first">Starred first</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-                <div className="em-settings-section">
-                  <div className="em-settings-section-hdr">Spam blocklist</div>
-                  <p className="em-settings-hint">Sender address, domain, or a subject keyword — matching mail is routed straight to Spam instead of Inbox. Rule-based, not an AI filter.</p>
-                  <div className="em-settings-row">
-                    <input className="em-compose-input em-settings-input" value={blocklistInput} onChange={e => setBlocklistInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addBlocklistEntry(); } }}
-                      placeholder="spam@example.com, badomain.com, or a keyword" />
-                    <button type="button" className="em-text-btn" onClick={addBlocklistEntry}>Add</button>
+                    {/* ── Accounts & Sync Tab ── */}
+                    {settingsTab === 'accounts' && (
+                      <div className="em-settings-pane">
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="mail" size={16} />
+                            <span>Inbound Mailbox (IMAP Sync)</span>
+                          </div>
+                          <SwitchRow
+                            title="Connect my mailbox"
+                            description="Real inbound mail via IMAP, fetched automatically every few minutes into your Inbox."
+                            checked={settings.imapEnabled}
+                            onCheckedChange={v => setSettings({ ...settings, imapEnabled: v })}
+                          />
+                          <div className="em-sync-status-box">
+                            <span className="em-sync-status-text">
+                              <Icon name="refresh" size={13} />
+                              {settings.lastSyncedAt
+                                ? `Last synced ${new Date(settings.lastSyncedAt).toLocaleString()}.`
+                                : 'Not synced yet.'}
+                            </span>
+                            {settings.lastSyncError && <span className="em-settings-error">Last error: {settings.lastSyncError}</span>}
+                          </div>
+                          {settings.imapEnabled && (
+                            <div className="em-settings-subform">
+                              <div className="em-settings-grid-2">
+                                <div className="em-settings-field">
+                                  <label className="em-field-label">IMAP Host</label>
+                                  <input className="em-settings-input" value={settings.imapHost} onChange={e => setSettings({ ...settings, imapHost: e.target.value })} placeholder="imap.example.com" />
+                                </div>
+                                <div className="em-settings-field">
+                                  <label className="em-field-label">Port &amp; Encryption</label>
+                                  <div style={{ display: 'flex', gap: 8 }}>
+                                    <input className="em-settings-input" type="number" value={settings.imapPort} onChange={e => setSettings({ ...settings, imapPort: parseInt(e.target.value, 10) || 993 })} />
+                                    <Select value={settings.imapEncryption} onValueChange={v => setSettings({ ...settings, imapEncryption: v as any })}>
+                                      <SelectTrigger className="w-28 shrink-0"><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="ssl">SSL</SelectItem>
+                                        <SelectItem value="tls">TLS</SelectItem>
+                                        <SelectItem value="none">None</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                                <div className="em-settings-field">
+                                  <label className="em-field-label">Username</label>
+                                  <input className="em-settings-input" value={settings.imapUser} onChange={e => setSettings({ ...settings, imapUser: e.target.value })} placeholder="you@example.com" />
+                                </div>
+                                <div className="em-settings-field">
+                                  <label className="em-field-label">Password</label>
+                                  <input className="em-settings-input" type="password" value={settings.imapPass} onChange={e => setSettings({ ...settings, imapPass: e.target.value })} placeholder="••••••••" />
+                                </div>
+                              </div>
+                              <CheckboxRow
+                                title="Mark as read on server"
+                                description="Applies once a message is fetched into your Inbox."
+                                checked={settings.imapMarkAsRead}
+                                onCheckedChange={v => setSettings({ ...settings, imapMarkAsRead: v })}
+                              />
+                              <div className="em-settings-action-row">
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={testImapConnection} disabled={imapTesting || !settings.imapHost || !settings.imapUser}>
+                                  {imapTesting ? <><Spinner size={13} /><span>Testing…</span></> : 'Test connection'}
+                                </button>
+                                {imapTestResult && (
+                                  <Badge variant={imapTestResult.success ? 'success' : 'destructive'} className="em-test-result-badge">
+                                    <Icon name={imapTestResult.success ? 'check' : 'alertCircle'} size={13} />
+                                    <span>{imapTestResult.success ? 'Connected successfully.' : imapTestResult.error}</span>
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="send" size={16} />
+                            <span>Send Mail As</span>
+                          </div>
+                          <p className="em-settings-hint">
+                            Messages you send will show as: <strong>{settings.fromName || 'Hudumika'} &lt;{settings.fromEmail || (settings.sendProtocol === 'smtp' ? settings.smtpUser : 'your workspace address')}&gt;</strong>
+                          </p>
+                          <div className="em-settings-row">
+                            <span className="em-compose-label">Send using</span>
+                            <Select
+                              value={settings.sendProtocol === 'platform' || settings.sendProtocol === 'smtp' ? settings.sendProtocol : 'platform'}
+                              onValueChange={v => setSettings({ ...settings, sendProtocol: v as any })}
+                            >
+                              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="platform">Workspace default</SelectItem>
+                                <SelectItem value="smtp">Custom SMTP</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {settings.sendProtocol === 'smtp' && (
+                            <div className="em-settings-subform">
+                              <div className="em-settings-grid-2">
+                                <div className="em-settings-field">
+                                  <label className="em-field-label">SMTP Host</label>
+                                  <input className="em-settings-input" value={settings.smtpHost} onChange={e => setSettings({ ...settings, smtpHost: e.target.value })} placeholder="smtp.example.com" />
+                                </div>
+                                <div className="em-settings-field">
+                                  <label className="em-field-label">Port &amp; Encryption</label>
+                                  <div style={{ display: 'flex', gap: 8 }}>
+                                    <input className="em-settings-input" type="number" value={settings.smtpPort} onChange={e => setSettings({ ...settings, smtpPort: parseInt(e.target.value, 10) || 587 })} />
+                                    <Select value={settings.smtpEncryption} onValueChange={v => setSettings({ ...settings, smtpEncryption: v as any })}>
+                                      <SelectTrigger className="w-28 shrink-0"><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="ssl">SSL</SelectItem>
+                                        <SelectItem value="tls">TLS</SelectItem>
+                                        <SelectItem value="none">None</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                                <div className="em-settings-field">
+                                  <label className="em-field-label">SMTP Username</label>
+                                  <input className="em-settings-input" value={settings.smtpUser} onChange={e => setSettings({ ...settings, smtpUser: e.target.value })} placeholder="you@example.com" />
+                                </div>
+                                <div className="em-settings-field">
+                                  <label className="em-field-label">SMTP Password</label>
+                                  <input className="em-settings-input" type="password" value={settings.smtpPass} onChange={e => setSettings({ ...settings, smtpPass: e.target.value })} placeholder="••••••••" />
+                                </div>
+                              </div>
+                              <div className="em-settings-action-row">
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={testSmtpConnection} disabled={smtpTesting || !settings.smtpHost || !settings.smtpUser}>
+                                  {smtpTesting ? <><Spinner size={13} /><span>Testing…</span></> : 'Test connection'}
+                                </button>
+                                {smtpTestResult && (
+                                  <Badge variant={smtpTestResult.success ? 'success' : 'destructive'} className="em-test-result-badge">
+                                    <Icon name={smtpTestResult.success ? 'check' : 'alertCircle'} size={13} />
+                                    <span>{smtpTestResult.success ? 'Connected successfully.' : smtpTestResult.error}</span>
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {(settings.sendProtocol === 'smtp' || settings.sendProtocol === 'outlook' || settings.sendProtocol === 'gmail') && (
+                            <div className="em-settings-grid-2" style={{ marginTop: 8 }}>
+                              <div className="em-settings-field">
+                                <label className="em-field-label">Display name</label>
+                                <input className="em-settings-input" value={settings.fromName} onChange={e => setSettings({ ...settings, fromName: e.target.value })} placeholder="Your name" />
+                              </div>
+                              <div className="em-settings-field">
+                                <label className="em-field-label">From address</label>
+                                <input className="em-settings-input" value={settings.fromEmail} onChange={e => setSettings({ ...settings, fromEmail: e.target.value })} placeholder="you@example.com" />
+                              </div>
+                            </div>
+                          )}
+                          <div className="em-oauth-connect-box">
+                            <div className="em-oauth-row">
+                              <span className="em-oauth-label">External Mail:</span>
+                              {settings.sendProtocol === 'outlook' ? (
+                                <Badge variant="success" className="em-oauth-status"><Icon name="check" size={13} /> Connected — sending via Outlook</Badge>
+                              ) : settings.outlookStatus === 'authorized' ? (
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setSettings({ ...settings, sendProtocol: 'outlook' })}>Switch to Outlook (Connected)</button>
+                              ) : (
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => connectPersonalMail('outlook')}>Connect Outlook</button>
+                              )}
+                              {settings.sendProtocol === 'gmail' ? (
+                                <Badge variant="success" className="em-oauth-status"><Icon name="check" size={13} /> Connected — sending via Gmail</Badge>
+                              ) : settings.gmailStatus === 'authorized' ? (
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setSettings({ ...settings, sendProtocol: 'gmail' })}>Switch to Gmail (Connected)</button>
+                              ) : (
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => connectPersonalMail('gmail')}>Connect Gmail</button>
+                              )}
+                              {(settings.sendProtocol === 'outlook' || settings.sendProtocol === 'gmail') && (
+                                <button type="button" className="btn btn-outline btn-sm" onClick={() => setSettings({ ...settings, sendProtocol: 'platform' })}>Use workspace default instead</button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="users" size={16} />
+                            <span>Additional Identities</span>
+                          </div>
+                          <p className="em-settings-hint">Send as another address (e.g. a shared team inbox) via its own SMTP credentials — pick which one a message goes out from in Compose's From field.</p>
+                          <IdentityManager onChange={setIdentities} />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── Filters & Blocked Tab ── */}
+                    {settingsTab === 'filters' && (
+                      <div className="em-settings-pane">
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="filter" size={16} />
+                            <span>Filters</span>
+                          </div>
+                          <p className="em-settings-hint">Rules that skip the inbox, label, star, or delete matching mail automatically — applied to new mail as it arrives, and optionally to what's already here.</p>
+                          <FilterManager labelDefs={labelDefs} pendingCriteria={pendingFilterCriteria} onConsumePending={() => setPendingFilterCriteria(null)} />
+                        </div>
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="shield" size={16} />
+                            <span>Blocked Senders &amp; Addresses</span>
+                          </div>
+                          <p className="em-settings-hint">Sender address, domain, or a subject keyword — matching mail is routed straight to Spam instead of Inbox. Rule-based, not an AI filter.</p>
+                          <div className="em-settings-row">
+                            <input className="em-settings-input" value={blocklistInput} onChange={e => setBlocklistInput(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addBlocklistEntry(); } }}
+                              placeholder="spam@example.com, badomain.com, or a keyword" />
+                            <button type="button" className="btn btn-primary btn-sm" onClick={addBlocklistEntry} disabled={!blocklistInput.trim()}>
+                              <Icon name="plus" size={14} />
+                              <span>Block</span>
+                            </button>
+                          </div>
+                          <div className="em-blocklist-chips">
+                            {settings.spamBlocklist.map(v => (
+                              <span key={v} className="em-attach-chip">
+                                <span>{v}</span>
+                                <button type="button" className="em-attach-chip-remove" onClick={() => removeBlocklistEntry(v)} title="Unblock">
+                                  <Icon name="x" size={12} />
+                                </button>
+                              </span>
+                            ))}
+                            {settings.spamBlocklist.length === 0 && <p className="em-settings-hint">No blocked senders or keywords.</p>}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── Forwarding & POP/IMAP Tab ── */}
+                    {settingsTab === 'forwarding' && (
+                      <div className="em-settings-pane">
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="send" size={16} />
+                            <span>Forwarding</span>
+                          </div>
+                          <p className="em-settings-hint">Automatically forward every new incoming message to another address.</p>
+                          <div className="em-settings-row">
+                            <span className="em-compose-label">Forward to</span>
+                            <input className="em-settings-input" value={settings.forwardToEmail ?? ''} placeholder="another@address.com"
+                              onChange={e => setSettings({ ...settings, forwardToEmail: e.target.value || null })} />
+                          </div>
+                          {settings.forwardToEmail && (
+                            <CheckboxRow
+                              title="Keep a copy in this mailbox"
+                              description="Off routes forwarded mail straight out without cluttering your Inbox."
+                              checked={settings.forwardKeepCopy}
+                              onCheckedChange={v => setSettings({ ...settings, forwardKeepCopy: v })}
+                            />
+                          )}
+                        </div>
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="mail" size={16} />
+                            <span>POP / IMAP Access</span>
+                          </div>
+                          <p className="em-settings-hint">
+                            IMAP connection settings live under the Accounts &amp; Sync tab — this app's simple sync has no separate auto-expunge or per-folder size-limit behavior to configure. POP retrieval is not supported.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── Advanced Tab ── */}
+                    {settingsTab === 'advanced' && (
+                      <div className="em-settings-pane">
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="arrowRight" size={16} />
+                            <span>Auto-advance</span>
+                          </div>
+                          <p className="em-settings-hint">After you archive, delete, or mark a message done, show:</p>
+                          <div className="em-settings-row">
+                            <span className="em-compose-label">Next view</span>
+                            <Select value={settings.autoAdvance} onValueChange={v => setSettings({ ...settings, autoAdvance: v as any })}>
+                              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="list">The message list</SelectItem>
+                                <SelectItem value="newer">The next (newer) message</SelectItem>
+                                <SelectItem value="older">The previous (older) message</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="fileText" size={16} />
+                            <span>Templates</span>
+                          </div>
+                          <p className="em-settings-hint">Quick replies (configured in the General tab) are this app's Templates — always on, accessible directly in Compose and Reply toolbars.</p>
+                        </div>
+                        <div className="em-settings-section">
+                          <div className="em-settings-section-hdr">
+                            <Icon name="settings" size={16} />
+                            <span>Keyboard shortcuts</span>
+                          </div>
+                          <p className="em-settings-hint">Keyboard navigation is currently using workspace standard hotkeys.</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="em-blocklist-chips">
-                    {settings.spamBlocklist.map(v => (
-                      <span key={v} className="em-attach-chip">
-                        <span>{v}</span>
-                        <button type="button" className="em-attach-chip-remove" onClick={() => removeBlocklistEntry(v)}><Icon name="x" size={11} /></button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="em-settings-footer">
-                  <button type="button" className="btn btn-primary" onClick={saveSettings} disabled={settingsSaving}>
-                    {settingsSaving ? 'Saving…' : 'Save settings'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+                </Tabs>
+              </DialogBody>
+              <DialogFooter className="em-settings-footer">
+                <Button type="button" variant="outline" onClick={() => setSettingsOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="button" onClick={saveSettings} disabled={settingsSaving}>
+                  {settingsSaving ? 'Saving…' : 'Save settings'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

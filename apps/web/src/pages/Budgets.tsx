@@ -42,7 +42,7 @@ export function Budgets() {
   ]).then(([b, a]) => {
     setBudgets(b); setAccounts(a);
     if (!selectedId && b.length > 0) setSelectedId(b[0].id);
-  }).catch(() => {}).finally(() => setLoading(false));
+  }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load budgets.')).finally(() => setLoading(false));
 
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

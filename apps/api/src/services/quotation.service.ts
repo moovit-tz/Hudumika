@@ -69,7 +69,9 @@ export const quotationService = {
           'quotations.updated_at',
           'customers.name as customer_name',
         ])
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+
+      if (!quote) return null;
 
       const lines = await trx
         .selectFrom('quotation_lines')

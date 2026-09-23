@@ -5346,6 +5346,9 @@ export interface Database {
   email_templates: EmailTemplatesTable;
   email_outbox: EmailOutboxTable;
   user_email_accounts: UserEmailAccountsTable;
+  email_signatures: EmailSignaturesTable;
+  email_send_identities: EmailSendIdentitiesTable;
+  email_filters: EmailFiltersTable;
   email_labels: EmailLabelsTable;
   email_quick_templates: EmailQuickTemplatesTable;
   shipment_report_shares: ShipmentReportSharesTable;
@@ -7714,6 +7717,10 @@ export interface EmailMessagesTable {
   send_error: string | null;
   outbox_id: string | null;
   created_at: Generated<Date>;
+  /** Which "Send mail as" alias (email_send_identities, migration 494) this
+   *  message was actually sent from — null means "whichever was default at
+   *  send time," the behavior every message had before this feature. */
+  from_identity_id: string | null;
 }
 
 export interface EmailLabelsTable {
@@ -7723,6 +7730,7 @@ export interface EmailLabelsTable {
   name: string;
   color: Generated<string>;
   created_at: Generated<Date>;
+  hidden: Generated<boolean>;
 }
 
 export interface EmailQuickTemplatesTable {
@@ -7771,6 +7779,65 @@ export interface UserEmailAccountsTable {
   gmail_status: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  vacation_enabled: Generated<boolean>;
+  vacation_start: Date | null;
+  vacation_end: Date | null;
+  vacation_subject: Generated<string>;
+  vacation_message: Generated<string>;
+  vacation_contacts_only: Generated<boolean>;
+  vacation_domain_only: Generated<boolean>;
+  vacation_replied_to: Generated<any>;
+  forward_to_email: string | null;
+  forward_keep_copy: Generated<boolean>;
+  inbox_sort: Generated<'default' | 'unread_first' | 'starred_first'>;
+  auto_advance: Generated<'list' | 'newer' | 'older'>;
+}
+
+export interface EmailSignaturesTable {
+  id:                Generated<string>;
+  tenant_id:         string;
+  user_id:           string;
+  name:              string;
+  body_html:         Generated<string>;
+  is_default_new:    Generated<boolean>;
+  is_default_reply:  Generated<boolean>;
+  created_at:        Generated<Date>;
+  updated_at:        Generated<Date>;
+}
+
+export interface EmailSendIdentitiesTable {
+  id:                        Generated<string>;
+  tenant_id:                 string;
+  user_id:                   string;
+  from_name:                 string | null;
+  from_email:                string;
+  send_protocol:             Generated<'smtp' | 'outlook' | 'gmail'>;
+  smtp_host:                 string | null;
+  smtp_port:                 Generated<number>;
+  smtp_user:                 string | null;
+  smtp_pass:                 string | null;
+  smtp_encryption:           Generated<'ssl' | 'tls' | 'none'>;
+  outlook_access_token:      string | null;
+  outlook_refresh_token:     string | null;
+  outlook_token_expires_at:  Date | null;
+  outlook_status:            string | null;
+  gmail_access_token:        string | null;
+  gmail_refresh_token:       string | null;
+  gmail_token_expires_at:    Date | null;
+  gmail_status:              string | null;
+  is_default:                Generated<boolean>;
+  reply_behavior:            Generated<'same_as_received' | 'always_default'>;
+  created_at:                Generated<Date>;
+  updated_at:                Generated<Date>;
+}
+
+export interface EmailFiltersTable {
+  id:         Generated<string>;
+  tenant_id:  string;
+  user_id:    string;
+  criteria:   Generated<any>;
+  actions:    Generated<any>;
+  created_at: Generated<Date>;
 }
 
 export interface EmailTemplatesTable {
@@ -9651,6 +9718,9 @@ export interface CloudFilesTable {
   search_tsv:  Generated<unknown>;
   created_at:  Generated<Date>;
   updated_at:  Generated<Date>;
+  // migration 499 — DocumentService (document.service.ts)
+  idempotency_key: string | null;
+  retention_class: string | null;
 }
 
 export interface CloudFileSharesTable {
@@ -9709,7 +9779,7 @@ export interface CloudDrivesTable {
   id:         Generated<string>;
   tenant_id:  string;
   name:       string;
-  type:       Generated<string>; // 'personal' | 'shared'
+  type:       Generated<string>; // 'personal' | 'shared' | 'business' (migration 498)
   owner_id:   string | null;
   owner_name: Generated<string>;
   created_at: Generated<Date>;
@@ -9717,12 +9787,17 @@ export interface CloudDrivesTable {
 }
 
 export interface CloudDriveMembersTable {
-  id:          Generated<string>;
-  tenant_id:   string; // migration 455 — was absent; backfilled from cloud_drives
-  drive_id:    string;
-  person_name: string;
-  role:        Generated<string>; // 'manager' | 'content_manager' | 'contributor' | 'commenter' | 'viewer'
-  created_at:  Generated<Date>;
+  id:             Generated<string>;
+  tenant_id:      string; // migration 455 — was absent; backfilled from cloud_drives
+  drive_id:       string;
+  person_name:    string;
+  role:           Generated<string>; // 'manager' | 'content_manager' | 'contributor' | 'commenter' | 'viewer'
+  created_at:     Generated<Date>;
+  // migration 498 — a real, checkable principal (only 'user' is enforced by
+  // any route today); null on a legacy/free-text row, which stays
+  // display-only forever, same convention as cloud_file_shares' own pair.
+  principal_type: string | null;
+  principal_id:   string | null;
 }
 
 export interface CloudExternalFilesTable {

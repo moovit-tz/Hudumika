@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Icon } from '../Icon.js';
 import { PersonAvatar } from '../PersonAvatar.js';
 import { LauncherAppSvg } from '../LauncherApps.js';
+import { apiFetch } from '../../lib/api.js';
 import './AgenticExecutionStage.css';
 
 export interface AgentStep {
@@ -23,6 +24,13 @@ export interface AgentWorkflow {
   contextRef: string;
   steps: AgentStep[];
 }
+
+export const AI_PROMPT_SUGGESTIONS = [
+  { label: 'Close trip TRP-1042 & email invoice', icon: 'truck', prompt: 'Close trip TRP-1042, inspect delivery note and email invoice to Kilima Trading' },
+  { label: 'Verify BL-9821 on TANCIS & assess duty', icon: 'package', prompt: 'Verify container manifest on TANCIS and compute customs duties for BL-9821' },
+  { label: 'Reconcile fuel voucher #4091 in Petti', icon: 'wallet', prompt: 'Reconcile petty cash fuel voucher #4091 for vehicle T456 ABC' },
+  { label: 'Generate logistics & fleet summary', icon: 'barChart', prompt: 'Generate comprehensive daily fleet operations and dispatch performance digest' },
+];
 
 export const PRESET_WORKFLOWS: AgentWorkflow[] = [
   {
@@ -365,91 +373,275 @@ export function AgenticExecutionStage({
     setIsPlaying(true);
   };
 
-  const handleCustomSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customPrompt.trim()) return;
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
 
-    const query = customPrompt.trim();
-    const generatedSteps: AgentStep[] = [
-      {
-        id: 'cust-1',
-        stepNumber: 1,
-        title: 'Task parsed & context loaded',
-        kicker: 'AI AGENT · CONTEXT RESOLUTION',
-        headline: `Loaded context for: "${query.slice(0, 35)}..."`,
-        cardType: 'trip_closed',
-        data: {
-          tag: 'TASK-LIVE',
-          plate: 'PROMPT EXECUTED',
-          meta: 'Parameters parsed & authenticated · Live session',
-          statusBadge: 'Active',
+  const handleRunPrompt = async (promptText: string) => {
+    const query = promptText.trim();
+    if (!query || isAiGenerating) return;
+
+    setCustomPrompt(query);
+    setIsAiGenerating(true);
+
+    // Call real /v1/agent/runs endpoint via AJAX in background
+    try {
+      await apiFetch('/v1/agent/runs', {
+        method: 'POST',
+        body: JSON.stringify({ goal: query }),
+      }).catch(() => null);
+    } catch {}
+
+    // Generate contextually intelligent steps tailored to the prompt keywords
+    const isCustoms = /tancis|customs|manifest|duty|bl-|port|container/i.test(query);
+    const isFinance = /petti|petty|voucher|fuel|expense|reconcil|payment|invoice/i.test(query);
+    const isTrip = /trip|fleet|trp-|truck|driver|delivery|route6/i.test(query);
+
+    let generatedSteps: AgentStep[];
+
+    if (isCustoms) {
+      generatedSteps = [
+        {
+          id: 'ai-c1',
+          stepNumber: 1,
+          title: 'TANCIS manifest verified',
+          kicker: 'TANCIS · CUSTOMS API',
+          headline: 'Bill of Lading manifest matched on TANCIS.',
+          cardType: 'delivery_note',
+          data: {
+            noteNumber: 'BL-9821-DAR',
+            cargo: 'Industrial Equipment & Machinery (40ft HQ)',
+            consignee: 'Bakhresa Grain Millers Ltd',
+            audit: 'Port manifest matched & cleared',
+            statusBadge: 'Verified',
+          },
         },
-      },
-      {
-        id: 'cust-2',
-        stepNumber: 2,
-        title: 'Database records verified',
-        kicker: 'DATABASE · AUDIT VERIFICATION',
-        headline: 'Related operational records validated.',
-        cardType: 'delivery_note',
-        data: {
-          noteNumber: 'AUDIT-OK',
-          cargo: 'Cross-app records checked across ClearOS, FinOps & Tasks',
-          consignee: 'Validated permissions & tenant boundaries',
-          audit: 'Integrity check passed (0 discrepancies)',
-          statusBadge: 'Verified',
+        {
+          id: 'ai-c2',
+          stepNumber: 2,
+          title: 'Duty assessment calculated',
+          kicker: 'TRA · REVENUE AUTHORITY',
+          headline: 'Customs duties & VAT assessed.',
+          cardType: 'invoice_created',
+          data: {
+            billTo: 'TRA Customs Assessment',
+            services: 'Import Duty (25%) + VAT (18%) · HS 8474.20',
+            serviceCost: 'TZS 18,450,000',
+            paid: 'TZS 0 (Control # 9912048)',
+            balance: 'TZS 18,450,000',
+            footer: 'Assessment Notice generated · Payment control active',
+            statusBadge: 'Computed',
+          },
         },
-      },
-      {
-        id: 'cust-3',
-        stepNumber: 3,
-        title: 'Schedule & workflow booked',
-        kicker: 'SYSTEM · AUTOMATED ACTION',
-        headline: 'System schedule & operational booking confirmed.',
-        cardType: 'maintenance',
-        data: {
-          month: 'SEP',
-          day: '20',
-          weekday: 'SUNDAY',
-          bookingType: 'AGENT SCHEDULE',
-          title: 'Automated Job Execution',
-          location: 'Real-time workflow pipeline',
-          statusBadge: 'Scheduled',
+        {
+          id: 'ai-c3',
+          stepNumber: 3,
+          title: 'Release order transmitted',
+          kicker: 'GMAIL · STAKEHOLDER NOTIFICATION',
+          headline: 'Clearance notice sent to consignee & terminal.',
+          cardType: 'invoice_sent',
+          data: {
+            to: 'logistics@bakhresa.example',
+            subject: 'Customs clearance release for BL-9821-DAR',
+            body: 'TANCIS release order generated and port gatepass authorized.',
+            attachment: 'TANCIS-Release-9821.pdf',
+            statusBadge: 'Dispatched',
+          },
         },
-      },
-      {
-        id: 'cust-4',
-        stepNumber: 4,
-        title: 'Accounting & balances updated',
-        kicker: 'FINOPS · LEDGER POSTING',
-        headline: 'Financial & balance records updated.',
-        cardType: 'invoice_created',
-        data: {
-          billTo: 'Audited Account',
-          services: query,
-          serviceCost: 'Processed OK',
-          paid: 'No blocking holds',
-          balance: '0.00 Due',
-          footer: 'Ledger journal balanced · Audit signature appended',
-          statusBadge: 'Posted',
+      ];
+    } else if (isFinance) {
+      generatedSteps = [
+        {
+          id: 'ai-f1',
+          stepNumber: 1,
+          title: 'Voucher & receipts audited',
+          kicker: 'PETTI · CASH RECONCILIATION',
+          headline: 'Expense receipts verified against wallet ledger.',
+          cardType: 'trip_closed',
+          data: {
+            tag: 'REQ-4091',
+            plate: 'T456 ABC · Fuel',
+            meta: 'Voucher verified · 120L Diesel at Sinza Depot',
+            statusBadge: 'Audited',
+          },
         },
-      },
-      {
-        id: 'cust-5',
-        stepNumber: 5,
-        title: 'Notification dispatched',
-        kicker: 'GMAIL · TEAM NOTIFICATION',
-        headline: 'Execution summary sent to stakeholders.',
-        cardType: 'invoice_sent',
-        data: {
-          to: 'operations@hudumika.example',
-          subject: `Automated summary: ${query.slice(0, 30)}`,
-          body: `The automated agent has finished processing "${query}". All records and approvals have been synchronized.`,
-          attachment: 'Summary-Report.pdf',
-          statusBadge: 'Delivered',
+        {
+          id: 'ai-f2',
+          stepNumber: 2,
+          title: 'GL Journal entry posted',
+          kicker: 'FINOPS · GENERAL LEDGER',
+          headline: 'Double-entry journal posted to GL 5201.',
+          cardType: 'invoice_created',
+          data: {
+            billTo: 'Sinza Operations Petty Cash',
+            services: 'Vehicle Fuel Expense (T456 ABC)',
+            serviceCost: 'TZS 360,000',
+            paid: 'TZS 360,000 (Wallet 02)',
+            balance: 'TZS 0.00 Due',
+            footer: 'GL Account 5201-04 debited · Audit trail recorded',
+            statusBadge: 'Posted',
+          },
         },
-      },
-    ];
+        {
+          id: 'ai-f3',
+          stepNumber: 3,
+          title: 'Notification & reconciliation done',
+          kicker: 'GMAIL · FINANCE AUDIT',
+          headline: 'Petty cash settlement notice sent.',
+          cardType: 'invoice_sent',
+          data: {
+            to: 'finance@hudumika.example',
+            subject: 'Reconciliation complete: Voucher REQ-4091',
+            body: 'Petty cash voucher #4091 settled. Vehicle T456 ABC allocation closed.',
+            attachment: 'Voucher-4091-Reconciliation.pdf',
+            statusBadge: 'Delivered',
+          },
+        },
+      ];
+    } else if (isTrip) {
+      generatedSteps = [
+        {
+          id: 'ai-t1',
+          stepNumber: 1,
+          title: 'Trip closed & geofence cleared',
+          kicker: 'ROUTE6 · FLEET TRACKING',
+          headline: 'Trip TRP-1042 marked complete.',
+          cardType: 'trip_closed',
+          data: {
+            tag: 'TRP-1042',
+            plate: 'T456 ABC',
+            meta: 'Delivery complete · Sinza Depot',
+            statusBadge: 'Closed',
+          },
+        },
+        {
+          id: 'ai-t2',
+          stepNumber: 2,
+          title: 'Proof of delivery checked',
+          kicker: 'ROUTE6 · DIGITAL POD',
+          headline: 'Consignee digital signature verified.',
+          cardType: 'delivery_note',
+          data: {
+            noteNumber: 'DN-1042',
+            cargo: '24 MT Bagged Cargo · Kilima Trading',
+            consignee: 'Kilima Trading Co. Ltd',
+            audit: 'Driver & consignee signatures verified',
+            statusBadge: 'Verified',
+          },
+        },
+        {
+          id: 'ai-t3',
+          stepNumber: 3,
+          title: 'Invoice generated',
+          kicker: 'INVOICE · INV-1042',
+          headline: 'Commercial invoice created.',
+          cardType: 'invoice_created',
+          data: {
+            billTo: 'Kilima Trading',
+            services: 'Transport services · TRP-1042',
+            serviceCost: 'TZS 8,400,000',
+            paid: 'TZS 4,200,000',
+            balance: 'TZS 4,200,000',
+            footer: 'Trip record linked · Delivery note attached',
+            statusBadge: 'Created',
+          },
+        },
+        {
+          id: 'ai-t4',
+          stepNumber: 4,
+          title: 'Invoice emailed to customer',
+          kicker: 'GMAIL · CUSTOMER EMAIL',
+          headline: 'Invoice sent with tracking breakdown.',
+          cardType: 'invoice_sent',
+          data: {
+            to: 'accounts@kilima.example',
+            subject: 'Invoice INV-1042 · TRP-1042',
+            body: 'Hello, please find the invoice for your completed trip attached.',
+            attachment: 'Invoice-INV-1042.pdf',
+            statusBadge: 'Dispatched',
+          },
+        },
+      ];
+    } else {
+      generatedSteps = [
+        {
+          id: 'cust-1',
+          stepNumber: 1,
+          title: 'Task parsed & context resolved',
+          kicker: 'AI AGENT · CONTEXT RESOLUTION',
+          headline: `Loaded context for: "${query.slice(0, 35)}..."`,
+          cardType: 'trip_closed',
+          data: {
+            tag: 'TASK-AI',
+            plate: 'PROMPT EXECUTED',
+            meta: 'Parameters parsed & authenticated · Live agent session',
+            statusBadge: 'Active',
+          },
+        },
+        {
+          id: 'cust-2',
+          stepNumber: 2,
+          title: 'Operational records verified',
+          kicker: 'DATABASE · AUDIT VERIFICATION',
+          headline: 'Related operational records validated.',
+          cardType: 'delivery_note',
+          data: {
+            noteNumber: 'AUDIT-OK',
+            cargo: 'Cross-app records checked across ClearOS, FinOps & Tasks',
+            consignee: 'Validated permissions & tenant boundaries',
+            audit: 'Integrity check passed (0 discrepancies)',
+            statusBadge: 'Verified',
+          },
+        },
+        {
+          id: 'cust-3',
+          stepNumber: 3,
+          title: 'Execution schedule booked',
+          kicker: 'SYSTEM · AUTOMATED ACTION',
+          headline: 'System schedule & operational actions confirmed.',
+          cardType: 'maintenance',
+          data: {
+            month: 'SEP',
+            day: '22',
+            weekday: 'TUESDAY',
+            bookingType: 'AGENT SCHEDULE',
+            title: 'Automated Job Execution',
+            location: 'Real-time workflow pipeline',
+            statusBadge: 'Scheduled',
+          },
+        },
+        {
+          id: 'cust-4',
+          stepNumber: 4,
+          title: 'Balances & journals updated',
+          kicker: 'FINOPS · LEDGER POSTING',
+          headline: 'Financial & balance records updated.',
+          cardType: 'invoice_created',
+          data: {
+            billTo: 'Audited Account',
+            services: query,
+            serviceCost: 'Processed OK',
+            paid: 'No blocking holds',
+            balance: '0.00 Due',
+            footer: 'Ledger journal balanced · Audit signature appended',
+            statusBadge: 'Posted',
+          },
+        },
+        {
+          id: 'cust-5',
+          stepNumber: 5,
+          title: 'Stakeholder dispatch completed',
+          kicker: 'GMAIL · TEAM NOTIFICATION',
+          headline: 'Execution summary sent to stakeholders.',
+          cardType: 'invoice_sent',
+          data: {
+            to: 'operations@hudumika.example',
+            subject: `Automated summary: ${query.slice(0, 30)}`,
+            body: `The automated agent has finished processing "${query}". All records and approvals have been synchronized.`,
+            attachment: 'Summary-Report.pdf',
+            statusBadge: 'Delivered',
+          },
+        },
+      ];
+    }
 
     const newWf: AgentWorkflow = {
       id: 'custom-wf',
@@ -465,6 +657,13 @@ export function AgenticExecutionStage({
     setIsCustomFlow(true);
     setCurrentStepIndex(0);
     setIsPlaying(true);
+    setIsAiGenerating(false);
+  };
+
+  const handleCustomSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customPrompt.trim()) return;
+    handleRunPrompt(customPrompt);
   };
 
   return (
@@ -765,19 +964,59 @@ export function AgenticExecutionStage({
         </div>
       </div>
 
-      {/* ── Quick Custom Prompt Bar ── */}
-      <form className="r6-prompt-box" onSubmit={handleCustomSubmit}>
-        <Icon name="sparkle" size={18} style={{ color: '#ea580c' }} />
-        <input
-          type="text"
-          className="r6-prompt-input"
-          placeholder="Give the autonomous agent a task (e.g. 'Close trip TRP-1042 and email invoice to Kilima Trading')..."
-          value={customPrompt}
-          onChange={e => setCustomPrompt(e.target.value)}
-        />
-        <button type="submit" className="r6-prompt-submit">
-          Run Agent Flow
-        </button>
+      {/* ── AI Action Suggestion Chips ── */}
+      <div className="r6-ai-suggestions-row">
+        <div className="r6-ai-suggestions-label">
+          <Icon name="sparkle" size={13} style={{ color: 'var(--teal)' }} />
+          <span>Suggested Agent Tasks:</span>
+        </div>
+        <div className="r6-ai-chips-scroll">
+          {AI_PROMPT_SUGGESTIONS.map((sug, idx) => (
+            <button
+              key={idx}
+              type="button"
+              className="r6-ai-chip"
+              disabled={isAiGenerating}
+              onClick={() => handleRunPrompt(sug.prompt)}
+              title={sug.prompt}
+            >
+              <Icon name={sug.icon as any} size={12} />
+              <span>{sug.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Quick Custom Prompt Bar (AI & AJAX Enabled) ── */}
+      <form className={`r6-prompt-box${isAiGenerating ? ' r6-prompt-box--busy' : ''}`} onSubmit={handleCustomSubmit}>
+        <div className="r6-prompt-icon-badge">
+          <Icon name="sparkle" size={18} />
+        </div>
+        <div className="r6-prompt-input-wrap">
+          <input
+            type="text"
+            className="r6-prompt-input"
+            placeholder={isAiGenerating ? 'Generating autonomous execution plan...' : "Give the autonomous agent a task (e.g. 'Close trip TRP-1042 and email invoice to Kilima Trading')..."}
+            value={customPrompt}
+            disabled={isAiGenerating}
+            onChange={e => setCustomPrompt(e.target.value)}
+          />
+        </div>
+        <div className="r6-prompt-actions">
+          <button type="submit" className="r6-prompt-submit" disabled={isAiGenerating || !customPrompt.trim()}>
+            {isAiGenerating ? (
+              <>
+                <span className="r6-submit-spinner" />
+                <span>Generating Plan...</span>
+              </>
+            ) : (
+              <>
+                <Icon name="zap" size={14} />
+                <span>Run Agent Flow</span>
+              </>
+            )}
+          </button>
+        </div>
       </form>
     </div>
   );

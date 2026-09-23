@@ -11,6 +11,16 @@ runtime tokens written by `useDesignSystem()` and scoped per app by
   documented exception.
 - Use `Button`, `Input`, `Select`, `Combobox`, `DatePicker`, `Badge`,
   `FeaturedIcon`, `Dialog`, and filter components for their named jobs.
+
+### Icon shape
+
+App icons and non-circular `FeaturedIcon` badges use the shared mathematical
+superellipse from `lib/squircle.ts` (Lamé exponent `4.19`, with a `33%`
+rounded fallback). This is the global Hudumika icon shape. Do not recreate it with a fixed pixel
+`border-radius`: use `LauncherAppSvg` for an application identity and
+`FeaturedIcon` for a semantic icon surface. `shape="square"` remains a legacy
+alias for the squircle. Use `shape="circle"` only when the meaning is genuinely
+circular, such as a status mark or avatar treatment.
 - Do not hardcode a brand colour, radius, control height, shadow, or soft tint.
   Use the tokens below so tenant, app, density, shape, and theme settings work.
 - Multi-step work belongs on a dedicated route. A genuinely small multi-step

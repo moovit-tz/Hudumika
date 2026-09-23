@@ -225,7 +225,7 @@ export function CreditNotes() {
   const [selected, setSelected] = useState<CreditNote | null>(null);
   const [loading, setLoading] = useState(true);
   const [voiding, setVoiding] = useState(false);
-  const load = () => apiFetch('/v1/credit-notes').then((d: any) => { if (Array.isArray(d)) setNotes(d); }).catch(() => {}).finally(() => setLoading(false));
+  const load = () => apiFetch('/v1/credit-notes').then((d: any) => { if (Array.isArray(d)) setNotes(d); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load credit notes.')).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
   async function voidNote(id: string) {

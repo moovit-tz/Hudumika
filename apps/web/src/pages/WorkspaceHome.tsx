@@ -12,6 +12,7 @@ import { Tip } from '../components/ui/tooltip.js';
 import { SetupGuideWidget } from '../components/SetupGuideWidget.js';
 import { AttendanceStatusBanner } from '../components/AttendanceStatusBanner.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
+import { getRecentApps, recordRecentApp } from '../lib/recentApps.js';
 import './WorkspaceHome.css';
 
 interface HudumikaApp {
@@ -53,7 +54,6 @@ const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category'>> = {
   cloud:        { desc: 'Enterprise document storage & cloud drive', category: 'Storage' },
   email:        { desc: 'Team inbox and email workspace', category: 'Communication' },
   contacts:     { desc: 'Shared customer, vendor and partner contact directory', category: 'Directory' },
-  ai:           { desc: 'Automated intelligence, document OCR & predictive analytics', category: 'AI' },
   store:        { desc: 'B2B Procurement & equipment marketplace', category: 'Procurement' },
   ondi:         { desc: 'SSO, identity verification & biometric access control', category: 'Identity' },
   tracking:     { desc: 'Fleet, vehicle and driver tracking — GPS positions, geofence alerts & trip history', category: 'Logistics' },
@@ -136,23 +136,22 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
     localStorage.setItem('hudumika_starred_apps', JSON.stringify(starredIds));
   }, [starredIds]);
 
-  // ── Recently Viewed (persisted in localStorage, always showing 5 apps) ──
-  const [recentIds, setRecentIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('hudumika_recently_viewed');
-      return saved ? JSON.parse(saved) : ['clearos', 'finops', 'nexushr', 'bliss', 'complyos'];
-    } catch {
-      return ['clearos', 'finops', 'nexushr', 'bliss', 'complyos'];
-    }
-  });
+  // ── Recently Viewed — recorded centrally by WorkspaceApp.tsx on every app
+  // visit (see lib/recentApps.ts), not just a click starting from this page,
+  // so this reflects sidebar navigation and deep links too, not only a tile
+  // clicked here. Re-read on mount for the same reason. handleAppClick below
+  // still records optimistically on click so this page's own list reorders
+  // immediately rather than waiting for the navigated-to app to mount.
+  const [recentIds, setRecentIds] = useState<string[]>(() =>
+    getRecentApps(['clearos', 'finops', 'nexushr', 'bliss', 'complyos']));
+
+  useEffect(() => {
+    setRecentIds(getRecentApps(['clearos', 'finops', 'nexushr', 'bliss', 'complyos']));
+  }, []);
 
   const handleAppClick = (app: HudumikaApp) => {
-    setRecentIds(prev => {
-      const filtered = prev.filter(id => id !== app.id);
-      const next = [app.id, ...filtered].slice(0, 5);
-      localStorage.setItem('hudumika_recently_viewed', JSON.stringify(next));
-      return next;
-    });
+    recordRecentApp(app.id);
+    setRecentIds(getRecentApps(['clearos', 'finops', 'nexushr', 'bliss', 'complyos']));
   };
 
   const toggleStar = (id: string, e: React.MouseEvent) => {

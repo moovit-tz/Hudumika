@@ -72,6 +72,10 @@ const sendSchema = z.object({
    *  the same scheduled/undo mechanism as a normal send, just a longer
    *  delay. Omitted = the default UNDO_WINDOW_MS. */
   sendAt: z.string().datetime().optional(),
+  /** Compose's "From" picker (email_send_identities, migration 494) — which
+   *  of the user's own aliases to send as, when they have more than one.
+   *  Omitted = whichever alias is marked default at actual send time. */
+  fromIdentityId: z.string().uuid().optional(),
 });
 const bulkSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(500),
@@ -221,24 +225,105 @@ export async function emailRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // GET /v1/emails/folder-counts — the sidebar's per-folder and label badge counts
+  // (Gmail's own "Inbox 2 / Drafts 87" pattern). Unread count for
+  // inbox/spam (folders where "unread" is the thing worth flagging) and
+  // starred (unread among starred messages); total item count for
+  // drafts/scheduled (nothing there is ever "read", the count that matters
+  // is "how many exist"). Sent/archive/trash intentionally carry none,
+  // same as Gmail.
+  fastify.get('/folder-counts', async (request: any) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('email_messages')
+        .select(['folder', 'starred', sql<number>`count(*)`.as('total'), sql<number>`count(*) filter (where read = false)`.as('unread')])
+        .where('user_id', '=', user.sub)
+        .groupBy(['folder', 'starred'])
+        .execute();
+
+      const labelResult = await sql<{ label: string; unread: number }>`
+        select expanded.label, count(*) filter (where m.read = false)::int as unread
+        from email_messages m
+        cross join lateral jsonb_array_elements_text(coalesce(m.labels, '[]'::jsonb)) as expanded(label)
+        where m.tenant_id = ${user.tenant_id}
+          and m.user_id = ${user.sub}
+          and m.folder <> 'trash'
+        group by expanded.label
+      `.execute(trx);
+
+      const byFolder = new Map<string, { total: number; unread: number }>();
+      let starredTotal = 0, starredUnread = 0;
+      for (const r of rows) {
+        const prev = byFolder.get(r.folder) ?? { total: 0, unread: 0 };
+        byFolder.set(r.folder, { total: prev.total + Number(r.total), unread: prev.unread + Number(r.unread) });
+        if (r.starred && r.folder !== 'trash') {
+          starredTotal += Number(r.total);
+          starredUnread += Number(r.unread);
+        }
+      }
+
+      const of = (folder: string) => byFolder.get(folder) ?? { total: 0, unread: 0 };
+      return {
+        inbox: of('inbox').unread,
+        starred: starredUnread,
+        drafts: of('drafts').total,
+        scheduled: of('scheduled').total,
+        spam: of('spam').unread,
+        labels: Object.fromEntries(labelResult.rows.map(r => [r.label, Number(r.unread)])),
+      };
+    });
+  });
+
   // GET /v1/emails?folder=inbox|sent|drafts|spam|trash|scheduled|archive|starred&search=&limit=&offset=
   // Used to return the entire matched folder in one response and let the
   // frontend slice it into pages of 15 — fine for a demo mailbox, real cost
   // for a real one. Now a real LIMIT/OFFSET with a total count alongside it.
   fastify.get('/', async (request: any) => {
     const user = request.user;
-    const { folder, search } = request.query as { folder?: string; search?: string };
+    const query = request.query as Record<string, string | undefined>;
+    const { folder, search } = query;
     const rawLimit = parseInt((request.query as any).limit, 10);
     const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 200) : 50;
     const rawOffset = parseInt((request.query as any).offset, 10);
     const offset = Number.isFinite(rawOffset) && rawOffset > 0 ? rawOffset : 0;
+
+    // Advanced search (Gmail's own "From/To/Subject/Has the words/Doesn't
+    // have/Size/Date within/Search/Has attachment" form) — every field is
+    // optional and independently combinable; an empty/absent field applies
+    // no constraint at all, so a plain folder view is unaffected.
+    const adv = {
+      from: query.advFrom?.trim(),
+      to: query.advTo?.trim(),
+      subject: query.advSubject?.trim(),
+      hasWords: query.advHasWords?.trim(),
+      doesntHave: query.advDoesntHave?.trim(),
+      hasAttachment: query.advHasAttachment === '1',
+      sizeCmp: query.advSizeCmp as 'gt' | 'lt' | undefined,
+      sizeMb: query.advSizeMb ? Number(query.advSizeMb) : undefined,
+      dateWithin: query.advDateWithin as string | undefined,
+      dateAfter: query.advDateAfter,
+      dateBefore: query.advDateBefore,
+      scope: query.advScope,
+    };
 
     return withTenant(user.tenant_id, async (trx) => {
       let q = trx.selectFrom('email_messages as m')
         .leftJoin('email_outbox as o', 'o.id', 'm.outbox_id')
         .selectAll('m').select('o.status as delivery_status')
         .where('m.user_id', '=', user.sub);
-      if (folder === 'starred') {
+      // advScope, when present, replaces the plain folder/starred filter —
+      // 'all' searches every folder, 'label:<name>' searches every folder
+      // carrying that label, and a bare folder name behaves like `folder`.
+      if (adv.scope === 'all') {
+        // no folder constraint
+      } else if (adv.scope?.startsWith('label:')) {
+        const labelName = adv.scope.slice('label:'.length);
+        q = q.where(sql<boolean>`m.labels @> ${JSON.stringify([labelName])}::jsonb`);
+      } else if (adv.scope) {
+        q = adv.scope === 'starred'
+          ? q.where('m.starred', '=', true).where('m.folder', '!=', 'trash')
+          : q.where('m.folder', '=', adv.scope as Folder);
+      } else if (folder === 'starred') {
         q = q.where('m.starred', '=', true).where('m.folder', '!=', 'trash');
       } else if (folder) {
         q = q.where('m.folder', '=', folder as Folder);
@@ -251,13 +336,51 @@ export async function emailRoutes(fastify: FastifyInstance) {
       if (search && search.trim()) {
         q = q.where(sql<boolean>`m.search_vector @@ plainto_tsquery('english', ${search.trim()})`);
       }
+      if (adv.from) q = q.where(sql<boolean>`(m.from_name ILIKE ${'%' + adv.from + '%'} OR m.from_email ILIKE ${'%' + adv.from + '%'})`);
+      if (adv.to) q = q.where(sql<boolean>`(m.to_addresses::text ILIKE ${'%' + adv.to + '%'} OR m.cc_addresses::text ILIKE ${'%' + adv.to + '%'})`);
+      if (adv.subject) q = q.where('m.subject', 'ilike', `%${adv.subject}%`);
+      if (adv.hasWords) q = q.where(sql<boolean>`m.search_vector @@ plainto_tsquery('english', ${adv.hasWords})`);
+      if (adv.doesntHave) q = q.where(sql<boolean>`NOT (m.search_vector @@ plainto_tsquery('english', ${adv.doesntHave}))`);
+      if (adv.hasAttachment) q = q.where('m.has_attachment', '=', true);
+      // Approximates a message's size from its stored plain-text body bytes
+      // — this app has no separately tracked total-MIME-size column, so
+      // this is honestly "how long is the text," not the exact byte count a
+      // real mail client reports (which also counts headers/encoding).
+      if (adv.sizeCmp && adv.sizeMb != null && !Number.isNaN(adv.sizeMb)) {
+        const bytes = Math.round(adv.sizeMb * 1024 * 1024);
+        q = adv.sizeCmp === 'gt'
+          ? q.where(sql<boolean>`octet_length(m.body) > ${bytes}`)
+          : q.where(sql<boolean>`octet_length(m.body) < ${bytes}`);
+      }
+      if (adv.dateWithin) {
+        const match = /^(\d+)([dwmy])$/.exec(adv.dateWithin);
+        if (match) {
+          const [, n, unit] = match;
+          const interval = { d: 'days', w: 'weeks', m: 'months', y: 'years' }[unit as 'd' | 'w' | 'm' | 'y'];
+          q = q.where(sql<boolean>`m.created_at >= now() - (${n + ' ' + interval})::interval`);
+        }
+      }
+      if (adv.dateAfter) {
+        const d = new Date(adv.dateAfter);
+        if (!Number.isNaN(d.getTime())) q = q.where('m.created_at', '>=', d);
+      }
+      if (adv.dateBefore) {
+        const d = new Date(adv.dateBefore);
+        if (!Number.isNaN(d.getTime())) q = q.where('m.created_at', '<=', d);
+      }
 
       // Same filters, no join/columns — just the count this folder+search
       // combination matches in total, independent of the page being fetched.
       const totalRow = await q.clearSelect().select(sql<number>`count(*)`.as('n')).executeTakeFirst();
       const total = Number(totalRow?.n ?? 0);
 
-      const rows = await q.selectAll('m').select('o.status as delivery_status')
+      // Inbox display preference (Settings ▸ Inbox) — 'default' is plain
+      // chronological, unchanged from before this preference existed.
+      const accountRow = await trx.selectFrom('user_email_accounts').select('inbox_sort').where('user_id', '=', user.sub).executeTakeFirst();
+      let sortedQ = q.selectAll('m').select('o.status as delivery_status');
+      if (accountRow?.inbox_sort === 'unread_first') sortedQ = sortedQ.orderBy('m.read', 'asc');
+      else if (accountRow?.inbox_sort === 'starred_first') sortedQ = sortedQ.orderBy('m.starred', 'desc');
+      const rows = await sortedQ
         .orderBy('m.created_at', 'desc')
         .limit(limit).offset(offset)
         .execute();
@@ -590,16 +713,18 @@ export async function emailSendRoutes(fastify: FastifyInstance) {
         }
       }
 
-      // Signature — appended server-side so every send path (compose,
-      // reply, forward) picks it up the same way regardless of which
-      // frontend surface built the body, rather than three separate
-      // "don't forget to append it" call sites. Stored in `body` as plain
-      // text; the receipt-pixel/HTML wrapping is rebuilt from this same
-      // plain body at actual-send time (scheduled-email-send.job.ts), so it
-      // isn't duplicated into a second stored copy here.
+      // Signature — appended server-side so every send path picks it up
+      // the same way regardless of which frontend surface built the body.
+      // EmailApp.tsx's own Compose/Reply now insert it into the editable
+      // body directly (so the sender can actually see and edit what's
+      // about to go out, matching every real mail client) — the check
+      // below skips re-appending when that's already happened, so only a
+      // caller that never touched the signature at all (the right-sidebar
+      // quick-composer in GoogleWorkspaceRightSidebar.tsx, still a bare
+      // to/subject/body form) gets it added here.
       const account = await trx.selectFrom('user_email_accounts').select(['signature']).where('user_id', '=', user.sub).executeTakeFirst();
       const signature = account?.signature?.trim();
-      const fullBody = signature ? `${input.body}\n\n--\n${signature}` : input.body;
+      const fullBody = signature && !input.body.includes(signature) ? `${input.body}\n\n--\n${signature}` : input.body;
 
       // A draft this send supersedes is gone the moment it's queued — the
       // compose is "done" the instant Send is clicked even though real
@@ -618,13 +743,24 @@ export async function emailSendRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'Invalid sendAt.' });
       }
 
+      // A chosen "From" alias (Compose's From picker, migration 494) shows
+      // in the Sent-folder copy as the address it was actually sent from —
+      // scoped to this user so someone else's tenant-mate alias can't be
+      // spoofed by id; silently ignored (falls back to the account address)
+      // rather than erroring, same as any other stale/foreign reference.
+      const identity = input.fromIdentityId
+        ? await trx.selectFrom('email_send_identities').select(['id', 'from_name', 'from_email'])
+            .where('id', '=', input.fromIdentityId).where('user_id', '=', user.sub).executeTakeFirst()
+        : null;
+
       await trx.insertInto('email_messages').values({
         id: newId,
         tenant_id: tenantId,
         user_id: user.sub,
         folder: 'scheduled',
-        from_name: user.name || user.email || 'Me',
-        from_email: user.email || '',
+        from_name: identity?.from_name || user.name || user.email || 'Me',
+        from_email: identity?.from_email || user.email || '',
+        from_identity_id: identity?.id ?? null,
         to_addresses: JSON.stringify(toAddrs),
         cc_addresses: JSON.stringify(ccAddrs),
         bcc_addresses: JSON.stringify(bccAddrs),

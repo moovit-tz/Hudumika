@@ -5,6 +5,7 @@ import { quotationService } from '../services/quotation.service.js';
 import { isTaxCodeUserError } from '../services/tax-code.service.js';
 import { withTenant } from '../db/client.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
+import { MailService } from '../services/mail.service.js';
 
 // A malformed (non-UUID) :id used to reach the DB as-is and crash with a raw
 // "invalid input syntax for type uuid" driver error (sanitized to an opaque
@@ -23,6 +24,16 @@ const idParamSchema = z.object({ id: z.string().uuid() });
 // they tried to create, edit, or convert a quote.
 const QUOTE_WRITE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR'];
 const QUOTE_DELETE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'];
+const sendSchema = z.object({
+  email: z.string().trim().email().max(320),
+  message: z.string().trim().max(5000).optional().default(''),
+});
+
+function escapeHtml(value: unknown) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[char]!);
+}
 
 export async function quotationRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
@@ -130,6 +141,74 @@ export async function quotationRoutes(app: FastifyInstance) {
       if (e instanceof Error && e.message === 'Only approved quotations can be converted') {
         return reply.status(400).send({ error: e.message });
       }
+      throw e;
+    }
+  });
+
+  app.post('/:id/send', async (req: FastifyRequest, reply: FastifyReply) => {
+    const user = (req as any).user;
+    if (!QUOTE_WRITE_ROLES.includes(user.role)) {
+      return reply.code(403).send({ error: 'Insufficient permissions' });
+    }
+    const { id } = idParamSchema.parse(req.params);
+    const { email, message } = sendSchema.parse(req.body);
+    const quote = await quotationService.getById(user.tenant_id, id).catch(() => null);
+    if (!quote) return reply.code(404).send({ error: 'Quotation not found' });
+
+    const amount = new Intl.NumberFormat('en', { style: 'currency', currency: quote.currency }).format(Number(quote.total_amount));
+    const bodyHtml = [
+      `<p>Hello ${escapeHtml(quote.customer_name || 'there')},</p>`,
+      message ? `<p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>` : '',
+      `<p>Quotation <strong>${escapeHtml(quote.quote_number)}</strong> for <strong>${escapeHtml(quote.title)}</strong> is ready.</p>`,
+      `<p>Total: <strong>${escapeHtml(amount)}</strong>${quote.valid_until ? `<br>Valid until: ${escapeHtml(quote.valid_until)}` : ''}</p>`,
+      '<p>Please contact the sender if you need a detailed copy or any changes.</p>',
+    ].join('');
+    const outboxId = await MailService.enqueue(user.tenant_id, {
+      to: email,
+      subject: `Quotation ${quote.quote_number} — ${quote.title}`,
+      bodyHtml,
+      sourceApp: 'finops',
+    });
+    if (quote.status === 'DRAFT') {
+      await quotationService.updateStatus(user.tenant_id, id, 'PENDING', user.sub);
+    }
+    return reply.code(202).send({ success: true, queued: true, outbox_id: outboxId });
+  });
+
+  app.post('/:id/duplicate', async (req: FastifyRequest, reply: FastifyReply) => {
+    const user = (req as any).user;
+    if (!QUOTE_WRITE_ROLES.includes(user.role)) {
+      return reply.code(403).send({ error: 'Insufficient permissions' });
+    }
+    const { id } = idParamSchema.parse(req.params);
+    const source = await quotationService.getById(user.tenant_id, id).catch(() => null);
+    if (!source) return reply.code(404).send({ error: 'Quotation not found' });
+    try {
+      const duplicate = await quotationService.create(user.tenant_id, user.sub, {
+        customer_id: source.customer_id,
+        title: `${source.title} (Copy)`,
+        shipment_type: source.shipment_type,
+        goods_description: source.goods_description ?? undefined,
+        origin_port: source.origin_port ?? undefined,
+        origin_city: source.origin_city ?? undefined,
+        destination_port: source.destination_port ?? undefined,
+        destination_city: source.destination_city ?? undefined,
+        container_requirements: typeof source.container_requirements === 'string'
+          ? JSON.parse(source.container_requirements) : (source.container_requirements ?? undefined),
+        currency: source.currency,
+        valid_from: undefined,
+        valid_until: undefined,
+        notes: source.notes ?? undefined,
+        lines: source.lines.map(line => ({
+          description: line.description, category: line.category,
+          quantity: Number(line.quantity), unit_price: Number(line.unit_price),
+          tax_rate: Number(line.tax_rate), tax_code_id: line.tax_code_id,
+          is_optional: line.is_optional, vendor: line.vendor ?? undefined,
+        })),
+      });
+      return reply.code(201).send(duplicate);
+    } catch (e) {
+      if (isTaxCodeUserError(e)) return reply.code(400).send({ error: e.message });
       throw e;
     }
   });

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { withTenant } from '../db/client.js';
 
-const labelSchema = z.object({ name: z.string().trim().min(1).max(60), color: z.string().trim().max(20).optional() });
+const labelSchema = z.object({ name: z.string().trim().min(1).max(60), color: z.string().trim().max(20).optional(), hidden: z.boolean().optional() });
 const templateSchema = z.object({
   name: z.string().trim().min(1).max(100),
   subject: z.string().max(500).optional(),
@@ -61,6 +61,7 @@ export async function emailMetaRoutes(fastify: FastifyInstance) {
       const patch: Record<string, any> = {};
       if (b.name !== undefined) patch.name = b.name;
       if (b.color !== undefined) patch.color = b.color;
+      if (b.hidden !== undefined) patch.hidden = b.hidden;
       if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'No updatable fields provided' });
 
       const row = await trx.updateTable('email_labels').set(patch).where('id', '=', id).where('user_id', '=', user.sub).returningAll().executeTakeFirst();

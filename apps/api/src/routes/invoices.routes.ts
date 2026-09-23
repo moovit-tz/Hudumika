@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { renderInvoicePdf } from '../services/invoice-pdf.service.js';
+import { DocumentService } from '../services/document.service.js';
 import { applyStamp, StampAccessDeniedError } from '../services/stamp.service.js';
 import { MinioIntegration } from '../integrations/minio.js';
 
@@ -249,6 +250,34 @@ function buildInvoiceLines(
       currency: it.currency || invoiceCurrency,
       sort_order: i,
     };
+  });
+}
+
+/**
+ * Files the invoice's real PDF (invoice-pdf.service.ts, the same one
+ * GET /:id/pdf renders on demand) into Business Records ▸ Finance ▸ <year> ▸
+ * Sales ▸ Invoices the moment it's actually issued (Draft → any other
+ * status), closing the storage-product review's item 4 gap: "creating,
+ * issuing, posting or finalizing a document should automatically save an
+ * immutable PDF and link the resulting cloud_file.id to the source record."
+ * Idempotency-keyed on the invoice id so a redundant PATCH that doesn't
+ * change status (or fires this twice for any other reason) never files a
+ * second copy — see DocumentService.saveDocument.
+ *
+ * Fire-and-forget, same as the AccountingIntegrationService.syncInvoice call
+ * right next to each call site below: filing a copy in Drive must never be
+ * able to fail or slow down the actual invoice write it's riding on.
+ */
+async function fileIssuedInvoicePdf(tenantId: string, invoiceId: string, invoiceNumber: string, actorId: string): Promise<void> {
+  const pdf = await renderInvoicePdf(tenantId, invoiceId);
+  await DocumentService.saveDocument({
+    // 'finops' — this route's own real entitlement key (requireAnyEntitlement
+    // above), not the illustrative 'finance' name; DocumentService checks
+    // sourceApp against tenantHasEntitlement, so this has to match exactly.
+    tenantId, sourceApp: 'finops', entityType: 'invoice', entityId: invoiceId,
+    documentType: 'issued_invoice', filename: `${invoiceNumber || invoiceId}.pdf`,
+    content: pdf, mimeType: 'application/pdf', retentionClass: 'financial_record',
+    actorId, idempotencyKey: `invoice:${invoiceId}:issued`,
   });
 }
 
@@ -723,7 +752,17 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const body = invoiceCreateSchema.parse(request.body);
-    return withTenant(user.tenant_id, async (trx) => {
+    // Set once the insert below succeeds, read after withTenant's promise
+    // resolves — i.e. strictly after the transaction commits. Filing the
+    // PDF from *inside* the transaction callback (the same spot
+    // AccountingIntegrationService.syncInvoice already fires from) raced
+    // the commit and failed with "Invoice not found" — renderInvoicePdf
+    // opens its own connection via its own withTenant and could not see
+    // the still-uncommitted row. Caught by document-service-invoice-
+    // filing.test.ts, not by inspection.
+    let issuedId: string | null = null;
+    let issuedNumber: string | null = null;
+    const result = await withTenant(user.tenant_id, async (trx) => {
       // Before the header is written — see resolveItemTaxCodes on why an early
       // return after a write commits the partial state.
       const resolved = await resolveItemTaxCodes(trx, user.tenant_id, body.items ?? []);
@@ -802,6 +841,8 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       // Trigger accounting integration sync in background
       if (inv.status !== 'Draft') {
         AccountingIntegrationService.syncInvoice(user.tenant_id, inv.id).catch(console.error);
+        issuedId = inv.id;
+        issuedNumber = inv.invoice_number;
       }
 
       await trx.insertInto('invoice_activity_log').values({
@@ -809,8 +850,17 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         action: 'created', detail: `Invoice ${inv.invoice_number} created as ${inv.status}`, created_at: new Date(),
       }).execute();
 
-      return reply.status(201).send(inv);
+      return inv;
     });
+    // The callback has two early-return branches (bad tax code, duplicate
+    // invoice number) that already called reply.send() themselves — this
+    // guards against sending a second response on top of theirs.
+    if (reply.sent) return;
+    if (issuedId && issuedNumber) {
+      fileIssuedInvoicePdf(user.tenant_id, issuedId, issuedNumber, user.sub)
+        .catch(err => console.error('[Finance] failed to file issued-invoice PDF:', err.message));
+    }
+    return reply.status(201).send(result);
   });
 
   // PATCH /v1/invoices/:id
@@ -818,7 +868,12 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     const body = invoiceCreateSchema.parse(request.body);
-    return withTenant(user.tenant_id, async (trx) => {
+    // See POST /'s own comment — filing must happen after this transaction
+    // commits, not from inside the callback (that raced the commit and
+    // failed with "Invoice not found").
+    let issuedId: string | null = null;
+    let issuedNumber: string | null = null;
+    const result = await withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('sales_invoices').select(['id', 'bill_date', 'currency'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Invoice not found' });
@@ -898,6 +953,11 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       // Trigger accounting integration sync in background
       if (inv.status !== 'Draft') {
         AccountingIntegrationService.syncInvoice(user.tenant_id, inv.id).catch(console.error);
+        // Idempotency-keyed on the invoice id (see fileIssuedInvoicePdf) — an
+        // edit to an invoice that was already issued does not re-file a
+        // second copy, it's a no-op past the first successful filing.
+        issuedId = inv.id;
+        issuedNumber = inv.invoice_number;
       }
 
       await trx.insertInto('invoice_activity_log').values({
@@ -907,6 +967,14 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
 
       return inv;
     });
+    // The callback has several early-return branches (not found, closed
+    // period, bad tax code) that already called reply.send() themselves.
+    if (reply.sent) return;
+    if (issuedId && issuedNumber) {
+      fileIssuedInvoicePdf(user.tenant_id, issuedId, issuedNumber, user.sub)
+        .catch(err => console.error('[Finance] failed to file issued-invoice PDF:', err.message));
+    }
+    return result;
   });
 
   // POST /v1/invoices/:id/void

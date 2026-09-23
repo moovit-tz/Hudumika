@@ -604,6 +604,75 @@ export async function billRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // POST /v1/bills/:id/submit — the only supported DRAFT -> ledger path.
+  // PATCH deliberately cannot perform lifecycle transitions: submitting must
+  // resolve the tenant's approval policy, while posting must create the GL
+  // entry atomically with the status change.
+  fastify.post('/:id/submit', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const bill = await trx.selectFrom('supplier_bills').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!bill) return reply.status(404).send({ error: 'Bill not found' });
+      if (bill.status !== 'DRAFT') return reply.status(409).send({ error: 'Only a draft bill can be submitted.' });
+
+      if (bill.supplier_id) {
+        const supplier = await trx.selectFrom('suppliers').select(['status', 'name', 'notes'])
+          .where('id', '=', bill.supplier_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (supplier?.status === 'blocked') {
+          return reply.status(400).send({
+            error: `${supplier.name} is blocked and cannot be billed${supplier.notes ? ` (${supplier.notes})` : ''}. Reactivate the supplier first if this was a mistake.`,
+          });
+        }
+      }
+
+      try {
+        await assertPeriodOpen(trx, user.tenant_id, bill.bill_date, await tenantJurisdiction(trx, user.tenant_id));
+      } catch (e) {
+        if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
+        throw e;
+      }
+
+      const total = Number(bill.total) || 0;
+      if (total > 0 && await isApApprovalRequired(trx, user.tenant_id)) {
+        const workflow = await resolveApprovalWorkflow(trx, user.tenant_id, total);
+        if (workflow) {
+          const pending = await trx.updateTable('supplier_bills').set({
+            status: 'PENDING_APPROVAL', approval_workflow_id: workflow.id,
+            submitted_for_approval_at: new Date(), updated_at: new Date(),
+          }).where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+            .returningAll().executeTakeFirstOrThrow();
+          await trx.insertInto('bill_activity_log').values({
+            tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+            action: 'submitted', detail: `Bill ${bill.bill_number} submitted for approval`, created_at: new Date(),
+          }).execute();
+          return pending;
+        }
+      }
+
+      const { recoverable, nonRecoverable, byAccount } = await recomputeBillPosting(trx, user.tenant_id, id);
+      if (total > 0) {
+        await GLService.post(user.tenant_id, {
+          entryDate: bill.bill_date ? new Date(bill.bill_date).toISOString() : new Date().toISOString(),
+          description: `Supplier bill: ${bill.bill_number}`,
+          reference: bill.bill_number, sourceModule: 'AP', sourceId: bill.id, createdBy: user.sub,
+          lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total }),
+        });
+      }
+      const posted = await trx.updateTable('supplier_bills')
+        .set({ status: 'POSTED', updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirstOrThrow();
+      AccountingIntegrationService.syncBill(user.tenant_id, id).catch(console.error);
+      await trx.insertInto('bill_activity_log').values({
+        tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+        action: 'posted', detail: `Bill ${bill.bill_number} posted`, created_at: new Date(),
+      }).execute();
+      return posted;
+    });
+  });
+
   // POST /v1/bills/:id/reject (M9) — same authorization as approve. Returns
   // the bill to DRAFT so it can be corrected and resubmitted, rather than
   // introducing a dead-end REJECTED status.
@@ -639,6 +708,9 @@ export async function billRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     const body = billCreateSchema.parse(request.body);
+    if (body.status !== undefined) {
+      return reply.status(409).send({ error: 'Bill status cannot be changed through edit. Use submit, approve, reject, payment, or void.' });
+    }
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('supplier_bills').select(['id', 'bill_date', 'supplier_id', 'status'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();

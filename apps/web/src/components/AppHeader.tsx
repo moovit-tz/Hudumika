@@ -175,6 +175,12 @@ export function AppHeader({
     try {
       const res = await apiFetch('/auth/me', { method: 'PATCH', body: JSON.stringify({ profile: { landing_style: next } }) });
       if (res?.user) updateUser(res.user);
+      // This button renders in every app's header, not just the hub's — the
+      // landing style it switches only has anything to show on "/", so
+      // toggling it from inside ClearOS/FinOps/etc. used to save the
+      // preference and change nothing on screen, which read as the button
+      // being broken. Send the person to see what they just switched to.
+      if (location.pathname !== '/') navigate('/');
     } catch { /* the header toggle isn't the place to surface this — the button just stays on its current state */ }
     finally { setLandingStyleSaving(false); }
   }

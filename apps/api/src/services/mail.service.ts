@@ -27,6 +27,9 @@ interface EnqueueInput {
    *  why every other caller (payroll, workflow AutoComms, etc.) must leave
    *  this unset. */
   userId?: string;
+  /** See EmailIntegration.sendEmail's own doc — an explicit "Send mail as"
+   *  alias for this one send, only ever set alongside userId. */
+  fromIdentityId?: string | null;
 }
 
 interface SendResult {
@@ -102,7 +105,7 @@ export const MailService = {
       to: input.to, subject: input.subject, bodyHtml: input.bodyHtml, cc: input.cc, tenantId,
       attachments: attachments.length ? attachments : undefined,
       inReplyToMessageId: input.inReplyToMessageId, referencesMessageIds: input.referencesMessageIds,
-      userId: input.userId,
+      userId: input.userId, fromIdentityId: input.fromIdentityId,
     });
     const outboxId = await withTenant(tenantId, async (trx) => {
       const row = await trx.insertInto('email_outbox').values({
