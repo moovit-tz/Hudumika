@@ -62,6 +62,7 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
     { key: 'modules',            label: 'Modules & Extensions', icon: 'grid'          },
     { key: 'email',              label: 'Email',                icon: 'mail'          },
     { key: 'notifications',      label: 'Notifications',        icon: 'bell'          },
+    { key: 'communications',     label: 'Communications',       icon: 'zap'           },
   ]},
   { group: 'Finance', icon: 'dollarSign', items: [
     { key: 'finance-general',    label: 'General',              icon: 'dollarSign'    },
@@ -3047,6 +3048,82 @@ const WorkspaceFacts: React.FC = () => {
   );
 };
 
+// -- CommunicationsSection ---------------------------------------------------
+
+interface CommEventRow {
+  event_key: string; application: string; name: string; description: string;
+  category: string; is_required: boolean; is_enabled: boolean;
+  channel: string; template_key: string | null; has_override: boolean;
+}
+
+const CommunicationsSection: React.FC = () => {
+  const [events, setEvents] = useState<CommEventRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiFetch('/v1/comm/events')
+      .then((rows: CommEventRow[]) => setEvents(rows))
+      .catch(() => showAlert('Could not load communication events'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function toggle(key: string, enabled: boolean) {
+    const ev = events.find(e => e.event_key === key);
+    if (ev?.is_required) return;
+    setSaving(key);
+    setEvents(prev => prev.map(e => e.event_key === key ? { ...e, is_enabled: enabled } : e));
+    try {
+      await apiFetch(`/v1/comm/events/${key}`, { method: 'PATCH', body: JSON.stringify({ is_enabled: enabled }) });
+    } catch {
+      setEvents(prev => prev.map(e => e.event_key === key ? { ...e, is_enabled: !enabled } : e));
+      showAlert('Could not update event');
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  const apps = [...new Set(events.map(e => e.application))].sort();
+
+  return (
+    <div className="sett-section">
+      <div className="sett-section-hdr">
+        <h2>Communication Events</h2>
+        <p>Control which platform events send email notifications and route them to a custom template. Detailed event configuration and the event delivery log are in <a href="/email/templates" className="sett-link">Email › Templates › Communications</a>.</p>
+      </div>
+      {loading ? <SectionLoading /> : (
+        <div className="sett-comm-groups">
+          {apps.map(app => (
+            <SectionCard key={app} title={app} padded={false}>
+              {events.filter(e => e.application === app).map(ev => (
+                <div key={ev.event_key} className="sett-comm-row">
+                  <div className="sett-comm-row-info">
+                    <span className="sett-comm-row-name">{ev.name}</span>
+                    <span className="sett-comm-row-key">{ev.event_key}</span>
+                  </div>
+                  <div className="sett-comm-row-right">
+                    {ev.is_required && <Badge variant="error">Required</Badge>}
+                    {ev.has_override && <Badge variant="brand">Custom</Badge>}
+                    <button
+                      type="button"
+                      className={`etab-toggle${ev.is_enabled ? ' etab-toggle--on' : ''}`}
+                      disabled={ev.is_required || saving === ev.event_key}
+                      onClick={() => !ev.is_required && toggle(ev.event_key, !ev.is_enabled)}
+                      aria-label={ev.is_enabled ? 'Enabled' : 'Disabled'}
+                    >
+                      <span className="etab-toggle-thumb" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </SectionCard>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // -- section routing ---------------------------------------------------------
 function renderSection(key: string): React.ReactNode {
   switch (key) {
@@ -3058,6 +3135,7 @@ function renderSection(key: string): React.ReactNode {
     case 'landing-experience':  return <LandingExperienceSection />;
     case 'email':               return <EmailSection />;
     case 'notifications':       return <NotificationsSection />;
+    case 'communications':      return <CommunicationsSection />;
     case 'app-freight':         return <FreightSection />;
     case 'finance-general':     return <FinanceGeneralSection />;
     case 'invoices':            return <InvoicesSection />;
@@ -3151,6 +3229,8 @@ export const Settings: React.FC = () => {
         return 'SMTP credentials and outbound email dispatch settings.';
       case 'notifications':
         return 'Alert rules, notification channels, and operational thresholds.';
+      case 'communications':
+        return 'Platform communication events, per-event toggles, channel routing, and delivery log.';
       case 'finance-general':
         return 'Finance defaults, fiscal calendar, and accounting preferences.';
       case 'payment-gateways':

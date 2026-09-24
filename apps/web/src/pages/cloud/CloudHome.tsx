@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useCloud, type CloudFile } from '../../shells/cloud-context.js';
 import { Icon } from '../../components/Icon.js';
@@ -8,6 +9,7 @@ import { ConnectedStorageCards } from './home/ConnectedStorageCards.js';
 import { RecentlySharedCard } from './home/RecentlySharedCard.js';
 import { SuggestedFilesStrip } from './home/SuggestedFilesStrip.js';
 import { CreateFolderModal } from './modals/CreateFolderModal.js';
+import { ResumableUploadsBanner } from './components/ResumableUploadsBanner.js';
 import { RenameModal } from './modals/RenameModal.js';
 import { ShareModal } from './modals/ShareModal.js';
 import { MoveToModal } from './modals/MoveToModal.js';
@@ -47,10 +49,11 @@ function QuickActionBtn({ icon, label, onClick }: { icon: IconName; label: strin
 }
 
 export function CloudHome() {
+  const navigate = useNavigate();
   const {
-    files, loading, currentDrive, currentFolderId, openFolder,
-    createFolder, uploadFiles, uploadFolder, storageQuota, connections, goToView,
-    starItem, trashItem, renameItem, moveItem, shareItem, downloadItem,
+    files, loading, currentDrive, currentFolderId, openFolder: openFolderInDrive,
+    createFolder, uploadFiles, uploadFolder, storageQuota, connections, goToView: setBrowserView,
+    starItem, trashItem, renameItem, moveItems, shareItem, downloadItem,
   } = useCloud();
   const { user } = useAuth();
 
@@ -60,6 +63,10 @@ export function CloudHome() {
 
   const [lightboxItem, setLightboxItem] = useState<CloudFile | null>(null);
   const liveLightboxItem = lightboxItem ? files.find(f => f.id === lightboxItem.id) ?? lightboxItem : null;
+
+  // Home is a landing page; anything that means "browse" hands over to the file browser.
+  const goToView = (v: Parameters<typeof setBrowserView>[0]) => { setBrowserView(v); navigate('/cloud/files'); };
+  const openFolder = (item: CloudFile) => { openFolderInDrive(item); navigate('/cloud/files'); };
 
   function openItem(item: CloudFile) {
     if (item.type === 'folder') openFolder(item);
@@ -100,6 +107,7 @@ export function CloudHome() {
 
   return (
     <div className="cloud-home-root">
+      <ResumableUploadsBanner />
 
       {/* ── Hero banner ───────────────────────────────────────────────── */}
       <div className="cloud-home-hero">
@@ -207,14 +215,14 @@ export function CloudHome() {
       {showCreateFolder && (
         <CreateFolderModal
           onClose={() => setShowCreateFolder(false)}
-          onCreate={(name, color) => { createFolder(name, currentFolderId, color); setShowCreateFolder(false); }}
+          onCreate={(name, color) => createFolder(name, currentFolderId, color)}
         />
       )}
       {renameTarget && (
         <RenameModal
           item={renameTarget}
           onClose={() => setRenameTarget(null)}
-          onRename={name => { renameItem(renameTarget.id, name); setRenameTarget(null); }}
+          onRename={name => renameItem(renameTarget.id, name)}
         />
       )}
       {shareTarget && (
@@ -229,7 +237,7 @@ export function CloudHome() {
           ids={moveTarget}
           allItems={activeFiles}
           onClose={() => setMoveTarget(null)}
-          onMove={dest => moveTarget.forEach(id => moveItem(id, dest))}
+          onMove={dest => moveItems(moveTarget, dest)}
         />
       )}
       {deleteTarget && (
@@ -237,7 +245,7 @@ export function CloudHome() {
           item={deleteTarget}
           isTrashView={false}
           onClose={() => setDeleteTarget(null)}
-          onConfirm={() => { trashItem(deleteTarget.id); setDeleteTarget(null); }}
+          onConfirm={() => trashItem(deleteTarget.id)}
         />
       )}
       {liveLightboxItem && (

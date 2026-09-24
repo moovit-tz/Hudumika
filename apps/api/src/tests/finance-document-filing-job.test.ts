@@ -6,6 +6,7 @@
 // asserted on.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { dbPlatform, withTenant } from '../db/client.js';
+import { GLService } from '../services/gl.service.js';
 import { runFinanceDocumentFilingJob } from '../jobs/finance-document-filing.job.js';
 import { getApp, createTestTenant, authHeaders, type TestTenant } from './helpers.js';
 
@@ -45,16 +46,16 @@ describe('Finance document filing sweep — credit notes, quotations, purchase o
     await enableApps(T.tenantId, { finops: true, cloud: true });
     const app = await getApp();
 
-    // Credit notes and bills post to the GL when created through their routes,
-    // and a throwaway tenant has no chart of accounts — insert the committed
-    // rows directly; the sweep only ever reads committed rows.
-    const cn = await dbPlatform.insertInto('credit_notes').values({
-      tenant_id: T.tenantId, credit_note_number: 'CN-TEST-1', client_name: 'Credited Co', status: 'POSTED',
-    } as any).returning('id').executeTakeFirstOrThrow();
-    ids.credit_note = cn.id;
-    await dbPlatform.insertInto('credit_note_lines').values({
-      credit_note_id: cn.id, name: 'Refund', rate: 1000, qty: 2, tax_pct: 18,
-    } as any).execute();
+    // Credit notes, bills, fixed assets and period close post to the GL, so the
+    // tenant needs a chart of accounts — seeded the way onboarding does it.
+    await withTenant(T.tenantId, (trx) => GLService.seedChartOfAccounts(trx, T.tenantId));
+
+    const cn = await app.inject({
+      method: 'POST', url: '/v1/credit-notes', headers: authHeaders(T.token),
+      payload: { client_name: 'Credited Co', reason: 'Returned goods', items: [{ name: 'Refund', rate: 1000, qty: 2, tax_pct: 18 }] },
+    });
+    expect(cn.statusCode, cn.body).toBe(201);
+    ids.credit_note = cn.json().id;
 
     const po = await app.inject({
       method: 'POST', url: '/v1/purchase-orders', headers: authHeaders(T.token),
@@ -69,14 +70,64 @@ describe('Finance document filing sweep — credit notes, quotations, purchase o
     });
     ids.draft_po = draftPo.json().id;
 
-    const bill = await dbPlatform.insertInto('supplier_bills').values({
-      tenant_id: T.tenantId, bill_number: 'BILL-TEST-1', supplier_name: 'Vendor Ltd', status: 'POSTED',
-      subtotal: 500, tax_amount: 0, total: 500,
+    const bill = await app.inject({
+      method: 'POST', url: '/v1/bills', headers: authHeaders(T.token),
+      payload: { supplier_name: 'Vendor Ltd', status: 'POSTED', currency: 'TZS', items: [{ description: 'Freight', qty: 1, unit_price: 500, tax_rate: 0 }] },
+    });
+    expect(bill.statusCode, bill.body).toBe(201);
+    ids.bill = bill.json().id;
+
+    const expense = await app.inject({
+      method: 'POST', url: '/v1/finance/expenses', headers: authHeaders(T.token),
+      payload: { name: 'Fuel', amount: 75000, category: 'FUEL', payment_mode: 'CASH' },
+    });
+    expect(expense.statusCode, expense.body).toBe(201);
+    ids.expense = expense.json().id;
+
+    const asset = await app.inject({
+      method: 'POST', url: '/v1/fixed-assets', headers: authHeaders(T.token),
+      payload: { name: 'Forklift', acquisition_date: new Date().toISOString().slice(0, 10), cost: 12000000, useful_life_months: 60 },
+    });
+    expect(asset.statusCode, asset.body).toBe(201);
+    ids.fixed_asset = asset.json().id;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const monthStart = today.slice(0, 8) + '01';
+    // Close a *past* month: closing today's would (correctly) block the
+    // postings below, and the sweep keys on closed_at, not the period dates.
+    const prevEnd = new Date(new Date(monthStart).getTime() - 86400000).toISOString().slice(0, 10);
+    const prevStart = prevEnd.slice(0, 8) + '01';
+    const period = await app.inject({
+      method: 'POST', url: '/v1/finance/gl-periods', headers: authHeaders(T.token),
+      payload: { name: 'Test month', period_type: 'MONTH', period_start: prevStart, period_end: prevEnd },
+    });
+    expect(period.statusCode, period.body).toBe(201);
+    const closed = await app.inject({ method: 'POST', url: `/v1/finance/gl-periods/${period.json().id}/close`, headers: authHeaders(T.token), payload: {} });
+    expect(closed.statusCode, closed.body).toBe(200);
+    ids.gl_period = period.json().id;
+
+    // Multi-step flows (payment allocation, bank-statement CSV upload, return
+    // computation + filing) reach their final state through several routes;
+    // the sweep only reads the committed final row, so those are inserted.
+    const inv = await app.inject({
+      method: 'POST', url: '/v1/invoices', headers: authHeaders(T.token),
+      payload: { client_name: 'Payer Co', status: 'Unpaid', items: [{ name: 'Service', rate: 1000, qty: 1, tax_pct: 0 }] },
+    });
+    expect(inv.statusCode, inv.body).toBe(201);
+    const pay = await dbPlatform.insertInto('invoice_payments').values({
+      tenant_id: T.tenantId, invoice_id: inv.json().id, amount: 1000, method: 'CASH', payment_date: today,
     } as any).returning('id').executeTakeFirstOrThrow();
-    ids.bill = bill.id;
-    await dbPlatform.insertInto('supplier_bill_lines').values({
-      bill_id: bill.id, description: 'Freight', qty: 1, unit_price: 500, tax_rate: 0,
-    } as any).execute();
+    ids.invoice_payment = pay.id;
+    const bpay = await dbPlatform.insertInto('bill_payments').values({
+      tenant_id: T.tenantId, bill_id: ids.bill, amount: 500, currency: 'TZS', method: 'BANK', payment_date: today,
+    } as any).returning('id').executeTakeFirstOrThrow();
+    ids.bill_payment = bpay.id;
+    const stmt = await dbPlatform.insertInto('bank_statements').values({
+      tenant_id: T.tenantId, account_code: '1010', bank_name: 'NMB', statement_date_from: monthStart, statement_date_to: today,
+      opening_balance: 0, closing_balance: 1000,
+    } as any).returning('id').executeTakeFirstOrThrow();
+    ids.bank_statement = stmt.id;
+    await dbPlatform.insertInto('bank_statement_lines').values({ bank_statement_id: stmt.id, txn_date: today, description: 'Deposit', amount: 1000 } as any).execute();
 
     // Quotations are approved through a multi-step service flow; the sweep
     // only cares about the resulting committed row, so insert one directly.
@@ -102,13 +153,20 @@ describe('Finance document filing sweep — credit notes, quotations, purchase o
       ['purchase_order', ids.purchase_order, ['Finance', year, 'Purchases', 'Purchase Orders']],
       ['bill', ids.bill, ['Finance', year, 'Purchases', 'Bills']],
       ['quotation', ids.quotation, ['Finance', year, 'Sales', 'Quotations']],
+      ['expense', ids.expense, ['Finance', year, 'Expenses']],
+      ['fixed_asset', ids.fixed_asset, ['Finance', year, 'Fixed Assets']],
+      ['gl_period', ids.gl_period, ['Finance', year, 'Reports']],
+      ['invoice_payment', ids.invoice_payment, ['Finance', year, 'Payments', 'Incoming']],
+      ['bill_payment', ids.bill_payment, ['Finance', year, 'Payments', 'Outgoing']],
+      ['bank_statement', ids.bank_statement, ['Finance', year, 'Banking']],
     ];
     for (const [entityType, entityId, chain] of expectations) {
       const rows = await filed(T.tenantId, entityType, entityId);
       expect(rows, entityType).toHaveLength(1);
       expect(rows[0].name.endsWith('.pdf')).toBe(true);
       expect(rows[0].retention_class).toBe('financial_record');
-      expect(rows[0].idempotency_key).toBe(`${entityType}:${entityId}:issued`);
+      const suffix: Record<string, string> = { fixed_asset: 'registered', bank_statement: 'imported', gl_period: 'closed' };
+      expect(rows[0].idempotency_key).toBe(`${entityType}:${entityId}:${suffix[entityType] ?? 'issued'}`);
       expect(Number(rows[0].size)).toBeGreaterThan(500); // a real rendered PDF, not an empty buffer
       expect(await folderChain(T.tenantId, rows[0].parent_id)).toEqual(chain);
     }
@@ -117,7 +175,9 @@ describe('Finance document filing sweep — credit notes, quotations, purchase o
 
   it('running the sweep again files nothing new (idempotent)', async () => {
     await runFinanceDocumentFilingJob();
-    for (const [entityType, id] of [['credit_note', ids.credit_note], ['purchase_order', ids.purchase_order], ['bill', ids.bill], ['quotation', ids.quotation]]) {
+    for (const [entityType, id] of [['credit_note', ids.credit_note], ['purchase_order', ids.purchase_order], ['bill', ids.bill], ['quotation', ids.quotation],
+      ['expense', ids.expense], ['fixed_asset', ids.fixed_asset], ['gl_period', ids.gl_period], ['invoice_payment', ids.invoice_payment],
+      ['bill_payment', ids.bill_payment], ['bank_statement', ids.bank_statement]]) {
       expect(await filed(T.tenantId, entityType, id), entityType).toHaveLength(1);
     }
   });

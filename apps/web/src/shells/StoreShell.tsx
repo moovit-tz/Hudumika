@@ -37,6 +37,7 @@ const STORE_CATEGORIES: { key: string; label: string; icon: IconName }[] = [
   { key: 'communication', label: 'Communication',  icon: 'messageSquare' },
   { key: 'utility',       label: 'Utilities',      icon: 'settings'      },
   { key: 'ai',            label: 'AI & Analytics', icon: 'activity'      },
+  { key: 'email-templates', label: 'Email Templates', icon: 'mail'       },
 ];
 
 function StoreCategoryNav({ collapsed }: { collapsed: boolean }) {

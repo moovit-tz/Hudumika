@@ -957,3 +957,50 @@
   }
   .s-mods-table th, .s-mods-table td { padding: 9px 10px; }
 }
+
+/* ── Toggle switch (shared pattern, also used in EmailTemplates) ───────────── */
+.etab-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  border: none;
+  background: var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.etab-toggle--on { background: hsl(var(--primary)); }
+.etab-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
+.etab-toggle-thumb {
+  position: absolute;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.etab-toggle--on .etab-toggle-thumb { transform: translateX(16px); }
+
+/* ── CommunicationsSection ─────────────────────────────────────────────────── */
+.sett-comm-groups { display: flex; flex-direction: column; gap: 16px; }
+.sett-comm-groups .section-card { padding: 0 !important; }
+.sett-comm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.sett-comm-row:last-child { border-bottom: none; }
+.sett-comm-row:hover { background: var(--surface2); }
+.sett-comm-row-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.sett-comm-row-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.sett-comm-row-key { font-size: 11px; color: var(--ink3); font-family: monospace; }
+.sett-comm-row-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.sett-link { color: var(--teal); text-decoration: underline; }

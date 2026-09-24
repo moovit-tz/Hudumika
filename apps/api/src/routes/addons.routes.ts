@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import type { Addon } from '@hudumika/types';
+import { createProrationInvoice } from '../services/subscription-billing.service.js';
 
 // Same MGMT convention billing.routes.ts uses for anything that changes what
 // a tenant is charged for — a regular member can browse the catalog (GET /)
@@ -104,28 +105,47 @@ export async function addonsRoutes(fastify: FastifyInstance) {
    * /v1/settings) — its cost is folded into the next generated subscription
    * invoice (billing.routes.ts) rather than charged in this call.
    */
-  fastify.post<{ Params: { code: string } }>(
+  fastify.post<{ Params: { code: string }; Body: { quantity?: number } }>(
     '/:code/purchase',
     { preHandler: [fastify.authenticate, requireRole(...MGMT_ROLES)] },
     async (request, reply) => {
       const user = request.user!;
       const { code } = request.params;
-      const addon = await dbPlatform.selectFrom('package_addons').select('id')
+      const addon = await dbPlatform.selectFrom('package_addons').select(['id', 'storage_bytes'])
         .where('code', '=', code).where('is_active', '=', true).executeTakeFirst();
       if (!addon) return reply.status(404).send({ error: 'Add-on not found' });
 
+      // Only storage add-ons are quantity-based (buy 3 × 100 GB); every other add-on is on or off.
+      const isStorage = addon.storage_bytes != null;
+      const requested = Number(request.body?.quantity ?? 1);
+      if (!Number.isInteger(requested) || requested < 1 || requested > 100) return reply.status(400).send({ error: 'quantity must be a whole number between 1 and 100' });
+      const quantity = isStorage ? requested : 1;
+
       return withTenant(user.tenant_id, async (trx) => {
-        const existing = await trx.selectFrom('tenant_addons').select('id')
+        const existing = await trx.selectFrom('tenant_addons').select(['id', 'status', 'quantity'])
           .where('tenant_id', '=', user.tenant_id).where('addon_code', '=', code).executeTakeFirst();
-        if (existing) {
-          return trx.updateTable('tenant_addons')
-            .set({ status: 'active', started_at: new Date(), cancelled_at: null, updated_at: new Date() })
+
+        // Units newly bought by this call — what the proration invoice covers.
+        let unitsBought = quantity;
+        let row;
+        if (existing && existing.status === 'active') {
+          if (!isStorage) return trx.selectFrom('tenant_addons').selectAll().where('id', '=', existing.id).executeTakeFirstOrThrow(); // already on — never restart its billing clock
+          row = await trx.updateTable('tenant_addons').set({ quantity: existing.quantity + quantity, updated_at: new Date() })
             .where('id', '=', existing.id).returningAll().executeTakeFirstOrThrow();
+        } else if (existing) {
+          row = await trx.updateTable('tenant_addons')
+            .set({ status: 'active', quantity, started_at: new Date(), cancelled_at: null, updated_at: new Date() })
+            .where('id', '=', existing.id).returningAll().executeTakeFirstOrThrow();
+        } else {
+          reply.status(201);
+          row = await trx.insertInto('tenant_addons')
+            .values({ tenant_id: user.tenant_id, addon_code: code, status: 'active', quantity })
+            .returningAll().executeTakeFirstOrThrow();
         }
-        reply.status(201);
-        return trx.insertInto('tenant_addons')
-          .values({ tenant_id: user.tenant_id, addon_code: code, status: 'active' })
-          .returningAll().executeTakeFirstOrThrow();
+
+        // Charge the rest of this month now; the full price joins next month's invoice.
+        const proration = await createProrationInvoice(trx, user.tenant_id, code, unitsBought);
+        return { ...row, proration_invoice: proration };
       });
     }
   );

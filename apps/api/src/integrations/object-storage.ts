@@ -21,6 +21,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { Readable } from 'stream';
 import { env } from '../config/env.js';
 
 export interface StorageBackend {
@@ -33,6 +34,16 @@ export interface StorageBackend {
   presignGet(key: string, expiresInSeconds: number, downloadName?: string): Promise<string>;
   /** Disk-only marker file so a folder is identifiable in a file explorer; no-op on S3. */
   writeMarker(dirKey: string, markerName: string, json: string): Promise<void>;
+  /**
+   * Writes `key` from a sequence of chunks without ever holding the whole
+   * object in memory at once (peak memory is one chunk, not the file size).
+   * `size` is the exact total byte count, known up front — used as
+   * Content-Length on S3 so the request can stream without pre-hashing the
+   * full payload. Used by the resumable-upload assembly path
+   * (routes/files.routes.ts /uploads/:id/complete); ordinary uploads keep
+   * using `put`.
+   */
+  putStream(key: string, chunks: AsyncIterable<Buffer>, size: number, contentType?: string): Promise<void>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -63,6 +74,22 @@ class DiskBackend implements StorageBackend {
     const p = this.abs(key);
     fs.mkdirSync(path.dirname(p), { recursive: true });
     fs.writeFileSync(p, body);
+  }
+
+  async putStream(key: string, chunks: AsyncIterable<Buffer>, _size: number): Promise<void> {
+    const p = this.abs(key);
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    const out = fs.createWriteStream(p);
+    try {
+      for await (const chunk of chunks) {
+        if (!out.write(chunk)) await new Promise<void>((resolve, reject) => { out.once('drain', resolve); out.once('error', reject); });
+      }
+      await new Promise<void>((resolve, reject) => { out.end(); out.once('finish', resolve); out.once('error', reject); });
+    } catch (err) {
+      out.destroy();
+      fs.rmSync(p, { force: true });
+      throw err;
+    }
   }
 
   async get(key: string): Promise<Buffer | null> {
@@ -211,6 +238,41 @@ class S3Backend implements StorageBackend {
   async put(key: string, body: Buffer, contentType?: string): Promise<void> {
     const res = await this.signedFetch('PUT', key, body, contentType || 'application/octet-stream');
     if (!res.ok) throw new Error(`S3 PUT ${key} → ${res.status} ${await res.text().catch(() => '')}`.trim());
+  }
+
+  /**
+   * Streams the PUT body instead of buffering it: the exact size is known up
+   * front (the caller already announced it), so the request carries a real
+   * Content-Length and `x-amz-content-sha256: UNSIGNED-PAYLOAD` — the
+   * standard SigV4 escape hatch for not hashing the whole payload before
+   * sending it, which is what would otherwise force buffering it all first.
+   */
+  async putStream(key: string, chunks: AsyncIterable<Buffer>, size: number, contentType?: string): Promise<void> {
+    const { host, canonicalPath, href } = this.target(key);
+    const { amz, date } = this.amzDate();
+    const payloadHash = 'UNSIGNED-PAYLOAD';
+
+    const headers: Record<string, string> = {
+      host,
+      'x-amz-content-sha256': payloadHash,
+      'x-amz-date': amz,
+      'content-length': String(size),
+      'content-type': contentType || 'application/octet-stream',
+    };
+    const signedHeaders = Object.keys(headers).sort().join(';');
+    const canonicalHeaders = Object.keys(headers).sort().map((h) => `${h}:${headers[h]}\n`).join('');
+    const canonicalRequest = ['PUT', canonicalPath, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+
+    const scope = `${date}/${this.region}/s3/aws4_request`;
+    const stringToSign = ['AWS4-HMAC-SHA256', amz, scope, sha256Hex(canonicalRequest)].join('\n');
+    const signature = crypto.createHmac('sha256', this.signingKey(date)).update(stringToSign).digest('hex');
+    headers['authorization'] = `AWS4-HMAC-SHA256 Credential=${this.accessKey}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+    const nodeStream = Readable.from(chunks);
+    const res = await fetch(href, {
+      method: 'PUT', headers, body: Readable.toWeb(nodeStream) as any, duplex: 'half',
+    } as any);
+    if (!res.ok) throw new Error(`S3 PUT (stream) ${key} → ${res.status} ${await res.text().catch(() => '')}`.trim());
   }
 
   async get(key: string): Promise<Buffer | null> {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { AppSidebar } from '../components/AppSidebar.js';
 import type { SidebarSection } from '../components/AppSidebar.js';
@@ -58,6 +58,28 @@ function ComposeButton({ collapsed }: { collapsed: boolean }) {
   );
 }
 
+function EmailHeader() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const query = new URLSearchParams(location.search).get('q') ?? '';
+
+  function setQuery(value: string) {
+    const params = new URLSearchParams(location.search);
+    const trimmed = value.trimStart();
+    if (trimmed) params.set('q', trimmed);
+    else params.delete('q');
+    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+  }
+
+  return (
+    <AppHeader
+      appSearch={query}
+      onAppSearchChange={setQuery}
+      appSearchPlaceholder="Search this mailbox…"
+    />
+  );
+}
+
 export function EmailShell() {
   // Fetched here (not lifted from EmailApp.tsx) so the sidebar's "Labels"
   // section works independent of whether EmailApp itself has mounted/loaded
@@ -110,7 +132,7 @@ export function EmailShell() {
           beforeNav={({ collapsed }) => <ComposeButton collapsed={collapsed} />}
         />
         <div className="app-main">
-          <AppHeader />
+          <EmailHeader />
           <div className="app-shell-content">
             <Routes>
               <Route index           element={<EmailApp />} />

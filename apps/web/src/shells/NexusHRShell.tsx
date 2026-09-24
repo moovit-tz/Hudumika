@@ -228,7 +228,10 @@ export function NexusHRShell() {
                   redirects so old links/bookmarks still land somewhere real. */}
               <Route path="invitations"       element={<Navigate to="/ondi?tab=invites" replace />} />
               <Route path="staff-directory"   element={<Navigate to="/nexushr/employees" replace />} />
-              <Route path="staff/:id"         element={<RequireSelfOrRoles roles={MGMT_ROLES}><StaffDetail /></RequireSelfOrRoles>} />
+              {/* StaffDetail and its API deliberately support a directory-only
+                  projection for colleagues; sensitive HR/pay data remains
+                  server-gated to the employee and authorised managers. */}
+              <Route path="staff/:id"         element={<StaffDetail />} />
               {/* Moved to Ondi Business (same devices/login-history data Ondi
                   already owns — see OndiItAdmin.tsx's own header comment). */}
               <Route path="it-admin"          element={<Navigate to="/ondi/it-admin" replace />} />

@@ -17,6 +17,7 @@ import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID_RE.test(v);
+const validLink = (v: unknown) => !v || (typeof v === 'string' && /^\/(?!\/)/.test(v) && !/[\u0000-\u001f]/.test(v));
 
 export async function announcementRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -115,6 +116,7 @@ export async function tenantAnnouncementRoutes(fastify: FastifyInstance) {
     const b = (request.body ?? {}) as Record<string, any>;
     const title = String(b.title ?? '').trim();
     if (!title) return reply.status(400).send({ error: 'An announcement needs a title.' });
+    if (!validLink(b.link)) return reply.status(400).send({ error: 'Announcement links must be relative application paths.' });
 
     const row = await withTenant(user.tenant_id, trx => trx.insertInto('announcements').values({
       // The caller's own tenant, always. Never b.tenant_id — that is how a
@@ -137,6 +139,7 @@ export async function tenantAnnouncementRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const b = (request.body ?? {}) as Record<string, any>;
     const patch: Record<string, any> = {};
+    if (!validLink(b.link)) return reply.status(400).send({ error: 'Announcement links must be relative application paths.' });
     if (b.title !== undefined) patch.title = String(b.title).trim();
     if (b.body !== undefined) patch.body = String(b.body).trim() || null;
     if (b.link !== undefined) patch.link = String(b.link).trim() || null;
@@ -202,6 +205,7 @@ export async function superAdminAnnouncementRoutes(fastify: FastifyInstance) {
     const title = String(b.title ?? '').trim();
     if (!title) return reply.status(400).send({ error: 'title is required' });
     if (b.tenant_id && !isUuid(b.tenant_id)) return reply.status(400).send({ error: 'tenant_id must be a uuid' });
+    if (!validLink(b.link)) return reply.status(400).send({ error: 'Announcement links must be relative application paths.' });
     const row = await dbPlatform.insertInto('announcements').values({
       // Absent or explicitly null means platform-wide, which is the common case.
       tenant_id: b.tenant_id || null,
@@ -220,6 +224,7 @@ export async function superAdminAnnouncementRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id', async (request: any, reply) => {
     if (!isUuid(request.params.id)) return reply.status(404).send({ error: 'Not found' });
     const b = request.body ?? {};
+    if (!validLink(b.link)) return reply.status(400).send({ error: 'Announcement links must be relative application paths.' });
     const patch: Record<string, any> = { updated_at: new Date() };
     if (b.title !== undefined) patch.title = String(b.title).trim();
     if (b.body !== undefined) patch.body = b.body?.trim() || null;

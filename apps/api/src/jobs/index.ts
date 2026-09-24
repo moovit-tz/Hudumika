@@ -16,6 +16,8 @@ import { runOnsiteDeploymentSyncJob } from './onsite-deployment-sync.job.js';
 import { runOnsiteUptimeJob, runOnsiteSslSweepJob, runOnsiteServerReachabilityJob } from './onsite-uptime.job.js';
 import { runWorkflowLearningJob } from './workflow-learning.job.js';
 import { runCloudTrashExpiryJob } from './cloud-trash-expiry.job.js';
+import { runCloudStorageMaintenanceJob } from './cloud-storage-maintenance.job.js';
+import { runSubscriptionBillingJob } from './subscription-billing.job.js';
 import { runOnsiteBackupJob } from './onsite-backup.job.js';
 import { runMailOutboxJob } from './mail-outbox.job.js';
 import { runImapTicketIngestJob } from './imap-ticket-ingest.job.js';
@@ -282,6 +284,10 @@ function startBullMQ(): void {
           await runWorkflowLearningJob();
         } else if (job.name === 'cloud-trash-expiry') {
           await runCloudTrashExpiryJob();
+        } else if (job.name === 'cloud-storage-maintenance') {
+          await runCloudStorageMaintenanceJob();
+        } else if (job.name === 'subscription-billing') {
+          await runSubscriptionBillingJob();
         } else if (job.name === 'onsite-backup') {
           await runOnsiteBackupJob();
         } else if (job.name === 'sanctions-sync') {
@@ -538,6 +544,14 @@ function startBullMQ(): void {
 
     reminderQueue.add('cloud-trash-expiry', {}, {
       repeat: { pattern: '0 2 * * *' } // Daily at 2:00 AM — permanently delete Cloud Trash items past 30 days
+    }).catch(console.error);
+
+    reminderQueue.add('cloud-storage-maintenance', {}, {
+      repeat: { pattern: '30 3 * * *' } // Daily at 3:30 AM — malware re-scan of unscanned files + object-store integrity check
+    }).catch(console.error);
+
+    reminderQueue.add('subscription-billing', {}, {
+      repeat: { pattern: '0 6 * * *' } // Daily at 6:00 AM — scheduled subscription invoices, overdue sweep, dunning
     }).catch(console.error);
 
     reminderQueue.add('onsite-backup', {}, {
@@ -804,6 +818,8 @@ function startIntervalFallback(): void {
     runComplyExpiryReminderJob().catch(console.error);
     runTRAZReportJob().catch(console.error);
     runCloudTrashExpiryJob().catch(console.error);
+    runCloudStorageMaintenanceJob().catch(console.error);
+    runSubscriptionBillingJob().catch(console.error);
     runOnsiteBackupJob().catch(console.error);
     runSanctionsSyncJob().catch(console.error);
     // No tz support on a plain setInterval — this fallback only runs when

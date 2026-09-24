@@ -21,11 +21,11 @@ const testKeySchema = z.object({
 });
 const searchSchema = z.object({
   query: z.string().trim().min(1),
-  context: z.enum(['shipments', 'customers', 'tasks', 'leads']).optional(),
+  context: z.enum(['shipments', 'customers', 'tasks', 'leads', 'emails']).optional(),
 });
 const summariseSchema = z.object({
   text: z.string().trim().min(1),
-  mode: z.enum(['brief', 'detailed']).optional(),
+  mode: z.enum(['brief', 'detailed', 'overview']).optional(),
 });
 const extractTaskSchema = z.object({
   subject: z.string().trim().max(500).optional(),
@@ -119,6 +119,7 @@ For shipments: extract { search?: string, stage?: string, type?: 'SEA'|'AIR'|'RO
 For customers: extract { search?: string, type?: string }
 For tasks: extract { search?: string, status?: string, priority?: string, assignee?: string }
 For leads: extract { search?: string, stage?: string, assignee?: string }
+For emails: extract { search?: string, from?: string, to?: string, subject?: string, hasWords?: string, doesntHave?: string, hasAttachment?: boolean, dateWithin?: '1d'|'3d'|'1w'|'2w'|'1m'|'2m'|'6m'|'1y', scope?: 'all'|'inbox'|'starred'|'sent'|'drafts'|'spam'|'trash', unread?: boolean }
 
 Respond ONLY with a valid JSON object matching the appropriate structure. Nothing else.`;
 
@@ -160,6 +161,8 @@ Respond ONLY with a valid JSON object matching the appropriate structure. Nothin
 
     const instruction = mode === 'brief'
       ? 'Summarise the following in 2-3 sentences, focusing on key facts and action items:'
+      : mode === 'overview'
+      ? 'List the 3-5 most important facts from this email. Start every line with a dash (-). One fact per line. No intro sentence, no conclusion, no headers — only the dashed list:'
       : 'Provide a detailed summary with bullet points covering key facts, parties involved, dates, and any action items:';
 
     try {

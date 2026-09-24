@@ -1,3 +1,7 @@
+.rcp-wrap {
+  width: 100%;
+}
+
 .rcp-row {
   display: flex;
   align-items: flex-start;
@@ -75,3 +79,49 @@
   padding: 4px 2px;
 }
 .rcp-input::placeholder { color: var(--ink3); }
+
+/* ── Suggestion dropdown ─────────────────────────────────────────────── */
+.rcp-dropdown {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--elev);
+  overflow: hidden;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.rcp-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.rcp-suggestion:hover,
+.rcp-suggestion--highlight {
+  background: var(--teal-l);
+}
+
+.rcp-suggestion-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.rcp-suggestion-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rcp-suggestion-email {
+  font-size: 12px;
+  color: var(--ink3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useCloud, CloudView, CloudDrive } from './cloud-context.js';
@@ -26,6 +26,8 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
     storageQuota,
   } = useCloud();
   const navigate = useNavigate();
+  const location = useLocation();
+  const onHome = location.pathname.replace(/\/$/, '') === '/cloud';
 
   useEffect(() => { loadConnections(); }, [loadConnections]);
 
@@ -258,15 +260,24 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
 
       {/* Main nav */}
       <div style={{ padding: '8px 0 0' }}>
+        <div
+          style={sidebarItemStyle(onHome)}
+          title={collapsed ? 'Home' : undefined}
+          onClick={() => navigate('/cloud')}
+          role="link" aria-label="Cloud home"
+        >
+          <Icon name="home" size={15} color={onHome ? 'var(--teal)' : 'var(--ink3)'} />
+          {!collapsed && <span>Home</span>}
+        </div>
         {navItems.map(n => (
           <div key={n.view}
-            style={sidebarItemStyle(currentView === n.view)}
+            style={sidebarItemStyle(onHome ? false : currentView === n.view)}
             title={collapsed ? n.label : undefined}
-            onClick={() => { navigate('/cloud'); goToView(n.view); }}
-            onMouseEnter={e => { if (currentView !== n.view) e.currentTarget.style.background = 'var(--bg)'; }}
-            onMouseLeave={e => { if (currentView !== n.view) e.currentTarget.style.background = 'transparent'; }}
+            onClick={() => { navigate('/cloud/files'); goToView(n.view); }}
+            onMouseEnter={e => { if (onHome || currentView !== n.view) e.currentTarget.style.background = 'var(--bg)'; }}
+            onMouseLeave={e => { if (onHome || currentView !== n.view) e.currentTarget.style.background = 'transparent'; }}
           >
-            <Icon name={n.icon} size={15} color={currentView === n.view ? 'var(--teal)' : 'var(--ink3)'} />
+            <Icon name={n.icon} size={15} color={!onHome && currentView === n.view ? 'var(--teal)' : 'var(--ink3)'} />
             {!collapsed && <span>{n.label}</span>}
             {!collapsed && n.view === 'trash' && trashed.length > 0 && <span style={{ marginLeft: 'auto', fontSize:'var(--text-xs)', color: 'var(--ink3)' }}>{trashed.length}</span>}
           </div>
@@ -280,20 +291,23 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
         {STORAGE_PROVIDERS.map(p => {
           const conn = connections.find(c => c.provider === p.id);
           const isConnected = conn?.status === 'connected';
-          const isActive = currentView === p.id;
+          const isReal = conn?.supported === true;
+          const isActive = !onHome && currentView === p.id;
           return (
             <div key={p.id}
-              style={sidebarItemStyle(isActive)}
-              title={collapsed ? p.name : undefined}
-              onClick={() => { navigate('/cloud'); goToView(p.id); }}
+              style={{ ...sidebarItemStyle(isActive), ...(isReal ? {} : { opacity: 0.55, cursor: 'default' }) }}
+              title={collapsed ? p.name : isReal ? undefined : `${p.name} — coming soon`}
+              onClick={() => { if (!isReal) return; navigate('/cloud/files'); goToView(p.id); }}
               onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg)'; }}
               onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
             >
               <Icon name={p.icon} size={15} color={isActive ? 'var(--teal)' : p.color} />
               {!collapsed && <span>{p.name}</span>}
-              {!collapsed && (
+              {!collapsed && (isReal ? (
                 <span style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius:'var(--badge-radius)', background: isConnected ? '#188038' : 'var(--border)' }} />
-              )}
+              ) : (
+                <span style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--ink3)' }}>Soon</span>
+              ))}
             </div>
           );
         })}
@@ -319,7 +333,7 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
             {catItems.map(c => (
               <div key={c.view}
                 style={sidebarItemStyle(currentView === c.view)}
-                onClick={() => { navigate('/cloud'); goToView(c.view); }}
+                onClick={() => { navigate('/cloud/files'); goToView(c.view); }}
                 onMouseEnter={e => { if (currentView !== c.view) e.currentTarget.style.background = 'var(--bg)'; }}
                 onMouseLeave={e => { if (currentView !== c.view) e.currentTarget.style.background = 'transparent'; }}
               >
@@ -337,13 +351,23 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
             <div style={{ fontSize:'var(--text-sm)', fontWeight: 600, color: 'var(--ink)', marginBottom: 10 }}>Storage Used</div>
             {storageQuota?.limit_bytes != null && (
               <div style={{ height: 6, borderRadius:'var(--badge-radius)', background: 'var(--border)', overflow: 'hidden', marginBottom: 8 }}>
-                <div style={{ width: `${quotaPct}%`, height: '100%', background: quotaPct >= 90 ? 'var(--red)' : 'var(--teal)', borderRadius:'var(--badge-radius)', transition: 'width .3s' }} />
+                <div style={{ width: `${quotaPct}%`, height: '100%', background: storageQuota.level === 'high' || storageQuota.level === 'critical' || storageQuota.level === 'exceeded' ? 'var(--red)' : storageQuota.level === 'warning' ? 'var(--gold)' : 'var(--teal)', borderRadius:'var(--badge-radius)', transition: 'width .3s' }} />
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize:'var(--text-xs)', color: 'var(--ink3)', marginBottom: 12 }}>
               <span>{storageQuota ? fmtSize(storageQuota.used_bytes) : '—'} used</span>
               <span>{storageQuota?.limit_bytes != null ? fmtSize(storageQuota.limit_bytes) : 'Unlimited'}</span>
             </div>
+            {storageQuota && storageQuota.level !== 'ok' && (
+              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: 12, color: storageQuota.level === 'warning' ? 'var(--gold)' : 'var(--red)' }}>
+                {storageQuota.level === 'exceeded' ? 'Storage full — uploads are blocked. Free up space or upgrade.'
+                  : `${quotaPct}% of your storage is used${storageQuota.level === 'warning' ? '.' : ' — running out soon.'}`}
+                {' '}
+                <button type="button" onClick={() => navigate('/workspace/billing')} style={{ border: 'none', background: 'none', padding: 0, color: 'inherit', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>
+                  Buy storage
+                </button>
+              </div>
+            )}
             {used > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {cats.filter(c => c.pct > 0).map(c => (
@@ -363,7 +387,7 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
       {showCreateFolder && (
         <CreateFolderModal
           onClose={() => setShowCreateFolder(false)}
-          onCreate={(name, color) => { createFolder(name, currentFolderId, color); setShowCreateFolder(false); }}
+          onCreate={(name, color) => createFolder(name, currentFolderId, color)}
         />
       )}
 

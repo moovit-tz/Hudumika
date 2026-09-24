@@ -4,6 +4,9 @@ import type { PackagesTable } from '../db/client.js';
 import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 import { PaymentsIntegration } from '../integrations/payments.js';
 import { PettiService } from '../services/petti.service.js';
+import { generatePeriodInvoice, settleInvoiceFromGateway } from '../services/subscription-billing.service.js';
+import { PaymentGateway } from '../integrations/payment-gateway.js';
+import { env } from '../config/env.js';
 
 const MGMT = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
 
@@ -22,21 +25,6 @@ function cardBrand(digits: string): string {
   if (/^5[1-5]/.test(digits)) return 'Mastercard';
   if (/^3[47]/.test(digits)) return 'Amex';
   return 'Card';
-}
-
-/** The real per-period plan charge for a tenant's seat count. Seats beyond
- *  extra_seat_threshold bill at the cheaper extra_seat_price (393_free_tier_
- *  and_seat_tiering.sql) — both NULL on every package until a SuperAdmin sets
- *  them, so this returns exactly `price_per_seat * seats` for every package
- *  that hasn't opted in, unchanged from before that migration. */
-function computePlanAmount(pkg: Pick<PackagesTable, 'price_per_seat' | 'monthly_price' | 'extra_seat_price' | 'extra_seat_threshold'>, seats: number): number {
-  if (pkg.price_per_seat == null) return pkg.monthly_price;
-  if (pkg.extra_seat_price != null && pkg.extra_seat_threshold != null && seats > pkg.extra_seat_threshold) {
-    const baseSeats = pkg.extra_seat_threshold;
-    const extraSeats = seats - pkg.extra_seat_threshold;
-    return baseSeats * pkg.price_per_seat + extraSeats * pkg.extra_seat_price;
-  }
-  return pkg.price_per_seat * seats;
 }
 
 // Backs Workspace ▸ Subscription ▸ Payments/Billing — previously PAYMENT_HISTORY
@@ -195,69 +183,14 @@ export default async function billingRoutes(fastify: FastifyInstance) {
   fastify.post('/invoices/generate', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT) }, async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const tenant = await trx.selectFrom('tenants').select('plan').where('id', '=', user.tenant_id).executeTakeFirst();
-      if (!tenant) {
-        reply.status(404);
-        return { error: 'Tenant not found' };
+      try {
+        const { invoice, created } = await generatePeriodInvoice(trx, user.tenant_id);
+        if (created) reply.status(201);
+        return invoice;
+      } catch (err: any) {
+        reply.status(err.message === 'Tenant not found' ? 404 : 400);
+        return { error: err.message };
       }
-      const pkg = await trx.selectFrom('packages').selectAll().where('code', '=', tenant.plan).executeTakeFirst();
-      if (!pkg) {
-        reply.status(400);
-        return { error: 'Current plan has no pricing configured' };
-      }
-      const seatRow = await trx.selectFrom('users').select(({ fn }) => fn.countAll<number>().as('c'))
-        .where('tenant_id', '=', user.tenant_id).where('active', '=', true).executeTakeFirst();
-      const seats = Number(seatRow?.c ?? 1);
-      const planAmount = computePlanAmount(pkg, seats);
-
-      // Fold in real active add-ons (376_package_addons.sql) — a purchased
-      // add-on (e.g. Onsite) is billed alongside the plan itself.
-      const addonRows = await trx.selectFrom('tenant_addons')
-        .innerJoin('package_addons', 'package_addons.code', 'tenant_addons.addon_code')
-        .select('package_addons.monthly_price')
-        .where('tenant_addons.tenant_id', '=', user.tenant_id)
-        .where('tenant_addons.status', '=', 'active')
-        .execute();
-      const addonsAmount = addonRows.reduce((sum, r) => sum + Number(r.monthly_price), 0);
-      const amount = planAmount + addonsAmount;
-
-      const now = new Date();
-      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      const dueDate = new Date(now.getFullYear(), now.getMonth(), 5);
-      const periodKey = `${periodStart.getFullYear()}${String(periodStart.getMonth() + 1).padStart(2, '0')}`;
-
-      const existing = await trx.selectFrom('subscription_invoices').selectAll()
-        .where('tenant_id', '=', user.tenant_id)
-        .where('period_start', '=', periodStart.toISOString().slice(0, 10))
-        .executeTakeFirst();
-      if (existing) return existing;
-
-      const seq = 1 + Number((await trx.selectFrom('subscription_invoices').select(({ fn }) => fn.countAll<number>().as('c'))
-        .where('tenant_id', '=', user.tenant_id).executeTakeFirst())?.c ?? 0);
-
-      const invoice = await trx.insertInto('subscription_invoices').values({
-        tenant_id: user.tenant_id,
-        invoice_number: `SUB-${periodKey}-${String(seq).padStart(3, '0')}`,
-        plan_code: tenant.plan,
-        seats,
-        currency: 'USD',
-        amount,
-        addons_amount: addonsAmount,
-        period_start: periodStart.toISOString().slice(0, 10),
-        period_end: periodEnd.toISOString().slice(0, 10),
-        due_date: dueDate.toISOString().slice(0, 10),
-        // A $0 invoice (e.g. a custom/enterprise package whose monthly_price
-        // was briefly 0/unset before pricing was configured) has nothing
-        // owed — "overdue" is never correct for zero money, regardless of
-        // how far past the due date it is. Found via 2 real historical
-        // invoices stuck showing "$0.00 · overdue" after packages.monthly_price
-        // for 'enterprise' was corrected post-hoc without a backfill.
-        status: amount <= 0 ? 'paid' : (dueDate < now ? 'overdue' : 'due'),
-      }).returningAll().executeTakeFirstOrThrow();
-
-      reply.status(201);
-      return invoice;
     });
   });
 
@@ -308,6 +241,12 @@ export default async function billingRoutes(fastify: FastifyInstance) {
             reply.status(402);
             return { error: err.message || 'Payment failed' };
           }
+        } else if (PaymentGateway.isConfigured()) {
+          // A live gateway exists, so a card/mobile-money invoice must be paid
+          // through its hosted checkout — the simulated charge below would mark
+          // it paid without any money moving.
+          reply.status(409);
+          return { error: 'USE_CHECKOUT', message: 'Pay this invoice through the secure checkout.' };
         } else {
           // Simulated charge, same house convention as onboarding — no live
           // gateway is wired up, but the result genuinely reflects the stored
@@ -335,6 +274,68 @@ export default async function billingRoutes(fastify: FastifyInstance) {
       });
     }
   );
+
+  // Hosted checkout: returns a gateway payment link for this invoice. The
+  // customer pays on the gateway's page (no card data touches this app); the
+  // signed webhook and GET /invoices/:id/verify then mark the invoice paid.
+  fastify.post<{ Params: { id: string } }>(
+    '/invoices/:id/checkout',
+    { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT) },
+    async (request, reply) => {
+      const user = request.user;
+      if (!PaymentGateway.isConfigured()) {
+        return reply.status(501).send({ error: 'GATEWAY_NOT_CONFIGURED', message: 'Online payment is not configured for this platform yet.' });
+      }
+      const found = await withTenant(user.tenant_id, async (trx) => {
+        const invoice = await trx.selectFrom('subscription_invoices').selectAll()
+          .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!invoice) return null;
+        const tenant = await trx.selectFrom('tenants').select('name').where('id', '=', user.tenant_id).executeTakeFirst();
+        return { invoice, tenantName: tenant?.name ?? '' };
+      });
+      if (!found) return reply.status(404).send({ error: 'Invoice not found' });
+      const { invoice } = found;
+      if (invoice.status === 'paid') return reply.status(400).send({ error: 'Invoice is already paid' });
+      if (invoice.status === 'cancelled') return reply.status(400).send({ error: 'Invoice is cancelled' });
+
+      // A fresh reference per attempt: the gateway rejects a reused tx_ref, and a
+      // retry after an abandoned checkout must not collide with the first.
+      const txRef = `HUD-${invoice.invoice_number}-${Date.now().toString(36)}`;
+      const appBase = (env.PUBLIC_APP_URL ?? env.OPS_BOARD_URL).replace(/\/$/, '');
+      try {
+        const { url } = await PaymentGateway.createCheckout({
+          txRef, amount: Number(invoice.amount), currency: invoice.currency, email: user.email ?? '', name: user.name ?? found.tenantName,
+          redirectUrl: `${appBase}/workspace/billing?invoice=${invoice.id}`, title: `Hudumika ${invoice.invoice_number}`,
+          meta: { invoice_id: invoice.id, tenant_id: user.tenant_id },
+        });
+        await withTenant(user.tenant_id, (trx) => trx.updateTable('subscription_invoices')
+          .set({ gateway: PaymentGateway.name, gateway_ref: txRef, checkout_url: url, updated_at: new Date() })
+          .where('id', '=', invoice.id).where('tenant_id', '=', user.tenant_id).execute());
+        return { checkout_url: url };
+      } catch (err: any) {
+        return reply.status(502).send({ error: 'GATEWAY_ERROR', message: err.message || 'Could not start checkout' });
+      }
+    },
+  );
+
+  // Called when the customer returns from the gateway: asks the gateway for the
+  // real result rather than trusting the redirect's query string.
+  fastify.get<{ Params: { id: string } }>('/invoices/:id/verify', async (request, reply) => {
+    const user = request.user;
+    const invoice = await withTenant(user.tenant_id, (trx) => trx.selectFrom('subscription_invoices').selectAll()
+      .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst());
+    if (!invoice) return reply.status(404).send({ error: 'Invoice not found' });
+    if (invoice.status !== 'paid' && invoice.gateway_ref && PaymentGateway.isConfigured()) {
+      try {
+        const verification = await PaymentGateway.verifyByReference(invoice.gateway_ref);
+        await settleInvoiceFromGateway(user.tenant_id, invoice.id, PaymentGateway.name, verification);
+      } catch (err: any) {
+        request.log.warn({ err: err.message }, 'invoice verify against gateway failed');
+      }
+    }
+    return withTenant(user.tenant_id, (trx) => trx.selectFrom('subscription_invoices').selectAll()
+      .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirstOrThrow());
+  });
 
   fastify.get<{ Params: { id: string } }>('/invoices/:id/download', async (request, reply) => {
     const user = request.user;

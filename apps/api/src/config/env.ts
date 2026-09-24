@@ -176,6 +176,21 @@ const envSchema = z.object({
   CLAMAV_HOST: z.string().optional(),
   CLAMAV_PORT: z.coerce.number().default(3310),
   CLAMAV_TIMEOUT_MS: z.coerce.number().default(15000),
+  /** 'true' / 'false' overrides; unset = required in production only. See lib/cloud-scan-policy.ts. */
+  CLOUD_REQUIRE_SCAN: z.enum(['true', 'false']).optional(),
+
+  /**
+   * Subscription billing gateway (Flutterwave — cards + mobile money incl.
+   * M-Pesa/Tigo/Airtel). Same "real once you point it at a real service"
+   * convention as ClamAV/SMTP: with FLW_SECRET_KEY unset there is no live
+   * gateway and invoice checkout answers 501; the older simulated charge in
+   * integrations/payments.ts remains the dev fallback. FLW_WEBHOOK_HASH is
+   * the "secret hash" configured on the Flutterwave dashboard webhook — the
+   * webhook route refuses every delivery whose `verif-hash` header differs.
+   */
+  FLW_SECRET_KEY: z.string().optional(),
+  FLW_WEBHOOK_HASH: z.string().optional(),
+  FLW_BASE_URL: z.string().url().default('https://api.flutterwave.com/v3'),
 
   /**
    * Path to a LibreOffice/soffice binary for server-side Office→PDF preview

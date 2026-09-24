@@ -257,6 +257,41 @@ describe('Email — Gmail-parity features (signatures, identities, filters, pref
     });
   });
 
+  describe('Compose templates', () => {
+    it('creates, edits, lists, sanitizes, and deletes plain-text and HTML templates', async () => {
+      const app = await getApp();
+      const created = await app.inject({
+        method: 'POST', url: '/v1/email/quick-templates', headers: authHeaders(A.token),
+        payload: { name: 'Follow-up', subject: 'Hello {{first_name}}', body: 'Hi {{first_name}}', body_html: null, is_html: false },
+      });
+      expect(created.statusCode).toBe(201);
+      const id = created.json().id;
+
+      const edited = await app.inject({
+        method: 'PATCH', url: `/v1/email/quick-templates/${id}`, headers: authHeaders(A.token),
+        payload: { name: 'Follow-up updated', subject: 'Updated', body: 'Updated body', body_html: null, is_html: false },
+      });
+      expect(edited.statusCode).toBe(200);
+      expect(edited.json().name).toBe('Follow-up updated');
+
+      const html = await app.inject({
+        method: 'POST', url: '/v1/email/quick-templates', headers: authHeaders(A.token),
+        payload: { name: 'HTML notice', subject: 'Notice', body: '', body_html: '<p>Hello</p><script>alert(1)</script>', is_html: true },
+      });
+      expect(html.statusCode).toBe(201);
+      expect(html.json().body_html).toContain('<p>Hello</p>');
+      expect(html.json().body_html).not.toContain('<script>');
+
+      const list = await app.inject({ method: 'GET', url: '/v1/email/quick-templates', headers: authHeaders(A.token) });
+      expect(list.statusCode).toBe(200);
+      expect(list.json().some((template: any) => template.id === id)).toBe(true);
+
+      const removed = await app.inject({ method: 'DELETE', url: `/v1/email/quick-templates/${id}`, headers: authHeaders(A.token) });
+      expect(removed.statusCode).toBe(204);
+      await app.inject({ method: 'DELETE', url: `/v1/email/quick-templates/${html.json().id}`, headers: authHeaders(A.token) });
+    });
+  });
+
   describe('Labels — hidden flag', () => {
     it('a label can be hidden and the flag round-trips', async () => {
       const app = await getApp();
@@ -310,6 +345,16 @@ describe('Email — Gmail-parity features (signatures, identities, filters, pref
       const items = res.json().items;
       expect(items.length).toBe(1);
       expect(items[0].from.email).toBe('finance@aleka.test');
+
+      // The simple search box promises sender search and should also accept
+      // useful fragments rather than requiring a whole full-text token.
+      const senderSearch = await app.inject({
+        method: 'GET',
+        url: '/v1/emails?folder=inbox&search=leka%20Fin',
+        headers: authHeaders(userE.token),
+      });
+      expect(senderSearch.statusCode).toBe(200);
+      expect(senderSearch.json().items.map((m: any) => m.from.email)).toEqual(['finance@aleka.test']);
     });
 
     it('advScope=all searches across folders, ignoring the plain folder param', async () => {

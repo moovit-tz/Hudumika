@@ -1,6 +1,11 @@
 import { clearIdleLockState } from './idleLockKeys.js';
 
-export const BASE_URL = 'http://localhost:3001';
+// Production is normally reverse-proxied on the same origin. Hard-coding
+// localhost made every deployed browser call the visitor's own computer and
+// surface only "Failed to fetch". Development keeps the existing API port,
+// while deployments can override either shape explicitly.
+export const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '')
+  ?? (import.meta.env.DEV ? 'http://localhost:3001' : '');
 
 /** Reads the non-httpOnly CSRF cookie the server sets alongside every
  *  session cookie (double-submit pattern — see apps/api/src/middleware/csrf.ts).

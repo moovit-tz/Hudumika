@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { StoreEmailTemplatesManager } from './StoreEmailTemplatesManager.js';
 import './Store.css';
 
 interface AddonApp {
@@ -125,7 +126,6 @@ export const Store: React.FC = () => {
   const [showConsent, setShowConsent] = useState(false);
   const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'reviews' | 'permissions'>('overview');
   const [toast, setToast] = useState<string | null>(null);
-
   useEffect(() => {
     apiFetch('/v1/store/installed').then(ids => setInstalledApps(Array.isArray(ids) ? ids : [])).catch(() => {});
 
@@ -187,6 +187,10 @@ export const Store: React.FC = () => {
   const sectionTitle = activeCategory === 'all'
     ? 'Recommended Add-ons & Apps'
     : `${activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)} Solutions`;
+
+  if (activeCategory === 'email-templates') {
+    return <StoreEmailTemplatesManager />;
+  }
 
   return (
     <div className="store-root">
@@ -250,6 +254,7 @@ export const Store: React.FC = () => {
             </div>
           )}
 
+          <>
           {/* Section header */}
           <div className="store-section-header">
             <h3 className="store-section-title">{sectionTitle}</h3>
@@ -294,6 +299,7 @@ export const Store: React.FC = () => {
               );
             })}
           </div>
+          </>
         </div>
       </div>
 

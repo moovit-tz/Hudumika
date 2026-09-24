@@ -9,8 +9,12 @@ interface FileUploaderProps {
   multiple?: boolean;
   maxSize?: number;
   className?: string;
-  uploadingFiles?: { id: string; name: string; size: number; progress: number; status: 'uploading' | 'completed' | 'error' }[];
+  uploadingFiles?: { id: string; name: string; size: number; progress: number; status: 'uploading' | 'completed' | 'error' | 'cancelled'; error?: string }[];
   onRemoveFile?: (id: string) => void;
+  /** Abort an in-flight upload. */
+  onCancelFile?: (id: string) => void;
+  /** Try a failed or cancelled upload again. */
+  onRetryFile?: (id: string) => void;
 }
 
 export const FileUploader: React.FC<FileUploaderProps> = ({
@@ -21,6 +25,8 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
   className,
   uploadingFiles = [],
   onRemoveFile,
+  onCancelFile,
+  onRetryFile,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -119,9 +125,15 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                     <Icon name="checkCircle" size={14} /> Completed
                   </div>
+                ) : file.status === 'cancelled' ? (
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                    <Icon name="x" size={14} /> Cancelled
+                    {onRetryFile && <button type="button" className="underline ml-1" onClick={() => onRetryFile(file.id)}>Retry</button>}
+                  </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400">
-                    <Icon name="alertCircle" size={14} /> Failed
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400" role="alert">
+                    <Icon name="alertCircle" size={14} /> Failed{file.error ? ` — ${file.error}` : ''}
+                    {onRetryFile && <button type="button" className="underline ml-1" onClick={() => onRetryFile(file.id)}>Retry</button>}
                   </div>
                 )}
               </div>
@@ -129,7 +141,9 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
               {onRemoveFile && (
                 <button
                   type="button"
-                  onClick={() => onRemoveFile(file.id)}
+                  aria-label={file.status === 'uploading' && onCancelFile ? `Cancel upload of ${file.name}` : `Dismiss ${file.name}`}
+                  title={file.status === 'uploading' && onCancelFile ? 'Cancel upload' : 'Dismiss'}
+                  onClick={() => (file.status === 'uploading' && onCancelFile ? onCancelFile(file.id) : onRemoveFile(file.id))}
                   className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors shrink-0"
                 >
                   <Icon name="x" size={16} />

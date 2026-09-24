@@ -30,6 +30,16 @@ interface EnqueueInput {
   /** See EmailIntegration.sendEmail's own doc — an explicit "Send mail as"
    *  alias for this one send, only ever set alongside userId. */
   fromIdentityId?: string | null;
+  /** Compatibility bridge while legacy business actions move to the
+   * communication registry. New callers should call CommEventsService. */
+  communication?: {
+    eventKey: string;
+    actorId?: string | null;
+    record?: { type: string; id: string; label?: string };
+    context: Record<string, unknown>;
+    idempotencyKey?: string;
+    recipientName?: string;
+  };
 }
 
 interface SendResult {
@@ -68,6 +78,16 @@ interface SendResult {
  */
 export const MailService = {
   async enqueue(tenantId: string, input: EnqueueInput): Promise<string> {
+    if (input.communication) {
+      const { CommEventsService } = await import('./comm-events.service.js');
+      const result = await CommEventsService.dispatch({
+        tenantId, eventKey: input.communication.eventKey, actorId: input.communication.actorId,
+        record: input.communication.record, context: input.communication.context,
+        idempotencyKey: input.communication.idempotencyKey,
+        manualRecipients: [{ email: input.to, name: input.communication.recipientName, type: 'TO' }],
+      });
+      return result.deliveryIds[0] ?? '';
+    }
     return withTenant(tenantId, async (trx) => {
       const row = await trx.insertInto('email_outbox').values({
         tenant_id: tenantId,

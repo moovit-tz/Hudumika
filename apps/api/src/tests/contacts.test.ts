@@ -3,6 +3,7 @@
 // behavior. Real HTTP calls through the actual app (fastify.inject), a real
 // Postgres tenant per test suite, RLS genuinely enforced — not a mock.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { randomUUID } from 'crypto';
 import { dbPlatform } from '../db/client.js';
 import { getApp, createTestTenant, authHeaders, type TestTenant } from './helpers.js';
 
@@ -65,6 +66,25 @@ describe('Contacts — isolation, role gate, merge', () => {
     expect(patch.statusCode).not.toBe(200);
     const stillA = await app.inject({ method: 'GET', url: `/v1/contacts?status=ACTIVE`, headers: authHeaders(A.token) });
     expect(stillA.json().find((c: any) => c.id === contactId)?.job_title).toBe('Ops Manager');
+  });
+
+  it('creates one canonical Party and enforces tenant/private visibility in the API', async () => {
+    const app = await getApp();
+    const canonical = await app.inject({ method: 'GET', url: `/v1/parties/${contactId}`, headers: authHeaders(A.token) });
+    expect(canonical.statusCode).toBe(200);
+    expect(canonical.json()).toMatchObject({ id: contactId, party_type: 'PERSON', display_name: 'Amina Juma' });
+
+    const crossTenant = await app.inject({ method: 'GET', url: `/v1/parties/${contactId}`, headers: authHeaders(B.token) });
+    expect(crossTenant.statusCode).toBe(404);
+
+    const privateParty = await app.inject({
+      method: 'POST', url: '/v1/parties', headers: authHeaders(A.token),
+      payload: { type: 'PERSON', first_name: 'Private', last_name: 'Adviser', visibility: 'PRIVATE', channels: [{ type: 'EMAIL', value: 'private@example.test' }] },
+    });
+    expect(privateParty.statusCode).toBe(201);
+    const colleague = await A.addUser('MANAGER');
+    const hidden = await app.inject({ method: 'GET', url: `/v1/parties/${privateParty.json().id}`, headers: authHeaders(colleague.token) });
+    expect(hidden.statusCode).toBe(404);
   });
 
   it('an OFFICER is refused hard-delete, export, import, and merge — but can still soft-delete', async () => {
@@ -167,5 +187,31 @@ describe('Contacts — isolation, role gate, merge', () => {
 
     const groupsB = await app.inject({ method: 'GET', url: '/v1/contacts/smart-groups', headers: authHeaders(B.token) });
     expect(groupsB.json().some((g: any) => g.name === 'Named Amina')).toBe(false);
+  });
+
+  it('serves tenant-scoped directory, discovery, and relationship views', async () => {
+    const app = await getApp();
+    await dbPlatform.insertInto('email_messages').values({
+      tenant_id: A.tenantId, user_id: A.userId, folder: 'inbox',
+      from_name: 'Amina Juma', from_email: 'amina@example.test',
+      to_addresses: JSON.stringify([]), cc_addresses: JSON.stringify([]), bcc_addresses: JSON.stringify([]),
+      subject: 'Production relationship test', body: 'Hello', snippet: 'Hello', thread_id: randomUUID(),
+    }).execute();
+    const directory = await app.inject({ method: 'GET', url: '/v1/contacts/directory', headers: authHeaders(A.token) });
+    expect(directory.statusCode).toBe(200);
+    expect(directory.json().some((person: any) => person.id === A.userId)).toBe(true);
+    expect(directory.json().some((person: any) => person.id === B.userId)).toBe(false);
+
+    const discovery = await app.inject({ method: 'GET', url: '/v1/contacts/discovery', headers: authHeaders(A.token) });
+    expect(discovery.statusCode).toBe(200);
+    expect(discovery.json()).toMatchObject({ frequent: expect.any(Array), other: expect.any(Array) });
+
+    const relationship = await app.inject({ method: 'GET', url: `/v1/contacts/${contactId}/relationship`, headers: authHeaders(A.token) });
+    expect(relationship.statusCode).toBe(200);
+    expect(relationship.json()).toMatchObject({ interactions: expect.any(Array), files: expect.any(Array), totals: expect.any(Object) });
+    expect(relationship.json().interactions.some((item: any) => item.title === 'Production relationship test')).toBe(true);
+
+    const crossTenant = await app.inject({ method: 'GET', url: `/v1/contacts/${contactId}/relationship`, headers: authHeaders(B.token) });
+    expect(crossTenant.statusCode).toBe(404);
   });
 });

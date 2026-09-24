@@ -785,6 +785,19 @@
   color: var(--ink);
 }
 
+.app-header-hub-search-clear--with-scope { right: 48px; }
+.app-header-search-scope {
+  flex-shrink: 0;
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink3);
+  padding: 2px 8px;
+  font: 700 10px/1 var(--font);
+  cursor: pointer;
+}
+.app-header-search-scope:hover { color: var(--teal); }
+
 /* ── Dark mode — hub search ── */
 [data-theme="dark"] .app-header-hub-search {
   background: rgba(255, 255, 255, 0.05);
@@ -1361,4 +1374,3 @@
   background: rgba(220, 38, 38, 0.15) !important;
   color: #ef4444 !important;
 }
-

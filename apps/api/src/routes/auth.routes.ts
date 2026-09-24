@@ -7,6 +7,7 @@ import { hashPassword, verifyPassword, needsRehash } from '../lib/password.js';
 import { enforcePasswordPolicy } from '../lib/password-policy.js';
 import { verifyTotp } from '../lib/totp.js';
 import { MailService } from '../services/mail.service.js';
+import { CommEventsService } from '../services/comm-events.service.js';
 import { env } from '../config/env.js';
 import { PlatformAdminService } from '../services/platform-admin.service.js';
 import { COOKIE_NAMES, setSessionCookies, clearSessionCookies, setSuperCookies, clearSuperCookies } from '../lib/cookies.js';
@@ -460,7 +461,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       await dbPlatform.insertInto('password_reset_tokens').values({ user_id: user.id, token, expires_at: expiresAt }).execute();
 
       const resetUrl = `${env.OPS_BOARD_URL}/auth/reset-password?token=${token}`;
-      await MailService.enqueueTemplated(user.tenant_id, 'auth.password_reset', user.email, { resetUrl }, 'auth')
+      await CommEventsService.dispatch({ tenantId: user.tenant_id, eventKey: 'security.password.reset', actorId: user.id, context: { resetUrl }, idempotencyKey: `password-reset:${user.id}:${token}` })
         .catch(() => { /* token still exists; user can retry */ });
     }
 

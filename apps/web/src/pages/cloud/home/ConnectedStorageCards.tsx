@@ -5,15 +5,6 @@ import { STORAGE_PROVIDERS } from '../../../shells/ConnectedAppsModal.js';
 import type { StorageConnection, StorageProvider } from '../../../shells/cloud-context.js';
 import { fmtSize } from '../lib/format.js';
 
-/** Public free-tier storage caps, used only to give the mocked usage bar a
- *  realistic scale — same explicitly-mocked constant the old ConnectedStorageRow used. */
-const PROVIDER_QUOTA: Record<StorageProvider, number> = {
-  box: 10 * 1_073_741_824,
-  dropbox: 2 * 1_073_741_824,
-  mega: 20 * 1_073_741_824,
-  onedrive: 5 * 1_073_741_824,
-};
-
 /** Same one-card-many-rows shape as StorageOverviewCards now uses, rather
  *  than four separate bordered boxes in a 2x2 grid — the two panels sit
  *  side by side on the Cloud home page and used to read as two different
@@ -24,8 +15,10 @@ export function ConnectedStorageCards({ connections, onOpen }: { connections: St
       {STORAGE_PROVIDERS.map((p, i) => {
         const conn = connections.find(c => c.provider === p.id);
         const isConnected = conn?.status === 'connected';
-        const quota = PROVIDER_QUOTA[p.id];
-        const pct = isConnected ? Math.min(100, Math.round(((conn?.total_size ?? 0) / quota) * 100)) : 0;
+        // Only OneDrive is a real integration. Other providers are shown as "Coming soon" — and no
+        // usage bar is drawn for any provider: the provider's real quota is not known to us, so a
+        // bar against an assumed free-tier cap would be invented data.
+        const isReal = conn?.supported === true;
         return (
           <button
             key={p.id}
@@ -43,20 +36,13 @@ export function ConnectedStorageCards({ connections, onOpen }: { connections: St
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{p.name}</span>
-                <span style={{ fontSize: 11, color: isConnected ? 'var(--ink3)' : 'var(--teal)', fontWeight: isConnected ? 400 : 600, flexShrink: 0 }}>
-                  {isConnected ? `${conn!.file_count} files` : 'Connect →'}
+                <span style={{ fontSize: 11, color: isConnected ? 'var(--ink3)' : isReal ? 'var(--teal)' : 'var(--ink3)', fontWeight: isConnected || !isReal ? 400 : 600, flexShrink: 0 }}>
+                  {isConnected ? `${conn!.file_count} files` : isReal ? 'Connect →' : 'Coming soon'}
                 </span>
               </div>
-              {isConnected ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
-                  <div style={{ flex: 1, height: 4, borderRadius: 'var(--badge-radius)', background: 'var(--bg)', overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: p.color, borderRadius: 'var(--badge-radius)' }} />
-                  </div>
-                  <span style={{ fontSize: 10.5, color: 'var(--ink3)', flexShrink: 0 }}>{fmtSize(conn!.total_size)} / {fmtSize(quota)}</span>
-                </div>
-              ) : (
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>Not connected</div>
-              )}
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
+                {isConnected ? `${fmtSize(conn!.total_size)} synced` : isReal ? 'Not connected' : 'Integration not available yet'}
+              </div>
             </div>
           </button>
         );

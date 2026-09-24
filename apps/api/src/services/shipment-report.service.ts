@@ -18,7 +18,7 @@ import { withTenant, dbPlatform } from '../db/client.js';
 import { ShipmentService } from './shipment.service.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { CloudSync } from './cloud-sync.service.js';
-import { MailService } from './mail.service.js';
+import { CommEventsService } from './comm-events.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { resolvePublicBaseUrl } from '../routes/landed-cost-share.routes.js';
 import { STAGE_LABELS } from '@hudumika/types';
@@ -360,11 +360,14 @@ export async function sendDailyShipmentReport(tenantId: string, shipmentId: stri
   let whatsappSent = false;
 
   if (email) {
-    await MailService.enqueueTemplated(tenantId, 'clearos.daily_shipment_report', email, {
-      refNumber: s.ref_number || shipmentId,
-      customerName: s.customer_name || 'there',
-      stageLabel,
-    }, 'clearos', { storageKey, filename: `${s.ref_number || shipmentId}-report.pdf` });
+    await CommEventsService.dispatch({
+      tenantId, eventKey: 'clearos.shipment.daily_report',
+      record: { type: 'shipment', id: shipmentId, label: s.ref_number || shipmentId },
+      context: { refNumber: s.ref_number || shipmentId, customerName: s.customer_name || 'there', stageLabel },
+      idempotencyKey: `shipment-daily-report:${shipmentId}:${new Date().toISOString().slice(0, 10)}:${email.toLowerCase()}`,
+      manualRecipients: [{ email, name: s.customer_name || undefined, type: 'TO' }],
+      attachments: [{ storageKey, filename: `${s.ref_number || shipmentId}-report.pdf` }],
+    });
     emailSent = true;
   }
 

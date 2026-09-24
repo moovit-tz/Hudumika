@@ -1,3 +1,4 @@
+import { wouldExceedStorageQuota, quotaBlockedMessage } from '../lib/storage-quota.js';
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -70,6 +71,14 @@ export async function sealDocumentRoutes(fastify: FastifyInstance) {
       if (!entityId) return reply.status(400).send({ error: 'entityId field is required' });
 
       const fileBuffer = await data.toBuffer();
+      const quota = await wouldExceedStorageQuota(request.user.tenant_id, fileBuffer.length);
+      if (quota.exceeded) {
+        return reply.status(402).send({
+          error: 'STORAGE_LIMIT_EXCEEDED',
+          message: quotaBlockedMessage(quota),
+          used_bytes: quota.used_bytes, limit_bytes: quota.limit_bytes,
+        });
+      }
       const upload = await MinioIntegration.uploadCloudFile(request.user.tenant_id, `seal/${entityType}/${entityId}`, data.filename, fileBuffer);
 
       const row = await withTenant(request.user.tenant_id, trx =>

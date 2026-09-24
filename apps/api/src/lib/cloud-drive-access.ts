@@ -18,6 +18,8 @@ export interface DriveAccess {
   role: EffectiveDriveRole;
   /** May list/download/open files in this drive. */
   canRead: boolean;
+  /** May comment on files (everyone who can read except a plain 'viewer'). */
+  canComment: boolean;
   /** May upload/create/edit/move files in this drive. */
   canWrite: boolean;
   /** May rename/delete the drive itself and manage its membership. */
@@ -59,23 +61,23 @@ export async function resolveDriveAccess(
   const driveType = drive.type as 'personal' | 'shared' | 'business';
 
   if (driveType === 'personal') {
-    if (drive.owner_id === userId) return { driveType, role: 'owner', canRead: true, canWrite: true, canManage: true };
+    if (drive.owner_id === userId) return { driveType, role: 'owner', canRead: true, canComment: true, canWrite: true, canManage: true };
     return null;
   }
 
   if (driveType === 'business') {
     const isAdmin = userRole === 'SUPER_ADMIN' || userRole === 'TENANT_ADMIN';
-    return { driveType, role: isAdmin ? 'manager' : 'contributor', canRead: true, canWrite: true, canManage: isAdmin };
+    return { driveType, role: isAdmin ? 'manager' : 'contributor', canRead: true, canComment: true, canWrite: true, canManage: isAdmin };
   }
 
   // shared
-  if (drive.owner_id === userId) return { driveType, role: 'owner', canRead: true, canWrite: true, canManage: true };
+  if (drive.owner_id === userId) return { driveType, role: 'owner', canRead: true, canComment: true, canWrite: true, canManage: true };
   const member = await trx.selectFrom('cloud_drive_members').select(['role'])
     .where('drive_id', '=', driveId).where('principal_type', '=', 'user').where('principal_id', '=', userId)
     .executeTakeFirst();
   if (!member) return null;
   const role = member.role as DriveMemberRole;
-  return { driveType, role, canRead: true, canWrite: WRITE_ROLES.has(role), canManage: MANAGE_ROLES.has(role) };
+  return { driveType, role, canRead: true, canComment: role !== 'viewer', canWrite: WRITE_ROLES.has(role), canManage: MANAGE_ROLES.has(role) };
 }
 
 /**

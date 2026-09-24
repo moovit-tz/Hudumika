@@ -196,6 +196,33 @@ export class MinioIntegration {
     return objectStore.presignGet(storageKey, expiresInSeconds, filename);
   }
 
+  // ── Resumable-upload staging (routes/files.routes.ts /uploads). Chunks are addressed by
+  //    session and index only — never by a client-supplied name. ──
+  static async putUploadChunk(tenantId: string, sessionId: string, index: number, bytes: Buffer): Promise<void> {
+    await objectStore.put(`tenants/${tenantId}/uploads/${sessionId}/${index}`, bytes);
+  }
+  static async getUploadChunk(tenantId: string, sessionId: string, index: number): Promise<Buffer | null> {
+    return objectStore.get(`tenants/${tenantId}/uploads/${sessionId}/${index}`);
+  }
+  /**
+   * Assembles a resumable upload directly into its final `tenants/{t}/cloud/{fileId}/{filename}`
+   * location by streaming each already-staged chunk straight through to storage — no full-file
+   * buffer ever exists in this process. `size` must be the exact total (already known from the
+   * upload session), so the S3 backend can stream the PUT with a real Content-Length.
+   */
+  static async uploadCloudFileFromChunks(
+    tenantId: string, fileId: string, filename: string, chunks: AsyncIterable<Buffer>, size: number,
+  ): Promise<{ storageKey: string; size: number }> {
+    const storageKey = `tenants/${tenantId}/cloud/${fileId}/${clean(filename)}`;
+    await objectStore.putStream(storageKey, chunks, size);
+    console.log(`🗄️ Storage: Cloud file assembled from chunks — ${storageKey}`);
+    return { storageKey, size };
+  }
+
+  static async deleteUploadChunks(tenantId: string, sessionId: string, count: number): Promise<void> {
+    for (let i = 0; i < count; i++) await objectStore.del(`tenants/${tenantId}/uploads/${sessionId}/${i}`).catch(() => false);
+  }
+
   static async deleteDocument(_tenantId: string, storageKey: string): Promise<boolean> {
     const removed = await objectStore.del(storageKey);
     if (removed) console.log(`🗄️ Storage: File deleted — ${storageKey}`);

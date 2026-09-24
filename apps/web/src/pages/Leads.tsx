@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { OrganizationPicker, PersonPicker } from '../components/PartyPicker.js';
+import type { PickerItem } from '../components/EntityPicker.js';
 import { Button } from '../components/ui/button.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { SectionLoading } from '../components/ui/spinner.js';
@@ -186,6 +188,37 @@ function ActMenu({ onView, onEdit, onDelete }: { onView: () => void; onEdit: () 
 
 /* ── Form shape ── */
 type FormState = Omit<Lead, 'id' | 'created_at'>;
+/** "Use an existing company / contact" pickers for a new lead. Choosing one fills the lead's own
+ *  text fields (a snapshot, still editable) and records which canonical party it refers to. */
+function LeadPartyLinks({ linkedOrg, setLinkedOrg, linkedPerson, setLinkedPerson, setForm }: {
+  linkedOrg: PickerItem | null; setLinkedOrg: (v: PickerItem | null) => void;
+  linkedPerson: PickerItem | null; setLinkedPerson: (v: PickerItem | null) => void;
+  setForm: React.Dispatch<React.SetStateAction<FormState>>;
+}) {
+  return (<>
+    <div>
+      <OrganizationPicker label="Existing company (optional)" hint="Pick a company you already have — its name fills in below."
+        value={linkedOrg}
+        onChange={item => { setLinkedOrg(item); if (item) setForm(p => ({ ...p, company: item.label })); }} />
+    </div>
+    <div>
+      <PersonPicker label="Existing contact (optional)" hint="Pick someone you already know — their details fill in below."
+        value={linkedPerson}
+        onChange={async item => {
+          setLinkedPerson(item);
+          if (!item) return;
+          setForm(p => ({ ...p, contact_name: item.label }));
+          try {
+            const party = await apiFetch(`/v1/parties/${item.id}`);
+            const email = party?.channels?.find((c: any) => c.channel_type === 'EMAIL')?.value;
+            const phone = party?.channels?.find((c: any) => c.channel_type === 'PHONE' || c.channel_type === 'MOBILE')?.value;
+            setForm(p => ({ ...p, contact_email: p.contact_email || email || '', contact_phone: p.contact_phone || phone || '' }));
+          } catch { /* the name is enough; details are a convenience */ }
+        }} />
+    </div>
+  </>);
+}
+
 const EMPTY_FORM: FormState = {
   company: '', contact_name: '', contact_email: '', contact_phone: '',
   source: 'Web Form', stage: 'NEW', value: 0, priority: 'MEDIUM',
@@ -328,6 +361,10 @@ export const Leads: React.FC = () => {
   /* Add/Edit modal */
   const [showAdd, setShowAdd]   = useState(false);
   const [addForm, setAddForm]   = useState<FormState>({ ...EMPTY_FORM });
+  // Optional links to an existing canonical organization / person (create only). The lead still keeps
+  // its own company / contact text as a snapshot; the link says which record it refers to.
+  const [linkedOrg, setLinkedOrg] = useState<PickerItem | null>(null);
+  const [linkedPerson, setLinkedPerson] = useState<PickerItem | null>(null);
   const [addSaving, setAddSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -400,11 +437,11 @@ export const Leads: React.FC = () => {
         setLeads(p => p.map(l => l.id === editingId ? { ...l, ...addForm, value: Number(addForm.value) || 0 } : l));
         if (selected?.id === editingId) setSelected(prev => prev ? { ...prev, ...addForm, value: Number(addForm.value) || 0 } : prev);
       } else {
-        const res = await apiFetch('/v1/leads', { method: 'POST', body: JSON.stringify({ ...addForm, value: Number(addForm.value) || 0 }) });
+        const res = await apiFetch('/v1/leads', { method: 'POST', body: JSON.stringify({ ...addForm, value: Number(addForm.value) || 0, organization_party_id: linkedOrg?.id ?? null, contact_party_id: linkedPerson?.id ?? null }) });
         const newLead: Lead = res?.id ? res : { ...addForm, id: res?.id ?? Date.now().toString(), value: Number(addForm.value) || 0, created_at: new Date().toISOString().split('T')[0] };
         setLeads(p => [newLead, ...p]);
       }
-      setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null);
+      setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); setLinkedOrg(null); setLinkedPerson(null);
     } catch (err: any) {
       showAlert(err.message || 'Failed to save lead');
     } finally { setAddSaving(false); }
@@ -946,6 +983,7 @@ export const Leads: React.FC = () => {
               </div>
               <form onSubmit={handleAdd}>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px 16px' }}>
+                  {!editingId && <LeadPartyLinks linkedOrg={linkedOrg} setLinkedOrg={setLinkedOrg} linkedPerson={linkedPerson} setLinkedPerson={setLinkedPerson} setForm={setAddForm} />}
                   <div style={{ gridColumn: '1/-1' }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Company Name *</label>
                     <input type="text" className="input-field" placeholder="Acme Imports Ltd" required value={addForm.company} onChange={e => setF('company', e.target.value)} />
@@ -1230,6 +1268,7 @@ export const Leads: React.FC = () => {
             </div>
             <form onSubmit={handleAdd}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px 16px' }}>
+                {!editingId && <LeadPartyLinks linkedOrg={linkedOrg} setLinkedOrg={setLinkedOrg} linkedPerson={linkedPerson} setLinkedPerson={setLinkedPerson} setForm={setAddForm} />}
                 <div style={{ gridColumn: '1/-1' }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Company Name *</label>
                   <input type="text" className="input-field" placeholder="Acme Imports Ltd" required value={addForm.company} onChange={e => setF('company', e.target.value)} />

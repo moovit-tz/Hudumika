@@ -13,6 +13,8 @@ import { resolveCustomerId } from '../services/customer-identity.service.js';
  */
 const NOTHING = '00000000-0000-0000-0000-000000000000';
 const customerScope = async (u: any) => (await resolveCustomerId(u)) ?? NOTHING;
+const NOTIFICATION_SEND_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER']);
+const isSafeInternalLink = (value: string | undefined) => !value || (/^\/(?!\/)/.test(value) && !/[\u0000-\u001f]/.test(value));
 import { withTenant } from '../db/client.js';
 
 export async function notificationRoutes(fastify: FastifyInstance) {
@@ -165,7 +167,8 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         q = q.where('user_id', '=', user.sub);
       }
 
-      await q.execute();
+      const result = await q.executeTakeFirst();
+      if (!Number(result.numUpdatedRows)) return reply.status(404).send({ error: 'Notification not found.' });
       return { success: true };
     });
   });
@@ -196,9 +199,23 @@ export async function notificationRoutes(fastify: FastifyInstance) {
       entity_label: z.string().max(200).optional(),
     }).parse(request.body);
 
+    if (body.user_id !== user.sub && !NOTIFICATION_SEND_ROLES.has(user.role)) {
+      return reply.status(403).send({ error: 'You may only create notifications for yourself.' });
+    }
+    if (!isSafeInternalLink(body.link)) {
+      return reply.status(400).send({ error: 'Notification links must be relative application paths.' });
+    }
+
     const tenant_id = user.tenant_id;
 
     return withTenant(tenant_id, async (trx) => {
+      const recipient = await trx.selectFrom('users')
+        .select('id')
+        .where('id', '=', body.user_id)
+        .where('tenant_id', '=', tenant_id)
+        .where('active', '=', true)
+        .executeTakeFirst();
+      if (!recipient) return reply.status(404).send({ error: 'Notification recipient was not found in this workspace.' });
       const [row] = await trx
         .insertInto('notifications')
         .values({

@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { MinioIntegration } from '../integrations/minio.js';
 import { withTenant } from '../db/client.js';
 import { env } from '../config/env.js';
+import { scanBuffer } from '../integrations/antivirus.js';
+import { saveAttachmentToDrive, attachFromDrive, EmailDriveError } from '../services/email-drive.service.js';
 
 type Folder = 'inbox' | 'sent' | 'drafts' | 'spam' | 'trash' | 'scheduled' | 'archive';
 const FOLDERS = ['inbox', 'sent', 'drafts', 'spam', 'trash', 'scheduled', 'archive'] as const;
@@ -39,6 +41,8 @@ const messagePatchSchema = z.object({
   subject: z.string().optional(),
   body: z.string().optional(),
   attachments: z.array(attachmentInputSchema).max(10).optional(),
+  // Reschedule — only applied when the row is still in 'scheduled' folder
+  scheduledAt: z.string().datetime().optional(),
 });
 const draftSchema = z.object({
   to: z.string().optional().default(''),
@@ -334,7 +338,17 @@ export async function emailRoutes(fastify: FastifyInstance) {
       // which could never rank matches or search anything not already on
       // this page's result set.
       if (search && search.trim()) {
-        q = q.where(sql<boolean>`m.search_vector @@ plainto_tsquery('english', ${search.trim()})`);
+        const term = search.trim();
+        const likeTerm = `%${term}%`;
+        q = q.where(sql<boolean>`(
+          m.search_vector @@ websearch_to_tsquery('english', ${term})
+          OR m.subject ILIKE ${likeTerm}
+          OR m.body ILIKE ${likeTerm}
+          OR m.from_name ILIKE ${likeTerm}
+          OR m.from_email ILIKE ${likeTerm}
+          OR m.to_addresses::text ILIKE ${likeTerm}
+          OR m.cc_addresses::text ILIKE ${likeTerm}
+        )`);
       }
       if (adv.from) q = q.where(sql<boolean>`(m.from_name ILIKE ${'%' + adv.from + '%'} OR m.from_email ILIKE ${'%' + adv.from + '%'})`);
       if (adv.to) q = q.where(sql<boolean>`(m.to_addresses::text ILIKE ${'%' + adv.to + '%'} OR m.cc_addresses::text ILIKE ${'%' + adv.to + '%'})`);
@@ -367,6 +381,13 @@ export async function emailRoutes(fastify: FastifyInstance) {
       if (adv.dateBefore) {
         const d = new Date(adv.dateBefore);
         if (!Number.isNaN(d.getTime())) q = q.where('m.created_at', '<=', d);
+      }
+      // Simple label filter — narrows the current folder/search to only
+      // messages carrying this label. Additive with search/folder; does NOT
+      // replace the folder scope the way advScope=label:<name> does.
+      const labelFilter = (query as any).label?.trim();
+      if (labelFilter) {
+        q = q.where(sql<boolean>`m.labels @> ${JSON.stringify([labelFilter])}::jsonb`);
       }
 
       // Same filters, no join/columns — just the count this folder+search
@@ -494,8 +515,48 @@ export async function emailRoutes(fastify: FastifyInstance) {
     if (buffer.length > 20 * 1024 * 1024) {
       return reply.status(400).send({ error: 'Attachments are limited to 20MB.' });
     }
+    // No-op unless CLAMAV_HOST is set (integrations/antivirus.ts) — same gate as Drive uploads.
+    const scan = await scanBuffer(buffer);
+    if (!scan.clean) {
+      return reply.status(422).send({ error: `This file was rejected by the malware scanner${scan.signature ? ` (${scan.signature})` : ''}.` });
+    }
     const up = await MinioIntegration.uploadEmailAttachment(user.tenant_id, user.sub, data.filename || 'attachment', buffer);
     return { storageKey: up.storageKey, filename: data.filename || 'attachment', size: up.size };
+  });
+
+  // POST /v1/emails/attachments/from-drive — attach a Drive file the user can
+  // read to the message being composed. Returns the same pointer the upload
+  // route above does, so the compose picker treats both identically.
+  fastify.post('/attachments/from-drive', async (request: any, reply) => {
+    const { fileId } = (request.body ?? {}) as { fileId?: string };
+    if (!fileId) return reply.status(400).send({ error: 'fileId is required' });
+    try {
+      return await attachFromDrive(request.user, fileId);
+    } catch (err: any) {
+      if (err instanceof EmailDriveError) return reply.status(err.status).send({ error: err.code, message: err.message });
+      throw err;
+    }
+  });
+
+  // POST /v1/emails/:id/attachment/save-to-drive — copy one attachment of a
+  // message this user owns into Drive (their My Drive unless driveId given).
+  fastify.post('/:id/attachment/save-to-drive', async (request: any, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { key, driveId, folderId } = (request.body ?? {}) as { key?: string; driveId?: string; folderId?: string };
+    const row = await withTenant(user.tenant_id, (trx) => trx.selectFrom('email_messages')
+      .select(['attachments', 'attachment_storage_key', 'attachment_filename', 'attachment_size'])
+      .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).executeTakeFirst());
+    if (!row) return reply.status(404).send({ error: 'Message not found' });
+    try {
+      return await saveAttachmentToDrive(user, {
+        messageId: id, storageKey: key ?? null, driveId: driveId ?? null, folderId: folderId ?? null,
+        attachments: mergeAttachments(row),
+      });
+    } catch (err: any) {
+      if (err instanceof EmailDriveError) return reply.status(err.status).send({ error: err.code, message: err.message });
+      throw err;
+    }
   });
 
   // GET /v1/emails/:id/attachment?key=<storageKey> — a short-lived signed
@@ -587,6 +648,11 @@ export async function emailRoutes(fastify: FastifyInstance) {
         if (b.subject !== undefined) patch.subject = b.subject;
         if (b.body !== undefined) { patch.body = b.body; patch.snippet = b.body.slice(0, 120); }
         if (b.attachments !== undefined) { patch.attachments = JSON.stringify(b.attachments); patch.has_attachment = b.attachments.length > 0; }
+        if (b.scheduledAt !== undefined && existing.folder === 'scheduled') {
+          const newAt = new Date(b.scheduledAt);
+          if (newAt <= new Date()) return reply.status(400).send({ error: 'Scheduled time must be in the future.' });
+          patch.scheduled_at = newAt;
+        }
       }
       if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'No updatable fields provided' });
 

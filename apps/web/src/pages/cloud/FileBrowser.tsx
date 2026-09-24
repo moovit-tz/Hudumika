@@ -6,6 +6,7 @@ import { useCloud, CloudFile, StorageProvider } from '../../shells/cloud-context
 import { ProviderFilesPanel } from '../ProviderFilesPanel.js';
 import { CATEGORY_EXT } from './lib/categories.js';
 import { UploadDropzone } from './components/UploadDropzone.js';
+import { ResumableUploadsBanner } from './components/ResumableUploadsBanner.js';
 import { BrowserToolbar } from './components/BrowserToolbar.js';
 import { FolderCard } from './components/FolderCard.js';
 import { FileCard } from './components/FileCard.js';
@@ -30,7 +31,7 @@ export const FileBrowser: React.FC = () => {
     files, loading, error, dismissError,
     currentView, currentFolderId, breadcrumb, openFolder, navToBreadcrumb,
     previewItemId, setPreviewItemId, search, searchResults, searching,
-    uploadFiles, starItem, moveItem, renameItem,
+    uploadFiles, starItem, moveItem, moveItems, renameItem, searchError, sharedWithMe, loadSharedWithMe,
     trashItem, restoreItem, permanentlyDelete, emptyTrash, shareItem, downloadItem, canPermanentlyDelete,
   } = useCloud();
 
@@ -62,6 +63,7 @@ export const FileBrowser: React.FC = () => {
   // ?q=) — it replaces the current folder/view scope entirely rather than
   // filtering within it, same as Drive's own search behaves.
   const isSearching = search.trim().length > 0;
+  useEffect(() => { if (currentView === 'shared') void loadSharedWithMe(); }, [currentView, loadSharedWithMe]);
 
   const displayItems = (() => {
     let items: CloudFile[];
@@ -72,7 +74,13 @@ export const FileBrowser: React.FC = () => {
       if (currentView === 'all') items = items.filter(i => i.parent_id === currentFolderId);
       else if (currentView === 'recent') items = [...items].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 20);
       else if (currentView === 'starred') items = items.filter(i => i.starred);
-      else if (currentView === 'shared') items = items.filter(i => (i.shared ?? []).length > 0);
+      else if (currentView === 'shared') {
+        // Both directions: files I've shared with others, and files a colleague shared with me
+        // (which may live in a drive I cannot otherwise browse).
+        const mine = items.filter(i => (i.shared ?? []).length > 0);
+        const others = sharedWithMe.filter(f => !mine.some(m => m.id === f.id));
+        items = [...mine, ...others];
+      }
       else if (CAT_EXT[currentView]) items = items.filter(i => CAT_EXT[currentView].includes(i.type));
     }
 
@@ -140,19 +148,20 @@ export const FileBrowser: React.FC = () => {
   function handleStar(item: CloudFile) { starItem(item.id, !item.starred); }
   function handleDelete(item: CloudFile) { setDeleteTarget(item); }
 
-  function confirmDelete() {
+  // Awaited: the dialog closes only once the server has actually deleted/trashed the item.
+  async function confirmDelete() {
     if (!deleteTarget) return;
-    if (isTrashView) permanentlyDelete(deleteTarget.id);
-    else trashItem(deleteTarget.id);
-    if (previewItemId === deleteTarget.id) setPreviewItemId(null);
-    setSelectedIds(prev => { const n = new Set(prev); n.delete(deleteTarget.id); return n; });
-    setDeleteTarget(null);
+    const target = deleteTarget;
+    if (isTrashView) await permanentlyDelete(target.id);
+    else await trashItem(target.id);
+    if (previewItemId === target.id) setPreviewItemId(null);
+    setSelectedIds(prev => { const n = new Set(prev); n.delete(target.id); return n; });
   }
 
   function handleRestore(item: CloudFile) { restoreItem(item.id); if (previewItemId === item.id) setPreviewItemId(null); }
   function handlePermanentDelete(item: CloudFile) { setDeleteTarget(item); }
   function handleDownload(item: CloudFile) { if (item.type !== 'folder') downloadItem(item); }
-  function handleMoveHere(draggedId: string, targetFolderId: string) { moveItem(draggedId, targetFolderId); }
+  function handleMoveHere(draggedId: string, targetFolderId: string) { moveItem(draggedId, targetFolderId).catch(() => { /* surfaced by the context error banner */ }); }
 
   function bulkAction(action: (item: CloudFile) => void) {
     const targets = files.filter(i => selectedIds.has(i.id));
@@ -198,6 +207,7 @@ export const FileBrowser: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}>
       {error && <Banner variant="error" onDismiss={dismissError} className="rounded-none border-x-0 border-t-0">{error}</Banner>}
+      <div style={{ padding: '0 16px' }}><ResumableUploadsBanner /></div>
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <div
@@ -249,7 +259,15 @@ export const FileBrowser: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--ink3)', fontSize: 14.5 }}>Searching…</div>
             )}
 
-            {!loading && !(isSearching && searching) && displayItems.length === 0 && (
+            {isSearching && !searching && searchError && (
+              <div role="alert" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, color: 'var(--red)' }}>
+                <Icon name="alertCircle" size={40} color="var(--red)" />
+                <span style={{ fontSize: 14.5, fontWeight: 600 }}>Search didn’t work</span>
+                <span style={{ fontSize: 13, color: 'var(--ink3)', maxWidth: 360, textAlign: 'center' }}>{searchError}</span>
+              </div>
+            )}
+
+            {!loading && !(isSearching && searching) && !(isSearching && searchError) && displayItems.length === 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16, color: 'var(--ink3)' }}>
                 {isSearching ? (
                   <>
@@ -383,7 +401,7 @@ export const FileBrowser: React.FC = () => {
         <RenameModal
           item={renameTarget}
           onClose={() => setRenameTarget(null)}
-          onRename={name => { renameItem(renameTarget.id, name); setRenameTarget(null); }}
+          onRename={name => renameItem(renameTarget.id, name)}
         />
       )}
 
@@ -392,7 +410,7 @@ export const FileBrowser: React.FC = () => {
           ids={moveTarget}
           allItems={allItems}
           onClose={() => setMoveTarget(null)}
-          onMove={dest => { moveTarget.forEach(id => moveItem(id, dest)); clearSelection(); }}
+          onMove={async dest => { const res = await moveItems(moveTarget, dest); if (!res.failed.length) clearSelection(); return res; }}
         />
       )}
 

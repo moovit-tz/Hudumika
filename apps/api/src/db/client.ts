@@ -177,6 +177,8 @@ export interface LeadsTable {
   website: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  contact_party_id: string | null;
+  organization_party_id: string | null;
 }
 
 /** Migration 447 — the CRM's Deal/Opportunity object, distinct from a Lead
@@ -474,6 +476,7 @@ export interface CustomersTable {
    *  platform default (on), true/false = explicit customer-level choice.
    *  A shipment_cases row can further override this per shipment. */
   daily_report_enabled: boolean | null;
+  party_id: string | null;
 }
 
 /** Platform-level identity for a real-world company, sitting above `tenants`
@@ -3159,6 +3162,8 @@ export interface SuppliersTable {
   created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  /** migration 506 — canonical ORGANIZATION party (id = supplier id), set by trigger */
+  party_id: string | null;
 }
 
 export interface SupplierBillsTable {
@@ -3583,6 +3588,8 @@ export interface PackageAddonsTable {
   color: string | null;
   is_active: Generated<boolean>;
   sort_order: Generated<number>;
+  /** migration 504 — extra Cloud quota granted per unit; null = not a storage add-on */
+  storage_bytes: number | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -3594,6 +3601,7 @@ export interface TenantAddonsTable {
   tenant_id: string;
   addon_code: string;
   status: Generated<string>; // 'active' | 'cancelled'
+  quantity: Generated<number>; // migration 504
   started_at: Generated<Date>;
   cancelled_at: Date | null;
   created_at: Generated<Date>;
@@ -4736,6 +4744,8 @@ export interface SignRecipientsTable {
   // Certified True Copy (migration 342) — real facts about a licensed
   // advocate/notary/commissioner recipient, not the tenant's own stamp.
   is_certifier: Generated<boolean>;
+  /** migration 508 — the known person this recipient is, when unambiguous (name/email above stay the legal snapshot) */
+  party_id: string | null;
   certifier_title: string | null;
   certifier_roll_number: string | null;
   certifier_firm: string | null;
@@ -5351,6 +5361,8 @@ export interface Database {
   email_filters: EmailFiltersTable;
   email_labels: EmailLabelsTable;
   email_quick_templates: EmailQuickTemplatesTable;
+  email_template_groups: EmailTemplateGroupsTable;
+  email_system_template_layouts: EmailSystemTemplateLayoutsTable;
   shipment_report_shares: ShipmentReportSharesTable;
   transit_route_rates: TransitRouteRatesTable;
   petti_wallets: PettiWalletsTable;
@@ -5416,6 +5428,8 @@ export interface Database {
   agent_credit_ledger: AgentCreditLedgerTable;
   payment_methods: PaymentMethodsTable;
   subscription_invoices: SubscriptionInvoicesTable;
+  billing_webhook_events: BillingWebhookEventsTable;
+  cloud_retention_policies: CloudRetentionPoliciesTable;
   invoice_sequences: InvoiceSequencesTable;
   platform_support_tickets: PlatformSupportTicketsTable;
   platform_support_attachments: PlatformSupportAttachmentsTable;
@@ -5469,6 +5483,14 @@ export interface Database {
   hr_wellness_programs: HrWellnessProgramsTable;
   // Contacts App
   contacts: ContactsTable;
+  parties: PartiesTable;
+  party_people: PartyPeopleTable;
+  party_organizations: PartyOrganizationsTable;
+  party_channels: PartyChannelsTable;
+  party_affiliations: PartyAffiliationsTable;
+  party_relationships: PartyRelationshipsTable;
+  party_external_refs: PartyExternalRefsTable;
+  party_shares: PartySharesTable;
   contact_emails: ContactEmailsTable;
   contact_phones: ContactPhonesTable;
   contact_labels: ContactLabelsTable;
@@ -5593,9 +5615,22 @@ export interface Database {
   vehicle_meter_readings: VehicleMeterReadingsTable;
   // Cloud / Drive File Manager
   cloud_files: CloudFilesTable;
+  resource_file_links: ResourceFileLinksTable;
   cloud_file_shares: CloudFileSharesTable;
   cloud_file_comments: CloudFileCommentsTable;
   cloud_file_versions: CloudFileVersionsTable;
+  cloud_upload_sessions: CloudUploadSessionsTable;
+  cloud_file_invites: CloudFileInvitesTable;
+  // Communication Event Registry
+  comm_events: CommEventsTable;
+  tenant_event_configs: TenantEventConfigsTable;
+  comm_delivery_log: CommDeliveryLogTable;
+  comm_delivery_attempts: CommDeliveryAttemptsTable;
+  comm_notification_preferences: CommNotificationPreferencesTable;
+  email_template_revisions: EmailTemplateRevisionsTable;
+  // Marketplace Email Templates
+  marketplace_email_templates: MarketplaceEmailTemplatesTable;
+  tenant_marketplace_imports: TenantMarketplaceImportsTable;
   cloud_file_access_log: CloudFileAccessLogTable;
   cloud_storage_connections: CloudStorageConnectionsTable;
   cloud_external_files: CloudExternalFilesTable;
@@ -7740,6 +7775,11 @@ export interface EmailQuickTemplatesTable {
   name: string;
   subject: Generated<string>;
   body: Generated<string>;
+  body_html: string | null;
+  is_html: Generated<boolean>;
+  category: Generated<string>;
+  group_id: string | null;
+  sort_order: Generated<number>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -7847,9 +7887,43 @@ export interface EmailTemplatesTable {
   category:     string; // 'transactional' | 'support' | 'account'
   subject:      string;
   body_html:    string;
+  preheader: Generated<string>;
+  body_plain: Generated<string>;
+  locale: Generated<string>;
+  status: Generated<'draft' | 'active' | 'archived'>;
+  block_document: any | null;
+  revision: Generated<number>;
+  event_key: string | null;
+  application: string | null;
   updated_by:   string | null;
   created_at:   Generated<Date>;
   updated_at:   Generated<Date>;
+}
+
+export interface EmailTemplateRevisionsTable {
+  id: Generated<string>; tenant_id: string; template_key: string; revision: number;
+  subject: string; preheader: Generated<string>; body_html: string; body_plain: Generated<string>;
+  locale: Generated<string>; status: Generated<'draft' | 'active' | 'archived'>;
+  block_document: any | null; created_by: string | null; created_at: Generated<Date>;
+}
+
+export interface EmailTemplateGroupsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string | null;
+  scope: 'personal' | 'system';
+  name: string;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface EmailSystemTemplateLayoutsTable {
+  tenant_id: string;
+  template_key: string;
+  group_id: string | null;
+  sort_order: Generated<number>;
+  updated_at: Generated<Date>;
 }
 
 export interface EmailOutboxTable {
@@ -8397,6 +8471,37 @@ export interface SubscriptionInvoicesTable {
   payment_method_id: string | null;
   tx_ref: string | null;
   created_at: Generated<Date>;
+  // migration 504
+  kind: Generated<'period' | 'proration'>;
+  gateway: string | null;
+  gateway_ref: string | null;
+  checkout_url: string | null;
+  line_items: Generated<unknown>;
+  dunning_stage: Generated<number>;
+  last_dunning_at: Date | null;
+  attempt_count: Generated<number>;
+  last_attempt_at: Date | null;
+  last_attempt_error: string | null;
+  updated_at: Generated<Date>;
+}
+
+export interface BillingWebhookEventsTable {
+  id: Generated<string>;
+  gateway: string;
+  event_id: string;
+  event_type: string | null;
+  payload: Generated<unknown>;
+  outcome: string | null;
+  received_at: Generated<Date>;
+}
+
+export interface CloudRetentionPoliciesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  retention_class: string;
+  retain_days: number;
+  updated_by: string | null;
+  updated_at: Generated<Date>;
 }
 
 export interface InvoiceSequencesTable {
@@ -9006,7 +9111,24 @@ export interface ContactsTable {
   sales_owner_id: string | null;
   // Migration 439 — which year this contact's birthday reminder last fired.
   birthday_notified_year: number | null;
+  party_id: string | null;
 }
+
+export interface PartiesTable {
+  id: Generated<string>; tenant_id: string; party_type: 'PERSON' | 'ORGANIZATION'; display_name: string;
+  status: Generated<'ACTIVE' | 'INACTIVE' | 'ARCHIVED' | 'MERGED'>;
+  visibility: Generated<'PRIVATE' | 'TEAM' | 'DEPARTMENT' | 'TENANT' | 'EXPLICIT_SHARE'>;
+  owner_user_id: string | null; scope_id: string | null; source_system: Generated<string>;
+  merged_into_id: string | null; created_by: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+export interface PartyPeopleTable { party_id: string; tenant_id: string; first_name: string; middle_name: string | null; last_name: string | null; preferred_name: string | null; title: string | null; birthday: DateOnlyNull; avatar_url: string | null }
+export interface PartyOrganizationsTable { party_id: string; tenant_id: string; legal_name: string; trading_name: string | null; registration_number: string | null; tax_identifier: string | null; website: string | null; industry: string | null }
+export interface PartyChannelsTable { id: Generated<string>; tenant_id: string; party_id: string; channel_type: string; value: string; normalized_value: string; label: Generated<string>; context: Generated<string>; is_primary: Generated<boolean>; is_verified: Generated<boolean>; status: Generated<string>; visibility: Generated<string>; created_at: Generated<Date>; updated_at: Generated<Date> }
+export interface PartyAffiliationsTable { id: Generated<string>; tenant_id: string; person_party_id: string; organization_party_id: string; relationship_type: Generated<string>; job_title: string | null; department: string | null; start_date: DateOnlyNull; end_date: DateOnlyNull; is_primary: Generated<boolean>; status: Generated<string>; created_by: string | null; created_at: Generated<Date>; updated_at: Generated<Date> }
+export interface PartyRelationshipsTable { id: Generated<string>; tenant_id: string; from_party_id: string; to_party_id: string; relationship_type: string; context_type: string | null; context_id: string | null; metadata: Generated<unknown>; status: Generated<string>; created_by: string | null; created_at: Generated<Date>; updated_at: Generated<Date> }
+export interface PartyExternalRefsTable { id: Generated<string>; tenant_id: string; party_id: string; source_system: string; external_id: string; metadata: Generated<unknown>; created_at: Generated<Date> }
+export interface PartySharesTable { id: Generated<string>; tenant_id: string; party_id: string; principal_type: string; principal_id: string; permission: Generated<string>; created_by: string | null; created_at: Generated<Date> }
+export interface ResourceFileLinksTable { id: Generated<string>; tenant_id: string; file_id: string; resource_type: string; resource_id: string; relationship_type: Generated<string>; classification: string | null; created_by: string | null; created_at: Generated<Date> }
 
 /** Migration 438. contacts.email stays the primary value — every existing
  *  dedup/import/sync path keeps working unmodified; this holds every value
@@ -9721,6 +9843,14 @@ export interface CloudFilesTable {
   // migration 499 — DocumentService (document.service.ts)
   idempotency_key: string | null;
   retention_class: string | null;
+  // migration 504
+  retain_until: Date | null;
+  legal_hold: Generated<boolean>;
+  legal_hold_reason: string | null;
+  scan_status: string | null; // 'clean' | 'infected' | 'skipped'
+  scanned_at: Date | null;
+  storage_verified_at: Date | null;
+  storage_missing: Generated<boolean>;
 }
 
 export interface CloudFileSharesTable {
@@ -9745,7 +9875,7 @@ export interface CloudFileAccessLogTable {
   version_id: string | null;
   user_id:    string | null; // null = anonymous public share-link fetch
   actor_name: Generated<string>;
-  action:     'download' | 'preview' | 'version_download' | 'link_download';
+  action:     'download' | 'preview' | 'version_download' | 'link_download' | 'signed_url';
   via:        Generated<'app' | 'public_link'>;
   ip:         string | null;
   user_agent: string | null;
@@ -11001,4 +11131,72 @@ export async function withTenant<T>(
     }
     return await callback(trx);
   });
+}
+
+export interface CloudUploadSessionsTable {
+  id: Generated<string>; tenant_id: string; user_id: string; drive_id: string; parent_id: string | null;
+  filename: string; size: number; mime_type: Generated<string>; chunk_bytes: number; received: Generated<number[]>;
+  entity_type: string | null; entity_id: string | null; fingerprint: string | null;
+  status: Generated<'open' | 'completed' | 'failed' | 'cancelled'>; file_id: string | null;
+  expires_at: Date; created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+export interface CloudFileInvitesTable {
+  id: Generated<string>; tenant_id: string; file_id: string; email: string; token_hash: string; role: Generated<string>;
+  message: string | null; invited_by: string | null; expires_at: Date; revoked_at: Date | null; last_opened_at: Date | null;
+  open_count: Generated<number>; created_at: Generated<Date>;
+}
+
+// ── Communication Event Registry ────────────────────────────────────────────
+export interface TenantEventConfigsTable {
+  id: Generated<string>; tenant_id: string; event_key: string;
+  is_enabled: Generated<boolean>; channel: string | null; template_key: string | null;
+  locale: string | null; recipient_rules: Generated<any>; channels: string[] | null;
+  updated_by: string | null; updated_at: Generated<Date>;
+}
+export interface CommEventsTable {
+  event_key: string; application: string; name: string; description: string; category: string;
+  trigger_type: string; available_channels: Generated<string[]>; default_channel: Generated<string>;
+  available_variables: Generated<any>; sample_context: Generated<any>; recipient_resolvers: Generated<string[]>;
+  default_template: string | null; priority: Generated<string>; is_required: Generated<boolean>;
+  is_system: Generated<boolean>; created_at: Generated<Date>;
+}
+export interface CommDeliveryLogTable {
+  id: Generated<string>; tenant_id: string; event_key: string;
+  recipient_email: string; recipient_name: string | null; template_key: string | null;
+  channel: Generated<string>; subject: string | null; status: Generated<string>;
+  provider: string | null; provider_id: string | null; error_message: string | null;
+  retry_count: Generated<number>; idempotency_key: string | null; context_ref: string | null;
+  sent_at: Date | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+  recipient_type: Generated<'TO' | 'CC' | 'BCC'>; locale: Generated<string>;
+  actor_id: string | null; record_type: string | null; record_id: string | null; outbox_id: string | null;
+}
+export interface CommDeliveryAttemptsTable {
+  id: Generated<string>; tenant_id: string; delivery_id: string; attempt_number: number;
+  status: string; provider: string | null; provider_id: string | null;
+  error_message: string | null; attempted_at: Generated<Date>;
+}
+export interface CommNotificationPreferencesTable {
+  id: Generated<string>; tenant_id: string; user_id: string; event_key: string;
+  email_enabled: Generated<boolean>; in_app_enabled: Generated<boolean>;
+  frequency: Generated<'immediate' | 'daily_digest' | 'weekly_digest' | 'never'>;
+  locale: Generated<string>; updated_at: Generated<Date>;
+}
+
+// ── Marketplace Email Templates ───────────────────────────────────────────
+export interface MarketplaceEmailTemplatesTable {
+  id: Generated<string>; title: string; slug: string; description: Generated<string>;
+  category: Generated<string>; application: string | null; event_key: string | null;
+  tags: Generated<string[]>; subject: string; preheader: Generated<string>;
+  body_html: string; body_plain: Generated<string>; available_vars: Generated<string[]>;
+  locale: Generated<string>; version: Generated<string>; preview_url: string | null;
+  is_featured: Generated<boolean>; is_hudumika_official: Generated<boolean>;
+  author_tenant_id: string | null; author_name: Generated<string>;
+  status: Generated<string>; review_notes: string | null;
+  published_at: Date | null; downloads: Generated<number>;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+export interface TenantMarketplaceImportsTable {
+  id: Generated<string>; tenant_id: string; marketplace_template_id: string;
+  local_template_key: string; source_version: string;
+  update_available: Generated<boolean>; imported_at: Generated<Date>;
 }

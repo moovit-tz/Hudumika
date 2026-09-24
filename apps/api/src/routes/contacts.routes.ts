@@ -76,12 +76,44 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // A contact the viewer may not see is a 404 on every /:id route — knowing its
+  // UUID grants nothing. (Label and smart-group ids are not contacts, so they pass.)
+  fastify.addHook('preHandler', async (request: any, reply) => {
+    const id = request.params?.id;
+    if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) return;
+    if ((await ContactsService.hiddenAmong(request.user.tenant_id, request.user.sub, [id])).size) {
+      return reply.status(404).send({ error: 'Contact not found' });
+    }
+    // Visible is not the same as editable: a VIEW-only share can read but not change.
+    if (request.method !== 'GET' && await ContactsService.isReadOnlyFor(request.user.tenant_id, request.user.sub, id)) {
+      return reply.status(403).send({ error: 'You can view this contact but not change it.' });
+    }
+  });
+
   // Get all contacts (optional status query: ACTIVE or TRASHED)
   fastify.get('/', async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
-      const { status } = request.query as { status?: string };
-      return await ContactsService.getContacts(tenantId, status || 'ACTIVE');
+      const { status, q } = request.query as { status?: string; q?: string };
+      return await ContactsService.getContacts(tenantId, status || 'ACTIVE', q, request.user.sub);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Tenant staff directory and mailbox-derived discovery views. Discovery is
+  // personal to the signed-in mailbox; the shared contact rows remain tenant-wide.
+  fastify.get('/directory', async (request: any, reply) => {
+    try {
+      return await ContactsService.getDirectory(request.user.tenant_id);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/discovery', async (request: any, reply) => {
+    try {
+      return await ContactsService.getDiscovery(request.user.tenant_id, request.user.sub);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
@@ -103,7 +135,7 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     try {
       const tenantId = request.user.tenant_id;
       const { id } = request.params as { id: string };
-      const actor = { id: request.user.sub, name: request.user.name };
+      const actor = { id: request.user.sub, name: request.user.name, role: request.user.role };
       return await ContactsService.updateContact(tenantId, id, request.body, actor);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -116,6 +148,17 @@ export async function contactsRoutes(fastify: FastifyInstance) {
       const tenantId = request.user.tenant_id;
       const { id } = request.params as { id: string };
       return await ContactsService.getActivityLog(tenantId, id);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/:id/relationship', async (request: any, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const data = await ContactsService.getRelationship(request.user.tenant_id, request.user.sub, request.user.role, id);
+      if (!data) return reply.status(404).send({ error: 'Contact not found' });
+      return data;
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
@@ -155,7 +198,10 @@ export async function contactsRoutes(fastify: FastifyInstance) {
   fastify.get('/duplicates', async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
-      return await ContactsService.getDuplicates(tenantId);
+      const groups: any[] = await ContactsService.getDuplicates(tenantId);
+      const hidden = await ContactsService.hiddenAmong(tenantId, request.user.sub, groups.flatMap(g => (g.contacts ?? []).map((c: any) => c.id)));
+      if (!hidden.size) return groups;
+      return groups.map(g => ({ ...g, contacts: (g.contacts ?? []).filter((c: any) => !hidden.has(c.id)) })).filter(g => g.contacts.length > 1);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
@@ -167,6 +213,7 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     const { primary_id, duplicate_ids } = mergeSchema.parse(request.body);
     try {
       const tenantId = request.user.tenant_id;
+      if ((await ContactsService.hiddenAmong(tenantId, request.user.sub, [primary_id, ...duplicate_ids])).size) return reply.status(404).send({ error: 'Contact not found' });
       return await ContactsService.mergeContacts(tenantId, primary_id, duplicate_ids);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -228,6 +275,7 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     }
     try {
       const tenantId = request.user.tenant_id;
+      if ((await ContactsService.hiddenAmong(tenantId, request.user.sub, ids)).size) return reply.status(404).send({ error: 'Contact not found' });
       return await ContactsService.bulkDelete(tenantId, ids, status);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -239,6 +287,7 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     const { contact_ids, label_id, action } = bulkLabelSchema.parse(request.body);
     try {
       const tenantId = request.user.tenant_id;
+      if ((await ContactsService.hiddenAmong(tenantId, request.user.sub, contact_ids)).size) return reply.status(404).send({ error: 'Contact not found' });
       return await ContactsService.bulkLabel(tenantId, contact_ids, label_id, action);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -287,7 +336,7 @@ export async function contactsRoutes(fastify: FastifyInstance) {
   fastify.get('/smart-groups/:id/contacts', async (request: any, reply) => {
     try {
       const { id } = request.params as { id: string };
-      return await ContactsService.getSmartGroupContacts(request.user.tenant_id, id);
+      return await ContactsService.getSmartGroupContacts(request.user.tenant_id, id, request.user.sub);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
@@ -302,7 +351,7 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     try {
       const tenantId = request.user.tenant_id;
       const { ids } = request.query as { ids?: string };
-      const csv = await ContactsService.exportToCSV(tenantId, ids ? ids.split(',').filter(Boolean) : undefined);
+      const csv = await ContactsService.exportToCSV(tenantId, ids ? ids.split(',').filter(Boolean) : undefined, request.user.sub);
       reply.header('Content-Type', 'text/csv; charset=utf-8');
       reply.header('Content-Disposition', `attachment; filename="contacts-${new Date().toISOString().slice(0, 10)}.csv"`);
       return reply.send(csv);
@@ -315,7 +364,7 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     try {
       const tenantId = request.user.tenant_id;
       const { ids } = request.query as { ids?: string };
-      const vcf = await ContactsService.exportToVCard(tenantId, ids ? ids.split(',').filter(Boolean) : undefined);
+      const vcf = await ContactsService.exportToVCard(tenantId, ids ? ids.split(',').filter(Boolean) : undefined, request.user.sub);
       reply.header('Content-Type', 'text/vcard; charset=utf-8');
       reply.header('Content-Disposition', `attachment; filename="contacts-${new Date().toISOString().slice(0, 10)}.vcf"`);
       return reply.send(vcf);
@@ -332,7 +381,7 @@ export async function contactsRoutes(fastify: FastifyInstance) {
       const tenantId = request.user.tenant_id;
       const { within } = request.query as { within?: string };
       const withinDays = within ? Math.max(0, Math.min(365, parseInt(within, 10) || 30)) : 30;
-      return await ContactsService.getUpcomingBirthdays(tenantId, withinDays);
+      return await ContactsService.getUpcomingBirthdays(tenantId, withinDays, request.user.sub);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }

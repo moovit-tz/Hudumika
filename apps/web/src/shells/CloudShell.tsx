@@ -39,9 +39,11 @@ export function CloudShell() {
               <Routes>
                 
                 <Route element={<PageLayout />}>
-                  <Route index           element={<FileBrowser />} />
+                  {/* /cloud is the designed Home (greeting, storage overview, suggested files, connected
+                      storage, recently shared); every file-browsing view lives under /cloud/files. */}
+                  <Route index           element={<CloudHome />} />
                   <Route path="home"     element={<Navigate to="/cloud" replace />} />
-                  <Route path="files"    element={<Navigate to="/cloud" replace />} />
+                  <Route path="files"    element={<FileBrowser />} />
                   <Route path="shared"   element={<FileBrowser />} />
                   <Route path="recent"   element={<FileBrowser />} />
                   <Route path="trash"    element={<FileBrowser />} />

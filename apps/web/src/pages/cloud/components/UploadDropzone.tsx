@@ -11,7 +11,7 @@ import { useCloud } from '../../../shells/cloud-context.js';
  * progress existed yet to feed them honestly.
  */
 export function UploadDropzone({ onUpload }: { onUpload: (files: File[]) => Promise<void> }) {
-  const { uploadingFiles, removeUploadingFile } = useCloud();
+  const { uploadingFiles, removeUploadingFile, cancelUpload, retryUpload } = useCloud();
 
   async function handleUpload(files: File[]) {
     if (!files.length) return;
@@ -19,6 +19,6 @@ export function UploadDropzone({ onUpload }: { onUpload: (files: File[]) => Prom
   }
 
   return (
-    <FileUploader onUpload={handleUpload} uploadingFiles={uploadingFiles} onRemoveFile={removeUploadingFile} />
+    <FileUploader onUpload={handleUpload} uploadingFiles={uploadingFiles} onRemoveFile={removeUploadingFile} onCancelFile={cancelUpload} onRetryFile={id => { void retryUpload(id); }} />
   );
 }

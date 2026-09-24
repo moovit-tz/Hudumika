@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Spinner } from '../components/ui/spinner.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, withRetry } from '../lib/api.js';
 import { MobileNavContext } from '../shells/WorkspaceApp.js';
 import { showAlert } from '../lib/alert.js';
 import { addTodo } from '../data/calendarStore.js';
@@ -23,7 +23,11 @@ import { DescribeMessageInput } from '../components/DescribeMessageInput.js';
 import { SignatureManager, type EmailSignature } from '../components/SignatureManager.js';
 import { IdentityManager, type EmailSendIdentity } from '../components/IdentityManager.js';
 import { AdvancedEmailSearch, type AdvancedSearchQuery } from '../components/AdvancedEmailSearch.js';
+import { HoverCard, HoverCardTrigger, HoverCardContent } from '../components/ui/hover-card.js';
 import { FilterManager } from '../components/FilterManager.js';
+import { DriveFilePicker, type DriveFile } from '../components/DriveFilePicker.js';
+import { RichTextEditor } from '../components/RichTextEditor.js';
+import { PaginationBar } from '../components/PaginationBar.js';
 import { useAuth } from '../hooks/useAuth.js';
 import './EmailApp.css';
 
@@ -53,6 +57,27 @@ interface EmailQuickTemplate {
   name: string;
   subject: string;
   body: string;
+  body_html: string | null;
+  is_html: boolean;
+  category: string;
+}
+
+function escapeEmailHtml(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function plainTextEmailHtml(value: string): string {
+  return escapeEmailHtml(value).replace(/\r?\n/g, '<br>');
+}
+
+function templateContentHtml(template: EmailQuickTemplate): string {
+  if (!template.is_html || !template.body_html) return plainTextEmailHtml(template.body);
+  const parsed = new DOMParser().parseFromString(template.body_html, 'text/html');
+  return parsed.body.innerHTML || template.body_html;
+}
+
+function appendEmailHtml(current: string, addition: string): string {
+  return current.trim() ? `${current}<div><br></div>${addition}` : addition;
 }
 
 interface EmailAddress {
@@ -187,7 +212,7 @@ interface EmailAccountSettings {
   autoAdvance: 'list' | 'newer' | 'older';
 }
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE_OPTIONS = [10, 15, 25, 50] as const;
 
 function fmtDate(d: Date): string {
   const now = new Date();
@@ -229,6 +254,164 @@ function labelColors(name: string, defs: EmailLabel[]): { fg: string; bg: string
   return { fg: `var(--${token})`, bg: `var(--${token}-l)` };
 }
 
+// ─── Contact Hover Card ──────────────────────────────────────────────────────────
+
+interface ContactHoverCardBodyProps {
+  addr: EmailAddress;
+  savedEmails: Set<string>;
+  savingEmail: string | null;
+  onCompose: (addr: EmailAddress) => void;
+  onSave: (email: string, name: string) => void;
+  onNavigate: (path: string) => void;
+}
+
+const ContactHoverCardBody: React.FC<ContactHoverCardBodyProps> = ({ addr, savedEmails, savingEmail, onCompose, onSave, onNavigate }) => {
+  const isSaved = savedEmails.has(addr.email);
+  const isSaving = savingEmail === addr.email;
+  return (
+    <div className="em-contact-card-inner">
+      <div className="em-contact-card-top">
+        <PersonAvatar userId={addr.userId} name={addr.name} size={48} />
+        <div className="em-contact-card-info">
+          <div className="em-contact-card-name">{addr.name || addr.email}</div>
+          <div className="em-contact-card-email">{addr.email}</div>
+        </div>
+        {!addr.userId && (
+          <Tip label={isSaved ? 'Saved to contacts' : 'Add to contacts'}>
+            <button
+              type="button"
+              className={`em-contact-card-add-btn${isSaved ? ' em-contact-card-add-btn--saved' : ''}`}
+              onClick={() => { if (!isSaved && !isSaving) onSave(addr.email, addr.name); }}
+              disabled={isSaving}
+            >
+              <Icon name={isSaved ? 'check' : 'userPlus'} size={14} />
+            </button>
+          </Tip>
+        )}
+      </div>
+      <div className="em-contact-card-actions">
+        <Tip label="Compose email">
+          <button type="button" className="em-contact-card-action-icon" onClick={() => onCompose(addr)}>
+            <Icon name="mail" size={15} />
+          </button>
+        </Tip>
+        {addr.userId && (
+          <>
+            <Tip label="Start chat">
+              <button type="button" className="em-contact-card-action-icon" onClick={() => onNavigate(`/bliss?chat=${addr.userId}`)}>
+                <Icon name="message" size={15} />
+              </button>
+            </Tip>
+            <Tip label="Video call">
+              <button type="button" className="em-contact-card-action-icon" onClick={() => onNavigate(`/bliss/calls?call=${addr.userId}&kind=VIDEO`)}>
+                <Icon name="video" size={15} />
+              </button>
+            </Tip>
+          </>
+        )}
+        <Tip label="Open calendar">
+          <button type="button" className="em-contact-card-action-icon" onClick={() => onNavigate('/calendar')}>
+            <Icon name="calendar" size={15} />
+          </button>
+        </Tip>
+      </div>
+    </div>
+  );
+};
+
+// ─── Template Picker Panel ───────────────────────────────────────────────────────
+
+const TEMPLATE_CATEGORIES_ORDER = ['Transactional & Billing', 'Support & Service', 'Account & Staff', 'General'] as const;
+
+interface TemplatePickerPanelProps {
+  templates: EmailQuickTemplate[];
+  target: 'compose' | 'reply';
+  search: string;
+  setSearch: (v: string) => void;
+  openGroups: Set<string>;
+  setOpenGroups: (fn: (prev: Set<string>) => Set<string>) => void;
+  onApply: (t: EmailQuickTemplate) => void;
+  onClose: () => void;
+  onManage: () => void;
+}
+
+const TemplatePickerPanel: React.FC<TemplatePickerPanelProps> = ({ templates, search, setSearch, openGroups, setOpenGroups, onApply, onManage }) => {
+  const filtered = search.trim()
+    ? templates.filter(t => t.name.toLowerCase().includes(search.toLowerCase()) || t.subject.toLowerCase().includes(search.toLowerCase()))
+    : templates;
+
+  const grouped = TEMPLATE_CATEGORIES_ORDER.reduce<Record<string, EmailQuickTemplate[]>>((acc, cat) => {
+    acc[cat] = filtered.filter(t => (t.category || 'General') === cat);
+    return acc;
+  }, {} as Record<string, EmailQuickTemplate[]>);
+  // Any unlisted category falls into General
+  filtered.forEach(t => {
+    const cat = t.category || 'General';
+    if (!TEMPLATE_CATEGORIES_ORDER.includes(cat as any) && !grouped['General'].includes(t)) {
+      grouped['General'].push(t);
+    }
+  });
+
+  const customised = templates.filter(t => t.is_html).length;
+
+  const toggleGroup = (cat: string) =>
+    setOpenGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat); else next.add(cat);
+      return next;
+    });
+
+  return (
+    <div className="em-tpl-panel">
+      <div className="em-tpl-search-row">
+        <Icon name="search" size={14} color="var(--ink3)" />
+        <input
+          className="em-tpl-search"
+          placeholder="Search templates"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          autoFocus
+        />
+        {search && <button type="button" className="em-tpl-search-clear" onClick={() => setSearch('')}><Icon name="x" size={12} /></button>}
+      </div>
+      <div className="em-tpl-stats">
+        <span className="em-tpl-stats-total">{templates.length} {templates.length === 1 ? 'template' : 'templates'}</span>
+        {customised > 0 && <span className="em-tpl-stats-custom">{customised} customized</span>}
+        <button type="button" className="em-tpl-manage-link" onClick={onManage}>Manage</button>
+      </div>
+      <div className="em-tpl-groups">
+        {TEMPLATE_CATEGORIES_ORDER.map(cat => {
+          const items = grouped[cat] ?? [];
+          if (items.length === 0) return null;
+          const open = openGroups.has(cat);
+          return (
+            <div key={cat} className="em-tpl-group">
+              <button type="button" className="em-tpl-group-header" onClick={() => toggleGroup(cat)}>
+                <span className="em-tpl-group-name">{cat}</span>
+                <span className="em-tpl-group-count">{items.length}</span>
+                <Icon name={open ? 'chevronUp' : 'chevronDown'} size={14} color="var(--ink3)" />
+              </button>
+              {open && (
+                <div className="em-tpl-group-items">
+                  {items.map(t => (
+                    <button key={t.id} type="button" className="em-tpl-item" onClick={() => onApply(t)}>
+                      <span className="em-tpl-item-name">{t.name}</span>
+                      {t.is_html && <span className="em-tpl-item-badge">HTML</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div className="em-tpl-empty">No templates match "{search}"</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
 export const EmailApp: React.FC = () => {
@@ -261,8 +444,11 @@ export const EmailApp: React.FC = () => {
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(15);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filterByLabel, setFilterByLabel] = useState<Label | null>(null);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [rescheduleValue, setRescheduleValue] = useState('');
 
   // Folder/label counts live in EmailShell. Any optimistic mailbox change
   // schedules a server recount; the shell also polls as a recovery path for
@@ -291,6 +477,8 @@ export const EmailApp: React.FC = () => {
   useEffect(() => {
     const label = new URLSearchParams(location.search).get('label');
     if (label) setFilterByLabel(label);
+    const q = new URLSearchParams(location.search).get('q');
+    setSearch(q ?? '');
   }, [location.search]);
 
   // Landing back from mail-oauth.routes.ts's authorize-personal/callback
@@ -358,6 +546,11 @@ export const EmailApp: React.FC = () => {
   // Reply composer's own attachments — kept separate from ComposeData since
   // the reply box is a different, always-open-inline surface, not a modal.
   const [replyAttachments, setReplyAttachments] = useState<PendingAttachment[]>([]);
+  // Drive integration: which composer the "Attach from Drive" picker feeds, and
+  // the writable drives offered by "Save to Drive" on a received attachment.
+  const [drivePickerTarget, setDrivePickerTarget] = useState<'compose' | 'reply' | null>(null);
+  const [drivePickerBusy, setDrivePickerBusy] = useState(false);
+  const [writableDrives, setWritableDrives] = useState<{ id: string; name: string }[] | null>(null);
   const replyFileInputRef = useRef<HTMLInputElement>(null);
   const composeFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -400,6 +593,8 @@ export const EmailApp: React.FC = () => {
   // Per-user quick-reply/canned-response templates (email_quick_templates).
   const [quickTemplates, setQuickTemplates] = useState<EmailQuickTemplate[]>([]);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['General', 'Transactional & Billing', 'Support & Service', 'Account & Staff']));
   const [templateEditing, setTemplateEditing] = useState<EmailQuickTemplate | { id: null; name: string; subject: string; body: string } | null>(null);
 
   // Undo-send toast — shown after a send whose undo window hasn't elapsed
@@ -449,10 +644,15 @@ export const EmailApp: React.FC = () => {
   // second, thinner composer inline in that sidebar (see
   // GoogleWorkspaceRightSidebar.tsx's own note on why that was removed).
   useEffect(() => {
-    if (new URLSearchParams(location.search).get('compose') !== '1') return;
-    openComposeRef.current();
+    const incoming = new URLSearchParams(location.search);
+    if (incoming.get('compose') !== '1') return;
+    const to = incoming.get('to') || '';
+    const name = incoming.get('name') || '';
+    openComposeRef.current(to ? { to: name ? `${name} <${to}>` : to } : undefined);
     const params = new URLSearchParams(location.search);
     params.delete('compose');
+    params.delete('to');
+    params.delete('name');
     navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
@@ -497,7 +697,17 @@ export const EmailApp: React.FC = () => {
     window.addEventListener('mouseup', onUp);
   }
 
-  // AI summary
+  // AI overview — auto-triggers on email open, shows bullet points at top of detail
+  const [aiOverviewBullets, setAiOverviewBullets] = useState<string[] | null>(null);
+  const [aiOverviewLoading, setAiOverviewLoading] = useState(false);
+  const [aiOverviewOpen, setAiOverviewOpen] = useState(true);
+  const aiOverviewCache = useRef<Record<string, string[]>>({});
+
+  // Contacts saved inline from hover cards this session
+  const [savedContactEmails, setSavedContactEmails] = useState<Set<string>>(new Set());
+  const [savingContactEmail, setSavingContactEmail] = useState<string | null>(null);
+
+  // AI summary (manual, button-triggered)
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
@@ -515,19 +725,28 @@ export const EmailApp: React.FC = () => {
 
   // ── Email fetching ────────────────────────────────────────────────────────────
 
-  // Search debounced 350ms — GET /v1/emails now runs a real Postgres
+  // Search debounced 250ms — GET /v1/emails now runs a real Postgres
   // full-text query (migration 461's search_vector/GIN index), not the old
   // in-memory substring filter, so this is a real network request per
   // change rather than a free client-side re-filter.
   const [searchDebounced, setSearchDebounced] = useState('');
   useEffect(() => {
-    const t = setTimeout(() => setSearchDebounced(search.trim()), 350);
+    const t = setTimeout(() => setSearchDebounced(search.trim()), 250);
     return () => clearTimeout(t);
   }, [search]);
   // Advanced Search's structured form (From/To/Subject/Has the words/
   // Doesn't have/Size/Date within/Scope/Has attachment) — independent of,
   // and combinable with, the plain search box above.
   const [advancedSearch, setAdvancedSearch] = useState<AdvancedSearchQuery | null>(null);
+  const [searchBoundary, setSearchBoundary] = useState<HTMLDivElement | null>(null);
+  const [aiSearchLoading, setAiSearchLoading] = useState(false);
+  const [aiSearchError, setAiSearchError] = useState('');
+  const [searchError, setSearchError] = useState('');
+  const emailRequestRef = useRef<{ controller: AbortController; sequence: number } | null>(null);
+  const emailRequestSequence = useRef(0);
+  // A query is a new result set. Keeping the previous folder page offset can
+  // otherwise request rows beyond the matches and make a working query look empty.
+  useEffect(() => { setPage(0); }, [searchDebounced, advancedSearch]);
   // "Create filter" from the Advanced Search popover — opens Settings on
   // the Filters tab, pre-filled with exactly what was just searched.
   const [pendingFilterCriteria, setPendingFilterCriteria] = useState<AdvancedSearchQuery | null>(null);
@@ -537,11 +756,52 @@ export const EmailApp: React.FC = () => {
     setSettingsOpen(true);
   }
 
-  const loadEmails = useCallback(async () => {
-    setEmailsLoading(true);
+  async function runAiSearch() {
+    const query = search.trim();
+    if (!query || aiSearchLoading) return;
+    setAiSearchLoading(true);
+    setAiSearchError('');
     try {
-      const qs = new URLSearchParams({ folder: activeFolder, limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE) });
+      const response = await withRetry(() => apiFetch('/v1/ai/search', {
+        method: 'POST',
+        body: JSON.stringify({ query, context: 'emails' }),
+      }));
+      const f = response?.filters ?? {};
+      const structured: AdvancedSearchQuery = {
+        from: typeof f.from === 'string' ? f.from : undefined,
+        to: typeof f.to === 'string' ? f.to : undefined,
+        subject: typeof f.subject === 'string' ? f.subject : undefined,
+        hasWords: typeof f.hasWords === 'string' ? f.hasWords : undefined,
+        doesntHave: typeof f.doesntHave === 'string' ? f.doesntHave : undefined,
+        hasAttachment: f.hasAttachment === true || undefined,
+        dateWithin: typeof f.dateWithin === 'string' ? f.dateWithin : undefined,
+        scope: typeof f.scope === 'string' ? f.scope : undefined,
+      };
+      setAdvancedSearch(Object.values(structured).some(v => v !== undefined && v !== '') ? structured : null);
+      setFilter(f.unread === true ? 'unread' : 'all');
+      setSearch(typeof f.search === 'string' ? f.search : '');
+    } catch (err: any) {
+      // Keep ordinary server-side search active and surface AI availability
+      // beside the field; a modal makes a transient AI outage block email.
+      setAiSearchError(err.message === 'Failed to fetch'
+        ? 'AI could not reach the server. Standard search is still active.'
+        : (err.message || 'AI search is unavailable.'));
+    } finally {
+      setAiSearchLoading(false);
+    }
+  }
+
+  const loadEmails = useCallback(async () => {
+    emailRequestRef.current?.controller.abort();
+    const controller = new AbortController();
+    const sequence = ++emailRequestSequence.current;
+    emailRequestRef.current = { controller, sequence };
+    setEmailsLoading(true);
+    setSearchError('');
+    try {
+      const qs = new URLSearchParams({ folder: activeFolder, limit: String(pageSize), offset: String(page * pageSize) });
       if (searchDebounced) qs.set('search', searchDebounced);
+      if (filterByLabel) qs.set('label', filterByLabel);
       if (advancedSearch) {
         if (advancedSearch.from) qs.set('advFrom', advancedSearch.from);
         if (advancedSearch.to) qs.set('advTo', advancedSearch.to);
@@ -556,7 +816,8 @@ export const EmailApp: React.FC = () => {
         if (advancedSearch.dateBefore) qs.set('advDateBefore', advancedSearch.dateBefore);
         if (advancedSearch.scope) qs.set('advScope', advancedSearch.scope);
       }
-      const res = await apiFetch(`/v1/emails?${qs.toString()}`);
+      const res = await apiFetch(`/v1/emails?${qs.toString()}`, { signal: controller.signal });
+      if (sequence !== emailRequestSequence.current) return;
       // Real server pagination — this used to return the whole matched
       // folder as a bare array and get sliced into pages of 15 client-side,
       // which degrades badly for a real mailbox. `total` drives the
@@ -594,13 +855,24 @@ export const EmailApp: React.FC = () => {
         sendError: e.sendError ?? null,
       })) : []);
     } catch (err: any) {
-      showAlert(err.message || 'Failed to load emails');
+      if (err?.name === 'AbortError') return;
+      // Search-as-you-type must never interrupt the mailbox with a modal.
+      // Keep the previous results visible and place the recoverable error by
+      // the field that initiated the request.
+      if (searchDebounced || advancedSearch) {
+        setSearchError(err?.message === 'Failed to fetch'
+          ? 'Search could not reach the server. Check your connection and try again.'
+          : (err?.message || 'Search is temporarily unavailable.'));
+      } else {
+        showAlert(err?.message || 'Failed to load emails');
+      }
     } finally {
-      setEmailsLoading(false);
+      if (sequence === emailRequestSequence.current) setEmailsLoading(false);
     }
-  }, [activeFolder, searchDebounced, page, advancedSearch]);
+  }, [activeFolder, searchDebounced, page, pageSize, advancedSearch, filterByLabel]);
 
   useEffect(() => { loadEmails(); }, [loadEmails]);
+  useEffect(() => () => emailRequestRef.current?.controller.abort(), []);
   useEffect(() => {
     const id = setInterval(loadEmails, 30000);
     return () => clearInterval(id);
@@ -658,6 +930,52 @@ export const EmailApp: React.FC = () => {
     }).finally(() => setTaskChecking(false));
   }, [selectedEmail]);
 
+  // Auto-trigger AI Overview on every email open (body >= 100 chars).
+  // Uses mode:'overview' which asks for dashed bullet points.
+  // Cached by email ID so re-opening skips the round-trip; silent on failure.
+  useEffect(() => {
+    if (!selectedEmail || selectedEmail.body.trim().length < 100) {
+      setAiOverviewBullets(null);
+      setAiOverviewOpen(true);
+      return;
+    }
+    const cached = aiOverviewCache.current[selectedEmail.id];
+    if (cached) { setAiOverviewBullets(cached.length ? cached : null); return; }
+
+    setAiOverviewBullets(null);
+    setAiOverviewOpen(true);
+    setAiOverviewLoading(true);
+    apiFetch('/v1/ai/summarise', {
+      method: 'POST',
+      body: JSON.stringify({ text: selectedEmail.body, mode: 'overview' }),
+    }).then(res => {
+      const raw: string = (res?.summary || '').trim();
+      const bullets = raw.split('\n')
+        .map((l: string) => l.replace(/^[-•*]\s*/, '').trim())
+        .filter((l: string) => l.length > 0);
+      aiOverviewCache.current[selectedEmail.id] = bullets;
+      setAiOverviewBullets(bullets.length ? bullets : null);
+    }).catch(() => {
+      aiOverviewCache.current[selectedEmail.id] = [];
+      setAiOverviewBullets(null);
+    }).finally(() => setAiOverviewLoading(false));
+  }, [selectedEmail?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function saveContactFromEmail(email: string, name: string) {
+    setSavingContactEmail(email);
+    try {
+      const parts = name.trim().split(/\s+/);
+      const firstName = parts[0] || email.split('@')[0];
+      const lastName = parts.slice(1).join(' ');
+      await apiFetch('/v1/contacts', {
+        method: 'POST',
+        body: JSON.stringify({ first_name: firstName, last_name: lastName, email }),
+      });
+      setSavedContactEmails(prev => new Set([...prev, email]));
+    } catch { /* silently skip — user can save via full Contacts UI */ }
+    finally { setSavingContactEmail(null); }
+  }
+
   function addSuggestedTask() {
     if (!taskSuggestion?.hasTask || !selectedEmail) return;
     addTodo({
@@ -686,7 +1004,7 @@ export const EmailApp: React.FC = () => {
   // client-side for unread/starred/label — pagination itself (page count,
   // "N–M of total") is driven by the server's own `emailsTotal`, not this
   // page's post-filter length.
-  const totalPages = Math.max(1, Math.ceil(emailsTotal / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(emailsTotal / pageSize));
   const pageEmails = allVisible;
 
   // ── Handlers ──────────────────────────────────────────────────────────────────
@@ -870,6 +1188,10 @@ export const EmailApp: React.FC = () => {
     apiFetch(`/v1/emails/${id}`, { method: 'PATCH', body: JSON.stringify({ folder }) }).catch(() => showAlert('Failed to move message'));
   }
 
+  function composeToAddress(addr: EmailAddress) {
+    setCompose(p => ({ ...p, open: true, to: addr.email, subject: '', body: '', sendAt: null }));
+  }
+
   /** Cancels a still-'scheduled' send (the undo-send window, or a
    *  schedule-send for later) — the same permanent-delete endpoint Trash
    *  uses, since deleting the row before scheduled-email-send.job.ts's next
@@ -879,6 +1201,22 @@ export const EmailApp: React.FC = () => {
     if (selectedId === id) setSelectedId(null);
     if (undoToast?.id === id) setUndoToast(null);
     apiFetch(`/v1/emails/${id}`, { method: 'DELETE' }).catch(() => { showAlert('Failed to cancel — it may have already been sent.'); loadEmails(); });
+  }
+
+  async function rescheduleScheduled(id: string, isoString: string) {
+    const newAt = new Date(isoString);
+    if (isNaN(newAt.getTime()) || newAt <= new Date()) {
+      showAlert('Please pick a time in the future.');
+      return;
+    }
+    setEmails(prev => prev.map(e => e.id === id ? { ...e, scheduledAt: newAt } : e));
+    setRescheduleOpen(false);
+    try {
+      await apiFetch(`/v1/emails/${id}`, { method: 'PATCH', body: JSON.stringify({ scheduledAt: newAt.toISOString() }) });
+    } catch {
+      showAlert('Failed to reschedule — the email may have already been sent.');
+      loadEmails();
+    }
   }
 
   function changeFolder(folder: Folder) {
@@ -928,6 +1266,42 @@ export const EmailApp: React.FC = () => {
       } catch (err: any) {
         setList(prev => prev.map(a => a.localId === localId ? { ...a, uploading: false, error: err.message || 'Upload failed' } : a));
       }
+    }
+  }
+
+  async function attachFromDrive(file: DriveFile) {
+    const target = drivePickerTarget;
+    if (!target) return;
+    setDrivePickerBusy(true);
+    try {
+      const res = await apiFetch('/v1/emails/attachments/from-drive', { method: 'POST', body: JSON.stringify({ fileId: file.id }) });
+      const pending = { uploading: false, localId: crypto.randomUUID(), storageKey: res.storageKey, filename: res.filename, size: res.size } as PendingAttachment;
+      if (target === 'compose') setCompose(prev => ({ ...prev, attachments: [...prev.attachments, pending] }));
+      else setReplyAttachments(prev => [...prev, pending]);
+      setDrivePickerTarget(null);
+    } catch (err: any) {
+      showAlert(err.message || 'Could not attach that file.');
+    } finally {
+      setDrivePickerBusy(false);
+    }
+  }
+
+  async function loadWritableDrives() {
+    if (writableDrives) return;
+    try {
+      const drives = await apiFetch('/v1/drives');
+      setWritableDrives((Array.isArray(drives) ? drives : []).filter((d: any) => d.can_write !== false).map((d: any) => ({ id: d.id, name: d.name })));
+    } catch { setWritableDrives([]); }
+  }
+
+  async function saveAttachmentToDrive(messageId: string, storageKey: string, driveId?: string) {
+    try {
+      const res = await apiFetch(`/v1/emails/${messageId}/attachment/save-to-drive`, {
+        method: 'POST', body: JSON.stringify({ key: storageKey, ...(driveId ? { driveId } : {}) }),
+      });
+      showAlert(`Saved "${res.filename}" to Drive.`, { variant: 'success' });
+    } catch (err: any) {
+      showAlert(err.message || 'Could not save to Drive.');
     }
   }
 
@@ -1373,12 +1747,19 @@ export const EmailApp: React.FC = () => {
   }
 
   /** Fills the currently-open composer (modal or inline reply) with a saved
-   *  template's subject/body — used by the compose toolbar's picker. */
+   *  template's subject/body — used by the compose toolbar's picker.
+   *  For HTML templates the html body is inserted as-is; for plain-text
+   *  templates the existing append behaviour is preserved. */
   function applyTemplate(t: EmailQuickTemplate, target: 'compose' | 'reply') {
+    const content = templateContentHtml(t);
     if (target === 'compose') {
-      setCompose(prev => ({ ...prev, subject: prev.subject || t.subject, body: prev.body ? `${prev.body}\n\n${t.body}` : t.body }));
+      setCompose(prev => ({
+        ...prev,
+        subject: prev.subject || t.subject,
+        body: appendEmailHtml(prev.body, content),
+      }));
     } else {
-      setReplyBody(prev => prev ? `${prev}\n\n${t.body}` : t.body);
+      setReplyBody(prev => appendEmailHtml(prev, content));
     }
     setTemplatePickerOpen(false);
   }
@@ -1403,6 +1784,7 @@ export const EmailApp: React.FC = () => {
   }
 
   useEffect(() => { setPage(0); }, [filter, search, filterByLabel]);
+  useEffect(() => { setPage(0); }, [pageSize]);
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -1424,7 +1806,9 @@ export const EmailApp: React.FC = () => {
             replyContext={selectedEmail.body}
             onGenerated={result => { setReplyBody(result.body); if (result.subject) setReplySubject(result.subject); }}
           />
-          <textarea className="em-reply-textarea" value={replyBody} onChange={e => setReplyBody(e.target.value)} placeholder="Reply…" rows={5} />
+          <div className="em-compose-rich-editor em-compose-rich-editor--reply">
+            <RichTextEditor value={replyBody} onChange={setReplyBody} placeholder="Reply…" />
+          </div>
           {defaultSignature('reply')?.body_html?.trim() && (
             <div className="em-signature-preview" dangerouslySetInnerHTML={{ __html: defaultSignature('reply')!.body_html }} />
           )}
@@ -1466,25 +1850,27 @@ export const EmailApp: React.FC = () => {
                 <Icon name="paperclip" size={15} />
               </button>
             </Tip>
+            <Tip label="Attach from Drive">
+              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setDrivePickerTarget('reply')}>
+                <Icon name="folder" size={15} />
+              </button>
+            </Tip>
             <input ref={replyFileInputRef} type="file" multiple style={{ display: 'none' }} onChange={e => { const files = Array.from(e.target.files ?? []); if (files.length) uploadAttachments(files, 'reply'); e.target.value = ''; }} />
             <MeetingTimeSuggestor onInsert={text => setReplyBody(prev => prev.trim() ? `${prev}\n\n${text}` : text)} />
-            {quickTemplates.length > 0 && (
-              <Tip label="Insert quick reply">
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setTemplatePickerOpen(v => !v)}>
-                  <Icon name="layers" size={15} />
-                </button>
-              </Tip>
+            <Tip label={quickTemplates.length > 0 ? 'Insert template' : 'Manage templates'}>
+              <button
+                type="button"
+                className="em-icon-btn em-icon-btn--ghost"
+                onClick={() => quickTemplates.length > 0 ? setTemplatePickerOpen(v => !v) : navigate('/email/templates')}
+              >
+                <Icon name="layers" size={15} />
+              </button>
+            </Tip>
+            {templatePickerOpen && quickTemplates.length > 0 && (
+              <TemplatePickerPanel templates={quickTemplates} target="reply" search={templateSearch} setSearch={setTemplateSearch} openGroups={openGroups} setOpenGroups={setOpenGroups} onApply={t => applyTemplate(t, 'reply')} onClose={() => setTemplatePickerOpen(false)} onManage={() => { setTemplatePickerOpen(false); navigate('/email/templates'); }} />
             )}
-            {templatePickerOpen && (
-              <div className="em-template-picker">
-                {quickTemplates.map(t => (
-                  <button key={t.id} type="button" className="em-template-picker-item" onClick={() => applyTemplate(t, 'reply')}>{t.name}</button>
-                ))}
-              </div>
-            )}
-            <span className="em-compose-savestate">{replySaving ? 'Saving…' : replyDraftId ? 'Saved to Drafts' : ''}</span>
             <div style={{ flex: 1 }} />
-            <button type="button" className="em-text-btn" onClick={() => saveReplyDraft()}>Save draft</button>
+            <button type="button" className="em-text-btn" onClick={() => saveReplyDraft()}>{replySaving ? 'Saving…' : replyDraftId ? 'Saved to Drafts' : 'Save draft'}</button>
             <Tip label="Discard">
               <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={discardReply}>
                 <Icon name="trash" size={16} />
@@ -1505,6 +1891,7 @@ export const EmailApp: React.FC = () => {
         {/* Area 3: Email list — full width when nothing selected; fixed+draggable when email open */}
         {(!isMobile || !selectedId) && (
           <div
+            ref={setSearchBoundary}
             className={`em-list${selectedEmail ? ' em-list--has-detail' : ''}`}
             style={selectedEmail && !isMobile && listWidth != null ? { '--em-list-w': `${listWidth}px` } as React.CSSProperties : undefined}
           >
@@ -1516,15 +1903,26 @@ export const EmailApp: React.FC = () => {
                 </button>
               )}
               <div className="em-search-wrap">
-                <span className="em-search-icon">
-                  {emailsLoading && (search.trim() || advancedSearch) ? <Spinner size={14} /> : <Icon name="search" size={16} />}
-                </span>
+                <button
+                  type="button"
+                  className="em-search-ai-trigger"
+                  onClick={runAiSearch}
+                  disabled={!search.trim() || aiSearchLoading}
+                  aria-label="Ask AI to search this mailbox"
+                  title="Ask AI"
+                >
+                  {aiSearchLoading
+                    ? <Spinner size={14} />
+                    : emailsLoading && (search.trim() || advancedSearch)
+                      ? <Spinner size={14} />
+                      : <Icon name="sparkle" size={16} />}
+                </button>
                 <input
                   className="em-search-input"
                   aria-label="Search mail"
-                  placeholder="Search messages, senders and subjects"
+                  placeholder="Ask AI or search messages, senders and subjects"
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  onChange={e => { setSearch(e.target.value); setAiSearchError(''); setSearchError(''); }}
                   onKeyDown={e => { if (e.key === 'Enter') setSearchDebounced(search.trim()); }}
                 />
                 {search && (
@@ -1537,9 +1935,11 @@ export const EmailApp: React.FC = () => {
               </div>
               <AdvancedEmailSearch
                 labelDefs={labelDefs}
+                collisionBoundary={searchBoundary}
                 onSearch={q => setAdvancedSearch(Object.values(q).some(v => v !== undefined && v !== '') ? q : null)}
                 onCreateFilter={createFilterFromSearch}
               />
+              {(aiSearchError || searchError) && <span className="em-ai-search-error" role="status">{aiSearchError || searchError}</span>}
               <Tip label="Refresh">
                 <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={loadEmails}>
                   <Icon name="refresh" size={15} />
@@ -1553,13 +1953,15 @@ export const EmailApp: React.FC = () => {
             </div>
 
             <div className="em-filter-bar">
-              <Tabs value={filter} onValueChange={v => setFilter(v as Filter)}>
-                <TabsList aria-label="Message filter">
-                  {(['all', 'unread', 'starred'] as Filter[]).map(f => (
-                    <TabsTrigger key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
+              {activeFolder === 'inbox' && (
+                <Tabs value={filter} onValueChange={v => setFilter(v as Filter)}>
+                  <TabsList aria-label="Message filter">
+                    {(['all', 'unread', 'starred'] as Filter[]).map(f => (
+                      <TabsTrigger key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+              )}
               {labelDefs.length > 0 && selected.size === 0 && (
                 <SingleSelectFilter
                   label="Label"
@@ -1626,79 +2028,126 @@ export const EmailApp: React.FC = () => {
                   onClick={() => rowClick(email)}
                   role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); rowClick(email); } }}
                 >
-                  <div className="em-row-check-wrap" onClick={ev => toggleSelect(email.id, ev)}
-                    role="button" tabIndex={0} aria-label="Select email"
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleSelect(email.id, e as any); } }}>
-                    <span className={`em-row-check${selected.has(email.id) ? ' em-row-check--on' : ''}`}>
-                      {selected.has(email.id) && <Icon name="check" size={10} color="#fff" />}
-                    </span>
+                  <div className="em-row-select-area">
+                    <div className="em-row-check-wrap" onClick={ev => toggleSelect(email.id, ev)}
+                      role="button" tabIndex={0} aria-label="Select email"
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleSelect(email.id, e as any); } }}>
+                      <span className={`em-row-check${selected.has(email.id) ? ' em-row-check--on' : ''}`}>
+                        {selected.has(email.id) && <Icon name="check" size={10} color="#fff" />}
+                      </span>
+                    </div>
+                    <div className="em-row-star" onClick={ev => toggleStar(email.id, ev)}
+                      role="button" tabIndex={0} aria-label={email.starred ? 'Unstar' : 'Star'}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleStar(email.id, e as any); } }}>
+                      <Icon name="star" size={16} color={email.starred ? 'var(--gold)' : 'var(--border)'} />
+                    </div>
                   </div>
-                  <div className="em-row-star" onClick={ev => toggleStar(email.id, ev)}
-                    role="button" tabIndex={0} aria-label={email.starred ? 'Unstar' : 'Star'}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleStar(email.id, e as any); } }}>
-                    <Icon name="star" size={16} color={email.starred ? 'var(--gold)' : 'var(--border)'} />
-                  </div>
-                  <PersonAvatar userId={email.from.userId} name={email.from.name} size={24} style={{ marginRight: 8, flexShrink: 0 }} />
-                  <div className={`em-row-sender${!email.read ? ' em-row-sender--bold' : ''}`}>
-                    {email.from.name}
-                  </div>
-                  <div className="em-row-mid">
-                    <span className={`em-row-subject${!email.read ? ' em-row-subject--bold' : ''}`}>{email.subject}</span>
-                    {(email.threadCount ?? 1) > 1 && (
-                      <Tip label="Messages in this conversation"><span className="em-thread-badge">{email.threadCount}</span></Tip>
+                  <div className="em-row-body">
+                    <div className="em-row-header">
+                      <HoverCard openDelay={500} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                          <div className="em-row-sender-wrap" onClick={ev => ev.stopPropagation()}>
+                            <PersonAvatar userId={email.from.userId} name={email.from.name} size={22} style={{ flexShrink: 0 }} />
+                            <div className={`em-row-sender${!email.read ? ' em-row-sender--bold' : ''}`}>
+                              {email.from.name}
+                            </div>
+                          </div>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="em-contact-card" side="bottom" align="start">
+                          <ContactHoverCardBody addr={email.from} savedEmails={savedContactEmails} savingEmail={savingContactEmail} onCompose={composeToAddress} onSave={saveContactFromEmail} onNavigate={navigate} />
+                        </HoverCardContent>
+                      </HoverCard>
+                    </div>
+
+                    <div className="em-row-mid">
+                      <span className={`em-row-subject${!email.read ? ' em-row-subject--bold' : ''}`}>{email.subject}</span>
+                      {(email.threadCount ?? 1) > 1 && (
+                        <Tip label="Messages in this conversation"><span className="em-thread-badge">{email.threadCount}</span></Tip>
+                      )}
+                      <span className="em-row-snip"> — {email.snippet}</span>
+                    </div>
+
+                    {email.attachments.length > 0 && (
+                      <div className="em-row-attachments">
+                        {email.attachments.slice(0, 3).map((att, i) => {
+                          const ext = att.filename.split('.').pop()?.toLowerCase() ?? '';
+                          const isPdf = ext === 'pdf';
+                          const isImg = ['jpg','jpeg','png','gif','webp','svg'].includes(ext);
+                          return (
+                            <span key={i} className={`em-row-att-chip${isPdf ? ' em-row-att-chip--pdf' : isImg ? ' em-row-att-chip--img' : ''}`}>
+                              <span className="em-row-att-icon">{isPdf ? 'PDF' : isImg ? <Icon name="image" size={11} /> : <Icon name="file" size={11} />}</span>
+                              <span className="em-row-att-name">{att.filename.length > 20 ? att.filename.slice(0, 18) + '…' : att.filename}</span>
+                            </span>
+                          );
+                        })}
+                        {email.attachments.length > 3 && (
+                          <span className="em-row-att-chip em-row-att-chip--more">+{email.attachments.length - 3}</span>
+                        )}
+                      </div>
                     )}
-                    <span className="em-row-snip"> — {email.snippet}</span>
+
+                    <div className="em-row-meta">
+                      {email.labels.map((lbl, i) => {
+                        const c = labelColors(lbl, labelDefs);
+                        return (
+                          <Badge
+                            key={i}
+                            variant="gray"
+                            className="shrink-0 em-row-badge em-row-badge--clickable"
+                            style={{ background: c.bg, color: c.fg }}
+                            onClick={ev => { ev.stopPropagation(); setFilterByLabel(filterByLabel === lbl ? null : lbl); }}
+                          >
+                            {lbl}
+                          </Badge>
+                        );
+                      })}
+                      {email.folder === 'scheduled' && email.scheduledAt && (
+                        <Tip label="Still cancellable">
+                          <Badge variant="warning" className="shrink-0 em-row-badge inline-flex items-center gap-1">
+                            <Icon name="clock" size={10} /> {fmtDate(email.scheduledAt)}
+                          </Badge>
+                        </Tip>
+                      )}
+                      {email.folder === 'drafts' && email.sendError && (
+                        <Tip label={email.sendError}>
+                          <Badge variant="error" className="shrink-0 em-row-badge">Send failed</Badge>
+                        </Tip>
+                      )}
+                      {(email.deliveryStatus === 'pending' || email.deliveryStatus === 'sending' || email.deliveryStatus === 'failed') && (
+                        <Tip label={email.deliveryStatus === 'failed' ? 'Delivery failed — will retry automatically' : 'Queued for delivery'}>
+                          <Badge variant={email.deliveryStatus === 'failed' ? 'error' : 'warning'} className="shrink-0 em-row-badge">
+                            {email.deliveryStatus === 'failed' ? 'Failed' : 'Pending'}
+                          </Badge>
+                        </Tip>
+                      )}
+                      {email.hasAttachment && <Icon name="paperclip" size={12} color="var(--ink3)" className="em-row-clip shrink-0" />}
+                      <div className={`em-row-date${!email.read ? ' em-row-date--bold' : ''}`}>
+                        {fmtDate(email.date)}
+                      </div>
+                      {email.folder === 'scheduled' && (
+                        <Tip label="Cancel">
+                          <button type="button" className="em-icon-btn em-icon-btn--ghost em-row-cancel-btn" onClick={ev => { ev.stopPropagation(); cancelScheduled(email.id); }}>
+                            <Icon name="x" size={14} />
+                          </button>
+                        </Tip>
+                      )}
+                    </div>
                   </div>
-                  {email.labels.length > 0 && !isMobile && (() => {
-                    const c = labelColors(email.labels[0], labelDefs);
-                    return <Badge variant="gray" className="ml-2 shrink-0" style={{ background: c.bg, color: c.fg }}>{email.labels[0]}</Badge>;
-                  })()}
-                  {email.folder === 'scheduled' && email.scheduledAt && (
-                    <Tip label="Still cancellable">
-                      <Badge variant="warning" className="ml-2 shrink-0 inline-flex items-center gap-1">
-                        <Icon name="clock" size={11} /> {fmtDate(email.scheduledAt)}
-                      </Badge>
-                    </Tip>
-                  )}
-                  {email.folder === 'drafts' && email.sendError && (
-                    <Tip label={email.sendError}>
-                      <Badge variant="error" className="ml-2 shrink-0">Send failed</Badge>
-                    </Tip>
-                  )}
-                  {(email.deliveryStatus === 'pending' || email.deliveryStatus === 'sending' || email.deliveryStatus === 'failed') && (
-                    <Tip label={email.deliveryStatus === 'failed' ? 'Delivery failed — will retry automatically' : 'Queued for delivery'}>
-                      <Badge variant={email.deliveryStatus === 'failed' ? 'error' : 'warning'} className="ml-2 shrink-0">
-                        {email.deliveryStatus === 'failed' ? 'Failed' : 'Pending'}
-                      </Badge>
-                    </Tip>
-                  )}
-                  {email.hasAttachment && <Icon name="paperclip" size={13} color="var(--ink3)" style={{ marginLeft: 6, flexShrink: 0 }} />}
-                  <div className={`em-row-date${!email.read ? ' em-row-date--bold' : ''}`}>
-                    {fmtDate(email.date)}
-                  </div>
-                  {email.folder === 'scheduled' && (
-                    <Tip label="Cancel">
-                      <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={ev => { ev.stopPropagation(); cancelScheduled(email.id); }}>
-                        <Icon name="x" size={14} />
-                      </button>
-                    </Tip>
-                  )}
                 </div>
               ))}
             </div>
 
-            {totalPages > 1 && (
-              <div className="em-pagination">
-                <span className="em-pagination-info">{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, emailsTotal)} of {emailsTotal}</span>
-                <div className="em-pagination-btns">
-                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
-                    <Icon name="chevronLeft" size={16} />
-                  </button>
-                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
-                    <Icon name="chevronRight" size={16} />
-                  </button>
-                </div>
-              </div>
+            {emailsTotal > 0 && (
+              <PaginationBar
+                page={page + 1}
+                pageSize={pageSize}
+                total={emailsTotal}
+                onPageChange={p => setPage(p - 1)}
+                onPageSizeChange={s => { setPageSize(s); setPage(0); }}
+                pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+                itemLabel="message"
+                bordered={true}
+              />
             )}
 
           </div>
@@ -1768,6 +2217,20 @@ export const EmailApp: React.FC = () => {
                   <button type="button" className="em-icon-btn em-icon-btn--ghost" title="More"><Icon name="moreVertical" size={16} /></button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
+                  {selectedEmail.folder === 'scheduled' && (
+                    <>
+                      <DropdownMenuItem onClick={() => {
+                        const cur = selectedEmail.scheduledAt;
+                        const base = cur ? new Date(cur) : new Date(Date.now() + 60_000);
+                        base.setSeconds(0, 0);
+                        setRescheduleValue(new Date(base.getTime() - base.getTimezoneOffset() * 60_000).toISOString().slice(0, 16));
+                        setRescheduleOpen(true);
+                      }}>
+                        <Icon name="clock" size={13} /> Reschedule
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem onClick={() => window.print()}>
                     <Icon name="printer" size={13} /> Print
                   </DropdownMenuItem>
@@ -1792,6 +2255,35 @@ export const EmailApp: React.FC = () => {
             )}
 
             <div className="em-detail-content">
+              {/* AI Overview — auto-triggered, collapsible, appears above the email */}
+              {(aiOverviewLoading || (aiOverviewBullets && aiOverviewBullets.length > 0)) && (
+                <div className="em-ai-overview">
+                  <button
+                    type="button"
+                    className="em-ai-overview-hdr"
+                    onClick={() => setAiOverviewOpen(v => !v)}
+                  >
+                    <Icon name="zap" size={14} color="var(--blue)" />
+                    <span className="em-ai-overview-title">AI Overview</span>
+                    <Icon name={aiOverviewOpen ? 'chevronUp' : 'chevronDown'} size={13} color="var(--blue)" />
+                  </button>
+                  {aiOverviewOpen && (
+                    <div className="em-ai-overview-body">
+                      {aiOverviewLoading ? (
+                        <div className="em-ai-overview-loading">
+                          <Icon name="refresh" size={13} color="var(--blue)" /> Generating overview…
+                        </div>
+                      ) : (
+                        <ul className="em-ai-overview-list">
+                          {aiOverviewBullets!.map((b, i) => <li key={i}>{b}</li>)}
+                        </ul>
+                      )}
+                      <div className="em-ai-overview-disclaimer">By AI · may contain errors</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <h2 className="em-detail-subject">
                 {selectedEmail.subject}
                 {selectedEmail.labels.map(l => {
@@ -1862,11 +2354,27 @@ export const EmailApp: React.FC = () => {
               )}
 
               <div className="em-detail-from-row">
-                <PersonAvatar userId={selectedEmail.from.userId} name={selectedEmail.from.name} size={44} />
+                <HoverCard openDelay={400} closeDelay={100}>
+                  <HoverCardTrigger asChild>
+                    <div className="em-detail-from-avatar-wrap">
+                      <PersonAvatar userId={selectedEmail.from.userId} name={selectedEmail.from.name} size={44} />
+                    </div>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="em-contact-card" side="bottom" align="start">
+                    <ContactHoverCardBody addr={selectedEmail.from} savedEmails={savedContactEmails} savingEmail={savingContactEmail} onCompose={composeToAddress} onSave={saveContactFromEmail} onNavigate={navigate} />
+                  </HoverCardContent>
+                </HoverCard>
                 <div className="em-detail-from-meta">
                   <div className="em-detail-from-top">
                     <div>
-                      <span className="em-detail-from-name">{selectedEmail.from.name}</span>
+                      <HoverCard openDelay={400} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                          <span className="em-detail-from-name em-detail-from-name--hoverable">{selectedEmail.from.name}</span>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="em-contact-card" side="bottom" align="start">
+                          <ContactHoverCardBody addr={selectedEmail.from} savedEmails={savedContactEmails} savingEmail={savingContactEmail} onCompose={composeToAddress} onSave={saveContactFromEmail} onNavigate={navigate} />
+                        </HoverCardContent>
+                      </HoverCard>
                       <span className="em-detail-from-email">&lt;{selectedEmail.from.email}&gt;</span>
                     </div>
                     <div className="em-detail-from-right">
@@ -1905,12 +2413,27 @@ export const EmailApp: React.FC = () => {
               {selectedEmail.attachments.length > 0 && (
                 <div className="em-attach-list">
                   {selectedEmail.attachments.map(a => (
-                    <button key={a.storageKey} type="button" className="em-attach-chip em-attach-chip--download" onClick={() => downloadAttachment(selectedEmail.id, a.storageKey)}>
-                      <Icon name="paperclip" size={13} />
-                      <span>{a.filename}</span>
-                      {a.size != null && <span className="em-attach-chip-size">{(a.size / 1024).toFixed(0)} KB</span>}
-                      <Icon name="download" size={13} />
-                    </button>
+                    <span key={a.storageKey} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <button type="button" className="em-attach-chip em-attach-chip--download" onClick={() => downloadAttachment(selectedEmail.id, a.storageKey)}>
+                        <Icon name="paperclip" size={13} />
+                        <span>{a.filename}</span>
+                        {a.size != null && <span className="em-attach-chip-size">{(a.size / 1024).toFixed(0)} KB</span>}
+                        <Icon name="download" size={13} />
+                      </button>
+                      <DropdownMenu onOpenChange={open => { if (open) loadWritableDrives(); }}>
+                        <Tip label="Save to Drive">
+                          <DropdownMenuTrigger asChild>
+                            <button type="button" className="em-icon-btn" aria-label={`Save ${a.filename} to Drive`}><Icon name="folder" size={14} /></button>
+                          </DropdownMenuTrigger>
+                        </Tip>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuItem onSelect={() => saveAttachmentToDrive(selectedEmail.id, a.storageKey)}>My Drive</DropdownMenuItem>
+                          {(writableDrives ?? []).filter(d => d.name !== 'My Drive').map(d => (
+                            <DropdownMenuItem key={d.id} onSelect={() => saveAttachmentToDrive(selectedEmail.id, a.storageKey, d.id)}>{d.name}</DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </span>
                   ))}
                 </div>
               )}
@@ -2084,7 +2607,9 @@ export const EmailApp: React.FC = () => {
               subject={compose.subject}
               onGenerated={result => setCompose(p => ({ ...p, body: result.body, subject: result.subject && !p.subject.trim() ? result.subject : p.subject }))}
             />
-            <textarea className="em-compose-body" value={compose.body} onChange={e => setCompose(p => ({ ...p, body: e.target.value }))} placeholder="Write your email here…" />
+            <div className="em-compose-rich-editor">
+              <RichTextEditor value={compose.body} onChange={body => setCompose(p => ({ ...p, body }))} placeholder="Write your email here…" />
+            </div>
             {defaultSignature(compose.isForward ? 'reply' : 'new')?.body_html?.trim() && (
               <div className="em-signature-preview" dangerouslySetInnerHTML={{ __html: defaultSignature(compose.isForward ? 'reply' : 'new')!.body_html }} />
             )}
@@ -2114,9 +2639,10 @@ export const EmailApp: React.FC = () => {
               </div>
             )}
             <div className="em-compose-footer" style={{ position: 'relative' }}>
-              <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 20, padding: 'var(--ds-btn-py) 24px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={sendCompose} disabled={compose.attachments.some(a => a.uploading)}>
+              <button type="button" className="em-compose-send-btn" onClick={sendCompose} disabled={compose.attachments.some(a => a.uploading)}>
                 <Icon name="send" size={14} /> {compose.sendAt ? 'Schedule send' : 'Send'}
               </button>
+              <div className="em-compose-footer-sep" />
               <Tip label="Schedule send for later">
                 <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setCompose(p => ({ ...p, sendAt: p.sendAt !== null ? null : new Date(Date.now() + 3600000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) }))}>
                   <Icon name="clock" size={16} />
@@ -2127,25 +2653,29 @@ export const EmailApp: React.FC = () => {
                   <Icon name="paperclip" size={16} />
                 </button>
               </Tip>
+              <Tip label="Attach from Drive">
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setDrivePickerTarget('compose')}>
+                  <Icon name="folder" size={16} />
+                </button>
+              </Tip>
               <input ref={composeFileInputRef} type="file" multiple style={{ display: 'none' }} onChange={e => { const files = Array.from(e.target.files ?? []); if (files.length) uploadAttachments(files, 'compose'); e.target.value = ''; }} />
               <MeetingTimeSuggestor onInsert={text => setCompose(p => ({ ...p, body: p.body.trim() ? `${p.body}\n\n${text}` : text }))} />
-              {quickTemplates.length > 0 && (
-                <Tip label="Insert quick reply">
-                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setTemplatePickerOpen(v => !v)}>
-                    <Icon name="layers" size={16} />
-                  </button>
-                </Tip>
+              <Tip label={quickTemplates.length > 0 ? 'Insert template' : 'Manage templates'}>
+                <button
+                  type="button"
+                  className="em-icon-btn em-icon-btn--ghost"
+                  onClick={() => quickTemplates.length > 0 ? setTemplatePickerOpen(v => !v) : navigate('/email/templates')}
+                >
+                  <Icon name="layers" size={16} />
+                </button>
+              </Tip>
+              {templatePickerOpen && quickTemplates.length > 0 && (
+                <TemplatePickerPanel templates={quickTemplates} target="compose" search={templateSearch} setSearch={setTemplateSearch} openGroups={openGroups} setOpenGroups={setOpenGroups} onApply={t => applyTemplate(t, 'compose')} onClose={() => setTemplatePickerOpen(false)} onManage={() => { setTemplatePickerOpen(false); navigate('/email/templates'); }} />
               )}
-              {templatePickerOpen && (
-                <div className="em-template-picker">
-                  {quickTemplates.map(t => (
-                    <button key={t.id} type="button" className="em-template-picker-item" onClick={() => applyTemplate(t, 'compose')}>{t.name}</button>
-                  ))}
-                </div>
-              )}
-              <span className="em-compose-savestate">{composeSaving ? 'Saving…' : compose.draftId ? 'Saved to Drafts' : ''}</span>
               <div style={{ flex: 1 }} />
-              <button type="button" className="em-text-btn" onClick={() => saveDraft()}>Save draft</button>
+              <button type="button" className="em-text-btn" onClick={() => saveDraft()}>
+                {composeSaving ? 'Saving…' : compose.draftId ? 'Saved to Drafts' : 'Save draft'}
+              </button>
               <Tip label="Discard">
                 <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={discardCompose}>
                   <Icon name="trash" size={18} />
@@ -2723,6 +3253,43 @@ export const EmailApp: React.FC = () => {
         </DialogContent>
       </Dialog>
 
+      <DriveFilePicker
+        open={drivePickerTarget !== null}
+        onOpenChange={open => { if (!open) setDrivePickerTarget(null); }}
+        onPick={attachFromDrive}
+        busy={drivePickerBusy}
+      />
+
+      {/* Reschedule dialog */}
+      <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Reschedule email</DialogTitle>
+            <DialogDescription>Pick a new date and time to send this email.</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <label className="em-reschedule-label">
+              Send at
+              <input
+                type="datetime-local"
+                className="em-reschedule-input"
+                value={rescheduleValue}
+                min={new Date(Date.now() + 60_000 - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 16)}
+                onChange={e => setRescheduleValue(e.target.value)}
+              />
+            </label>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRescheduleOpen(false)}>Cancel</Button>
+            <Button onClick={() => {
+              if (selectedEmail) {
+                const local = new Date(rescheduleValue);
+                rescheduleScheduled(selectedEmail.id, local.toISOString());
+              }
+            }}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

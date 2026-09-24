@@ -136,14 +136,14 @@ export function ConnectedAppsModal({ onClose }: { onClose: () => void }) {
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-semibold" style={{ color: 'var(--ink)', fontSize: 'var(--text-base)' }}>{p.name}</span>
-                            <Badge variant={isConnected ? 'success' : 'gray'}>{isConnected ? 'Connected' : 'Not connected'}</Badge>
+                            <Badge variant={isConnected ? 'success' : isReal ? 'gray' : 'info'}>{isConnected ? 'Connected' : isReal ? 'Not connected' : 'Coming soon'}</Badge>
                           </div>
                           <div className="mt-0.5 truncate" style={{ fontSize: 'var(--text-xs)', color: 'var(--ink3)' }}>
                             {isConnected
                               ? `${conn?.account_email ?? conn?.account_label ?? 'Account'} · synced ${fmtRelative(conn?.last_synced_at ?? null) ?? 'never'}`
                               : isReal
                               ? (oauthReady ? 'OAuth app configured — connect your account.' : 'Needs a Microsoft Graph OAuth app (Client ID + Secret).')
-                              : `${p.blurb} Bookmark only — no file sync yet.`}
+                              : `${p.blurb.replace('Sync folders to', 'Browse and sync files from')} Not available yet — this integration is still being built.`}
                           </div>
                           {isConnected && conn?.file_count != null && (
                             <div className="mt-0.5" style={{ fontSize: 'var(--text-xs)', color: 'var(--ink3)' }}>{conn.file_count} files synced</div>
@@ -183,9 +183,8 @@ export function ConnectedAppsModal({ onClose }: { onClose: () => void }) {
                             )}
                           </div>
                         ) : (
-                          <Button size="sm" className="w-full sm:w-auto" onClick={() => { setConnectingProvider(p.id); setEmailInput(''); }}>
-                            Connect
-                          </Button>
+                          // No real integration behind this provider yet — never offer a Connect that would only record an email.
+                          <Button size="sm" variant="outline" className="w-full sm:w-auto" disabled>Coming soon</Button>
                         )
                       )}
                     </div>

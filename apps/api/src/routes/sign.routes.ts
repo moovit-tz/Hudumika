@@ -29,6 +29,7 @@
 //   Anyone can look up a code and get back envelope metadata + signer list.
 //   Each lookup is recorded in sign_verifications for auditability.
 
+import { wouldExceedStorageQuota } from '../lib/storage-quota.js';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { createHash } from 'node:crypto';
 import { sql } from 'kysely';
@@ -1526,7 +1527,9 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
               const sourceFile = await dbPlatform.selectFrom('cloud_files')
                 .select(['drive_id', 'parent_id', 'entity_type', 'entity_id'])
                 .where('id', '=', envelope.file_id).where('tenant_id', '=', envelope.tenant_id).executeTakeFirst();
-              if (sourceFile) {
+              const signedQuota = await wouldExceedStorageQuota(envelope.tenant_id, pdfBuffer.length);
+              if (signedQuota.exceeded) console.warn(`[eSign] signed PDF for envelope ${envelope.id} not filed to Drive — tenant is over its storage quota`);
+              if (sourceFile && !signedQuota.exceeded) {
                 const fileName = `${envelope.title} — signed.pdf`;
                 const fileRow = await dbPlatform.insertInto('cloud_files').values({
                   tenant_id: envelope.tenant_id,

@@ -222,3 +222,215 @@ export async function renderBillPdf(tenantId: string, id: string): Promise<Buffe
   });
   return renderSpec(spec);
 }
+
+// ─── Record / ledger-style documents ────────────────────────────────────────
+// Expenses, payments, bank statements, fixed-asset cards and trial balances
+// are not line-item commercial documents (no qty × rate × tax), so they get
+// a second, table-based layout: a key/value block, an optional free-form
+// table, and a summary. Same header styling as renderSpec.
+interface TableCol { label: string; w: number; align?: 'right' }
+interface TableSpec {
+  title: string;
+  number: string;
+  companyName: string;
+  companyAddress: string;
+  meta: [string, string][];
+  columns: TableCol[];            // widths are fractions of the page width
+  rows: string[][];
+  summary: [string, string][];
+  notes?: string | null;
+}
+
+function renderTableSpec(spec: TableSpec): Promise<Buffer> {
+  return new Promise<Buffer>((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const chunks: Buffer[] = [];
+    doc.on('data', b => chunks.push(b));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const M = 40;
+    const W = 595.28 - M * 2;
+    let y = M;
+
+    doc.font('Helvetica-Bold').fontSize(18).fillColor(INK).text(spec.companyName, M, y);
+    if (spec.companyAddress) doc.font('Helvetica').fontSize(8.5).fillColor(MUTED).text(spec.companyAddress, M, doc.y + 2);
+    doc.font('Helvetica-Bold').fontSize(20).fillColor(TEAL).text(spec.title, M, y, { width: W, align: 'right' });
+    doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(spec.number, M, doc.y + 2, { width: W, align: 'right' });
+    y = Math.max(doc.y, y + 50) + 16;
+    doc.moveTo(M, y).lineTo(M + W, y).strokeColor(BORDER).lineWidth(1).stroke();
+    y += 16;
+
+    for (const [label, value] of spec.meta) {
+      if (y > 780) { doc.addPage(); y = M; }
+      doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(label, M, y, { width: W * 0.3 });
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(INK).text(value || '—', M + W * 0.3, y, { width: W * 0.7 });
+      y = Math.max(doc.y, y + 14) + 2;
+    }
+    y += 10;
+
+    if (spec.columns.length && spec.rows.length) {
+      doc.rect(M, y, W, 22).fill('#f1f5f4');
+      let cx = M;
+      for (const c of spec.columns) {
+        doc.font('Helvetica-Bold').fontSize(8).fillColor(MUTED).text(c.label.toUpperCase(), cx + 6, y + 7, { width: c.w * W - 8, align: c.align });
+        cx += c.w * W;
+      }
+      y += 22;
+      for (const r of spec.rows) {
+        if (y + 20 > 780) { doc.addPage(); y = M; }
+        cx = M;
+        spec.columns.forEach((c, i) => {
+          doc.font('Helvetica').fontSize(8.5).fillColor(INK)
+            .text(r[i] ?? '', cx + 6, y + 5, { width: c.w * W - 8, align: c.align, lineBreak: false, ellipsis: true });
+          cx += c.w * W;
+        });
+        doc.moveTo(M, y + 20).lineTo(M + W, y + 20).strokeColor(BORDER).lineWidth(0.5).stroke();
+        y += 20;
+      }
+      y += 12;
+    }
+
+    for (const [label, value] of spec.summary) {
+      if (y > 780) { doc.addPage(); y = M; }
+      doc.font('Helvetica-Bold').fontSize(10).fillColor(MUTED).text(label, M + W * 0.4, y, { width: W * 0.35 });
+      doc.font('Helvetica-Bold').fontSize(10).fillColor(TEAL).text(value, M + W * 0.75, y, { width: W * 0.25, align: 'right' });
+      y += 18;
+    }
+
+    if (spec.notes) {
+      y += 12;
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(MUTED).text('NOTES', M, y);
+      doc.font('Helvetica').fontSize(9).fillColor(INK).text(spec.notes, M, doc.y + 4, { width: W });
+    }
+    doc.end();
+  });
+}
+
+export async function renderExpensePdf(tenantId: string, id: string): Promise<Buffer> {
+  const spec = await withTenant(tenantId, async (trx): Promise<TableSpec> => {
+    const e = await trx.selectFrom('finance_expenses').selectAll().where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!e) throw new Error('Expense not found');
+    const supplier = e.supplier_id
+      ? await trx.selectFrom('suppliers').select('name').where('id', '=', e.supplier_id).where('tenant_id', '=', tenantId).executeTakeFirst()
+      : undefined;
+    const co = await company(trx, tenantId);
+    return {
+      title: 'EXPENSE VOUCHER', number: `EXP-${String(e.id).slice(0, 8).toUpperCase()}`, companyName: co.name, companyAddress: co.address,
+      meta: [
+        ['Description', e.name], ['Date', dateFmt(e.expense_date)], ['Category', e.category],
+        ['Supplier', supplier?.name ?? ''], ['Payment mode', e.payment_mode ?? ''], ['Reference', e.reference ?? ''],
+        ['Status', String(e.status)],
+      ],
+      columns: [], rows: [], summary: [['Amount', money(Number(e.amount))]], notes: e.note,
+    };
+  });
+  return renderTableSpec(spec);
+}
+
+export async function renderInvoicePaymentPdf(tenantId: string, id: string): Promise<Buffer> {
+  const spec = await withTenant(tenantId, async (trx): Promise<TableSpec> => {
+    const p = await trx.selectFrom('invoice_payments').selectAll().where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!p) throw new Error('Payment not found');
+    const inv = await trx.selectFrom('sales_invoices').select(['invoice_number', 'client_name']).where('id', '=', p.invoice_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    const co = await company(trx, tenantId);
+    return {
+      title: 'PAYMENT RECEIPT', number: `RCPT-${String(p.id).slice(0, 8).toUpperCase()}`, companyName: co.name, companyAddress: co.address,
+      meta: [
+        ['Received from', inv?.client_name ?? ''], ['Against invoice', inv?.invoice_number ?? ''],
+        ['Payment date', dateFmt(p.payment_date)], ['Method', p.method ?? ''],
+      ],
+      columns: [], rows: [], summary: [['Amount received', money(Number(p.amount))]], notes: p.note,
+    };
+  });
+  return renderTableSpec(spec);
+}
+
+export async function renderBillPaymentPdf(tenantId: string, id: string): Promise<Buffer> {
+  const spec = await withTenant(tenantId, async (trx): Promise<TableSpec> => {
+    const p = await trx.selectFrom('bill_payments').selectAll().where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!p) throw new Error('Payment not found');
+    const bill = await trx.selectFrom('supplier_bills').select(['bill_number', 'supplier_name']).where('id', '=', p.bill_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    const co = await company(trx, tenantId);
+    return {
+      title: 'PAYMENT VOUCHER', number: `PAY-${String(p.id).slice(0, 8).toUpperCase()}`, companyName: co.name, companyAddress: co.address,
+      meta: [
+        ['Paid to', bill?.supplier_name ?? ''], ['Against bill', bill?.bill_number ?? ''],
+        ['Payment date', dateFmt(p.payment_date)], ['Method', p.method ?? ''], ['Reference', p.reference ?? ''],
+      ],
+      columns: [], rows: [], summary: [[`Amount paid (${p.currency ?? ''})`, money(Number(p.amount))]], notes: p.note,
+    };
+  });
+  return renderTableSpec(spec);
+}
+
+export async function renderBankStatementPdf(tenantId: string, id: string): Promise<Buffer> {
+  const spec = await withTenant(tenantId, async (trx): Promise<TableSpec> => {
+    const s = await trx.selectFrom('bank_statements').selectAll().where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!s) throw new Error('Bank statement not found');
+    const lines = await trx.selectFrom('bank_statement_lines').selectAll().where('bank_statement_id', '=', id).orderBy('txn_date').execute();
+    const co = await company(trx, tenantId);
+    return {
+      title: 'BANK STATEMENT', number: `${s.account_code} · ${dateFmt(s.statement_date_from)} – ${dateFmt(s.statement_date_to)}`,
+      companyName: co.name, companyAddress: co.address,
+      meta: [['Bank', s.bank_name ?? ''], ['Ledger account', s.account_code], ['Opening balance', money(Number(s.opening_balance))]],
+      columns: [{ label: 'Date', w: 0.16 }, { label: 'Description', w: 0.5 }, { label: 'Amount', w: 0.17, align: 'right' }, { label: 'Matched', w: 0.17, align: 'right' }],
+      rows: lines.map(l => [dateFmt(l.txn_date), l.description ?? '', money(Number(l.amount)), l.matched_journal_line_id ? 'Yes' : 'No']),
+      summary: [['Closing balance', money(Number(s.closing_balance))]],
+    };
+  });
+  return renderTableSpec(spec);
+}
+
+export async function renderFixedAssetPdf(tenantId: string, id: string): Promise<Buffer> {
+  const spec = await withTenant(tenantId, async (trx): Promise<TableSpec> => {
+    const a = await trx.selectFrom('fixed_assets').selectAll().where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!a) throw new Error('Fixed asset not found');
+    const dep = await trx.selectFrom('fixed_asset_depreciation_entries').select(['period_date', 'amount'])
+      .where('asset_id', '=', id).where('tenant_id', '=', tenantId).orderBy('period_date').execute();
+    const co = await company(trx, tenantId);
+    const accumulated = dep.reduce((s, d) => s + Number(d.amount), 0);
+    return {
+      title: 'FIXED ASSET CARD', number: `FA-${String(a.id).slice(0, 8).toUpperCase()}`, companyName: co.name, companyAddress: co.address,
+      meta: [
+        ['Asset', a.name], ['Category', a.category ?? ''], ['Acquired', dateFmt(a.acquisition_date)],
+        ['Cost', money(Number(a.cost))], ['Salvage value', money(Number(a.salvage_value))],
+        ['Useful life', `${a.useful_life_months} months (${String(a.depreciation_method).replace('_', ' ').toLowerCase()})`],
+        ['Status', a.status === 'DISPOSED' ? `Disposed ${dateFmt(a.disposed_at)}` : 'Active'],
+      ],
+      columns: [{ label: 'Period', w: 0.5 }, { label: 'Depreciation', w: 0.5, align: 'right' }],
+      rows: dep.map(d => [dateFmt(d.period_date), money(Number(d.amount))]),
+      summary: [['Accumulated depreciation', money(accumulated)], ['Net book value', money(Number(a.cost) - accumulated)]],
+      notes: a.notes,
+    };
+  });
+  return renderTableSpec(spec);
+}
+
+/** Trial balance of a closed GL period, rendered from the snapshot taken at
+ *  close (never recomputed — a filed figure must not change after the fact). */
+export async function renderTrialBalancePdf(tenantId: string, periodId: string): Promise<Buffer> {
+  const spec = await withTenant(tenantId, async (trx): Promise<TableSpec> => {
+    const p = await trx.selectFrom('gl_periods').selectAll().where('id', '=', periodId).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!p) throw new Error('GL period not found');
+    const snap = (typeof p.trial_balance_snapshot === 'string' ? JSON.parse(p.trial_balance_snapshot) : p.trial_balance_snapshot) as
+      { rows?: any[]; totals?: { debit: number; credit: number } } | null;
+    if (!snap?.rows) throw new Error('GL period has no trial balance snapshot');
+    const co = await company(trx, tenantId);
+    return {
+      title: 'TRIAL BALANCE', number: p.name, companyName: co.name, companyAddress: co.address,
+      meta: [['Period', `${dateFmt(p.period_start)} – ${dateFmt(p.period_end)}`], ['Closed', dateFmt(p.closed_at)]],
+      columns: [
+        { label: 'Code', w: 0.1 }, { label: 'Account', w: 0.3 },
+        { label: 'Period Dr', w: 0.15, align: 'right' }, { label: 'Period Cr', w: 0.15, align: 'right' },
+        { label: 'Closing Dr', w: 0.15, align: 'right' }, { label: 'Closing Cr', w: 0.15, align: 'right' },
+      ],
+      rows: snap.rows.map(r => [
+        String(r.account_code), String(r.account_name),
+        money(Number(r.period_debit)), money(Number(r.period_credit)), money(Number(r.closing_debit)), money(Number(r.closing_credit)),
+      ]),
+      summary: snap.totals ? [['Total debit', money(Number(snap.totals.debit))], ['Total credit', money(Number(snap.totals.credit))]] : [],
+    };
+  });
+  return renderTableSpec(spec);
+}

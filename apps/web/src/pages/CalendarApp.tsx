@@ -136,6 +136,7 @@ const HOUR_ROW_PX = 80;
 
 export const CalendarApp: React.FC = () => {
   const allEvents = useEvents();
+  const deepLinkedEventRef = useRef<string | null>(new URLSearchParams(window.location.search).get('event'));
   const allTodos = useTodos();
   const appSettings = useAppSettings();
   const meetWithPeople = useMeetWithPeople();
@@ -472,6 +473,18 @@ export const CalendarApp: React.FC = () => {
     setShowModal(true);
   }
 
+  useEffect(() => {
+    const id = deepLinkedEventRef.current;
+    if (!id) return;
+    const event = allEvents.find(item => item.id === id);
+    if (!event) return;
+    deepLinkedEventRef.current = null;
+    window.history.replaceState(null, '', window.location.pathname);
+    openEdit(event);
+    // openEdit is intentionally consumed once after the async event store loads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allEvents]);
+
   /** "Add Video Call" — prefers a real, tenant-owned Bliss meeting
    *  (POST /v1/calls/meetings: host controls, waiting room, participant
    *  history, real WebRTC) over the disposable public Jitsi room, for any
@@ -508,6 +521,20 @@ export const CalendarApp: React.FC = () => {
       setMeetingCreatePassword(''); setMeetingCreateWaitingRoom(false); setMeetingCreateGuestJoin(false);
     }
   }
+
+  useEffect(() => {
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('new') !== '1') return;
+    const email = qs.get('guest') || '';
+    const name = qs.get('guestName') || email;
+    const addVideo = qs.get('video') === '1';
+    window.history.replaceState(null, '', window.location.pathname);
+    openCreate();
+    if (email) setEventGuests([{ userId: null, email, name, status: 'pending' }]);
+    if (addVideo) void handleAddVideoCall();
+    // Query parameters are a one-shot cross-app compose contract.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /** Share a meeting's info — the OS/browser share sheet where available
    *  (mobile Safari/Chrome, and desktop Chrome/Edge on Windows 11), a real

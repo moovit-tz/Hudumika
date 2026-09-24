@@ -10,6 +10,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 
 import { env } from './config/env.js';
+import { antivirusConfigured, pingClamd, checkAntivirusAtBoot } from './integrations/antivirus.js';
 import { db } from './db/client.js';
 import { authPlugin } from './middleware/auth.js';
 import { getPlatformApiSettings } from './lib/platform-settings.js';
@@ -43,6 +44,7 @@ import { notesRoutes } from './routes/notes.routes.js';
 import { analyticsRoutes } from './routes/analytics.routes.js';
 import { notificationRoutes } from './routes/notifications.routes.js';
 import { webhookRoutes } from './routes/webhooks.routes.js';
+import { billingWebhookRoutes } from './routes/billing-webhooks.routes.js';
 import { declarationRoutes } from './routes/declarations.routes.js';
 import { referenceRoutes } from './routes/reference.routes.js';
 import { sanctionsRoutes } from './routes/sanctions.routes.js';
@@ -124,6 +126,7 @@ import { accountingIntegrationRoutes } from './routes/accounting-integration.rou
 import { accountingOAuthRoutes } from './routes/accounting-oauth.routes.js';
 import { nexusHRRoutes } from './routes/nexushr.routes.js';
 import { contactsRoutes } from './routes/contacts.routes.js';
+import { partiesRoutes } from './routes/parties.routes.js';
 import { contactsSyncRoutes } from './routes/contacts-sync.routes.js';
 import { emailRoutes, emailSendRoutes } from './routes/email.routes.js';
 import { emailReceiptRoutes } from './routes/email-receipt.routes.js';
@@ -133,6 +136,9 @@ import { emailIdentitiesRoutes } from './routes/email-identities.routes.js';
 import { emailFiltersRoutes } from './routes/email-filters.routes.js';
 import { emailMetaRoutes } from './routes/email-meta.routes.js';
 import { emailTemplatesRoutes } from './routes/email-templates.routes.js';
+import { commEventsRoutes, marketplaceEmailRoutes } from './routes/comm-events.routes.js';
+import { syncCommEventRegistry } from './config/comm-event-registry.js';
+import { seedMarketplaceTemplates } from './services/marketplace-seed.service.js';
 import { complyRoutes } from './routes/comply.routes.js';
 import { sealRoutes } from './routes/seal.routes.js';
 import { sealDocumentRoutes } from './routes/seal-documents.routes.js';
@@ -185,6 +191,7 @@ import { customsRoutes } from './routes/customs.routes.js';
 import { advancedCalculatorRoutes } from './routes/advanced-calculators.routes.js';
 import { tradeWizardRoutes } from './routes/trade-wizard.routes.js';
 import { filesRoutes, filesPublicRoutes } from './routes/files.routes.js';
+import { cloudComplianceRoutes } from './routes/cloud-compliance.routes.js';
 import { drivesRoutes } from './routes/drives.routes.js';
 import { orgRoutes } from './routes/org.routes.js';
 import { organizationsRoutes } from './routes/organizations.routes.js';
@@ -500,6 +507,7 @@ export async function registerApp() {
     await server.register(analyticsRoutes, { prefix: '/v1/analytics' });
     await server.register(notificationRoutes, { prefix: '/v1/notifications' });
     await server.register(webhookRoutes, { prefix: '/v1/webhooks' });
+    await server.register(billingWebhookRoutes, { prefix: '/v1/webhooks/billing' });
     await server.register(declarationRoutes, { prefix: '/v1/declarations' });
     await server.register(declarationLedgerAnchorRoutes, { prefix: '/v1/declarations' });
     await server.register(referenceRoutes, { prefix: '/v1/reference' });
@@ -623,6 +631,7 @@ export async function registerApp() {
     await server.register(accountingOAuthRoutes, { prefix: '/v1/accounting-integrations' });
     await server.register(nexusHRRoutes, { prefix: '/v1/hr' });
     await server.register(contactsRoutes, { prefix: '/v1/contacts' });
+    await server.register(partiesRoutes, { prefix: '/v1/parties' });
     await server.register(contactsSyncRoutes, { prefix: '/v1/contacts' });
     await server.register(emailRoutes, { prefix: '/v1/emails' });
     await server.register(emailSendRoutes, { prefix: '/v1/email' });
@@ -635,6 +644,10 @@ export async function registerApp() {
     await server.register(emailFiltersRoutes, { prefix: '/v1/email/filters' });
     await server.register(emailMetaRoutes, { prefix: '/v1/email' });
     await server.register(emailTemplatesRoutes, { prefix: '/v1/email-templates' });
+    try { await syncCommEventRegistry(); } catch (e) { console.error('[comm-events] syncCommEventRegistry failed (migration 513 not applied?):', e); }
+    try { await seedMarketplaceTemplates(); } catch (e) { console.error('[marketplace-seed] seedMarketplaceTemplates failed:', e); }
+    await server.register(commEventsRoutes, { prefix: '/v1/comm' });
+    await server.register(marketplaceEmailRoutes, { prefix: '/v1/marketplace/email-templates' });
     await server.register(complyRoutes, { prefix: '/v1/comply' });
     await server.register(sealRoutes, { prefix: '/v1/seal' });
     await server.register(sealDocumentRoutes, { prefix: '/v1/seal' });
@@ -675,6 +688,7 @@ export async function registerApp() {
     await server.register(advancedCalculatorRoutes, { prefix: '/v1/customs' });
     await server.register(tradeWizardRoutes, { prefix: '/v1/customs/trade-wizard' });
     await server.register(filesRoutes, { prefix: '/v1/files' });
+    await server.register(cloudComplianceRoutes, { prefix: '/v1/files' });
     await server.register(filesPublicRoutes, { prefix: '/v1/files-public' });
     await server.register(drivesRoutes, { prefix: '/v1/drives' });
     await server.register(orgRoutes, { prefix: '/v1/org' });
@@ -726,7 +740,12 @@ export async function registerApp() {
 
     // Health check
     server.get('/health', async () => {
-      return { status: 'healthy', timestamp: new Date().toISOString() };
+      return {
+        status: 'healthy', timestamp: new Date().toISOString(),
+        // Not a fabricated "connected" flag — a real PING to clamd, done on every call so a
+        // scanner that goes down after boot shows up here immediately, not just in the startup log.
+        antivirus: antivirusConfigured() ? await pingClamd().then(r => r.ok ? 'connected' : `unreachable: ${r.error}`) : 'not_configured',
+      };
     });
   }
 
@@ -740,6 +759,7 @@ async function main() {
     await registerApp();
 
     // 5. Start jobs scheduler
+    await checkAntivirusAtBoot(env.APP_ENV);
     bootstrapSubscribers();
     registerBuiltInEntityProviders();
     await bootstrapJobs();

@@ -1,0 +1,277 @@
+/* EmailBlockBuilder — 3-panel drag-and-drop email template editor */
+
+.ebb-root {
+  display: flex;
+  height: 100%;
+  min-height: 600px;
+  background: var(--surface2);
+  overflow: hidden;
+}
+
+/* ── Panels ──────────────────────────────────────────────────────────────── */
+.ebb-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.ebb-panel--left  { width: 220px; }
+.ebb-panel--right { width: 260px; border-right: none; border-left: 1px solid var(--border); }
+
+.ebb-panel-hdr {
+  padding: 12px 14px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink3);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ── Block palette ───────────────────────────────────────────────────────── */
+.ebb-palette {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 2px;
+}
+.ebb-palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  color: var(--ink);
+}
+.ebb-palette-item:hover { background: var(--teal-l); }
+.ebb-palette-icon { color: var(--ink3); flex-shrink: 0; }
+.ebb-palette-label { font-size: 12.5px; font-weight: 600; }
+.ebb-palette-desc  { font-size: 11px; color: var(--ink3); margin-top: 1px; }
+
+/* ── Canvas ──────────────────────────────────────────────────────────────── */
+.ebb-canvas-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ebb-canvas-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.ebb-canvas-preview-toggle {
+  display: flex;
+  gap: 4px;
+}
+.ebb-preview-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: transparent;
+  font-size: 12px;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.ebb-preview-btn--active,
+.ebb-preview-btn:hover {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+.ebb-canvas-outer {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 16px;
+  background: #e5e7eb;
+}
+
+.ebb-canvas--desktop {
+  max-width: 760px;
+  margin: 0 auto;
+}
+.ebb-canvas--mobile {
+  max-width: 375px;
+  margin: 0 auto;
+}
+
+.ebb-canvas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  background: #fff;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  color: #9ca3af;
+  gap: 12px;
+  font-size: 13px;
+  text-align: center;
+  padding: 24px;
+}
+.ebb-canvas-empty-icon { opacity: 0.4; }
+
+/* The email itself */
+.ebb-canvas-email {
+  background: #ffffff;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.ebb-canvas-email-header {
+  padding: 16px 24px;
+  border-bottom: 3px solid #0d7a6b;
+}
+.ebb-canvas-email-body { padding: 20px 24px; }
+.ebb-canvas-email-footer {
+  padding: 12px 24px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* ── Block items ─────────────────────────────────────────────────────────── */
+.ebb-block {
+  position: relative;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+.ebb-block:hover         { outline: 1px solid var(--teal-m); }
+.ebb-block--selected     { outline: 2px solid hsl(var(--primary)); }
+
+.ebb-block-toolbar {
+  display: none;
+  position: absolute;
+  top: -28px;
+  right: 0;
+  align-items: center;
+  gap: 4px;
+  background: hsl(var(--primary));
+  border-radius: 4px 4px 0 0;
+  padding: 3px 8px;
+  z-index: 10;
+}
+.ebb-block--selected .ebb-block-toolbar,
+.ebb-block:hover .ebb-block-toolbar { display: flex; }
+
+.ebb-block-label { font-size: 11px; color: hsl(var(--primary-foreground)); font-weight: 600; margin-right: 4px; }
+
+.ebb-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: hsl(var(--primary-foreground));
+  cursor: pointer;
+  opacity: 0.8;
+}
+.ebb-action-btn:hover { background: rgba(0,0,0,0.2); opacity: 1; }
+.ebb-action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.ebb-action-btn--danger:hover { background: #dc2626; color: #fff; opacity: 1; }
+
+.ebb-block-preview { pointer-events: none; }
+
+/* ── Properties panel ────────────────────────────────────────────────────── */
+.ebb-props {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ebb-props-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.ebb-props-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink3);
+  margin-top: 2px;
+  margin-bottom: -4px;
+}
+.ebb-props-hint { font-size: 12px; color: var(--ink3); }
+
+.ebb-props-kv-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 4px;
+  align-items: center;
+}
+
+.ebb-props-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 10px;
+  color: var(--ink3);
+  text-align: center;
+  padding: 24px;
+  font-size: 12.5px;
+}
+.ebb-props-empty-icon { opacity: 0.3; }
+
+/* Variable picker */
+.ebb-props-vars {
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.ebb-props-vars-hdr {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink3);
+  margin-bottom: 8px;
+}
+.ebb-props-vars-group { margin-bottom: 8px; }
+.ebb-props-vars-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink3);
+  margin-bottom: 4px;
+}
+.ebb-props-var-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  margin: 2px 2px 0 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  cursor: pointer;
+  background: var(--surface2);
+  color: var(--ink);
+  transition: background 0.1s;
+}
+.ebb-props-var-chip:hover { background: var(--teal-l); border-color: var(--teal-m); }

@@ -57,8 +57,14 @@ export interface ContactPhone {
   is_primary: boolean;
 }
 
+export type ContactVisibility = 'PRIVATE' | 'TEAM' | 'DEPARTMENT' | 'TENANT' | 'EXPLICIT_SHARE';
+
 export interface Contact {
   id: string;
+  /** Who can see this contact (server-enforced). Absent on rows from older endpoints = everyone. */
+  visibility?: ContactVisibility;
+  /** The canonical person party (same id as the contact for every contact created since the party rollout). */
+  party_id?: string | null;
   first_name: string;
   last_name: string | null;
   email: string | null;
@@ -99,7 +105,7 @@ export interface DuplicateGroup {
   contacts: Contact[];
 }
 
-export type ContactView = 'contacts' | 'favorites' | 'merge' | 'trash' | 'label' | 'smartgroup';
+export type ContactView = 'contacts' | 'directory' | 'frequent' | 'other' | 'favorites' | 'merge' | 'trash' | 'label' | 'smartgroup';
 
 // ── Context value shape ────────────────────────────────────────────────────
 

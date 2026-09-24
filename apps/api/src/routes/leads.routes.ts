@@ -1,3 +1,4 @@
+import { partyVisibleSql } from '../lib/party-visibility.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { sql } from 'kysely';
@@ -19,6 +20,10 @@ const LEAD_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SALES', 
 const LEAD_STAGES = ['NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'] as const;
 const LEAD_PRIORITIES = ['HIGH', 'MEDIUM', 'LOW'] as const;
 const leadCreateSchema = z.object({
+  // Optional links to an existing canonical organization / person. The lead keeps its own
+  // company / contact text (a snapshot); these only say which party it refers to.
+  organization_party_id: z.string().uuid().nullish(),
+  contact_party_id: z.string().uuid().nullish(),
   company: z.string().trim().min(1).max(300),
   contact_name: z.string().trim().min(1).max(300),
   contact_email: z.string().max(320).optional(),
@@ -123,8 +128,18 @@ export async function leadsRoutes(fastify: FastifyInstance) {
     try {
       const tenantId = request.user.tenant_id;
       const id = await withTenant(tenantId, async trx => {
+        // A linked party must exist here AND be visible to this user — an id alone grants nothing.
+        const linkIds = [b.organization_party_id, b.contact_party_id].filter(Boolean) as string[];
+        if (linkIds.length) {
+          const actor = { id: request.user.sub, tenantId };
+          const ok = await trx.selectFrom('parties').select('parties.id').where('parties.tenant_id', '=', tenantId)
+            .where('parties.id', 'in', linkIds).where(partyVisibleSql(actor)).execute();
+          if (ok.length !== new Set(linkIds).size) throw Object.assign(new Error('Linked contact or organization not found.'), { statusCode: 400 });
+        }
         const [row] = await trx.insertInto('leads').values({
           tenant_id: tenantId,
+          organization_party_id: b.organization_party_id ?? null,
+          contact_party_id: b.contact_party_id ?? null,
           company: b.company,
           contact_name: b.contact_name,
           contact_email: b.contact_email || null,
@@ -156,7 +171,7 @@ export async function leadsRoutes(fastify: FastifyInstance) {
       const [row] = await withTenant<any[]>(tenantId, trx => leadSelect(trx).where('leads.id', '=', id).execute());
       return mapLead(row);
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      return reply.status(err.statusCode === 400 ? 400 : 500).send({ error: err.message });
     }
   });
 

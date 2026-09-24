@@ -168,6 +168,13 @@ export async function quotationRoutes(app: FastifyInstance) {
       subject: `Quotation ${quote.quote_number} — ${quote.title}`,
       bodyHtml,
       sourceApp: 'finops',
+      communication: {
+        eventKey: 'finance.quotation.sent', actorId: user.sub,
+        record: { type: 'quotation', id, label: quote.quote_number },
+        context: { quoteNumber: quote.quote_number, validUntil: quote.valid_until ?? '', totalAmount: amount, customerName: quote.customer_name ?? 'there', quoteUrl: `/finops/quotations/${id}` },
+        idempotencyKey: `quotation-sent:${id}:${quote.updated_at}:${email.toLowerCase()}`,
+        recipientName: quote.customer_name ?? undefined,
+      },
     });
     if (quote.status === 'DRAFT') {
       await quotationService.updateStatus(user.tenant_id, id, 'PENDING', user.sub);

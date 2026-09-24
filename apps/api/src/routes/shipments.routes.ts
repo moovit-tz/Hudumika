@@ -10,7 +10,7 @@ import { requireRole } from '../middleware/rbac.js';
 import { CHARGE_HEADS } from '../services/intelligence.service.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
-import { MailService } from '../services/mail.service.js';
+import { CommEventsService } from '../services/comm-events.service.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
 import { NotificationService } from '../services/notification.service.js';
@@ -1781,9 +1781,13 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         if (cleanCh === 'WHATSAPP' && customer?.phone_wa) {
           await WhatsAppIntegration.sendMessage(customer.phone_wa, content);
         } else if (cleanCh === 'EMAIL' && customer?.email) {
-          await MailService.enqueueTemplated(user.tenant_id, 'clearos.shipment_message', customer.email, {
-            refNumber: shipment.ref_number, content: content.replace(/\n/g, '<br>'),
-          }, 'clearos');
+          await CommEventsService.dispatch({
+            tenantId: user.tenant_id, eventKey: 'clearos.shipment.message', actorId: user.sub,
+            record: { type: 'shipment', id, label: shipment.ref_number },
+            context: { refNumber: shipment.ref_number, content: content.replace(/\n/g, '<br>') },
+            idempotencyKey: `shipment-message:${newMessage.id}`,
+            manualRecipients: [{ email: customer.email, name: customer.name ?? undefined, type: 'TO' }],
+          });
         }
       }
 

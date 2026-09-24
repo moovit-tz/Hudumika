@@ -1,5 +1,6 @@
 import { dbPlatform, withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { deletionLock } from '../lib/cloud-retention.js';
 
 // 30 days — matches Google Drive's own default, stated explicitly rather
 // than picked silently.
@@ -13,17 +14,18 @@ export const TRASH_RETENTION_DAYS = 30;
  * across every tenant, on a schedule instead of behind a SuperAdmin's
  * manual click.
  */
-export async function runCloudTrashExpiryJob(): Promise<void> {
+export async function runCloudTrashExpiryJob(onlyTenantId?: string): Promise<void> {
   console.log('⏳ Running Cloud trash auto-expiry sweep...');
   try {
     const cutoff = new Date(Date.now() - TRASH_RETENTION_DAYS * 86_400_000);
 
-    const expired = await dbPlatform.selectFrom('cloud_files')
-      .select(['id', 'tenant_id', 'storage_key'])
+    let expiredQuery = dbPlatform.selectFrom('cloud_files')
+      .select(['id', 'tenant_id', 'storage_key', 'legal_hold', 'retain_until'])
       .where('is_trash', '=', true)
       .where('trashed_at', 'is not', null)
-      .where('trashed_at', '<', cutoff)
-      .execute();
+      .where('trashed_at', '<', cutoff);
+    if (onlyTenantId) expiredQuery = expiredQuery.where('tenant_id', '=', onlyTenantId);
+    const expired = await expiredQuery.execute();
 
     if (expired.length === 0) {
       console.log('✅ No trashed Cloud files past the 30-day retention window.');
@@ -44,6 +46,8 @@ export async function runCloudTrashExpiryJob(): Promise<void> {
     for (const [tenantId, rows] of byTenant) {
       await withTenant(tenantId, async (trx) => {
         for (const row of rows) {
+          // Legal hold / retention period: stays in Trash until the lock lifts.
+          if (deletionLock(row).locked) continue;
           if (row.storage_key) await MinioIntegration.deleteDocument(tenantId, row.storage_key);
           await trx.deleteFrom('cloud_files').where('id', '=', row.id).where('tenant_id', '=', tenantId).execute();
           deleted++;

@@ -1,5 +1,7 @@
 import { db, withTenant } from '../db/client.js';
 import { sql } from 'kysely';
+import { resolveDriveAccess } from '../lib/cloud-drive-access.js';
+import { visiblePartyIdsSql, partyEditableSql } from '../lib/party-visibility.js';
 
 export class ContactsService {
   private static async resolveTenantId(trx: any, tenantId: string): Promise<string> {
@@ -15,17 +17,59 @@ export class ContactsService {
     return firstTenant ? firstTenant.id : tenantId;
   }
 
-  static async getContacts(tenantId: string, status: string = 'ACTIVE') {
+  /** WHERE-fragment hiding contacts whose party the viewer may not see (PRIVATE / TEAM /
+   *  DEPARTMENT / EXPLICIT_SHARE). No viewer = no filter, for system jobs. */
+  private static visibleExpr(tenantId: string, viewerId?: string) {
+    if (!viewerId) return sql<boolean>`true`;
+    return sql<boolean>`(contacts.party_id IS NULL OR contacts.party_id IN ${visiblePartyIdsSql({ id: viewerId, tenantId })})`;
+  }
+
+  /** True when the contact is visible to the viewer but NOT editable by them (e.g. a VIEW-only share). */
+  static async isReadOnlyFor(tenantId: string, viewerId: string, id: string): Promise<boolean> {
+    return withTenant(tenantId, async (trx) => {
+      const row = await trx.selectFrom('contacts').select('contacts.id')
+        .where('contacts.tenant_id', '=', tenantId).where('contacts.id', '=', id).where('contacts.party_id', 'is not', null)
+        .where(sql<boolean>`NOT EXISTS (SELECT 1 FROM parties WHERE parties.id = contacts.party_id AND parties.tenant_id = ${tenantId} AND ${partyEditableSql({ id: viewerId, tenantId })})`)
+        .executeTakeFirst();
+      return !!row;
+    });
+  }
+
+  /** Which of these contact ids the viewer is NOT allowed to see. Knowing a contact's UUID grants nothing. */
+  static async hiddenAmong(tenantId: string, viewerId: string, ids: string[]): Promise<Set<string>> {
+    if (!ids.length) return new Set();
+    return withTenant(tenantId, async (trx) => {
+      const rows = await trx.selectFrom('contacts').select('id')
+        .where('tenant_id', '=', tenantId).where('id', 'in', ids)
+        .where(sql<boolean>`NOT ${this.visibleExpr(tenantId, viewerId)}`).execute();
+      return new Set(rows.map(r => r.id));
+    });
+  }
+
+  static async getContacts(tenantId: string, status: string = 'ACTIVE', search?: string, viewerId?: string) {
     return withTenant(tenantId, async (trx) => {
       const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
 
-      const contacts = await trx
+      let query = trx
         .selectFrom('contacts')
         .selectAll()
         .where('tenant_id', '=', resolvedTenantId)
         .where('status', '=', status)
-        .orderBy('first_name', 'asc')
-        .execute();
+        .where(this.visibleExpr(resolvedTenantId, viewerId));
+      const term = search?.trim();
+      if (term) {
+        const like = `%${term.replace(/[\\%_]/g, '\\$&')}%`;
+        query = query.where(eb => eb.or([
+          eb('first_name', 'ilike', like), eb('last_name', 'ilike', like),
+          eb('email', 'ilike', like), eb('phone', 'ilike', like),
+          eb('company', 'ilike', like), eb('job_title', 'ilike', like),
+          eb('id', 'in', eb.selectFrom('contact_emails').select('contact_id')
+            .where('tenant_id', '=', resolvedTenantId).where('email', 'ilike', like)),
+          eb('id', 'in', eb.selectFrom('contact_phones').select('contact_id')
+            .where('tenant_id', '=', resolvedTenantId).where('phone', 'ilike', like)),
+        ]));
+      }
+      const contacts = await query.orderBy('first_name', 'asc').limit(term ? 100 : 2000).execute();
 
       return this.enrichContacts(trx, resolvedTenantId, contacts);
     });
@@ -54,8 +98,15 @@ export class ContactsService {
       trx.selectFrom('contact_phones').selectAll().where('tenant_id', '=', tenantId).execute(),
     ]);
 
+    const partyIds = contacts.map((c: any) => c.party_id).filter(Boolean);
+    const visRows = partyIds.length
+      ? await trx.selectFrom('parties').select(['id', 'visibility']).where('tenant_id', '=', tenantId).where('id', 'in', partyIds).execute()
+      : [];
+    const visibilityByParty = new Map<string, string>(visRows.map((r: any) => [r.id, r.visibility]));
+
     return contacts.map(contact => ({
       ...contact,
+      visibility: visibilityByParty.get(contact.party_id) ?? 'TENANT',
       labels: mappings
         .filter((m: any) => m.contact_id === contact.id)
         .map((m: any) => ({ id: m.label_id, name: m.label_name })),
@@ -85,9 +136,24 @@ export class ContactsService {
     return withTenant(tenantId, async (trx) => {
       const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
 
+      const displayName = [data.first_name, data.last_name].filter(Boolean).join(' ').trim();
+      const party = await trx.insertInto('parties').values({
+        tenant_id: resolvedTenantId, party_type: 'PERSON', display_name: displayName,
+        visibility: data.visibility || 'TENANT', owner_user_id: data.visibility && data.visibility !== 'TENANT' ? actor?.id || null : null,
+        source_system: data.source || 'CONTACTS', created_by: actor?.id || null,
+      }).returning('id').executeTakeFirstOrThrow();
+      await trx.insertInto('party_people').values({
+        tenant_id: resolvedTenantId, party_id: party.id, first_name: data.first_name,
+        middle_name: null, last_name: data.last_name || null, preferred_name: null,
+        title: data.job_title || null, birthday: data.birthday ? new Date(data.birthday) : null,
+        avatar_url: data.avatar_url || null,
+      }).execute();
+
       const [contact] = await trx
         .insertInto('contacts')
         .values({
+          id: party.id,
+          party_id: party.id,
           tenant_id: resolvedTenantId,
           first_name: data.first_name,
           last_name: data.last_name || null,
@@ -133,6 +199,16 @@ export class ContactsService {
       // contact row itself, set above) — see syncEmailsAndPhones's own
       // header for why this is app logic and not a trigger.
       await this.syncEmailsAndPhones(trx, resolvedTenantId, contact.id, contact.email, contact.phone, data.emails, data.phones);
+      const channels = [
+        ...(data.email ? [{ type: 'EMAIL', value: data.email, label: 'work', primary: true }] : []),
+        ...(data.phone ? [{ type: 'PHONE', value: data.phone, label: 'work', primary: true }] : []),
+        ...((data.emails || []).filter((e: any) => e.email && e.email.toLowerCase() !== String(data.email || '').toLowerCase()).map((e: any) => ({ type: 'EMAIL', value: e.email, label: e.label || 'other', primary: false }))),
+        ...((data.phones || []).filter((p: any) => p.phone && p.phone !== data.phone).map((p: any) => ({ type: 'PHONE', value: p.phone, label: p.label || 'other', primary: false }))),
+      ];
+      for (const c of channels) {
+        const normalized = c.type === 'EMAIL' ? c.value.trim().toLowerCase() : c.value.trim().replace(/[^0-9+]/g, '');
+        await trx.insertInto('party_channels').values({ tenant_id: resolvedTenantId, party_id: party.id, channel_type: c.type, value: c.value.trim(), normalized_value: normalized, label: c.label, context: 'WORK', is_primary: c.primary, visibility: data.visibility || 'TENANT' }).onConflict(oc => oc.columns(['tenant_id', 'party_id', 'channel_type', 'normalized_value']).doNothing()).execute();
+      }
 
       await this.logActivity(trx, {
         tenantId: resolvedTenantId, contactId: contact.id,
@@ -203,7 +279,7 @@ export class ContactsService {
     }
   }
 
-  static async updateContact(tenantId: string, id: string, data: any, actor?: { id?: string; name?: string }) {
+  static async updateContact(tenantId: string, id: string, data: any, actor?: { id?: string; name?: string; role?: string }) {
     return withTenant(tenantId, async (trx) => {
       const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
 
@@ -217,6 +293,22 @@ export class ContactsService {
       const updateData: any = {
         updated_at: new Date()
       };
+
+      // Who can see this contact — only its owner/creator or an admin may change it.
+      if (data.visibility !== undefined) {
+        if (!['PRIVATE', 'TEAM', 'DEPARTMENT', 'TENANT', 'EXPLICIT_SHARE'].includes(data.visibility)) throw new Error('Invalid visibility');
+        const party = await trx.selectFrom('parties').select(['visibility', 'owner_user_id', 'created_by'])
+          .where('id', '=', id).where('tenant_id', '=', resolvedTenantId).executeTakeFirst();
+        if (party && data.visibility !== party.visibility) {
+          const isAdmin = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(actor?.role ?? '');
+          if (!isAdmin && party.owner_user_id !== actor?.id && party.created_by !== actor?.id) throw new Error('Only the owner or a manager can change who can see this contact.');
+          await trx.updateTable('parties').set({
+            visibility: data.visibility,
+            owner_user_id: data.visibility === 'TENANT' ? null : (party.owner_user_id ?? party.created_by ?? actor?.id ?? null),
+            updated_at: new Date(),
+          }).where('id', '=', id).where('tenant_id', '=', resolvedTenantId).execute();
+        }
+      }
 
       if (data.first_name !== undefined) updateData.first_name = data.first_name;
       if (data.last_name !== undefined) updateData.last_name = data.last_name || null;
@@ -255,6 +347,28 @@ export class ContactsService {
 
       if (data.emails !== undefined || data.phones !== undefined) {
         await this.syncEmailsAndPhones(trx, resolvedTenantId, id, contact.email, contact.phone, data.emails, data.phones);
+      }
+      if (contact.party_id) {
+        await trx.updateTable('parties').set({
+          display_name: [contact.first_name, contact.last_name].filter(Boolean).join(' ').trim(),
+          status: contact.status === 'TRASHED' ? 'ARCHIVED' : 'ACTIVE', updated_at: new Date(),
+        }).where('id', '=', contact.party_id).where('tenant_id', '=', resolvedTenantId).execute();
+        await trx.updateTable('party_people').set({
+          first_name: contact.first_name, last_name: contact.last_name, title: contact.job_title,
+          birthday: contact.birthday, avatar_url: contact.avatar_url,
+        }).where('party_id', '=', contact.party_id).where('tenant_id', '=', resolvedTenantId).execute();
+        const [emails, phones] = await Promise.all([this.getEmails(trx, id), this.getPhones(trx, id)]);
+        await trx.deleteFrom('party_channels').where('party_id', '=', contact.party_id).where('tenant_id', '=', resolvedTenantId).execute();
+        const channelRows = [
+          ...(contact.email ? [{ type: 'EMAIL', value: contact.email, label: 'work', primary: true }] : []),
+          ...(contact.phone ? [{ type: 'PHONE', value: contact.phone, label: 'work', primary: true }] : []),
+          ...emails.filter((e: any) => e.email.toLowerCase() !== String(contact.email || '').toLowerCase()).map((e: any) => ({ type: 'EMAIL', value: e.email, label: e.label, primary: false })),
+          ...phones.filter((p: any) => p.phone !== contact.phone).map((p: any) => ({ type: 'PHONE', value: p.phone, label: p.label, primary: false })),
+        ];
+        for (const c of channelRows) {
+          const normalized = c.type === 'EMAIL' ? c.value.trim().toLowerCase() : c.value.trim().replace(/[^0-9+]/g, '');
+          await trx.insertInto('party_channels').values({ tenant_id: resolvedTenantId, party_id: contact.party_id, channel_type: c.type, value: c.value, normalized_value: normalized, label: c.label, context: 'WORK', is_primary: c.primary, visibility: 'TENANT' }).execute();
+        }
       }
 
       // Log company link/switch/unlink whenever the company changed
@@ -323,12 +437,16 @@ export class ContactsService {
       const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
 
       if (hard) {
+        await trx.updateTable('parties').set({ status: 'ARCHIVED', updated_at: new Date() })
+          .where('tenant_id', '=', resolvedTenantId).where('id', '=', id).execute();
         await trx
           .deleteFrom('contacts')
           .where('tenant_id', '=', resolvedTenantId)
           .where('id', '=', id)
           .execute();
       } else {
+        await trx.updateTable('parties').set({ status: 'ARCHIVED', updated_at: new Date() })
+          .where('tenant_id', '=', resolvedTenantId).where('id', '=', id).execute();
         await trx
           .updateTable('contacts')
           .set({ status: 'TRASHED', updated_at: new Date() })
@@ -350,6 +468,8 @@ export class ContactsService {
         .where('tenant_id', '=', resolvedTenantId)
         .where('id', '=', id)
         .execute();
+      await trx.updateTable('parties').set({ status: 'ACTIVE', merged_into_id: null, updated_at: new Date() })
+        .where('tenant_id', '=', resolvedTenantId).where('id', '=', id).execute();
       return { success: true };
     });
   }
@@ -690,7 +810,7 @@ export class ContactsService {
     });
   }
 
-  static async getSmartGroupContacts(tenantId: string, id: string) {
+  static async getSmartGroupContacts(tenantId: string, id: string, viewerId?: string) {
     return withTenant(tenantId, async (trx) => {
       const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
       const group = await trx.selectFrom('contact_smart_groups').selectAll()
@@ -702,6 +822,7 @@ export class ContactsService {
         .where('tenant_id', '=', resolvedTenantId)
         .where('status', '=', 'ACTIVE')
         .where(this.buildSmartPredicate(rules, group.match_type as any, false))
+        .where(this.visibleExpr(resolvedTenantId, viewerId))
         .orderBy('first_name', 'asc')
         .execute();
 
@@ -925,6 +1046,7 @@ export class ContactsService {
         .where('tenant_id', '=', resolvedTenantId)
         .where('id', 'in', duplicateIds)
         .execute();
+      if (duplicates.length !== duplicateIds.length) throw new Error('One or more duplicate contacts were not found in this workspace');
 
       // Aggregate details (notes, phone, company, etc. if missing on primary)
       const mergedData: any = {};
@@ -970,11 +1092,24 @@ export class ContactsService {
       }
 
       // Delete duplicate contacts
+      const fileLinks = await trx.selectFrom('resource_file_links').select(['file_id', 'relationship_type', 'classification', 'created_by'])
+        .where('tenant_id', '=', resolvedTenantId).where('resource_type', '=', 'contact').where('resource_id', 'in', duplicateIds).execute();
+      for (const link of fileLinks) {
+        await trx.insertInto('resource_file_links').values({ ...link, tenant_id: resolvedTenantId, resource_type: 'contact', resource_id: primaryId })
+          .onConflict(oc => oc.columns(['tenant_id', 'file_id', 'resource_type', 'resource_id', 'relationship_type']).doNothing()).execute();
+      }
+      await trx.deleteFrom('resource_file_links').where('tenant_id', '=', resolvedTenantId).where('resource_type', '=', 'contact').where('resource_id', 'in', duplicateIds).execute();
+      await trx.updateTable('cloud_files').set({ entity_id: primaryId, updated_at: new Date() })
+        .where('tenant_id', '=', resolvedTenantId).where('entity_type', '=', 'contact').where('entity_id', 'in', duplicateIds).execute();
+      await trx.updateTable('party_affiliations').set({ person_party_id: primaryId, updated_at: new Date() })
+        .where('tenant_id', '=', resolvedTenantId).where('person_party_id', 'in', duplicateIds).execute();
       await trx
         .deleteFrom('contacts')
         .where('tenant_id', '=', resolvedTenantId)
         .where('id', 'in', duplicateIds)
         .execute();
+      await trx.updateTable('parties').set({ status: 'MERGED', merged_into_id: primaryId, updated_at: new Date() })
+        .where('tenant_id', '=', resolvedTenantId).where('id', 'in', duplicateIds).execute();
 
       return { success: true };
     });
@@ -992,10 +1127,11 @@ export class ContactsService {
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   }
 
-  static async exportToCSV(tenantId: string, contactIds?: string[]): Promise<string> {
+  static async exportToCSV(tenantId: string, contactIds?: string[], viewerId?: string): Promise<string> {
     return withTenant(tenantId, async (trx) => {
       const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
-      let query = trx.selectFrom('contacts').selectAll().where('tenant_id', '=', resolvedTenantId).where('status', '=', 'ACTIVE');
+      let query = trx.selectFrom('contacts').selectAll().where('tenant_id', '=', resolvedTenantId).where('status', '=', 'ACTIVE')
+        .where(this.visibleExpr(resolvedTenantId, viewerId));
       if (contactIds?.length) query = query.where('id', 'in', contactIds);
       const contacts = await query.orderBy('first_name', 'asc').execute();
 
@@ -1019,10 +1155,11 @@ export class ContactsService {
     return v == null ? '' : String(v).replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n');
   }
 
-  static async exportToVCard(tenantId: string, contactIds?: string[]): Promise<string> {
+  static async exportToVCard(tenantId: string, contactIds?: string[], viewerId?: string): Promise<string> {
     return withTenant(tenantId, async (trx) => {
       const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
-      let query = trx.selectFrom('contacts').selectAll().where('tenant_id', '=', resolvedTenantId).where('status', '=', 'ACTIVE');
+      let query = trx.selectFrom('contacts').selectAll().where('tenant_id', '=', resolvedTenantId).where('status', '=', 'ACTIVE')
+        .where(this.visibleExpr(resolvedTenantId, viewerId));
       if (contactIds?.length) query = query.where('id', 'in', contactIds);
       const contacts = await query.orderBy('first_name', 'asc').execute();
 
@@ -1056,12 +1193,13 @@ export class ContactsService {
   // day every year), which is far easier to get right comparing two
   // month/day pairs in JS than folding "wrap around Dec 31" into one SQL
   // expression.
-  static async getUpcomingBirthdays(tenantId: string, withinDays: number = 7) {
+  static async getUpcomingBirthdays(tenantId: string, withinDays: number = 7, viewerId?: string) {
     return withTenant(tenantId, async (trx) => {
       const resolvedTenantId = await this.resolveTenantId(trx, tenantId);
       const rows = await trx.selectFrom('contacts')
         .select(['id', 'first_name', 'last_name', 'birthday'])
         .where('tenant_id', '=', resolvedTenantId).where('status', '=', 'ACTIVE').where('birthday', 'is not', null)
+        .where(this.visibleExpr(resolvedTenantId, viewerId))
         .execute();
 
       const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -1076,6 +1214,124 @@ export class ContactsService {
         })
         .filter(r => r.days_until >= 0 && r.days_until <= withinDays)
         .sort((a, b) => a.days_until - b.days_until);
+    });
+  }
+
+  private static addressList(value: unknown): Array<{ name?: string; email: string }> {
+    const parsed = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return []; } })() : value;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((entry: any) => typeof entry === 'string' ? { email: entry } : entry)
+      .filter((entry: any) => typeof entry?.email === 'string' && entry.email.trim())
+      .map((entry: any) => ({ name: entry.name || undefined, email: entry.email.trim().toLowerCase() }));
+  }
+
+  private static eventGuests(value: unknown): Array<{ userId?: string | null; name?: string; email: string }> {
+    const parsed = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return []; } })() : value;
+    return Array.isArray(parsed) ? parsed.filter((g: any) => g && typeof g.email === 'string') : [];
+  }
+
+  /** Relationship data is derived from the user's real mailbox/calendar and
+   * entity-linked Drive files. Nothing is copied into a parallel Contacts
+   * timeline, so deleting or moving the source item is reflected immediately. */
+  static async getRelationship(tenantId: string, userId: string, userRole: string, contactId: string) {
+    return withTenant(tenantId, async (trx) => {
+      const contact = await trx.selectFrom('contacts').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', contactId).executeTakeFirst();
+      if (!contact) return null;
+
+      const emails = await trx.selectFrom('contact_emails').select('email')
+        .where('tenant_id', '=', tenantId).where('contact_id', '=', contactId).execute();
+      const addresses = new Set([contact.email, ...emails.map(e => e.email)].filter(Boolean).map(v => String(v).toLowerCase()));
+      const internalUser = addresses.size ? await trx.selectFrom('users').select(['id', 'name', 'email'])
+        .where('tenant_id', '=', tenantId).where('active', '=', true).where('email', 'in', [...addresses]).executeTakeFirst() : undefined;
+
+      // Literal-substring match (LIKE with every metachar escaped) — addresses
+      // routinely contain '+', '.', '_' which are pattern syntax in SIMILAR TO/regex.
+      const likePatterns = [...addresses].map(a => `%${a.replace(/[\\%_]/g, '\\$&')}%`);
+      const mailRows = addresses.size ? await trx.selectFrom('email_messages').select([
+        'id', 'folder', 'from_name', 'from_email', 'to_addresses', 'cc_addresses', 'subject', 'snippet', 'has_attachment', 'attachments', 'created_at',
+      ]).where('tenant_id', '=', tenantId).where('user_id', '=', userId)
+        .where(eb => eb.or([
+          eb(sql`lower(from_email)`, 'in', [...addresses]),
+          sql<boolean>`lower(to_addresses::text) LIKE ANY(${likePatterns}::text[])`,
+          sql<boolean>`lower(cc_addresses::text) LIKE ANY(${likePatterns}::text[])`,
+        ])).orderBy('created_at', 'desc').limit(100).execute() : [];
+
+      const relatedMail = mailRows.filter(row => {
+        const participants = [row.from_email?.toLowerCase(), ...this.addressList(row.to_addresses).map(a => a.email), ...this.addressList(row.cc_addresses).map(a => a.email)];
+        return participants.some(p => p && addresses.has(p));
+      });
+
+      const calendarRows = addresses.size ? await trx.selectFrom('calendar_events').select([
+        'id', 'title', 'start_at', 'end_at', 'location', 'guests', 'meeting_url',
+      ]).where('tenant_id', '=', tenantId).where('user_id', '=', userId)
+        .where(sql<boolean>`lower(guests::text) LIKE ANY(${likePatterns}::text[])`)
+        .orderBy('start_at', 'desc').limit(100).execute() : [];
+      const relatedEvents = calendarRows.filter(row => this.eventGuests(row.guests).some(g => addresses.has(g.email.toLowerCase())));
+
+      const linkedFiles = await trx.selectFrom('cloud_files').select(['id', 'drive_id', 'parent_id', 'name', 'type', 'size', 'owner_name', 'created_at', 'mime_type'])
+        .where('tenant_id', '=', tenantId)
+        .where(eb => eb.or([
+          eb.and([eb('entity_type', '=', 'contact'), eb('entity_id', '=', contactId)]),
+          eb('id', 'in', trx.selectFrom('resource_file_links').select('file_id')
+            .where('tenant_id', '=', tenantId).where('resource_type', '=', 'contact').where('resource_id', '=', contactId)),
+        ]))
+        .where('is_trash', '=', false).where('type', '!=', 'folder').orderBy('created_at', 'desc').limit(100).execute();
+      const accessByDrive = new Map<string, boolean>();
+      for (const driveId of new Set(linkedFiles.map(file => file.drive_id))) {
+        accessByDrive.set(driveId, !!(await resolveDriveAccess(trx, tenantId, userId, userRole, driveId))?.canRead);
+      }
+      const files = linkedFiles.filter(file => accessByDrive.get(file.drive_id));
+
+      const interactions = [
+        ...relatedMail.map(row => ({ id: `email:${row.id}`, kind: 'email', title: row.subject || '(No subject)', detail: row.snippet || '', occurred_at: row.created_at, href: `/email/${row.folder}?q=${encodeURIComponent(row.subject || '')}` })),
+        ...relatedEvents.map(row => ({ id: `calendar:${row.id}`, kind: row.meeting_url ? 'video' : 'calendar', title: row.title, detail: row.location || '', occurred_at: row.start_at, href: `/calendar?event=${row.id}` })),
+      ].sort((a, b) => new Date(b.occurred_at as any).getTime() - new Date(a.occurred_at as any).getTime()).slice(0, 50);
+
+      const lastInteraction = interactions[0]?.occurred_at ?? contact.last_contacted_at ?? null;
+      return { internal_user: internalUser ?? null, interactions, files, totals: { emails: relatedMail.length, meetings: relatedEvents.length, files: files.length }, last_interaction_at: lastInteraction };
+    });
+  }
+
+  static async getDirectory(tenantId: string) {
+    return withTenant(tenantId, trx => trx.selectFrom('users').select(['id', 'name', 'email', 'phone', 'role', 'location_id'])
+      .where('tenant_id', '=', tenantId).where('active', '=', true).orderBy('name', 'asc').execute());
+  }
+
+  static async getDiscovery(tenantId: string, userId: string) {
+    return withTenant(tenantId, async (trx) => {
+      const [messages, contacts, contactEmails, me] = await Promise.all([
+        trx.selectFrom('email_messages').select(['from_name', 'from_email', 'to_addresses', 'cc_addresses', 'created_at'])
+          .where('tenant_id', '=', tenantId).where('user_id', '=', userId).orderBy('created_at', 'desc').limit(1000).execute(),
+        trx.selectFrom('contacts').select(['id', 'email']).where('tenant_id', '=', tenantId).where('status', '=', 'ACTIVE').execute(),
+        trx.selectFrom('contact_emails').select(['contact_id', 'email']).where('tenant_id', '=', tenantId).execute(),
+        trx.selectFrom('users').select('email').where('tenant_id', '=', tenantId).where('id', '=', userId).executeTakeFirst(),
+      ]);
+      const saved = new Set([...contacts.map(c => c.email?.toLowerCase()).filter(Boolean), ...contactEmails.map(e => e.email.toLowerCase())]);
+      const own = me?.email.toLowerCase();
+      const people = new Map<string, { email: string; name: string; interaction_count: number; last_interaction_at: Date }>();
+      for (const row of messages) {
+        const participants = [
+          ...(row.from_email ? [{ email: row.from_email.toLowerCase(), name: row.from_name || row.from_email }] : []),
+          ...this.addressList(row.to_addresses).map(a => ({ email: a.email, name: a.name || a.email })),
+          ...this.addressList(row.cc_addresses).map(a => ({ email: a.email, name: a.name || a.email })),
+        ];
+        for (const p of participants) {
+          if (!p.email || p.email === own) continue;
+          const existing = people.get(p.email);
+          if (existing) existing.interaction_count++;
+          else people.set(p.email, { ...p, interaction_count: 1, last_interaction_at: row.created_at });
+        }
+      }
+      const extraByContact = new Map<string, string[]>();
+      for (const row of contactEmails) extraByContact.set(row.contact_id, [...(extraByContact.get(row.contact_id) || []), row.email.toLowerCase()]);
+      const frequent = contacts.map(c => {
+        const address = [c.email?.toLowerCase(), ...(extraByContact.get(c.id) || [])].find(email => email && people.has(email));
+        const item = address ? people.get(address) : undefined;
+        return item ? { contact_id: c.id, ...item } : null;
+      }).filter(Boolean).sort((a: any, b: any) => b.interaction_count - a.interaction_count).slice(0, 50);
+      const other = [...people.values()].filter(p => !saved.has(p.email)).sort((a, b) => b.interaction_count - a.interaction_count).slice(0, 100);
+      return { frequent, other };
     });
   }
 }

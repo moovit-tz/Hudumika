@@ -1,33 +1,41 @@
 import React, { useState } from 'react';
-import { Icon } from '../../../components/Icon.js';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle } from '../../../components/ui/dialog.js';
+import { Button } from '../../../components/ui/button.js';
+import { ButtonSpinner } from '../../../components/ui/spinner.js';
 import type { CloudFile } from '../../../shells/cloud-context.js';
 
-export function RenameModal({ item, onClose, onRename }: { item: CloudFile; onClose: () => void; onRename: (name: string) => void }) {
+/** Closes only after the rename really succeeded; a failure stays visible in the dialog. */
+export function RenameModal({ item, onClose, onRename }: { item: CloudFile; onClose: () => void; onRename: (name: string) => Promise<void> }) {
   const [value, setValue] = useState(item.name);
-  function confirm() {
-    if (!value.trim()) return;
-    onRename(value.trim());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function confirm() {
+    const name = value.trim();
+    if (!name || busy) return;
+    setBusy(true); setError(null);
+    try { await onRename(name); onClose(); }
+    catch (err: any) { setError(err?.message || 'Could not rename.'); }
+    finally { setBusy(false); }
   }
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="card" style={{ width: 380, padding: 24 }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Rename {item.type === 'folder' ? 'folder' : 'file'}</span>
-          <button onClick={onClose} className="dp-close" aria-label="Close"><Icon name="close" size={16} /></button>
-        </div>
-        <input
-          autoFocus
-          value={value}
-          onChange={e => setValue(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') confirm(); }}
-          className="input-field"
-          style={{ width: '100%', marginBottom: 20 }}
-        />
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} className="btn btn-secondary btn-sm">Cancel</button>
-          <button onClick={confirm} className="btn btn-primary btn-sm" disabled={!value.trim()}>Save</button>
-        </div>
-      </div>
-    </div>
+    <Dialog open onOpenChange={o => { if (!o && !busy) onClose(); }}>
+      <DialogContent size="sm">
+        <DialogHeader><DialogTitle>Rename {item.type === 'folder' ? 'folder' : 'file'}</DialogTitle></DialogHeader>
+        <DialogBody>
+          <input
+            autoFocus value={value} onChange={e => setValue(e.target.value)} disabled={busy}
+            onKeyDown={e => { if (e.key === 'Enter') void confirm(); }}
+            className="input-field" style={{ width: '100%' }} aria-label="Name"
+          />
+          {error && <div role="alert" style={{ color: 'var(--red)', fontSize: 13, marginTop: 10 }}>{error}</div>}
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button onClick={confirm} disabled={!value.trim() || busy}>{busy ? <><ButtonSpinner /> Saving…</> : 'Save'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

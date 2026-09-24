@@ -1,14 +1,98 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import sanitizeHtml from 'sanitize-html';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { withTenant } from '../db/client.js';
 
 const labelSchema = z.object({ name: z.string().trim().min(1).max(60), color: z.string().trim().max(20).optional(), hidden: z.boolean().optional() });
+const TEMPLATE_CATEGORIES = ['General', 'Transactional & Billing', 'Support & Service', 'Account & Staff'] as const;
 const templateSchema = z.object({
   name: z.string().trim().min(1).max(100),
   subject: z.string().max(500).optional(),
-  body: z.string().optional(),
+  body: z.string().max(100_000).optional(),
+  // Plain-text editors legitimately serialize this as null. Accepting null
+  // here keeps the wire contract aligned with the nullable database column;
+  // HTML mode is validated explicitly in the handlers below.
+  body_html: z.string().max(500_000).nullable().optional(),
+  is_html: z.boolean().optional(),
+  category: z.enum(TEMPLATE_CATEGORIES).optional(),
+  group_id: z.string().uuid().nullable().optional(),
+  sort_order: z.number().int().min(0).optional(),
 });
+const groupSchema = z.object({ name: z.string().trim().min(1).max(100) });
+
+const MAX_HTML_BYTES = 500_000;
+
+function decodeQuotedPrintableHtml(raw: string): string {
+  const encodedEquals = raw.match(/=3D/gi)?.length ?? 0;
+  const softBreaks = raw.match(/=\r?\n/g)?.length ?? 0;
+  if (encodedEquals < 2 || softBreaks < 1) return raw;
+
+  const unfolded = raw.replace(/=\r?\n/g, '');
+  const bytes: number[] = [];
+  for (let i = 0; i < unfolded.length;) {
+    const encodedByte = unfolded.slice(i).match(/^=([0-9a-f]{2})/i);
+    if (encodedByte) {
+      bytes.push(Number.parseInt(encodedByte[1], 16));
+      i += 3;
+      continue;
+    }
+    const codePoint = String.fromCodePoint(unfolded.codePointAt(i)!);
+    bytes.push(...Buffer.from(codePoint, 'utf8'));
+    i += codePoint.length;
+  }
+  return Buffer.from(bytes).toString('utf8');
+}
+
+/**
+ * Sanitize untrusted HTML for use as an email body.
+ * Allows the full set of tags a legitimate HTML email would use while
+ * stripping all script execution surfaces (scripts, event handlers,
+ * javascript: URLs, data: URIs on non-image tags).
+ */
+export function sanitizeEmailHtml(raw: string): string {
+  return sanitizeHtml(decodeQuotedPrintableHtml(raw), {
+    allowedTags: [
+      // Document structure (needed for full .html file imports)
+      'html', 'head', 'body', 'meta', 'title',
+      // Block / layout
+      'div', 'section', 'article', 'header', 'footer', 'main',
+      'p', 'blockquote', 'pre', 'hr', 'br', 'center',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+      // Inline
+      'span', 'a', 'strong', 'b', 'em', 'i', 'u', 's', 'del', 'ins',
+      'small', 'sub', 'sup', 'abbr', 'cite', 'code',
+      // Media
+      'img', 'figure', 'figcaption',
+      // Tables (common in email HTML)
+      'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption',
+      // Legacy email-safe presentational
+      'font',
+    ],
+    allowedAttributes: {
+      '*': ['style', 'class', 'id', 'dir', 'lang', 'align', 'valign',
+            'width', 'height', 'bgcolor', 'color', 'border',
+            'cellpadding', 'cellspacing'],
+      'a': ['href', 'name', 'target', 'rel', 'title'],
+      'img': ['src', 'alt', 'title', 'width', 'height', 'style'],
+      'td': ['colspan', 'rowspan', 'nowrap'],
+      'th': ['colspan', 'rowspan', 'scope'],
+      'meta': ['charset', 'name', 'content'],
+      'table': ['summary'],
+    },
+    // Allow http/https/mailto on links; allow data URIs only on images
+    // (embedded inline images are legitimate in HTML email templates).
+    allowedSchemes: ['http', 'https', 'mailto'],
+    allowedSchemesByTag: { img: ['http', 'https', 'data', 'cid'] },
+    allowedSchemesAppliedToAttributes: ['href', 'src', 'action'],
+    disallowedTagsMode: 'discard',
+    // Email designs retain inline styles, while <style> blocks are removed.
+    // sanitize-html flags stored style tags as an inherent XSS surface; an
+    // enterprise editor should not accept that risk merely for convenience.
+    allowedStyles: {},
+  });
+}
 
 /**
  * Per-user email_labels (replaces the hardcoded Finance/Shipments/HR/Urgent
@@ -98,19 +182,104 @@ export async function emailMetaRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // Template groups are personal to this mailbox user.
+  fastify.get('/template-groups', async (request: any) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, (trx) => trx.selectFrom('email_template_groups').selectAll()
+      .where('tenant_id', '=', user.tenant_id).where('scope', '=', 'personal').where('user_id', '=', user.sub)
+      .orderBy('sort_order').orderBy('name').execute());
+  });
+
+  fastify.post('/template-groups', async (request: any, reply) => {
+    const user = request.user; const { name } = groupSchema.parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const last = await trx.selectFrom('email_template_groups').select('sort_order').where('tenant_id', '=', user.tenant_id).where('scope', '=', 'personal').where('user_id', '=', user.sub).orderBy('sort_order', 'desc').executeTakeFirst();
+      const row = await trx.insertInto('email_template_groups').values({ tenant_id: user.tenant_id, user_id: user.sub, scope: 'personal', name, sort_order: (last?.sort_order ?? -1) + 1 }).returningAll().executeTakeFirstOrThrow();
+      reply.status(201); return row;
+    });
+  });
+
+  fastify.patch('/template-groups/:id', async (request: any, reply) => {
+    const user = request.user; const { id } = request.params as { id: string }; const { name } = groupSchema.parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.updateTable('email_template_groups').set({ name, updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('scope', '=', 'personal').where('user_id', '=', user.sub).returningAll().executeTakeFirst();
+      if (!row) return reply.status(404).send({ error: 'Template group not found' }); return row;
+    });
+  });
+
+  fastify.delete('/template-groups/:id', async (request: any, reply) => {
+    const user = request.user; const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.deleteFrom('email_template_groups').where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('scope', '=', 'personal').where('user_id', '=', user.sub).returning('id').executeTakeFirst();
+      if (!row) return reply.status(404).send({ error: 'Template group not found' }); return reply.status(204).send();
+    });
+  });
+
+  fastify.put('/template-groups/order', async (request: any) => {
+    const user = request.user; const { ids } = z.object({ ids: z.array(z.string().uuid()) }).parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      for (const [sort_order, id] of ids.entries()) await trx.updateTable('email_template_groups').set({ sort_order, updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('scope', '=', 'personal').where('user_id', '=', user.sub).execute();
+      return { ok: true };
+    });
+  });
+
+  fastify.put('/quick-templates/order', async (request: any, reply) => {
+    const user = request.user; const body = z.object({ group_id: z.string().uuid().nullable(), ids: z.array(z.string().uuid()) }).parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      if (body.group_id) {
+        const group = await trx.selectFrom('email_template_groups').select('id').where('id', '=', body.group_id).where('tenant_id', '=', user.tenant_id).where('scope', '=', 'personal').where('user_id', '=', user.sub).executeTakeFirst();
+        if (!group) return reply.status(400).send({ error: 'Invalid template group' });
+      }
+      for (const [sort_order, id] of body.ids.entries()) await trx.updateTable('email_quick_templates').set({ group_id: body.group_id, sort_order, updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).execute();
+      return { ok: true };
+    });
+  });
+
   // ── Quick-reply / canned-response templates ─────────────────────────────
   fastify.get('/quick-templates', async (request: any) => {
     const user = request.user;
     return withTenant(user.tenant_id, (trx) =>
-      trx.selectFrom('email_quick_templates').selectAll().where('user_id', '=', user.sub).orderBy('name', 'asc').execute());
+      trx.selectFrom('email_quick_templates').selectAll().where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).orderBy('sort_order').orderBy('name', 'asc').execute());
+  });
+
+  // POST /quick-templates/import-html — server-side sanitize an HTML file
+  // submitted from the template editor's "Import .html file" button.
+  // The client reads the file and sends raw HTML; this endpoint strips all
+  // script / event-handler surfaces via sanitize-html and returns the safe
+  // result so the editor can preview and store it.
+  fastify.post('/quick-templates/import-html', async (request: any, reply) => {
+    const body = request.body as { html?: unknown };
+    if (typeof body.html !== 'string' || !body.html.trim()) {
+      return reply.status(400).send({ error: 'html field is required and must be a non-empty string.' });
+    }
+    if (Buffer.byteLength(body.html, 'utf8') > MAX_HTML_BYTES) {
+      return reply.status(400).send({ error: 'HTML file too large (max 500 KB).' });
+    }
+    return { html: sanitizeEmailHtml(body.html) };
   });
 
   fastify.post('/quick-templates', async (request: any, reply) => {
     const user = request.user;
     const b = templateSchema.parse(request.body);
+    if (b.is_html && !b.body_html?.trim()) {
+      return reply.status(400).send({ error: 'HTML templates require a non-empty body_html.' });
+    }
+    if (!b.is_html && !b.body?.trim()) {
+      return reply.status(400).send({ error: 'Plain-text templates require a non-empty body.' });
+    }
+    const sanitizedHtml = b.is_html && b.body_html ? sanitizeEmailHtml(b.body_html) : null;
     return withTenant(user.tenant_id, async (trx) => {
       const row = await trx.insertInto('email_quick_templates').values({
-        tenant_id: user.tenant_id, user_id: user.sub, name: b.name, subject: b.subject ?? '', body: b.body ?? '',
+        tenant_id: user.tenant_id,
+        user_id: user.sub,
+        name: b.name,
+        subject: b.subject ?? '',
+        body: b.body ?? '',
+        body_html: sanitizedHtml,
+        is_html: b.is_html ?? false,
+        category: b.category ?? 'General',
+        group_id: b.group_id ?? null,
+        sort_order: b.sort_order ?? 0,
       }).returningAll().executeTakeFirstOrThrow();
       reply.status(201);
       return row;
@@ -121,10 +290,20 @@ export async function emailMetaRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     const b = templateSchema.partial().parse(request.body);
+    if (b.is_html === true && !b.body_html?.trim()) {
+      return reply.status(400).send({ error: 'HTML templates require a non-empty body_html.' });
+    }
     const patch: Record<string, any> = { updated_at: new Date() };
     if (b.name !== undefined) patch.name = b.name;
     if (b.subject !== undefined) patch.subject = b.subject;
     if (b.body !== undefined) patch.body = b.body;
+    if (b.is_html !== undefined) patch.is_html = b.is_html;
+    if (b.body_html !== undefined) {
+      patch.body_html = b.is_html && b.body_html ? sanitizeEmailHtml(b.body_html) : null;
+    }
+    if (b.category !== undefined) patch.category = b.category;
+    if (b.group_id !== undefined) patch.group_id = b.group_id;
+    if (b.sort_order !== undefined) patch.sort_order = b.sort_order;
     return withTenant(user.tenant_id, async (trx) => {
       const row = await trx.updateTable('email_quick_templates').set(patch).where('id', '=', id).where('user_id', '=', user.sub).returningAll().executeTakeFirst();
       if (!row) return reply.status(404).send({ error: 'Template not found' });

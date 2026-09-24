@@ -27,7 +27,19 @@ const CATEGORY_APP: Record<string, string> = {
   staff:     'nexushr',
   drivers:   'tracking',
   vehicles:  'tracking',
+  emails:    'email',
+  people:    'contacts',
+  organizations: 'contacts',
 };
+
+const MANAGEMENT = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER']);
+function allowedCategories(role: string): Set<string> {
+  if (MANAGEMENT.has(role)) return new Set(Object.keys(CATEGORY_APP));
+  if (role === 'FINANCE') return new Set(['shipments', 'customers', 'invoices', 'emails', 'people', 'organizations']);
+  if (role === 'SALES') return new Set(['shipments', 'customers', 'emails', 'people', 'organizations']);
+  if (role === 'SENIOR' || role === 'JUNIOR' || role === 'OFFICER') return new Set(['shipments', 'customers', 'emails', 'people', 'organizations']);
+  return new Set();
+}
 
 /**
  * GET /v1/search?q=…&app=… — cross-app keyword search used by the header
@@ -66,6 +78,7 @@ export async function searchRoutes(fastify: FastifyInstance) {
     const app = ((request.query as any).app as string || '').trim();
     if (q.length < 2) return { data: {}, order: [] };
     const like = `%${q}%`;
+    const allowed = allowedCategories(user.role);
 
     /** How many rows this category gets, given where the search came from. */
     const cap = (category: string) =>
@@ -84,7 +97,7 @@ export async function searchRoutes(fastify: FastifyInstance) {
        * workspace with 4 invoices came back with 10, three of them another
        * company's, with names and reference numbers visible in the dropdown.
        */
-      const [shipments, customers, invoices, staff, drivers, vehicles] = await Promise.all([
+      const [shipments, customers, invoices, staff, drivers, vehicles, emails] = await Promise.all([
         trx.selectFrom('shipment_cases')
           .select(['id', 'ref_number', 'goods_desc', 'bl_number', 'awb_number', 'tansad_number'])
           .where('tenant_id', '=', user.tenant_id)
@@ -142,33 +155,71 @@ export async function searchRoutes(fastify: FastifyInstance) {
             eb('model', 'ilike', like),
           ]))
           .limit(cap('vehicles')).execute(),
+        trx.selectFrom('email_messages')
+          .select(['id', 'subject', 'from_name', 'from_email', 'snippet', 'created_at'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('user_id', '=', user.sub)
+          .where(eb => eb.or([
+            eb('subject', 'ilike', like),
+            eb('body', 'ilike', like),
+            eb('from_name', 'ilike', like),
+            eb('from_email', 'ilike', like),
+          ]))
+          .orderBy('created_at', 'desc')
+          .limit(cap('emails')).execute(),
       ]);
 
       const data: Record<string, SearchHit[]> = {};
 
-      if (shipments.length) data.shipments = shipments.map(s => ({
+      // Canonical directory results honor Party visibility in SQL. A private
+      // person's name must not leak through global search merely because the
+      // caller knows part of it.
+      const partyVisibility = (eb: any) => eb.or([
+        eb('parties.visibility', '=', 'TENANT'),
+        eb('parties.owner_user_id', '=', user.sub),
+        eb('parties.id', 'in', trx.selectFrom('party_shares').select('party_id')
+          .where('tenant_id', '=', user.tenant_id).where('principal_type', '=', 'USER').where('principal_id', '=', user.sub)),
+      ]);
+      const [people, organizations] = await Promise.all([
+        allowed.has('people') ? trx.selectFrom('parties').select(['id', 'display_name'])
+          .where('tenant_id', '=', user.tenant_id).where('party_type', '=', 'PERSON').where('status', '=', 'ACTIVE')
+          .where(partyVisibility).where('display_name', 'ilike', like).limit(cap('people')).execute() : [],
+        allowed.has('organizations') ? trx.selectFrom('parties').select(['id', 'display_name'])
+          .where('tenant_id', '=', user.tenant_id).where('party_type', '=', 'ORGANIZATION').where('status', '=', 'ACTIVE')
+          .where(partyVisibility).where('display_name', 'ilike', like).limit(cap('organizations')).execute() : [],
+      ]);
+      if (people.length) data.people = people.map(p => ({ id: p.id, label: p.display_name, sublabel: 'Person', path: `/contacts/contact/${p.id}` }));
+      if (organizations.length) data.organizations = organizations.map(p => ({ id: p.id, label: p.display_name, sublabel: 'Organization', path: '/contacts' }));
+
+      if (allowed.has('shipments') && shipments.length) data.shipments = shipments.map(s => ({
         id: s.id, label: s.ref_number, sublabel: s.goods_desc || s.bl_number || s.awb_number || null,
         path: `/clearos/clearance/${s.id}`,
       }));
-      if (customers.length) data.customers = customers.map(c => ({
+      if (allowed.has('customers') && customers.length) data.customers = customers.map(c => ({
         id: c.id, label: c.name, sublabel: c.email || c.phone_wa || null,
         path: `/crm/customers?id=${c.id}`,
       }));
-      if (invoices.length) data.invoices = invoices.map(i => ({
+      if (allowed.has('invoices') && invoices.length) data.invoices = invoices.map(i => ({
         id: i.id, label: i.invoice_number, sublabel: i.client_name || i.bl_number || null,
         path: `/finops/invoices`,
       }));
-      if (staff.length) data.staff = staff.map(u => ({
+      if (allowed.has('staff') && staff.length) data.staff = staff.map(u => ({
         id: u.id, label: u.name, sublabel: u.email,
         path: `/nexushr/staff/${u.id}`,
       }));
-      if (drivers.length) data.drivers = drivers.map(d => ({
+      if (allowed.has('drivers') && drivers.length) data.drivers = drivers.map(d => ({
         id: d.id, label: d.name, sublabel: d.license_number || d.phone || null,
         path: `/tracking/drivers/${d.id}`,
       }));
-      if (vehicles.length) data.vehicles = vehicles.map(v => ({
+      if (allowed.has('vehicles') && vehicles.length) data.vehicles = vehicles.map(v => ({
         id: v.id, label: v.plate_number || `${v.make || ''} ${v.model || ''}`.trim(), sublabel: [v.make, v.model].filter(Boolean).join(' ') || null,
         path: `/tracking/vehicles/${v.id}`,
+      }));
+      if (allowed.has('emails') && emails.length) data.emails = emails.map(m => ({
+        id: m.id,
+        label: m.subject || '(no subject)',
+        sublabel: m.from_name || m.from_email || m.snippet || null,
+        path: `/email?q=${encodeURIComponent(q)}`,
       }));
 
       /**

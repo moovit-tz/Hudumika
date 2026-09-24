@@ -1,19 +1,21 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiDownload } from '../lib/api.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
-import { PersonAvatar } from '../components/PersonAvatar.js';
+import { PersonAvatar, CompanyAvatar } from '../components/PersonAvatar.js';
+import { PartyShareDialog } from '../components/PartyShareDialog.js';
+import { CompanyLinkSuggestions } from '../components/CompanyLinkSuggestions.js';
 import { useContacts } from '../shells/contacts-context.js';
-import type { Contact, ContactActivityEntry, ContactEmail, ContactPhone, SortBy, SmartGroup } from '../shells/contacts-context.js';
+import type { Contact, ContactVisibility, ContactActivityEntry, ContactEmail, ContactPhone, SortBy, SmartGroup } from '../shells/contacts-context.js';
 import { labelDescendantMap } from './contacts/labelTree.js';
 import { SmartGroupEditor } from './contacts/SmartGroupEditor.js';
 import { describeRule } from './contacts/smartGroupFields.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
@@ -24,6 +26,8 @@ import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTi
 import { Banner } from '../components/ui/alert.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { showAlert } from '../lib/alert.js';
+import { PaginationBar } from '../components/PaginationBar.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 const MODAL_STEPS: { key: 'profile' | 'contact' | 'business' | 'extra'; label: string; icon: IconName }[] = [
   { key: 'profile',  label: 'Profile',        icon: 'user'     },
@@ -81,6 +85,824 @@ function summarizeSmartGroup(group: SmartGroup, labelName: (id: string) => strin
   return group.rules.map(r => describeRule(r, labelName)).join(sep);
 }
 
+interface SpecialPersonRow {
+  contact_id?: string;
+  id?: string;
+  name?: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  interaction_count?: number;
+  last_interaction_at?: string | Date;
+}
+
+function inferEntityType(row: SpecialPersonRow): 'contact' | 'company' {
+  const email = (row.email || '').toLowerCase().trim();
+  const name = (row.name || '').toLowerCase().trim();
+
+  const companyEmailPrefixes = /^(info|sales|support|admin|billing|contact|hello|help|finance|office|team|orders|accounts|service|operations|inquiry|inquiries|hr|press|media|marketing|customs|shipping|logistics)@/i;
+  if (companyEmailPrefixes.test(email)) return 'company';
+
+  const companyNameKeywords = /\b(ltd|limited|inc|incorporated|llc|corp|corporation|group|enterprises|logistics|freight|services|solutions|technologies|tech|holdings|agency|bank|co|company|associates|consulting|industries|transporters|haulage|clearing|forwarding)\b/i;
+  if (companyNameKeywords.test(name)) return 'company';
+
+  return 'contact';
+}
+
+function extractDomainCompany(email: string): string | null {
+  const domain = (email || '').split('@')[1] || '';
+  const isGenericDomain = /^(gmail|yahoo|hotmail|outlook|icloud|aol|mail|proton|zoho|live|msn)\./i.test(domain);
+  if (isGenericDomain || !domain) return null;
+  const base = domain.split('.')[0];
+  return base.replace(/^./, (c: string) => c.toUpperCase());
+}
+
+function ContactsSpecialView({ view, loading, directory, discovery, contacts, onOpen, onSave, onRefresh }: {
+  view: 'directory' | 'frequent' | 'other'; loading: boolean; directory: any[];
+  discovery: { frequent: any[]; other: any[] }; contacts: Contact[];
+  onOpen: (contact: Contact) => void; onSave: (person: any) => void;
+  onRefresh?: () => Promise<void>;
+}) {
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'contact' | 'company'>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+  const [entityTypeOverrides, setEntityTypeOverrides] = useState<Record<string, 'contact' | 'company'>>({});
+  const [modalNameOverrides, setModalNameOverrides] = useState<Record<string, string>>({});
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [busyEmail, setBusyEmail] = useState<string | null>(null);
+
+  // ── Directory — full table view ──────────────────────────────────────────
+  if (view === 'directory') {
+    const q = searchTerm.trim().toLowerCase();
+    const filtered = q
+      ? directory.filter(r =>
+          r.name?.toLowerCase().includes(q) ||
+          r.email?.toLowerCase().includes(q) ||
+          r.phone?.toLowerCase().includes(q)
+        )
+      : directory;
+
+    const total = filtered.length;
+    const paginatedDir = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+    return (
+      <div className="cts-special-view cts-dir-view">
+        <div className="cts-dir-page-head">
+          <PageHeader
+            crumbs={['Contacts']}
+            titlePlain="Workspace"
+            titleEm="directory"
+            subtitle={`Active members of your workspace${directory.length ? ` — ${directory.length} people` : ''}.`}
+          />
+          <div className="cts-dir-toolbar">
+            <div className="cts-dir-search">
+              <Icon name="search" size={15} />
+              <input
+                value={searchTerm}
+                onChange={e => { setSearchTerm(e.target.value); setPage(1); }}
+                placeholder="Search by name, email or phone…"
+                aria-label="Search directory"
+              />
+              {searchTerm && (
+                <button type="button" onClick={() => { setSearchTerm(''); setPage(1); }} aria-label="Clear">
+                  <Icon name="x" size={13} />
+                </button>
+              )}
+            </div>
+            <span className="cts-dir-count">{filtered.length} member{filtered.length !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+
+        <div className="cts-dir-table-wrap">
+          {loading ? (
+            <SectionLoading label="Loading directory…" />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', justifyContent: 'space-between' }}>
+              <table className="cts-dir-table">
+                <colgroup>
+                  <col className="cts-dir-col--name" />
+                  <col className="cts-dir-col--email" />
+                  <col className="cts-dir-col--phone" />
+                  <col className="cts-dir-col--role" />
+                  <col className="cts-dir-col--actions" />
+                </colgroup>
+                <thead>
+                  <tr className="cts-dir-thead-row">
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone number</th>
+                    <th>Role</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedDir.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="cts-dir-empty-cell">
+                        {searchTerm ? `No members match "${searchTerm}".` : 'No active members found.'}
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedDir.map(row => (
+                      <tr
+                        key={row.id}
+                        className="cts-dir-row"
+                        tabIndex={0}
+                        role="link"
+                        aria-label={`Open ${row.name}'s NexusHR profile`}
+                        onClick={() => navigate(`/nexushr/staff/${row.id}`)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            navigate(`/nexushr/staff/${row.id}`);
+                          }
+                        }}
+                      >
+                        <td className="cts-dir-name-cell">
+                          <PersonAvatar userId={row.id} kind="people" name={row.name} size={32} />
+                          <span className="cts-dir-name">{row.name}</span>
+                        </td>
+                        <td className="cts-dir-cell">
+                          {row.email ? (
+                            <button
+                              type="button"
+                              className="cts-dir-email-btn"
+                              onClick={e => { e.stopPropagation(); navigate(`/email?compose=1&to=${encodeURIComponent(row.email)}`); }}
+                            >
+                              {row.email}
+                            </button>
+                          ) : <span className="cts-dir-dash">—</span>}
+                        </td>
+                        <td className="cts-dir-cell">
+                          {row.phone || <span className="cts-dir-dash">—</span>}
+                        </td>
+                        <td className="cts-dir-cell">
+                          {row.role ? (
+                            <Badge variant="gray" style={{ textTransform: 'capitalize' }}>
+                              {row.role.replaceAll('_', ' ').toLowerCase()}
+                            </Badge>
+                          ) : <span className="cts-dir-dash">—</span>}
+                        </td>
+                        <td className="cts-dir-actions-cell">
+                          {row.email && (
+                            <Tip label={`Email ${row.name}`}>
+                              <button
+                                type="button"
+                                className="cts-dir-action-btn"
+                                onClick={e => { e.stopPropagation(); navigate(`/email?compose=1&to=${encodeURIComponent(row.email)}`); }}
+                              >
+                                <Icon name="mail" size={15} />
+                              </button>
+                            </Tip>
+                          )}
+                          {row.phone && (
+                            <Tip label={`Call ${row.name} by phone`}>
+                              <a
+                                className="cts-dir-action-btn"
+                                href={`tel:${row.phone}`}
+                                onClick={e => e.stopPropagation()}
+                                aria-label={`Call ${row.name} by phone`}
+                              >
+                                <Icon name="phone" size={15} />
+                              </a>
+                            </Tip>
+                          )}
+                          <Tip label={`Start a workspace voice call with ${row.name}`}>
+                            <button
+                              type="button"
+                              className="cts-dir-action-btn"
+                              onClick={e => { e.stopPropagation(); navigate(`/bliss/calls?call=${row.id}&kind=VOICE`); }}
+                            >
+                              <Icon name="headphones" size={15} />
+                            </button>
+                          </Tip>
+                          <Tip label={`Start a video call with ${row.name}`}>
+                            <button
+                              type="button"
+                              className="cts-dir-action-btn"
+                              onClick={e => { e.stopPropagation(); navigate(`/bliss/calls?call=${row.id}&kind=VIDEO`); }}
+                            >
+                              <Icon name="video" size={15} />
+                            </button>
+                          </Tip>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+              <PaginationBar
+                page={page}
+                pageSize={pageSize}
+                total={total}
+                onPageChange={setPage}
+                onPageSizeChange={s => { setPageSize(s); setPage(1); }}
+                pageSizeOptions={[10, 20, 50, 100]}
+                itemLabel="member"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Frequent / Other views — compressed table with bulk CRM import & pagination ────
+  const title = view === 'frequent' ? 'Frequent contacts' : 'Other contacts';
+  const subtitle = view === 'frequent'
+    ? 'Saved contacts you communicate with most.'
+    : 'People and companies found in your mailbox who are not yet saved to CRM.';
+  const allRows: SpecialPersonRow[] = view === 'frequent' ? discovery.frequent : discovery.other;
+
+  const getType = (row: SpecialPersonRow): 'contact' | 'company' => {
+    return entityTypeOverrides[row.email] || inferEntityType(row);
+  };
+
+  const toggleType = (email: string) => {
+    const row = allRows.find(r => r.email === email);
+    if (!row) return;
+    const current = getType(row);
+    const next = current === 'contact' ? 'company' : 'contact';
+    setEntityTypeOverrides(prev => ({ ...prev, [email]: next }));
+  };
+
+  const q = searchTerm.trim().toLowerCase();
+  const filteredRows = allRows.filter((r: SpecialPersonRow) => {
+    if (q) {
+      const matchName = (r.name || '').toLowerCase().includes(q);
+      const matchEmail = (r.email || '').toLowerCase().includes(q);
+      if (!matchName && !matchEmail) return false;
+    }
+    if (filterType !== 'all') {
+      const t = getType(r);
+      if (t !== filterType) return false;
+    }
+    return true;
+  });
+
+  const total = filteredRows.length;
+  const paginatedRows = filteredRows.slice((page - 1) * pageSize, page * pageSize);
+
+  const currentPageAllSelected = paginatedRows.length > 0 && paginatedRows.every(r => selectedEmails.has(r.email));
+
+  const toggleSelectPage = () => {
+    const next = new Set(selectedEmails);
+    if (currentPageAllSelected) {
+      paginatedRows.forEach(r => next.delete(r.email));
+    } else {
+      paginatedRows.forEach(r => next.add(r.email));
+    }
+    setSelectedEmails(next);
+  };
+
+  const toggleSelectRow = (email: string) => {
+    const next = new Set(selectedEmails);
+    if (next.has(email)) next.delete(email);
+    else next.add(email);
+    setSelectedEmails(next);
+  };
+
+  const clearSelection = () => {
+    setSelectedEmails(new Set());
+  };
+
+  const importSingleItem = async (row: SpecialPersonRow, type: 'contact' | 'company', customName?: string) => {
+    setBusyEmail(row.email);
+    try {
+      const effectiveName = customName || row.name || row.email;
+      if (type === 'contact') {
+        const parts = String(effectiveName).trim().split(/\s+/);
+        const firstName = parts.shift() || row.email;
+        const lastName = parts.join(' ') || null;
+        const guessedCompany = extractDomainCompany(row.email);
+        await apiFetch('/v1/contacts', {
+          method: 'POST',
+          body: JSON.stringify({
+            first_name: firstName,
+            last_name: lastName,
+            email: row.email,
+            company: guessedCompany,
+            source: 'email_discovery',
+          }),
+        });
+        showAlert(`Saved "${effectiveName}" as CRM Contact.`, { variant: 'success' });
+      } else {
+        const domainCompany = extractDomainCompany(row.email) || 'Company';
+        const companyName = (effectiveName && effectiveName !== row.email) ? effectiveName : domainCompany;
+        const contactPerson = (row.name && row.name !== row.email) ? row.name : null;
+        await apiFetch('/v1/customers', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: companyName,
+            contact_name: contactPerson,
+            email: row.email,
+            category: 'sme',
+          }),
+        });
+        showAlert(`Saved "${companyName}" as CRM Company.`, { variant: 'success' });
+      }
+      if (onRefresh) await onRefresh();
+    } catch (err: any) {
+      showAlert(err.message || `Could not save as ${type}.`);
+    } finally {
+      setBusyEmail(null);
+    }
+  };
+
+  const handleBulkImport = async (targetMode: 'contact' | 'company' | 'auto') => {
+    if (selectedEmails.size === 0) return;
+    setBulkBusy(true);
+    const selectedRows = allRows.filter(r => selectedEmails.has(r.email));
+    let contactCount = 0;
+    let companyCount = 0;
+    const errors: string[] = [];
+
+    const results = await Promise.allSettled(selectedRows.map(async (row) => {
+      const type = targetMode === 'auto' ? getType(row) : targetMode;
+      const customName = modalNameOverrides[row.email] || row.name || row.email;
+      if (type === 'contact') {
+        const parts = String(customName).trim().split(/\s+/);
+        const firstName = parts.shift() || row.email;
+        const lastName = parts.join(' ') || null;
+        const guessedCompany = extractDomainCompany(row.email);
+        await apiFetch('/v1/contacts', {
+          method: 'POST',
+          body: JSON.stringify({
+            first_name: firstName,
+            last_name: lastName,
+            email: row.email,
+            company: guessedCompany,
+            source: 'email_discovery',
+          }),
+        });
+        contactCount++;
+      } else {
+        const domainCompany = extractDomainCompany(row.email) || 'Company';
+        const companyName = (customName && customName !== row.email) ? customName : domainCompany;
+        const contactPerson = (row.name && row.name !== row.email) ? row.name : null;
+        await apiFetch('/v1/customers', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: companyName,
+            contact_name: contactPerson,
+            email: row.email,
+            category: 'sme',
+          }),
+        });
+        companyCount++;
+      }
+    }));
+
+    results.forEach((res, i) => {
+      if (res.status === 'rejected') {
+        errors.push(`${selectedRows[i]?.email}: ${res.reason?.message || 'Failed'}`);
+      }
+    });
+
+    setBulkBusy(false);
+    clearSelection();
+    setShowReviewModal(false);
+
+    if (errors.length === 0) {
+      const parts = [];
+      if (contactCount > 0) parts.push(`${contactCount} contact${contactCount !== 1 ? 's' : ''}`);
+      if (companyCount > 0) parts.push(`${companyCount} compan${companyCount !== 1 ? 'ies' : 'y'}`);
+      showAlert(`Successfully imported ${parts.join(' and ')} to CRM.`, { variant: 'success' });
+    } else {
+      showAlert(`Imported with ${errors.length} error${errors.length !== 1 ? 's' : ''}.`);
+    }
+
+    if (onRefresh) await onRefresh();
+  };
+
+  const selectedRows = allRows.filter(r => selectedEmails.has(r.email));
+  const contactCounts = allRows.filter(r => getType(r) === 'contact').length;
+  const companyCounts = allRows.filter(r => getType(r) === 'company').length;
+
+  return (
+    <div className="cts-special-view">
+      <div className="cts-special-page-head">
+        <PageHeader
+          crumbs={['Contacts']}
+          titlePlain={title.split(' ').slice(0, -1).join(' ') || 'Contact'}
+          titleEm={title.split(' ').at(-1)!}
+          subtitle={subtitle}
+        />
+
+        {/* Bulk Action Bar */}
+        {selectedEmails.size > 0 && (
+          <div className="cts-special-bulk-bar">
+            <div className="cts-special-bulk-left">
+              <span className="cts-special-bulk-count">{selectedEmails.size} selected</span>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={clearSelection}>
+                Deselect all
+              </button>
+            </div>
+            <div className="cts-special-bulk-right">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => handleBulkImport('contact')}
+                disabled={bulkBusy}
+              >
+                <Icon name="user" size={13} />
+                Import as Contacts ({selectedEmails.size})
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => handleBulkImport('company')}
+                disabled={bulkBusy}
+              >
+                <Icon name="building" size={13} />
+                Import as Companies ({selectedEmails.size})
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleBulkImport('auto')}
+                disabled={bulkBusy}
+              >
+                <Icon name="upload" size={13} />
+                Smart Import to CRM ({selectedEmails.size})
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setShowReviewModal(true)}
+                disabled={bulkBusy}
+              >
+                Review & Import…
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Special Toolbar */}
+        <div className="cts-special-toolbar">
+          <div className="cts-special-filters">
+            <button
+              type="button"
+              className={`cts-special-filter-tab${filterType === 'all' ? ' cts-special-filter-tab--active' : ''}`}
+              onClick={() => { setFilterType('all'); setPage(1); }}
+            >
+              All ({allRows.length})
+            </button>
+            <button
+              type="button"
+              className={`cts-special-filter-tab${filterType === 'contact' ? ' cts-special-filter-tab--active' : ''}`}
+              onClick={() => { setFilterType('contact'); setPage(1); }}
+            >
+              <Icon name="user" size={12} />
+              Contacts ({contactCounts})
+            </button>
+            <button
+              type="button"
+              className={`cts-special-filter-tab${filterType === 'company' ? ' cts-special-filter-tab--active' : ''}`}
+              onClick={() => { setFilterType('company'); setPage(1); }}
+            >
+              <Icon name="building" size={12} />
+              Companies ({companyCounts})
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="cts-special-search">
+              <Icon name="search" size={14} color="var(--ink3)" />
+              <input
+                placeholder="Search by name or email…"
+                value={searchTerm}
+                onChange={e => { setSearchTerm(e.target.value); setPage(1); }}
+                aria-label="Search contacts"
+              />
+              {searchTerm && (
+                <button type="button" onClick={() => { setSearchTerm(''); setPage(1); }} aria-label="Clear">
+                  <Icon name="x" size={12} />
+                </button>
+              )}
+            </div>
+            <span className="cts-special-count">
+              {loading ? '…' : `${total} ${total === 1 ? 'item' : 'items'}`}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Compressed Table Container */}
+      <div className="cts-special-table-wrap">
+        {loading ? (
+          <SectionLoading label="Discovering mailbox contacts…" />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', justifyContent: 'space-between' }}>
+            <table className="cts-special-table">
+              <colgroup>
+                <col style={{ width: 44 }} />
+                <col style={{ minWidth: 220 }} />
+                <col style={{ minWidth: 220 }} />
+                <col style={{ minWidth: 170 }} />
+                <col style={{ minWidth: 130 }} />
+                <col style={{ minWidth: 160 }} />
+              </colgroup>
+              <thead>
+                <tr className="cts-special-thead-row">
+                  <th style={{ paddingLeft: 12 }}>
+                    <Checkbox
+                      checked={currentPageAllSelected}
+                      onCheckedChange={toggleSelectPage}
+                      aria-label="Select all on current page"
+                    />
+                  </th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Activity</th>
+                  <th>CRM Entity</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: 48, color: 'var(--ink3)' }}>
+                      {searchTerm ? `No records match "${searchTerm}".` : 'No mailbox contacts discovered yet.'}
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedRows.map((row: SpecialPersonRow) => {
+                    const contact = row.contact_id ? contacts.find(c => c.id === row.contact_id) : null;
+                    const name = row.name || row.email;
+                    const key = row.id || row.contact_id || row.email;
+                    const lastDate = row.last_interaction_at ? new Date(row.last_interaction_at) : null;
+                    const lastLabel = lastDate ? lastDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+                    const currentType = getType(row);
+                    const isSelected = selectedEmails.has(row.email);
+                    const isBusy = busyEmail === row.email;
+
+                    return (
+                      <tr
+                        key={key}
+                        className={`cts-special-row${isSelected ? ' cts-special-row--selected' : ''}`}
+                      >
+                        {/* Checkbox */}
+                        <td className="cts-special-cell" style={{ paddingLeft: 12 }}>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelectRow(row.email)}
+                            aria-label={`Select ${name}`}
+                          />
+                        </td>
+
+                        {/* Name + Avatar */}
+                        <td className="cts-special-cell">
+                          <div className="cts-special-name-cell">
+                            {currentType === 'company' ? (
+                              <CompanyAvatar
+                                name={name}
+                                size={28}
+                              />
+                            ) : (
+                              <PersonAvatar
+                                userId={contact?.id}
+                                kind="contacts"
+                                name={contact ? `${contact.first_name} ${contact.last_name || ''}` : name}
+                                size={28}
+                              />
+                            )}
+                            <span className="cts-special-name" title={name}>
+                              {contact ? `${contact.first_name} ${contact.last_name || ''}` : name}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Email */}
+                        <td className="cts-special-cell">
+                          <button
+                            type="button"
+                            className="cts-dir-email-btn"
+                            onClick={() => navigate(`/email?compose=1&to=${encodeURIComponent(row.email)}`)}
+                            title={`Compose email to ${row.email}`}
+                          >
+                            {row.email}
+                          </button>
+                        </td>
+
+                        {/* Activity (Emails count + Last contact date) */}
+                        <td className="cts-special-cell">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
+                            <Badge variant="gray">
+                              {row.interaction_count} {row.interaction_count === 1 ? 'email' : 'emails'}
+                            </Badge>
+                            {lastLabel && (
+                              <span style={{ fontSize: 11.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
+                                {lastLabel}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* CRM Entity Type toggle */}
+                        <td className="cts-special-cell">
+                          <Tip label="Click to toggle between Contact and Company">
+                            <button
+                              type="button"
+                              className={`cts-type-pill cts-type-pill--${currentType}`}
+                              onClick={() => toggleType(row.email)}
+                            >
+                              <Icon name={currentType === 'company' ? 'building' : 'user'} size={11} />
+                              {currentType === 'company' ? 'Company' : 'Contact'}
+                            </button>
+                          </Tip>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="cts-special-cell" style={{ textAlign: 'right' }}>
+                          <div className="cts-special-actions">
+                            {contact ? (
+                              <Button size="xs" variant="secondary" onClick={() => onOpen(contact)}>
+                                Open
+                              </Button>
+                            ) : (
+                              <>
+                                <Button
+                                  size="xs"
+                                  onClick={() => importSingleItem(row, currentType)}
+                                  disabled={isBusy}
+                                >
+                                  {isBusy ? 'Saving…' : `+ ${currentType === 'company' ? 'Company' : 'Contact'}`}
+                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button type="button" className="cts-special-action-btn" title="More actions">
+                                      <Icon name="moreVertical" size={13} />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => importSingleItem(row, 'contact')}>
+                                      Save as Contact (Person)
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => importSingleItem(row, 'company')}>
+                                      Save as Company (Organization)
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => navigate(`/email?compose=1&to=${encodeURIComponent(row.email)}`)}>
+                                      Compose Email
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+
+            <PaginationBar
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={s => { setPageSize(s); setPage(1); }}
+              pageSizeOptions={[10, 20, 50, 100]}
+              itemLabel="contact"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Bulk Review & Import Dialog */}
+      <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
+        <DialogContent size="lg">
+          <DialogHeader>
+            <DialogTitle>Bulk Import to CRM</DialogTitle>
+            <p style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4 }}>
+              Review and configure the {selectedRows.length} selected records before importing into CRM.
+            </p>
+          </DialogHeader>
+          <DialogBody style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)' }}>Quick configure:</span>
+              <button
+                type="button"
+                className="btn btn-secondary btn-xs"
+                onClick={() => {
+                  const next: Record<string, 'contact' | 'company'> = { ...entityTypeOverrides };
+                  selectedRows.forEach(r => { next[r.email] = 'contact'; });
+                  setEntityTypeOverrides(next);
+                }}
+              >
+                All as Contacts
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-xs"
+                onClick={() => {
+                  const next: Record<string, 'contact' | 'company'> = { ...entityTypeOverrides };
+                  selectedRows.forEach(r => { next[r.email] = 'company'; });
+                  setEntityTypeOverrides(next);
+                }}
+              >
+                All as Companies
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-xs"
+                onClick={() => {
+                  const next: Record<string, 'contact' | 'company'> = { ...entityTypeOverrides };
+                  selectedRows.forEach(r => { delete next[r.email]; });
+                  setEntityTypeOverrides(next);
+                }}
+              >
+                Reset to Auto-detect
+              </button>
+            </div>
+
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--ink2)' }}>
+                  <th style={{ padding: '8px 10px', fontWeight: 600 }}>Record</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 600 }}>Target Entity</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 600 }}>CRM Name</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedRows.map(row => {
+                  const currentType = getType(row);
+                  const customName = modalNameOverrides[row.email] ?? (row.name || row.email);
+                  return (
+                    <tr key={row.email} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '8px 10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {currentType === 'company' ? (
+                            <CompanyAvatar name={customName} size={24} />
+                          ) : (
+                            <PersonAvatar name={customName} kind="contacts" size={24} />
+                          )}
+                          <div>
+                            <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{row.name || row.email}</div>
+                            <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{row.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <Select
+                          value={currentType}
+                          onValueChange={(val: 'contact' | 'company') => {
+                            setEntityTypeOverrides(prev => ({ ...prev, [row.email]: val }));
+                          }}
+                        >
+                          <SelectTrigger style={{ width: 130, height: 30, fontSize: 12 }}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="contact">Contact (Person)</SelectItem>
+                            <SelectItem value="company">Company (Org)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <input
+                          className="input-field"
+                          style={{ height: 30, fontSize: 12.5, padding: '0 8px' }}
+                          value={customName}
+                          onChange={e => setModalNameOverrides(prev => ({ ...prev, [row.email]: e.target.value }))}
+                          placeholder={currentType === 'company' ? 'Company name…' : 'Full name…'}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </DialogBody>
+          <DialogFooter>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setShowReviewModal(false)}
+              disabled={bulkBusy}
+            >
+              Cancel
+            </button>
+            <Button
+              size="sm"
+              onClick={() => handleBulkImport('auto')}
+              disabled={bulkBusy}
+            >
+              {bulkBusy ? 'Importing…' : `Import ${selectedRows.length} to CRM`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 
 export function Contacts() {
   // Shared state + data from context (provided by ContactsProvider in ContactsShell)
@@ -101,6 +923,7 @@ export function Contacts() {
   } = useContacts();
 
   const navigate = useNavigate();
+  const { contactId } = useParams<{ contactId: string }>();
 
   // Local UI state
   const [activeTab, setActiveTab] = useState<'overview' | 'notes' | 'activity'>('overview');
@@ -108,6 +931,66 @@ export function Contacts() {
   const [activityLog, setActivityLog] = useState<ContactActivityEntry[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityError, setActivityError] = useState(false);
+  const [relationship, setRelationship] = useState<any>(null);
+  const [relationshipLoading, setRelationshipLoading] = useState(false);
+  const [directory, setDirectory] = useState<any[]>([]);
+  const [discovery, setDiscovery] = useState<{ frequent: any[]; other: any[] }>({ frequent: [], other: [] });
+  const [specialLoading, setSpecialLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<Contact[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const contactSearchAbort = useRef<AbortController | null>(null);
+
+  // Real AJAX search: the query runs against primary and additional email /
+  // phone rows on the server. Abort prevents a slow older response replacing
+  // a newer query when someone types quickly.
+  useEffect(() => {
+    const q = searchQuery.trim();
+    contactSearchAbort.current?.abort();
+    if (q.length < 2 || currentView === 'smartgroup') {
+      setSearchResults(null); setSearchLoading(false); setSearchError(null); return;
+    }
+    const controller = new AbortController();
+    contactSearchAbort.current = controller;
+    setSearchLoading(true); setSearchError(null);
+    const timer = window.setTimeout(() => {
+      const status = currentView === 'trash' ? 'TRASHED' : 'ACTIVE';
+      apiFetch<Contact[]>(`/v1/contacts?status=${status}&q=${encodeURIComponent(q)}`, { signal: controller.signal })
+        .then(rows => { if (!controller.signal.aborted) setSearchResults(Array.isArray(rows) ? rows : []); })
+        .catch((err: any) => { if (err?.name !== 'AbortError') setSearchError(err?.message || 'Contact search is unavailable.'); })
+        .finally(() => { if (!controller.signal.aborted) setSearchLoading(false); });
+    }, 250);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [searchQuery, currentView]);
+
+  useEffect(() => {
+    if (!contactId || loading) return;
+    const found = contacts.find(c => c.id === contactId);
+    if (found) setActiveContact(found);
+    else navigate('/contacts', { replace: true });
+  }, [contactId, contacts, loading, navigate, setActiveContact]);
+
+  useEffect(() => {
+    if (!activeContact) { setRelationship(null); return; }
+    let live = true;
+    setRelationshipLoading(true);
+    apiFetch(`/v1/contacts/${activeContact.id}/relationship`)
+      .then(data => { if (live) setRelationship(data); })
+      .catch(() => { if (live) setRelationship(null); })
+      .finally(() => { if (live) setRelationshipLoading(false); });
+    return () => { live = false; };
+  }, [activeContact?.id]);
+
+  useEffect(() => {
+    if (!['directory', 'frequent', 'other'].includes(currentView)) return;
+    let live = true;
+    setSpecialLoading(true);
+    const request = currentView === 'directory'
+      ? apiFetch('/v1/contacts/directory').then(rows => { if (live) setDirectory(Array.isArray(rows) ? rows : []); })
+      : apiFetch('/v1/contacts/discovery').then(data => { if (live) setDiscovery(data || { frequent: [], other: [] }); });
+    request.catch(() => showAlert(`Couldn't load ${currentView} contacts.`)).finally(() => { if (live) setSpecialLoading(false); });
+    return () => { live = false; };
+  }, [currentView]);
 
   // A real, working endpoint (GET /v1/contacts/birthdays) with no frontend
   // consumer anywhere in the app — the daily reminder job runs independently
@@ -125,6 +1008,7 @@ export function Contacts() {
 
   // Modal / Form states
   const [showEditModal, setShowEditModal] = useState<Contact | null>(null);
+  const [accessOpen, setAccessOpen] = useState(false);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
 
   // Inline label creation state in edit modal
@@ -139,6 +1023,7 @@ export function Contacts() {
   const [formCompanyId, setFormCompanyId] = useState<string | null>(null);
   const [companyPickerOpen, setCompanyPickerOpen] = useState(false);
   const [formJobTitle, setFormJobTitle] = useState('');
+  const [formVisibility, setFormVisibility] = useState<ContactVisibility>('TENANT');
   const [formNotes, setFormNotes] = useState('');
   const [formBirthday, setFormBirthday] = useState('');
   const [formLabelIds, setFormLabelIds] = useState<string[]>([]);
@@ -172,6 +1057,7 @@ export function Contacts() {
   const [formStep, setFormStep] = useState<'profile' | 'contact' | 'business' | 'extra'>('profile');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const contactFileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredCompanies = useMemo(() => {
     const q = formCompany.trim().toLowerCase();
@@ -195,6 +1081,7 @@ export function Contacts() {
       setFormCompany(contact.company || '');
       setFormCompanyId(contact.company_id || null);
       setFormJobTitle(contact.job_title || '');
+      setFormVisibility(contact.visibility ?? 'TENANT');
       setFormNotes(contact.notes || '');
       setFormBirthday(contact.birthday ? contact.birthday.split('T')[0] : '');
       setFormLabelIds(contact.labels.map(l => l.id));
@@ -234,6 +1121,7 @@ export function Contacts() {
       setFormCompany('');
       setFormCompanyId(null);
       setFormJobTitle('');
+      setFormVisibility('TENANT');
       setFormNotes('');
       setFormBirthday('');
       setFormLabelIds([]);
@@ -290,6 +1178,8 @@ export function Contacts() {
       company: formCompany,
       company_id: formCompanyId,
       job_title: formJobTitle,
+      // Sent on create, and on edit only when changed — only the owner/creator or a manager may change it.
+      ...(!showEditModal?.id || showEditModal.visibility !== formVisibility ? { visibility: formVisibility } : {}),
       notes: formNotes,
       birthday: formBirthday || null,
       is_favorite: formIsFavorite,
@@ -491,7 +1381,8 @@ export function Contacts() {
       ? labelDescendants.get(selectedLabelId) ?? new Set([selectedLabelId])
       : null;
 
-    const list = contacts.filter(c => {
+    const source = searchResults ?? contacts;
+    const list = source.filter(c => {
       if (currentView === 'contacts' && c.status !== 'ACTIVE') return false;
       if (currentView === 'favorites' && (!c.is_favorite || c.status !== 'ACTIVE')) return false;
       if (currentView === 'trash' && c.status !== 'TRASHED') return false;
@@ -503,7 +1394,7 @@ export function Contacts() {
     });
 
     return sortContacts(list, sortBy);
-  }, [contacts, currentView, selectedLabelId, labelDescendants, searchQuery, sortBy, filterLabelIds]);
+  }, [contacts, searchResults, currentView, selectedLabelId, labelDescendants, searchQuery, sortBy, filterLabelIds]);
 
   // ─── Smart-group view state ──────────────────────────────────────────────
   // A smart group's membership is computed on the server, so we fetch its
@@ -556,6 +1447,80 @@ export function Contacts() {
     }
   };
 
+  const openContact = (contact: Contact) => {
+    setActiveContact(contact);
+    setActiveTab('overview');
+    navigate(`/contacts/contact/${contact.id}`);
+  };
+
+  const closeContact = () => {
+    setActiveContact(null);
+    navigate('/contacts');
+  };
+
+  const composeEmail = () => {
+    if (!activeContact?.email) return showAlert('Add an email address to this contact first.');
+    navigate(`/email?compose=1&to=${encodeURIComponent(activeContact.email)}&name=${encodeURIComponent(`${activeContact.first_name} ${activeContact.last_name || ''}`.trim())}`);
+  };
+
+  const scheduleWithContact = (video = false) => {
+    if (!activeContact?.email) return showAlert('Add an email address to this contact first.');
+    const params = new URLSearchParams({ new: '1', guest: activeContact.email, guestName: `${activeContact.first_name} ${activeContact.last_name || ''}`.trim() });
+    if (video) params.set('video', '1');
+    navigate(`/calendar?${params}`);
+  };
+
+  const chatWithContact = async () => {
+    const userId = relationship?.internal_user?.id;
+    if (!userId) return showAlert('Chat is available when this contact matches an active workspace member.');
+    try {
+      const channel = await apiFetch('/v1/chat/channels', { method: 'POST', body: JSON.stringify({ type: 'dm', member_ids: [userId] }) });
+      navigate(`/chat?channel=${channel.id}`);
+    } catch (err: any) { showAlert(err.message || 'Could not open chat.'); }
+  };
+
+  const shareContact = async () => {
+    if (!activeContact) return;
+    const name = `${activeContact.first_name} ${activeContact.last_name || ''}`.trim();
+    const text = [name, activeContact.job_title, activeContact.company, activeContact.email, activeContact.phone].filter(Boolean).join('\n');
+    if (navigator.share) {
+      try { await navigator.share({ title: name, text }); } catch { /* dismissed */ }
+    } else {
+      await navigator.clipboard.writeText(text);
+      showAlert('Contact details copied.', { variant: 'success' });
+    }
+  };
+
+  const uploadContactFile = async (file: File) => {
+    if (!activeContact) return;
+    try {
+      const drives = await apiFetch('/v1/drives');
+      const drive = (Array.isArray(drives) ? drives : []).find((d: any) => d.can_write !== false);
+      if (!drive) throw new Error('No writable Drive is available.');
+      const form = new FormData(); form.append('file', file);
+      await apiFetch(`/v1/files/upload?drive_id=${encodeURIComponent(drive.id)}&entity_type=contact&entity_id=${encodeURIComponent(activeContact.id)}`, { method: 'POST', body: form });
+      setRelationship(await apiFetch(`/v1/contacts/${activeContact.id}/relationship`));
+      showAlert('File attached to contact.', { variant: 'success' });
+    } catch (err: any) { showAlert(err.message || 'Could not attach file.'); }
+  };
+
+  const openContactDrive = () => {
+    const file = relationship?.files?.[0];
+    const qs = new URLSearchParams();
+    if (file?.drive_id) qs.set('drive', file.drive_id);
+    if (file?.parent_id) qs.set('folder', file.parent_id);
+    window.open(`/cloud${qs.size ? `?${qs.toString()}` : ''}`, '_blank', 'noopener');
+  };
+
+  const saveDiscoveredContact = async (person: any) => {
+    const parts = String(person.name || person.email).trim().split(/\s+/);
+    try {
+      const created = await apiFetch('/v1/contacts', { method: 'POST', body: JSON.stringify({ first_name: parts.shift() || person.email, last_name: parts.join(' ') || null, email: person.email, source: 'email_discovery' }) });
+      await loadData();
+      navigate(`/contacts/contact/${created.id}`);
+    } catch (err: any) { showAlert(err.message || 'Could not save contact.'); }
+  };
+
   // Monogram helper
   const monogram = (first: string, last?: string | null) => {
     return `${first[0]}${last ? last[0] : ''}`.toUpperCase();
@@ -573,7 +1538,7 @@ export function Contacts() {
             <div style={{ height: 64, display: 'flex', alignItems: 'center', padding: '0 24px', borderBottom: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0 }}>
               <button
                 type="button"
-                onClick={() => setActiveContact(null)}
+                onClick={closeContact}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, border: 'none', background: 'none',
                   color: 'var(--cts-accent)', fontWeight: 600, fontSize: 14, cursor: 'pointer', padding: 0
@@ -604,6 +1569,16 @@ export function Contacts() {
                   <Icon name="edit" size={14} color="var(--ink2)" />
                   Edit
                 </button>
+                <button type="button" onClick={() => setAccessOpen(true)} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon name="lock" size={14} color="var(--ink2)" /> Access
+                </button>
+                <button type="button" onClick={shareContact} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon name="share" size={14} color="var(--ink2)" /> Share
+                </button>
+                {activeContact && (
+                  <PartyShareDialog open={accessOpen} onOpenChange={setAccessOpen} partyId={activeContact.party_id ?? activeContact.id}
+                    name={`${activeContact.first_name} ${activeContact.last_name || ''}`.trim()} />
+                )}
                 <button
                   type="button"
                   onClick={() => handleDeleteContact(activeContact.id, activeContact.status === 'TRASHED')}
@@ -617,10 +1592,10 @@ export function Contacts() {
             </div>
 
             {/* Detail Body (Two-Column Layout) */}
-            <div style={{ flex: 1, display: 'flex', padding: 24, gap: 24, overflowY: 'auto' }}>
+            <div className="cts-detail-body" style={{ flex: 1, display: 'flex', padding: 24, gap: 24, overflowY: 'auto' }}>
               
               {/* Left Column: Profile Card */}
-              <div style={{ width: 300, flexShrink: 0 }}>
+              <div className="cts-detail-profile" style={{ width: 300, flexShrink: 0 }}>
                 <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 24, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                   
                   {/* Avatar — a contact could show a picture but never set
@@ -668,6 +1643,13 @@ export function Contacts() {
                   ) : (
                     <span style={{ fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic', marginBottom: 20 }}>No labels assigned</span>
                   )}
+
+                  <div className="cts-quick-actions" aria-label="Contact actions">
+                    <button type="button" onClick={composeEmail} disabled={!activeContact.email}><Icon name="mail" size={17} /><span>Email</span></button>
+                    <button type="button" onClick={() => scheduleWithContact(false)} disabled={!activeContact.email}><Icon name="calendar" size={17} /><span>Schedule</span></button>
+                    <button type="button" onClick={chatWithContact} disabled={!relationship?.internal_user}><Icon name="message" size={17} /><span>Chat</span></button>
+                    <button type="button" onClick={() => scheduleWithContact(true)} disabled={!activeContact.email}><Icon name="video" size={17} /><span>Video</span></button>
+                  </div>
 
                   {/* Sidebar Quick Info */}
                   <div style={{ width: '100%', borderTop: '1px solid var(--border)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'left' }}>
@@ -721,7 +1703,7 @@ export function Contacts() {
               </div>
 
               {/* Right Column: Details & Tabs */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div className="cts-detail-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
                 
                 {/* Tabs Header */}
                 <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--white)', borderRadius: `var(--r) var(--r) 0 0`, padding: '0 16px', border: '1px solid var(--border)' }}>
@@ -841,6 +1823,37 @@ export function Contacts() {
                         </div>
                       </div>
 
+                      <div className="cts-relationship-grid">
+                        <section className="cts-relationship-card">
+                          <div className="cts-relationship-card-head">
+                            <div><Icon name="clock" size={15} /> Recent interactions</div>
+                            {relationship && <Badge variant="gray">{relationship.interactions.length}</Badge>}
+                          </div>
+                          {relationshipLoading ? <div className="cts-card-empty">Loading interactions…</div>
+                            : relationship?.interactions?.length ? relationship.interactions.slice(0, 8).map((item: any) => (
+                              <button key={item.id} type="button" className="cts-interaction-row" onClick={() => navigate(item.href)}>
+                                <span className="cts-interaction-icon"><Icon name={item.kind === 'email' ? 'mail' : item.kind === 'video' ? 'video' : 'calendar'} size={14} /></span>
+                                <span><strong>{item.title}</strong><small>{new Date(item.occurred_at).toLocaleString()}{item.detail ? ` · ${item.detail}` : ''}</small></span>
+                              </button>
+                            )) : <div className="cts-card-empty">No email or calendar interactions yet.</div>}
+                        </section>
+
+                        <section className="cts-relationship-card">
+                          <div className="cts-relationship-card-head">
+                            <div><Icon name="folder" size={15} /> Shared files</div>
+                            <Button size="xs" variant="ghost" onClick={openContactDrive}>Open Drive</Button>
+                            <Button size="xs" variant="secondary" onClick={() => contactFileInputRef.current?.click()}>Attach file</Button>
+                            <input ref={contactFileInputRef} type="file" hidden onChange={e => { const file = e.target.files?.[0]; if (file) uploadContactFile(file); e.target.value = ''; }} />
+                          </div>
+                          {relationshipLoading ? <div className="cts-card-empty">Loading files…</div>
+                            : relationship?.files?.length ? relationship.files.slice(0, 8).map((file: any) => (
+                              <button key={file.id} type="button" className="cts-file-row" onClick={() => apiDownload(`/v1/files/${file.id}/download`, file.name).catch((err: any) => showAlert(err.message || 'Could not download file.'))}>
+                                <Icon name="fileText" size={15} /><span><strong>{file.name}</strong><small>{file.owner_name} · {new Date(file.created_at).toLocaleDateString()}</small></span>
+                              </button>
+                            )) : <div className="cts-card-empty">No Drive files attached to this contact.</div>}
+                        </section>
+                      </div>
+
                     </div>
                   )}
 
@@ -928,6 +1941,25 @@ export function Contacts() {
               }}
             />
           </div>
+        ) : currentView === 'directory' || currentView === 'frequent' || currentView === 'other' ? (
+          <ContactsSpecialView
+            view={currentView}
+            loading={specialLoading}
+            directory={directory}
+            discovery={discovery}
+            contacts={contacts}
+            onOpen={openContact}
+            onSave={saveDiscoveredContact}
+            onRefresh={async () => {
+              setSpecialLoading(true);
+              try {
+                const data = await apiFetch('/v1/contacts/discovery');
+                setDiscovery(data || { frequent: [], other: [] });
+                await loadData();
+              } catch {}
+              setSpecialLoading(false);
+            }}
+          />
         ) : (
           /* ─── STANDARD CONTACTS LIST / SEARCH / TABLE VIEW ─── */
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -992,9 +2024,9 @@ export function Contacts() {
                       const when = b.days_until === 0 ? 'Today' : b.days_until === 1 ? 'Tomorrow' : `In ${b.days_until} days`;
                       const full = contacts.find(c => c.id === b.id);
                       return (
-                        <div key={b.id} onClick={() => full && setActiveContact(full)}
+                        <div key={b.id} onClick={() => full && openContact(full)}
                           role="button" tabIndex={0}
-                          onKeyDown={e => { if (full && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setActiveContact(full); } }}
+                          onKeyDown={e => { if (full && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openContact(full); } }}
                           style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px 6px 6px', borderRadius: 999, background: 'var(--bg)', flexShrink: 0, cursor: full ? 'pointer' : 'default' }}>
                           <PersonAvatar userId={b.id} kind="contacts" name={name} size={26} />
                           <div>
@@ -1065,8 +2097,9 @@ export function Contacts() {
             {/* Always-visible list bar — contact count + active filter summary */}
             <div className="cts-list-bar">
               <span className="cts-list-bar-count">
-                {(loading || smartGroupLoading) ? 'Loading…' : `${displayContacts.length} ${displayContacts.length === 1 ? 'contact' : 'contacts'}`}
+                {(loading || smartGroupLoading || searchLoading) ? 'Searching…' : `${displayContacts.length} ${displayContacts.length === 1 ? 'contact' : 'contacts'}`}
               </span>
+              {searchError && <span role="alert" style={{ color: 'var(--red)', fontSize: 12 }}>{searchError}</span>}
               <div className="cts-list-bar-meta">
                 <span className="cts-list-bar-sort">
                   {sortBy === 'name-asc' ? 'A → Z' : sortBy === 'name-desc' ? 'Z → A' : sortBy === 'created-desc' ? 'Newest first' : 'Oldest first'}
@@ -1179,7 +2212,7 @@ export function Contacts() {
                               onClick={(e) => {
                                 const target = e.target as HTMLElement;
                                 if (target.tagName === 'INPUT' || target.closest('button')) return;
-                                setActiveContact(contact);
+                                openContact(contact);
                               }}
                               style={{
                                 borderBottom: '1px solid var(--border)',
@@ -1310,6 +2343,7 @@ export function Contacts() {
               {/* Merge & Fix View */}
               {currentView === 'merge' && (
                 <div>
+                  <CompanyLinkSuggestions />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                     <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Duplicate suggestions</h3>
                     {duplicates.length > 0 && (
@@ -1347,7 +2381,7 @@ export function Contacts() {
                             {group.contacts.map(c => (
                               <div
                                 key={c.id}
-                                onClick={() => setActiveContact(c)}
+                                onClick={() => openContact(c)}
                                 style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 12, background: 'var(--bg)', borderRadius: 'var(--r)', cursor: 'pointer' }}
                               >
                                 <PersonAvatar userId={c.id} kind="contacts" name={`${c.first_name} ${c.last_name || ''}`.trim()} size={32} />
@@ -1546,6 +2580,19 @@ export function Contacts() {
                   onCheckedChange={c => setFormIsFavorite(c === true)}
                 />
                 <span style={{ fontSize: 13, color: 'var(--ink)', marginLeft: 8 }}>Add to favorites</span>
+              </div>
+              <div style={{ marginTop: 16, maxWidth: 320 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Who can see this contact</label>
+                <Select value={formVisibility} onValueChange={v => setFormVisibility(v as ContactVisibility)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TENANT">Everyone in the workspace</SelectItem>
+                    <SelectItem value="TEAM">My team</SelectItem>
+                    <SelectItem value="DEPARTMENT">My department</SelectItem>
+                    <SelectItem value="PRIVATE">Only me</SelectItem>
+                    {formVisibility === 'EXPLICIT_SHARE' && <SelectItem value="EXPLICIT_SHARE">Specific people</SelectItem>}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             </>)}

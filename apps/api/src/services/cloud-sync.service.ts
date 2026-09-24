@@ -1,4 +1,5 @@
 import { withTenant } from '../db/client.js';
+import { wouldExceedStorageQuota } from '../lib/storage-quota.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { bumpCloudFolderCount } from '../lib/cloud-folder-count.js';
 
@@ -119,6 +120,16 @@ async function sealOwnerAndLabel(trx: any, tenantId: string, sealType: SealType,
   return c ? { ownerId: c.owner_id, label: (container.container_number ?? '').trim() || 'Container' } : null;
 }
 
+/** System-initiated mirrors (shipment docs, employee docs, SEAL docs) are
+ *  best-effort copies of a document that already lives in its own app, so an
+ *  over-quota tenant skips the Drive mirror rather than failing the upload —
+ *  but must not silently blow through the plan limit either. */
+async function mirrorFitsQuota(tenantId: string, bytes: number, what: string): Promise<boolean> {
+  const q = await wouldExceedStorageQuota(tenantId, bytes);
+  if (q.exceeded) console.warn(`[CloudSync] ${what} not mirrored to Drive — tenant ${tenantId} is over its storage quota`);
+  return !q.exceeded;
+}
+
 export const CloudSync = {
   /** Customers ▸ <customer> — on customer account creation. Tagged
    *  entity_type='customer' so this folder is reliably queryable, not just
@@ -155,6 +166,7 @@ export const CloudSync = {
   async syncShipmentDoc(tenantId: string, args: { customerId: string | null; shipmentId: string; blRef: string; filename: string; buffer: Buffer; mime?: string }): Promise<void> {
     const ref = (args.blRef ?? '').trim();
     if (!ref || !args.filename) return;
+    if (!(await mirrorFitsQuota(tenantId, args.buffer.length, 'Shipment document'))) return;
     await withTenant(tenantId, async (trx) => {
       const cust = await customerName(trx, tenantId, args.customerId);
       const driveId = await ensureDrive(trx, tenantId);
@@ -212,6 +224,7 @@ export const CloudSync = {
   async syncEmployeeDoc(tenantId: string, args: { userId: string | null; filename: string; buffer: Buffer; mime?: string }): Promise<void> {
     const userId = args.userId;
     if (!userId || !args.filename) return;
+    if (!(await mirrorFitsQuota(tenantId, args.buffer.length, 'Employee document'))) return;
     await withTenant(tenantId, async (trx) => {
       const name = await employeeName(trx, tenantId, userId);
       const driveId = await ensureDrive(trx, tenantId);
@@ -271,6 +284,7 @@ export const CloudSync = {
    *  null for those) and for an id that doesn't resolve to a real row. */
   async syncSealDoc(tenantId: string, args: { sealType: SealType; sealId: string; filename: string; buffer: Buffer; mime?: string }): Promise<void> {
     if (!args.filename) return;
+    if (!(await mirrorFitsQuota(tenantId, args.buffer.length, 'SEAL document'))) return;
     await withTenant(tenantId, async (trx) => {
       const resolved = await sealOwnerAndLabel(trx, tenantId, args.sealType, args.sealId);
       if (!resolved) return;
@@ -432,11 +446,14 @@ export const CloudSync = {
         .where('entity_type', '=', 'meeting_recording').where('entity_id', '=', meetingId)
         .executeTakeFirst();
       if (existing) {
-        return { driveId, folderId, fileId: existing.id, fileName: existing.name, size: Number(existing.size) || 28400000 };
+        return { driveId, folderId, fileId: existing.id, fileName: existing.name, size: Number(existing.size) || 0 };
       }
 
-      const durSec = durationSeconds || 1800;
-      const sizeBytes = Math.max(1024 * 1024, Math.round(durSec * 20000));
+      // There is no recording pipeline behind this row (no egress/capture
+      // stores real media), so it is a placeholder with no bytes: size 0. It
+      // used to be a duration-derived guess (~20KB/s), which inflated the
+      // tenant's storage quota with data that does not exist.
+      const sizeBytes = 0;
 
       const fileRow = await trx.insertInto('cloud_files').values({
         tenant_id: tenantId, drive_id: driveId, parent_id: folderId, name: fileName,

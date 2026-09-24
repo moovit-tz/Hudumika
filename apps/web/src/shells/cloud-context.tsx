@@ -47,15 +47,27 @@ export type CloudView = 'all' | 'recent' | 'starred' | 'shared' | 'trash' | 'doc
 
 export interface Crumb { id: string | null; name: string }
 
-export interface StorageQuota { used_bytes: number; limit_bytes: number | null }
+export type StorageLevel = 'ok' | 'warning' | 'high' | 'critical' | 'exceeded';
+export interface StorageQuota { used_bytes: number; limit_bytes: number | null; level: StorageLevel }
 
 export interface UploadingFile {
   id: string;
   name: string;
   size: number;
   progress: number;
-  status: 'uploading' | 'completed' | 'error';
+  status: 'uploading' | 'completed' | 'error' | 'cancelled';
+  /** Why it failed, shown next to the file. */
+  error?: string;
 }
+
+/**
+ * A chunked upload that survives a page reload: the server keeps the session and every chunk
+ * already sent (cloud_upload_sessions), and this record — kept in localStorage, not in memory — is
+ * what lets the UI find it again after a refresh. The browser drops the original `File` on reload
+ * (no API can hand it back), so resuming still needs the person to reselect the same file; what this
+ * buys is that reselecting it re-uploads only the chunks that never arrived, not the whole thing.
+ */
+export interface ResumableUpload { uploadId: string; name: string; size: number; parentId: string | null; driveId: string | null; createdAt: number }
 
 export interface StorageConnection {
   provider: StorageProvider;
@@ -170,6 +182,8 @@ export interface CloudCtxValue {
    *  current drive/folder. null when there's no active search term. */
   searchResults: CloudFile[] | null;
   searching: boolean;
+  /** Set when the search request itself failed — distinct from a search with zero matches. */
+  searchError: string | null;
 
   createFolder: (name: string, parentId: string | null, color?: string) => Promise<void>;
   uploadFiles: (fileList: File[], parentId: string | null) => Promise<void>;
@@ -179,9 +193,21 @@ export interface CloudCtxValue {
    *  start of each new batch, dismissible per-file via removeUploadingFile. */
   uploadingFiles: UploadingFile[];
   removeUploadingFile: (id: string) => void;
+  /** Abort an in-flight upload (the server discards a partial upload; nothing is stored). */
+  cancelUpload: (id: string) => void;
+  /** Retry a failed or cancelled upload of the same file. */
+  retryUpload: (id: string) => Promise<void>;
+  /** Chunked uploads left incomplete by a page reload/crash — confirmed still open on the server. */
+  resumableUploads: ResumableUpload[];
+  /** Continue one, given the same file reselected by the person (name + size are checked to match). */
+  resumeUpload: (upload: ResumableUpload, file: File) => Promise<void>;
+  /** Give up on an interrupted upload — cancels the server-side session and forgets it locally. */
+  discardResumableUpload: (uploadId: string) => Promise<void>;
   renameItem: (id: string, name: string) => Promise<void>;
   starItem: (id: string, starred: boolean) => Promise<void>;
   moveItem: (id: string, parentId: string | null) => Promise<void>;
+  /** Moves several items and reports exactly which succeeded and which failed (never silently partial). */
+  moveItems: (ids: string[], parentId: string | null) => Promise<{ moved: string[]; failed: { id: string; error: string }[] }>;
   trashItem: (id: string) => Promise<void>;
   restoreItem: (id: string) => Promise<void>;
   permanentlyDelete: (id: string) => Promise<void>;
@@ -190,7 +216,13 @@ export interface CloudCtxValue {
    *  isPlatformSuperAdmin() in the API's rbac.ts) — can forever-delete a
    *  file or empty Trash; everyone else can only move things to Trash. */
   canPermanentlyDelete: boolean;
-  shareItem: (id: string, shared: SharedPerson[]) => Promise<{ share_token: string | null }>;
+  shareItem: (id: string, shared: SharedPerson[]) => Promise<{ share_token: string | null; public_url: string | null }>;
+  /** Create (or rotate) the anonymous download link. Returns the absolute URL built by the API. */
+  createPublicLink: (id: string, rotate?: boolean) => Promise<{ share_token: string | null; public_url: string | null }>;
+  revokePublicLink: (id: string) => Promise<void>;
+  /** Files a colleague shared with this user directly — may live in a drive this user cannot browse. */
+  sharedWithMe: CloudFile[];
+  loadSharedWithMe: () => Promise<void>;
   downloadItem: (item: CloudFile) => Promise<void>;
 
   connections: StorageConnection[];
@@ -251,20 +283,31 @@ export const CloudCtx = createContext<CloudCtxValue>({
   setSearch: noop,
   searchResults: null,
   searching: false,
+  searchError: null,
   createFolder: noopAsync,
   uploadFiles: noopAsync,
   uploadingFiles: [],
   removeUploadingFile: noop,
+  cancelUpload: noop,
+  retryUpload: noopAsync,
+  resumableUploads: [],
+  resumeUpload: noopAsync,
+  discardResumableUpload: noopAsync,
   uploadFolder: noopAsync,
   renameItem: noopAsync,
   starItem: noopAsync,
   moveItem: noopAsync,
+  moveItems: async () => ({ moved: [], failed: [] }),
   trashItem: noopAsync,
   restoreItem: noopAsync,
   permanentlyDelete: noopAsync,
   emptyTrash: noopAsync,
   canPermanentlyDelete: false,
-  shareItem: async () => ({ share_token: null }),
+  shareItem: async () => ({ share_token: null, public_url: null }),
+  createPublicLink: async () => ({ share_token: null, public_url: null }),
+  revokePublicLink: noopAsync,
+  sharedWithMe: [],
+  loadSharedWithMe: noopAsync,
   downloadItem: noopAsync,
   connections: [],
   connectionsLoading: false,
@@ -313,17 +356,20 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
   // loaded for the current drive/folder.
   const [searchResults, setSearchResults] = useState<CloudFile[] | null>(null);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   useEffect(() => {
     const q = search.trim();
-    if (!q) { setSearchResults(null); setSearching(false); return; }
-    setSearching(true);
+    if (!q) { setSearchResults(null); setSearching(false); setSearchError(null); return; }
+    setSearching(true); setSearchError(null);
+    let live = true;
     const t = setTimeout(() => {
       apiFetch(`/v1/files?q=${encodeURIComponent(q)}`)
-        .then(data => setSearchResults(Array.isArray(data) ? data : []))
-        .catch(() => setSearchResults([]))
-        .finally(() => setSearching(false));
+        .then(data => { if (live) setSearchResults(Array.isArray(data) ? data : []); })
+        // A failed request is NOT "no results": keep the last results out of the way and say what happened.
+        .catch((err: any) => { if (live) { setSearchResults(null); setSearchError(err?.status === 403 ? 'You do not have access to search here.' : (err?.message || 'Search failed — check your connection and try again.')); } })
+        .finally(() => { if (live) setSearching(false); });
     }, 300);
-    return () => clearTimeout(t);
+    return () => { live = false; clearTimeout(t); };
   }, [search]);
 
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
@@ -335,7 +381,7 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
   const loadStorageQuota = useCallback(async () => {
     try {
       const data = await apiFetch('/v1/files/storage-usage');
-      setStorageQuota({ used_bytes: Number(data.used_bytes) || 0, limit_bytes: data.limit_bytes != null ? Number(data.limit_bytes) : null });
+      setStorageQuota({ used_bytes: Number(data.used_bytes) || 0, limit_bytes: data.limit_bytes != null ? Number(data.limit_bytes) : null, level: (data.level as StorageLevel) ?? 'ok' });
     } catch { /* quota is a nice-to-have display, never blocks the app */ }
   }, []);
   useEffect(() => { loadStorageQuota(); }, [loadStorageQuota]);
@@ -553,30 +599,174 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
   // uploadingFiles list is replaced (not appended) at the start of each
   // batch so a stale "completed" chip from a previous folder never bleeds
   // into a dropzone opened somewhere else in the app.
+  // In-flight uploads can be cancelled (XHR abort) and failed/cancelled ones retried. The File objects
+  // are kept in memory only for the lifetime of the page — a browser refresh drops them, so an
+  // interrupted upload has to be started again (uploads are not resumable across reloads).
+  const uploadAborts = useRef(new Map<string, () => void>());
+  const uploadSources = useRef(new Map<string, { file: File; parentId: string | null; driveId: string | null }>());
+
+  // Files at or above this size go through the chunked/resumable path (POST /v1/files/uploads);
+  // smaller ones keep using the single-request upload. 25MB keeps ordinary attachments on the
+  // simple path and puts anything that would meaningfully suffer from a dropped connection on the
+  // resumable one.
+  const CHUNKED_THRESHOLD = 25 * 1024 * 1024;
+
+  async function fingerprintOf(file: File): Promise<string> {
+    return `${file.name}:${file.size}:${file.lastModified}`;
+  }
+
+  // ── Cross-reload resumability ────────────────────────────────────────────────────────────────
+  // Each open session's server-facing facts (nothing about the File object itself, which can't be
+  // persisted) live in localStorage so they're still there after a refresh. Wrapped in try/catch
+  // throughout: private browsing / blocked storage must never break uploading, only the "resume
+  // after reload" convenience.
+  const RESUMABLE_KEY = 'hudumika_cloud_resumable_uploads';
+  const readResumable = (): ResumableUpload[] => {
+    try { return JSON.parse(localStorage.getItem(RESUMABLE_KEY) ?? '[]'); } catch { return []; }
+  };
+  const writeResumable = (list: ResumableUpload[]) => {
+    try { localStorage.setItem(RESUMABLE_KEY, JSON.stringify(list)); } catch { /* best-effort */ }
+  };
+  const rememberResumable = (u: ResumableUpload) => writeResumable([...readResumable().filter(r => r.uploadId !== u.uploadId), u]);
+  const forgetResumable = (uploadId: string) => writeResumable(readResumable().filter(r => r.uploadId !== uploadId));
+
+  const [resumableUploads, setResumableUploads] = useState<ResumableUpload[]>([]);
+  // On mount: every locally-remembered session is re-confirmed against the server (still 'open'?
+  // not expired?) before being offered — a stale or already-finished entry is just dropped, never
+  // shown as something to resume.
+  useEffect(() => {
+    (async () => {
+      const remembered = readResumable();
+      if (!remembered.length) return;
+      const survivors: ResumableUpload[] = [];
+      for (const r of remembered) {
+        try {
+          const status = await apiFetch(`/v1/files/uploads/${r.uploadId}`);
+          if (status.status === 'open') survivors.push(r); else forgetResumable(r.uploadId);
+        } catch { forgetResumable(r.uploadId); }
+      }
+      setResumableUploads(survivors);
+    })();
+  }, []);
+
+  const sendChunked = useCallback(async (id: string, file: File, parentId: string | null, driveId: string | null, signal: { cancelled: boolean }, resumeSessionId?: string) => {
+    setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, progress: 0, status: 'uploading', error: undefined } : u));
+    let uploadId: string, chunk_bytes: number, total_chunks: number, received: number[];
+    if (resumeSessionId) {
+      const status = await apiFetch(`/v1/files/uploads/${resumeSessionId}`);
+      ({ chunk_bytes, total_chunks, received } = status);
+      uploadId = resumeSessionId;
+    } else {
+      const fingerprint = await fingerprintOf(file);
+      const session = await apiFetch('/v1/files/uploads', {
+        method: 'POST',
+        body: JSON.stringify({ name: file.name, size: file.size, mime_type: file.type || 'application/octet-stream', parent_id: parentId, drive_id: driveId, fingerprint }),
+      });
+      ({ id: uploadId, chunk_bytes, total_chunks, received = [] } = session);
+      rememberResumable({ uploadId, name: file.name, size: file.size, parentId, driveId, createdAt: Date.now() });
+    }
+    const already = new Set<number>(received ?? []);
+    try {
+      for (let i = 0; i < total_chunks; i++) {
+        if (signal.cancelled) { const e: any = new Error('Upload cancelled'); throw e; }
+        if (already.has(i)) { setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, progress: Math.round(((i + 1) / total_chunks) * 100) } : u)); continue; }
+        const start = i * chunk_bytes;
+        const chunk = file.slice(start, Math.min(start + chunk_bytes, file.size));
+        const buf = await chunk.arrayBuffer();
+        // A chunk that fails after retries fails the whole upload — caught below and left resumable.
+        await apiFetch(`/v1/files/uploads/${uploadId}/chunks/${i}`, { method: 'PUT', body: buf, headers: { 'Content-Type': 'application/octet-stream' } });
+        setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, progress: Math.round(((i + 1) / total_chunks) * 100) } : u));
+      }
+      const result = await apiFetch(`/v1/files/uploads/${uploadId}/complete`, { method: 'POST' });
+      forgetResumable(uploadId);
+      setResumableUploads(prev => prev.filter(r => r.uploadId !== uploadId));
+      return result;
+    } catch (err) {
+      // Left in place on purpose — this is exactly the record that lets the upload survive a reload.
+      throw err;
+    }
+  }, []);
+
+  const sendOne = useCallback(async (id: string, file: File, parentId: string | null, driveId: string | null, resumeSessionId?: string) => {
+    setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, progress: 0, status: 'uploading', error: undefined } : u));
+    if (file.size >= CHUNKED_THRESHOLD || resumeSessionId) {
+      const signal = { cancelled: false };
+      uploadAborts.current.set(id, () => { signal.cancelled = true; });
+      try {
+        await sendChunked(id, file, parentId, driveId, signal, resumeSessionId);
+        setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, progress: 100, status: 'completed' } : u));
+        uploadSources.current.delete(id);
+      } catch (err: any) {
+        const cancelled = err?.message === 'Upload cancelled' || signal.cancelled;
+        // A cancelled/failed chunked upload stays resumable — sendChunked re-asks the server which
+        // chunks it already has, so retryUpload picks up where it left off rather than starting over.
+        setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, status: cancelled ? 'cancelled' : 'error', error: cancelled ? undefined : (err?.message || 'Upload failed') } : u));
+        if (!cancelled) throw err;
+      } finally {
+        uploadAborts.current.delete(id);
+      }
+      return;
+    }
+    const qs = new URLSearchParams();
+    if (parentId) qs.set('parent_id', parentId);
+    if (driveId) qs.set('drive_id', driveId);
+    const form = new FormData();
+    form.append('file', file);
+    const { promise, abort } = apiUploadWithProgress(`/v1/files/upload?${qs.toString()}`, form, pct =>
+      setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, progress: pct } : u)));
+    uploadAborts.current.set(id, abort);
+    try {
+      await promise;
+      setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, progress: 100, status: 'completed' } : u));
+      uploadSources.current.delete(id);
+    } catch (err: any) {
+      const cancelled = err?.message === 'Upload cancelled';
+      setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, status: cancelled ? 'cancelled' : 'error', error: cancelled ? undefined : (err?.message || 'Upload failed') } : u));
+      if (!cancelled) throw err;
+    } finally {
+      uploadAborts.current.delete(id);
+    }
+  }, [sendChunked]);
+
+  const cancelUpload = useCallback((id: string) => { uploadAborts.current.get(id)?.(); }, []);
+
+  const retryUpload = useCallback(async (id: string) => {
+    const src = uploadSources.current.get(id);
+    if (!src) { setError('This upload can no longer be retried — please add the file again.'); return; }
+    await run(() => sendOne(id, src.file, src.parentId, src.driveId));
+  }, [sendOne, loadData]);
+
+  const resumeUpload = useCallback(async (upload: ResumableUpload, file: File) => {
+    if (file.name !== upload.name || file.size !== upload.size) {
+      setError(`That's not the same file — expected "${upload.name}" (${upload.size} bytes).`);
+      return;
+    }
+    const localId = crypto.randomUUID();
+    setUploadingFiles(prev => [...prev, { id: localId, name: file.name, size: file.size, progress: 0, status: 'uploading' }]);
+    uploadSources.current.set(localId, { file, parentId: upload.parentId, driveId: upload.driveId });
+    await run(() => sendOne(localId, file, upload.parentId, upload.driveId, upload.uploadId));
+  }, [sendOne, loadData]);
+
+  const discardResumableUpload = useCallback(async (uploadId: string) => {
+    try { await apiFetch(`/v1/files/uploads/${uploadId}`, { method: 'DELETE' }); } catch { /* already gone server-side — still forget it locally */ }
+    forgetResumable(uploadId);
+    setResumableUploads(prev => prev.filter(r => r.uploadId !== uploadId));
+  }, []);
+
   const uploadFiles = useCallback((fileList: File[], parentId: string | null) =>
     run(async () => {
-      const qs = new URLSearchParams();
-      if (parentId) qs.set('parent_id', parentId);
-      if (currentDriveId) qs.set('drive_id', currentDriveId);
-
       const batch = fileList.map(f => ({ id: crypto.randomUUID(), file: f }));
       setUploadingFiles(batch.map(({ id, file }) => ({ id, name: file.name, size: file.size, progress: 0, status: 'uploading' as const })));
-
+      for (const { id, file } of batch) uploadSources.current.set(id, { file, parentId, driveId: currentDriveId });
+      // One failure must not abandon the rest of the batch; report it once at the end.
+      let firstError: unknown = null;
       for (const { id, file } of batch) {
-        const form = new FormData();
-        form.append('file', file);
-        const { promise } = apiUploadWithProgress(`/v1/files/upload?${qs.toString()}`, form, pct =>
-          setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, progress: pct } : u)));
-        try {
-          await promise;
-          setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, progress: 100, status: 'completed' } : u));
-        } catch (err) {
-          setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, status: 'error' } : u));
-          throw err;
-        }
+        try { await sendOne(id, file, parentId, currentDriveId); }
+        catch (err) { firstError = firstError ?? err; }
       }
+      if (firstError) throw firstError;
     }),
-  [loadData, currentDriveId]);
+  [loadData, currentDriveId, sendOne]);
 
   const uploadFolder = useCallback((fileList: File[], parentId: string | null) =>
     run(async () => {
@@ -633,6 +823,20 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
     run(() => apiFetch(`/v1/files/${id}/move`, { method: 'POST', body: JSON.stringify({ parent_id: parentId }) })),
   [loadData]);
 
+  // Several moves at once: every request is attempted, and the caller gets an exact report so a
+  // partial success is never shown as a full one.
+  const moveItems = useCallback(async (ids: string[], parentId: string | null) => {
+    const results = await Promise.allSettled(ids.map(id => apiFetch(`/v1/files/${id}/move`, { method: 'POST', body: JSON.stringify({ parent_id: parentId }) })));
+    const moved: string[] = [];
+    const failed: { id: string; error: string }[] = [];
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled') moved.push(ids[i]);
+      else failed.push({ id: ids[i], error: (r.reason as any)?.message || 'Move failed' });
+    });
+    await loadData();
+    return { moved, failed };
+  }, [loadData]);
+
   const trashItem = useCallback((id: string) =>
     run(() => apiFetch(`/v1/files/${id}/trash`, { method: 'POST' })),
   [loadData]);
@@ -653,13 +857,30 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
   // caller can read back share_token immediately — the Share modal needs it
   // to build a real "Copy link" URL without waiting for a stale local
   // snapshot to catch up with the next loadData() refresh.
-  const shareItem = useCallback(async (id: string, shared: SharedPerson[]): Promise<{ share_token: string | null }> => {
-    let result: { share_token: string | null } = { share_token: null };
+  const shareItem = useCallback(async (id: string, shared: SharedPerson[]): Promise<{ share_token: string | null; public_url: string | null }> => {
+    let result: { share_token: string | null; public_url: string | null } = { share_token: null, public_url: null };
     await run(async () => {
       result = await apiFetch(`/v1/files/${id}/share`, { method: 'PUT', body: JSON.stringify({ shared }) });
     });
     return result;
   }, [loadData]);
+
+  // The anonymous link is its own capability — never created as a side effect of sharing with a person.
+  const createPublicLink = useCallback(async (id: string, rotate = false) => {
+    let result: { share_token: string | null; public_url: string | null } = { share_token: null, public_url: null };
+    await run(async () => { result = await apiFetch(`/v1/files/${id}/public-link`, { method: 'POST', body: JSON.stringify({ rotate }) }); });
+    return result;
+  }, [loadData]);
+
+  const revokePublicLink = useCallback(async (id: string) => {
+    await run(() => apiFetch(`/v1/files/${id}/public-link`, { method: 'DELETE' }));
+  }, [loadData]);
+
+  const [sharedWithMe, setSharedWithMe] = useState<CloudFile[]>([]);
+  const loadSharedWithMe = useCallback(async () => {
+    try { const res = await apiFetch('/v1/files/shared-with-me'); setSharedWithMe(Array.isArray(res.data) ? res.data : []); }
+    catch { setSharedWithMe([]); }
+  }, []);
 
   const downloadItem = useCallback(async (item: CloudFile) => {
     try {
@@ -767,9 +988,9 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
       currentView, currentFolderId, breadcrumb,
       goToView, openFolder, navToBreadcrumb,
       previewItemId, setPreviewItemId,
-      search, setSearch, searchResults, searching,
-      createFolder, uploadFiles, uploadFolder, uploadingFiles, removeUploadingFile, renameItem, starItem, moveItem,
-      trashItem, restoreItem, permanentlyDelete, emptyTrash, shareItem, downloadItem, canPermanentlyDelete,
+      search, setSearch, searchResults, searching, searchError,
+      createFolder, uploadFiles, uploadFolder, uploadingFiles, removeUploadingFile, cancelUpload, retryUpload, resumableUploads, resumeUpload, discardResumableUpload, renameItem, starItem, moveItem, moveItems,
+      trashItem, restoreItem, permanentlyDelete, emptyTrash, shareItem, createPublicLink, revokePublicLink, sharedWithMe, loadSharedWithMe, downloadItem, canPermanentlyDelete,
       connections, connectionsLoading, loadConnections, connectProvider, disconnectProvider, syncProvider,
       configureConnectorOAuth, startConnectorOAuth, completeConnectorOAuth, fetchAccessLog,
     }}>

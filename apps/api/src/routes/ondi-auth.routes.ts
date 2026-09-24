@@ -7,7 +7,7 @@ import { issueTokens } from '../services/token.service.js';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { verifyTotp } from '../lib/totp.js';
 import { SmsService } from '../services/sms.service.js';
-import { MailService } from '../services/mail.service.js';
+import { CommEventsService } from '../services/comm-events.service.js';
 import { env } from '../config/env.js';
 import { setSessionCookies } from '../lib/cookies.js';
 import { recordLogin } from './auth.routes.js';
@@ -346,7 +346,7 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
       await redisClient.set(magicLinkKey(token), user.id, 'EX', MAGIC_LINK_TTL_SECONDS);
 
       const magicLinkUrl = `${env.OPS_BOARD_URL}/auth/magic-link?token=${token}`;
-      await MailService.enqueueTemplated(user.tenant_id, 'auth.magic_link', user.email, { magicLinkUrl }, 'auth')
+      await CommEventsService.dispatch({ tenantId: user.tenant_id, eventKey: 'security.login.magic_link', actorId: user.id, context: { magicLinkUrl }, idempotencyKey: `magic-link:${user.id}:${token}` })
         .catch(() => { /* link still exists in Redis; user can request again */ });
 
       await recordAuthEvent(user.tenant_id, user.id, 'magic_link_requested', {

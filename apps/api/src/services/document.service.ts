@@ -1,6 +1,7 @@
 import { withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { bumpCloudFolderCount } from '../lib/cloud-folder-count.js';
+import { retainUntilFor } from '../lib/cloud-retention.js';
 import { wouldExceedStorageQuota } from '../lib/storage-quota.js';
 import { tenantHasEntitlement } from '../middleware/entitlement.js';
 import { emitDomainEvent } from './domain-events.service.js';
@@ -136,26 +137,43 @@ export class DocumentService {
         parentId = await ensureFolder(trx, input.tenantId, driveId, segment, parentId);
       }
 
-      // Replace a same-named file in place instead of piling up duplicates —
-      // same convention cloud-sync.service.ts's own sync* methods already
-      // use for re-uploads of the same logical document.
-      let dupQuery = trx.selectFrom('cloud_files').select(['id', 'size'])
-        .where('tenant_id', '=', input.tenantId).where('name', '=', input.filename);
+      // Re-filing the same logical document (same entity) replaces the file
+      // in place; a same-named file belonging to a DIFFERENT entity is never
+      // overwritten — it gets an id suffix instead. (Without this, two
+      // documents that render the same filename would replace each other,
+      // and the loser's idempotency key would never be stored, so a sweep
+      // would re-file it forever.)
+      let filename = input.filename;
+      let dupQuery = trx.selectFrom('cloud_files').select(['id', 'size', 'entity_type', 'entity_id'])
+        .where('tenant_id', '=', input.tenantId).where('name', '=', filename).where('is_trash', '=', false);
       dupQuery = parentId ? dupQuery.where('parent_id', '=', parentId) : dupQuery.where('parent_id', 'is', null);
-      const dup = await dupQuery.executeTakeFirst();
+      let dup = await dupQuery.executeTakeFirst();
+      if (dup && (dup.entity_type !== input.entityType || dup.entity_id !== input.entityId)) {
+        const dot = filename.lastIndexOf('.');
+        const suffix = ` (${input.entityId.slice(0, 8)})`;
+        filename = dot > 0 ? `${filename.slice(0, dot)}${suffix}${filename.slice(dot)}` : `${filename}${suffix}`;
+        dup = undefined;
+      }
 
+      const retainUntil = await retainUntilFor(trx, input.tenantId, input.retentionClass);
       const fileId = dup?.id ?? (await trx.insertInto('cloud_files').values({
-        tenant_id: input.tenantId, drive_id: driveId, name: input.filename, type: extOf(input.filename),
+        tenant_id: input.tenantId, drive_id: driveId, name: filename, type: extOf(filename),
         size: input.content.length, parent_id: parentId, owner_name: 'System',
         mime_type: input.mimeType ?? 'application/pdf',
         entity_type: input.entityType, entity_id: input.entityId,
         idempotency_key: input.idempotencyKey ?? null,
         retention_class: input.retentionClass ?? null,
+        retain_until: retainUntil,
+        scan_status: 'clean', // system-generated content, never user-supplied bytes
       }).returning('id').executeTakeFirstOrThrow()).id;
 
-      const { storageKey } = await MinioIntegration.uploadCloudFile(input.tenantId, fileId, input.filename, input.content);
+      const { storageKey } = await MinioIntegration.uploadCloudFile(input.tenantId, fileId, filename, input.content);
       await trx.updateTable('cloud_files').set({
         storage_key: storageKey, size: input.content.length, updated_at: new Date(),
+        ...(dup && input.idempotencyKey ? { idempotency_key: input.idempotencyKey } : {}),
+        ...(dup && input.retentionClass ? { retention_class: input.retentionClass } : {}),
+        // Re-filing may only extend a retention lock, never shorten it.
+        ...(dup && retainUntil ? { retain_until: retainUntil } : {}),
       }).where('id', '=', fileId).execute();
 
       if (parentId) {
@@ -164,7 +182,7 @@ export class DocumentService {
 
       await emitDomainEvent(trx, input.tenantId, {
         type: 'document.saved', sourceApp: input.sourceApp, entityType: input.entityType, entityId: input.entityId,
-        payload: { fileId, filename: input.filename, documentType: input.documentType, replaced: !!dup },
+        payload: { fileId, filename, documentType: input.documentType, replaced: !!dup },
         actorId: input.actorId ?? null,
       });
 

@@ -280,7 +280,7 @@ function OutlookSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced
 // so a direct visit to /contacts/favorites (or the browser back/forward
 // buttons) actually lands on the right view instead of always showing the
 // default list, and so the URL reflects whatever the sidebar switches to.
-const VIEW_PATH: Record<string, string> = { contacts: '', favorites: 'favorites', merge: 'merge', trash: 'trash' };
+const VIEW_PATH: Record<string, string> = { contacts: '', directory: 'directory', frequent: 'frequent', other: 'other', favorites: 'favorites', merge: 'merge', trash: 'trash' };
 
 function useContactsUrlSync() {
   const { setCurrentView, setSelectedLabelId, setSelectedSmartGroupId } = useContacts();
@@ -298,6 +298,14 @@ function useContactsUrlSync() {
       setCurrentView('smartgroup');
       setSelectedLabelId(null);
       setSelectedSmartGroupId(parts[1] && parts[1] !== 'new' ? parts[1] : null);
+    } else if (seg === 'contact' && parts[1]) {
+      setCurrentView('contacts');
+      setSelectedLabelId(null);
+      setSelectedSmartGroupId(null);
+    } else if (seg === 'directory' || seg === 'frequent' || seg === 'other') {
+      setCurrentView(seg);
+      setSelectedLabelId(null);
+      setSelectedSmartGroupId(null);
     } else if (seg === 'favorites' || seg === 'starred') {
       setCurrentView('favorites');
       setSelectedLabelId(null);
@@ -471,6 +479,9 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
 
   const mainItems: { key: string; label: string; icon: IconName; count: number; badge: boolean }[] = [
     { key: 'contacts',  label: 'Contacts',    icon: 'user',     count: activeCount, badge: false },
+    { key: 'directory', label: 'Directory',   icon: 'building', count: 0,           badge: false },
+    { key: 'frequent',  label: 'Frequent',    icon: 'clock',    count: 0,           badge: false },
+    { key: 'other',     label: 'Other contacts', icon: 'users', count: 0,           badge: false },
     { key: 'favorites', label: 'Favourites',  icon: 'star',     count: favCount,    badge: false },
     { key: 'merge',     label: 'Merge & fix', icon: 'gitMerge', count: mergeCount,  badge: mergeCount > 0 },
   ];
@@ -710,6 +721,10 @@ export function ContactsShell() {
               <Routes>
                 <Route element={<PageLayout />}>
                   <Route index element={<Contacts />} />
+                  <Route path="contact/:contactId" element={<Contacts />} />
+                  <Route path="directory"     element={<Contacts />} />
+                  <Route path="frequent"      element={<Contacts />} />
+                  <Route path="other"         element={<Contacts />} />
                   <Route path="favorites"     element={<Contacts />} />
                   <Route path="starred"       element={<Contacts />} />{/* legacy alias for favorites, kept so any existing link/bookmark still resolves */}
                   <Route path="merge"         element={<Contacts />} />

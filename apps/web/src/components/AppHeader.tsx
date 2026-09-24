@@ -66,6 +66,9 @@ const SEARCH_CATEGORIES: Record<string, { label: string; icon: IconName }> = {
   staff:     { label: 'Staff',     icon: 'user' },
   drivers:   { label: 'Drivers',   icon: 'truck' },
   vehicles:  { label: 'Vehicles',  icon: 'container' },
+  emails:    { label: 'Email',     icon: 'mail' },
+  people:    { label: 'People', icon: 'user' },
+  organizations: { label: 'Organizations', icon: 'building' },
 };
 
 // ── Main component ─────────────────────────────────────────────
@@ -380,6 +383,7 @@ export function AppHeader({
 
   // Local search state for app pages (hub page controls via prop)
   const [localSearch, setLocalSearch] = useState('');
+  const [globalSearch, setGlobalSearch] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   /**
    * The centre of the header has two resting states. With unread notifications
@@ -416,9 +420,23 @@ export function AppHeader({
   }, [openSearch]);
   const isHub = !!onHubSearchChange;
   const isAppSearch = !!onAppSearchChange;
-  const searchValue = isHub ? (hubSearch ?? '') : isAppSearch ? (appSearch ?? '') : localSearch;
-  const handleSearch = isHub ? onHubSearchChange! : isAppSearch ? onAppSearchChange! : setLocalSearch;
-  const searchPlaceholder = isHub ? t('header.searchHub') : isAppSearch ? (appSearchPlaceholder ?? t('header.searchDefault')) : t('header.searchDefault');
+  const [searchEverywhere, setSearchEverywhere] = useState(() => !isAppSearch);
+  const searchValue = isHub
+    ? (hubSearch ?? '')
+    : isAppSearch
+      ? (searchEverywhere ? globalSearch : (appSearch ?? ''))
+      : localSearch;
+  const handleSearch = (value: string) => {
+    if (isHub) onHubSearchChange!(value);
+    else if (isAppSearch && !searchEverywhere) onAppSearchChange!(value);
+    else if (isAppSearch) setGlobalSearch(value);
+    else setLocalSearch(value);
+  };
+  const searchPlaceholder = isHub
+    ? t('header.searchHub')
+    : isAppSearch && !searchEverywhere
+      ? (appSearchPlaceholder ?? t('header.searchDefault'))
+      : 'Search across Hudumika…';
 
   // ── Global cross-app search results ──
   const navigate = useNavigate();
@@ -427,35 +445,48 @@ export function AppHeader({
   const [resultOrder, setResultOrder] = useState<string[]>([]);
   const [categoryApp, setCategoryApp] = useState<Record<string, string>>({});
   const [globalSearching, setGlobalSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [activeResult, setActiveResult] = useState(-1);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchAbortRef = useRef<AbortController | null>(null);
+  const flatResults = useMemo(() => resultOrder.flatMap(cat => globalResults[cat] ?? []), [resultOrder, globalResults]);
 
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchAbortRef.current?.abort();
     const q = searchValue.trim();
-    if (q.length < 2) { setGlobalResults({}); setGlobalSearching(false); return; }
+    if (!searchEverywhere || q.length < 2) { setGlobalResults({}); setResultOrder([]); setGlobalSearching(false); setSearchError(''); return; }
     setGlobalSearching(true);
+    setSearchError('');
     searchDebounceRef.current = setTimeout(() => {
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
       // `app` never narrows the search — it decides depth and order. See
       // apps/api/src/routes/search.routes.ts.
       const scope = activeApp ? `&app=${encodeURIComponent(activeApp)}` : '';
-      apiFetch(`/v1/search?q=${encodeURIComponent(q)}${scope}`)
+      apiFetch(`/v1/search?q=${encodeURIComponent(q)}${scope}`, { signal: controller.signal })
         .then((res: GlobalSearchResponse) => {
           setGlobalResults(res.data || {});
           setResultOrder(res.order?.length ? res.order : Object.keys(res.data || {}));
           setCategoryApp(res.categoryApp || {});
         })
-        .catch(() => { setGlobalResults({}); setResultOrder([]); })
-        .finally(() => setGlobalSearching(false));
+        .catch((error: any) => {
+          if (error?.name === 'AbortError') return;
+          setGlobalResults({}); setResultOrder([]);
+          setSearchError(error?.message || 'Search is temporarily unavailable.');
+        })
+        .finally(() => { if (!controller.signal.aborted) setGlobalSearching(false); });
     }, 250);
-    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
-  }, [searchValue, activeApp]);
+    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); searchAbortRef.current?.abort(); };
+  }, [searchValue, activeApp, searchEverywhere]);
 
   function handleSearchFocus() {
-    if (searchValue.trim().length >= 2) setResultsOpen(true);
+    if (searchEverywhere && searchValue.trim().length >= 2) setResultsOpen(true);
   }
   function handleSearchInput(v: string) {
     handleSearch(v);
-    setResultsOpen(v.trim().length >= 2);
+    setActiveResult(-1);
+    setResultsOpen(searchEverywhere && v.trim().length >= 2);
   }
   function handleResultClick(path: string) {
     setResultsOpen(false);
@@ -470,7 +501,10 @@ export function AppHeader({
       {globalSearching && (
         <div className="px-3 py-2.5 text-sm font-medium text-muted-foreground">Searching…</div>
       )}
-      {!globalSearching && !hasGlobalResults && (
+      {!globalSearching && searchError && (
+        <div role="alert" className="px-3 py-2.5 text-sm font-medium text-destructive">{searchError}</div>
+      )}
+      {!globalSearching && !searchError && !hasGlobalResults && (
         <div className="px-3 py-2.5 text-sm font-medium text-muted-foreground">No matches for &ldquo;{searchValue.trim()}&rdquo;</div>
       )}
       {!globalSearching && resultOrder.map((cat, i) => {
@@ -497,12 +531,16 @@ export function AppHeader({
               </span>
             )}
           </div>
-          {hits.map(h => (
+          {hits.map(h => {
+            const resultIndex = flatResults.findIndex(r => r.id === h.id && r.path === h.path);
+            return (
             <button
               key={h.id}
               type="button"
               onClick={() => handleResultClick(h.path)}
-              className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent"
+              role="option"
+              aria-selected={activeResult === resultIndex}
+              className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent ${activeResult === resultIndex ? 'bg-accent' : ''}`}
             >
               <Icon name={SEARCH_CATEGORIES[cat]?.icon || 'search'} size={14} className="shrink-0 text-muted-foreground" />
               <div className="min-w-0 flex-1">
@@ -510,7 +548,7 @@ export function AppHeader({
                 {h.sublabel && <div className="truncate text-xs text-muted-foreground">{h.sublabel}</div>}
               </div>
             </button>
-          ))}
+          )})}
         </div>
         );
       })}
@@ -593,6 +631,10 @@ export function AppHeader({
                 <input
                   ref={searchInputRef}
                   type="text"
+                  role="combobox"
+                  aria-expanded={resultsOpen}
+                  aria-controls="global-search-results"
+                  aria-autocomplete="list"
                   className="app-header-hub-search-input"
                   placeholder={searchPlaceholder}
                   value={searchValue}
@@ -605,21 +647,47 @@ export function AppHeader({
                   }}
                   onKeyDown={e => {
                     if (e.key === 'Escape') { handleSearch(''); setResultsOpen(false); setSearchExpanded(false); }
+                    if (e.key === 'ArrowDown' && flatResults.length) { e.preventDefault(); setActiveResult(i => (i + 1) % flatResults.length); }
+                    if (e.key === 'ArrowUp' && flatResults.length) { e.preventDefault(); setActiveResult(i => i <= 0 ? flatResults.length - 1 : i - 1); }
+                    if (e.key === 'Enter' && activeResult >= 0 && flatResults[activeResult]) { e.preventDefault(); handleResultClick(flatResults[activeResult].path); }
                   }}
                   onChange={e => handleSearchInput(e.target.value)}
                 />
                 {searchValue && (
                   <button
                     type="button"
-                    className="app-header-hub-search-clear"
+                    className={`app-header-hub-search-clear${isAppSearch ? ' app-header-hub-search-clear--with-scope' : ''}`}
+                    aria-label="Clear search"
                     onClick={() => { handleSearch(''); setResultsOpen(false); }}
                   >
                     ✕
                   </button>
                 )}
+                {isAppSearch && (
+                  <button
+                    type="button"
+                    className="app-header-search-scope"
+                    aria-label={searchEverywhere ? 'Search this app only' : 'Search every app'}
+                    title={searchEverywhere ? 'Searching everywhere' : 'Searching this app'}
+                    onClick={() => {
+                      if (searchEverywhere) {
+                        setSearchEverywhere(false);
+                        setResultsOpen(false);
+                      } else {
+                        const seed = appSearch ?? '';
+                        setGlobalSearch(seed);
+                        setSearchEverywhere(true);
+                        setResultsOpen(seed.trim().length >= 2);
+                      }
+                      setActiveResult(-1);
+                    }}
+                  >{searchEverywhere ? 'All' : 'App'}</button>
+                )}
               </div>
             </PopoverAnchor>
             <PopoverContent
+              id="global-search-results"
+              role="listbox"
               align="start"
               className="w-(--radix-popover-trigger-width) min-w-[320px] max-h-105 overflow-y-auto p-1.5"
               onOpenAutoFocus={e => e.preventDefault()}
