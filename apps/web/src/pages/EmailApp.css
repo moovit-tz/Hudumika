@@ -28,6 +28,7 @@
   overflow: hidden;
   box-shadow: var(--elev-sm);
   border: 1px solid var(--border);
+  container-type: inline-size;
 }
 .em-list--has-detail {
   flex: 0 0 var(--em-list-w, 360px);
@@ -343,6 +344,12 @@
   font-size: 13px;
   gap: 2px;
 }
+.em-row-subject-line {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
 .em-row-subject {
   color: var(--ink);
   overflow: hidden;
@@ -392,6 +399,10 @@
   margin-left: auto;
   flex-shrink: 0;
 }
+.em-row-labels,
+.em-row-end { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.em-row-labels { overflow: hidden; }
+.em-row-end { flex-shrink: 0; }
 
 .em-row-badge {
   font-size: 11px;
@@ -441,7 +452,7 @@
   display: flex;
   align-items: flex-start;
   padding: 10px 12px;
-  min-height: 72px;
+  min-height: 88px;
   gap: 8px;
   width: 100%;
   box-sizing: border-box;
@@ -460,8 +471,9 @@
 .em-list--has-detail .em-row-body {
   display: grid;
   grid-template-areas:
-    "header meta"
+    "header end"
     "mid    mid"
+    "labels labels"
     "att    att";
   grid-template-columns: minmax(0, 1fr) auto;
   row-gap: 3px;
@@ -498,12 +510,20 @@
 }
 
 .em-list--has-detail .em-row-meta {
-  grid-area: meta;
-  display: flex;
-  align-items: center;
+  display: contents;
+}
+
+.em-list--has-detail .em-row-end {
+  grid-area: end;
+  justify-self: end;
   gap: 4px;
-  margin-left: auto;
-  flex-shrink: 0;
+}
+
+.em-list--has-detail .em-row-labels {
+  grid-area: labels;
+  gap: 5px;
+  overflow: hidden;
+  flex-wrap: nowrap;
 }
 
 .em-list--has-detail .em-row-date {
@@ -521,6 +541,12 @@
   overflow: hidden;
 }
 
+.em-list--has-detail .em-row-subject-line {
+  display: flex;
+  width: 100%;
+  gap: 5px;
+}
+
 .em-list--has-detail .em-row-subject {
   display: block;
   overflow: hidden;
@@ -530,8 +556,11 @@
   font-weight: 600;
   color: var(--ink);
   max-width: 100%;
-  width: 100%;
+  width: auto;
+  flex: 1;
 }
+
+.em-list--has-detail .em-thread-badge { margin: 0; }
 
 .em-list--has-detail .em-row-snip {
   display: block;
@@ -550,6 +579,22 @@
   flex-wrap: wrap;
   gap: 4px;
   padding-top: 2px;
+}
+
+.em-list--has-detail > .pagination-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  min-height: 54px;
+  padding: 8px 12px;
+}
+.em-list--has-detail > .pagination-bar .pagination-bar-info { overflow: hidden; text-overflow: ellipsis; }
+.em-list--has-detail > .pagination-bar .pagination-bar-size { gap: 6px; }
+.em-list--has-detail > .pagination-bar .pagination-bar-select-trigger { min-width: 88px !important; }
+.em-list--has-detail > .pagination-bar .pagination-bar-nav { grid-column: 1 / -1; justify-self: center; }
+
+@container (max-width: 390px) {
+  .em-list--has-detail > .pagination-bar .pagination-bar-size-label { display: none; }
 }
 
 /* ── Email detail ────────────────────────────────────────────────────── */

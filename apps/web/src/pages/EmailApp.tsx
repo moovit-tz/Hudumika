@@ -522,7 +522,6 @@ export const EmailApp: React.FC = () => {
   // strip, full-screen expands to cover the viewport instead of the docked
   // corner popup — the popup itself (position/size) is unchanged from
   // before, these are two additional states layered on top of it.
-  const [composeMinimized, setComposeMinimized] = useState(false);
   const [composeFullScreen, setComposeFullScreen] = useState(false);
   // Reply can pop out of the inline thread panel into its own floating
   // window — same chrome/behavior as Compose (minimize/full-screen/close),
@@ -1423,7 +1422,6 @@ export const EmailApp: React.FC = () => {
       isForward: email.subject.toLowerCase().startsWith('fwd:'),
       fromIdentityId: null,
     });
-    setComposeMinimized(false);
     setComposeFullScreen(false);
     setComposeOpen(true);
   }
@@ -1500,7 +1498,6 @@ export const EmailApp: React.FC = () => {
       isForward: false, fromIdentityId: null,
       ...prefill,
     });
-    setComposeMinimized(false);
     setComposeFullScreen(false);
     setComposeOpen(true);
   }
@@ -2060,10 +2057,12 @@ export const EmailApp: React.FC = () => {
                     </div>
 
                     <div className="em-row-mid">
-                      <span className={`em-row-subject${!email.read ? ' em-row-subject--bold' : ''}`}>{email.subject}</span>
-                      {(email.threadCount ?? 1) > 1 && (
-                        <Tip label="Messages in this conversation"><span className="em-thread-badge">{email.threadCount}</span></Tip>
-                      )}
+                      <span className="em-row-subject-line">
+                        <span className={`em-row-subject${!email.read ? ' em-row-subject--bold' : ''}`}>{email.subject}</span>
+                        {(email.threadCount ?? 1) > 1 && (
+                          <Tip label="Messages in this conversation"><span className="em-thread-badge">{email.threadCount}</span></Tip>
+                        )}
+                      </span>
                       <span className="em-row-snip"> — {email.snippet}</span>
                     </div>
 
@@ -2087,6 +2086,7 @@ export const EmailApp: React.FC = () => {
                     )}
 
                     <div className="em-row-meta">
+                      <div className="em-row-labels">
                       {email.labels.map((lbl, i) => {
                         const c = labelColors(lbl, labelDefs);
                         return (
@@ -2120,6 +2120,8 @@ export const EmailApp: React.FC = () => {
                           </Badge>
                         </Tip>
                       )}
+                      </div>
+                      <div className="em-row-end">
                       {email.hasAttachment && <Icon name="paperclip" size={12} color="var(--ink3)" className="em-row-clip shrink-0" />}
                       <div className={`em-row-date${!email.read ? ' em-row-date--bold' : ''}`}>
                         {fmtDate(email.date)}
@@ -2131,6 +2133,7 @@ export const EmailApp: React.FC = () => {
                           </button>
                         </Tip>
                       )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2545,19 +2548,19 @@ export const EmailApp: React.FC = () => {
 
       {/* Compose modal */}
       {composeOpen && (
-        <div className={`em-compose-modal${isMobile ? ' em-compose-modal--mobile' : ''}${composeFullScreen ? ' em-compose-modal--full' : ''}${composeMinimized ? ' em-compose-modal--min' : ''}`}>
-          <div className="em-compose-hdr" onClick={() => { if (composeMinimized) setComposeMinimized(false); }}>
+        <div className={`em-compose-modal${isMobile ? ' em-compose-modal--mobile' : ''}${composeFullScreen ? ' em-compose-modal--full' : ''}`}>
+          <div className="em-compose-hdr">
             <span className="em-compose-title">New Message</span>
             {!isMobile && (
-              <Tip label={composeMinimized ? 'Expand' : 'Minimize'}>
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeMinimized(m => !m); }}>
+              <Tip label="Default size">
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeFullScreen(false); }}>
                   <Icon name="minus" size={14} color="#fff" />
                 </button>
               </Tip>
             )}
             {!isMobile && (
               <Tip label={composeFullScreen ? 'Exit full screen' : 'Full screen'}>
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeFullScreen(f => !f); setComposeMinimized(false); }}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeFullScreen(f => !f); }}>
                   <Icon name={composeFullScreen ? 'minimize' : 'maximize'} size={14} color="#fff" />
                 </button>
               </Tip>
@@ -2566,7 +2569,6 @@ export const EmailApp: React.FC = () => {
               <Icon name="x" size={16} color="#fff" />
             </button>
           </div>
-          {!composeMinimized && (
           <div className="em-compose-fields">
             {identities.length > 0 && (
               <div className="em-compose-row">
@@ -2683,7 +2685,6 @@ export const EmailApp: React.FC = () => {
               </Tip>
             </div>
           </div>
-          )}
         </div>
       )}
 

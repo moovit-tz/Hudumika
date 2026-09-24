@@ -616,7 +616,15 @@ export function readDesignTokens(): DesignTokens {
 
 function saveDesignTokensLocal(tokens: DesignTokens): void {
   localStorage.setItem(LS_KEY, JSON.stringify(tokens));
+  // Keep login-page accent in sync with the design system's brand.primary so
+  // OndiLogin / Login / OrgLogin always show the same colour as the main app.
+  // useBranding reads hudumika_email_accent for --lp-accent; without this
+  // write the login button stays blue even when the SuperAdmin switched to green.
+  if (tokens.brand?.primary) {
+    localStorage.setItem('hudumika_email_accent', tokens.brand.primary);
+  }
   window.dispatchEvent(new CustomEvent('hudumika-ds-updated'));
+  window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
 }
 
 /**
@@ -631,6 +639,14 @@ export async function pushDesignTokens(tokens: Partial<DesignTokens>): Promise<v
     method: 'PUT',
     body: JSON.stringify(tokens),
   });
+  // Keep /v1/platform/branding.accentColor in sync so login pages always
+  // use the same colour the SuperAdmin selected in the design system.
+  if (tokens.brand?.primary) {
+    await apiFetch('/v1/platform/branding', {
+      method: 'PUT',
+      body: JSON.stringify({ accentColor: tokens.brand.primary }),
+    }).catch(() => {});
+  }
 }
 
 // ── M3 seed-color generation ─────────────────────────────────────────────────
@@ -1008,6 +1024,11 @@ export function useDesignSystem() {
         responsive: { ...DESIGN_TOKENS_DEFAULTS.responsive, ...data.responsive },
       };
       localStorage.setItem(LS_KEY, JSON.stringify(merged));
+      // Keep login-page accent in sync (same as saveDesignTokensLocal).
+      if (merged.brand?.primary) {
+        localStorage.setItem('hudumika_email_accent', merged.brand.primary);
+        window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
+      }
       setTokens(merged);
       applyDesignTokens(merged);
     }).catch(() => {});

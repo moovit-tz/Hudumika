@@ -82,7 +82,7 @@ export function PaginationBar({
       </div>
 
       {/* ── Center Region: Navigation buttons ── */}
-      <div className="pagination-bar-nav" role="navigation" aria-label="Pagination Navigation">
+      {totalPages > 1 && <div className="pagination-bar-nav" role="navigation" aria-label="Pagination Navigation">
         <Tip label="First page">
           <button
             type="button"
@@ -149,7 +149,7 @@ export function PaginationBar({
             <Icon name="chevronsRight" size={14} />
           </button>
         </Tip>
-      </div>
+      </div>}
 
       {/* ── Right Region: Rows per page selector ── */}
       {onPageSizeChange && (

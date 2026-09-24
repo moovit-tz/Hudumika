@@ -11,6 +11,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '../components/ui/dialog.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { EmailBlockBuilder, blocksToEmailHtml, type EmailBlock } from '../components/EmailBlockBuilder.js';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -31,7 +32,7 @@ const MY_MERGE_VARS = [
 // ── My Templates types ──────────────────────────────────────────────────────
 
 const QUICK_TEMPLATE_CATEGORIES = ['General', 'Transactional & Billing', 'Support & Service', 'Account & Staff'] as const;
-type QuickTemplateCategory = typeof QUICK_TEMPLATE_CATEGORIES[number];
+type QuickTemplateCategory = string;
 
 interface MyTemplate {
   id: string;
@@ -152,12 +153,40 @@ interface SysTpl {
   preheader: string; body_plain: string; locale: string; status: string;
   is_customized: boolean; is_builtin: boolean; available_vars: string[];
   event_key: string | null; application: string | null; revision: number;
+  block_document: { version: 1; blocks: Array<Record<string, unknown>> } | null;
+}
+
+function htmlToBuilderBlocks(html: string): EmailBlock[] {
+  if (!html.trim() || typeof DOMParser === 'undefined') return [];
+  const document = new DOMParser().parseFromString(html, 'text/html');
+  const blocks: EmailBlock[] = [];
+  const id = () => Math.random().toString(36).slice(2);
+  document.body.querySelectorAll('h1,h2,h3,p,a[href],hr,img').forEach(element => {
+    const text = element.textContent?.trim() ?? '';
+    if (element.matches('h1,h2,h3') && text) {
+      blocks.push({ id: id(), type: 'heading', text, level: Number(element.tagName.slice(1)) as 1 | 2 | 3, align: 'left' });
+    } else if (element.matches('p') && !element.querySelector('a') && text) {
+      blocks.push({ id: id(), type: 'paragraph', text });
+    } else if (element.matches('a[href]') && text) {
+      blocks.push({ id: id(), type: 'button', label: text, url: element.getAttribute('href') ?? '#', align: 'center', color: '#0d7a6b' });
+    } else if (element.matches('hr')) {
+      blocks.push({ id: id(), type: 'divider' });
+    } else if (element instanceof HTMLImageElement) {
+      blocks.push({ id: id(), type: 'image', src: element.src, alt: element.alt, width: element.getAttribute('width') ?? '100%', align: 'center' });
+    }
+  });
+  if (!blocks.length) {
+    const text = document.body.textContent?.replace(/\s+/g, ' ').trim();
+    if (text) blocks.push({ id: id(), type: 'paragraph', text });
+  }
+  return blocks;
 }
 
 // ── Publish-to-store dialog ──────────────────────────────────────────────────
 
-function PublishToStoreDialog({ templateKey, templateTitle, onClose }: {
-  templateKey: string;
+function PublishToStoreDialog({ templateKey, templateId, templateTitle, onClose }: {
+  templateKey?: string;
+  templateId?: string;
   templateTitle: string;
   onClose: () => void;
 }) {
@@ -176,7 +205,10 @@ function PublishToStoreDialog({ templateKey, templateTitle, onClose }: {
     try {
       await apiFetch('/v1/marketplace/email-templates/submissions', {
         method: 'POST',
-        body: JSON.stringify({ template_key: templateKey, title: title.trim(), description: description.trim(), tags }),
+        body: JSON.stringify({
+          ...(templateKey ? { template_key: templateKey } : { template_id: templateId }),
+          title: title.trim(), description: description.trim(), tags,
+        }),
       });
       showAlert('Template submitted for review!', { variant: 'success' });
       onClose();
@@ -228,6 +260,7 @@ function PublishToStoreDialog({ templateKey, templateTitle, onClose }: {
 interface ImportedMarketplaceTpl {
   id: string; title: string; category: string; subject: string;
   is_hudumika_official: boolean; local_template_key: string;
+  imported_at?: string; source_version?: string;
 }
 
 function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }) {
@@ -238,18 +271,30 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedImportedKey, setSelectedImportedKey] = useState<string | null>(null);
   const [editingImported, setEditingImported] = useState<SysTpl | null>(null);
+  const [editingPersonal, setEditingPersonal] = useState<MyTemplate | null>(null);
   const [draft, setDraft] = useState<DraftTemplate | null>(null);
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [search, setSearch] = useState('');
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
+  const [renamingGroupName, setRenamingGroupName] = useState('');
+  const [categoryEditor, setCategoryEditor] = useState<'create' | 'rename' | null>(null);
+  const [categoryEditorName, setCategoryEditorName] = useState('');
+  const [groupEditor, setGroupEditor] = useState<'create' | 'rename' | null>(null);
+  const [groupEditorName, setGroupEditorName] = useState('');
+  const [librarySource, setLibrarySource] = useState<'all' | 'personal' | 'imported'>('all');
   const [publishOpen, setPublishOpen] = useState(false);
   const [showEditImportedDialog, setShowEditImportedDialog] = useState(false);
+  const [showPersonalEditorDialog, setShowPersonalEditorDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bodyInputRef = useRef<HTMLTextAreaElement>(null);
   const [formError, setFormError] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
   const [navWidth, setNavWidth] = useState(280);
   const [previewWidth, setPreviewWidth] = useState(400);
+  const [formatMode, setFormatMode] = useState<'plain' | 'visual' | 'html'>('plain');
+  const [builderBlocks, setBuilderBlocks] = useState<EmailBlock[]>([]);
 
   function loadTemplates() {
     setLoading(true);
@@ -275,9 +320,18 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
 
   useEffect(() => { loadTemplates(); }, []);
 
+  // Select a template → show its preview panel (same pattern as imported templates).
   function selectTemplate(t: MyTemplate) {
     setFormError('');
     setSelectedId(t.id);
+    setEditingPersonal(t);
+    setEditingImported(null);
+    setSelectedImportedKey(null);
+    setDraft(null);
+  }
+
+  // Enter the editor from the personal preview panel — opens in a dialog.
+  function enterPersonalEditor(t: MyTemplate) {
     setDraft({
       id: t.id,
       name: t.name,
@@ -289,11 +343,23 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
       group_id: t.group_id ?? null,
       sort_order: t.sort_order ?? 0,
     });
+    setFormatMode(t.is_html ? 'html' : 'plain');
+    setBuilderBlocks(t.is_html && t.body_html ? htmlToBuilderBlocks(t.body_html) : []);
+    setShowPersonalEditorDialog(true);
+  }
+
+  // Close the personal editor dialog without saving.
+  function cancelEditing() {
+    setDraft(null);
+    setShowPersonalEditorDialog(false);
   }
 
   function newTemplate() {
     setFormError('');
     setSelectedId(null);
+    setEditingPersonal(null);
+    setEditingImported(null);
+    setSelectedImportedKey(null);
     setDraft({
       id: null,
       name: 'New template',
@@ -305,6 +371,25 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
       group_id: groups[0]?.id ?? null,
       sort_order: templates.length,
     });
+    setFormatMode('plain');
+    setBuilderBlocks([]);
+  }
+
+  function openVisualBuilder() {
+    if (!draft) return;
+    const nextBlocks = builderBlocks.length
+      ? builderBlocks
+      : draft.is_html && draft.body_html.trim()
+        ? htmlToBuilderBlocks(draft.body_html)
+        : draft.body.split(/\n{2,}/).map((text, index) => ({ id: `text-${Date.now()}-${index}`, type: 'paragraph' as const, text: text.trim() })).filter(block => block.text);
+    setBuilderBlocks(nextBlocks);
+    setDraft(current => current ? { ...current, is_html: true, body_html: blocksToEmailHtml(nextBlocks) } : current);
+    setFormatMode('visual');
+  }
+
+  function updateBuilderBlocks(next: EmailBlock[]) {
+    setBuilderBlocks(next);
+    setDraft(current => current ? { ...current, is_html: true, body_html: blocksToEmailHtml(next) } : current);
   }
 
   const selected = templates.find(t => t.id === selectedId) ?? null;
@@ -343,7 +428,9 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
           body: JSON.stringify(payload),
         });
         setTemplates(prev => prev.map(t => t.id === row.id ? row : t));
-        setDraft({ ...draft, ...payload, body_html: row.body_html ?? '', id: row.id });
+        setEditingPersonal(row);
+        setDraft(null);
+        setShowPersonalEditorDialog(false);
         showAlert('Template saved.', { variant: 'success' });
       } else {
         const row: MyTemplate = await apiFetch('/v1/email/quick-templates', {
@@ -352,7 +439,9 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
         });
         setTemplates(prev => [...prev, row]);
         setSelectedId(row.id);
-        setDraft({ ...draft, id: row.id, body_html: row.body_html ?? '' });
+        setEditingPersonal(row);
+        setDraft(null);
+        setShowPersonalEditorDialog(false);
         showAlert('Template created.', { variant: 'success' });
       }
     } catch (err: unknown) {
@@ -370,8 +459,10 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
       await apiFetch(`/v1/email/quick-templates/${draft.id}`, { method: 'DELETE' });
       const remaining = templates.filter(t => t.id !== draft.id);
       setTemplates(remaining);
+      setDraft(null);
+      setShowPersonalEditorDialog(false);
       if (remaining.length) selectTemplate(remaining[0]);
-      else newTemplate();
+      else setEditingPersonal(null);
       showAlert('Template deleted.', { variant: 'success' });
     } catch (err: unknown) {
       showAlert(err instanceof Error ? err.message : 'Could not delete template.');
@@ -409,6 +500,8 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
           name: base.name || file.name.replace(/\.(html|htm)$/i, ''),
         };
       });
+      setFormatMode('html');
+      setBuilderBlocks(htmlToBuilderBlocks(res.html));
       showAlert('HTML file imported and sanitized. Review the preview, then save.', { variant: 'success' });
     } catch (err: unknown) {
       showAlert(err instanceof Error ? err.message : 'Failed to import HTML file.');
@@ -453,17 +546,84 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
     showAlert('Decoded quoted-printable email source.', { variant: 'success' });
   }
 
-  async function createGroup() {
-    const name = window.prompt('Group name')?.trim();
-    if (!name) return;
-    try { await apiFetch('/v1/email/template-groups', { method: 'POST', body: JSON.stringify({ name }) }); loadTemplates(); }
-    catch (err: unknown) { showAlert(err instanceof Error ? err.message : 'Could not create group.'); }
+  function beginRenameGroup(id: string, name: string) {
+    setRenamingGroupId(id);
+    setRenamingGroupName(name);
+  }
+
+  function cancelRenameGroup() {
+    setRenamingGroupId(null);
+    setRenamingGroupName('');
   }
 
   async function renameGroup(group: EmailTemplateGroup) {
-    const name = window.prompt('Rename group', group.name)?.trim();
-    if (!name || name === group.name) return;
-    await apiFetch(`/v1/email/template-groups/${group.id}`, { method: 'PATCH', body: JSON.stringify({ name }) }); loadTemplates();
+    const name = renamingGroupName.trim();
+    if (!name) return;
+    if (name === group.name) { cancelRenameGroup(); return; }
+    try {
+      await apiFetch(`/v1/email/template-groups/${group.id}`, { method: 'PATCH', body: JSON.stringify({ name }) });
+      setGroups(current => current.map(item => item.id === group.id ? { ...item, name } : item));
+      cancelRenameGroup();
+    } catch (err: unknown) {
+      showAlert(err instanceof Error ? err.message : 'Could not rename group.');
+    }
+  }
+
+  async function renameUngrouped() {
+    const name = renamingGroupName.trim();
+    if (!name || name === 'Ungrouped') { cancelRenameGroup(); return; }
+    try {
+      const created = await apiFetch('/v1/email/template-groups', { method: 'POST', body: JSON.stringify({ name }) }) as EmailTemplateGroup;
+      const ungroupedIds = templates.filter(template => !template.group_id).sort((a, b) => a.sort_order - b.sort_order).map(template => template.id);
+      if (ungroupedIds.length) {
+        await apiFetch('/v1/email/quick-templates/order', { method: 'PUT', body: JSON.stringify({ group_id: created.id, ids: ungroupedIds }) });
+      }
+      cancelRenameGroup();
+      loadTemplates();
+    } catch (err: unknown) {
+      showAlert(err instanceof Error ? err.message : 'Could not rename group.');
+    }
+  }
+
+  async function submitCategoryEditor() {
+    if (!draft) return;
+    const name = categoryEditorName.trim();
+    if (!name) return;
+    if (categoryEditor === 'rename' && name !== draft.category && templates.some(template => template.category === draft.category)) {
+      try {
+        const oldName = draft.category;
+        await apiFetch('/v1/email/quick-templates/categories/rename', { method: 'PUT', body: JSON.stringify({ current_name: oldName, name }) });
+        setTemplates(current => current.map(template => template.category === oldName ? { ...template, category: name } : template));
+      } catch (err: unknown) {
+        showAlert(err instanceof Error ? err.message : 'Could not rename category.');
+        return;
+      }
+    }
+    setDraft(current => current ? { ...current, category: name } : current);
+    setCategoryEditor(null);
+    setCategoryEditorName('');
+  }
+
+  async function submitGroupEditor() {
+    if (!draft) return;
+    const name = groupEditorName.trim();
+    if (!name) return;
+    try {
+      if (groupEditor === 'create') {
+        const created = await apiFetch('/v1/email/template-groups', { method: 'POST', body: JSON.stringify({ name }) }) as EmailTemplateGroup;
+        setGroups(current => [...current, created]);
+        setDraft(current => current ? { ...current, group_id: created.id } : current);
+      } else {
+        const group = groups.find(item => item.id === draft.group_id);
+        if (!group) return;
+        const updated = await apiFetch(`/v1/email/template-groups/${group.id}`, { method: 'PATCH', body: JSON.stringify({ name }) }) as EmailTemplateGroup;
+        setGroups(current => current.map(item => item.id === group.id ? updated : item));
+      }
+      setGroupEditor(null);
+      setGroupEditorName('');
+    } catch (err: unknown) {
+      showAlert(err instanceof Error ? err.message : 'Could not update group.');
+    }
   }
 
   async function deleteGroup(group: EmailTemplateGroup) {
@@ -494,12 +654,28 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
     t.name.toLowerCase().includes(search.toLowerCase()) ||
     t.subject.toLowerCase().includes(search.toLowerCase())
   );
+  const filteredImported = importedMkt.filter(t =>
+    !search.trim() ||
+    t.title.toLowerCase().includes(search.toLowerCase()) ||
+    t.subject.toLowerCase().includes(search.toLowerCase()) ||
+    t.category.toLowerCase().includes(search.toLowerCase())
+  );
+  const importedByCategory = Object.entries(filteredImported.reduce<Record<string, ImportedMarketplaceTpl[]>>((result, template) => {
+    const category = MKT_CAT_LABEL[template.category] ?? template.category ?? 'Other';
+    (result[category] ??= []).push(template);
+    return result;
+  }, {})).sort(([a], [b]) => a.localeCompare(b));
   const personalSections = [...groups.map(group => ({ id: group.id, name: group.name, group })), { id: null, name: 'Ungrouped', group: null }]
     .map(section => ({ ...section, items: filtered.filter(t => (t.group_id ?? null) === section.id).sort((a, b) => a.sort_order - b.sort_order) }))
     .filter(section => section.items.length > 0 || section.group !== null);
+  const personalCategories = Array.from(new Set([...QUICK_TEMPLATE_CATEGORIES, ...templates.map(template => template.category), draft?.category ?? 'General'])).sort();
 
   const previewHtml = draft ? (draft.is_html ? draft.body_html : plainTextPreviewHtml(draft.body)) : '';
   const showPreview = previewHtml.trim().length > 0;
+  const personalPreviewHtml = editingPersonal
+    ? (editingPersonal.is_html ? (editingPersonal.body_html ?? '') : plainTextPreviewHtml(editingPersonal.body))
+    : '';
+  const personalHasContent = !!(editingPersonal?.is_html ? (editingPersonal.body_html ?? '').trim() : editingPersonal?.body.trim());
 
   return (
     <div
@@ -526,39 +702,64 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
             )}
           </div>
 
-          <button type="button" className="email-template-new-btn" onClick={newTemplate}>
+          <button type="button" className="email-template-new-btn" onClick={() => { newTemplate(); setShowPersonalEditorDialog(true); }}>
             <Icon name="plus" size={14} /> <span>New template</span>
           </button>
-          <div className="email-template-new-row">
-            <button type="button" className="email-template-new-btn email-template-new-btn--secondary email-template-new-btn--half" onClick={createGroup}>
-              <Icon name="folder" size={14} /> <span>New group</span>
-            </button>
-            <button type="button" className="email-template-new-btn email-template-new-btn--secondary email-template-new-btn--half email-template-new-btn--import" onClick={onGoToMarketplace}>
-              <Icon name="download" size={14} /> <span>Import</span>
-            </button>
+          <button type="button" className="email-template-new-btn email-template-new-btn--secondary email-template-new-btn--import" onClick={onGoToMarketplace}>
+            <Icon name="download" size={14} /> <span>Import from Marketplace</span>
+          </button>
+          <div className="email-template-library-tabs" role="tablist" aria-label="Template source">
+            {(['all', 'personal', 'imported'] as const).map(source => (
+              <button key={source} type="button" role="tab" aria-selected={librarySource === source} className={librarySource === source ? 'is-active' : ''} onClick={() => setLibrarySource(source)}>
+                {source === 'all' ? 'All' : source === 'personal' ? 'Personal' : 'Imported'}
+                <span>{source === 'all' ? templates.length + importedMkt.length : source === 'personal' ? templates.length : importedMkt.length}</span>
+              </button>
+            ))}
           </div>
         </div>
 
         <div className="email-template-nav-summary">
-          <span>{templates.length + importedMkt.length} template{templates.length + importedMkt.length !== 1 ? 's' : ''}</span>
-          <span>{templates.filter(t => t.is_html).length} HTML</span>
+          <span>{librarySource === 'all' ? 'Template library' : librarySource === 'personal' ? 'Personal templates' : 'Marketplace imports'}</span>
+          <span>{(librarySource === 'all' ? filtered.length + filteredImported.length : librarySource === 'personal' ? filtered.length : filteredImported.length)} shown</span>
         </div>
 
         {loading ? (
           <SectionLoading />
         ) : filtered.length || groups.length ? (
           <div className="email-template-group-list">
-            {personalSections.map((section, groupIndex) => <div key={section.id ?? '__ungrouped__'} className="email-template-managed-group">
+            {librarySource !== 'imported' && personalSections.map((section, groupIndex) => {
+              const sectionKey = section.id ?? '__ungrouped__';
+              const isCollapsed = collapsedSections.has(sectionKey);
+              const toggleCollapse = () => setCollapsedSections(prev => {
+                const next = new Set(prev);
+                if (next.has(sectionKey)) next.delete(sectionKey); else next.add(sectionKey);
+                return next;
+              });
+              return <div key={sectionKey} className="email-template-managed-group">
               <div className="email-template-managed-group-header">
-                <span>{section.name}</span><Badge variant="gray">{section.items.length}</Badge>
+                <button type="button" className="email-template-section-toggle" onClick={toggleCollapse} aria-label={isCollapsed ? 'Expand section' : 'Collapse section'}>
+                  <Icon name="chevronDown" size={13} className={`email-template-category-chevron${isCollapsed ? ' is-collapsed' : ''}`} />
+                </button>
+                {renamingGroupId === sectionKey ? (
+                  <form className="email-template-group-rename" onSubmit={event => { event.preventDefault(); void (section.group ? renameGroup(section.group) : renameUngrouped()); }}>
+                    <Input autoFocus value={renamingGroupName} onChange={event => setRenamingGroupName(event.target.value)} onKeyDown={event => { if (event.key === 'Escape') cancelRenameGroup(); }} aria-label="Group name" />
+                    <button type="submit" aria-label="Save group name"><Icon name="check" size={13} /></button>
+                    <button type="button" onClick={cancelRenameGroup} aria-label="Cancel renaming"><Icon name="x" size={13} /></button>
+                  </form>
+                ) : (
+                  <button type="button" className="email-template-group-name" onClick={() => beginRenameGroup(sectionKey, section.name)} aria-label={`Rename ${section.name} group`}>
+                    <span>{section.name}</span>
+                    <Icon name="edit" size={12} />
+                  </button>
+                )}
+                <Badge variant="gray">{section.items.length}</Badge>
                 {section.group && <div className="email-template-group-actions">
                   <button type="button" onClick={() => moveGroup(groupIndex, -1)} aria-label="Move group up">↑</button>
                   <button type="button" onClick={() => moveGroup(groupIndex, 1)} aria-label="Move group down">↓</button>
-                  <button type="button" onClick={() => renameGroup(section.group!)} aria-label="Rename group"><Icon name="edit" size={12} /></button>
                   <button type="button" onClick={() => deleteGroup(section.group!)} aria-label="Delete group"><Icon name="trash" size={12} /></button>
                 </div>}
               </div>
-              <div className="email-template-nav-list">
+              {!isCollapsed && <div className="email-template-nav-list">
             {section.items.map(t => (
               <button
                 key={t.id}
@@ -577,21 +778,21 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
                 </span>
               </button>
             ))}
-              </div>
-            </div>)}
+              </div>}
+            </div>;
+            })}
 
             {/* Imported marketplace templates section */}
-            {importedMkt.filter(t => !search.trim() || t.title.toLowerCase().includes(search.toLowerCase()) || t.subject.toLowerCase().includes(search.toLowerCase())).length > 0 && (
-              <div className="email-template-managed-group">
-                <div className="email-template-managed-group-header">
-                  <Icon name="download" size={13} />
-                  <span>Imported</span>
-                  <Badge variant="brand">{importedMkt.length}</Badge>
-                </div>
+            {librarySource !== 'personal' && importedByCategory.map(([category, categoryTemplates]) => (
+              <details key={category} className="email-template-managed-group email-template-import-category" open>
+                <summary className="email-template-managed-group-header">
+                  <FeaturedIcon size="sm" variant="brand"><Icon name="download" size={13} /></FeaturedIcon>
+                  <span>{category}</span>
+                  <Badge variant="brand">{categoryTemplates.length}</Badge>
+                  <Icon name="chevronDown" size={13} className="email-template-category-chevron" />
+                </summary>
                 <div className="email-template-nav-list">
-                  {importedMkt
-                    .filter(t => !search.trim() || t.title.toLowerCase().includes(search.toLowerCase()) || t.subject.toLowerCase().includes(search.toLowerCase()))
-                    .map(t => (
+                  {categoryTemplates.map(t => (
                       <button
                         key={t.id}
                         type="button"
@@ -608,14 +809,21 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
                       >
                         <div className="email-template-nav-title">
                           <span>{t.title}</span>
-                          <Badge variant="brand">Imported</Badge>
+                          <Badge variant={t.is_hudumika_official ? 'brand' : 'gray'}>{t.is_hudumika_official ? 'Official' : 'Imported'}</Badge>
                         </div>
                         {t.subject && <div className="email-template-nav-key">{t.subject}</div>}
-                        <div className="email-template-nav-cat">{t.category}</div>
+                        <div className="email-template-nav-cat">
+                          <Icon name="package" size={10} />
+                          {t.imported_at ? `Imported ${new Date(t.imported_at).toLocaleDateString()}` : 'Marketplace import'}
+                          {t.source_version && <span>· v{t.source_version}</span>}
+                        </div>
                       </button>
                     ))}
                 </div>
-              </div>
+              </details>
+            ))}
+            {(librarySource === 'personal' ? filtered.length === 0 : librarySource === 'imported' ? filteredImported.length === 0 : filtered.length + filteredImported.length === 0) && (
+              <div className="email-template-no-results">No templates match “{search}”.</div>
             )}
           </div>
         ) : templates.length === 0 && importedMkt.length === 0 ? (
@@ -636,9 +844,10 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
         onPointerDown={e => startColumnResize(e, navWidth, 1, setNavWidth, 220, 480)}
       />
 
-      {/* ── Editor ───────────────────────────────────────────────────────── */}
+      {/* ── Preview panel ────────────────────────────────────────────────── */}
       <main className="email-template-editor">
-        {draft === null && editingImported ? (
+        {editingImported ? (
+          /* ── Imported marketplace template preview ── */
           <div className="email-template-imported-panel">
             <div className="email-template-imported-panel-head">
               <div>
@@ -654,192 +863,63 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
             <div className="email-template-imported-panel-preview">
               <iframe title="Template preview" sandbox="" srcDoc={editingImported.body_html} style={{ width: '100%', height: '100%', border: 'none', background: '#f9f9f9' }} />
             </div>
+            {!editingImported.is_customized && (
+              <div className="email-template-imported-hint">
+                <Icon name="info" size={13} /> Edit this template to customise it before publishing to the Store.
+              </div>
+            )}
             <div className="email-template-imported-panel-actions">
-              <Button variant="outline" onClick={() => setPublishOpen(true)}>
-                <Icon name="package" size={13} /> Publish to Store
-              </Button>
+              <Tip label={editingImported.is_customized ? 'Submit your customised version for Store review' : 'Customise the template first, then you can publish it'}>
+                <span>
+                  <Button variant="outline" disabled={!editingImported.is_customized} onClick={() => setPublishOpen(true)}>
+                    <Icon name="package" size={13} /> Publish to Store
+                  </Button>
+                </span>
+              </Tip>
               <Button onClick={() => setShowEditImportedDialog(true)}>
                 <Icon name="edit" size={13} /> Edit template
               </Button>
             </div>
           </div>
-        ) : draft === null ? (
+        ) : editingPersonal ? (
+          /* ── Personal template preview ── */
+          <div className="email-template-imported-panel">
+            <div className="email-template-imported-panel-head">
+              <div>
+                <h3 className="email-template-imported-panel-title">{editingPersonal.name}</h3>
+                {editingPersonal.subject && <div className="email-template-imported-panel-key">{editingPersonal.subject}</div>}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Badge variant={editingPersonal.is_html ? 'brand' : 'gray'}>{editingPersonal.is_html ? 'HTML' : 'Text'}</Badge>
+                <Badge variant="gray">{editingPersonal.category}</Badge>
+              </div>
+            </div>
+            <div className="email-template-imported-panel-preview">
+              <iframe title="Template preview" sandbox="" srcDoc={personalPreviewHtml} style={{ width: '100%', height: '100%', border: 'none', background: '#f9f9f9' }} />
+            </div>
+            <div className="email-template-imported-panel-actions">
+              <Tip label={personalHasContent ? 'Submit this template for Store review' : 'Add content to the template before publishing'}>
+                <span>
+                  <Button variant="outline" disabled={!personalHasContent} onClick={() => setPublishOpen(true)}>
+                    <Icon name="package" size={13} /> Publish to Store
+                  </Button>
+                </span>
+              </Tip>
+              <Button onClick={() => enterPersonalEditor(editingPersonal)}>
+                <Icon name="edit" size={13} /> Edit template
+              </Button>
+            </div>
+          </div>
+        ) : (
           <div className="email-template-editor-placeholder">
             <Icon name="layers" size={40} color="var(--ink3)" />
             <p>Select a template to edit, or click <strong>New template</strong>.</p>
           </div>
-        ) : (
-          <div className="email-template-editor-inner">
-            <div className="email-template-editor-titlebar">
-              <div>
-                <div className="email-template-editor-key">
-                  {draft.id ? 'Edit template' : 'New template'}
-                </div>
-                {dirty && <Badge variant="warning">Unsaved changes</Badge>}
-              </div>
-              <div className="email-template-editor-titlebar-actions">
-                {draft.id && (
-                  <button type="button" className="email-template-revert" onClick={handleDelete}>
-                    <Icon name="trash" size={13} color="var(--red)" /> Delete
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {formError && (
-              <div className="email-template-form-error" role="alert">
-                <Icon name="alertCircle" size={15} /> {formError}
-              </div>
-            )}
-
-            <div className="email-template-field">
-              <label>Template name</label>
-              <Input
-                value={draft.name}
-                onChange={e => setDraft(d => d ? { ...d, name: e.target.value } : d)}
-                placeholder="e.g. Welcome email, Monthly newsletter…"
-              />
-            </div>
-
-            <div className="email-template-field">
-              <label>Category</label>
-              <Select value={draft.category} onValueChange={v => setDraft(d => d ? { ...d, category: v as QuickTemplateCategory } : d)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {QUICK_TEMPLATE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="email-template-field">
-              <label>Group</label>
-              <Select value={draft.group_id ?? '__none__'} onValueChange={v => setDraft(d => d ? { ...d, group_id: v === '__none__' ? null : v } : d)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Ungrouped</SelectItem>
-                  {groups.map(group => <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="email-template-field">
-              <label>Subject line <span>(optional — pre-fills compose subject)</span></label>
-              <Input
-                value={draft.subject}
-                onChange={e => setDraft(d => d ? { ...d, subject: e.target.value } : d)}
-                placeholder="Optional subject"
-              />
-            </div>
-
-            {/* Type toggle */}
-            <div className="email-template-type-row">
-              <span className="email-template-type-label">Format</span>
-              <div className="email-template-type-toggle">
-                <button
-                  type="button"
-                  className={`email-template-type-btn${!draft.is_html ? ' is-active' : ''}`}
-                  onClick={() => setDraft(d => d ? { ...d, is_html: false } : d)}
-                >
-                  <Icon name="fileText" size={13} /> Plain text
-                </button>
-                <button
-                  type="button"
-                  className={`email-template-type-btn${draft.is_html ? ' is-active' : ''}`}
-                  onClick={() => setDraft(d => d ? { ...d, is_html: true } : d)}
-                >
-                  <Icon name="terminal" size={13} /> HTML
-                </button>
-              </div>
-              {draft.is_html && (
-                <>
-                  <Tip label="Import an .html file — the server sanitizes it before it reaches the editor">
-                    <button
-                      type="button"
-                      className="email-template-import-btn"
-                      disabled={importing}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Icon name={importing ? 'refresh' : 'upload'} size={13} />
-                      {importing ? 'Importing…' : 'Import .html file'}
-                    </button>
-                  </Tip>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".html,.htm"
-                    style={{ display: 'none' }}
-                    onChange={handleFileImport}
-                  />
-                </>
-              )}
-            </div>
-
-            {/* Quick Merge Variables */}
-            <div className="email-template-tags">
-              <label>Merge variables <span>Click to insert into template</span></label>
-              <div className="email-template-tag-list">
-                {MY_MERGE_VARS.map(v => (
-                  <button
-                    key={v.tag}
-                    type="button"
-                    onClick={() => insertVar(v.tag)}
-                    className="email-template-tag"
-                  >
-                    {`{{${v.tag}}}`}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {draft.is_html ? (
-              <div className="email-template-field email-template-body-field">
-                <div className="email-template-field-label">
-                  <label>HTML body</label>
-                  <span>Full HTML + inline CSS supported · scripts and event handlers are stripped on save</span>
-                </div>
-                <Textarea
-                  ref={bodyInputRef}
-                  value={draft.body_html}
-                  onChange={e => setDraft(d => d ? { ...d, body_html: e.target.value } : d)}
-                  onPaste={handleHtmlPaste}
-                  rows={18}
-                  className="email-template-code"
-                  placeholder="<!doctype html>&#10;<html>…</html>"
-                />
-              </div>
-            ) : (
-              <div className="email-template-field email-template-body-field">
-                <div className="email-template-field-label">
-                  <label>Body</label>
-                  <span>Plain text — line breaks preserved</span>
-                </div>
-                <Textarea
-                  ref={bodyInputRef}
-                  value={draft.body}
-                  onChange={e => setDraft(d => d ? { ...d, body: e.target.value } : d)}
-                  rows={14}
-                  placeholder="Hi {{first_name}},&#10;&#10;…"
-                />
-              </div>
-            )}
-
-            <div className="email-template-actions">
-              <button type="button" className="email-template-mobile-preview" onClick={() => setPreviewOpen(true)}><Icon name="eye" size={14} /> Preview</button>
-              {draft.id && dirty && (
-                <button type="button" className="em-text-btn" onClick={() => selectTemplate(selected!)}>
-                  Discard changes
-                </button>
-              )}
-              <Button onClick={handleSave} disabled={saving || !dirty}>
-                {saving ? 'Saving…' : draft.id ? 'Save changes' : 'Create template'}
-              </Button>
-            </div>
-          </div>
         )}
       </main>
 
-      {/* ── Live preview (HTML templates only) ───────────────────────────── */}
-      {showPreview && (
+      {/* ── Live preview — shown only for the new-template dialog's HTML draft ── */}
+      {showPreview && !showPersonalEditorDialog && (
         <>
         <div
           className="email-template-column-resizer"
@@ -876,6 +956,143 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
         </>
       )}
 
+      {/* ── Personal template editor dialog ──────────────────────────────── */}
+      {showPersonalEditorDialog && draft && (
+        <Dialog open onOpenChange={open => { if (!open) cancelEditing(); }}>
+          <DialogContent size={formatMode === 'visual' ? 'full' : 'lg'}>
+            <DialogHeader>
+              <div className="etd-header-row">
+                <DialogTitle>{draft.id ? 'Edit template' : 'New template'}</DialogTitle>
+                {dirty && <Badge variant="warning">Unsaved changes</Badge>}
+              </div>
+            </DialogHeader>
+            <DialogBody className="email-template-dialog-body">
+              {formError && (
+                <div className="email-template-form-error" role="alert">
+                  <Icon name="alertCircle" size={15} /> {formError}
+                </div>
+              )}
+
+              {/* Row 1: Name + Category */}
+              <div className="etd-meta-row">
+                <div className="etd-meta-field etd-meta-field--wide">
+                  <label className="etd-label">Template name</label>
+                  <Input
+                    value={draft.name}
+                    onChange={e => setDraft(d => d ? { ...d, name: e.target.value } : d)}
+                    placeholder="e.g. Welcome email, Monthly newsletter…"
+                  />
+                </div>
+                <div className="etd-meta-field">
+                  <label className="etd-label">Category</label>
+                  <div className="email-template-taxonomy-row">
+                    <Select value={draft.category} onValueChange={value => {
+                      if (value === '__create__') { setCategoryEditor('create'); setCategoryEditorName(''); return; }
+                      setCategoryEditor(null);
+                      setDraft(current => current ? { ...current, category: value } : current);
+                    }}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {personalCategories.map(category => <SelectItem key={category} value={category}>{category}</SelectItem>)}
+                        <SelectItem value="__create__">＋ Create new category</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" size="sm" variant="outline" onClick={() => { setCategoryEditor('rename'); setCategoryEditorName(draft.category); }}><Icon name="edit" size={13} /> Rename</Button>
+                  </div>
+                  {categoryEditor && (
+                    <form className="email-template-taxonomy-editor" onSubmit={event => { event.preventDefault(); void submitCategoryEditor(); }}>
+                      <Input autoFocus value={categoryEditorName} onChange={event => setCategoryEditorName(event.target.value)} placeholder={categoryEditor === 'create' ? 'New category name' : 'Rename category'} />
+                      <Button type="submit" size="sm" disabled={!categoryEditorName.trim()}>{categoryEditor === 'create' ? 'Add' : 'Save'}</Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setCategoryEditor(null)}>Cancel</Button>
+                    </form>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 2: Subject + Format */}
+              <div className="etd-meta-row">
+                <div className="etd-meta-field etd-meta-field--wide">
+                  <label className="etd-label">Subject line <span className="etd-label-hint">optional — pre-fills compose subject</span></label>
+                  <Input value={draft.subject} onChange={e => setDraft(d => d ? { ...d, subject: e.target.value } : d)} placeholder="Optional subject" />
+                </div>
+                <div className="etd-meta-field">
+                  <label className="etd-label">Format</label>
+                  <div className="etd-format-row">
+                    <div className="email-template-type-toggle">
+                      <button type="button" className={`email-template-type-btn${formatMode === 'plain' ? ' is-active' : ''}`} onClick={() => { setFormatMode('plain'); setDraft(d => d ? { ...d, is_html: false } : d); }}>
+                        <Icon name="fileText" size={13} /> Plain text
+                      </button>
+                      <button type="button" className={`email-template-type-btn${formatMode === 'visual' ? ' is-active' : ''}`} onClick={openVisualBuilder}>
+                        <Icon name="grid" size={13} /> Visual builder
+                      </button>
+                      <button type="button" className={`email-template-type-btn${formatMode === 'html' ? ' is-active' : ''}`} onClick={() => { setFormatMode('html'); setDraft(d => d ? { ...d, is_html: true } : d); }}>
+                        <Icon name="terminal" size={13} /> HTML
+                      </button>
+                    </div>
+                    {formatMode === 'html' && (
+                      <>
+                        <Tip label="Import an .html file">
+                          <button type="button" className="email-template-import-btn" disabled={importing} onClick={() => fileInputRef.current?.click()}>
+                            <Icon name={importing ? 'refresh' : 'upload'} size={13} />
+                            {importing ? 'Importing…' : 'Import'}
+                          </button>
+                        </Tip>
+                        <input ref={fileInputRef} type="file" accept=".html,.htm" style={{ display: 'none' }} onChange={handleFileImport} />
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {formatMode !== 'visual' && (
+                <div className="email-template-tags">
+                  <label>Merge variables <span>Click to insert</span></label>
+                  <div className="email-template-tag-list">
+                    {MY_MERGE_VARS.map(v => (
+                      <button key={v.tag} type="button" onClick={() => insertVar(v.tag)} className="email-template-tag">{`{{${v.tag}}}`}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {formatMode === 'visual' ? (
+                <div className="email-template-visual-builder">
+                  <EmailBlockBuilder
+                    blocks={builderBlocks}
+                    onChange={updateBuilderBlocks}
+                    varGroups={[{ label: 'Template fields', vars: MY_MERGE_VARS.map(v => ({ key: v.tag, label: v.label, example: `{{${v.tag}}}` })) }]}
+                  />
+                </div>
+              ) : formatMode === 'html' ? (
+                <div className="email-template-field email-template-body-field">
+                  <div className="email-template-field-label"><label>HTML body</label><span>Scripts and event handlers are stripped on save</span></div>
+                  <Textarea ref={bodyInputRef} value={draft.body_html} onChange={e => setDraft(d => d ? { ...d, body_html: e.target.value } : d)} onPaste={handleHtmlPaste} rows={16} className="email-template-code" placeholder="<!doctype html>&#10;<html>…</html>" />
+                </div>
+              ) : (
+                <div className="email-template-field email-template-body-field">
+                  <div className="email-template-field-label"><label>Body</label><span>Plain text — line breaks preserved</span></div>
+                  <Textarea ref={bodyInputRef} value={draft.body} onChange={e => setDraft(d => d ? { ...d, body: e.target.value } : d)} rows={12} placeholder="Hi {{first_name}},&#10;&#10;…" />
+                </div>
+              )}
+            </DialogBody>
+            <DialogFooter>
+              {draft.id && (
+                <button type="button" className="email-template-revert" onClick={handleDelete} style={{ marginRight: 'auto' }}>
+                  <Icon name="trash" size={13} color="var(--red)" /> Delete
+                </button>
+              )}
+              {draft.id && dirty && (
+                <Button variant="ghost" onClick={() => { if (editingPersonal) enterPersonalEditor(editingPersonal); }}>Discard changes</Button>
+              )}
+              <Button variant="outline" onClick={cancelEditing}>Cancel</Button>
+              <Button onClick={handleSave} disabled={saving || !dirty}>
+                {saving ? 'Saving…' : draft.id ? 'Save changes' : 'Create template'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* ── Modals (imported-template editor + publish) ───────────────────── */}
       {showEditImportedDialog && editingImported && (
         <SystemTemplateDialog
@@ -888,6 +1105,13 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
         <PublishToStoreDialog
           templateKey={editingImported.template_key}
           templateTitle={editingImported.subject}
+          onClose={() => setPublishOpen(false)}
+        />
+      )}
+      {publishOpen && editingPersonal && !draft && (
+        <PublishToStoreDialog
+          templateId={editingPersonal.id ?? undefined}
+          templateTitle={editingPersonal.name}
           onClose={() => setPublishOpen(false)}
         />
       )}
@@ -907,6 +1131,7 @@ interface MktTemplate {
 const MKT_CAT_LABEL: Record<string, string> = {
   finance: 'Finance', auth: 'Auth & Security', crm: 'CRM', hr: 'HR & Payroll',
   esign: 'eSign', support: 'Support', clearos: 'ClearOS', commerce: 'Commerce', general: 'General',
+  projects: 'Projects', security: 'Security',
 };
 
 /* ── System template editor dialog ─────────────────────────────────────────── */
@@ -919,19 +1144,36 @@ function SystemTemplateDialog({ tpl, onSaved, onClose }: {
   const [subject, setSubject] = useState(tpl.subject);
   const [preheader, setPreheader] = useState(tpl.preheader);
   const [bodyHtml, setBodyHtml] = useState(tpl.body_html);
+  const [blocks, setBlocks] = useState<EmailBlock[]>(() =>
+    tpl.block_document?.blocks?.length ? tpl.block_document.blocks as EmailBlock[] : htmlToBuilderBlocks(tpl.body_html),
+  );
+  const [editorMode, setEditorMode] = useState<'visual' | 'html'>('visual');
+  const [htmlDetached, setHtmlDetached] = useState(false);
   const [saving, setSaving] = useState(false);
-  const previewHtml = bodyHtml;
 
-  function insertVar(v: string) {
-    setBodyHtml(prev => prev + `{{${v}}}`);
+  const varGroups = tpl.available_vars.length ? [{
+    label: 'Template fields',
+    vars: tpl.available_vars.map(variable => ({ key: variable, label: variable.replaceAll('_', ' '), example: `{{${variable}}}` })),
+  }] : [];
+
+  function updateBlocks(next: EmailBlock[]) {
+    setBlocks(next);
+    setBodyHtml(blocksToEmailHtml(next));
+    setHtmlDetached(false);
   }
 
   async function save() {
     setSaving(true);
     try {
+      const finalHtml = editorMode === 'visual' ? blocksToEmailHtml(blocks) : bodyHtml;
       const updated = await apiFetch(`/v1/email-templates/${encodeURIComponent(tpl.template_key)}`, {
         method: 'PUT',
-        body: JSON.stringify({ subject, preheader, body_html: bodyHtml, body_plain: tpl.body_plain, locale: tpl.locale, status: 'active' }),
+        body: JSON.stringify({
+          subject, preheader, body_html: finalHtml,
+          body_plain: new DOMParser().parseFromString(finalHtml, 'text/html').body.textContent?.trim() || tpl.body_plain,
+          locale: tpl.locale, status: 'active',
+          block_document: editorMode === 'visual' && !htmlDetached ? { version: 1, blocks } : null,
+        }),
       });
       onSaved(tpl.template_key, updated as Partial<SysTpl>);
       showAlert('Template saved.', { variant: 'success' });
@@ -945,8 +1187,8 @@ function SystemTemplateDialog({ tpl, onSaved, onClose }: {
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent size="xl">
-        <DialogHeader>
+      <DialogContent size="full" className="etab-builder-dialog">
+        <DialogHeader className="etab-builder-dialog-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <DialogTitle style={{ flex: 1 }}>{tpl.subject}</DialogTitle>
             {tpl.is_customized && <Badge variant="success">Customized</Badge>}
@@ -957,52 +1199,25 @@ function SystemTemplateDialog({ tpl, onSaved, onClose }: {
           </DialogDescription>
         </DialogHeader>
 
-        <DialogBody>
-          <div className="etab-sys-dlg-body">
-            <div className="etab-sys-dlg-fields">
-              <div className="etab-sys-dlg-field">
-                <label className="etab-sys-dlg-label">Subject</label>
-                <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Email subject…" />
-              </div>
-              <div className="etab-sys-dlg-field">
-                <label className="etab-sys-dlg-label">Preview text</label>
-                <Input value={preheader} onChange={e => setPreheader(e.target.value)} placeholder="Preview line shown in inbox…" />
-              </div>
-              <div className="etab-sys-dlg-field etab-sys-dlg-field--grow">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <label className="etab-sys-dlg-label">HTML body</label>
-                  {tpl.available_vars.length > 0 && (
-                    <div className="etab-sys-vars">
-                      {tpl.available_vars.slice(0, 8).map(v => (
-                        <button key={v} type="button" className="etab-sys-var-chip" onClick={() => insertVar(v)}>
-                          {`{{${v}}}`}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <Textarea
-                  value={bodyHtml}
-                  onChange={e => setBodyHtml(e.target.value)}
-                  className="etab-sys-editor"
-                  rows={14}
-                  style={{ fontFamily: 'monospace', fontSize: 12 }}
-                />
-              </div>
+        <DialogBody className="etab-builder-body">
+          <div className="etab-builder-meta">
+            <label><span>Subject</span><Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Email subject…" /></label>
+            <label><span>Preview text</span><Input value={preheader} onChange={e => setPreheader(e.target.value)} placeholder="Preview line shown in inbox…" /></label>
+            <div className="etab-builder-mode" role="group" aria-label="Editor mode">
+              <Button size="sm" variant={editorMode === 'visual' ? 'default' : 'outline'} onClick={() => setEditorMode('visual')}><Icon name="grid" size={14} /> Visual builder</Button>
+              <Button size="sm" variant={editorMode === 'html' ? 'default' : 'outline'} onClick={() => setEditorMode('html')}><Icon name="terminal" size={14} /> Advanced HTML</Button>
             </div>
-            <div className="etab-sys-dlg-preview">
-              <div className="etab-sys-preview-bar">
-                <span className="etab-sys-preview-label">Preview</span>
+          </div>
+          <div className="etab-builder-workspace">
+            {editorMode === 'visual' ? (
+              <EmailBlockBuilder blocks={blocks} onChange={updateBlocks} varGroups={varGroups} />
+            ) : (
+              <div className="etab-builder-html">
+                <div className="etab-builder-warning"><Icon name="alertTriangle" size={15} /> Editing HTML directly disconnects it from the visual block document. Return to Visual builder before saving to preserve drag-and-drop editing.</div>
+                <Textarea value={bodyHtml} onChange={event => { setBodyHtml(event.target.value); setHtmlDetached(true); }} aria-label="Advanced HTML source" />
+                <iframe title="HTML preview" sandbox="" srcDoc={bodyHtml} />
               </div>
-              <div className="etab-sys-preview-frame">
-                <iframe
-                  title="Template preview"
-                  sandbox=""
-                  srcDoc={previewHtml}
-                  style={{ width: '100%', height: '100%', border: 'none', background: '#f9f9f9' }}
-                />
-              </div>
-            </div>
+            )}
           </div>
         </DialogBody>
 
@@ -1270,37 +1485,85 @@ function BrowseView() {
 
 /* ── Marketplace tab (container) ────────────────────────────────────────────── */
 
-function MarketplaceTab() {
+function MarketplaceTab({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<MktTemplate[]>([]);
+  const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [layout, setLayout] = useState<'grid' | 'list'>('grid');
+  const [search, setSearch] = useState('');
+  const [importingId, setImportingId] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch('/v1/marketplace/email-templates?limit=4')
+    apiFetch('/v1/marketplace/email-templates/imported')
+      .then((rows: Array<{ id: string }>) => setImportedIds(new Set(rows.map(row => row.id))))
+      .catch(() => setImportedIds(new Set()));
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setLoading(true);
+      const query = new URLSearchParams({ limit: '12' });
+      if (search.trim()) query.set('q', search.trim());
+      apiFetch(`/v1/marketplace/email-templates?${query.toString()}`)
       .then((rows: MktTemplate[]) => setTemplates(rows))
       .catch((err: any) => showAlert(err?.message ?? 'Could not load Marketplace templates'))
       .finally(() => setLoading(false));
-  }, []);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  async function importTemplate(template: MktTemplate) {
+    setImportingId(template.id);
+    try {
+      await apiFetch(`/v1/marketplace/email-templates/${template.id}/import`, { method: 'POST' });
+      setImportedIds(previous => new Set([...previous, template.id]));
+      showAlert(`"${template.title}" imported to My Templates.`, { variant: 'success' });
+    } catch (err: any) {
+      showAlert(err?.message ?? 'Could not import template');
+    } finally {
+      setImportingId(null);
+    }
+  }
 
   const categoryIcon = (category: string) => {
     if (category === 'finance') return { name: 'invoice' as const, variant: 'success' as const };
     if (category === 'auth' || category === 'security') return { name: 'lock' as const, variant: 'gray' as const };
+    if (category === 'crm') return { name: 'users' as const, variant: 'warning' as const };
     if (category === 'hr') return { name: 'userCheck' as const, variant: 'info' as const };
+    if (category === 'esign') return { name: 'edit' as const, variant: 'info' as const };
+    if (category === 'support') return { name: 'headphones' as const, variant: 'brand' as const };
     if (category === 'clearos') return { name: 'ship' as const, variant: 'brand' as const };
+    if (category === 'commerce') return { name: 'package' as const, variant: 'success' as const };
+    if (category === 'projects') return { name: 'folder' as const, variant: 'info' as const };
     return { name: 'mail' as const, variant: 'brand' as const };
   };
 
   return (
+    <div className="etab-marketplace-outer">
+      <button type="button" className="etab-marketplace-back" onClick={onBack}>
+        <Icon name="arrowLeft" size={13} /> My Templates
+      </button>
     <div className="etab-marketplace-shell">
       <div className="etab-marketplace-heading">
         <div>
           <span className="etab-marketplace-eyebrow">CURATED FOR YOUR WORKSPACE</span>
           <h2>Featured email templates</h2>
-          <p>Preview a selection here, then open Marketplace to browse, compare and import templates.</p>
         </div>
-        <Button onClick={() => navigate('/store?cat=email-templates')}>
-          View all in Marketplace <Icon name="arrowRight" size={14} />
-        </Button>
+        <div className="etab-marketplace-search">
+          <Icon name="search" size={15} />
+          <Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search Marketplace templates…" aria-label="Search Marketplace templates" />
+          {search && <Button size="icon" variant="ghost" aria-label="Clear search" onClick={() => setSearch('')}><Icon name="x" size={14} /></Button>}
+        </div>
+        <div className="etab-marketplace-heading-actions">
+          <div className="etab-marketplace-view-switch" role="group" aria-label="Template view">
+            <Button size="icon" variant="outline" className={layout === 'grid' ? 'is-active' : ''} aria-label="Grid view" aria-pressed={layout === 'grid'} onClick={() => setLayout('grid')}><Icon name="grid" size={15} /></Button>
+            <Button size="icon" variant="outline" className={layout === 'list' ? 'is-active' : ''} aria-label="List view" aria-pressed={layout === 'list'} onClick={() => setLayout('list')}><Icon name="list" size={15} /></Button>
+          </div>
+          <Button aria-label="View all templates in Marketplace" onClick={() => navigate('/store?cat=email-templates')}>
+            <span className="etab-marketplace-view-all-label">View all in Marketplace</span><Icon name="arrowRight" size={14} />
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -1312,11 +1575,11 @@ function MarketplaceTab() {
           <span>Visit Marketplace again when new templates are published.</span>
         </div>
       ) : (
-        <div className="etab-marketplace-featured-grid">
+        <div className={`etab-marketplace-featured-grid etab-marketplace-featured-grid--${layout}`}>
           {templates.map(template => {
             const icon = categoryIcon(template.category);
             return (
-              <button key={template.id} type="button" className="etab-marketplace-featured-card" onClick={() => navigate('/store?cat=email-templates')}>
+              <div key={template.id} className="etab-marketplace-featured-card">
                 <div className="etab-marketplace-card-top">
                   <FeaturedIcon size="lg" variant={icon.variant}><Icon name={icon.name} size={20} /></FeaturedIcon>
                   <Badge variant={template.is_hudumika_official ? 'brand' : 'gray'}>{template.is_hudumika_official ? 'Official' : 'Verified'}</Badge>
@@ -1327,11 +1590,15 @@ function MarketplaceTab() {
                   <p>{template.description}</p>
                 </div>
                 <div className="etab-marketplace-card-meta">
-                  <Badge variant="gray">{MKT_CAT_LABEL[template.category] ?? template.category}</Badge>
+                  <Badge variant={icon.variant}>{MKT_CAT_LABEL[template.category] ?? template.application ?? template.category}</Badge>
                   <span>{template.downloads > 0 ? `${template.downloads.toLocaleString()} imports` : 'New'}</span>
-                  <Icon name="arrowRight" size={14} />
+                  <div className="etab-marketplace-card-actions">
+                    <Button size="xs" variant={importedIds.has(template.id) ? 'outline' : 'default'} disabled={importedIds.has(template.id) || importingId === template.id} onClick={() => importTemplate(template)}>
+                      {importingId === template.id ? 'Importing…' : importedIds.has(template.id) ? <><Icon name="check" size={13} /> Imported</> : <><Icon name="download" size={13} /> Import</>}
+                    </Button>
+                  </div>
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
@@ -1341,6 +1608,7 @@ function MarketplaceTab() {
         <div><Icon name="info" size={15} /><span>Marketplace templates become editable copies after import.</span></div>
         <Button variant="outline" onClick={() => navigate('/store?cat=email-templates')}>Browse the full collection</Button>
       </div>
+    </div>
     </div>
   );
 }
@@ -1378,7 +1646,7 @@ export function EmailTemplates() {
           <MyTemplatesTab onGoToMarketplace={() => setTab('marketplace')} />
         </TabsContent>
         <TabsContent value="marketplace" className="email-templates-tabcontent">
-          <MarketplaceTab />
+          <MarketplaceTab onBack={() => setTab('mine')} />
         </TabsContent>
       </Tabs>
     </div>

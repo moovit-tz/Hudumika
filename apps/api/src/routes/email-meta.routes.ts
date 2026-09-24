@@ -3,9 +3,10 @@ import { z } from 'zod';
 import sanitizeHtml from 'sanitize-html';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { withTenant } from '../db/client.js';
+import { CMSService } from '../services/cms.service.js';
+import { env } from '../config/env.js';
 
 const labelSchema = z.object({ name: z.string().trim().min(1).max(60), color: z.string().trim().max(20).optional(), hidden: z.boolean().optional() });
-const TEMPLATE_CATEGORIES = ['General', 'Transactional & Billing', 'Support & Service', 'Account & Staff'] as const;
 const templateSchema = z.object({
   name: z.string().trim().min(1).max(100),
   subject: z.string().max(500).optional(),
@@ -15,7 +16,7 @@ const templateSchema = z.object({
   // HTML mode is validated explicitly in the handlers below.
   body_html: z.string().max(500_000).nullable().optional(),
   is_html: z.boolean().optional(),
-  category: z.enum(TEMPLATE_CATEGORIES).optional(),
+  category: z.string().trim().min(1).max(60).optional(),
   group_id: z.string().uuid().nullable().optional(),
   sort_order: z.number().int().min(0).optional(),
 });
@@ -286,6 +287,25 @@ export async function emailMetaRoutes(fastify: FastifyInstance) {
     });
   });
 
+  fastify.put('/quick-templates/categories/rename', async (request: any, reply) => {
+    const user = request.user;
+    const { current_name, name } = z.object({
+      current_name: z.string().trim().min(1).max(60),
+      name: z.string().trim().min(1).max(60),
+    }).parse(request.body);
+    if (current_name === name) return { updated: 0 };
+    return withTenant(user.tenant_id, async (trx) => {
+      const result = await trx.updateTable('email_quick_templates')
+        .set({ category: name, updated_at: new Date() })
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .where('category', '=', current_name)
+        .executeTakeFirst();
+      if (Number(result.numUpdatedRows) === 0) return reply.status(404).send({ error: 'Personal category not found' });
+      return { updated: Number(result.numUpdatedRows) };
+    });
+  });
+
   fastify.patch('/quick-templates/:id', async (request: any, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
@@ -320,5 +340,26 @@ export async function emailMetaRoutes(fastify: FastifyInstance) {
       reply.status(204);
       return null;
     });
+  });
+
+  // POST /template-images — image upload for the email block builder.
+  // Uses the CMS media storage pipeline (same as email-signatures) but is
+  // accessible to any authenticated user, not gated by the 'onesite' CMS
+  // entitlement. Returns an absolute URL so email clients can fetch the image.
+  fastify.post('/template-images', async (request: any, reply) => {
+    const user = request.user;
+    const data = await request.file();
+    if (!data) return reply.status(400).send({ error: 'No file uploaded.' });
+    if (!data.mimetype.startsWith('image/')) {
+      return reply.status(400).send({ error: 'Only image files are supported.' });
+    }
+    const buffer = await data.toBuffer();
+    if (buffer.length > 5 * 1024 * 1024) {
+      return reply.status(413).send({ error: 'Images are limited to 5 MB.' });
+    }
+    const media = await CMSService.uploadMedia(
+      user.tenant_id, user.sub, data.filename || 'template-image', data.mimetype, buffer,
+    );
+    return { url: `${env.API_BASE_URL}/v1/cms/public/media/${media.id}` };
   });
 }

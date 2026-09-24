@@ -255,6 +255,15 @@ const P = {
   apple:        'M12 2a3 3 0 0 0-1.5 2.8 3 3 0 0 0 2.5 2.9A3.3 3.3 0 0 0 12 2z M18.7 17.5c-.8 1.2-1.7 2.4-3 2.5-1.4.1-1.8-.8-3.4-.8-1.5 0-2 .8-3.4.8-1.3 0-2.3-1.3-3.2-2.5-1.7-2.5-3-7-1.2-10 1-.7 2.4-1.2 3.6-1.2 1.3 0 2.4.9 3.2.9.7 0 2.1-.9 3.5-.9 1.5 0 2.8.6 3.6 1.7-3.1 1.8-2.6 6.3.3 7.5z',
   windows:      ['M3 5.5l7.5-1v7H3V5.5z', 'M12 4.3L21 3v8.5H12V4.3z', 'M3 12.5h7.5v7L3 18.5v-6z', 'M12 12.5H21V21l-9-1.3v-7.2z'],
   android:      ['M7 10v6', 'M17 10v6', 'M4 14a8 8 0 0 0 16 0H4z', 'M8 6l-2-3', 'M16 6l2-3', 'M9 11h.01', 'M15 11h.01'],
+
+  /* ── Text formatting / Email builder ── */
+  type:              'M4 7V4h16v3M9 20h6M12 4v16',
+  text:              'M4 7V4h16v3M9 20h6M12 4v16',
+  alignLeft:         'M17 10H3M21 6H3M21 14H3M17 18H3',
+  alignCenter:       'M17 10H7M21 6H3M21 14H3M17 18H7',
+  alignRight:        'M21 10H7M21 6H3M21 14H3M21 18H7',
+  table:             ['M3 3h18v18H3z', 'M3 9h18', 'M3 15h18', 'M9 3v18'],
+  mousePointerClick: ['M4 4l7.07 17.15 2.51-7.42L21 11.07z', 'M12.58 12.58L21 21'],
 } satisfies Record<string, string | string[]>;
 
 export type IconName = keyof typeof P;

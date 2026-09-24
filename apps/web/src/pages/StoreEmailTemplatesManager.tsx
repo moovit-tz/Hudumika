@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
 import { PaginationBar } from '../components/PaginationBar.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Store.css';
@@ -69,11 +70,135 @@ const FILTER_CATS = [
 
 function getCategoryIcon(cat: string) {
   const cfg = CAT_CONFIG[cat.toLowerCase()];
-  if (cfg) return { icon: cfg.icon, bg: cfg.bg, color: cfg.color, label: cfg.label };
-  return { icon: 'mail' as IconName, bg: 'var(--surface2)', color: 'var(--teal)', label: cat };
+  if (cfg) return { icon: cfg.icon, bg: cfg.bg, color: cfg.color, label: cfg.label, variant: cfg.variant };
+  return { icon: 'mail' as IconName, bg: 'var(--surface2)', color: 'var(--teal)', label: cat, variant: 'gray' as const };
 }
 
-/* ── Helpers for Preview Iframe ─────────────────────────────────────────────── */
+/* ── Helpers for Preview Iframe & Humanized Variables ──────────────────────── */
+
+interface VariableInfo {
+  label: string;
+  icon: IconName;
+  sample: string;
+  desc: string;
+}
+
+const KNOWN_VARIABLES: Record<string, VariableInfo> = {
+  // Customer & Users
+  customer_name: { label: 'Customer Name', icon: 'user', sample: 'Sarah Jenkins', desc: 'Recipient / client primary name' },
+  client_name: { label: 'Client Name', icon: 'user', sample: 'Acme Corporation', desc: 'Client or account entity name' },
+  recipient_name: { label: 'Recipient Name', icon: 'user', sample: 'David Miller', desc: 'Target recipient contact name' },
+  recipientName: { label: 'Recipient Name', icon: 'user', sample: 'David Miller', desc: 'Target recipient contact name' },
+  user_name: { label: 'User Name', icon: 'user', sample: 'Alex Mercer', desc: 'User account name' },
+  employee_name: { label: 'Employee Name', icon: 'userCheck', sample: 'Michael Chang', desc: 'New or active employee name' },
+  manager_name: { label: 'Manager Name', icon: 'user', sample: 'Elena Vance', desc: 'Reporting manager name' },
+  sender_name: { label: 'Sender Name', icon: 'user', sample: 'Hudumika Support', desc: 'Sender or sender rep name' },
+  sharerName: { label: 'Sharer Name', icon: 'user', sample: 'Rachel Zane', desc: 'Person sharing the resource' },
+  sharer_name: { label: 'Sharer Name', icon: 'user', sample: 'Rachel Zane', desc: 'Person sharing the resource' },
+  author_name: { label: 'Author Name', icon: 'user', sample: 'Hudumika Team', desc: 'Template creator or sender' },
+
+  // Organization & Company
+  tenant_name: { label: 'Company Name', icon: 'building', sample: 'Acme Corp Ltd', desc: 'Your workspace or company name' },
+  tenant_address: { label: 'Company Address', icon: 'mapPin', sample: '123 Business Tower, Dar es Salaam', desc: 'Physical company mailing address' },
+  company_name: { label: 'Company Name', icon: 'building', sample: 'Acme Global Services', desc: 'Registered business name' },
+
+  // Proposals & Documents
+  proposal_title: { label: 'Proposal Title', icon: 'fileText', sample: 'Enterprise Cloud Solution', desc: 'Subject title of the business proposal' },
+  proposal_url: { label: 'Proposal Link', icon: 'link', sample: 'https://hudumika.com/p/prop-102', desc: 'Direct URL to view the online proposal' },
+  valid_until: { label: 'Valid Until Date', icon: 'calendar', sample: 'Oct 31, 2026', desc: 'Proposal or offer expiration deadline' },
+  deadline: { label: 'Deadline Date', icon: 'calendar', sample: 'Nov 05, 2026', desc: 'Document signing deadline date' },
+  document_title: { label: 'Document Title', icon: 'fileText', sample: 'Service Level Agreement', desc: 'Name of the attached document' },
+  signing_url: { label: 'Signing Link', icon: 'link', sample: 'https://hudumika.com/esign/doc-98', desc: 'One-click eSign signing link' },
+
+  // Financial & Invoicing
+  invoice_number: { label: 'Invoice #', icon: 'invoice', sample: 'INV-2026-089', desc: 'Unique invoice reference number' },
+  invoice_id: { label: 'Invoice ID', icon: 'invoice', sample: 'INV-089', desc: 'Internal invoice identifier' },
+  total_value: { label: 'Total Value', icon: 'bankNote', sample: '24,500.00', desc: 'Total contract or proposal value' },
+  amount_due: { label: 'Amount Due', icon: 'bankNote', sample: '1,450.00', desc: 'Outstanding amount due' },
+  amount_paid: { label: 'Amount Paid', icon: 'bankNote', sample: '1,450.00', desc: 'Total amount received in payment' },
+  currency: { label: 'Currency', icon: 'dollarSign', sample: '$', desc: 'Billing currency symbol or code' },
+  due_date: { label: 'Due Date', icon: 'calendar', sample: 'Nov 15, 2026', desc: 'Payment settlement deadline' },
+  payment_date: { label: 'Payment Date', icon: 'calendar', sample: 'Oct 24, 2026', desc: 'Date payment was processed' },
+  payment_method: { label: 'Payment Method', icon: 'creditCard', sample: 'Credit Card (•••• 4242)', desc: 'Transaction payment method' },
+  reference: { label: 'Reference Code', icon: 'hash', sample: 'TXN-984210', desc: 'Payment transaction reference' },
+  days_overdue: { label: 'Days Overdue', icon: 'clock', sample: '14', desc: 'Count of days past original due date' },
+  portal_url: { label: 'Portal Link', icon: 'link', sample: 'https://hudumika.com/portal', desc: 'Customer self-service portal link' },
+
+  // System & Accounts
+  setup_url: { label: 'Setup Link', icon: 'link', sample: 'https://hudumika.com/setup/usr-42', desc: 'New user onboarding setup link' },
+  setup_link: { label: 'Setup Link', icon: 'link', sample: 'https://hudumika.com/setup/usr-42', desc: 'New user onboarding setup link' },
+  reset_url: { label: 'Reset Link', icon: 'link', sample: 'https://hudumika.com/reset/tok-88', desc: 'Password reset link' },
+  reset_link: { label: 'Reset Link', icon: 'link', sample: 'https://hudumika.com/reset/tok-88', desc: 'Password reset link' },
+  first_day_date: { label: 'First Day Date', icon: 'calendar', sample: 'Nov 01, 2026', desc: 'Employee start date' },
+  department: { label: 'Department', icon: 'layers', sample: 'Engineering', desc: 'Assigned business department' },
+  role: { label: 'Role / Title', icon: 'badge', sample: 'Senior Consultant', desc: 'Designated role or title' },
+
+  // Support & Operations
+  ticket_id: { label: 'Ticket ID', icon: 'headphones', sample: 'TICK-4029', desc: 'Support incident reference code' },
+  ticket_title: { label: 'Ticket Title', icon: 'headphones', sample: 'System Access Request', desc: 'Support issue summary' },
+  ticket_status: { label: 'Ticket Status', icon: 'sparkle', sample: 'In Progress', desc: 'Current ticket lifecycle stage' },
+  tracking_number: { label: 'Tracking #', icon: 'truck', sample: 'HDM-TRK-7712', desc: 'Shipment tracking identifier' },
+  order_id: { label: 'Order ID', icon: 'package', sample: 'ORD-9932', desc: 'E-commerce purchase order ID' },
+  fileName: { label: 'File Name', icon: 'fileText', sample: 'Q3_Financial_Summary.pdf', desc: 'Name of shared document' },
+  file_name: { label: 'File Name', icon: 'fileText', sample: 'Q3_Financial_Summary.pdf', desc: 'Name of shared document' },
+  fileUrl: { label: 'File Link', icon: 'link', sample: 'https://hudumika.com/drive/f-102', desc: 'Direct link to access file' },
+  file_url: { label: 'File Link', icon: 'link', sample: 'https://hudumika.com/drive/f-102', desc: 'Direct link to access file' },
+  permission: { label: 'Permission Level', icon: 'shield', sample: 'View & Download', desc: 'Access rights granted' },
+};
+
+function humanizeVariable(rawVar: string): VariableInfo {
+  if (KNOWN_VARIABLES[rawVar]) {
+    return KNOWN_VARIABLES[rawVar];
+  }
+
+  const formatted = rawVar
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, c => c.toUpperCase());
+
+  const lower = rawVar.toLowerCase();
+  let icon: IconName = 'tag';
+  let sample = `[${formatted}]`;
+
+  if (lower.includes('name') || lower.includes('user') || lower.includes('author') || lower.includes('member')) {
+    icon = 'user';
+    sample = 'Alex Johnson';
+  } else if (lower.includes('date') || lower.includes('until') || lower.includes('day') || lower.includes('time')) {
+    icon = 'calendar';
+    sample = 'Oct 31, 2026';
+  } else if (lower.includes('url') || lower.includes('link') || lower.includes('portal') || lower.includes('href')) {
+    icon = 'link';
+    sample = 'https://hudumika.com';
+  } else if (lower.includes('amount') || lower.includes('price') || lower.includes('total') || lower.includes('cost') || lower.includes('fee')) {
+    icon = 'bankNote';
+    sample = '1,200.00';
+  } else if (lower.includes('curr')) {
+    icon = 'dollarSign';
+    sample = '$';
+  } else if (lower.includes('file') || lower.includes('doc') || lower.includes('invoice') || lower.includes('title')) {
+    icon = 'fileText';
+    sample = 'Document Sample';
+  } else if (lower.includes('company') || lower.includes('tenant') || lower.includes('org')) {
+    icon = 'building';
+    sample = 'Acme Corp';
+  }
+
+  return {
+    label: formatted,
+    icon,
+    sample,
+    desc: `Dynamic placeholder for ${formatted.toLowerCase()}`,
+  };
+}
+
+function populateSampleData(text: string): string {
+  if (!text) return '';
+  return text.replace(/{{\s*([\w]+)\s*}}/g, (match, varName) => {
+    const meta = humanizeVariable(varName);
+    return meta.sample || match;
+  });
+}
 
 function preparePreviewHtml(rawHtml: string): string {
   const customStyles = `
@@ -83,22 +208,71 @@ function preparePreviewHtml(rawHtml: string): string {
   }
   html, body {
     margin: 0 !important;
-    padding: 16px !important;
-    background: #ffffff !important;
+    padding: 0 !important;
+    background: transparent !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    overflow: hidden !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
+    width: 100% !important;
+    min-height: 100% !important;
   }
   ::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
     height: 0 !important;
   }
-  table {
+  body > table {
+    margin: 0 auto !important;
+    width: 100% !important;
     max-width: 100% !important;
+    background: transparent !important;
+  }
+  body > table > tbody > tr > td,
+  body > table > tr > td {
+    padding: 24px 16px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+  }
+  table {
     margin-left: auto !important;
     margin-right: auto !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+  }
+  /* Card container table — ensure symmetrical rounded corners and responsive width */
+  table[style*="box-shadow"],
+  table[style*="border-radius"],
+  table[width="560"],
+  table table {
+    max-width: 100% !important;
+    width: 560px !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    margin: 0 auto !important;
+    text-align: left !important;
+  }
+  /* Force top banner row and cells to have symmetrical rounded corners */
+  table tr:first-child > td,
+  table tr:first-child > th {
+    border-top-left-radius: 10px !important;
+    border-top-right-radius: 10px !important;
+  }
+  table tr:first-child > td:first-child,
+  table tr:first-child > th:first-child {
+    border-top-left-radius: 10px !important;
+  }
+  table tr:first-child > td:last-child,
+  table tr:first-child > th:last-child {
+    border-top-right-radius: 10px !important;
+  }
+  table tr:last-child > td:first-child {
+    border-bottom-left-radius: 10px !important;
+  }
+  table tr:last-child > td:last-child {
+    border-bottom-right-radius: 10px !important;
   }
   img {
     max-width: 100% !important;
@@ -131,6 +305,8 @@ function DetailDialog({
   onClose: () => void;
 }) {
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
+  const [previewDataMode, setPreviewDataMode] = useState<'sample' | 'raw'>('sample');
+  const [varMode, setVarMode] = useState<'human' | 'code'>('human');
   const [copiedVar, setCopiedVar] = useState<string | null>(null);
 
   // 2D Pan & Zoom state (replaces native scrollbars with smooth 2D canvas interaction)
@@ -183,8 +359,8 @@ function DetailDialog({
     try {
       if (iframeRef.current?.contentDocument?.body) {
         const h = iframeRef.current.contentDocument.body.scrollHeight;
-        if (h && h > 200) {
-          setContentHeight(Math.min(h + 40, 2400));
+        if (h && h > 150) {
+          setContentHeight(Math.min(h + 30, 2400));
         }
       }
     } catch {
@@ -192,14 +368,14 @@ function DetailDialog({
     }
   };
 
-  const baseWidth = previewMode === 'mobile' ? 375 : 600;
+  const baseWidth = previewMode === 'mobile' ? 375 : 620;
   const baseHeight = previewMode === 'mobile' ? 680 : contentHeight;
 
-  // Auto-fit scale factor calculation
+  // Auto-fit scale factor calculation with equal 48px padding on all sides
   const fitScale = Math.min(
     1,
-    (viewportSize.width - 36) / baseWidth,
-    (viewportSize.height - 36) / Math.min(baseHeight, 720)
+    (viewportSize.width - 48) / baseWidth,
+    (viewportSize.height - 48) / Math.min(baseHeight, 720)
   );
 
   const activeScale = autoFit ? fitScale : (zoom / 100) * fitScale;
@@ -293,12 +469,35 @@ function DetailDialog({
                 </Badge>
               </div>
               <DialogDescription className="setm-modal-meta">
-                <span>By <strong>{template.author_name}</strong></span>
-                {template.application && <span>· App: <strong>{template.application}</strong></span>}
-                {template.downloads > 0 && (
-                  <span>· <Icon name="download" size={11} /> {template.downloads.toLocaleString()} imports</span>
+                <span className="setm-meta-item">
+                  <span className="setm-meta-muted">By</span>
+                  <strong className="setm-meta-author">{template.author_name}</strong>
+                </span>
+
+                {template.application && template.application.toLowerCase() !== cat.label.toLowerCase() && (
+                  <>
+                    <span className="setm-meta-sep" aria-hidden="true">•</span>
+                    <span className="setm-meta-item">
+                      <Icon name="layers" size={12} color="var(--ink3)" />
+                      <span>{template.application}</span>
+                    </span>
+                  </>
                 )}
-                <span>· v{template.version || '1.0.0'}</span>
+
+                {template.downloads > 0 && (
+                  <>
+                    <span className="setm-meta-sep" aria-hidden="true">•</span>
+                    <span className="setm-meta-item">
+                      <Icon name="download" size={12} color="var(--ink3)" />
+                      <span>{template.downloads.toLocaleString()} {template.downloads === 1 ? 'import' : 'imports'}</span>
+                    </span>
+                  </>
+                )}
+
+                <span className="setm-meta-sep" aria-hidden="true">•</span>
+                <span className="setm-meta-item">
+                  <span className="setm-meta-version">v{template.version || '1.0.0'}</span>
+                </span>
               </DialogDescription>
             </div>
           </div>
@@ -324,6 +523,28 @@ function DetailDialog({
                   >
                     <Icon name="smartphone" size={13} /> Mobile
                   </button>
+                </div>
+
+                {/* Sample Data vs Raw Tags Toggle */}
+                <div className="setm-preview-data-toggle">
+                  <Tip label="Show email with realistic sample values filled in">
+                    <button
+                      type="button"
+                      className={`setm-data-btn${previewDataMode === 'sample' ? ' is-active' : ''}`}
+                      onClick={() => setPreviewDataMode('sample')}
+                    >
+                      <Icon name="sparkle" size={12} /> Sample Data
+                    </button>
+                  </Tip>
+                  <Tip label="Show raw template merge tags {{tag}}">
+                    <button
+                      type="button"
+                      className={`setm-data-btn${previewDataMode === 'raw' ? ' is-active' : ''}`}
+                      onClick={() => setPreviewDataMode('raw')}
+                    >
+                      <Icon name="tag" size={12} /> Raw Tags
+                    </button>
+                  </Tip>
                 </div>
 
                 {/* 2D Zoom & Reset View Toolbar */}
@@ -371,11 +592,15 @@ function DetailDialog({
                       <Icon name="refresh" size={12} />
                     </button>
                   </Tip>
-                </div>
 
-                <div className="setm-pan-hint">
-                  <Icon name="hand" size={12} />
-                  <span>Drag to pan</span>
+                  <Tip label="Drag canvas to pan (2D movement)">
+                    <div
+                      className={`setm-zoom-btn setm-pan-icon-tool${isDragging ? ' is-dragging' : ''}`}
+                      style={{ borderLeft: '1px solid var(--border)', marginLeft: 2, paddingLeft: 6 }}
+                    >
+                      <Icon name="hand" size={12} />
+                    </div>
+                  </Tip>
                 </div>
               </div>
 
@@ -383,12 +608,20 @@ function DetailDialog({
               <div className="setm-preview-envelope">
                 <div className="setm-preview-subject-line">
                   <span className="setm-preview-label">Subject</span>
-                  <span className="setm-preview-subject-val">{template.subject || 'No subject'}</span>
+                  <span className="setm-preview-subject-val">
+                    {previewDataMode === 'sample'
+                      ? populateSampleData(template.subject) || 'No subject'
+                      : template.subject || 'No subject'}
+                  </span>
                 </div>
                 {template.preheader && (
                   <div className="setm-preview-snippet-line">
                     <span className="setm-preview-label">Snippet</span>
-                    <span className="setm-preview-snippet-val">{template.preheader}</span>
+                    <span className="setm-preview-snippet-val">
+                      {previewDataMode === 'sample'
+                        ? populateSampleData(template.preheader)
+                        : template.preheader}
+                    </span>
                   </div>
                 )}
               </div>
@@ -416,7 +649,11 @@ function DetailDialog({
                     title={`Preview: ${template.title}`}
                     sandbox="allow-same-origin"
                     className="setm-preview-iframe"
-                    srcDoc={preparePreviewHtml(template.body_html)}
+                    srcDoc={preparePreviewHtml(
+                      previewDataMode === 'sample'
+                        ? populateSampleData(template.body_html)
+                        : template.body_html
+                    )}
                     onLoad={handleIframeLoad}
                   />
                 </div>
@@ -450,32 +687,69 @@ function DetailDialog({
                 )}
               </div>
 
-              {/* Variables / Merge Tags */}
+              {/* Dynamic Placeholders / Variables */}
               {template.available_vars.length > 0 && (
                 <div className="setm-side-section">
-                  <div className="flex items-center justify-between">
+                  <div className="setm-vars-heading-row">
                     <h5 className="setm-side-heading">
-                      Merge Tags <span className="setm-side-count">({template.available_vars.length})</span>
+                      Dynamic Placeholders <span className="setm-side-count">({template.available_vars.length})</span>
                     </h5>
-                    <span className="setm-side-tip">Click to copy</span>
+                    <div className="setm-vars-mode-toggle" role="group" aria-label="Field display format">
+                      <button
+                        type="button"
+                        className={`setm-vars-mode-btn${varMode === 'human' ? ' is-active' : ''}`}
+                        onClick={() => setVarMode('human')}
+                        title="Display friendly field names"
+                      >
+                        Friendly
+                      </button>
+                      <button
+                        type="button"
+                        className={`setm-vars-mode-btn${varMode === 'code' ? ' is-active' : ''}`}
+                        onClick={() => setVarMode('code')}
+                        title="Display raw Handlebars tags"
+                      >
+                        Code
+                      </button>
+                    </div>
                   </div>
+
                   <div className="setm-vars-chips">
-                    {template.available_vars.map(v => (
-                      <Tip key={v} label={copiedVar === v ? 'Copied to clipboard!' : 'Click to copy tag'}>
-                        <button
-                          type="button"
-                          className={`setm-var-btn${copiedVar === v ? ' is-copied' : ''}`}
-                          onClick={() => copyVar(v)}
+                    {template.available_vars.map(v => {
+                      const info = humanizeVariable(v);
+                      const isCopied = copiedVar === v;
+                      return (
+                        <Tip
+                          key={v}
+                          label={
+                            isCopied
+                              ? `Copied {{${v}}} to clipboard!`
+                              : `Click to copy {{${v}}}${info.desc ? ` · ${info.desc}` : ''}`
+                          }
                         >
-                          <code>{`{{${v}}}`}</code>
-                          <Icon
-                            name={copiedVar === v ? 'check' : 'copy'}
-                            size={11}
-                            color={copiedVar === v ? 'var(--green)' : 'var(--teal)'}
-                          />
-                        </button>
-                      </Tip>
-                    ))}
+                          <button
+                            type="button"
+                            className={`setm-var-btn${isCopied ? ' is-copied' : ''}`}
+                            onClick={() => copyVar(v)}
+                          >
+                            <Icon
+                              name={isCopied ? 'check' : varMode === 'human' ? info.icon : 'tag'}
+                              size={12}
+                              color={isCopied ? 'var(--green)' : 'var(--teal)'}
+                            />
+                            <span className="setm-var-btn-label">
+                              {varMode === 'human' ? info.label : `{{${v}}}`}
+                            </span>
+                            {isCopied && <span className="setm-var-copied-tag">Copied!</span>}
+                          </button>
+                        </Tip>
+                      );
+                    })}
+                  </div>
+
+                  <div className="setm-vars-footer-hint">
+                    <Icon name="copy" size={11} color="var(--ink3)" />
+                    <span>Click any placeholder to copy its merge tag</span>
                   </div>
                 </div>
               )}
@@ -688,9 +962,6 @@ export function StoreEmailTemplatesManager({ embedded = false }: { embedded?: bo
               </Tip>
             </div>
 
-            <span className="setm-count-text">
-              {visible.length} templates
-            </span>
           </div>
         </div>
 
@@ -813,21 +1084,15 @@ export function StoreEmailTemplatesManager({ embedded = false }: { embedded?: bo
                   onClick={() => setDetail(t)}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDetail(t); } }}
                 >
-                  <div
-                    className="store-app-icon-wrap"
-                    style={{ background: iconStyle.bg, display: 'grid', placeItems: 'center', width: 44, height: 44, minWidth: 44 }}
-                  >
-                    <Icon name={iconStyle.icon} size={22} color={iconStyle.color} />
-                  </div>
+                  <FeaturedIcon size="lg" variant={iconStyle.variant}>
+                    <Icon name={iconStyle.icon} size={20} />
+                  </FeaturedIcon>
 
                   <div className="setm-list-main">
-                    <div className="flex items-center gap-2">
-                      <h4 className="store-app-name" style={{ margin: 0 }}>{t.title}</h4>
-                      <span className={`store-badge ${isImported ? 'store-badge-installed' : 'store-badge-verified'}`}>
-                        {isImported ? 'In Workspace' : t.is_hudumika_official ? 'Official' : 'Verified'}
-                      </span>
+                    <div className="setm-list-title-row">
+                      <h4 className="setm-list-title">{t.title}</h4>
                     </div>
-                    <div className="store-app-dev" style={{ margin: 0 }}>
+                    <div className="setm-list-byline">
                       By {t.author_name} · <span className="text-muted-foreground">{iconStyle.label}</span>
                     </div>
                   </div>
@@ -836,7 +1101,10 @@ export function StoreEmailTemplatesManager({ embedded = false }: { embedded?: bo
                     <p className="store-app-desc">{t.description}</p>
                   </div>
 
-                  <div className="setm-list-stats">
+                  <div className="setm-list-status">
+                    <Badge variant={isImported ? 'success' : t.is_hudumika_official ? 'brand' : 'gray'}>
+                      {isImported ? 'In workspace' : t.is_hudumika_official ? 'Official' : 'Verified'}
+                    </Badge>
                     <span className="store-app-installs">
                       {t.downloads > 0 ? `${t.downloads.toLocaleString()} imports` : 'New'}
                     </span>
