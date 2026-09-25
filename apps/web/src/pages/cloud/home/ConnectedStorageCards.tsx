@@ -10,18 +10,39 @@ import { fmtSize } from '../lib/format.js';
  *  side by side on the Cloud home page and used to read as two different
  *  design languages next to each other. */
 export function ConnectedStorageCards({ connections, onOpen }: { connections: StorageConnection[]; onOpen: (provider: StorageProvider) => void }) {
+  // Only surface providers that are real integrations (supported by the API) or
+  // that the user has already connected. Box, Dropbox and MEGA are not yet live
+  // and showing them as "Coming soon" wastes space on the home dashboard.
+  const visibleProviders = STORAGE_PROVIDERS.filter(p => {
+    const conn = connections.find(c => c.provider === p.id);
+    return conn?.supported === true || conn?.status === 'connected';
+  });
+
+  if (visibleProviders.length === 0) {
+    return (
+      <Card style={{ padding: '16px 14px', borderRadius: 'var(--r-lg)', color: 'var(--ink3)', fontSize: 13 }}>
+        No external storage connected yet.{' '}
+        <button
+          type="button"
+          style={{ color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 'inherit', padding: 0 }}
+          onClick={() => onOpen('onedrive')}
+        >
+          Connect OneDrive →
+        </button>
+      </Card>
+    );
+  }
+
   return (
     <Card style={{ padding: 8, borderRadius: 'var(--r-lg)' }}>
-      {STORAGE_PROVIDERS.map((p, i) => {
+      {visibleProviders.map((p, i) => {
         const conn = connections.find(c => c.provider === p.id);
         const isConnected = conn?.status === 'connected';
-        // Only OneDrive is a real integration. Other providers are shown as "Coming soon" — and no
-        // usage bar is drawn for any provider: the provider's real quota is not known to us, so a
-        // bar against an assumed free-tier cap would be invented data.
         const isReal = conn?.supported === true;
         return (
           <button
             key={p.id}
+            type="button"
             onClick={() => onOpen(p.id)}
             className="hover:bg-(--bg)"
             style={{
@@ -36,12 +57,12 @@ export function ConnectedStorageCards({ connections, onOpen }: { connections: St
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{p.name}</span>
-                <span style={{ fontSize: 11, color: isConnected ? 'var(--ink3)' : isReal ? 'var(--teal)' : 'var(--ink3)', fontWeight: isConnected || !isReal ? 400 : 600, flexShrink: 0 }}>
-                  {isConnected ? `${conn!.file_count} files` : isReal ? 'Connect →' : 'Coming soon'}
+                <span style={{ fontSize: 11, color: isConnected ? 'var(--ink3)' : 'var(--teal)', fontWeight: isConnected ? 400 : 600, flexShrink: 0 }}>
+                  {isConnected ? `${conn!.file_count} files` : 'Connect →'}
                 </span>
               </div>
               <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
-                {isConnected ? `${fmtSize(conn!.total_size)} synced` : isReal ? 'Not connected' : 'Integration not available yet'}
+                {isConnected ? `${fmtSize(conn!.total_size)} synced` : isReal ? 'Not connected' : ''}
               </div>
             </div>
           </button>

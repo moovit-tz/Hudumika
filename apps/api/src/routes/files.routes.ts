@@ -424,8 +424,11 @@ export async function filesRoutes(fastify: FastifyInstance) {
       }
     }
 
-    const { drive_id, entity_type, entity_id, q, type: typeFilter, owner: ownerFilter } = req.query as
-      { drive_id?: string; entity_type?: string; entity_id?: string; q?: string; type?: string; owner?: string };
+    const { drive_id, entity_type, entity_id, q, type: typeFilter, owner: ownerFilter,
+            parent_id: parentIdParam, cursor: cursorParam, limit: limitParam,
+            sort_by: sortByParam, sort_dir: sortDirParam } = req.query as
+      { drive_id?: string; entity_type?: string; entity_id?: string; q?: string; type?: string; owner?: string;
+        parent_id?: string; cursor?: string; limit?: string; sort_by?: string; sort_dir?: string };
 
     if (entity_type && entity_id) {
       try {
@@ -536,6 +539,95 @@ export async function filesRoutes(fastify: FastifyInstance) {
         const access = await resolveDriveAccess(trx, user.tenant_id, user.sub, user.role, drive_id);
         if (!access) return reply.status(404).send({ error: 'Drive not found' });
 
+        // Paginated mode: when ?limit= is supplied the caller wants a page of
+        // children of a specific folder, not the full flat drive list.  Cursor
+        // is the last-seen created_at ISO string (opaque to the client).
+        const paginatedLimit = limitParam ? Math.min(Math.max(Number(limitParam) || 100, 1), 500) : null;
+        if (paginatedLimit !== null) {
+          const parentId   = parentIdParam ?? null;
+          const sortBy     = (['name', 'size', 'modified'] as const).find(s => s === sortByParam) ?? 'modified';
+          const sortDir    = sortDirParam === 'asc' ? 'asc' : 'desc';
+          const cursorVal  = cursorParam ?? null;
+
+          // Folders always sort before files regardless of the sort column
+          // (matches FileBrowser.tsx client-side sort order) so the cursor must
+          // encode both the type group and the sort value.  We encode it as
+          // base64(JSON({t:'folder'|'file', v: sortValue, id: uuid})) so we
+          // can pick up cleanly after any item without missing or duplicating.
+          type CursorPayload = { t: 'folder' | 'file'; v: string; id: string };
+          let cursorPayload: CursorPayload | null = null;
+          if (cursorVal) {
+            try { cursorPayload = JSON.parse(Buffer.from(cursorVal, 'base64').toString('utf8')); } catch { /* invalid cursor, start from beginning */ }
+          }
+
+          type SortDir = 'asc' | 'desc';
+          const orderDir: SortDir = sortDir;
+          const orderDirOpp: SortDir = sortDir === 'asc' ? 'desc' : 'asc';
+          const sortCol = sortBy === 'name' ? 'name' : sortBy === 'size' ? 'size' : 'updated_at';
+
+          async function fetchGroup(typeIsFolder: boolean): Promise<any[]> {
+            let q2 = trx.selectFrom('cloud_files').selectAll()
+              .where('tenant_id', '=', user.tenant_id)
+              .where('drive_id', '=', drive_id!)
+              .where('is_trash', '=', false);
+
+            if (typeIsFolder) q2 = q2.where('type', '=', 'folder');
+            else q2 = q2.where('type', '!=', 'folder');
+
+            if (parentId) q2 = q2.where('parent_id', '=', parentId);
+            else q2 = (q2 as any).where('parent_id', 'is', null);
+
+            // Cursor seek: skip rows we've already sent
+            const t = typeIsFolder ? 'folder' : 'file';
+            if (cursorPayload && cursorPayload.t === t) {
+              const v = cursorPayload.v;
+              const id = cursorPayload.id;
+              // rows after the cursor: (sortCol > v) OR (sortCol = v AND id > id_at_cursor)
+              // using UUID ordering as a stable tiebreaker
+              q2 = (q2 as any).where((eb: any) => eb.or([
+                eb(sortCol as any, orderDir === 'asc' ? '>' : '<', v),
+                eb.and([eb(sortCol as any, '=', v), eb('id', '>', id)]),
+              ]));
+            } else if (cursorPayload && cursorPayload.t !== t) {
+              // Already past this group — skip it entirely unless we're in the second group
+              if (typeIsFolder) return []; // already sent all folders
+            }
+
+            q2 = (q2 as any)
+              .orderBy(sortCol, orderDir)
+              .orderBy('id', 'asc') // stable tiebreaker
+              .limit(paginatedLimit! + 1);
+
+            return q2.execute();
+          }
+
+          const foldersRaw = await fetchGroup(true);
+          const filesRaw   = await fetchGroup(false);
+
+          // Folders first, then files — each group is independently limited;
+          // we take up to paginatedLimit total across both groups.
+          const combined = [...foldersRaw, ...filesRaw];
+          const hasMore  = combined.length > paginatedLimit!;
+          const page     = combined.slice(0, paginatedLimit!);
+
+          let nextCursor: string | null = null;
+          if (hasMore) {
+            const last = page[page.length - 1];
+            const payload: CursorPayload = {
+              t: last.type === 'folder' ? 'folder' : 'file',
+              v: String(last[sortCol] ?? ''),
+              id: last.id,
+            };
+            nextCursor = Buffer.from(JSON.stringify(payload)).toString('base64');
+          }
+
+          const items = await attachShares(trx, page);
+          return { items, next_cursor: nextCursor };
+        }
+
+        // Legacy flat mode (no ?limit): return the full drive tree for
+        // backward compat with search/starred/recent/trash views that still
+        // work from the in-memory flat list.
         const rows = await trx.selectFrom('cloud_files').selectAll()
           .where('tenant_id', '=', user.tenant_id).where('drive_id', '=', drive_id).orderBy('created_at').execute();
         return attachShares(trx, rows);

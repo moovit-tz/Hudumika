@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import type { IconName } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -22,6 +23,15 @@ interface AddonApp {
   permissions: string[];
   iconUrl?: string;
 }
+
+const CATEGORY_META: Record<string, { label: string; title: string; description: string; icon: IconName }> = {
+  all: { label: 'All apps', title: 'Recommended Add-ons & Apps', description: 'Discover verified tools and integrations for your Hudumika workspace.', icon: 'grid' },
+  business: { label: 'Business tools', title: 'Business Solutions', description: 'Connect the tools that support finance, sales and day-to-day operations.', icon: 'briefcase' },
+  productivity: { label: 'Productivity', title: 'Productivity Solutions', description: 'Keep work organised and help teams move from planning to delivery faster.', icon: 'checkCircle' },
+  communication: { label: 'Communication', title: 'Communication Solutions', description: 'Bring conversations, meetings and customer communication into one workspace.', icon: 'messageSquare' },
+  utility: { label: 'Utilities', title: 'Utility Apps', description: 'Practical, verified tools for everyday workspace administration and operations.', icon: 'settings' },
+  ai: { label: 'AI & analytics', title: 'AI & Analytics Solutions', description: 'Extend your workspace with intelligent automation, insights and reporting.', icon: 'activity' },
+};
 
 // ── App icons (brand SVGs — always light-on-color, no theme sensitivity) ──
 const APP_ICONS: Record<string, React.ReactNode> = {
@@ -184,9 +194,7 @@ export const Store: React.FC = () => {
     }
   }
 
-  const sectionTitle = activeCategory === 'all'
-    ? 'Recommended Add-ons & Apps'
-    : `${activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)} Solutions`;
+  const categoryMeta = CATEGORY_META[activeCategory] ?? CATEGORY_META.all;
 
   if (activeCategory === 'email-templates') {
     return <StoreEmailTemplatesManager />;
@@ -197,37 +205,54 @@ export const Store: React.FC = () => {
 
       {/* ── Main ── */}
       <div className="store-main">
-        {/* Search bar */}
-        <div className="store-topbar">
-          <div className="store-search-wrap">
-            <Icon name="search" size={16} color="var(--ink3)" />
-            <input
-              type="search"
-              className="store-search-input"
-              placeholder="Search apps, integrations, utilities..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button type="button" className="store-search-clear" title="Clear search" onClick={() => setSearchQuery('')}>
-                <Icon name="x" size={14} />
-              </button>
-            )}
-          </div>
-          <div className="store-verified-note">
-            <Icon name="shield" size={14} color="var(--green)" />
-            <span>All apps are <strong>verified secure</strong> by Hudumika Security.</span>
-          </div>
-        </div>
-
         {/* Body */}
         <div className="store-body">
           <PageHeader
-            crumbs={['Store']}
-            titlePlain="App"
-            titleEm="marketplace"
-            subtitle="Extend Hudumika with verified integrations, tools and add-ons."
+            crumbs={activeCategory === 'all' ? ['Store'] : ['Store', categoryMeta.label]}
+            titlePlain={activeCategory === 'utility' ? 'Utility' : 'App'}
+            titleEm={activeCategory === 'utility' ? 'apps' : 'marketplace'}
+            subtitle={activeCategory === 'utility'
+              ? 'Add focused tools to simplify everyday work across your Hudumika workspace.'
+              : 'Extend Hudumika with verified integrations, tools and add-ons.'}
           />
+
+          <section className="store-catalog-toolbar" aria-label={`${categoryMeta.label} catalogue controls`}>
+            <div className="store-catalog-context">
+              <div className="store-catalog-icon" aria-hidden="true">
+                <Icon name={categoryMeta.icon} size={18} strokeWidth={1.8} />
+              </div>
+              <div className="store-catalog-copy">
+                <div className="store-catalog-heading-row">
+                  <h2>{categoryMeta.title}</h2>
+                  <span className="store-catalog-count">{filteredApps.length}</span>
+                </div>
+                <p>{categoryMeta.description}</p>
+              </div>
+            </div>
+
+            <div className="store-catalog-actions">
+              <div className="store-search-wrap">
+                <Icon name="search" size={16} color="var(--ink3)" />
+                <input
+                  type="search"
+                  className="store-search-input"
+                  aria-label={`Search ${categoryMeta.label.toLowerCase()}`}
+                  placeholder={activeCategory === 'utility' ? 'Search utility apps...' : 'Search apps and integrations...'}
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button type="button" className="store-search-clear" title="Clear search" aria-label="Clear search" onClick={() => setSearchQuery('')}>
+                    <Icon name="x" size={14} />
+                  </button>
+                )}
+              </div>
+              <div className="store-verified-note" title="Reviewed by Hudumika Security">
+                <Icon name="shield" size={14} color="var(--green)" />
+                <span>Verified by Hudumika</span>
+              </div>
+            </div>
+          </section>
 
           {/* Hero banner */}
           {activeCategory === 'all' && !searchQuery && (
@@ -257,16 +282,26 @@ export const Store: React.FC = () => {
           <>
           {/* Section header */}
           <div className="store-section-header">
-            <h3 className="store-section-title">{sectionTitle}</h3>
-            <span className="store-section-count">{filteredApps.length} results</span>
+            <h3 className="store-section-title">Available apps</h3>
+            <span className="store-section-count">
+              {searchQuery ? `${filteredApps.length} search ${filteredApps.length === 1 ? 'result' : 'results'}` : `${filteredApps.length} ${filteredApps.length === 1 ? 'app' : 'apps'}`}
+            </span>
           </div>
 
           {/* App grid */}
           <div className="store-grid">
             {appsLoading ? (
-              <div style={{ padding: '40px', color: 'var(--ink3)' }}>Loading apps...</div>
+              <div className="store-state" role="status">
+                <span className="store-state-spinner" aria-hidden="true" />
+                <span>Loading apps...</span>
+              </div>
             ) : filteredApps.length === 0 ? (
-              <div style={{ padding: '40px', color: 'var(--ink3)' }}>No apps found in this category.</div>
+              <div className="store-state store-state--empty">
+                <div className="store-state-icon"><Icon name="search" size={20} /></div>
+                <strong>No matching apps</strong>
+                <span>Try a different search or browse another category.</span>
+                {searchQuery && <button type="button" onClick={() => setSearchQuery('')}>Clear search</button>}
+              </div>
             ) : filteredApps.map(app => {
               const isInstalled = installedApps.includes(app.id);
               const iconNode = app.iconUrl ? <img src={app.iconUrl} alt="icon" style={{ width: 48, height: 48, borderRadius: 'var(--r)', objectFit: 'cover' }} /> : (APP_ICONS[app.id] || <Icon name="package" size={48} color="var(--blue)" />);

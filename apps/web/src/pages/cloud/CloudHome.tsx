@@ -2,6 +2,8 @@ import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useCloud, type CloudFile } from '../../shells/cloud-context.js';
+import { useCloudStrings } from './locale/index.js';
+import { Banner } from '../../components/ui/alert.js';
 import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
 import { StorageOverviewCards } from './home/StorageOverviewCards.js';
@@ -18,21 +20,19 @@ import { FolderCard } from './components/FolderCard.js';
 import { Lightbox } from './components/Lightbox.js';
 import type { FileMenuHandlers } from './components/FileMenu.js';
 
-// ── Greeting based on time of day ──────────────────────────────────────────
-function getGreeting() {
+// ── Greeting key based on time of day ─────────────────────────────────────
+function greetingKey() {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (h < 12) return 'home.greeting.morning';
+  if (h < 17) return 'home.greeting.afternoon';
+  return 'home.greeting.evening';
 }
 
 // ── Section header ─────────────────────────────────────────────────────────
 function SectionLabel({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-        {children}
-      </span>
+    <div className="cloud-home-section-label">
+      <span className="cloud-home-section-label-text">{children}</span>
       {action}
     </div>
   );
@@ -49,9 +49,10 @@ function QuickActionBtn({ icon, label, onClick }: { icon: IconName; label: strin
 }
 
 export function CloudHome() {
+  const t = useCloudStrings();
   const navigate = useNavigate();
   const {
-    files, loading, currentDrive, currentFolderId, openFolder: openFolderInDrive,
+    files, loading, error, dismissError, currentDrive, currentFolderId, openFolder: openFolderInDrive,
     createFolder, uploadFiles, uploadFolder, storageQuota, connections, goToView: setBrowserView,
     starItem, trashItem, renameItem, moveItems, shareItem, downloadItem,
   } = useCloud();
@@ -94,7 +95,7 @@ export function CloudHome() {
     return (
       <div className="cloud-home-loading">
         <div className="cloud-home-loading-spinner" />
-        <span>Loading your drive…</span>
+        <span>{t('home.loading')}</span>
       </div>
     );
   }
@@ -107,6 +108,7 @@ export function CloudHome() {
 
   return (
     <div className="cloud-home-root">
+      {error && <Banner variant="error" onDismiss={dismissError} className="rounded-none border-x-0 border-t-0">{error}</Banner>}
       <ResumableUploadsBanner />
 
       {/* ── Hero banner ───────────────────────────────────────────────── */}
@@ -114,7 +116,7 @@ export function CloudHome() {
         <div className="cloud-home-hero-content">
           <div className="cloud-home-hero-text">
             <h1 className="cloud-home-hero-title">
-              {getGreeting()}, {displayName} 👋
+              {t(greetingKey())}, {displayName}
             </h1>
             <p className="cloud-home-hero-sub">
               {currentDrive?.name ?? 'My Drive'} &nbsp;·&nbsp; {activeFiles.length} item{activeFiles.length === 1 ? '' : 's'}
@@ -123,11 +125,12 @@ export function CloudHome() {
 
           {/* Quick-action strip */}
           <div className="cloud-home-actions">
-            <QuickActionBtn icon="upload" label="Upload file" onClick={() => fileInputRef.current?.click()} />
-            <QuickActionBtn icon="folder" label="New folder" onClick={() => setShowCreateFolder(true)} />
-            <QuickActionBtn icon="clock" label="Recent" onClick={() => goToView('recent')} />
-            <QuickActionBtn icon="star" label="Starred" onClick={() => goToView('starred')} />
-            <QuickActionBtn icon="users" label="Shared" onClick={() => goToView('shared')} />
+            <QuickActionBtn icon="upload" label={t('home.action.uploadFile')} onClick={() => fileInputRef.current?.click()} />
+            <QuickActionBtn icon="folderPlus" label={t('home.action.uploadFolder')} onClick={() => folderInputRef.current?.click()} />
+            <QuickActionBtn icon="folder" label={t('home.action.newFolder')} onClick={() => setShowCreateFolder(true)} />
+            <QuickActionBtn icon="clock" label={t('home.action.recent')} onClick={() => goToView('recent')} />
+            <QuickActionBtn icon="star" label={t('home.action.starred')} onClick={() => goToView('starred')} />
+            <QuickActionBtn icon="users" label={t('home.action.shared')} onClick={() => goToView('shared')} />
           </div>
         </div>
 
@@ -144,11 +147,11 @@ export function CloudHome() {
             <SectionLabel
               action={
                 <button onClick={() => goToView('all')} className="cloud-home-see-all">
-                  See all <Icon name="arrowRight" size={12} />
+                  {t('home.section.seeAll')} <Icon name="arrowRight" size={12} />
                 </button>
               }
             >
-              Quick Access
+              {t('home.section.quickAccess')}
             </SectionLabel>
             <div className="cloud-home-folders-grid">
               {folders.map(item => (
@@ -172,11 +175,11 @@ export function CloudHome() {
             <SectionLabel
               action={
                 <button onClick={() => goToView('recent')} className="cloud-home-see-all">
-                  View more <Icon name="arrowRight" size={12} />
+                  {t('home.section.viewMore')} <Icon name="arrowRight" size={12} />
                 </button>
               }
             >
-              Suggested files
+              {t('home.section.suggested')}
             </SectionLabel>
             <SuggestedFilesStrip items={suggested} onOpen={openItem} menuHandlers={menuHandlers} />
           </section>
@@ -185,15 +188,15 @@ export function CloudHome() {
         {/* Bottom cards row */}
         <div className="cloud-home-bottom-grid">
           <section className="cloud-home-section">
-            <SectionLabel>Storage</SectionLabel>
+            <SectionLabel>{t('home.section.storage')}</SectionLabel>
             <StorageOverviewCards files={activeFiles} quota={storageQuota} />
           </section>
           <section className="cloud-home-section">
-            <SectionLabel>Connected storage</SectionLabel>
+            <SectionLabel>{t('home.section.connected')}</SectionLabel>
             <ConnectedStorageCards connections={connections} onOpen={p => goToView(p)} />
           </section>
           <section className="cloud-home-section">
-            <SectionLabel>Recently shared</SectionLabel>
+            <SectionLabel>{t('home.section.shared')}</SectionLabel>
             <RecentlySharedCard items={activeFiles} onOpen={openItem} />
           </section>
         </div>

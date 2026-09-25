@@ -7,6 +7,7 @@ import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightS
 import { PageLayout } from '../components/PageLayout.js';
 import { FileBrowser } from '../pages/cloud/FileBrowser.js';
 import { CloudHome } from '../pages/cloud/CloudHome.js';
+import { CloudCompliance } from '../pages/cloud/CloudCompliance.js';
 import { ConnectorOAuthCallback } from '../pages/cloud/ConnectorOAuthCallback.js';
 import { CloudProvider, useCloud } from './cloud-context.js';
 import { CloudSidebarContent } from './CloudSidebar.js';
@@ -48,6 +49,7 @@ export function CloudShell() {
                   <Route path="recent"   element={<FileBrowser />} />
                   <Route path="trash"    element={<FileBrowser />} />
                   <Route path="connections/:provider/callback" element={<ConnectorOAuthCallback />} />
+                  <Route path="compliance" element={<CloudCompliance />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/cloud" replace />} />
               </Routes>

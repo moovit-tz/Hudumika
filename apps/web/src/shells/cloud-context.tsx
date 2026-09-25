@@ -132,12 +132,27 @@ export interface DriveMemberCandidate {
   email: string | null;
 }
 
+export interface FolderPageOptions {
+  sortBy?: 'name' | 'size' | 'modified';
+  sortDir?: 'asc' | 'desc';
+  limit?: number;
+}
+
 export interface CloudCtxValue {
   files: CloudFile[];
   loading: boolean;
   error: string | null;
   dismissError: () => void;
   loadData: () => Promise<void>;
+
+  /** Paginated folder contents for the current folder in `currentView === 'all'`. */
+  folderItems: CloudFile[];
+  folderLoading: boolean;
+  folderNextCursor: string | null;
+  /** Load (or reload) the first page of a folder's direct children. */
+  loadFolderContents: (driveId: string, parentId: string | null, opts?: FolderPageOptions) => Promise<void>;
+  /** Append the next page onto folderItems. No-op when there's no next cursor. */
+  loadMoreFolderContents: () => Promise<void>;
 
   drives: CloudDrive[];
   drivesLoading: boolean;
@@ -253,6 +268,11 @@ export const CloudCtx = createContext<CloudCtxValue>({
   error: null,
   dismissError: noop,
   loadData: noopAsync,
+  folderItems: [],
+  folderLoading: false,
+  folderNextCursor: null,
+  loadFolderContents: noopAsync,
+  loadMoreFolderContents: noopAsync,
   drives: [],
   drivesLoading: false,
   currentDriveId: null,
@@ -336,6 +356,50 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
   const [files, setFiles]         = useState<CloudFile[]>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
+
+  // ── Paginated folder contents ─────────────────────────────────────────────
+  const [folderItems, setFolderItems] = useState<CloudFile[]>([]);
+  const [folderLoading, setFolderLoading] = useState(false);
+  const [folderNextCursor, setFolderNextCursor] = useState<string | null>(null);
+  // Remember the last-requested folder so loadMore knows where to continue
+  const folderPageCtxRef = useRef<{ driveId: string; parentId: string | null; opts: FolderPageOptions }>({ driveId: '', parentId: null, opts: {} });
+
+  const loadFolderContents = useCallback(async (driveId: string, parentId: string | null, opts: FolderPageOptions = {}) => {
+    setFolderLoading(true);
+    folderPageCtxRef.current = { driveId, parentId, opts };
+    try {
+      const params = new URLSearchParams({ drive_id: driveId, limit: String(opts.limit ?? 100) });
+      if (parentId) params.set('parent_id', parentId);
+      if (opts.sortBy) params.set('sort_by', opts.sortBy);
+      if (opts.sortDir) params.set('sort_dir', opts.sortDir);
+      const res = await apiFetch<{ items: CloudFile[]; next_cursor: string | null }>(`/v1/files?${params}`);
+      setFolderItems(res.items ?? []);
+      setFolderNextCursor(res.next_cursor ?? null);
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to load folder');
+    } finally {
+      setFolderLoading(false);
+    }
+  }, []);
+
+  const loadMoreFolderContents = useCallback(async () => {
+    if (!folderNextCursor || folderLoading) return;
+    const { driveId, parentId, opts } = folderPageCtxRef.current;
+    setFolderLoading(true);
+    try {
+      const params = new URLSearchParams({ drive_id: driveId, limit: String(opts.limit ?? 100), cursor: folderNextCursor });
+      if (parentId) params.set('parent_id', parentId);
+      if (opts.sortBy) params.set('sort_by', opts.sortBy);
+      if (opts.sortDir) params.set('sort_dir', opts.sortDir);
+      const res = await apiFetch<{ items: CloudFile[]; next_cursor: string | null }>(`/v1/files?${params}`);
+      setFolderItems(prev => [...prev, ...(res.items ?? [])]);
+      setFolderNextCursor(res.next_cursor ?? null);
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to load more files');
+    } finally {
+      setFolderLoading(false);
+    }
+  }, [folderNextCursor, folderLoading]);
 
   const [drives, setDrives] = useState<CloudDrive[]>([]);
   const [drivesLoading, setDrivesLoading] = useState(true);
@@ -579,10 +643,25 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
     setPreviewItemId(null);
   }, []);
 
+  async function refreshFolderPage() {
+    const { driveId, parentId, opts } = folderPageCtxRef.current;
+    if (!driveId) return;
+    try {
+      const params = new URLSearchParams({ drive_id: driveId, limit: String(opts.limit ?? 100) });
+      if (parentId) params.set('parent_id', parentId);
+      if (opts.sortBy) params.set('sort_by', opts.sortBy);
+      if (opts.sortDir) params.set('sort_dir', opts.sortDir);
+      const res = await apiFetch<{ items: CloudFile[]; next_cursor: string | null }>(`/v1/files?${params}`);
+      setFolderItems(res.items ?? []);
+      setFolderNextCursor(res.next_cursor ?? null);
+    } catch { /* non-fatal — flat files list still gets reloaded */ }
+  }
+
   async function run(action: () => Promise<any>) {
     try {
       await action();
       await loadData();
+      void refreshFolderPage();
       loadStorageQuota(); // fire-and-forget — a display refresh, never blocks the action itself
     } catch (err: any) {
       setError(err.message || 'Action failed');
@@ -834,6 +913,7 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
       else failed.push({ id: ids[i], error: (r.reason as any)?.message || 'Move failed' });
     });
     await loadData();
+    void refreshFolderPage();
     return { moved, failed };
   }, [loadData]);
 
@@ -982,6 +1062,7 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
   return (
     <CloudCtx.Provider value={{
       files, loading, error, dismissError, loadData,
+      folderItems, folderLoading, folderNextCursor, loadFolderContents, loadMoreFolderContents,
       drives, drivesLoading, currentDriveId, currentDrive, loadDrives, switchDrive, createDrive, renameDrive, deleteDrive,
       driveMembers, driveMembersLoading, loadDriveMembers, searchDriveMemberCandidates, addDriveMember, updateDriveMemberRole, removeDriveMember,
       storageQuota, loadStorageQuota,

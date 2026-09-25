@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import { Banner } from '../../components/ui/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
-import { useCloud, CloudFile, StorageProvider } from '../../shells/cloud-context.js';
+import { useCloud, CloudFile, StorageProvider, type CloudView } from '../../shells/cloud-context.js';
 import { ProviderFilesPanel } from '../ProviderFilesPanel.js';
 import { CATEGORY_EXT } from './lib/categories.js';
 import { UploadDropzone } from './components/UploadDropzone.js';
@@ -21,27 +22,68 @@ import { previewKind } from './lib/fileTypeStyle.js';
 import type { FileMenuHandlers } from './components/FileMenu.js';
 
 import { CloudHome } from './CloudHome.js';
+import { useCloudStrings } from './locale/index.js';
 
 const PROVIDER_VIEWS: StorageProvider[] = ['box', 'dropbox', 'mega', 'onedrive'];
 
 const CAT_EXT: Record<string, readonly string[]> = CATEGORY_EXT;
 
+// Map URL path → CloudView so deep-linking restores the correct view
+const PATH_TO_VIEW: Record<string, CloudView> = {
+  '/cloud/files':  'all',
+  '/cloud/shared': 'shared',
+  '/cloud/recent': 'recent',
+  '/cloud/trash':  'trash',
+};
+
 export const FileBrowser: React.FC = () => {
+  const location = useLocation();
+  const pathView = PATH_TO_VIEW[location.pathname] ?? null;
+  const isFilesRoot = location.pathname === '/cloud/files';
+
   const {
     files, loading, error, dismissError,
-    currentView, currentFolderId, breadcrumb, openFolder, navToBreadcrumb,
+    currentView, currentFolderId, currentDriveId, breadcrumb, openFolder, navToBreadcrumb, goToView,
     previewItemId, setPreviewItemId, search, searchResults, searching,
     uploadFiles, starItem, moveItem, moveItems, renameItem, searchError, sharedWithMe, loadSharedWithMe,
     trashItem, restoreItem, permanentlyDelete, emptyTrash, shareItem, downloadItem, canPermanentlyDelete,
+    folderItems, folderLoading, folderNextCursor, loadFolderContents, loadMoreFolderContents,
   } = useCloud();
+
+  const t = useCloudStrings();
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'name' | 'size' | 'modified'>('modified');
+
+  // Sync the context view with the URL so that deep-linking (or refresh on
+  // /cloud/shared, /cloud/recent, /cloud/trash) restores the correct view.
+  useEffect(() => {
+    if (pathView && pathView !== currentView) goToView(pathView);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathView]);
+
+  // Load the first page of folder contents whenever the drive, folder, or sort changes.
+  useEffect(() => {
+    if (currentView !== 'all' || !currentDriveId) return;
+    void loadFolderContents(currentDriveId, currentFolderId, { sortBy, limit: 100 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentView, currentDriveId, currentFolderId, sortBy]);
+
+  // IntersectionObserver sentinel at bottom of file list → triggers loadMore.
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+  const loadMoreCallback = useCallback(() => { void loadMoreFolderContents(); }, [loadMoreFolderContents]);
+  useEffect(() => {
+    const el = loadMoreSentinelRef.current;
+    if (!el || !folderNextCursor) return;
+    const observer = new IntersectionObserver(entries => { if (entries[0]?.isIntersecting) loadMoreCallback(); }, { rootMargin: '200px' });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [folderNextCursor, loadMoreCallback]);
 
   const allItems = files.filter(i => !i.is_trash);
   const trashedItems = files.filter(i => i.is_trash);
   const previewItem = files.find(f => f.id === previewItemId) ?? null;
   const currentFolderItem = currentFolderId ? files.find(f => f.id === currentFolderId) ?? null : null;
 
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'name' | 'size' | 'modified'>('modified');
   const [deleteTarget, setDeleteTarget] = useState<CloudFile | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -69,14 +111,16 @@ export const FileBrowser: React.FC = () => {
     let items: CloudFile[];
     if (isSearching) {
       items = searchResults ?? [];
+    } else if (currentView === 'all') {
+      // Paginated: the context already fetched and sorted this page server-side.
+      // We still keep the folder-first grouping from the server (the API sends
+      // folders before files), so no client-side re-sort is needed for 'all'.
+      return folderItems;
     } else {
       items = isTrashView ? trashedItems : allItems;
-      if (currentView === 'all') items = items.filter(i => i.parent_id === currentFolderId);
-      else if (currentView === 'recent') items = [...items].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 20);
+      if (currentView === 'recent') items = [...items].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 20);
       else if (currentView === 'starred') items = items.filter(i => i.starred);
       else if (currentView === 'shared') {
-        // Both directions: files I've shared with others, and files a colleague shared with me
-        // (which may live in a drive I cannot otherwise browse).
         const mine = items.filter(i => (i.shared ?? []).length > 0);
         const others = sharedWithMe.filter(f => !mine.some(m => m.id === f.id));
         items = [...mine, ...others];
@@ -200,18 +244,21 @@ export const FileBrowser: React.FC = () => {
     return <ProviderFilesPanel provider={currentView as StorageProvider} />;
   }
 
-  if (currentView === 'all' && currentFolderId === null && !isSearching) {
+  // At /cloud/files (the explicit file-browser route) always show the browser,
+  // even at the drive root. Only bounce to CloudHome when navigating "up" to
+  // root from within the browser while NOT on an explicit URL that demands the browser.
+  if (!isFilesRoot && currentView === 'all' && currentFolderId === null && !isSearching) {
     return <CloudHome />;
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}>
+    <div className="fb-root">
       {error && <Banner variant="error" onDismiss={dismissError} className="rounded-none border-x-0 border-t-0">{error}</Banner>}
-      <div style={{ padding: '0 16px' }}><ResumableUploadsBanner /></div>
+      <div className="fb-upload-banner-wrap"><ResumableUploadsBanner /></div>
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div className="fb-body">
         <div
-          style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--card-bg)', border: 'var(--card-border)', borderRadius: 'var(--r)', boxShadow: 'var(--card-shadow)', position: 'relative' }}
+          className="fb-card"
           onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragOver(true); } }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
@@ -243,44 +290,44 @@ export const FileBrowser: React.FC = () => {
             }}
           />
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px', position: 'relative' }} onClick={e => { if (e.target === e.currentTarget) clearSelection(); }}>
+          <div className="fb-scroll" onClick={e => { if (e.target === e.currentTarget) clearSelection(); }}>
             {dragOver && (
-              <div style={{ position: 'absolute', inset: 0, zIndex: 100, background: 'var(--teal-l)', opacity: 0.9, border: '2px dashed var(--teal)', borderRadius: 'var(--r)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, pointerEvents: 'none' }}>
+              <div className="fb-dropzone-overlay">
                 <Icon name="upload" size={40} color="var(--teal)" />
-                <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--teal)' }}>Drop files here to upload</span>
+                  <span className="fb-dropzone-label">{t('fb.drop.label')}</span>
               </div>
             )}
 
-            {loading && files.length === 0 && !isSearching && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--ink3)', fontSize: 14.5 }}>Loading your Drive…</div>
-            )}
+            {(loading && files.length === 0 && !isSearching) || (currentView === 'all' && folderLoading && folderItems.length === 0) ? (
+              <div className="fb-state-center"><span>{t('fb.loading')}</span></div>
+            ) : null}
 
             {isSearching && searching && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--ink3)', fontSize: 14.5 }}>Searching…</div>
+              <div className="fb-state-center"><span>{t('fb.searching')}</span></div>
             )}
 
             {isSearching && !searching && searchError && (
-              <div role="alert" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, color: 'var(--red)' }}>
+              <div role="alert" className="fb-state-error">
                 <Icon name="alertCircle" size={40} color="var(--red)" />
-                <span style={{ fontSize: 14.5, fontWeight: 600 }}>Search didn’t work</span>
-                <span style={{ fontSize: 13, color: 'var(--ink3)', maxWidth: 360, textAlign: 'center' }}>{searchError}</span>
+                <span className="fb-state-error-title">{t('fb.search.error.title')}</span>
+                <span className="fb-state-error-body">{searchError}</span>
               </div>
             )}
 
             {!loading && !(isSearching && searching) && !(isSearching && searchError) && displayItems.length === 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16, color: 'var(--ink3)' }}>
+              <div className="fb-empty">
                 {isSearching ? (
                   <>
                     <Icon name="search" size={48} color="var(--border)" />
-                    <span style={{ fontSize: 14.5 }}>No results for "{search}"</span>
+                    <span>{t('fb.search.noResults', { query: search })}</span>
                   </>
                 ) : isTrashView ? (
                   <>
                     <Icon name="trash" size={48} color="var(--border)" />
-                    <span style={{ fontSize: 14.5 }}>Trash is empty</span>
+                    <span>{t('fb.trash.empty')}</span>
                   </>
                 ) : (
-                  <div style={{ width: '100%', maxWidth: 420 }}>
+                  <div className="fb-dropzone-wrap">
                     <UploadDropzone onUpload={f => uploadFiles(f, currentFolderId)} />
                   </div>
                 )}
@@ -288,13 +335,13 @@ export const FileBrowser: React.FC = () => {
             )}
 
             {folders.length > 0 && (
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink3)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 11 }}>Folders</span>
-                  <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>({folders.length})</span>
+              <div className="fb-section">
+                <div className="fb-section-header">
+                  <span className="fb-section-label">{t('fb.section.folders')}</span>
+                  <span className="fb-section-count">({folders.length})</span>
                 </div>
                 {viewMode === 'grid' ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+                  <div className="fb-grid fb-grid--folders">
                     {folders.map(item => (
                       <FolderCard key={item.id} item={item} selected={selectedIds.has(item.id)} isTrashed={isTrashView} menuHandlers={menuHandlers}
                         onClick={e => selectItem(item, e)}
@@ -315,13 +362,13 @@ export const FileBrowser: React.FC = () => {
             )}
 
             {filesOnly.length > 0 && (
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink3)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 11 }}>Files</span>
-                  <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>({filesOnly.length})</span>
+              <div className="fb-section">
+                <div className="fb-section-header">
+                  <span className="fb-section-label">{t('fb.section.files')}</span>
+                  <span className="fb-section-count">({filesOnly.length}{folderNextCursor ? '+' : ''})</span>
                 </div>
                 {viewMode === 'grid' ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 16 }}>
+                  <div className="fb-grid fb-grid--files">
                     {filesOnly.map(item => (
                       <FileCard key={item.id} item={item} selected={selectedIds.has(item.id)} isTrashed={isTrashView} menuHandlers={menuHandlers}
                         onClick={e => selectItem(item, e)}
@@ -337,6 +384,19 @@ export const FileBrowser: React.FC = () => {
                     onToggleSelect={toggleSelect} onSelectAll={handleSelectAll} onMoveHere={handleMoveHere}
                   />
                 )}
+              </div>
+            )}
+
+            {/* Load-more sentinel: IntersectionObserver auto-triggers the next page,
+                and the button is a fallback for reduced-motion / accessibility. */}
+            {currentView === 'all' && (folderNextCursor || folderLoading) && (
+              <div ref={loadMoreSentinelRef} className="fb-load-more">
+                {folderLoading
+                  ? <span className="fb-load-more-label">{t('fb.loadingMore')}</span>
+                  : <button className="btn btn-secondary btn-sm" onClick={() => void loadMoreFolderContents()}>
+                      {t('fb.loadMore')}
+                    </button>
+                }
               </div>
             )}
           </div>

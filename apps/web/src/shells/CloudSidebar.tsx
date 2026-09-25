@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
+import { useAuth } from '../hooks/useAuth.js';
 import { useCloud, CloudView, CloudDrive } from './cloud-context.js';
+import { useCloudStrings } from '../pages/cloud/locale/index.js';
 import { ConnectedAppsModal, STORAGE_PROVIDERS } from './ConnectedAppsModal.js';
 import { DriveMembersModal } from './DriveMembersModal.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '../components/ui/dropdown-menu.js';
@@ -18,7 +20,12 @@ const CATEGORY_COLOR: Record<'documents' | 'images' | 'media' | 'other', string>
   documents: 'var(--green)', images: 'var(--teal)', media: 'var(--blue)', other: 'var(--ink3)',
 };
 
+const COMPLIANCE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'];
+
 export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
+  const t = useCloudStrings();
+  const { user } = useAuth();
+  const isAdmin = COMPLIANCE_ROLES.includes((user as any)?.role ?? '');
   const {
     files, currentView, currentFolderId, goToView,
     createFolder, uploadFiles, uploadFolder, connections, loadConnections,
@@ -76,17 +83,17 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
   // that had no sidebar entry at all — reachable only from BrowserToolbar's
   // now-removed duplicate filter-chip row, i.e. not reachable from the
   // sidebar in its collapsed state. Added here so it has exactly one home.
-  const navItems: { view: CloudView; icon: IconName; label: string }[] = [
-    { view: 'all',     icon: 'folder', label: 'My Files' },
-    { view: 'recent',  icon: 'clock',  label: 'Recent' },
-    { view: 'starred', icon: 'star',   label: 'Starred' },
-    { view: 'shared',  icon: 'users',  label: 'Shared' },
-    { view: 'trash',   icon: 'trash',  label: 'Recycle bin' },
+  const navItems: { view: CloudView; icon: IconName; labelKey: string }[] = [
+    { view: 'all',     icon: 'folder', labelKey: 'sidebar.myFiles' },
+    { view: 'recent',  icon: 'clock',  labelKey: 'sidebar.recent' },
+    { view: 'starred', icon: 'star',   labelKey: 'sidebar.starred' },
+    { view: 'shared',  icon: 'users',  labelKey: 'sidebar.shared' },
+    { view: 'trash',   icon: 'trash',  labelKey: 'sidebar.trash' },
   ];
-  const catItems: { view: CloudView; icon: IconName; label: string; ext: readonly string[] }[] = [
-    { view: 'documents', icon: 'fileText', label: 'Documents', ext: CATEGORY_EXT.documents },
-    { view: 'images',    icon: 'camera',   label: 'Images',    ext: CATEGORY_EXT.images },
-    { view: 'media',     icon: 'monitor',  label: 'Media',     ext: CATEGORY_EXT.media },
+  const catItems: { view: CloudView; icon: IconName; labelKey: string; ext: readonly string[] }[] = [
+    { view: 'documents', icon: 'fileText', labelKey: 'sidebar.documents', ext: CATEGORY_EXT.documents },
+    { view: 'images',    icon: 'camera',   labelKey: 'sidebar.images',    ext: CATEGORY_EXT.images },
+    { view: 'media',     icon: 'monitor',  labelKey: 'sidebar.media',     ext: CATEGORY_EXT.media },
   ];
 
   const breakdown = categorizeBytes(active);
@@ -105,97 +112,83 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
     ? Math.min(100, Math.round((storageQuota.used_bytes / storageQuota.limit_bytes) * 100))
     : 0;
 
-  // Spacing matches the platform's standard sidebar item (.app-sb-item, e.g. OnePI):
-  // 44px row height, 2px vertical / 8px horizontal margin, 14px internal padding.
-  const sidebarItemStyle = (isActive: boolean): React.CSSProperties => ({
-    display: 'flex', alignItems: 'center', gap: 10,
-    height: 44, margin: '2px 8px', padding: '0 14px', boxSizing: 'border-box',
-    borderRadius: 'var(--r)', cursor: 'pointer',
-    color: isActive ? 'var(--teal)' : 'var(--ink2)', fontWeight: isActive ? 600 : 400,
-    background: isActive ? 'var(--teal-l)' : 'transparent', fontSize: 'var(--text-base)', transition: 'background .1s, color .1s',
-    userSelect: 'none',
-  });
+  const sbCls = (isActive: boolean) => `csb-item${isActive ? ' csb-item--active' : ''}`;
 
   return (
     <>
       {/* Drive / workspace picker */}
-      <div style={{ padding: '16px 16px 0', position: 'relative' }}>
+      <div className="csb-drive-picker">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              title={collapsed ? (currentDrive?.name ?? 'Drives') : undefined}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
-                padding: collapsed ? '8px' : '8px 10px', cursor: 'pointer',
-                fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--ink)',
-              }}
+              className={`csb-drive-btn${collapsed ? ' csb-drive-btn--collapsed' : ''}`}
+              title={collapsed ? (currentDrive?.name ?? t('sidebar.drives.myDrive')) : undefined}
             >
               <Icon name={currentDrive?.type === 'shared' ? 'users' : 'folder'} size={15} color="var(--teal)" />
-              {!collapsed && <span style={{ flex: 1, minWidth: 0, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentDrive?.name ?? 'My Drive'}</span>}
+              {!collapsed && <span className="csb-drive-btn-name">{currentDrive?.name ?? t('sidebar.drives.myDrive')}</span>}
               {!collapsed && <Icon name="chevronDown" size={13} color="var(--ink3)" />}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64 max-h-[360px] overflow-y-auto">
-            <DropdownMenuLabel>My Drive</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('sidebar.drives.myDrive')}</DropdownMenuLabel>
             {personalDrives.map(d => (
               <DropdownMenuItem key={d.id} onClick={() => switchDrive(d.id)}
                 className={d.id === currentDriveId ? 'bg-accent text-accent-foreground' : ''}>
                 <Icon name="folder" size={14} color={d.id === currentDriveId ? 'var(--teal)' : 'var(--ink3)'} />
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+                <span className="csb-drive-name">{d.name}</span>
                 {/* Private — only its owner ever sees this entry at all
                     (GET /v1/drives scopes personal drives to owner_id), so
                     no rename/delete menu is needed beyond what's already
                     reachable elsewhere; system-managed, never deletable. */}
                 <button
-                  title="Rename"
+                  title={t('sidebar.drives.rename')}
                   onClick={e => { e.stopPropagation(); setRenamingDrive(d); setRenameValue(d.name); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--ink3)' }}
+                  className="csb-icon-btn"
                 ><Icon name="edit" size={13} /></button>
               </DropdownMenuItem>
             ))}
 
             {businessDrives.length > 0 && (
               <>
-                <DropdownMenuLabel>Business Records</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('sidebar.drives.biz')}</DropdownMenuLabel>
                 {businessDrives.map(d => (
                   <DropdownMenuItem key={d.id} onClick={() => switchDrive(d.id)}
                     className={d.id === currentDriveId ? 'bg-accent text-accent-foreground' : ''}>
                     <Icon name="briefcase" size={14} color={d.id === currentDriveId ? 'var(--teal)' : 'var(--ink3)'} />
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
-                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ink3)' }}>Shared with everyone</span>
+                    <span className="csb-drive-name">{d.name}</span>
+                    <span className="csb-drive-meta">{t('sidebar.drives.sharedAll')}</span>
                   </DropdownMenuItem>
                 ))}
               </>
             )}
 
-            <DropdownMenuLabel>Shared Drives</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('sidebar.drives.shared')}</DropdownMenuLabel>
             {sharedDrives.length === 0 && (
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink3)', padding: '4px 14px 8px' }}>None yet</div>
+              <div className="csb-drive-empty">{t('sidebar.drives.nonYet')}</div>
             )}
             {sharedDrives.map(d => (
               <DropdownMenuItem key={d.id} onClick={() => switchDrive(d.id)}
                 className={d.id === currentDriveId ? 'bg-accent text-accent-foreground' : ''}>
                 <Icon name="users" size={14} color={d.id === currentDriveId ? 'var(--teal)' : 'var(--ink3)'} />
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+                <span className="csb-drive-name">{d.name}</span>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       title="Drive actions"
                       onClick={e => e.stopPropagation()}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--ink3)' }}
+                      className="csb-icon-btn"
                     ><Icon name="moreHorizontal" size={14} /></button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => { setRenamingDrive(d); setRenameValue(d.name); }}>
-                      <Icon name="edit" size={14} color="var(--ink3)" /> Rename
+                      <Icon name="edit" size={14} color="var(--ink3)" /> {t('sidebar.drives.rename')}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setMembersForDrive(d)}>
-                      <Icon name="userPlus" size={14} color="var(--ink3)" /> Manage members
+                      <Icon name="userPlus" size={14} color="var(--ink3)" /> {t('sidebar.drives.members')}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => handleDeleteDrive(d)} className="text-destructive focus:text-destructive">
-                      <Icon name="trash" size={14} /> Delete
+                      <Icon name="trash" size={14} /> {t('sidebar.drives.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -204,37 +197,33 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
 
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShowCreateDrive(true)} className="text-primary font-semibold">
-              <Icon name="plus" size={14} color="var(--teal)" /> Create workspace
+              <Icon name="plus" size={14} color="var(--teal)" /> {t('sidebar.drives.create')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
       {/* "+ New" button */}
-      <div style={{ padding: '12px 16px 8px', position: 'relative' }}>
+      <div className="csb-new-btn-wrap">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              title={collapsed ? 'New' : undefined}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                background: 'var(--white)', border: '1px solid var(--border)', borderRadius:'var(--badge-radius)',
-                padding: collapsed ? '10px' : '10px 20px', cursor: 'pointer', boxShadow: 'var(--elev-sm)',
-                fontSize:'var(--text-md)', fontWeight: 600, color: 'var(--ink)',
-              }}
+              className={`csb-new-btn${collapsed ? ' csb-new-btn--collapsed' : ''}`}
+              title={collapsed ? t('sidebar.newButton') : undefined}
             >
-              <Icon name="plus" size={18} color="var(--teal)" /> {!collapsed && <>New <Icon name="chevronDown" size={13} color="var(--ink3)" /></>}
+              <Icon name="plus" size={18} color="var(--teal)" />
+              {!collapsed && <>{t('sidebar.newButton')} <Icon name="chevronDown" size={13} color="var(--ink3)" /></>}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
             <DropdownMenuItem onClick={() => setShowCreateFolder(true)}>
-              <Icon name="folder" size={15} color="#f59e0b" /> New folder
+              <Icon name="folder" size={15} color="#f59e0b" /> {t('sidebar.newFolder')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
-              <Icon name="upload" size={15} color="var(--teal)" /> File upload
+              <Icon name="upload" size={15} color="var(--teal)" /> {t('sidebar.fileUpload')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => folderInputRef.current?.click()}>
-              <Icon name="folder" size={15} color="var(--teal)" /> Folder upload
+              <Icon name="folder" size={15} color="var(--teal)" /> {t('sidebar.folderUpload')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -259,68 +248,92 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
       </div>
 
       {/* Main nav */}
-      <div style={{ padding: '8px 0 0' }}>
-        <div
-          style={sidebarItemStyle(onHome)}
-          title={collapsed ? 'Home' : undefined}
+      <div className="csb-nav">
+        <button
+          type="button"
+          className={`${sbCls(onHome)} csb-item--full`}
+          title={collapsed ? t('sidebar.home') : undefined}
           onClick={() => navigate('/cloud')}
-          role="link" aria-label="Cloud home"
+          aria-label={t('sidebar.home')}
+          aria-current={onHome ? 'page' : undefined}
         >
           <Icon name="home" size={15} color={onHome ? 'var(--teal)' : 'var(--ink3)'} />
-          {!collapsed && <span>Home</span>}
-        </div>
-        {navItems.map(n => (
-          <div key={n.view}
-            style={sidebarItemStyle(onHome ? false : currentView === n.view)}
-            title={collapsed ? n.label : undefined}
-            onClick={() => { navigate('/cloud/files'); goToView(n.view); }}
-            onMouseEnter={e => { if (onHome || currentView !== n.view) e.currentTarget.style.background = 'var(--bg)'; }}
-            onMouseLeave={e => { if (onHome || currentView !== n.view) e.currentTarget.style.background = 'transparent'; }}
-          >
-            <Icon name={n.icon} size={15} color={!onHome && currentView === n.view ? 'var(--teal)' : 'var(--ink3)'} />
-            {!collapsed && <span>{n.label}</span>}
-            {!collapsed && n.view === 'trash' && trashed.length > 0 && <span style={{ marginLeft: 'auto', fontSize:'var(--text-xs)', color: 'var(--ink3)' }}>{trashed.length}</span>}
-          </div>
-        ))}
+          {!collapsed && <span>{t('sidebar.home')}</span>}
+        </button>
+        {navItems.map(n => {
+          const isActive = !onHome && currentView === n.view;
+          const label = t(n.labelKey);
+          const path = n.view === 'all' ? '/cloud/files' : `/cloud/${n.view}`;
+          return (
+            <button
+              type="button"
+              key={n.view}
+              className={`${sbCls(isActive)} csb-item--full`}
+              title={collapsed ? label : undefined}
+              onClick={() => { navigate(path); goToView(n.view); }}
+              aria-label={label}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              <Icon name={n.icon} size={15} color={isActive ? 'var(--teal)' : 'var(--ink3)'} />
+              {!collapsed && <span>{label}</span>}
+              {!collapsed && n.view === 'trash' && trashed.length > 0 && <span className="csb-item-count">{trashed.length}</span>}
+            </button>
+          );
+        })}
+        {isAdmin && (() => {
+          const isActive = location.pathname === '/cloud/compliance';
+          const label = t('sidebar.compliance');
+          return (
+            <button
+              type="button"
+              key="compliance"
+              className={`${sbCls(isActive)} csb-item--full`}
+              title={collapsed ? label : undefined}
+              onClick={() => navigate('/cloud/compliance')}
+              aria-label={label}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              <Icon name="shieldOff" size={15} color={isActive ? 'var(--teal)' : 'var(--ink3)'} />
+              {!collapsed && <span>{label}</span>}
+            </button>
+          );
+        })()}
       </div>
 
-      {!collapsed && (
-        <div style={{ fontSize:'var(--text-xs)', fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '16px 12px 6px' }}>Storage</div>
-      )}
-      <div style={{ padding: collapsed ? '8px 0 0' : 0 }}>
+      {!collapsed && <div className="csb-section-hdr">{t('sidebar.storage')}</div>}
+      <div className={collapsed ? 'csb-nav' : undefined}>
         {STORAGE_PROVIDERS.map(p => {
           const conn = connections.find(c => c.provider === p.id);
           const isConnected = conn?.status === 'connected';
           const isReal = conn?.supported === true;
           const isActive = !onHome && currentView === p.id;
+          if (!isReal && !isConnected) return null;
           return (
-            <div key={p.id}
-              style={{ ...sidebarItemStyle(isActive), ...(isReal ? {} : { opacity: 0.55, cursor: 'default' }) }}
-              title={collapsed ? p.name : isReal ? undefined : `${p.name} — coming soon`}
-              onClick={() => { if (!isReal) return; navigate('/cloud/files'); goToView(p.id); }}
-              onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg)'; }}
-              onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+            <button
+              type="button"
+              key={p.id}
+              className={`${sbCls(isActive)} csb-item--full`}
+              title={collapsed ? p.name : undefined}
+              onClick={() => { navigate('/cloud/files'); goToView(p.id); }}
+              aria-label={p.name}
+              aria-current={isActive ? 'page' : undefined}
             >
               <Icon name={p.icon} size={15} color={isActive ? 'var(--teal)' : p.color} />
               {!collapsed && <span>{p.name}</span>}
-              {!collapsed && (isReal ? (
-                <span style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius:'var(--badge-radius)', background: isConnected ? '#188038' : 'var(--border)' }} />
-              ) : (
-                <span style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--ink3)' }}>Soon</span>
-              ))}
-            </div>
+              {!collapsed && <span className={`csb-conn-dot${isConnected ? ' csb-conn-dot--on' : ''}`} />}
+            </button>
           );
         })}
-        <div
-          style={sidebarItemStyle(false)}
-          title={collapsed ? 'Connected Apps' : undefined}
+        <button
+          type="button"
+          className={`${sbCls(false)} csb-item--full`}
+          title={collapsed ? t('sidebar.connections') : undefined}
           onClick={() => setShowConnectedApps(true)}
-          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          aria-label={t('sidebar.connections')}
         >
           <Icon name="puzzle" size={15} color="var(--ink3)" />
-          {!collapsed && <span>Manage connections</span>}
-        </div>
+          {!collapsed && <span>{t('sidebar.connections')}</span>}
+        </button>
       </div>
 
       {showConnectedApps && <ConnectedAppsModal onClose={() => setShowConnectedApps(false)} />}
@@ -328,53 +341,64 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
       {!collapsed && (
         <>
           {/* Categories */}
-          <div style={{ padding: '16px 8px 0' }}>
-            <div style={{ fontSize:'var(--text-xs)', fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0 4px', marginBottom: 6 }}>Categories</div>
-            {catItems.map(c => (
-              <div key={c.view}
-                style={sidebarItemStyle(currentView === c.view)}
-                onClick={() => { navigate('/cloud/files'); goToView(c.view); }}
-                onMouseEnter={e => { if (currentView !== c.view) e.currentTarget.style.background = 'var(--bg)'; }}
-                onMouseLeave={e => { if (currentView !== c.view) e.currentTarget.style.background = 'transparent'; }}
-              >
-                <Icon name={c.icon} size={15} color={currentView === c.view ? 'var(--teal)' : 'var(--ink3)'} />
-                <span>{c.label}</span>
-                <span style={{ marginLeft: 'auto', fontSize:'var(--text-xs)', color: 'var(--ink3)' }}>
-                  {active.filter(i => c.ext.includes(i.type)).length}
-                </span>
-              </div>
-            ))}
+          <div className="csb-categories">
+            <div className="csb-section-hdr csb-section-hdr--inline">{t('sidebar.categories')}</div>
+            {catItems.map(c => {
+              const label = t(c.labelKey);
+              return (
+                <button
+                  type="button"
+                  key={c.view}
+                  className={`${sbCls(currentView === c.view)} csb-item--full`}
+                  onClick={() => { navigate('/cloud/files'); goToView(c.view); }}
+                  aria-label={label}
+                  aria-current={currentView === c.view ? 'page' : undefined}
+                >
+                  <Icon name={c.icon} size={15} color={currentView === c.view ? 'var(--teal)' : 'var(--ink3)'} />
+                  <span>{label}</span>
+                  <span className="csb-item-count">{active.filter(i => c.ext.includes(i.type)).length}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Storage bar — real per-tenant quota, not a fabricated total */}
-          <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border)', marginTop: 'auto' }}>
-            <div style={{ fontSize:'var(--text-sm)', fontWeight: 600, color: 'var(--ink)', marginBottom: 10 }}>Storage Used</div>
+          <div className="csb-storage-bar">
+            <div className="csb-storage-bar-title">{t('sidebar.storageUsed')}</div>
             {storageQuota?.limit_bytes != null && (
-              <div style={{ height: 6, borderRadius:'var(--badge-radius)', background: 'var(--border)', overflow: 'hidden', marginBottom: 8 }}>
-                <div style={{ width: `${quotaPct}%`, height: '100%', background: storageQuota.level === 'high' || storageQuota.level === 'critical' || storageQuota.level === 'exceeded' ? 'var(--red)' : storageQuota.level === 'warning' ? 'var(--gold)' : 'var(--teal)', borderRadius:'var(--badge-radius)', transition: 'width .3s' }} />
+              <div className="csb-storage-track">
+                <div
+                  className="csb-storage-fill"
+                  style={{
+                    width: `${quotaPct}%`,
+                    background: storageQuota.level === 'high' || storageQuota.level === 'critical' || storageQuota.level === 'exceeded'
+                      ? 'var(--red)' : storageQuota.level === 'warning' ? 'var(--gold)' : 'var(--teal)',
+                  }}
+                />
               </div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize:'var(--text-xs)', color: 'var(--ink3)', marginBottom: 12 }}>
-              <span>{storageQuota ? fmtSize(storageQuota.used_bytes) : '—'} used</span>
-              <span>{storageQuota?.limit_bytes != null ? fmtSize(storageQuota.limit_bytes) : 'Unlimited'}</span>
+            <div className="csb-storage-meta">
+              <span>{t('sidebar.used', { used: storageQuota ? fmtSize(storageQuota.used_bytes) : '—' })}</span>
+              <span>{storageQuota?.limit_bytes != null ? fmtSize(storageQuota.limit_bytes) : t('sidebar.unlimited')}</span>
             </div>
             {storageQuota && storageQuota.level !== 'ok' && (
-              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: 12, color: storageQuota.level === 'warning' ? 'var(--gold)' : 'var(--red)' }}>
-                {storageQuota.level === 'exceeded' ? 'Storage full — uploads are blocked. Free up space or upgrade.'
+              <div className={`csb-storage-warn${storageQuota.level === 'warning' ? '' : ' csb-storage-warn--crit'}`}>
+                {storageQuota.level === 'exceeded'
+                  ? 'Storage full — uploads are blocked. Free up space or upgrade.'
                   : `${quotaPct}% of your storage is used${storageQuota.level === 'warning' ? '.' : ' — running out soon.'}`}
                 {' '}
-                <button type="button" onClick={() => navigate('/workspace/billing')} style={{ border: 'none', background: 'none', padding: 0, color: 'inherit', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>
-                  Buy storage
+                <button type="button" onClick={() => navigate('/workspace/billing')} className="csb-storage-buy-btn">
+                  {t('sidebar.buyStorage')}
                 </button>
               </div>
             )}
             {used > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="csb-storage-legend">
                 {cats.filter(c => c.pct > 0).map(c => (
-                  <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ width: 8, height: 8, borderRadius:'var(--badge-radius)', background: c.color, flexShrink: 0 }} />
-                    <span style={{ fontSize:'var(--text-xs)', color: 'var(--ink3)', flex: 1 }}>{c.label}</span>
-                    <span style={{ fontSize:'var(--text-xs)', fontWeight: 600, color: 'var(--ink)' }}>{c.pct}%</span>
+                  <div key={c.label} className="csb-storage-legend-row">
+                    <span className="csb-legend-dot" style={{ background: c.color }} />
+                    <span className="csb-legend-label">{c.label}</span>
+                    <span className="csb-legend-pct">{c.pct}%</span>
                   </div>
                 ))}
               </div>
@@ -395,12 +419,12 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
       {showCreateDrive && (
         <div className="modal-overlay" onClick={() => setShowCreateDrive(false)}>
           <div className="card" style={{ width: 400, padding: 24 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <span style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--ink)' }}>Create Workspace</span>
+            <div className="csb-modal-hdr">
+              <span className="csb-modal-title">Create Workspace</span>
               <button onClick={() => setShowCreateDrive(false)} className="dp-close"><Icon name="close" size={16} /></button>
             </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Name *</label>
+            <div className="csb-modal-field">
+              <label className="csb-modal-label">Name *</label>
               <input
                 autoFocus
                 value={newDriveName}
@@ -411,12 +435,12 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
                 style={{ width: '100%' }}
               />
             </div>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--ink3)', margin: '0 0 20px' }}>
+            <p className="csb-modal-hint">
               A shared drive has its own member list with roles, separate from your own Drive. Your personal
               drive and the tenant's Business Records are both created automatically — this always creates a
               new shared drive.
             </p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <div className="csb-modal-actions">
               <button onClick={() => setShowCreateDrive(false)} className="btn btn-secondary btn-sm">Cancel</button>
               <button onClick={handleCreateDrive} className="btn btn-primary btn-sm" disabled={!newDriveName.trim()}>Create</button>
             </div>
@@ -428,8 +452,8 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
       {renamingDrive && (
         <div className="modal-overlay" onClick={() => setRenamingDrive(null)}>
           <div className="card" style={{ width: 380, padding: 24 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <span style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--ink)' }}>Rename Drive</span>
+            <div className="csb-modal-hdr">
+              <span className="csb-modal-title">Rename Drive</span>
               <button onClick={() => setRenamingDrive(null)} className="dp-close"><Icon name="close" size={16} /></button>
             </div>
             <input
@@ -440,7 +464,7 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
               className="input-field"
               style={{ width: '100%', marginBottom: 20 }}
             />
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <div className="csb-modal-actions">
               <button onClick={() => setRenamingDrive(null)} className="btn btn-secondary btn-sm">Cancel</button>
               <button onClick={handleRenameDrive} className="btn btn-primary btn-sm" disabled={!renameValue.trim()}>Save</button>
             </div>
