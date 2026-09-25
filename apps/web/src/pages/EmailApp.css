@@ -582,20 +582,18 @@
 }
 
 .em-list--has-detail > .pagination-bar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px 10px;
-  min-height: 54px;
-  padding: 8px 12px;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 10px;
 }
-.em-list--has-detail > .pagination-bar .pagination-bar-info { overflow: hidden; text-overflow: ellipsis; }
-.em-list--has-detail > .pagination-bar .pagination-bar-size { gap: 6px; }
-.em-list--has-detail > .pagination-bar .pagination-bar-select-trigger { min-width: 88px !important; }
-.em-list--has-detail > .pagination-bar .pagination-bar-nav { grid-column: 1 / -1; justify-self: center; }
-
-@container (max-width: 390px) {
-  .em-list--has-detail > .pagination-bar .pagination-bar-size-label { display: none; }
-}
+.em-list--has-detail > .pagination-bar .pagination-bar-nav { flex: 1; justify-content: center; gap: 2px; }
+.em-list--has-detail > .pagination-bar .pagination-bar-size { flex-shrink: 0; }
+.em-list--has-detail > .pagination-bar .pagination-bar-size-label { display: none; }
+.em-list--has-detail > .pagination-bar .pagination-bar-select-trigger { min-width: 72px !important; height: 28px !important; min-height: 28px !important; font-size: 11.5px !important; }
 
 /* ── Email detail ────────────────────────────────────────────────────── */
 .em-detail {
@@ -1165,6 +1163,119 @@
    same reason: their base rules already read var(--blue)/var(--blue-l),
    already theme-aware. */
 [data-theme="dark"] .em-compose-hdr { background: #2a2d35; }
+
+/* Email workspace dark mode. Message/template content may intentionally keep
+   its authored colours; every application-owned surface follows the platform. */
+[data-theme="dark"] .em-root,
+[data-theme="dark"] .em-compose-modal,
+[data-theme="dark"] .em-settings-dialog,
+[data-theme="dark"] .em-adv-search {
+  color-scheme: dark;
+}
+[data-theme="dark"] .em-compose-modal {
+  box-shadow: 0 -8px 36px color-mix(in srgb, #000 58%, transparent);
+}
+[data-theme="dark"] .em-compose-hdr {
+  background: color-mix(in srgb, var(--ink) 88%, #000);
+  border-bottom: 1px solid color-mix(in srgb, #fff 12%, transparent);
+}
+[data-theme="dark"] .em-compose-input,
+[data-theme="dark"] .em-compose-body,
+[data-theme="dark"] .em-reply-textarea,
+[data-theme="dark"] .em-settings-input,
+[data-theme="dark"] .em-settings-textarea,
+[data-theme="dark"] .em-adv-input {
+  caret-color: var(--teal);
+}
+[data-theme="dark"] .em-compose-input::placeholder,
+[data-theme="dark"] .em-compose-body::placeholder,
+[data-theme="dark"] .em-reply-textarea::placeholder,
+[data-theme="dark"] .em-settings-input::placeholder,
+[data-theme="dark"] .em-settings-textarea::placeholder {
+  color: var(--ink3);
+  opacity: 1;
+}
+[data-theme="dark"] .em-detail,
+[data-theme="dark"] .em-list,
+[data-theme="dark"] .em-settings-section,
+[data-theme="dark"] .em-reply-box,
+[data-theme="dark"] .em-contact-card {
+  box-shadow: var(--elev-sm);
+}
+[data-theme="dark"] .em-adv-unit-pill,
+[data-theme="dark"] .em-thread-badge {
+  background: var(--surface2);
+  border-color: var(--border);
+}
+[data-theme="dark"] .em-signature-preview img,
+[data-theme="dark"] .em-detail-body-text img {
+  background: #fff;
+  border-radius: var(--r-sm);
+}
+
+/* Finance-style night hierarchy: deep workspace, raised cards, sunken
+   controls, branded edges, and stronger hover/selection separation. */
+[data-theme="dark"] .em-root,
+[data-theme="dark"] .em-settings-dialog,
+[data-theme="dark"] .em-compose-modal,
+[data-theme="dark"] .em-adv-search {
+  --email-night-brand: var(--teal);
+  --email-night-surface: var(--white);
+  --email-night-raised: color-mix(in srgb, var(--white) 92%, var(--teal) 8%);
+  --email-night-sunken: color-mix(in srgb, var(--bg) 86%, #000 14%);
+  --email-night-edge: rgba(148, 163, 184, 0.10);
+  --email-night-edge-strong: color-mix(in srgb, var(--teal) 34%, rgba(148, 163, 184, 0.16));
+  --border: var(--email-night-edge);
+  --border2: color-mix(in srgb, var(--teal) 13%, var(--ink3));
+}
+[data-theme="dark"] .em-root { background: #080c14; }
+[data-theme="dark"] .em-body { background: #080c14; }
+[data-theme="dark"] :is(.em-list, .em-detail, .em-compose-modal, .em-settings-section, .em-reply-box, .em-contact-card, .em-adv-search) {
+  background: var(--email-night-surface);
+  border-color: var(--email-night-edge);
+}
+[data-theme="dark"] :is(.em-list, .em-detail, .em-settings-section, .em-reply-box) {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+}
+[data-theme="dark"] :is(.em-row, .em-filter-bar, .em-detail-toolbar, .em-detail-footer, .em-compose-row, .em-compose-footer) {
+  border-color: rgba(148, 163, 184, 0.08);
+}
+[data-theme="dark"] :is(.em-search-bar, .em-filter-bar, .em-detail-toolbar, .em-detail-footer, .em-settings-dialog-header, .em-settings-footer, .em-compose-footer) {
+  background: var(--email-night-raised);
+  border-color: var(--email-night-edge);
+}
+[data-theme="dark"] :is(.em-search-input, .em-settings-input, .em-settings-textarea, .em-adv-input, .em-adv-datepicker-trigger, .em-settings-subform, .em-settings-form-box, .em-sync-status-box) {
+  background: var(--email-night-sunken) !important;
+  border-color: var(--email-night-edge) !important;
+}
+[data-theme="dark"] :is(.em-search-input, .em-settings-input, .em-settings-textarea, .em-adv-input, .em-adv-datepicker-trigger):hover {
+  background: color-mix(in srgb, var(--email-night-sunken) 90%, var(--email-night-brand) 10%) !important;
+  border-color: var(--email-night-edge-strong) !important;
+}
+[data-theme="dark"] :is(.em-search-input, .em-settings-input, .em-settings-textarea, .em-adv-input, .em-adv-datepicker-trigger):focus,
+[data-theme="dark"] .em-search-input:focus {
+  background: var(--email-night-raised) !important;
+  border-color: var(--teal) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 20%, transparent) !important;
+}
+[data-theme="dark"] .em-row:hover { background: color-mix(in srgb, var(--email-night-brand) 9%, var(--email-night-surface)); }
+[data-theme="dark"] .em-row--unread { background: color-mix(in srgb, var(--email-night-brand) 7%, var(--email-night-surface)); }
+[data-theme="dark"] .em-row--selected { background: color-mix(in srgb, var(--email-night-brand) 15%, var(--email-night-surface)) !important; }
+[data-theme="dark"] :is(.em-icon-btn, .em-bulk-btn, .em-contact-card-action-icon):hover {
+  background: color-mix(in srgb, var(--email-night-brand) 11%, var(--email-night-surface));
+  border-color: var(--email-night-edge-strong);
+}
+[data-theme="dark"] .em-settings-sidebar { background: var(--email-night-surface); border-color: var(--email-night-edge); }
+[data-theme="dark"] .em-settings-content,
+[data-theme="dark"] .em-settings-body,
+[data-theme="dark"] .em-settings-layout { background: #080c14 !important; }
+[data-theme="dark"] .em-settings-nav .ds-tabs-trigger:hover:not([data-state="active"]) { background: color-mix(in srgb, var(--email-night-brand) 8%, var(--email-night-surface)) !important; }
+[data-theme="dark"] .em-settings-nav .ds-tabs-trigger[data-state="active"] { background: color-mix(in srgb, var(--email-night-brand) 15%, var(--email-night-surface)) !important; border-color: var(--email-night-edge-strong) !important; }
+[data-theme="dark"] .em-root :is(button, a, [role="button"]):focus-visible,
+[data-theme="dark"] .em-settings-dialog :is(button, a, [role="button"]):focus-visible {
+  outline: 2px solid var(--email-night-brand);
+  outline-offset: 2px;
+}
 
 /* ── Responsive ──────────────────────────────────────────────────────── */
 @media (max-width: 768px) {

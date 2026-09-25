@@ -861,7 +861,7 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
             </div>
             {editingImported.preheader && <p className="email-template-imported-panel-preheader">{editingImported.preheader}</p>}
             <div className="email-template-imported-panel-preview">
-              <iframe title="Template preview" sandbox="" srcDoc={editingImported.body_html} style={{ width: '100%', height: '100%', border: 'none', background: '#f9f9f9' }} />
+              <iframe title="Template preview" sandbox="" srcDoc={editingImported.body_html} style={{ width: '100%', height: '100%', border: 'none', background: '#fff', colorScheme: 'light' }} />
             </div>
             {!editingImported.is_customized && (
               <div className="email-template-imported-hint">
@@ -895,7 +895,7 @@ function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () => void }
               </div>
             </div>
             <div className="email-template-imported-panel-preview">
-              <iframe title="Template preview" sandbox="" srcDoc={personalPreviewHtml} style={{ width: '100%', height: '100%', border: 'none', background: '#f9f9f9' }} />
+              <iframe title="Template preview" sandbox="" srcDoc={personalPreviewHtml} style={{ width: '100%', height: '100%', border: 'none', background: '#fff', colorScheme: 'light' }} />
             </div>
             <div className="email-template-imported-panel-actions">
               <Tip label={personalHasContent ? 'Submit this template for Store review' : 'Add content to the template before publishing'}>

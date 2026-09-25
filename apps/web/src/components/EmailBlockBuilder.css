@@ -598,13 +598,13 @@
   justify-content: center;
 }
 .ebb-image-preview-btn:hover { background: var(--surface2); border-color: var(--teal); }
-.ebb-image-preview-btn--remove:hover { background: #fef2f2; border-color: var(--red, #dc2626); color: var(--red, #dc2626); }
+.ebb-image-preview-btn--remove:hover { background: var(--red-l); border-color: var(--red); color: var(--red); }
 .ebb-image-error {
   font-size: 11.5px;
-  color: var(--red, #dc2626);
+  color: var(--red);
   margin: 0;
   padding: 4px 6px;
-  background: #fef2f2;
+  background: var(--red-l);
   border-radius: var(--r-sm);
 }
 
@@ -623,3 +623,23 @@
   .ebb-canvas-outer { padding: 12px 8px; }
   .ebb-canvas-toolbar { padding-inline: 10px; }
 }
+
+[data-theme="dark"] .ebb-root,
+[data-theme="dark"] .ebb-panel,
+[data-theme="dark"] .ebb-canvas-wrap { color-scheme: dark; }
+[data-theme="dark"] .ebb-canvas-email,
+[data-theme="dark"] .ebb-image-preview-img {
+  color-scheme: light;
+  background: #fff;
+}
+[data-theme="dark"] .ebb-canvas-email { box-shadow: 0 14px 38px color-mix(in srgb, #000 42%, transparent); }
+[data-theme="dark"] .ebb-props input,
+[data-theme="dark"] .ebb-props textarea { caret-color: var(--teal); }
+[data-theme="dark"] .ebb-root { background: #080c14; }
+[data-theme="dark"] .ebb-panel,
+[data-theme="dark"] .ebb-canvas-toolbar { background: var(--email-night-surface, var(--white)); border-color: rgba(148, 163, 184, 0.08); }
+[data-theme="dark"] .ebb-canvas-outer { background: var(--email-night-sunken, var(--bg)); }
+[data-theme="dark"] .ebb-palette-item { background: var(--email-night-raised, var(--white)); border-color: rgba(148, 163, 184, 0.08); box-shadow: none; }
+[data-theme="dark"] .ebb-palette-item:hover { background: color-mix(in srgb, var(--teal) 10%, var(--email-night-surface, var(--white))); border-color: var(--email-night-edge-strong, var(--teal-m)); }
+[data-theme="dark"] .ebb-props :is(input, textarea, button[role="combobox"]) { background: var(--email-night-sunken, var(--bg)); border-color: var(--email-night-edge, var(--border)); }
+[data-theme="dark"] .ebb-props :is(input, textarea, button[role="combobox"]):focus { background: var(--email-night-raised, var(--white)); border-color: var(--teal); box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 20%, transparent); }

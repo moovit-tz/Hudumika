@@ -527,9 +527,6 @@ export const EmailApp: React.FC = () => {
   // window — same chrome/behavior as Compose (minimize/full-screen/close),
   // reused rather than duplicated. Docked (false) is the default, matching
   // every reply before this feature existed.
-  const [replyPoppedOut, setReplyPoppedOut] = useState(false);
-  const [replyMinimized, setReplyMinimized] = useState(false);
-  const [replyFullScreen, setReplyFullScreen] = useState(false);
   const [compose, setCompose] = useState<ComposeData>({
     to: '', cc: '', bcc: '', subject: '', body: '',
     requestReadReceipt: false, attachments: [], draftId: null, replyToId: null, sendAt: null, isForward: false, fromIdentityId: null,
@@ -1069,16 +1066,12 @@ export const EmailApp: React.FC = () => {
     setReplyRequestReadReceipt(false);
     setReplySendAt(null);
     setReplyDraftId(null);
-    setReplyPoppedOut(false);
-    setReplyMinimized(false);
-    setReplyFullScreen(false);
     setReplyOpen(true);
   }
 
   function selectEmail(id: string) {
     setSelectedId(id);
     setReplyOpen(false);
-    setReplyPoppedOut(false);
     setAiSummary(null);
     setAiPanelOpen(false);
     setTaskAdded(false);
@@ -1394,7 +1387,6 @@ export const EmailApp: React.FC = () => {
     if (replyDraftTimer.current) clearTimeout(replyDraftTimer.current);
     const draftId = replyDraftId;
     setReplyOpen(false);
-    setReplyPoppedOut(false);
     setReplyAttachments([]);
     if (draftId) {
       apiFetch(`/v1/emails/${draftId}`, { method: 'DELETE' })
@@ -1473,7 +1465,6 @@ export const EmailApp: React.FC = () => {
         }),
       });
       setReplyOpen(false);
-      setReplyPoppedOut(false);
       setReplyBody('');
       setReplyAttachments([]);
       setReplyDraftId(null);
@@ -2150,6 +2141,7 @@ export const EmailApp: React.FC = () => {
                 pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
                 itemLabel="message"
                 bordered={true}
+                compact={true}
               />
             )}
 
@@ -2458,28 +2450,16 @@ export const EmailApp: React.FC = () => {
                 </div>
               )}
 
-              {replyOpen && !replyPoppedOut && (
+              {replyOpen && (
                 <div className="em-reply-box">
                   <div className="em-reply-hdr">
                     <span>{replyCc.length > 0 ? 'Reply all' : 'Reply'}</span>
                     <div style={{ flex: 1 }} />
-                    <Tip label="Pop out to a separate window">
-                      <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setReplyPoppedOut(true)}>
-                        <Icon name="externalLink" size={13} />
-                      </button>
-                    </Tip>
                     <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setReplyOpen(false)}>
                       <Icon name="x" size={14} />
                     </button>
                   </div>
                   {renderReplyFields()}
-                </div>
-              )}
-              {replyOpen && replyPoppedOut && (
-                <div className="em-reply-popout-placeholder">
-                  <Icon name="externalLink" size={14} color="var(--ink3)" />
-                  <span>You're replying in a separate window.</span>
-                  <button type="button" className="em-text-btn" onClick={() => setReplyPoppedOut(false)}>Return here</button>
                 </div>
               )}
             </div>
@@ -2501,50 +2481,6 @@ export const EmailApp: React.FC = () => {
         ) : null}
 
       </div>{/* /em-body */}
-
-      {/* Reply, popped out into its own floating window — same chrome as
-          Compose (minimize/full-screen/close), plus a "dock" button to
-          return it inline. Offset left of Compose when both happen to be
-          open at once so the two docked windows don't overlap. */}
-      {replyOpen && replyPoppedOut && selectedEmail && (
-        <div
-          className={`em-compose-modal${isMobile ? ' em-compose-modal--mobile' : ''}${replyFullScreen ? ' em-compose-modal--full' : ''}${replyMinimized ? ' em-compose-modal--min' : ''}`}
-          style={!isMobile && !replyFullScreen && composeOpen ? { right: 600 } : undefined}
-        >
-          <div className="em-compose-hdr" onClick={() => { if (replyMinimized) setReplyMinimized(false); }}>
-            <span className="em-compose-title">{replyCc.length > 0 ? 'Reply all' : 'Reply'}</span>
-            {!isMobile && (
-              <Tip label="Dock inline">
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setReplyPoppedOut(false); }}>
-                  <Icon name="externalLink" size={14} color="#fff" />
-                </button>
-              </Tip>
-            )}
-            {!isMobile && (
-              <Tip label={replyMinimized ? 'Expand' : 'Minimize'}>
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setReplyMinimized(m => !m); }}>
-                  <Icon name="minus" size={14} color="#fff" />
-                </button>
-              </Tip>
-            )}
-            {!isMobile && (
-              <Tip label={replyFullScreen ? 'Exit full screen' : 'Full screen'}>
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setReplyFullScreen(f => !f); setReplyMinimized(false); }}>
-                  <Icon name={replyFullScreen ? 'minimize' : 'maximize'} size={14} color="#fff" />
-                </button>
-              </Tip>
-            )}
-            <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setReplyOpen(false); setReplyPoppedOut(false); }}>
-              <Icon name="x" size={16} color="#fff" />
-            </button>
-          </div>
-          {!replyMinimized && (
-            <div className="em-compose-fields">
-              {renderReplyFields()}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Compose modal */}
       {composeOpen && (

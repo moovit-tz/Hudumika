@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { Icon } from './Icon.js';
 import { Tip } from './ui/tooltip.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.js';
@@ -26,6 +26,8 @@ export interface PaginationBarProps {
   itemLabel?: string;
   /** Set false to drop the top border (when the parent container already draws one) */
   bordered?: boolean;
+  /** Hide the "Showing X–Y of Z" label and collapse nav + page-size into one row */
+  compact?: boolean;
   /** Optional extra class name for custom layout tweaks */
   className?: string;
 }
@@ -39,10 +41,22 @@ export function PaginationBar({
   pageSizeOptions = [10, 20, 50, 100],
   itemLabel = 'item',
   bordered = true,
+  compact = false,
   className = '',
 }: PaginationBarProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(Math.max(1, page), totalPages);
+  const [jumpValue, setJumpValue] = useState('');
+  const [jumpOpen, setJumpOpen] = useState(false);
+  const jumpRef = useRef<HTMLInputElement>(null);
+
+  function openJump() { setJumpOpen(true); setJumpValue(''); setTimeout(() => jumpRef.current?.focus(), 0); }
+  function commitJump() {
+    const n = parseInt(jumpValue, 10);
+    if (!isNaN(n) && n >= 1 && n <= totalPages) onPageChange(n);
+    setJumpOpen(false);
+    setJumpValue('');
+  }
   const start = total === 0 ? 0 : (safePage - 1) * pageSize + 1;
   const end = Math.min(safePage * pageSize, total);
 
@@ -69,9 +83,9 @@ export function PaginationBar({
       : `${itemLabel}s`;
 
   return (
-    <div className={`pagination-bar${!bordered ? ' pagination-bar--noborder' : ''}${className ? ` ${className}` : ''}`}>
-      {/* ── Left Region: Item count & range ── */}
-      <div className="pagination-bar-info">
+    <div className={`pagination-bar${!bordered ? ' pagination-bar--noborder' : ''}${compact ? ' pagination-bar--compact' : ''}${className ? ` ${className}` : ''}`}>
+      {/* ── Left Region: Item count & range (hidden in compact mode) ── */}
+      {!compact && <div className="pagination-bar-info">
         {total === 0 ? (
           <span>0 of 0 {pluralLabel}</span>
         ) : (
@@ -79,10 +93,10 @@ export function PaginationBar({
             Showing <span className="pagination-bar-num">{start}–{end}</span> of <span className="pagination-bar-num">{total.toLocaleString()}</span> {pluralLabel}
           </span>
         )}
-      </div>
+      </div>}
 
       {/* ── Center Region: Navigation buttons ── */}
-      {totalPages > 1 && <div className="pagination-bar-nav" role="navigation" aria-label="Pagination Navigation">
+      {total > 0 && <div className="pagination-bar-nav" role="navigation" aria-label="Pagination Navigation">
         <Tip label="First page">
           <button
             type="button"
@@ -109,9 +123,16 @@ export function PaginationBar({
 
         {pages.map((p, idx) =>
           p === '…' ? (
-            <span key={`dots-${idx}`} className="pagination-bar-ellipsis" aria-hidden="true">
-              …
-            </span>
+            <Tip key={`dots-${idx}`} label="Jump to page…">
+              <button
+                type="button"
+                className="pagination-bar-ellipsis pagination-bar-ellipsis--btn"
+                onClick={openJump}
+                aria-label="Jump to page"
+              >
+                …
+              </button>
+            </Tip>
           ) : (
             <button
               key={p}
@@ -149,6 +170,32 @@ export function PaginationBar({
             <Icon name="chevronsRight" size={14} />
           </button>
         </Tip>
+
+        {/* Jump-to-page inline input */}
+        {jumpOpen && (
+          <form
+            className="pagination-bar-jump"
+            onSubmit={e => { e.preventDefault(); commitJump(); }}
+          >
+            <span className="pagination-bar-jump-label">Go to</span>
+            <input
+              ref={jumpRef}
+              type="number"
+              min={1}
+              max={totalPages}
+              value={jumpValue}
+              onChange={e => setJumpValue(e.target.value)}
+              onBlur={commitJump}
+              onKeyDown={e => { if (e.key === 'Escape') { setJumpOpen(false); setJumpValue(''); } }}
+              className="pagination-bar-jump-input"
+              aria-label={`Go to page (1–${totalPages})`}
+              placeholder={String(safePage)}
+            />
+            <button type="submit" className="pagination-bar-jump-go" aria-label="Go">
+              <Icon name="arrowRight" size={13} />
+            </button>
+          </form>
+        )}
       </div>}
 
       {/* ── Right Region: Rows per page selector ── */}

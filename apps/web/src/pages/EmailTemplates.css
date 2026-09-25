@@ -207,9 +207,9 @@
   padding: 0 12px;
   font-size: 13px;
   font-weight: 600;
-  color: #ffffff;
-  background: var(--teal, #0d9488);
-  border: 1px solid var(--teal, #0d9488);
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
+  border: 1px solid hsl(var(--primary));
   border-radius: var(--r-sm, 6px);
   cursor: pointer;
   transition: all var(--t-fast, 0.15s ease);
@@ -217,11 +217,13 @@
 }
 
 .email-template-new-btn:hover {
-  background: var(--teal-d, #0f766e);
-  border-color: var(--teal-d, #0f766e);
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  filter: brightness(.94);
   transform: translateY(-1px);
 }
 .email-template-new-btn--secondary { background: var(--white); color: var(--ink2); border: 1px solid var(--border); }
+.email-template-new-btn--secondary:hover { background: var(--surface2); color: var(--teal); border-color: var(--teal-m); filter: none; }
 .email-template-library-tabs {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 3px;
   background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r);
@@ -773,9 +775,9 @@
 }
 
 .email-template-tag:hover {
-  background: var(--teal);
-  color: #ffffff;
-  border-color: var(--teal);
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
   transform: translateY(-1px);
 }
 
@@ -874,7 +876,7 @@
 
 .email-template-preview-dialog-body {
   padding: 0;
-  background: #eef1f5;
+  background: var(--surface2);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1556,7 +1558,7 @@
 .email-template-imported-panel-preview {
   flex: 1;
   overflow: hidden;
-  background: #f8f9fa;
+  background: var(--surface2);
 }
 .email-template-imported-panel-preview iframe {
   width: 100%;
@@ -1595,3 +1597,99 @@
   transition: text-decoration-color 0.15s;
 }
 .em-link-btn:hover { text-decoration-color: var(--teal); }
+
+/* Dark application chrome; rendered emails deliberately stay on a light
+   canvas so their authored colours match recipients' email clients. */
+[data-theme="dark"] .email-templates-page,
+[data-theme="dark"] .email-template-editor,
+[data-theme="dark"] .email-templates-nav,
+[data-theme="dark"] .email-template-preview,
+[data-theme="dark"] .etab-marketplace-shell,
+[data-theme="dark"] .etab-builder-dialog { color-scheme: dark; }
+[data-theme="dark"] .email-templates-workspace,
+[data-theme="dark"] .email-template-preview-dialog-body,
+[data-theme="dark"] .email-template-imported-panel-preview,
+[data-theme="dark"] .etab-mkt-preview-stage { background: var(--surface2); }
+[data-theme="dark"] .email-template-code,
+[data-theme="dark"] .etab-builder-html textarea { caret-color: var(--teal); }
+[data-theme="dark"] .email-template-code::placeholder,
+[data-theme="dark"] .email-template-search input::placeholder { color: var(--ink3); opacity: 1; }
+[data-theme="dark"] .email-template-preview-frame,
+[data-theme="dark"] .email-template-preview-client,
+[data-theme="dark"] .etab-mkt-preview-client,
+[data-theme="dark"] .etab-builder-html iframe,
+[data-theme="dark"] .email-template-imported-panel-preview iframe {
+  color-scheme: light;
+  background: #fff;
+}
+[data-theme="dark"] .email-template-preview-frame,
+[data-theme="dark"] .email-template-preview-client,
+[data-theme="dark"] .etab-mkt-preview-client { box-shadow: 0 10px 32px color-mix(in srgb, #000 38%, transparent); }
+[data-theme="dark"] .etab-mkt-preview-envelope {
+  color-scheme: light;
+  background: #fff;
+  color: #111827;
+  border-color: #e5e7eb;
+}
+[data-theme="dark"] .etab-inst-row:hover,
+[data-theme="dark"] .etab-mkt-row:hover { background: var(--surface2); }
+[data-theme="dark"] .email-template-actions { box-shadow: 0 -8px 22px color-mix(in srgb, #000 24%, transparent); }
+
+[data-theme="dark"] .email-templates-page,
+[data-theme="dark"] .etab-builder-dialog,
+[data-theme="dark"] .etab-mkt-preview-dialog {
+  --email-night-brand: var(--teal);
+  --email-night-surface: var(--white);
+  --email-night-raised: color-mix(in srgb, var(--white) 92%, var(--teal) 8%);
+  --email-night-sunken: color-mix(in srgb, var(--bg) 86%, #000 14%);
+  --email-night-edge: rgba(148, 163, 184, 0.10);
+  --email-night-edge-strong: color-mix(in srgb, var(--teal) 34%, rgba(148, 163, 184, 0.16));
+  --border: var(--email-night-edge);
+  --border2: color-mix(in srgb, var(--teal) 13%, var(--ink3));
+}
+[data-theme="dark"] .email-templates-page { background: #080c14; }
+[data-theme="dark"] :is(.email-templates-workspace, .etab-mkt-root) { background: #080c14; border-color: transparent; }
+[data-theme="dark"] :is(.email-templates-topbar, .email-templates-nav, .email-template-editor, .email-template-preview, .etab-marketplace-shell, .etab-marketplace-featured-card, .email-template-managed-group, .email-template-nav-item, .etab-inst-row) {
+  background: var(--email-night-surface);
+  border-color: var(--email-night-edge);
+}
+[data-theme="dark"] :is(.email-templates-nav, .email-template-editor, .email-template-preview, .etab-marketplace-shell) {
+  border-color: rgba(148, 163, 184, 0.09);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.18);
+}
+[data-theme="dark"] :is(.etab-marketplace-featured-card, .email-template-managed-group, .email-template-nav-item, .etab-inst-row) {
+  border-color: rgba(148, 163, 184, 0.08);
+  box-shadow: none;
+}
+[data-theme="dark"] :is(.email-templates-topbar, .email-template-editor-titlebar, .email-template-actions, .email-template-preview-controls, .etab-builder-meta, .email-template-managed-group-header, .email-template-imported-panel-actions) {
+  border-color: rgba(148, 163, 184, 0.08);
+}
+[data-theme="dark"] :is(.etab-marketplace-view-switch, .etab-marketplace-view-switch button, .etab-marketplace-heading-actions > button, .email-template-preview-popout) {
+  border-color: rgba(148, 163, 184, 0.12);
+}
+[data-theme="dark"] :is(.email-template-editor-titlebar, .email-template-actions, .email-template-preview-controls, .etab-builder-meta, .email-template-managed-group-header, .email-template-imported-panel-actions) {
+  background: var(--email-night-raised);
+  border-color: var(--email-night-edge);
+}
+[data-theme="dark"] :is(.email-template-search, .email-template-code, .email-template-taxonomy-editor, .etab-marketplace-search input, .etab-builder-html textarea) {
+  background: var(--email-night-sunken) !important;
+  border-color: var(--email-night-edge) !important;
+}
+[data-theme="dark"] :is(.email-template-search, .email-template-code, .etab-marketplace-search input, .etab-builder-html textarea):hover {
+  background: color-mix(in srgb, var(--email-night-sunken) 90%, var(--email-night-brand) 10%) !important;
+  border-color: var(--email-night-edge-strong) !important;
+}
+[data-theme="dark"] :is(.email-template-search, .email-template-code, .etab-marketplace-search input, .etab-builder-html textarea):focus-within {
+  background: var(--email-night-raised) !important;
+  border-color: var(--teal) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 20%, transparent) !important;
+}
+[data-theme="dark"] .email-template-nav-item:hover,
+[data-theme="dark"] .etab-marketplace-featured-card:hover,
+[data-theme="dark"] .etab-inst-row:hover { background: color-mix(in srgb, var(--email-night-brand) 8%, var(--email-night-surface)); border-color: var(--email-night-edge-strong); }
+[data-theme="dark"] .email-template-nav-item.is-active { background: color-mix(in srgb, var(--email-night-brand) 15%, var(--email-night-surface)); border-color: var(--email-night-edge-strong); }
+[data-theme="dark"] .email-templates-page :is(button, a, [role="button"]):focus-visible,
+[data-theme="dark"] .etab-builder-dialog :is(button, a, [role="button"]):focus-visible {
+  outline: 2px solid var(--email-night-brand);
+  outline-offset: 2px;
+}
