@@ -7,16 +7,20 @@
   flex-direction: column;
   flex: 1 1 0;
   gap: 0;
+  /* padding-bottom creates space below the last card so the sticky save bar
+     never covers the final form fields — 120px > footer height (~70px). */
   padding: 0 0 120px 0;
   width: auto !important;
   max-width: none !important;
   margin: 0 max(0px, calc(64px - var(--page-pad-x, 8px))) !important;
-  height: 100%;
+  /* flex: 1 1 0 already sizes the element to fill the shell; height: 100% is
+     redundant and fights the flex algorithm on some engines — removed. */
   min-height: 0;
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   scrollbar-gutter: stable;
   font-family: var(--font);
   box-sizing: border-box;
@@ -492,7 +496,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 20px 16px;
+  padding: 20px 24px 16px;
   border-bottom: 1px solid var(--border);
   background: var(--card-bg, var(--white));
   gap: 12px;
@@ -535,14 +539,16 @@
   background: var(--card-bg, var(--white));
 }
 
-/* Two-column card body: the bento grid sits flush inside the card */
+/* Two-column card body: the bento grid sits flush inside the card.
+   Bottom padding clears the sticky save bar (~70px) so the Privacy section
+   is always reachable without being hidden behind the floating footer. */
 .profile-card-body--cols {
-  padding: 0;
+  padding: 0 0 80px 0;
 }
 
 /* ── Subsections (replace old per-section cards inside a unified card) ── */
 .profile-subsection {
-  padding: 20px 20px 20px;
+  padding: 20px 24px 20px;
 }
 
 .profile-subsection--divided {

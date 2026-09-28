@@ -1244,8 +1244,27 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     // preset lookup). An external signer sees the tenant who sent them the
     // document, not a generic Hudumika blue, the same way the rest of the
     // platform carries per-tenant branding everywhere else.
-    const tenant = await dbPlatform.selectFrom('tenants').select(['logo_url', 'primary_color'])
+    const tenant = await dbPlatform.selectFrom('tenants').select(['logo_url', 'primary_color', 'country'])
       .where('id', '=', envelope.tenant_id).executeTakeFirst();
+
+    // Jurisdiction disclosure — surface the governing law to the signer
+    // before they sign, not after. Derived from the tenant's registered
+    // country (tenants.country, ISO 3166-1 alpha-2) + this envelope's
+    // execution_type, keyed against the sign_jurisdiction_rules table
+    // (migration 430). Uses dbPlatform (no RLS, platform reference data).
+    // 'NOT_SUPPORTED' rows are KE/UG/RW placeholder entries that signal
+    // "not yet reviewed" — not surfaced to the signer, since those
+    // documents are still legally valid under their own country's law.
+    let jurisdictionRule: { status: string; legal_basis: string | null; conditions: string | null } | null = null;
+    const tenantCountry = tenant?.country ?? null;
+    if (tenantCountry && envelope.execution_type) {
+      const rule = await dbPlatform.selectFrom('sign_jurisdiction_rules')
+        .select(['status', 'legal_basis', 'conditions'])
+        .where('jurisdiction_code', '=', tenantCountry)
+        .where('execution_type', '=', envelope.execution_type)
+        .executeTakeFirst();
+      if (rule && rule.status !== 'NOT_SUPPORTED') jurisdictionRule = rule;
+    }
 
     // A recipient tagged to a real colleague (sign_recipients.user_id, M4's
     // "sign in person" tag) gets their own saved signature offered as a
@@ -1320,13 +1339,33 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       tenant: {
         logo_url: tenant?.logo_url ?? null,
         primary_color: tenant?.primary_color ?? null,
+        country: tenantCountry,
       },
+      jurisdiction: jurisdictionRule ? {
+        country: tenantCountry,
+        status: jurisdictionRule.status,
+        legal_basis: jurisdictionRule.legal_basis,
+        conditions: jurisdictionRule.conditions,
+      } : null,
       fields,
     });
   });
 
   // ── Request an SMS one-time-passcode ───────────────────────────────────────
-  fastify.post('/public/:token/request-otp', async (req: FastifyRequest<{ Params: { token: string } }>, reply: FastifyReply) => {
+  fastify.post<{ Params: { token: string } }>('/public/:token/request-otp', {
+    config: {
+      rateLimit: {
+        // 5 requests per 5 minutes per signing token — a real signer needs
+        // at most 2 (one send + one resend if it's slow); 5 gives room for
+        // genuine retries while blocking abuse before it generates cost.
+        // Keyed per token, not per IP: most EAC users share a NAT address,
+        // so per-IP would bucket unrelated signers into one shared bucket.
+        max: 5,
+        timeWindow: '5 minutes',
+        keyGenerator: (request: any) => `otp:${(request.params as { token: string }).token}`,
+      },
+    },
+  }, async (req, reply) => {
     // The signer picks how they'd rather receive the code — some numbers
     // don't reliably get SMS, and a lot of Tanzanian mobile users check
     // WhatsApp far more often. Defaults to 'sms' so the existing frontend

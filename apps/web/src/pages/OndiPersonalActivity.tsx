@@ -4,7 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
+import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import './OndiPersonalActivity.css';
 
 export interface ActivityRow {
@@ -930,19 +930,22 @@ export const OndiPersonalActivity: React.FC = () => {
 
       {/* ── Executive Activity Telemetry Modal ── */}
       <Dialog open={!!selectedEvent} onOpenChange={(o) => !o && setSelectedEvent(null)}>
-        <DialogContent className="opa-modal-content" style={{ maxWidth: 580, padding: 24, backgroundColor: '#ffffff', opacity: 1 }}>
+        <DialogContent className="opa-modal-content" size="md">
           {selectedEvent && selectedParsed && selectedGeo && (
             <>
-              <DialogHeader style={{ paddingBottom: 0 }}>
-                <DialogTitle style={{ fontSize: 17, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Security Telemetry & Audit Record</span>
+              <DialogHeader className="opa-modal-header">
+                <div className="opa-modal-heading-row">
+                  <div>
+                    <DialogTitle className="opa-modal-heading">Security telemetry</DialogTitle>
+                    <p className="opa-modal-heading-subtitle">Authorization evidence and immutable audit details</p>
+                  </div>
                   <span className={`opa-risk-pill ${getEventRiskLevel(selectedEvent) === 'high' ? 'high' : getEventRiskLevel(selectedEvent) === 'medium' ? 'medium' : 'low'}`}>
                     {getEventRiskLevel(selectedEvent).toUpperCase()} RISK
                   </span>
-                </DialogTitle>
+                </div>
               </DialogHeader>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <DialogBody className="opa-modal-body">
                 {/* Hero Header */}
                 <div className="opa-modal-hero">
                   <div
@@ -1138,16 +1141,9 @@ export const OndiPersonalActivity: React.FC = () => {
                     </div>
                   </>
                 )}
-              </div>
+              </DialogBody>
 
-              <div className="opa-modal-footer">
-                <button
-                  type="button"
-                  className="opa-btn-cancel"
-                  onClick={() => setSelectedEvent(null)}
-                >
-                  Close
-                </button>
+              <DialogFooter className="opa-modal-footer">
                 <button
                   type="button"
                   className="opa-btn-action"
@@ -1155,7 +1151,7 @@ export const OndiPersonalActivity: React.FC = () => {
                 >
                   Done
                 </button>
-              </div>
+              </DialogFooter>
             </>
           )}
         </DialogContent>

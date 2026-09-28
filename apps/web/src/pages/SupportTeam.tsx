@@ -137,8 +137,8 @@ export const SupportTeam: React.FC = () => {
         {/* Header Ribbon */}
         <PageHeader
           crumbs={['Bliss', 'Team Performance']}
-          titlePlain="Support Team"
-          titleEm="Workload & Performance"
+          titlePlain="Team"
+          titleEm="performance"
           subtitle="Real-time per-agent case load, resolution velocity, SLA compliance and customer satisfaction scores."
           actions={
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

@@ -64,7 +64,16 @@ type PublicSigningData =
         // platform user — null for an external signer with no profile to pull.
         saved_signature: string | null;
       };
-      tenant: { logo_url: string | null; primary_color: string | null };
+      tenant: { logo_url: string | null; primary_color: string | null; country: string | null };
+      // Jurisdiction rule for this envelope's execution_type + tenant country.
+      // Null when the tenant has no registered country, or the platform hasn't
+      // reviewed that country's law yet (KE/UG/RW placeholder rows).
+      jurisdiction: {
+        country: string;
+        status: string; // 'SUPPORTED' | 'SUPPORTED_WITH_CONDITIONS'
+        legal_basis: string | null;
+        conditions: string | null;
+      } | null;
       fields: Array<{
         id: string; field_type: string; page: number;
         x: number; y: number; width: number; height: number;
@@ -806,6 +815,31 @@ export function SignPublicPage() {
               </div>
             ))}
           </div>
+
+          {/* Jurisdiction disclosure — shown when the tenant's country has a
+              reviewed rule for this execution type (TZ: Electronic Transactions
+              Act 2022; other jurisdictions once reviewed). Deliberately quiet:
+              one line of provenance, with conditions expanded only when present.
+              A signer should know what law governs before they click Sign. */}
+          {data.jurisdiction && (
+            <div style={{ fontSize: 12, color: 'var(--ink3)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600, color: 'var(--ink2)' }}>
+                <Icon name="scale" size={12} />
+                <span>Governing law</span>
+              </div>
+              {data.jurisdiction.legal_basis && (
+                <div style={{ color: 'var(--ink2)', lineHeight: 1.4 }}>
+                  Your signature is legally binding under the{' '}
+                  <strong>{data.jurisdiction.legal_basis}</strong>.
+                </div>
+              )}
+              {data.jurisdiction.status === 'SUPPORTED_WITH_CONDITIONS' && data.jurisdiction.conditions && (
+                <div style={{ color: 'var(--ink3)', lineHeight: 1.4, marginTop: 2 }}>
+                  {data.jurisdiction.conditions}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="sign-public-sidebar-footer">
             <Button variant="outline" onClick={handleDecline} disabled={declining} style={{ flex: 1, height: 38, fontSize: 13 }}>

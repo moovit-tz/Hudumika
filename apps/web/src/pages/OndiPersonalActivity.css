@@ -913,23 +913,56 @@
 }
 
 /* ── Activity Detail Modal (0% Transparency Solid Card) ── */
-.opa-modal-content,
-[data-radix-dialog-content] {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
+.opa-modal-content {
+  background: var(--white) !important;
+  color: var(--ink);
   opacity: 1 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border: 1px solid var(--border) !important;
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: var(--elev-lg) !important;
+}
+
+.opa-modal-header { padding: 20px 20px 16px; }
+
+.opa-modal-heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-right: 34px;
+}
+
+.opa-modal-heading {
+  margin: 0;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+}
+
+.opa-modal-heading-subtitle {
+  margin: 3px 0 0;
+  color: var(--ink3);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.opa-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 20px 18px;
 }
 
 .opa-modal-hero {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border);
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--card-sunken, var(--bg));
 }
 
 .opa-modal-avatar {
@@ -966,8 +999,8 @@
 }
 
 .opa-modal-title {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 750;
   color: var(--ink);
 }
 
@@ -975,17 +1008,21 @@
 .opa-modal-tabs {
   display: flex;
   align-items: center;
-  gap: 4px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 2px;
+  gap: 2px;
+  width: fit-content;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--card-sunken, var(--bg));
 }
 
 .opa-modal-tab {
   background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
+  border: 1px solid transparent;
+  border-radius: calc(var(--r) - 2px);
   color: var(--ink3);
-  padding: 6px 12px;
+  min-height: 32px;
+  padding: 5px 12px;
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
@@ -994,11 +1031,14 @@
 
 .opa-modal-tab:hover {
   color: var(--ink);
+  background: color-mix(in srgb, var(--white) 55%, transparent);
 }
 
 .opa-modal-tab.active {
-  color: var(--teal);
-  border-bottom-color: var(--teal);
+  color: var(--ink);
+  border-color: var(--border);
+  background: var(--white);
+  box-shadow: var(--elev-sm);
 }
 
 /* Modal Specs Grid */
@@ -1009,10 +1049,11 @@
 }
 
 .opa-modal-spec-card {
-  background: var(--bg, #f8fafc) !important;
+  background: var(--card-sunken, var(--bg)) !important;
   border: 1px solid var(--border) !important;
   border-radius: var(--r-sm, 8px);
-  padding: 10px 12px;
+  min-height: 82px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -1041,8 +1082,8 @@
 
 /* Hash Banner */
 .opa-hash-banner {
-  background: var(--teal-l, rgba(13, 148, 136, 0.06));
-  border: 1px solid var(--teal-m, rgba(13, 148, 136, 0.18));
+  background: var(--card-sunken, var(--bg));
+  border: 1px solid var(--border);
   border-radius: var(--r-sm, 8px);
   padding: 12px 14px;
   display: flex;
@@ -1101,7 +1142,7 @@
   font-size: 11px;
   color: var(--ink);
   word-break: break-all;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--white);
   padding: 2px 6px;
   border-radius: 4px;
   border: 1px solid var(--border);
@@ -1163,48 +1204,27 @@
 }
 
 .opa-modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
-}
-
-.opa-btn-cancel {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--ink);
-  padding: 6px 16px;
-  border-radius: var(--r, 8px);
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  min-height: 34px;
-  transition: all 0.15s ease;
-}
-
-.opa-btn-cancel:hover {
-  background: var(--border);
+  gap: 8px;
+  margin: 0;
+  padding: 14px 20px;
 }
 
 .opa-btn-action {
-  background: var(--teal);
-  color: #ffffff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   border: none;
-  padding: 6px 18px;
+  padding: var(--ds-btn-py, 8px) 20px;
   border-radius: var(--r, 8px);
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  min-height: 34px;
-  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.2);
-  transition: all 0.15s ease;
+  min-height: var(--ctl-h, 36px);
+  box-shadow: var(--elev-sm);
+  transition: filter 0.15s ease;
 }
 
 .opa-btn-action:hover {
-  background: var(--teal-d, #0f766e);
+  filter: brightness(0.94);
 }
 
 /* ── Pagination ── */
@@ -1326,9 +1346,39 @@
     height: 32px;
   }
   .opa-modal-content {
-    padding: 16px !important;
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+  .opa-modal-header {
+    padding: 16px 16px 14px;
+  }
+  .opa-modal-heading-row {
+    gap: 10px;
+    padding-right: 30px;
+  }
+  .opa-modal-heading-subtitle {
+    display: none;
+  }
+  .opa-modal-body {
+    padding: 14px 16px 16px;
+  }
+  .opa-modal-tabs {
+    width: 100%;
+  }
+  .opa-modal-tab {
+    flex: 1;
+    padding-inline: 8px;
   }
   .opa-modal-specs-grid {
     grid-template-columns: 1fr;
+  }
+  .opa-hash-title-row {
+    align-items: flex-start;
+  }
+  .opa-modal-footer {
+    padding: 12px 16px;
+  }
+  .opa-btn-action {
+    width: 100%;
   }
 }
