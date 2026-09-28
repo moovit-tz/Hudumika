@@ -49,14 +49,6 @@ function isPrivateIp(ip: string): boolean {
  * endpoint. Resolves the hostname itself (a literal IP is checked directly)
  * and rejects if *any* resolved address is private, rather than trusting
  * whatever the caller typed.
- *
- * Known gap, not fixed here: this checks the URL once, up front. A `fetch`
- * with `redirect: 'follow'` will still transparently follow a 3xx from an
- * initially-public host to a private one afterward — closing that requires
- * `redirect: 'manual'` plus validating every hop, which no caller of this
- * guard currently does. Every current call site's target rarely if ever
- * redirects in normal operation, so this closes the direct attack (typing a
- * private URL straight in) without yet closing the redirect-chain bypass.
  */
 export async function assertPublicHttpUrl(rawUrl: string): Promise<void> {
   let parsed: URL;
@@ -87,4 +79,26 @@ export async function assertPublicHttpUrl(rawUrl: string): Promise<void> {
   if (addresses.some(isPrivateIp)) {
     throw new UnsafeUrlError('This hostname resolves to a private or internal address and cannot be used.');
   }
+}
+
+/**
+ * A drop-in replacement for `fetch` at every call site that first validated
+ * via assertPublicHttpUrl. It enforces `redirect: 'manual'` so the node
+ * fetch runtime never silently follows a 3xx to a private address — each
+ * Location header is validated by assertPublicHttpUrl before the next hop is
+ * attempted. Throws UnsafeUrlError on a redirect to an internal host; throws
+ * on cycles or after five hops.
+ */
+export async function safeFetch(rawUrl: string, init?: Omit<RequestInit, 'redirect'>, hops = 0): Promise<Response> {
+  if (hops > 5) throw new UnsafeUrlError('Too many redirects (possible redirect loop).');
+  await assertPublicHttpUrl(rawUrl);
+  const res = await fetch(rawUrl, { ...init, redirect: 'manual' });
+  if (res.status >= 300 && res.status < 400) {
+    const location = res.headers.get('location');
+    if (!location) throw new UnsafeUrlError('Server sent a redirect with no Location header.');
+    // Resolve relative redirects against the current URL before re-validating.
+    const next = new URL(location, rawUrl).toString();
+    return safeFetch(next, init, hops + 1);
+  }
+  return res;
 }

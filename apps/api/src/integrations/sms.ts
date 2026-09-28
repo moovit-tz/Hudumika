@@ -50,14 +50,15 @@ async function sendViaTwilio(cfg: Record<string, any>, to: string, message: stri
 /** Vonage/Nexmo's own long-stable SMS REST API — https://rest.nexmo.com/sms/json,
  *  api_key/api_secret/to/from/text form params, a per-message "0" status
  *  string for success (not an HTTP-level signal — Nexmo returns 200 even for
- *  a rejected message, the real result is buried per-message in the body). */
+ *  a rejected message, the real result is buried per-message in the body).
+ *  Credential keys match the frontend PROVIDER_FIELDS entry: apiKey / apiSecret. */
 async function sendViaNexmo(cfg: Record<string, any>, to: string, message: string, senderId: string | null): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  if (!cfg.nexmoKey || !cfg.nexmoSecret) return { success: false, error: 'Nexmo API key/secret not configured' };
+  if (!cfg.apiKey || !cfg.apiSecret) return { success: false, error: 'Nexmo API key/secret not configured' };
   const res = await fetch('https://rest.nexmo.com/sms/json', {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      api_key: cfg.nexmoKey, api_secret: cfg.nexmoSecret, to, text: message,
+      api_key: cfg.apiKey, api_secret: cfg.apiSecret, to, text: message,
       ...(senderId ? { from: senderId } : {}),
     }).toString(),
   });

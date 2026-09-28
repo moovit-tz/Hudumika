@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { StoreEmailTemplatesManager } from './StoreEmailTemplatesManager.js';
@@ -112,6 +113,47 @@ const APP_ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
+type SortKey = 'popular' | 'rating' | 'az' | 'za';
+type RatingFilter = 'any' | '4plus' | '45plus';
+type StatusFilter = 'all' | 'installed' | 'not-installed';
+
+function parseInstalls(s: string): number {
+  const clean = s.replace(/,/g, '').toLowerCase().trim();
+  if (clean.endsWith('m+') || clean.endsWith('m')) return parseFloat(clean) * 1_000_000;
+  if (clean.endsWith('k+') || clean.endsWith('k')) return parseFloat(clean) * 1_000;
+  return parseFloat(clean) || 0;
+}
+
+// Platform apps an addon can be compatible with
+const PLATFORM_APPS: { id: string; label: string; icon: IconName }[] = [
+  { id: 'ondi',        label: 'Ondi',         icon: 'shield'        },
+  { id: 'nexushr',     label: 'NexusHR',      icon: 'users'         },
+  { id: 'clearos',     label: 'ClearOS',      icon: 'package'       },
+  { id: 'finops',      label: 'FinOps',       icon: 'dollarSign'    },
+  { id: 'crm',         label: 'CRM',          icon: 'briefcase'     },
+  { id: 'bliss',       label: 'Bliss',        icon: 'messageSquare' },
+  { id: 'calendar',    label: 'Calendar',     icon: 'calendar'      },
+  { id: 'projects',    label: 'Projects',     icon: 'layoutDashboard'},
+  { id: 'cargotracker',label: 'CargoTracker', icon: 'truck'         },
+  { id: 'complyos',    label: 'ComplyOS',     icon: 'checkCircle'   },
+  { id: 'drive',       label: 'Drive',        icon: 'folder'        },
+  { id: 'sms',         label: 'SMS',          icon: 'mail'          },
+];
+
+// Maps store app IDs → which platform apps they work with.
+// Apps without an entry are shown for every filter value.
+const COMPATIBILITY_MAP: Record<string, string[]> = {
+  zoom:       ['bliss', 'calendar', 'crm', 'nexushr'],
+  docusign:   ['clearos', 'finops', 'crm', 'nexushr', 'projects'],
+  slack:      ['ondi', 'bliss', 'nexushr', 'crm'],
+  quickbooks: ['finops'],
+  mailchimp:  ['crm', 'sms'],
+  asana:      ['projects'],
+  trello:     ['projects'],
+  powerbi:    ['finops', 'clearos', 'nexushr'],
+  hubspot:    ['crm', 'finops'],
+};
+
 // Apps will be loaded dynamically from the API
 
 const SAMPLE_REVIEWS = [
@@ -132,6 +174,10 @@ export const Store: React.FC = () => {
   const [appsLoading, setAppsLoading] = useState(true);
   const [installedApps, setInstalledApps] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortKey>('popular');
+  const [ratingFilter, setRatingFilter] = useState<RatingFilter>('any');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [worksWithFilter, setWorksWithFilter] = useState<string>('');
   const [selectedApp, setSelectedApp] = useState<AddonApp | null>(null);
   const [showConsent, setShowConsent] = useState(false);
   const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'reviews' | 'permissions'>('overview');
@@ -155,16 +201,33 @@ export const Store: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   }
 
-  const filteredApps = useMemo(() =>
-    apps.filter(app => {
+  const filteredApps = useMemo(() => {
+    let result = apps.filter(app => {
       const matchesCat = activeCategory === 'all' || app.category === activeCategory;
       const q = searchQuery.toLowerCase();
-      const matchesSearch = app.name.toLowerCase().includes(q) ||
+      const matchesSearch = !q || app.name.toLowerCase().includes(q) ||
         (app.developer || '').toLowerCase().includes(q) ||
         (app.shortDesc || '').toLowerCase().includes(q);
-      return matchesCat && matchesSearch;
-    }),
-  [activeCategory, searchQuery, apps]);
+      const matchesRating =
+        ratingFilter === 'any' ? true :
+        ratingFilter === '4plus' ? app.rating >= 4.0 :
+        app.rating >= 4.5;
+      const matchesStatus =
+        statusFilter === 'all' ? true :
+        statusFilter === 'installed' ? installedApps.includes(app.id) :
+        !installedApps.includes(app.id);
+      const compat = COMPATIBILITY_MAP[app.id];
+      const matchesWorksWith = !worksWithFilter || !compat || compat.includes(worksWithFilter);
+      return matchesCat && matchesSearch && matchesRating && matchesStatus && matchesWorksWith;
+    });
+    switch (sortBy) {
+      case 'popular': result = [...result].sort((a, b) => parseInstalls(b.installs) - parseInstalls(a.installs)); break;
+      case 'rating':  result = [...result].sort((a, b) => b.rating - a.rating); break;
+      case 'az':      result = [...result].sort((a, b) => a.name.localeCompare(b.name)); break;
+      case 'za':      result = [...result].sort((a, b) => b.name.localeCompare(a.name)); break;
+    }
+    return result;
+  }, [activeCategory, searchQuery, apps, sortBy, ratingFilter, statusFilter, worksWithFilter, installedApps]);
 
   async function handleInstallClick(app: AddonApp) {
     if (installedApps.includes(app.id)) {
@@ -253,6 +316,97 @@ export const Store: React.FC = () => {
               </div>
             </div>
           </section>
+
+          {/* ── Filter / sort bar ── */}
+          {(() => {
+            const hasFilters = ratingFilter !== 'any' || statusFilter !== 'all' || !!worksWithFilter;
+            const RATING_OPTS: { value: RatingFilter; label: string }[] = [
+              { value: 'any',    label: 'Any rating' },
+              { value: '4plus',  label: '4.0 +' },
+              { value: '45plus', label: '4.5 +' },
+            ];
+            const STATUS_OPTS: { value: StatusFilter; label: string }[] = [
+              { value: 'all',           label: 'All' },
+              { value: 'installed',     label: 'Installed' },
+              { value: 'not-installed', label: 'Not installed' },
+            ];
+            const selectedApp = PLATFORM_APPS.find(a => a.id === worksWithFilter);
+            return (
+              <div className="store-filterbar">
+                <div className="store-filterbar-left">
+                  <span className="store-filterbar-group-label">Rating</span>
+                  <div className="store-filterbar-pills">
+                    {RATING_OPTS.map(o => (
+                      <button key={o.value} type="button"
+                        className={`store-filter-pill${ratingFilter === o.value ? ' store-filter-pill--active' : ''}`}
+                        onClick={() => setRatingFilter(o.value)}>
+                        {o.value !== 'any' && <Icon name="star" size={10} duotone color={ratingFilter === o.value ? 'currentColor' : 'var(--gold)'} />}
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <span className="store-filterbar-divider" />
+
+                  <span className="store-filterbar-group-label">Status</span>
+                  <div className="store-filterbar-pills">
+                    {STATUS_OPTS.map(o => (
+                      <button key={o.value} type="button"
+                        className={`store-filter-pill${statusFilter === o.value ? ' store-filter-pill--active' : ''}`}
+                        onClick={() => setStatusFilter(o.value)}>
+                        {o.value === 'installed' && <Icon name="checkCircle" size={11} color={statusFilter === 'installed' ? 'currentColor' : 'var(--green)'} />}
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <span className="store-filterbar-divider" />
+
+                  <span className="store-filterbar-group-label">Works with</span>
+                  <Select value={worksWithFilter || '__all__'} onValueChange={v => setWorksWithFilter(v === '__all__' ? '' : v)}>
+                    <SelectTrigger className="store-works-trigger">
+                      <SelectValue>
+                        {selectedApp
+                          ? <span className="store-works-value"><Icon name={selectedApp.icon} size={12} />{selectedApp.label}</span>
+                          : <span className="store-works-value store-works-value--placeholder">Any app</span>
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Any app</SelectItem>
+                      {PLATFORM_APPS.map(a => (
+                        <SelectItem key={a.id} value={a.id}>
+                          <span className="store-works-option"><Icon name={a.icon} size={13} />{a.label}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {hasFilters && (
+                    <button type="button" className="store-filter-clear"
+                      onClick={() => { setRatingFilter('any'); setStatusFilter('all'); setWorksWithFilter(''); }}>
+                      <Icon name="x" size={11} /> Clear filters
+                    </button>
+                  )}
+                </div>
+
+                <div className="store-filterbar-right">
+                  <span className="store-filterbar-group-label">Sort by</span>
+                  <Select value={sortBy} onValueChange={v => setSortBy(v as SortKey)}>
+                    <SelectTrigger className="store-sort-trigger">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="popular">Most popular</SelectItem>
+                      <SelectItem value="rating">Top rated</SelectItem>
+                      <SelectItem value="az">A – Z</SelectItem>
+                      <SelectItem value="za">Z – A</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Hero banner */}
           {activeCategory === 'all' && !searchQuery && (

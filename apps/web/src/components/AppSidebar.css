@@ -127,7 +127,6 @@ html[data-expanded="true"] .app-sidebar {
   width: 34px;
   height: 34px;
   min-width: 34px;
-  background: var(--sb-color, #64748b);
   /* True superellipse clip is supplied by AppSidebar.tsx; this percentage is
      only the graceful fallback for browsers without CSS path clipping. */
   border-radius: 33%;

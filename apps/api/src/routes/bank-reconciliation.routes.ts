@@ -146,7 +146,7 @@ export async function bankReconciliationRoutes(fastify: FastifyInstance) {
       const alreadyUsed = await trx.selectFrom('bank_statement_lines').select('id').where('matched_journal_line_id', '=', journal_line_id).executeTakeFirst();
       if (alreadyUsed) return reply.status(409).send({ error: 'That ledger entry is already matched to another statement line.' });
 
-      await trx.updateTable('bank_statement_lines').set({ matched_journal_line_id: journal_line_id, matched_at: new Date(), matched_by: user.sub }).where('id', '=', lineId).execute();
+      await trx.updateTable('bank_statement_lines').set({ matched_journal_line_id: journal_line_id, matched_at: new Date(), matched_by: user.sub }).where('id', '=', lineId).where('bank_statement_id', '=', id).execute();
       return { success: true };
     });
   });
@@ -168,7 +168,7 @@ export async function bankReconciliationRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('bank_statements').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Bank statement not found' });
-      await trx.deleteFrom('bank_statements').where('id', '=', id).execute();
+      await trx.deleteFrom('bank_statements').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { success: true };
     });
   });

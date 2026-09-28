@@ -18,6 +18,7 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireUuidParams } from '../middleware/uuid-params.js';
+import { logPiiAccess, fromRequest } from '../lib/pii-access-logger.js';
 import { overtimeAmount } from '../services/attendance.service.js';
 import { MailService } from '../services/mail.service.js';
 import { GLService } from '../services/gl.service.js';
@@ -694,7 +695,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
   /** Your own payslips. The identity comes from the token, not the request. */
   fastify.get('/me/payslips', async (req) => {
     const user = req.user;
-    return withTenant(user.tenant_id, async (trx) => {
+    const slips = await withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('payroll_payslips as p')
         .innerJoin('payroll_runs as r', 'r.id', 'p.run_id')
         .select(['p.id', 'p.gross_pay', 'p.taxable_pay', 'p.income_tax', 'p.employee_contributions',
@@ -707,6 +708,22 @@ export async function payrollRoutes(fastify: FastifyInstance) {
         .where('r.status', 'in', ['APPROVED', 'PAID'])
         .orderBy('r.period_year', 'desc').orderBy('r.period_month', 'desc').execute();
     });
+    if (slips.length > 0) {
+      logPiiAccess({
+        tenantId: user.tenant_id,
+        accessorId: user.sub ?? null,
+        subjectId: user.sub,
+        subjectTable: 'payroll_payslips',
+        subjectRecordId: user.sub,
+        fieldsAccessed: ['gross_pay', 'net_pay', 'income_tax', 'employee_contributions'],
+        domain: 'PAYROLL',
+        sensitivity: 'HIGH',
+        purpose: 'SELF_SERVICE',
+        route: (req as any).url,
+        ...fromRequest(req as any),
+      });
+    }
+    return slips;
   });
 
   /**
@@ -723,7 +740,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
     if (!isOwn && !canSeeAll(user.role)) {
       return reply.status(403).send({ error: 'Forbidden: you may only view your own payslips' });
     }
-    return withTenant(user.tenant_id, async (trx) => {
+    const slips = await withTenant(user.tenant_id, async (trx) => {
       let q = trx.selectFrom('payroll_payslips as p')
         .innerJoin('payroll_runs as r', 'r.id', 'p.run_id')
         .select(['p.id', 'p.basic_pay', 'p.gross_pay', 'p.taxable_pay', 'p.income_tax',
@@ -736,6 +753,22 @@ export async function payrollRoutes(fastify: FastifyInstance) {
       if (!canSeeAll(user.role)) q = q.where('r.status', 'in', ['APPROVED', 'PAID']);
       return q.orderBy('r.period_year', 'desc').orderBy('r.period_month', 'desc').execute();
     });
+    if (!isOwn && slips.length > 0) {
+      logPiiAccess({
+        tenantId: user.tenant_id,
+        accessorId: user.sub ?? null,
+        subjectId: userId,
+        subjectTable: 'payroll_payslips',
+        subjectRecordId: userId,
+        fieldsAccessed: ['basic_pay', 'gross_pay', 'net_pay', 'income_tax', 'employee_contributions', 'employer_contributions'],
+        domain: 'PAYROLL',
+        sensitivity: 'CRITICAL',
+        purpose: 'HR_REVIEW',
+        route: (req as any).url,
+        ...fromRequest(req as any),
+      });
+    }
+    return slips;
   });
 
   fastify.get('/payslips/:id', async (req, reply) => {
@@ -756,6 +789,21 @@ export async function payrollRoutes(fastify: FastifyInstance) {
       }
       if (isOwn && !canSeeAll(user.role) && !['APPROVED', 'PAID'].includes(String(slip.run_status))) {
         return reply.status(403).send({ error: 'This payroll run has not been approved yet' });
+      }
+      if (!isOwn) {
+        logPiiAccess({
+          tenantId: user.tenant_id,
+          accessorId: user.sub ?? null,
+          subjectId: String(slip.user_id),
+          subjectTable: 'payroll_payslips',
+          subjectRecordId: id,
+          fieldsAccessed: ['basic_pay', 'gross_pay', 'net_pay', 'income_tax', 'employee_contributions', 'employer_contributions', 'lines'],
+          domain: 'PAYROLL',
+          sensitivity: 'CRITICAL',
+          purpose: 'HR_REVIEW',
+          route: (req as any).url,
+          ...fromRequest(req as any),
+        });
       }
       return slip;
     });

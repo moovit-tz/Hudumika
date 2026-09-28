@@ -1,6 +1,6 @@
 import { withTenant } from '../db/client.js';
 import { checkGeofenceTransitions } from '../routes/tracking.routes.js';
-import { assertPublicHttpUrl } from '../lib/ssrf-guard.js';
+import { safeFetch } from '../lib/ssrf-guard.js';
 
 export interface GpswoxCreds {
   base_url: string;
@@ -67,8 +67,7 @@ export class GpswoxService {
       // the admin's behalf, on a recurring schedule. login() gates both
       // real call paths (syncPositions and testConnection each call this
       // before getDevicesLatest), so one check here covers the file.
-      await assertPublicHttpUrl(creds.base_url);
-      const res = await fetch(`${creds.base_url}/api/login`, {
+      const res = await safeFetch(`${creds.base_url}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: creds.email, password: creds.password }),

@@ -48,6 +48,7 @@ import { runMetricAlertsJob } from './metric-alerts.job.js';
 import { runDataQualityJob } from './data-quality.job.js';
 import { runSignForensicVerifyJob, runSignForensicJobCleanupJob } from './sign-forensic-verify.job.js';
 import { runAgentApprovalExpiryJob } from './agent-approval-expiry.job.js';
+import { runDocumentRetentionJob } from './document-retention.job.js';
 
 /**
  * Real registry of every background job this file actually schedules —
@@ -110,6 +111,7 @@ export const JOB_REGISTRY: { name: string; schedule: string; fallbackOnly?: bool
   { name: 'Onsite Server Reachability', schedule: 'Every 1 minute', fallbackOnly: true },
   { name: 'Onsite SSL Certificate Sweep', schedule: 'Every 6 hours', fallbackOnly: true },
   { name: 'Agent Approval Expiry Sweep', schedule: 'Every hour' },
+  { name: 'Document Retention Enforcement', schedule: 'Daily at 04:30' },
 ];
 
 let redisConnection: Redis | null = null;
@@ -328,6 +330,8 @@ function startBullMQ(): void {
           await runCmsTrashPurgeJob();
         } else if (job.name === 'agent-approval-expiry') {
           await runAgentApprovalExpiryJob();
+        } else if (job.name === 'document-retention') {
+          await runDocumentRetentionJob();
         }
       },
       { connection: redisConnection as any }
@@ -607,6 +611,10 @@ function startBullMQ(): void {
       repeat: { every: 60 * 60 * 1000 } // Every hour — flip pending agent_approvals past their expires_at to 'expired' and fail the run they were gating
     }).catch(console.error);
 
+    reminderQueue.add('document-retention', {}, {
+      repeat: { pattern: '30 4 * * *' } // Daily at 4:30 AM — backfill retain_until where missing; emit expiry events for elapsed holds
+    }).catch(console.error);
+
     reminderQueue.add('sign-anchor-stamp', {}, {
       repeat: { every: 15 * 60 * 1000 } // Every 15 minutes — submit the OpenTimestamps calendar attestation for newly-completed envelopes
     }).catch(console.error);
@@ -839,6 +847,7 @@ function startIntervalFallback(): void {
     // cron scheduling in standalone dev.
     runFixedAssetDepreciationJob().catch(console.error);
     runFxRateSyncJob().catch(console.error);
+    runDocumentRetentionJob().catch(console.error);
   }, 24 * 60 * 60 * 1000);
 
   // GPSWOX device sync — every 2 minutes, its own timer since it's far more

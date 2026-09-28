@@ -1021,7 +1021,7 @@ export const Bills: React.FC = () => {
       const mapped = mapApiBill(updated);
       setBills(p => p.map(b => b.id === bill.id ? mapped : b));
       if (selected?.id === bill.id) setSelected(mapped);
-      showAlert(mapped.status === 'PENDING_APPROVAL' ? 'Bill submitted for approval.' : 'Bill posted successfully.');
+      showAlert(mapped.status === 'PENDING_APPROVAL' ? 'Bill submitted for approval.' : 'Bill posted successfully.', { variant: 'success' });
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not submit this bill.');
     }
@@ -1036,7 +1036,7 @@ export const Bills: React.FC = () => {
       if (selected?.id === bill.id) setSelected(updated);
       setVoidTarget(null);
       setVoidReason('');
-      showAlert('Bill voided and its journal entries were reversed.');
+      showAlert('Bill voided and its journal entries were reversed.', { variant: 'success' });
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not void this bill.');
     }

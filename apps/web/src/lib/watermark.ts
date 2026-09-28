@@ -43,7 +43,7 @@ export function getHudumikaFooterHtml(appName: string = 'ClearOS'): string {
     <span style="font-weight: 500;"><strong style="color: #0b1e3a; letter-spacing: 0.3px; font-weight: 800;">${appName}</strong> powered by ${logoHtml}</span>
   </div>
   <div style="font-size: 10.5px; color: #64748b; font-weight: 500;">
-    Copyrights © ${year} by <strong style="color: #0b1e3a; font-weight: 700;">Hudumika LLC</strong>. All rights reserved.
+    Hudumika Workspace · © ${year} Moovit Mobility Limited
   </div>
 </div>
 `;

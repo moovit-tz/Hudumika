@@ -34,17 +34,20 @@ const BuildingBlocksShowcase = React.lazy(() => import('./BuildingBlocksShowcase
 import { HugeiconsIcon } from '@hugeicons/react';
 import type { IconSvgElement } from '@hugeicons/react';
 
-type SectionGroup = 'theming' | 'layout' | 'platform' | 'catalog';
+type SectionGroup = 'foundations' | 'components' | 'layout' | 'branding' | 'resources';
 const SECTIONS: { id: string; group: SectionGroup; label: string; icon: IconName; desc: string }[] = [
-  { id: 'themes',     group: 'theming', label: 'Themes',            icon: 'sparkle',         desc: 'Global color presets & version engine' },
-  { id: 'brand',      group: 'theming', label: 'Brand & Neutral',   icon: 'sun',             desc: 'Brand primary & neutral surface scales' },
-  { id: 'semantic',   group: 'theming', label: 'Semantic',          icon: 'tag',             desc: 'Status, alert & feedback colors' },
-  { id: 'typography', group: 'theming', label: 'Typography',        icon: 'fileText',        desc: 'Font family & type scale ladder' },
-  { id: 'shape',      group: 'theming', label: 'Shape & Radius',    icon: 'shapes',          desc: 'Corner radii, borders & icon weights' },
-  { id: 'tabs',       group: 'theming', label: 'Tabs & Strips',     icon: 'layoutDashboard', desc: 'Tab variants, track styling & sizes' },
-  { id: 'elevation',  group: 'theming', label: 'Elevation',         icon: 'layers',          desc: 'Layered shadow & depth scales' },
-  { id: 'density',    group: 'theming', label: 'Density',           icon: 'grid3',           desc: 'Component compact & comfortable scale' },
-  { id: 'motion',     group: 'theming', label: 'Motion',            icon: 'zap',             desc: 'Transition durations & easing curves' },
+  { id: 'themes',     group: 'foundations', label: 'Themes',            icon: 'sparkle',         desc: 'Global color presets & version engine' },
+  { id: 'brand',      group: 'foundations', label: 'Brand & Neutral',   icon: 'sun',             desc: 'Brand primary & neutral surface scales' },
+  { id: 'semantic',   group: 'foundations', label: 'Semantic',          icon: 'tag',             desc: 'Status, alert & feedback colors' },
+  { id: 'typography', group: 'foundations', label: 'Typography',        icon: 'fileText',        desc: 'Font family & type scale ladder' },
+  { id: 'shape',      group: 'foundations', label: 'Shape & Radius',    icon: 'shapes',          desc: 'Corner radii, borders & icon weights' },
+  { id: 'elevation',  group: 'foundations', label: 'Elevation',         icon: 'layers',          desc: 'Layered shadow & depth scales' },
+  { id: 'density',    group: 'foundations', label: 'Density',           icon: 'grid3',           desc: 'Component compact & comfortable scale' },
+  { id: 'motion',     group: 'foundations', label: 'Motion',            icon: 'zap',             desc: 'Transition durations & easing curves' },
+  { id: 'tabs',       group: 'components',  label: 'Tabs & Strips',     icon: 'layoutDashboard', desc: 'Tab variants, track styling & sizes' },
+  { id: 'dropdowns',  group: 'components',  label: 'Dropdowns & Selects', icon: 'chevronDown',   desc: 'Select menus, popover dropdowns & combo box varieties' },
+  { id: 'components', group: 'components',  label: 'Component Catalog',icon: 'layers',          desc: 'Live interactive Radix component showcase' },
+  { id: 'blocks',     group: 'components',  label: 'Building Blocks',  icon: 'layoutDashboard', desc: 'Pre-built page sections, metric grids & form blocks inspired by shadcn/ui' },
   { id: 'menu',       group: 'layout',  label: 'Menu Behavior',     icon: 'sidebar',         desc: 'Sidebar initial collapse & expansion' },
   { id: 'navbar',     group: 'layout',  label: 'Navbar Mode',       icon: 'layoutDashboard', desc: 'Sticky, static or hidden top navigation' },
   { id: 'content',    group: 'layout',  label: 'Content Width',     icon: 'maximize',        desc: 'Boxed compact vs full-bleed wide layout' },
@@ -52,22 +55,20 @@ const SECTIONS: { id: string; group: SectionGroup; label: string; icon: IconName
   { id: 'semidark',   group: 'layout',  label: 'Semi Dark',         icon: 'moon',            desc: 'Dark sidebar navigation in light mode' },
   { id: 'direction',  group: 'layout',  label: 'Text Direction',    icon: 'compass',         desc: 'Left-to-Right and RTL text flow' },
   { id: 'mobile',     group: 'layout',  label: 'Responsive Break',  icon: 'smartphone',      desc: 'Adaptive mobile viewport breakpoint' },
-  { id: 'identity',   group: 'platform', label: 'Identity & Brand', icon: 'image',           desc: 'Nomenclature, logos, favicons & assets' },
-  { id: 'apps',       group: 'platform', label: 'App Configurator', icon: 'grid',            desc: 'Per-app names, accents, slogans & icons' },
-  { id: 'login',      group: 'platform', label: 'Login Screen',     icon: 'logIn',           desc: 'Authentication screen themes & headers' },
-  { id: 'components', group: 'catalog',  label: 'Component Catalog',icon: 'layers',          desc: 'Live interactive Radix component showcase' },
-  { id: 'blocks',     group: 'catalog',  label: 'Building Blocks',  icon: 'layoutDashboard', desc: 'Pre-built page sections, metric grids & form blocks inspired by shadcn/ui' },
-  { id: 'dropdowns',  group: 'catalog',  label: 'Dropdowns & Selects', icon: 'chevronDown',   desc: 'Select menus, popover dropdowns & combo box varieties' },
-  { id: 'icons',      group: 'catalog',  label: 'Icon System',      icon: 'sparkle',         desc: 'Stroke icons & Twotone Rounded collection' },
-  { id: 'oscar',      group: 'catalog',  label: 'Oscar Catalog',    icon: 'star',            desc: 'Oscar/DaisyUI-inspired component catalog with style switchers' },
-  { id: 'animations', group: 'catalog',  label: 'Animations',       icon: 'zap',             desc: 'Keyframe animations, transitions, easing curves & micro-interactions' },
+  { id: 'identity',   group: 'branding', label: 'Identity & Brand', icon: 'image',           desc: 'Nomenclature, logos, favicons & assets' },
+  { id: 'apps',       group: 'branding', label: 'App Configurator', icon: 'grid',            desc: 'Per-app names, accents, slogans & icons' },
+  { id: 'login',      group: 'branding', label: 'Login Screen',     icon: 'logIn',           desc: 'Authentication screen themes & headers' },
+  { id: 'icons',      group: 'resources', label: 'Icon System',      icon: 'sparkle',         desc: 'Stroke icons & Twotone Rounded collection' },
+  { id: 'oscar',      group: 'resources', label: 'Oscar Catalog',    icon: 'star',            desc: 'Oscar/DaisyUI-inspired component catalog with style switchers' },
+  { id: 'animations', group: 'resources', label: 'Animations',       icon: 'zap',             desc: 'Keyframe animations, transitions, easing curves & micro-interactions' },
 ];
 
 const SECTION_GROUPS: { id: SectionGroup; label: string; icon: IconName }[] = [
-  { id: 'theming',  label: 'Theming',    icon: 'sparkle'  },
-  { id: 'layout',   label: 'Layout',     icon: 'maximize' },
-  { id: 'platform', label: 'Platform',   icon: 'shield'   },
-  { id: 'catalog',  label: 'Catalog',    icon: 'layers'   },
+  { id: 'foundations', label: 'Global Foundations',   icon: 'sparkle'  },
+  { id: 'components',  label: 'Components & Controls', icon: 'grid3'    },
+  { id: 'layout',      label: 'Layout & Navigation',   icon: 'maximize' },
+  { id: 'branding',    label: 'Brand & Applications',  icon: 'image'    },
+  { id: 'resources',   label: 'Libraries & Reference', icon: 'layers'   },
 ];
 
 /** Sections with no separate "live token preview" rail. */
@@ -611,6 +612,7 @@ export function DesignSystemView() {
 
   // Search & Mobile Drawer States
   const [railSearch, setRailSearch] = useState('');
+  const [sectionGroupFilter, setSectionGroupFilter] = useState<SectionGroup | 'all'>('all');
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -772,8 +774,39 @@ export function DesignSystemView() {
   // zero duplicated markup.
   const isSearching = !!railSearch.trim();
   const q = railSearch.toLowerCase().trim();
+  const visibleSections = SECTIONS.filter((section) =>
+    (sectionGroupFilter === 'all' || section.group === sectionGroupFilter)
+    && (!isSearching || section.label.toLowerCase().includes(q) || section.desc.toLowerCase().includes(q))
+  );
+  const relatedSections = currentSectionMeta
+    ? SECTIONS.filter((section) => section.group === currentSectionMeta.group)
+    : [];
   const sidebarNavContent = (
     <>
+      <div className="ds-sidebar-scope">
+        <span className="ds-sidebar-scope-label">Settings group</span>
+        <Select
+          value={sectionGroupFilter}
+          onValueChange={(value) => {
+            const nextGroup = value as SectionGroup | 'all';
+            setSectionGroupFilter(nextGroup);
+            if (nextGroup !== 'all' && currentSectionMeta?.group !== nextGroup) {
+              const firstSection = SECTIONS.find((section) => section.group === nextGroup);
+              if (firstSection) setActiveSection(firstSection.id);
+            }
+          }}
+        >
+          <SelectTrigger className="ds-sidebar-scope-trigger">
+            <SelectValue placeholder="All settings" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All settings</SelectItem>
+            {SECTION_GROUPS.map((group) => (
+              <SelectItem key={group.id} value={group.id}>{group.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="ds-sidebar-search">
         <Icon name="search" size={13} className="ds-sidebar-search-icon" />
         <input
@@ -792,8 +825,7 @@ export function DesignSystemView() {
 
       <nav className="ds-sidebar-nav">
         {SECTION_GROUPS.map((g) => {
-          const items = SECTIONS.filter((s) => s.group === g.id
-            && (!isSearching || s.label.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q)));
+          const items = visibleSections.filter((s) => s.group === g.id);
           if (items.length === 0) return null;
           return (
             <div className="ds-sidebar-group" key={g.id}>
@@ -825,7 +857,7 @@ export function DesignSystemView() {
           );
         })}
 
-        {isSearching && SECTIONS.every((s) => !(s.label.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q))) && (
+        {isSearching && visibleSections.length === 0 && (
           <span className="ds-sidebar-empty">
             No section matches "{railSearch.trim()}" — try a different word, or{' '}
             <button type="button" className="ds-sidebar-empty-clear" onClick={() => setRailSearch('')}>clear the search</button>.
@@ -868,62 +900,46 @@ export function DesignSystemView() {
           studio's own cross-cutting controls, so it gets its own slim bar
           rather than living in the section list. */}
       <div className="ds-system-bar">
-        <div className="ds-top-switcher-pills">
-          <button
-            type="button"
-            className={`ds-top-pill ${designSystemVersion.version === 'v1' ? 'active' : ''}`}
-            onClick={() => setVersion('v1')}
-          >
-            v1 Standard
-          </button>
-          <button
-            type="button"
-            className={`ds-top-pill ${designSystemVersion.version === 'v2' ? 'active' : ''}`}
-            onClick={() => setVersion('v2')}
-          >
-            v2 Mellon
-          </button>
+        <div className="ds-global-control-group">
+          <span className="ds-global-control-label">System</span>
+          <div className="ds-top-switcher-pills">
+            <button type="button" className={`ds-top-pill ${designSystemVersion.version === 'v1' ? 'active' : ''}`} onClick={() => setVersion('v1')}>v1 Standard</button>
+            <button type="button" className={`ds-top-pill ${designSystemVersion.version === 'v2' ? 'active' : ''}`} onClick={() => setVersion('v2')}>v2 Mellon</button>
+          </div>
         </div>
 
         <div className="ds-top-switcher-divider" />
 
-        <Select
-          value={activeTheme || 'custom'}
-          onValueChange={(val) => {
-            if (val !== 'custom') applyPlatformTheme(val);
-          }}
-        >
-          <SelectTrigger className="w-full sm:w-[160px] h-[34px] sm:h-[30px] text-xs font-semibold bg-background">
-            <SelectValue placeholder="Custom Palette" />
-          </SelectTrigger>
-          <SelectContent>
-            {PLATFORM_THEMES.map((t) => (
-              <SelectItem key={t.id} value={t.id} className="text-xs">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-3 h-3 rounded-full border border-border inline-block flex-shrink-0"
-                    style={{ backgroundColor: t.tokens.brand?.primary }}
-                  />
-                  <span>{t.name}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="ds-global-control-group">
+          <span className="ds-global-control-label">Global theme</span>
+          <Select value={activeTheme || 'custom'} onValueChange={(val) => { if (val !== 'custom') applyPlatformTheme(val); }}>
+            <SelectTrigger className="w-full sm:w-[160px] h-[34px] sm:h-[30px] text-xs font-semibold bg-background">
+              <SelectValue placeholder="Custom Palette" />
+            </SelectTrigger>
+            <SelectContent>
+              {PLATFORM_THEMES.map((t) => (
+                <SelectItem key={t.id} value={t.id} className="text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full border border-border inline-block flex-shrink-0" style={{ backgroundColor: t.tokens.brand?.primary }} />
+                    <span>{t.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="ds-top-switcher-divider" />
 
-        <div className="ds-top-switcher-pills">
-          {(['stroke', 'twotone', 'hugeicons'] as const).map((lib) => (
-            <button
-              key={lib}
-              type="button"
-              className={`ds-top-pill ${tokens.iconLibrary === lib ? 'active' : ''}`}
-              onClick={() => updateTokens({ iconLibrary: lib })}
-            >
-              {lib === 'stroke' ? 'Stroke' : lib === 'twotone' ? 'Twotone' : 'Hugeicons'}
-            </button>
-          ))}
+        <div className="ds-global-control-group">
+          <span className="ds-global-control-label">Icon library</span>
+          <div className="ds-top-switcher-pills">
+            {(['stroke', 'twotone', 'hugeicons'] as const).map((lib) => (
+              <button key={lib} type="button" className={`ds-top-pill ${tokens.iconLibrary === lib ? 'active' : ''}`} onClick={() => updateTokens({ iconLibrary: lib })}>
+                {lib === 'stroke' ? 'Stroke' : lib === 'twotone' ? 'Twotone' : 'Hugeicons'}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Opens the same nav below in a drawer — the permanent sidebar is
@@ -950,6 +966,7 @@ export function DesignSystemView() {
           
           {/* Active Section Banner */}
           {currentSectionMeta && (
+            <div className="ds-section-heading-stack">
             <div className="ds-section-hero">
               <FeaturedIcon variant="brand" size="lg" shape="square" className="ds-hero-icon-box">
                 <Icon name={currentSectionMeta.icon} size={20} />
@@ -967,6 +984,19 @@ export function DesignSystemView() {
                   <span>Changes saved live</span>
                 </div>
               )}
+            </div>
+            <nav className="ds-related-sections" aria-label={`${SECTION_GROUPS.find((g) => g.id === currentSectionMeta.group)?.label} settings`}>
+              {relatedSections.map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  className={`ds-related-section ${section.id === activeSection ? 'active' : ''}`}
+                  onClick={() => setActiveSection(section.id)}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </nav>
             </div>
           )}
 

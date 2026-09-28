@@ -7,6 +7,10 @@ import { Icon } from '../../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
+import { Input } from '../../components/ui/input.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { FeaturedIcon } from '../../components/ui/featured-icon.js';
+import { Checkbox } from '../../components/ui/checkbox.js';
 import { Tip } from '../../components/ui/tooltip.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
 import { PageHeader } from '../../components/PageHeader.js';
@@ -22,31 +26,89 @@ import { showPrompt } from '../../lib/prompt.js';
 import { usePdfDocument } from '../cloud/lib/usePdfDocument.js';
 import { PdfPageCanvas } from '../cloud/components/PdfPageCanvas.js';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
+import { useAuth } from '../../hooks/useAuth.js';
 import './Sign.css';
 
 const DETAIL_A4_ASPECT = 1.414; // height/width ratio of A4, same constant SignEditor.tsx uses
 
 type EnvelopeWithRecipients = SignEnvelope & { recipients: SignRecipient[] };
 
+const PER_PAGE = 20;
+
+function Pagination({ total, page, onPage, perPage = PER_PAGE }: { total: number; page: number; onPage: (p: number) => void; perPage?: number }) {
+  const totalPages = Math.ceil(total / perPage);
+  if (totalPages <= 1) return null;
+  const pages: (number | '...')[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (page > 3) pages.push('...');
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+    if (page < totalPages - 2) pages.push('...');
+    pages.push(totalPages);
+  }
+  const btnBase: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 32, height: 32, padding: '0 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', transition: 'background 0.15s' };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center', padding: '16px 0', flexShrink: 0 }}>
+      <button type="button" style={{ ...btnBase, color: page === 1 ? 'var(--ink3)' : 'var(--ink)' }} disabled={page === 1} onClick={() => onPage(page - 1)}>
+        <Icon name="chevronLeft" size={13} />
+      </button>
+      {pages.map((p, i) => p === '...' ? (
+        <span key={`e${i}`} style={{ color: 'var(--ink3)', fontSize: 12.5, padding: '0 4px' }}>…</span>
+      ) : (
+        <button key={p} type="button" onClick={() => onPage(p as number)}
+          style={{ ...btnBase, background: p === page ? 'hsl(var(--primary))' : 'var(--bg)', color: p === page ? 'hsl(var(--primary-foreground))' : 'var(--ink)', borderColor: p === page ? 'hsl(var(--primary))' : 'var(--border)' }}>
+          {p}
+        </button>
+      ))}
+      <button type="button" style={{ ...btnBase, color: page === totalPages ? 'var(--ink3)' : 'var(--ink)' }} disabled={page === totalPages} onClick={() => onPage(page + 1)}>
+        <Icon name="chevronRight" size={13} />
+      </button>
+      <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--ink3)' }}>
+        {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}
+      </span>
+    </div>
+  );
+}
+
+function PerPageSelect({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)' }}>
+      <span>Show</span>
+      <Select value={String(value)} onValueChange={v => onChange(Number(v))}>
+        <SelectTrigger style={{ height: 30, fontSize: 12, padding: '0 8px', width: 72 }}><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {[10, 20, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <span>per page</span>
+    </div>
+  );
+}
+
 const VIEW_TABS = [
-  { key: 'inbox',     label: 'Inbox',     icon: 'download'  as const,
-    subtitle: 'Sent to you by someone else — waiting on your signature.' },
-  { key: 'sent',      label: 'Sent',      icon: 'send'      as const,
-    subtitle: 'Everything you’ve sent out, at every stage from just-sent to fully signed.' },
-  { key: 'drafts',    label: 'Drafts',    icon: 'fileText'  as const,
+  { key: 'documents', label: 'Documents',    icon: 'fileText'    as const,
+    subtitle: 'All your envelopes — created, sent, received and completed — in one place.' },
+  { key: 'inbox',     label: 'My Inbox',     icon: 'download'    as const,
+    emWord: 'inbox', titlePlain: 'My',
+    subtitle: 'Documents requiring your signature, approval, or other action.' },
+  { key: 'sent',      label: 'Sent',         icon: 'send'        as const,
+    subtitle: 'Everything you have sent out, at every stage from just-sent to fully signed.' },
+  { key: 'drafts',    label: 'Drafts',       icon: 'edit'        as const,
     subtitle: 'Still being prepared on your side — not sent to anyone yet.' },
-  { key: 'completed', label: 'Completed', icon: 'checkCircle' as const,
+  { key: 'completed', label: 'Completed',    icon: 'checkCircle' as const,
     subtitle: 'Every recipient has signed. Fully executed and locked.' },
   // Voided and Declined used to share the same xCircle icon — both mean
   // "this didn't get signed," but for opposite reasons (you cancelled it
   // vs. a signer refused it), so they need distinct icons and copy that
   // actually says who stopped it and why — that's the exact distinction
   // a first-time user can't tell from the label alone.
-  { key: 'voided',    label: 'Voided',    icon: 'xCircle'   as const,
+  { key: 'voided',    label: 'Voided',       icon: 'xCircle'     as const,
     subtitle: 'You (the sender) cancelled these before everyone finished signing.' },
-  { key: 'declined',  label: 'Declined',  icon: 'userMinus' as const,
+  { key: 'declined',  label: 'Declined',     icon: 'userMinus'   as const,
     subtitle: 'A signer refused to sign — the envelope stopped because of them, not you.' },
-  { key: 'expired',   label: 'Expired',   icon: 'clock'     as const,
+  { key: 'expired',   label: 'Expired',      icon: 'clock'       as const,
     subtitle: 'Nobody cancelled or declined these — they just passed their signing deadline first.' },
 ] as const;
 type ViewKey = typeof VIEW_TABS[number]['key'];
@@ -100,18 +162,14 @@ function RecipientAvatarStack({ recipients, size, max }: { recipients: SignRecip
   );
 }
 
-function EnvelopeCard({ env, onClick, selected, onToggleSelect }: { env: EnvelopeWithRecipients; onClick: () => void; selected: boolean; onToggleSelect: (evt: React.MouseEvent) => void }) {
+function EnvelopeCard({ env, onClick, selected, onToggleSelect, signUrl }: { env: EnvelopeWithRecipients; onClick: () => void; selected: boolean; onToggleSelect: (evt: React.MouseEvent) => void; signUrl?: string | null }) {
   const signerCount = env.recipients?.length ?? 0;
   const signedCount = env.recipients?.filter(r => r.status === 'signed').length ?? 0;
 
   return (
     <div className="sign-envelope-card" onClick={onClick} role="button" tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && onClick()} style={{ position: 'relative' }}>
-      <div onClick={onToggleSelect} role="checkbox" aria-checked={selected} tabIndex={0}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onToggleSelect(e as any); } }}
-        style={{ position: 'absolute', top: 10, right: 10, width: 18, height: 18, borderRadius: 4, border: `1.5px solid ${selected ? 'var(--teal)' : 'var(--border)'}`, background: selected ? 'var(--teal)' : 'var(--card-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-        {selected && <Icon name="check" size={11} color="#fff" />}
-      </div>
+      <Checkbox checked={selected} aria-label={`Select ${env.title}`} onClick={onToggleSelect} className="sign-envelope-select" />
       <div className="sign-envelope-icon"><Icon name="fileText" size={20} style={{ color: 'var(--teal)' }} /></div>
       <div className="sign-envelope-meta">
         <div className="sign-envelope-title">{env.title}</div>
@@ -128,6 +186,14 @@ function EnvelopeCard({ env, onClick, selected, onToggleSelect }: { env: Envelop
             <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
               {signedCount}/{signerCount} signed
             </span>
+          </div>
+        )}
+        {signUrl && (
+          <div style={{ marginTop: 10 }} onClick={e => e.stopPropagation()}>
+            <Button size="sm" onClick={e => { e.stopPropagation(); window.open(signUrl, '_blank', 'noopener'); }}
+              style={{ width: '100%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700 }}>
+              <Icon name="edit" size={13} /> Sign Now
+            </Button>
           </div>
         )}
       </div>
@@ -148,11 +214,7 @@ function EnvelopeRow({ env, onClick, selected, onToggleSelect }: { env: Envelope
   return (
     <tr onClick={onClick} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onClick()} style={{ cursor: 'pointer' }}>
       <td style={{ width: 34 }} onClick={onToggleSelect}>
-        <div role="checkbox" aria-checked={selected} tabIndex={0}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onToggleSelect(e as any); } }}
-          style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${selected ? 'var(--teal)' : 'var(--border)'}`, background: selected ? 'var(--teal)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {selected && <Icon name="check" size={10} color="#fff" />}
-        </div>
+        <Checkbox checked={selected} aria-label={`Select ${env.title}`} onClick={onToggleSelect} />
       </td>
       <td>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -181,12 +243,68 @@ function EnvelopeRow({ env, onClick, selected, onToggleSelect }: { env: Envelope
   );
 }
 
+/** Inbox-specific row: replaces generic EnvelopeRow for view==="inbox".
+ *  Shows Sent By (PersonAvatar), my recipient status, and a direct "Sign Now" CTA. */
+function InboxEnvelopeRow({ env, userId, onClick }: { env: EnvelopeWithRecipients; userId: string | undefined; onClick: () => void }) {
+  const myR = env.recipients?.find(r => r.user_id === userId || r.matched_user_id === userId);
+  const signUrl = myR?.token ? `/sign/public/${myR.token}` : null;
+  const canSign = myR?.status === 'pending' || myR?.status === 'viewed';
+  return (
+    <tr onClick={onClick} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onClick()} style={{ cursor: 'pointer' }}>
+      <td>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="sign-envelope-row-icon"><Icon name="fileText" size={14} style={{ color: 'var(--teal)' }} /></div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.title}</div>
+            {env.file_name && (
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <Icon name="paperclip" size={10} /> {env.file_name}
+              </div>
+            )}
+          </div>
+        </div>
+      </td>
+      <td>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <PersonAvatar userId={env.created_by} name={env.created_by_name ?? ''} size={26} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.created_by_name ?? 'Unknown'}</div>
+            <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(env.updated_at).toLocaleDateString()}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        {myR ? (
+          <div>
+            <Badge variant={recipientBadgeVariant(myR.status)}>
+              {myR.status === 'pending' ? 'Awaiting' : myR.status}
+            </Badge>
+            {myR.role_label && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{myR.role_label}</div>}
+          </div>
+        ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
+      </td>
+      <td style={{ textAlign: 'right', paddingRight: 12 }} onClick={e => e.stopPropagation()}>
+        {canSign && signUrl ? (
+          <Button size="sm" onClick={() => window.open(signUrl, '_blank', 'noopener')}
+            style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, gap: 5 }}>
+            <Icon name="edit" size={13} /> Sign Now
+          </Button>
+        ) : myR?.status === 'signed' ? (
+          <Badge variant="success">Signed</Badge>
+        ) : null}
+      </td>
+    </tr>
+  );
+}
+
 type ViewMode = 'list' | 'grid';
 
 export function SignInbox({ view }: { view: ViewKey }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [envelopes, setEnvelopes] = useState<EnvelopeWithRecipients[]>([]);
   const [loading, setLoading] = useState(true);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [search, setSearch] = useState('');
   // Debounced so every keystroke doesn't fire its own request — real
   // Postgres full-text search (migration 463) replaces what used to be an
@@ -195,6 +313,10 @@ export function SignInbox({ view }: { view: ViewKey }) {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+
+  useEffect(() => {
+    apiFetch('/v1/sign/envelopes/counts').then(setCounts).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -263,65 +385,100 @@ export function SignInbox({ view }: { view: ViewKey }) {
   // rendered below.
   const filtered = envelopes;
   const currentTab = VIEW_TABS.find(t => t.key === view);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
+  // Reset to page 1 whenever the filtered set or per-page changes.
+  useEffect(() => { setPage(1); }, [view, debouncedSearch, perPage]);
+  const pageItems = useMemo(() => filtered.slice((page - 1) * perPage, page * perPage), [filtered, page, perPage]);
 
-  // Compute live metrics for KPI cards row matching standard format
-  const stats = useMemo(() => {
-    const total = envelopes.length;
-    const drafts = envelopes.filter(e => e.status === 'draft').length;
-    const sent = envelopes.filter(e => e.status === 'sent').length;
-    const completed = envelopes.filter(e => e.status === 'completed').length;
-    const pendingSign = envelopes.filter(e => e.recipients?.some(r => r.status === 'pending')).length;
-    const anchored = envelopes.filter(e => e.anchor_status === 'confirmed').length;
-    return { total, drafts, sent, completed, pendingSign, anchored };
-  }, [envelopes]);
+  function toggleAllVisible(checked: boolean) {
+    setSelected(previous => {
+      const next = new Set(previous);
+      pageItems.forEach(envelope => checked ? next.add(envelope.id) : next.delete(envelope.id));
+      return next;
+    });
+  }
+
+  // Inbox metrics — how many of my items are pending/viewed/signed
+  const inboxMetrics = useMemo(() => {
+    if (view !== 'inbox') return null;
+    const pending = filtered.filter(e => e.recipients?.find(r => (r.user_id === user?.id || r.matched_user_id === user?.id) && r.status === 'pending')).length;
+    const viewed  = filtered.filter(e => e.recipients?.find(r => (r.user_id === user?.id || r.matched_user_id === user?.id) && r.status === 'viewed')).length;
+    const signed  = filtered.filter(e => e.recipients?.find(r => (r.user_id === user?.id || r.matched_user_id === user?.id) && r.status === 'signed')).length;
+    return { pending, viewed, signed };
+  }, [view, filtered, user?.id]);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="sign-inbox-page">
       <PageHeader
         crumbs={['eSign', (currentTab?.label ?? view).toUpperCase()]}
-        titlePlain="eSign"
-        titleEm={`${(currentTab?.label ?? view).toLowerCase()}.`}
+        titlePlain={(currentTab as any)?.titlePlain ?? 'eSign'}
+        titleEm={(currentTab as any)?.emWord ?? (currentTab?.label ?? view).toLowerCase()}
         subtitle={currentTab?.subtitle ?? 'Send documents for signature, track every recipient, and verify completed envelopes.'}
+        actions={view !== 'inbox' ? (
+          <Button onClick={() => navigate('/sign/editor')}>
+            <Icon name="plus" size={14} /> New envelope
+          </Button>
+        ) : undefined}
       />
 
-      {/* KPI Metrics Row */}
-      {!loading && envelopes.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <MetricsRow cards={[
-            {
-              title: 'TOTAL ENVELOPES', value: String(stats.total),
-              sub1Label: 'DRAFT', sub1Value: String(stats.drafts),
-              sub2Label: 'SENT', sub2Value: String(stats.sent), barHighlight: 'var(--teal)',
-            },
-            {
-              title: 'PENDING ACTION', value: String(stats.sent + stats.drafts),
-              sub1Label: 'AWAITING SIGNATURE', sub1Value: String(stats.pendingSign),
-              sub2Label: 'OUT FOR SIGNING', sub2Value: String(stats.sent), barHighlight: 'var(--gold)',
-            },
-            {
-              title: 'COMPLETED & VERIFIED', value: String(stats.completed),
-              sub1Label: 'COMPLETED', sub1Value: String(stats.completed),
-              sub2Label: 'BITCOIN ANCHORED', sub2Value: String(stats.anchored), barHighlight: 'var(--green)',
-            },
-          ]} />
+      {/* Inbox metrics strip — only shown when there is something to act on */}
+      {view === 'inbox' && !loading && filtered.length > 0 && inboxMetrics && (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+          {inboxMetrics.pending > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '7px 14px', fontSize: 12.5 }}>
+              <Icon name="clock" size={14} style={{ color: 'var(--gold)' }} />
+              <strong style={{ color: 'var(--gold)', fontSize: 16, lineHeight: 1 }}>{inboxMetrics.pending}</strong>
+              <span style={{ color: 'var(--ink2)' }}>awaiting my action</span>
+            </div>
+          )}
+          {inboxMetrics.viewed > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--blue-l)', border: '1px solid var(--blue)', borderRadius: 'var(--r)', padding: '7px 14px', fontSize: 12.5 }}>
+              <Icon name="eye" size={14} style={{ color: 'var(--blue)' }} />
+              <strong style={{ color: 'var(--blue)', fontSize: 16, lineHeight: 1 }}>{inboxMetrics.viewed}</strong>
+              <span style={{ color: 'var(--ink2)' }}>opened, not yet signed</span>
+            </div>
+          )}
+          {inboxMetrics.signed > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', padding: '7px 14px', fontSize: 12.5 }}>
+              <Icon name="checkCircle" size={14} style={{ color: 'var(--green)' }} />
+              <strong style={{ color: 'var(--green)', fontSize: 16, lineHeight: 1 }}>{inboxMetrics.signed}</strong>
+              <span style={{ color: 'var(--ink2)' }}>signed by me</span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Filter Navigation Pills & Action Toolbar matching standard format */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-        <Tabs value={view} onValueChange={(v) => navigate(v === 'inbox' ? '/sign' : `/sign/${v}`)} variant="segmented">
-        <TabsList>
-          {VIEW_TABS.map(tab => {
-            return (
-              <TabsTrigger key={tab.key} value={tab.key}>
-                {tab.label}
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
-        </Tabs>
+      <section className="sign-inbox-panel" aria-label={`${currentTab?.label ?? view} envelopes`}>
+        <div className="sign-inbox-toolbar">
+          <div className="sign-inbox-tabs-scroll">
+            <Tabs value={view} onValueChange={(v) => navigate(v === 'documents' ? '/sign' : `/sign/${v}`)} variant="segmented">
+              <TabsList>
+                {VIEW_TABS.map(tab => {
+                  const count = counts[tab.key] ?? 0;
+                  return (
+                    <TabsTrigger key={tab.key} value={tab.key}>
+                      {tab.label}
+                      {count > 0 && <span className="sign-inbox-tab-count">{count}</span>}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </Tabs>
+          </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="sign-inbox-tools">
+            <div className="sign-inbox-search">
+              <Icon name="search" size={14} aria-hidden="true" />
+              <Input
+                type="search"
+                placeholder="Search envelopes…"
+                value={search}
+                onChange={event => setSearch(event.target.value)}
+                aria-label="Search envelopes"
+              />
+            </div>
+            <PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />
           <div className="sign-view-toggle">
             {(['list', 'grid'] as const).map(m => (
               <Tip key={m} label={m === 'list' ? 'List view' : 'Grid view'}>
@@ -332,19 +489,6 @@ export function SignInbox({ view }: { view: ViewKey }) {
               </Tip>
             ))}
           </div>
-
-          <div style={{ position: 'relative', width: 240 }}>
-            <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
-            <input
-              type="search" placeholder="Search envelopes..." value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px 8px 34px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, padding: '8px 16px' }}>
-            <Icon name="plus" size={14} /> New Envelope
-          </Button>
         </div>
       </div>
 
@@ -353,22 +497,26 @@ export function SignInbox({ view }: { view: ViewKey }) {
           per-item skip reasons (e.g. a completed envelope can't be voided),
           surfaced via the summary alert after the batch runs. */}
       {selected.size > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 14px', marginBottom: 12, borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal)' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--teal-deep)' }}>{selected.size} selected</span>
-          <Button variant="outline" disabled={bulkBusy} onClick={() => bulkAction('remind')} style={{ padding: '5px 12px', fontSize: 12.5 }}>
-            <Icon name="bell" size={13} /> Remind
-          </Button>
-          <Button variant="outline" disabled={bulkBusy} onClick={() => bulkAction('void')} style={{ padding: '5px 12px', fontSize: 12.5, color: 'var(--red)' }}>
-            <Icon name="xCircle" size={13} /> Void
-          </Button>
-          <button type="button" onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12.5, cursor: 'pointer' }}>
+        <div className="sign-inbox-bulk" role="status">
+          <span>{selected.size} selected</span>
+          {view !== 'inbox' && (
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => bulkAction('remind')}>
+              <Icon name="bell" size={13} /> Remind
+            </Button>
+          )}
+          {view !== 'inbox' && (
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => bulkAction('void')} className="sign-inbox-void-btn">
+              <Icon name="xCircle" size={13} /> Void
+            </Button>
+          )}
+          <Button type="button" size="sm" variant="ghost" onClick={() => setSelected(new Set())} className="sign-inbox-clear-btn">
             Clear
-          </button>
+          </Button>
         </div>
       )}
 
       {/* List / grid */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
+      <div className="sign-inbox-content">
         {loading ? (
           <div className={viewMode === 'grid' ? 'sign-envelope-grid' : 'sign-envelope-list'}>
             {Array.from({ length: viewMode === 'grid' ? 6 : 8 }).map((_, i) => (
@@ -376,56 +524,98 @@ export function SignInbox({ view }: { view: ViewKey }) {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 280, gap: 12, color: 'var(--ink3)', textAlign: 'center', padding: 32 }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
-              <Icon name="edit" size={24} style={{ color: 'var(--ink3)', opacity: 0.6 }} />
+          <div className="sign-inbox-empty">
+            <FeaturedIcon variant={view === 'inbox' ? 'success' : 'gray'} size="lg" shape="circle">
+              <Icon name={view === 'inbox' ? 'checkCircle' : 'edit'} size={22} />
+            </FeaturedIcon>
+            <div className="sign-inbox-empty-title">
+              {search ? 'No matching envelopes'
+                : view === 'inbox' ? 'All clear — nothing waiting for you'
+                : view === 'drafts' ? 'No drafts yet'
+                : `No ${view} envelopes`}
             </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
-              {search ? 'No matching envelopes' : view === 'inbox' ? 'Nothing waiting for your signature' : view === 'drafts' ? 'No drafts' : `No ${view} envelopes`}
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--ink3)', maxWidth: 340, lineHeight: 1.5 }}>
+            <div className="sign-inbox-empty-copy">
               {search ? 'Try adjusting your search terms.'
-                : view === 'inbox' ? 'When someone sends you a document to sign, it will appear here.'
+                : view === 'inbox' ? 'When someone sends you a document to sign or approve, it will land here.'
                 : view === 'voided' ? 'Envelopes only land here once you cancel one yourself — nothing to show yet.'
                 : view === 'declined' ? 'This fills up if a signer ever refuses to sign — nothing here means everyone has signed so far.'
                 : view === 'expired' ? 'Envelopes land here only after their deadline passes unsigned — none have yet.'
                 : 'Create a new envelope to get started.'}
             </div>
             {view !== 'inbox' && !search && (
-              <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ marginTop: 8 }}>
-                <Icon name="plus" size={14} /> Create Envelope
+              <Button onClick={() => navigate('/sign/editor')}>
+                <Icon name="plus" size={14} /> Create envelope
               </Button>
             )}
           </div>
         ) : viewMode === 'grid' ? (
-          <div className="sign-envelope-grid">
-            {filtered.map(env => (
-              <EnvelopeCard key={env.id} env={env} onClick={() => navigate(`/sign/envelope/${env.id}`)}
-                selected={selected.has(env.id)} onToggleSelect={evt => toggleSelect(env.id, evt)} />
-            ))}
-          </div>
+          <>
+            <div className="sign-envelope-grid">
+              {pageItems.map(env => {
+                const myR = view === 'inbox'
+                  ? env.recipients?.find(r => r.user_id === user?.id || r.matched_user_id === user?.id)
+                  : null;
+                const signUrl = (myR?.status === 'pending' || myR?.status === 'viewed') && myR?.token
+                  ? `/sign/public/${myR.token}` : null;
+                return (
+                  <EnvelopeCard key={env.id} env={env} onClick={() => navigate(`/sign/envelope/${env.id}`)}
+                    selected={selected.has(env.id)} onToggleSelect={evt => toggleSelect(env.id, evt)}
+                    signUrl={signUrl} />
+                );
+              })}
+            </div>
+            <Pagination total={filtered.length} page={page} onPage={setPage} perPage={perPage} />
+          </>
         ) : (
-          <div className="rtbl-wrap">
-            <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
-              <thead>
-                <tr>
-                  <th style={{ width: 34 }} />
-                  <th>Document</th>
-                  <th>Status</th>
-                  <th>Recipients</th>
-                  <th style={{ textAlign: 'right' }}>Updated</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(env => (
-                  <EnvelopeRow key={env.id} env={env} onClick={() => navigate(`/sign/envelope/${env.id}`)}
-                    selected={selected.has(env.id)} onToggleSelect={evt => toggleSelect(env.id, evt)} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className="rtbl-wrap sign-inbox-table-wrap">
+              <table className="rtbl sign-inbox-table">
+                <thead>
+                  {view === 'inbox' ? (
+                    <tr>
+                      <th>Document</th>
+                      <th>Sent By</th>
+                      <th>My Status</th>
+                      <th style={{ textAlign: 'right' }}>Action</th>
+                    </tr>
+                  ) : (
+                    <tr>
+                      <th style={{ width: 42 }}>
+                        <Checkbox
+                          checked={pageItems.length > 0 && pageItems.every(envelope => selected.has(envelope.id))
+                            ? true
+                            : pageItems.some(envelope => selected.has(envelope.id)) ? 'indeterminate' : false}
+                          onCheckedChange={checked => toggleAllVisible(checked === true)}
+                          aria-label="Select all visible envelopes"
+                        />
+                      </th>
+                      <th>Document</th>
+                      <th>Status</th>
+                      <th>Recipients</th>
+                      <th style={{ textAlign: 'right' }}>Updated</th>
+                    </tr>
+                  )}
+                </thead>
+                <tbody>
+                  {view === 'inbox' ? (
+                    pageItems.map(env => (
+                      <InboxEnvelopeRow key={env.id} env={env} userId={user?.id}
+                        onClick={() => navigate(`/sign/envelope/${env.id}`)} />
+                    ))
+                  ) : (
+                    pageItems.map(env => (
+                      <EnvelopeRow key={env.id} env={env} onClick={() => navigate(`/sign/envelope/${env.id}`)}
+                        selected={selected.has(env.id)} onToggleSelect={evt => toggleSelect(env.id, evt)} />
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <Pagination total={filtered.length} page={page} onPage={setPage} perPage={perPage} />
+          </>
         )}
       </div>
+      </section>
     </div>
   );
 }
@@ -662,6 +852,7 @@ export function SignEnvelopeDetail() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showBillModal, setShowBillModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedRecipientId, setCopiedRecipientId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -712,6 +903,24 @@ export function SignEnvelopeDetail() {
     navigator.clipboard?.writeText(env.verification_code);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
+  }
+
+  async function handleCopySigningLink(recipientId: string, token: string) {
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard access is not available in this browser.');
+      await navigator.clipboard.writeText(`${window.location.origin}/sign/public/${token}`);
+      setCopiedRecipientId(recipientId);
+      window.setTimeout(() => setCopiedRecipientId(current => current === recipientId ? null : current), 2000);
+      showAlert('The recipient signing link is ready to paste.', {
+        title: 'Signing link copied',
+        variant: 'success',
+      });
+    } catch (error: unknown) {
+      showAlert(error instanceof Error ? error.message : 'The signing link could not be copied.', {
+        title: 'Could not copy link',
+        variant: 'error',
+      });
+    }
   }
 
   async function handleRename() {
@@ -943,7 +1152,7 @@ export function SignEnvelopeDetail() {
           role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/sign/envelope/${env.next_version!.id}`); } }}
           style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '12px 18px', fontSize: 13, color: 'var(--ink)' }}>
           <Icon name="gitBranch" size={16} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
-          <span>This signed document is unchanged, but it’s been superseded by <strong>Version {env.next_version.version_number}</strong> ({env.next_version.status})</span>
+          <span>This signed document is unchanged, but it's been superseded by <strong>Version {env.next_version.version_number}</strong> ({env.next_version.status})</span>
           <Icon name="chevronRight" size={14} style={{ marginLeft: 'auto', color: 'var(--gold)' } as React.CSSProperties} />
         </div>
       )}
@@ -1157,8 +1366,9 @@ export function SignEnvelopeDetail() {
                           </Button>
                         </Tip>
                       )}
-                      <Button variant="outline" size="xs" onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/sign/public/${r.token}`); showAlert('Signing link copied'); }}>
-                        Copy Link
+                      <Button variant="outline" size="xs" onClick={() => void handleCopySigningLink(r.id, r.token)}>
+                        <Icon name={copiedRecipientId === r.id ? 'check' : 'copy'} size={11} />
+                        {copiedRecipientId === r.id ? 'Copied' : 'Copy Link'}
                       </Button>
                     </div>
                   </div>
@@ -1283,16 +1493,183 @@ export function SignEnvelopeDetail() {
 // its one page.
 type AdminEnvelope = EnvelopeWithRecipients & { owner: { name: string; email: string } | null };
 
+export function SignDocuments() {
+  const navigate = useNavigate();
+  const [envelopes, setEnvelopes] = useState<EnvelopeWithRecipients[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      apiFetch('/v1/sign/envelopes?view=mine&limit=200'),
+      apiFetch('/v1/sign/envelopes/counts'),
+    ]).then(([envs, cnts]) => {
+      setEnvelopes(envs);
+      setCounts(cnts);
+    }).catch(console.error).finally(() => setLoading(false));
+  }, []);
+
+  const stats = useMemo(() => {
+    const total = envelopes.length;
+    const sent = envelopes.filter(e => e.status === 'sent').length;
+    const completed = envelopes.filter(e => e.status === 'completed').length;
+    const drafts = envelopes.filter(e => e.status === 'draft').length;
+    return { total, sent, completed, drafts };
+  }, [envelopes]);
+
+  useEffect(() => { setPage(1); }, [perPage]);
+  const pageItems = useMemo(() => envelopes.slice((page - 1) * perPage, page * perPage), [envelopes, page, perPage]);
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <PageHeader
+        crumbs={['eSign', 'DOCUMENTS']}
+        titlePlain="eSign"
+        titleEm="documents"
+        subtitle="All your envelopes — created, sent, received and completed — in one place."
+        actions={
+          <Button variant="default" onClick={() => navigate('/sign/editor')}
+            style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, padding: '8px 16px' }}>
+            <Icon name="plus" size={14} /> New Envelope
+          </Button>
+        }
+      />
+
+      {!loading && envelopes.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <MetricsRow cards={[
+            {
+              title: 'TOTAL ENVELOPES', value: String(stats.total),
+              sub1Label: 'SENT', sub1Value: String(stats.sent),
+              sub2Label: 'DRAFTS', sub2Value: String(stats.drafts), barHighlight: 'var(--teal)',
+            },
+            {
+              title: 'NEEDS MY SIGNATURE', value: String(counts.inbox ?? 0),
+              sub1Label: 'PENDING', sub1Value: String(counts.inbox ?? 0),
+              sub2Label: 'COMPLETED', sub2Value: String(stats.completed), barHighlight: 'var(--gold)',
+            },
+            {
+              title: 'COMPLETED', value: String(stats.completed),
+              sub1Label: 'VOIDED', sub1Value: String(counts.voided ?? 0),
+              sub2Label: 'DECLINED', sub2Value: String(counts.declined ?? 0), barHighlight: 'var(--green)',
+            },
+          ]} />
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+        <Tabs value="documents" onValueChange={(v) => navigate(v === 'documents' ? '/sign' : `/sign/${v}`)} variant="segmented">
+          <TabsList>
+            {VIEW_TABS.map(tab => {
+              const count = counts[tab.key] ?? 0;
+              return (
+                <TabsTrigger key={tab.key} value={tab.key}>
+                  {tab.label}
+                  {count > 0 && (
+                    <span style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 10, fontSize: 10.5, fontWeight: 700, padding: '1px 6px', minWidth: 18, textAlign: 'center', marginLeft: 4, lineHeight: 1.4 }}>
+                      {count}
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </Tabs>
+        <PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20, display: 'flex', flexDirection: 'column' }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} style={{ height: 46, borderRadius: 'var(--r)', background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
+            ))}
+          </div>
+        ) : envelopes.length === 0 ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 280, gap: 12, color: 'var(--ink3)', textAlign: 'center', padding: 32 }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+              <Icon name="fileText" size={24} style={{ color: 'var(--ink3)', opacity: 0.6 }} />
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>No documents yet</div>
+            <div style={{ fontSize: 13, color: 'var(--ink3)', maxWidth: 340, lineHeight: 1.5 }}>
+              Create your first envelope to send a document for signature.
+            </div>
+            <Button variant="default" onClick={() => navigate('/sign/editor')}
+              style={{ marginTop: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
+              <Icon name="plus" size={14} /> Create Envelope
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="rtbl-wrap">
+              <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
+                <thead>
+                  <tr>
+                    <th>Document</th>
+                    <th>Status</th>
+                    <th>Recipients</th>
+                    <th style={{ textAlign: 'right' }}>Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageItems.map(env => {
+                    const signerCount = env.recipients?.length ?? 0;
+                    const signedCount = env.recipients?.filter(r => r.status === 'signed').length ?? 0;
+                    return (
+                      <tr key={env.id} onClick={() => navigate(`/sign/envelope/${env.id}`)} role="button" tabIndex={0}
+                        onKeyDown={e => e.key === 'Enter' && navigate(`/sign/envelope/${env.id}`)} style={{ cursor: 'pointer' }}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div className="sign-envelope-row-icon"><Icon name="fileText" size={14} style={{ color: 'var(--teal)' }} /></div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.title}</div>
+                              {env.file_name && (
+                                <div style={{ fontSize: 11.5, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  <Icon name="paperclip" size={10} /> {env.file_name}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td><Badge variant={envelopeBadgeVariant(env.status)}>{env.status}</Badge></td>
+                        <td>
+                          {signerCount > 0 ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <RecipientAvatarStack recipients={env.recipients} size={20} max={4} />
+                              <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{signedCount}/{signerCount} signed</span>
+                            </div>
+                          ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
+                        </td>
+                        <td style={{ textAlign: 'right', color: 'var(--ink3)', fontSize: 12.5, whiteSpace: 'nowrap' }}>{new Date(env.updated_at).toLocaleDateString()}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Pagination total={envelopes.length} page={page} onPage={setPage} perPage={perPage} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function SignAllDocuments() {
   const navigate = useNavigate();
   const [envelopes, setEnvelopes] = useState<AdminEnvelope[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | AdminEnvelope['status']>('all');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
 
   useEffect(() => {
     setLoading(true);
-    apiFetch('/v1/sign/envelopes?view=all')
+    apiFetch('/v1/sign/envelopes?view=all&limit=200')
       .then(setEnvelopes).catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -1301,6 +1678,9 @@ export function SignAllDocuments() {
     (statusFilter === 'all' || e.status === statusFilter) &&
     (!search || e.title.toLowerCase().includes(search.toLowerCase()) || e.owner?.name.toLowerCase().includes(search.toLowerCase()))
   );
+
+  useEffect(() => { setPage(1); }, [statusFilter, search, perPage]);
+  const pageItems = useMemo(() => filtered.slice((page - 1) * perPage, page * perPage), [filtered, page, perPage]);
 
   // Same tenant-wide stats shape SignInbox's MetricsRow already establishes
   // for the personal Inbox/Sent/Drafts views — this admin oversight page
@@ -1353,17 +1733,20 @@ export function SignAllDocuments() {
             ))}
           </TabsList>
         </Tabs>
-        <div style={{ position: 'relative', width: '100%', maxWidth: 320, marginLeft: 'auto' }}>
-          <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
-          <input
-            type="search" placeholder="Search by title or owner…" value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '9px 14px 9px 34px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, outline: 'none', boxSizing: 'border-box' }}
-          />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
+          <PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />
+          <div style={{ position: 'relative', width: 260 }}>
+            <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
+            <input
+              type="search" placeholder="Search by title or owner…" value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ width: '100%', padding: '9px 14px 9px 34px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20, display: 'flex', flexDirection: 'column' }}>
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {Array.from({ length: 8 }).map((_, i) => (
@@ -1371,71 +1754,74 @@ export function SignAllDocuments() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 280, gap: 12, color: 'var(--ink3)', textAlign: 'center', padding: 32 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 280, gap: 12, color: 'var(--ink3)', textAlign: 'center', padding: 32 }}>
             <Icon name="users" size={28} style={{ opacity: 0.4 }} />
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{search ? 'No matching documents' : 'No documents yet'}</div>
           </div>
         ) : (
-          <div className="rtbl-wrap">
-            <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
-              <thead>
-                <tr>
-                  <th>Document</th>
-                  <th>Owner</th>
-                  <th>Status</th>
-                  <th>Recipients</th>
-                  <th style={{ textAlign: 'right' }}>Updated</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(env => {
-                  const signerCount = env.recipients?.length ?? 0;
-                  const signedCount = env.recipients?.filter(r => r.status === 'signed').length ?? 0;
-                  return (
-                    <tr key={env.id} onClick={() => navigate(`/sign/envelope/${env.id}`)} role="button" tabIndex={0}
-                      onKeyDown={e => e.key === 'Enter' && navigate(`/sign/envelope/${env.id}`)} style={{ cursor: 'pointer' }}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div className="sign-envelope-row-icon"><Icon name="fileText" size={14} style={{ color: 'var(--teal)' }} /></div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.title}</div>
-                            {env.file_name && (
-                              <div style={{ fontSize: 11.5, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                <Icon name="paperclip" size={10} /> {env.file_name}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        {env.owner ? (
-                          <Tip label={`${env.owner.name} — ${env.owner.email}`}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                              <PersonAvatar userId={env.created_by} name={env.owner.name} size={26} />
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.owner.name}</div>
-                                <div style={{ fontSize: 11, color: 'var(--ink3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.owner.email}</div>
-                              </div>
+          <>
+            <div className="rtbl-wrap">
+              <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
+                <thead>
+                  <tr>
+                    <th>Document</th>
+                    <th>Owner</th>
+                    <th>Status</th>
+                    <th>Recipients</th>
+                    <th style={{ textAlign: 'right' }}>Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageItems.map(env => {
+                    const signerCount = env.recipients?.length ?? 0;
+                    const signedCount = env.recipients?.filter(r => r.status === 'signed').length ?? 0;
+                    return (
+                      <tr key={env.id} onClick={() => navigate(`/sign/envelope/${env.id}`)} role="button" tabIndex={0}
+                        onKeyDown={e => e.key === 'Enter' && navigate(`/sign/envelope/${env.id}`)} style={{ cursor: 'pointer' }}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div className="sign-envelope-row-icon"><Icon name="fileText" size={14} style={{ color: 'var(--teal)' }} /></div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.title}</div>
+                              {env.file_name && (
+                                <div style={{ fontSize: 11.5, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  <Icon name="paperclip" size={10} /> {env.file_name}
+                                </div>
+                              )}
                             </div>
-                          </Tip>
-                        ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
-                      </td>
-                      <td><Badge variant={envelopeBadgeVariant(env.status)}>{env.status}</Badge></td>
-                      <td>
-                        {signerCount > 0 ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <RecipientAvatarStack recipients={env.recipients} size={20} max={4} />
-                            <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{signedCount}/{signerCount} signed</span>
                           </div>
-                        ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
-                      </td>
-                      <td style={{ textAlign: 'right', color: 'var(--ink3)', fontSize: 12.5, whiteSpace: 'nowrap' }}>{new Date(env.updated_at).toLocaleDateString()}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                        <td>
+                          {env.owner ? (
+                            <Tip label={`${env.owner.name} — ${env.owner.email}`}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                <PersonAvatar userId={env.created_by} name={env.owner.name} size={26} />
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.owner.name}</div>
+                                  <div style={{ fontSize: 11, color: 'var(--ink3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.owner.email}</div>
+                                </div>
+                              </div>
+                            </Tip>
+                          ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
+                        </td>
+                        <td><Badge variant={envelopeBadgeVariant(env.status)}>{env.status}</Badge></td>
+                        <td>
+                          {signerCount > 0 ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <RecipientAvatarStack recipients={env.recipients} size={20} max={4} />
+                              <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{signedCount}/{signerCount} signed</span>
+                            </div>
+                          ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
+                        </td>
+                        <td style={{ textAlign: 'right', color: 'var(--ink3)', fontSize: 12.5, whiteSpace: 'nowrap' }}>{new Date(env.updated_at).toLocaleDateString()}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Pagination total={filtered.length} page={page} onPage={setPage} perPage={perPage} />
+          </>
         )}
       </div>
     </div>

@@ -387,7 +387,7 @@ export async function billRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('recurring_bills').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Recurring bill not found' });
-      await trx.deleteFrom('recurring_bills').where('id', '=', id).execute();
+      await trx.deleteFrom('recurring_bills').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { success: true };
     });
   });
@@ -575,7 +575,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       if (bill.status !== 'PENDING_APPROVAL') return reply.status(409).send({ error: 'This bill is not pending approval.' });
       if (!bill.approval_workflow_id) return reply.status(409).send({ error: 'This bill has no resolved approval workflow.' });
 
-      const workflow = await trx.selectFrom('ap_approval_workflows').selectAll().where('id', '=', bill.approval_workflow_id).executeTakeFirst();
+      const workflow = await trx.selectFrom('ap_approval_workflows').selectAll().where('id', '=', bill.approval_workflow_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!workflow) return reply.status(404).send({ error: 'The approval workflow for this bill no longer exists.' });
       if (!canActOnWorkflow(workflow, user.sub)) return reply.status(403).send({ error: `Only ${workflow.name}'s named approver or backup may approve this bill.` });
 
@@ -592,7 +592,7 @@ export async function billRoutes(fastify: FastifyInstance) {
 
       const updated = await trx.updateTable('supplier_bills')
         .set({ status: 'POSTED', approved_by: user.sub, approved_at: new Date(), updated_at: new Date() })
-        .where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
 
       AccountingIntegrationService.syncBill(user.tenant_id, id).catch(console.error);
       await trx.insertInto('bill_activity_log').values({
@@ -686,13 +686,13 @@ export async function billRoutes(fastify: FastifyInstance) {
       if (bill.status !== 'PENDING_APPROVAL') return reply.status(409).send({ error: 'This bill is not pending approval.' });
       if (!bill.approval_workflow_id) return reply.status(409).send({ error: 'This bill has no resolved approval workflow.' });
 
-      const workflow = await trx.selectFrom('ap_approval_workflows').selectAll().where('id', '=', bill.approval_workflow_id).executeTakeFirst();
+      const workflow = await trx.selectFrom('ap_approval_workflows').selectAll().where('id', '=', bill.approval_workflow_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!workflow) return reply.status(404).send({ error: 'The approval workflow for this bill no longer exists.' });
       if (!canActOnWorkflow(workflow, user.sub)) return reply.status(403).send({ error: `Only ${workflow.name}'s named approver or backup may reject this bill.` });
 
       const updated = await trx.updateTable('supplier_bills')
         .set({ status: 'DRAFT', rejected_by: user.sub, rejected_at: new Date(), rejection_reason: reason, updated_at: new Date() })
-        .where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
 
       await trx.insertInto('bill_activity_log').values({
         tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
@@ -901,7 +901,7 @@ export async function billRoutes(fastify: FastifyInstance) {
         throw e;
       }
       await trx.deleteFrom('supplier_bill_lines').where('bill_id', '=', id).execute();
-      await trx.deleteFrom('supplier_bills').where('id', '=', id).execute();
+      await trx.deleteFrom('supplier_bills').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { success: true };
     });
   });
@@ -951,7 +951,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       else if (totalPaid > 0) newStatus = 'PARTIAL';
       else newStatus = 'POSTED';
 
-      await trx.updateTable('supplier_bills').set({ paid_amount: totalPaid, status: newStatus, updated_at: new Date() }).where('id', '=', id).execute();
+      await trx.updateTable('supplier_bills').set({ paid_amount: totalPaid, status: newStatus, updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
 
       // Withholding tax (M1) — computed live from this bill's WHT-classified
       // lines (not persisted on the bill header) so an edit to the bill

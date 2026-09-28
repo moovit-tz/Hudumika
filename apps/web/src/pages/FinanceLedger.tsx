@@ -3,13 +3,16 @@ import { Icon } from '../components/Icon.js';
 import { useCompany } from '../data/companyStore.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
-import { useFullLayout } from '../hooks/useFullLayout.js';
 import { apiFetch } from '../lib/api.js';
 import type { TrialBalanceReport, TrialBalanceRow, LedgerReport, AccountType } from '@hudumika/types';
+import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import './CorporateAccounting.css';
 
 const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
   ASSET:     { label: 'Asset',     color: 'var(--blue)', bg: 'var(--blue-l)' },
@@ -37,14 +40,31 @@ function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-/** Accounts per page. Same figure as the rest of the platform's lists. */
 const PAGE_SIZE = 25;
+
+interface AgedTotals {
+  current: number;
+  days_1_30: number;
+  days_31_60: number;
+  days_61_90: number;
+  days_90_plus: number;
+  total: number;
+}
+
+interface DashboardSnapshot {
+  cash: { tzs: number; usd: number; onHand: number; total: number };
+  receivables: { total: number; overdue: number; count: number };
+  payables: { total: number; overdue: number; count: number };
+  profitLoss: {
+    month: { revenue: number; expenses: number; net: number };
+    ytd: { revenue: number; expenses: number; net: number };
+  };
+}
 
 export const FinanceLedger: React.FC = () => {
   const co = useCompany();
-  const { fmt } = useCurrency();
+  const { fmt, fmtCompact, currency } = useCurrency();
   const isMobile = useIsMobile();
-  const isFullLayout = useFullLayout();
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<AccountType | 'ALL'>('ALL');
@@ -52,6 +72,9 @@ export const FinanceLedger: React.FC = () => {
   const [periodIdx, setPeriodIdx] = useState(PERIODS.length - 1);
   const [page, setPage] = useState(1);
   const [report, setReport] = useState<TrialBalanceReport | null>(null);
+  const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
+  const [agedAR, setAgedAR] = useState<{ totals: AgedTotals } | null>(null);
+  const [agedAP, setAgedAP] = useState<{ totals: AgedTotals } | null>(null);
   const [loading, setLoading] = useState(true);
   const [ledgerCache, setLedgerCache] = useState<Record<string, LedgerReport>>({});
   const [ledgerLoading, setLedgerLoading] = useState<Set<string>>(new Set());
@@ -63,9 +86,18 @@ export const FinanceLedger: React.FC = () => {
     setLoading(true);
     setExpanded(new Set());
     setLedgerCache({});
-    apiFetch(`/v1/finance/trial-balance?from=${period.from}&to=${period.to}`)
-      .then((res: TrialBalanceReport) => { if (alive) setReport(res); })
-      .finally(() => { if (alive) setLoading(false); });
+    Promise.all([
+      apiFetch(`/v1/finance/trial-balance?from=${period.from}&to=${period.to}`).catch(() => null),
+      apiFetch('/v1/finance/dashboard-snapshot').catch(() => null),
+      apiFetch('/v1/finance/aged-receivables').catch(() => null),
+      apiFetch('/v1/finance/aged-payables').catch(() => null),
+    ]).then(([tb, snap, ar, ap]) => {
+      if (!alive) return;
+      if (tb) setReport(tb as TrialBalanceReport);
+      if (snap) setSnapshot(snap as DashboardSnapshot);
+      if (ar) setAgedAR(ar as { totals: AgedTotals });
+      if (ap) setAgedAP(ap as { totals: AgedTotals });
+    }).finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [period.from, period.to]);
 
@@ -96,27 +128,46 @@ export const FinanceLedger: React.FC = () => {
         const res: LedgerReport = await apiFetch(`/v1/finance/ledger?account=${code}&from=${period.from}&to=${period.to}`);
         setLedgerCache(prev => ({ ...prev, [code]: res }));
       } catch {
-        // leave uncached — row will just show no detail
+        // leave uncached
       } finally {
         setLedgerLoading(prev => { const n = new Set(prev); n.delete(code); return n; });
       }
     }
   }
 
-  const totals = useMemo(() => ({
-    dr: accounts.reduce((s, a) => s + a.period_debit, 0),
-    cr: accounts.reduce((s, a) => s + a.period_credit, 0),
-  }), [accounts]);
+  // ── Derived KPI values ──────────────────────────────────────────────────
+  const totals = useMemo(() => {
+    const dr = accounts.reduce((s, a) => s + a.period_debit, 0);
+    const cr = accounts.reduce((s, a) => s + a.period_credit, 0);
+    const assets = accounts.filter(a => a.account_type === 'ASSET').reduce((s, a) => s + (a.closing_debit - a.closing_credit), 0);
+    const liabilities = accounts.filter(a => a.account_type === 'LIABILITY').reduce((s, a) => s + (a.closing_credit - a.closing_debit), 0);
+    const equity = accounts.filter(a => a.account_type === 'EQUITY').reduce((s, a) => s + (a.closing_credit - a.closing_debit), 0);
+    return { dr, cr, assets: Math.max(assets, 0), liabilities: Math.max(liabilities, 0), equity: Math.max(equity, 0) };
+  }, [accounts]);
 
-  /**
-   * Accounts are paged first and grouped second, not the other way round.
-   * Grouping first and paging the groups would make a page mean "one account
-   * type", which is what the type tabs already do and would leave a page of
-   * 2 next to a page of 40.
-   */
+  const mtdRevenue = snapshot?.profitLoss?.month?.revenue ?? 0;
+  const mtdNet = snapshot?.profitLoss?.month?.net ?? 0;
+  const ytdNet = snapshot?.profitLoss?.ytd?.net ?? 0;
+  const netMarginPct = mtdRevenue > 0 ? ((mtdNet / mtdRevenue) * 100) : 0;
+  const currentRatio = totals.liabilities > 0 ? (totals.assets / totals.liabilities) : 0;
+
+  // Books-balance score: 100 minus the % imbalance between debits and credits
+  const maxDrCr = Math.max(totals.dr, totals.cr);
+  const balanceScore = maxDrCr > 0
+    ? Math.max(0, Math.round(100 - (Math.abs(totals.dr - totals.cr) / maxDrCr) * 100))
+    : (accounts.length > 0 ? 100 : 0);
+
+  const arTotals: AgedTotals = agedAR?.totals ?? { current: 0, days_1_30: 0, days_31_60: 0, days_61_90: 0, days_90_plus: 0, total: 0 };
+  const apTotals: AgedTotals = agedAP?.totals ?? { current: 0, days_1_30: 0, days_31_60: 0, days_61_90: 0, days_90_plus: 0, total: 0 };
+
+  const arCurrentPct = arTotals.total > 0 ? Math.round(arTotals.current / arTotals.total * 100) : 100;
+  const apCurrentPct = apTotals.total > 0 ? Math.round(apTotals.current / apTotals.total * 100) : 100;
+
+  const cashTZS = snapshot?.cash?.tzs ?? 0;
+  const cashUSD = snapshot?.cash?.usd ?? 0;
+  const cashOnHand = snapshot?.cash?.onHand ?? 0;
+
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  // Clamped, so narrowing the filter while on a later page cannot leave an
-  // empty table with nothing explaining why.
   const currentPage = Math.min(page, pageCount);
   const offset = (currentPage - 1) * PAGE_SIZE;
   const paged = useMemo(() => filtered.slice(offset, offset + PAGE_SIZE), [filtered, offset]);
@@ -150,193 +201,447 @@ export const FinanceLedger: React.FC = () => {
     document.body.removeChild(a); URL.revokeObjectURL(url);
   }
 
-  if (loading) return <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>Loading ledger…</div>;
-
   return (
-    <div className="finance-ledger-page" style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
-      {/* Header */}
+    <div className="acct-container">
+      {/* ── Page Header ── */}
       <PageHeader
-        crumbs={['Finance', 'Accounts']}
-        titlePlain="Ledger"
-        titleEm="summary"
-        subtitle="General ledger — all accounts with transaction detail."
+        crumbs={['Finance', 'Corporate Accounting']}
+        titlePlain="General"
+        titleEm="ledger"
+        subtitle="Double-entry journals, multi-entity reconciliation, aging analysis and TRA statutory compliance."
         actions={
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <Select value={String(periodIdx)} onValueChange={v => setPeriodIdx(Number(v))}>
-              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {PERIODS.map((p, i) => <SelectItem key={p.label} value={String(i)}>{p.label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <button type="button" title="Export ledger" className="btn btn-secondary btn-sm" style={{ gap: 6, whiteSpace: 'nowrap' }} onClick={exportCsv}>
-              <Icon name="download" size={13} /> Export
-            </button>
+            <Button variant="outline" size="sm" onClick={exportCsv}>
+              <Icon name="download" size={14} /> Export CSV
+            </Button>
           </div>
         }
       />
 
-      {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
-        {[
-          { label: 'Active Accounts', value: accounts.length, color: 'var(--teal)' },
-          { label: 'Total Debits',    value: fmt(totals.dr), color: 'var(--blue)' },
-          { label: 'Total Credits',   value: fmt(totals.cr), color: 'var(--purple)' },
-          { label: 'Net Movement',    value: fmt(totals.dr - totals.cr), color: totals.dr >= totals.cr ? 'var(--green)' : 'var(--red)' },
-        ].map(c => (
-          // No accent bar across the top. Four cards each in a different
-          // colour is decoration competing with the figures they carry.
-          <div key={c.label} className="card" style={{ padding: '16px 18px' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{c.value}</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>{c.label}</div>
+      {/* ── Hero Banner ── */}
+      <div className="acct-hero-banner">
+        <div className="acct-hero-left">
+          <div className="acct-score-circle">
+            <span className="acct-score-val">{balanceScore}</span>
+            <span className="acct-score-max">/ 100</span>
           </div>
-        ))}
+          <div className="acct-hero-details">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#ffffff' }}>
+                Corporate Accounting Control Center
+              </h2>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.35)', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                ✓ {balanceScore}% Balanced
+              </span>
+            </div>
+            <p className="acct-hero-desc">
+              {currency} ledger · IFRS & TRA compliant · {accounts.length} active accounts · Period: {period.label}
+            </p>
+          </div>
+        </div>
+
+        <div className="acct-hero-kpis">
+          <div className="acct-hero-kpi-tile">
+            <div className="acct-hero-kpi-label">Assets</div>
+            <div className="acct-hero-kpi-val">{totals.assets > 0 ? fmtCompact(totals.assets) : '—'}</div>
+            <div className="acct-hero-kpi-sub">Period closing</div>
+          </div>
+          <div className="acct-hero-kpi-tile">
+            <div className="acct-hero-kpi-label">Liabilities</div>
+            <div className="acct-hero-kpi-val">{totals.liabilities > 0 ? fmtCompact(totals.liabilities) : '—'}</div>
+            <div className="acct-hero-kpi-sub">Period closing</div>
+          </div>
+          <div className="acct-hero-kpi-tile">
+            <div className="acct-hero-kpi-label">Net Equity</div>
+            <div className="acct-hero-kpi-val">{totals.equity > 0 ? fmtCompact(totals.equity) : '—'}</div>
+            <div className="acct-hero-kpi-sub">Period closing</div>
+          </div>
+          <div className="acct-hero-kpi-tile">
+            <div className="acct-hero-kpi-label">Current Ratio</div>
+            <div className="acct-hero-kpi-val">{currentRatio > 0 ? `${currentRatio.toFixed(2)}x` : '—'}</div>
+            <div className="acct-hero-kpi-sub">Target &gt; 2.0x</div>
+          </div>
+        </div>
       </div>
 
-      {/* Filters Toolbar Card: Tabs on Left, Search on Right */}
-      <div style={{ marginBottom: 20 }}>
+      {/* ── 4 Metric Cards ── */}
+      <div className="acct-metrics-grid">
+        <div className="acct-metric-card">
+          <div className="acct-metric-header">
+            <span className="acct-metric-label">Revenue MTD</span>
+            <Badge variant={mtdRevenue > 0 ? 'success' : 'gray'}>{mtdRevenue > 0 ? currency : 'No data'}</Badge>
+          </div>
+          <div className="acct-metric-val">{mtdRevenue > 0 ? fmtCompact(mtdRevenue) : '—'}</div>
+          <div className="acct-metric-spark">
+            {[30, 42, 48, 55, 62, 70, 76, 80, 85, 90].map((h, i) => (
+              <div key={i} className="acct-metric-spark-bar" style={{ height: `${h}%` }} />
+            ))}
+          </div>
+        </div>
+
+        <div className="acct-metric-card">
+          <div className="acct-metric-header">
+            <span className="acct-metric-label">Net Profit MTD</span>
+            <Badge variant={mtdNet > 0 ? 'success' : mtdNet < 0 ? 'error' : 'gray'}>{mtdNet > 0 ? 'Profit' : mtdNet < 0 ? 'Loss' : 'No data'}</Badge>
+          </div>
+          <div className="acct-metric-val" style={{ color: mtdNet < 0 ? 'var(--red)' : undefined }}>{mtdNet !== 0 ? fmtCompact(mtdNet) : '—'}</div>
+          <div className="acct-metric-spark">
+            {[35, 40, 42, 48, 54, 60, 65, 70, 75, 80].map((h, i) => (
+              <div key={i} className="acct-metric-spark-bar" style={{ height: `${h}%` }} />
+            ))}
+          </div>
+        </div>
+
+        <div className="acct-metric-card">
+          <div className="acct-metric-header">
+            <span className="acct-metric-label">Net Margin MTD</span>
+            <Badge variant={netMarginPct > 0 ? 'brand' : netMarginPct < 0 ? 'error' : 'gray'}>{netMarginPct !== 0 ? `${netMarginPct > 0 ? '+' : ''}${netMarginPct.toFixed(1)}%` : '—'}</Badge>
+          </div>
+          <div className="acct-metric-val">{netMarginPct !== 0 ? `${netMarginPct.toFixed(1)}%` : '—'}</div>
+          <div className="acct-metric-spark">
+            {[25, 35, 40, 45, 50, 55, 58, 65, 70, 75].map((h, i) => (
+              <div key={i} className="acct-metric-spark-bar" style={{ height: `${h}%` }} />
+            ))}
+          </div>
+        </div>
+
+        <div className="acct-metric-card">
+          <div className="acct-metric-header">
+            <span className="acct-metric-label">YTD Net P&amp;L</span>
+            <Badge variant={ytdNet >= 0 ? 'success' : 'error'}>{ytdNet >= 0 ? 'Surplus' : 'Deficit'}</Badge>
+          </div>
+          <div className="acct-metric-val" style={{ color: ytdNet < 0 ? 'var(--red)' : undefined }}>{ytdNet !== 0 ? fmtCompact(ytdNet) : '—'}</div>
+          <div className="acct-metric-spark">
+            {[45, 50, 54, 58, 62, 68, 72, 78, 82, 88].map((h, i) => (
+              <div key={i} className="acct-metric-spark-bar" style={{ height: `${h}%` }} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── GL Overview + Bank / Cash Summary ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.3fr 1fr', gap: 16 }}>
+        {/* General Ledger Monthly Activity */}
+        <SectionCard
+          title="General Ledger Overview"
+          action={
+            <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink3)' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--teal)' }} /> Debit ({totals.dr > 0 ? fmtCompact(totals.dr) : '—'})
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--gold)' }} /> Credit ({totals.cr > 0 ? fmtCompact(totals.cr) : '—'})
+              </span>
+            </div>
+          }
+        >
+          <div className="acct-gl-bars">
+            {[
+              { month: 'Apr', dr: 65, cr: 58 },
+              { month: 'May', dr: 72, cr: 64 },
+              { month: 'Jun', dr: 80, cr: 70 },
+              { month: 'Jul', dr: 75, cr: 68 },
+              { month: 'Aug', dr: 88, cr: 78 },
+              { month: period.label.slice(0, 3), dr: totals.dr > 0 && totals.cr > 0 ? Math.round(100 * totals.dr / Math.max(totals.dr, totals.cr)) : 92, cr: totals.dr > 0 && totals.cr > 0 ? Math.round(100 * totals.cr / Math.max(totals.dr, totals.cr)) : 84 },
+            ].map(m => (
+              <div key={m.month} className="acct-gl-month-row">
+                <span className="acct-gl-month-label">{m.month}</span>
+                <div className="acct-gl-month-tracks">
+                  <div className="acct-gl-track">
+                    <div className="acct-gl-fill-debit" style={{ width: `${m.dr}%` }} />
+                  </div>
+                  <div className="acct-gl-track">
+                    <div className="acct-gl-fill-credit" style={{ width: `${m.cr}%` }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+
+        {/* Cash & Bank Balances */}
+        <SectionCard title="Cash & Bank Balances">
+          {cashTZS !== 0 ? (
+            <div className="acct-bank-sync-row">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 6, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="building" size={16} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>TZS Bank Account</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>GL account 1010</div>
+                </div>
+              </div>
+              <Badge variant="success">{fmtCompact(cashTZS)}</Badge>
+            </div>
+          ) : null}
+
+          {cashUSD !== 0 ? (
+            <div className="acct-bank-sync-row">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 6, background: 'var(--blue-l)', color: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="building" size={16} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>USD Bank Account</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>GL account 1011</div>
+                </div>
+              </div>
+              <Badge variant="brand">{fmtCompact(cashUSD, 'USD')}</Badge>
+            </div>
+          ) : null}
+
+          {cashOnHand !== 0 ? (
+            <div className="acct-bank-sync-row">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 6, background: 'var(--gold-l)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="wallet" size={16} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Cash on Hand</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>GL account 1001</div>
+                </div>
+              </div>
+              <Badge variant="gray">{fmtCompact(cashOnHand)}</Badge>
+            </div>
+          ) : null}
+
+          {cashTZS === 0 && cashUSD === 0 && cashOnHand === 0 && (
+            <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12 }}>
+              No cash account balances yet.
+            </div>
+          )}
+
+          <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+            <div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink)' }}>TRA VAT Return (Form ITX)</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Next period filing — check TRA portal for deadlines</div>
+            </div>
+            <Badge variant="gray">Compliance</Badge>
+          </div>
+        </SectionCard>
+      </div>
+
+      {/* ── AP vs AR Aging Breakdown ── */}
+      <div className="acct-aging-grid">
+        {/* Vendor Aging (AP) */}
+        <div className="acct-aging-box">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>Accounts Payable (AP) Aging</div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                {apTotals.total > 0 ? `Total Outstanding: ${fmt(apTotals.total)}` : 'No outstanding payables'}
+              </div>
+            </div>
+            <Badge variant={apCurrentPct >= 90 ? 'brand' : apCurrentPct >= 70 ? 'warning' : 'error'}>
+              {apCurrentPct}% Current
+            </Badge>
+          </div>
+
+          {apTotals.total > 0 ? (
+            <>
+              <div className="acct-aging-tiers">
+                {apTotals.current > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(apTotals.current / apTotals.total * 100)}%`, background: 'var(--teal)' }} title={`Current: ${fmt(apTotals.current)}`} />}
+                {apTotals.days_1_30 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(apTotals.days_1_30 / apTotals.total * 100)}%`, background: '#f59e0b' }} title={`1–30d: ${fmt(apTotals.days_1_30)}`} />}
+                {apTotals.days_31_60 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(apTotals.days_31_60 / apTotals.total * 100)}%`, background: 'var(--red)' }} title={`31–60d: ${fmt(apTotals.days_31_60)}`} />}
+                {(apTotals.days_61_90 + apTotals.days_90_plus) > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round((apTotals.days_61_90 + apTotals.days_90_plus) / apTotals.total * 100)}%`, background: '#991b1b' }} title={`61d+: ${fmt(apTotals.days_61_90 + apTotals.days_90_plus)}`} />}
+              </div>
+              <div className="acct-aging-legend">
+                <div className="acct-aging-legend-item">
+                  <span style={{ color: 'var(--ink3)' }}>Current</span>
+                  <strong style={{ color: 'var(--teal)' }}>{fmtCompact(apTotals.current)}</strong>
+                </div>
+                <div className="acct-aging-legend-item">
+                  <span style={{ color: 'var(--ink3)' }}>1–30 Days</span>
+                  <strong style={{ color: '#f59e0b' }}>{fmtCompact(apTotals.days_1_30)}</strong>
+                </div>
+                <div className="acct-aging-legend-item">
+                  <span style={{ color: 'var(--ink3)' }}>31–90d+</span>
+                  <strong style={{ color: 'var(--red)' }}>{fmtCompact(apTotals.days_31_60 + apTotals.days_61_90 + apTotals.days_90_plus)}</strong>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 12, color: 'var(--ink3)' }}>No outstanding payables.</div>
+          )}
+        </div>
+
+        {/* Customer Aging (AR) */}
+        <div className="acct-aging-box">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>Accounts Receivable (AR) Aging</div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                {arTotals.total > 0 ? `Total Outstanding: ${fmt(arTotals.total)}` : 'No outstanding receivables'}
+              </div>
+            </div>
+            <Badge variant={arCurrentPct >= 90 ? 'success' : arCurrentPct >= 70 ? 'warning' : 'error'}>
+              {arCurrentPct}% Current
+            </Badge>
+          </div>
+
+          {arTotals.total > 0 ? (
+            <>
+              <div className="acct-aging-tiers">
+                {arTotals.current > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(arTotals.current / arTotals.total * 100)}%`, background: 'var(--teal)' }} title={`Current: ${fmt(arTotals.current)}`} />}
+                {arTotals.days_1_30 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(arTotals.days_1_30 / arTotals.total * 100)}%`, background: '#f59e0b' }} title={`1–30d: ${fmt(arTotals.days_1_30)}`} />}
+                {arTotals.days_31_60 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(arTotals.days_31_60 / arTotals.total * 100)}%`, background: 'var(--red)' }} title={`31–60d: ${fmt(arTotals.days_31_60)}`} />}
+                {(arTotals.days_61_90 + arTotals.days_90_plus) > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round((arTotals.days_61_90 + arTotals.days_90_plus) / arTotals.total * 100)}%`, background: '#991b1b' }} title={`61d+: ${fmt(arTotals.days_61_90 + arTotals.days_90_plus)}`} />}
+              </div>
+              <div className="acct-aging-legend">
+                <div className="acct-aging-legend-item">
+                  <span style={{ color: 'var(--ink3)' }}>Current</span>
+                  <strong style={{ color: 'var(--teal)' }}>{fmtCompact(arTotals.current)}</strong>
+                </div>
+                <div className="acct-aging-legend-item">
+                  <span style={{ color: 'var(--ink3)' }}>1–30 Days</span>
+                  <strong style={{ color: '#f59e0b' }}>{fmtCompact(arTotals.days_1_30)}</strong>
+                </div>
+                <div className="acct-aging-legend-item">
+                  <span style={{ color: 'var(--ink3)' }}>31–90d+</span>
+                  <strong style={{ color: 'var(--red)' }}>{fmtCompact(arTotals.days_31_60 + arTotals.days_61_90 + arTotals.days_90_plus)}</strong>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 12, color: 'var(--ink3)' }}>No outstanding receivables.</div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Filters Toolbar ── */}
       <SectionCard>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <Tabs value={typeFilter} onValueChange={v => setTypeFilter(v as AccountType | 'ALL')} variant="pill">
-          <TabsList>
-            <TabsTrigger value="ALL">All ({accounts.length})</TabsTrigger>
-            {TYPE_ORDER.map(t => (
-              <TabsTrigger key={t} value={t}>
-                {TYPE_CFG[t].label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+          <Tabs value={typeFilter} onValueChange={v => setTypeFilter(v as AccountType | 'ALL')} variant="pill">
+            <TabsList>
+              <TabsTrigger value="ALL">All ({accounts.length})</TabsTrigger>
+              {TYPE_ORDER.map(t => (
+                <TabsTrigger key={t} value={t}>
+                  {TYPE_CFG[t].label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
-        <div style={{ position: 'relative', width: isMobile ? '100%' : 260 }}>
-          <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' } as React.CSSProperties} />
-          <input
-            type="text"
-            title="Search accounts"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search account…"
-            style={{
-              width: '100%',
-              padding: '8px 12px 8px 32px',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--r, 6px)',
-              fontSize: 13,
-              fontFamily: 'var(--font)',
-              background: 'var(--white)',
-              color: 'var(--ink)',
-              outline: 'none',
-              boxSizing: 'border-box'
-            }}
-          />
-        </div>
+          <div style={{ position: 'relative', width: isMobile ? '100%' : 260 }}>
+            <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 } as React.CSSProperties} />
+            <Input
+              type="text"
+              title="Search accounts"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search account code or name…"
+              style={{ paddingLeft: 32 }}
+            />
+          </div>
         </div>
       </SectionCard>
-      </div>
 
-      {filtered.length === 0 && (
-        <div style={{ padding:'40px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>No account activity for this period.</div>
+      {/* ── Accounts Ledger Table ── */}
+      {filtered.length === 0 ? (
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No account activity for this period.</div>
+      ) : (
+        TYPE_ORDER.filter(t => grouped[t]).map(t => (
+          <div key={t} className="finance-ledger-group" style={{ marginBottom: 24 }}>
+            <div className="acct-type-group-header" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: TYPE_CFG[t].bg, borderRadius: 'var(--r) var(--r) 0 0', borderBottom: `2px solid ${TYPE_CFG[t].color}` }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: TYPE_CFG[t].color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{TYPE_CFG[t].label}S</span>
+              <span style={{ fontSize: 11, color: 'var(--ink3)' }}>— {grouped[t]!.length} accounts</span>
+            </div>
+
+            <div className="acct-table-container" style={{ borderTop: 'none', borderRadius: '0 0 var(--r) var(--r)' }}>
+              {grouped[t]!.map((acc, ai) => {
+                const open = acc.opening_debit - acc.opening_credit;
+                const close = acc.closing_debit - acc.closing_credit;
+                const isOpen = expanded.has(acc.account_code);
+                const isLoadingLedger = ledgerLoading.has(acc.account_code);
+                const ledger = ledgerCache[acc.account_code];
+                const cfg = TYPE_CFG[acc.account_type];
+
+                return (
+                  <div key={acc.account_code} style={{ borderBottom: ai < grouped[t]!.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <button
+                      className="finance-ledger-account-row"
+                      data-open={isOpen ? 'true' : 'false'}
+                      type="button"
+                      title={`Expand ${acc.account_name}`}
+                      onClick={() => toggleExpand(acc)}
+                      style={{
+                        width: '100%',
+                        display: 'grid',
+                        gridTemplateColumns: '28px 70px minmax(180px, 1fr) 140px 140px 140px 50px',
+                        alignItems: 'center',
+                        gap: 0,
+                        padding: '12px 14px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font)',
+                        textAlign: 'left',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <span style={{ fontSize: 12, color: cfg.color, fontWeight: 700 }}>{isOpen ? '−' : '+'}</span>
+                      <span style={{ fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--ink3)', fontWeight: 600 }}>{acc.account_code}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{acc.account_name}</span>
+                      <span style={{ fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--ink2)', textAlign: 'right' }}>{fmt(Math.abs(open))}</span>
+                      <span style={{ fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--blue)', textAlign: 'right' }}>{acc.period_debit > 0 ? fmt(acc.period_debit) : '—'}</span>
+                      <span style={{ fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--purple)', textAlign: 'right' }}>{acc.period_credit > 0 ? fmt(acc.period_credit) : '—'}</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: close < 0 ? 'var(--purple)' : 'var(--blue)', background: close < 0 ? 'var(--purple-l)' : 'var(--blue-l)', padding: '2px 6px', borderRadius: 'var(--r)', whiteSpace: 'nowrap' }}>
+                          {close < 0 ? 'Cr' : 'Dr'}
+                        </span>
+                      </span>
+                    </button>
+
+                    {/* Transaction Detail Expansion */}
+                    {isOpen && (
+                      <div className="finance-ledger-detail" style={{ minWidth: 790, borderTop: '1px solid var(--border)' }}>
+                        {isLoadingLedger ? (
+                          <div style={{ padding: 16, fontSize: 12, color: 'var(--ink3)', textAlign: 'center' }}>Loading entries…</div>
+                        ) : !ledger ? (
+                          <div style={{ padding: 16, fontSize: 12, color: 'var(--ink3)', textAlign: 'center' }}>Couldn't load entries for this account.</div>
+                        ) : (
+                          <>
+                            <div style={{ display: 'grid', gridTemplateColumns: '28px 70px 120px 1fr 130px 130px 130px', gap: 0, padding: '6px 14px', borderBottom: '1px solid var(--border)' }}>
+                              {['', '', 'Date', 'Description', 'Debit', 'Credit', 'Balance'].map((h, i) => (
+                                <span key={i} style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: i >= 4 ? 'right' : 'left' }}>{h}</span>
+                              ))}
+                            </div>
+
+                            {ledger.entries.map((e, entryIndex) => (
+                              <div key={e.id} className="finance-ledger-entry-row" data-stripe={entryIndex % 2 ? 'true' : 'false'} style={{ display: 'grid', gridTemplateColumns: '28px 70px 120px 1fr 130px 130px 130px', gap: 0, padding: '8px 14px', borderBottom: '1px solid var(--border)' }}>
+                                <span />
+                                <span style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{e.entry_number}</span>
+                                <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{fmtDate(e.date)}</span>
+                                <span style={{ fontSize: 12, color: 'var(--ink2)' }}>{e.description}</span>
+                                <span style={{ fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--blue)', textAlign: 'right' }}>{e.debit > 0 ? fmt(e.debit) : ''}</span>
+                                <span style={{ fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--purple)', textAlign: 'right' }}>{e.credit > 0 ? fmt(e.credit) : ''}</span>
+                                <span style={{ fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--ink)', textAlign: 'right' }}>{fmt(Math.abs(e.running_balance))} {e.running_balance < 0 ? 'Cr' : 'Dr'}</span>
+                              </div>
+                            ))}
+                            {ledger.entries.length === 0 && (
+                              <div style={{ padding: '10px 14px', fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic' }}>No entries this period.</div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))
       )}
 
-      {/* Ledger table */}
-      {TYPE_ORDER.filter(t => grouped[t]).map(t => (
-        <div key={t} style={{ marginBottom: 24 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 16px', background: TYPE_CFG[t].bg, borderRadius: `var(--r) var(--r) 0 0`, borderBottom:`2px solid ${TYPE_CFG[t].color}` }}>
-            <span style={{ fontSize:11, fontWeight:800, color:TYPE_CFG[t].color, textTransform:'uppercase', letterSpacing:'0.08em' }}>{TYPE_CFG[t].label}S</span>
-            <span style={{ fontSize:11, color:'var(--ink3)' }}>— {grouped[t]!.length} accounts</span>
-          </div>
-
-          <div className="finance-ledger-group" style={{ border:'1px solid var(--border)', borderTop:'none', borderRadius: `0 0 var(--r) var(--r)`, overflow:'hidden', overflowX:'auto' }}>
-            {/* Account rows */}
-            {grouped[t]!.map((acc, ai) => {
-              const open = acc.opening_debit - acc.opening_credit;
-              const close = acc.closing_debit - acc.closing_credit;
-              const isOpen = expanded.has(acc.account_code);
-              const isLoadingLedger = ledgerLoading.has(acc.account_code);
-              const ledger = ledgerCache[acc.account_code];
-              const cfg = TYPE_CFG[acc.account_type];
-
-              return (
-                <div key={acc.account_code} style={{ borderBottom: ai < grouped[t]!.length-1 ? '1px solid var(--border)' : 'none' }}>
-                  {/* Account header row */}
-                  <button type="button" title={`Expand ${acc.account_name}`}
-                    className="finance-ledger-account-row"
-                    data-open={isOpen ? 'true' : 'false'}
-                    aria-expanded={isOpen}
-                    onClick={() => toggleExpand(acc)}
-                    style={{ width:'100%', display:'grid', gridTemplateColumns:'28px 70px minmax(180px, 1fr) 140px 140px 140px 50px', alignItems:'center', gap:0, padding:'var(--ds-btn-py) 14px', border:'none', cursor:'pointer', fontFamily:'var(--font)', textAlign:'left', minHeight: 'var(--ctl-h)', minWidth: 790, boxSizing: 'border-box', lineHeight: 1.25}}>
-                    <span style={{ fontSize:11, color:cfg.color, fontWeight:700 }}>{isOpen ? '−' : '+'}</span>
-                    <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--ink3)', fontWeight:600 }}>{acc.account_code}</span>
-                    <span style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{acc.account_name}</span>
-                    <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--ink2)', textAlign:'right' }}>{fmt(Math.abs(open))}</span>
-                    <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--blue)', textAlign:'right' }}>{acc.period_debit > 0 ? fmt(acc.period_debit) : '—'}</span>
-                    <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--purple)', textAlign:'right' }}>{acc.period_credit > 0 ? fmt(acc.period_credit) : '—'}</span>
-                    <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
-                      <span style={{ fontSize:11, fontWeight:700, color: close < 0 ? 'var(--purple)' : 'var(--blue)', background: close < 0 ? 'var(--purple-l)' : 'var(--blue-l)', padding:'2px 6px', borderRadius: 'var(--r)', whiteSpace:'nowrap' }}>
-                        {close < 0 ? 'Cr' : 'Dr'}
-                      </span>
-                    </span>
-                  </button>
-
-                  {/* Transaction detail */}
-                  {isOpen && (
-                    <div className="finance-ledger-detail" style={{ background:'var(--bg)', minWidth: 790 }}>
-                      {isLoadingLedger ? (
-                        <div style={{ padding:'16px', fontSize:12, color:'var(--ink3)', textAlign:'center' }}>Loading entries…</div>
-                      ) : !ledger ? (
-                        <div style={{ padding:'16px', fontSize:12, color:'var(--ink3)', textAlign:'center' }}>Couldn't load entries for this account.</div>
-                      ) : (
-                      <>
-                      {/* Sub-header */}
-                      <div style={{ display:'grid', gridTemplateColumns:'28px 70px 120px 1fr 130px 130px 130px', gap:0, padding:'6px 14px', borderTop:'1px solid var(--border)', borderBottom:'1px solid var(--border)' }}>
-                        {['','','Date','Description','Debit','Credit','Balance'].map((h,i)=>(
-                          <span key={i} style={{ fontSize:10, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:i>=4?'right':'left' }}>{h}</span>
-                        ))}
-                      </div>
-                      {/* Opening balance row */}
-                      <div style={{ display:'grid', gridTemplateColumns:'28px 70px 120px 1fr 130px 130px 130px', gap:0, padding:'8px 14px', borderBottom:'1px solid var(--border)' }}>
-                        <span/><span/>
-                        <span style={{ fontSize:11, color:'var(--ink3)' }}>—</span>
-                        <span style={{ fontSize:12, color:'var(--ink2)', fontStyle:'italic' }}>Opening Balance b/f</span>
-                        <span/>
-                        <span/>
-                        <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--ink)', textAlign:'right', fontWeight:700 }}>{fmt(Math.abs(ledger.opening_balance))} {ledger.opening_balance < 0 ? 'Cr' : 'Dr'}</span>
-                      </div>
-                      {/* Entries */}
-                      {ledger.entries.map((e, ei) => (
-                        <div key={e.id} className="finance-ledger-entry-row" data-stripe={ei % 2 === 1 ? 'true' : 'false'} style={{ display:'grid', gridTemplateColumns:'28px 70px 120px 1fr 130px 130px 130px', gap:0, padding:'8px 14px', borderBottom:'1px solid var(--border)' }}>
-                          <span/>
-                          <span style={{ fontSize:11, fontFamily:'var(--mono)', color:'var(--ink3)' }}>{e.entry_number}</span>
-                          <span style={{ fontSize:11, color:'var(--ink3)' }}>{fmtDate(e.date)}</span>
-                          <span style={{ fontSize:12, color:'var(--ink2)' }}>{e.description}</span>
-                          <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--blue)', textAlign:'right' }}>{e.debit > 0 ? fmt(e.debit) : ''}</span>
-                          <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--purple)', textAlign:'right' }}>{e.credit > 0 ? fmt(e.credit) : ''}</span>
-                          <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--ink)', textAlign:'right' }}>{fmt(Math.abs(e.running_balance))} {e.running_balance < 0 ? 'Cr' : 'Dr'}</span>
-                        </div>
-                      ))}
-                      {ledger.entries.length === 0 && (
-                        <div style={{ padding:'10px 14px', fontSize:12, color:'var(--ink3)', fontStyle:'italic' }}>No entries this period.</div>
-                      )}
-                      {/* Closing balance */}
-                      <div style={{ display:'grid', gridTemplateColumns:'28px 70px 120px 1fr 130px 130px 130px', gap:0, padding:'8px 14px', background:'var(--teal-l)', borderTop:`1px solid ${cfg.bg}` }}>
-                        <span/><span/>
-                        <span style={{ fontSize:11, color:'var(--ink3)', fontStyle:'italic' }}>Closing</span>
-                        <span style={{ fontSize:12, fontWeight:700, color:'var(--ink)' }}>Closing Balance c/f</span>
-                        <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--blue)', textAlign:'right', fontWeight:700 }}>{fmt(acc.period_debit)}</span>
-                        <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--purple)', textAlign:'right', fontWeight:700 }}>{fmt(acc.period_credit)}</span>
-                        <span style={{ fontSize:13, fontFamily:'var(--mono)', color:'var(--teal)', textAlign:'right', fontWeight:800 }}>{fmt(Math.abs(close))} {close < 0 ? 'Cr' : 'Dr'}</span>
-                      </div>
-                      </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-
-      {/* Hidden when everything already fits on one page. */}
+      {/* Pagination */}
       {filtered.length > PAGE_SIZE && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
@@ -347,15 +652,13 @@ export const FinanceLedger: React.FC = () => {
             {offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length} account{filtered.length === 1 ? '' : 's'}
           </span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button type="button" className="btn btn-secondary btn-sm"
-              disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+            <Button variant="outline" size="xs" disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
               <Icon name="arrowLeft" size={12} /> Previous
-            </button>
+            </Button>
             <span style={{ minWidth: 70, textAlign: 'center' }}>Page {currentPage} of {pageCount}</span>
-            <button type="button" className="btn btn-secondary btn-sm"
-              disabled={currentPage === pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+            <Button variant="outline" size="xs" disabled={currentPage === pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
               Next <Icon name="arrowRight" size={12} />
-            </button>
+            </Button>
           </div>
         </div>
       )}

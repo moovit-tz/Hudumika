@@ -5,6 +5,7 @@ import { requireRole } from '../middleware/rbac.js';
 import { COMM_EVENT_REGISTRY } from '../config/comm-event-registry.js';
 import { CommEventsService } from '../services/comm-events.service.js';
 import crypto from 'node:crypto';
+import { sanitizeEmailHtml } from './email-meta.routes.js';
 
 export async function commEventsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -260,6 +261,49 @@ export async function marketplaceEmailRoutes(fastify: FastifyInstance) {
     const row = await dbPlatform.updateTable('marketplace_email_templates').set({ status: body.status, review_notes: body.review_notes ?? null, published_at: body.status === 'published' ? new Date() : null, updated_at: new Date() }).where('id', '=', id).returningAll().executeTakeFirst();
     if (!row) return reply.status(404).send({ error: 'Marketplace submission not found' });
     return row;
+  });
+
+  // PATCH /v1/marketplace/email-templates/:id — edit the Marketplace master.
+  // Tenant admins edit imported copies; only a platform SuperAdmin can change
+  // the source distributed to every workspace.
+  fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN') }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = z.object({
+      title: z.string().trim().min(1).max(160),
+      description: z.string().trim().min(1).max(2000),
+      subject: z.string().trim().min(1).max(500),
+      preheader: z.string().max(500).default(''),
+      body_html: z.string().trim().min(1),
+      body_plain: z.string().default(''),
+      category: z.string().trim().min(1).max(80),
+      application: z.string().trim().min(1).max(100).nullable(),
+      tags: z.array(z.string().trim().min(1).max(40)).max(20),
+      is_featured: z.boolean(),
+    }).parse(req.body);
+    const { dbPlatform } = await import('../db/client.js');
+    const current = await dbPlatform.selectFrom('marketplace_email_templates').selectAll()
+      .where('id', '=', id).executeTakeFirst();
+    if (!current) return reply.status(404).send({ error: 'Marketplace template not found' });
+
+    const versionParts = current.version.split('.').map(part => Number(part));
+    const version = `${versionParts[0] || 1}.${versionParts[1] || 0}.${(versionParts[2] || 0) + 1}`;
+    const sanitizedHtml = sanitizeEmailHtml(body.body_html);
+    if (!sanitizedHtml.trim()) return reply.status(400).send({ error: 'Template HTML is empty after sanitization' });
+    const availableVars = [...new Set(
+      `${body.subject} ${body.preheader} ${sanitizedHtml} ${body.body_plain}`
+        .match(/\{\{\s*\w+\s*\}\}/g)?.map(value => value.replace(/[{}\s]/g, '')) ?? [],
+    )];
+
+    const updated = await dbPlatform.updateTable('marketplace_email_templates').set({
+      ...body,
+      body_html: sanitizedHtml,
+      available_vars: availableVars,
+      version,
+      updated_at: new Date(),
+    }).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+    await dbPlatform.updateTable('tenant_marketplace_imports').set({ update_available: true })
+      .where('marketplace_template_id', '=', id).execute();
+    return updated;
   });
 
   // GET /v1/marketplace/email-templates/:id — single template

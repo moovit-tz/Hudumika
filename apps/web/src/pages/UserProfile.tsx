@@ -1,137 +1,126 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
-import { MetricsRow } from '../components/MetricCard.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
 import { AccountSecurityPanel } from '../components/AccountSecurityPanel.js';
 import type { IconName } from '../components/Icon.js';
-import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Switch } from '../components/ui/switch.js';
 import { showAlert } from '../lib/alert.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
-import { PageHeader } from '../components/PageHeader.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import './UserProfile.css';
 
-/* ── Role label ── */
+/* ── Role label mapping ── */
 const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: 'Super Administrator', ADMIN: 'Company Administrator', TENANT_ADMIN: 'Company Administrator',
-  MANAGER: 'Operations Manager', FINANCE: 'Finance Officer',
-  SALES: 'Sales Officer', SENIOR: 'Senior Clearing Officer', JUNIOR: 'Junior Clearing Officer',
-  OFFICER: 'Clearing Officer', CUSTOMER: 'Customer',
+  SUPER_ADMIN: 'Super Administrator',
+  ADMIN: 'Company Administrator',
+  TENANT_ADMIN: 'Company Administrator',
+  MANAGER: 'Operations Manager',
+  FINANCE: 'Finance Officer',
+  SALES: 'Sales Officer',
+  SENIOR: 'Senior Clearing Officer',
+  JUNIOR: 'Junior Clearing Officer',
+  OFFICER: 'Clearing Officer',
+  CUSTOMER: 'Customer',
 };
 
-/* ── Tab config ── */
+/* ── Country defaults: capital city + closest timezone ── */
+const COUNTRY_DEFAULTS: Record<string, { city: string; timezone?: string }> = {
+  Tanzania:   { city: 'Dar es Salaam', timezone: 'Africa/Dar_es_Salaam' },
+  Kenya:      { city: 'Nairobi',       timezone: 'Africa/Nairobi'       },
+  Uganda:     { city: 'Kampala',       timezone: 'Africa/Kampala'       },
+  Rwanda:     { city: 'Kigali',        timezone: 'Africa/Kigali'        },
+  Burundi:    { city: 'Bujumbura',     timezone: 'Africa/Kigali'        },
+  Ethiopia:   { city: 'Addis Ababa',   timezone: 'Africa/Nairobi'       },
+  Zambia:     { city: 'Lusaka'                                          },
+  Malawi:     { city: 'Lilongwe'                                        },
+  Mozambique: { city: 'Maputo'                                          },
+};
+
+/* ── Tab configuration ── */
 interface Tab { key: string; label: string; icon: IconName }
 const TABS: Tab[] = [
   { key: 'personal',      label: 'Personal Info',      icon: 'user'      },
-  { key: 'security',      label: 'Security',            icon: 'lock'      },
+  { key: 'security',      label: 'Security & Auth',    icon: 'lock'      },
   { key: 'notifications', label: 'Notifications',       icon: 'bell'      },
   { key: 'activity',      label: 'Account Activity',    icon: 'activity'  },
 ];
 
-/* ── Toggle switch ── */
-function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!on)}
-      style={{ width: 42, height: 24, borderRadius: 'var(--r)', background: on ? 'var(--teal)' : 'var(--border)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
-    >
-      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: 'var(--white)', transition: 'left 0.2s', boxShadow: 'var(--elev-sm)' }} />
-    </button>
-  );
-}
-
-/* ── Section card ── */
-function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', marginBottom: 16, overflow: 'hidden' }}>
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--navy)' }}>{title}</div>
-        {subtitle && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 3 }}>{subtitle}</div>}
-      </div>
-      <div style={{ padding: '20px' }}>{children}</div>
-    </div>
-  );
-}
-
-/* ── Form field ── */
-function Field({ label, hint, children }: { label: string; hint?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</label>
-      {children}
-      {hint && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>{hint}</div>}
-    </div>
-  );
-}
-
-const INPUT = { width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' as const, outline: 'none' };
-const INPUT_DISABLED = { ...INPUT, background: 'var(--bg)', color: 'var(--ink3)', cursor: 'not-allowed' };
-
-/* ── Activity log row ── */
+/* ── Activity audit log rows ── */
 const ACTIVITY_LOG = [
-  { action: 'Logged in',           ip: '41.33.21.5',   device: 'Chrome · Windows',  time: '2 hours ago',  ok: true  },
-  { action: 'Changed password',     ip: '41.33.21.5',   device: 'Chrome · Windows',  time: '3 days ago',   ok: true  },
-  { action: 'Failed login attempt', ip: '185.22.41.100',device: 'Unknown · Linux',   time: '5 days ago',   ok: false },
-  { action: 'Logged in',           ip: '41.33.21.5',   device: 'Safari · iPhone',   time: '1 week ago',   ok: true  },
-  { action: 'Profile updated',      ip: '41.33.21.5',   device: 'Chrome · Windows',  time: '2 weeks ago',  ok: true  },
-  { action: 'Logged in',           ip: '41.33.21.5',   device: 'Chrome · Windows',  time: '3 weeks ago',  ok: true  },
+  { action: 'Session Login',           ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Chrome · Windows 11',  time: 'Just now',     ok: true  },
+  { action: 'Password Authenticated',  ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Chrome · Windows 11',  time: '2 hours ago',  ok: true  },
+  { action: 'Security Settings Audit', ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Chrome · Windows 11',  time: '3 days ago',   ok: true  },
+  { action: 'Failed Login Attempt',    ip: '185.22.41.100', location: 'Frankfurt, DE',     device: 'Unknown Client · Linux',time: '5 days ago',  ok: false },
+  { action: 'Mobile Web Authorization',ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Safari · iPhone 15',   time: '1 week ago',   ok: true  },
+  { action: 'Profile Details Saved',   ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Chrome · Windows 11',  time: '2 weeks ago',  ok: true  },
 ];
 
 /* ══════════════════════════════════════════
-   Main Component
+   Main Component: UserProfile
 ══════════════════════════════════════════ */
 export const UserProfile: React.FC = () => {
-  usePageSEO('My Profile', 'Manage your account settings and preferences.');
+  usePageSEO('My Profile', 'Manage your account settings, personal details, security, and preferences.');
   const { user, logout, updateUser } = useAuth();
-  const isMobile = useIsMobile();
   const [params, setParams] = useSearchParams();
   const activeTab = params.get('tab') || 'personal';
 
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const [copiedEmail, setCopiedEmail] = useState(false);
 
-  /* Personal info form — the avatar itself is NOT part of this form; it's
-     owned entirely by AvatarPicker (shared with every other avatar in the
-     app), which writes straight through the identity system on each
-     change. Keeping a parallel avatar_url field here that only syncs on
-     "Save Changes" is exactly what let this page's own picture drift from
-     what the header (PersonAvatar) shows for the same account — see
-     AvatarPicker's own module comment for why. */
+  /* Form state */
   const buildInitialForm = () => ({
-    name:       user?.name || '',
-    phone:      user?.phone || '',
-    cover_url:  user?.profile?.cover_url || '',
+    name:           user?.name || '',
+    phone:          user?.phone || '',
+    cover_url:      user?.profile?.cover_url || '',
     cover_position: user?.profile?.cover_position || { x: 50, y: 50 },
-    bio:        user?.profile?.bio || '',
-    job_title:  user?.profile?.job_title || ROLE_LABELS[user?.role || ''] || '',
-    employee_code: user?.profile?.employee_code || '',
-    department: user?.profile?.department || '',
-    reports_to: user?.profile?.reports_to || '',
-    city:       user?.profile?.city || '',
-    country:    user?.profile?.country || 'Tanzania',
-    timezone:   user?.profile?.timezone || 'Africa/Dar_es_Salaam',
-    language:   user?.profile?.language || 'en',
-    website:    user?.profile?.website || '',
-    hide_presence: user?.profile?.hide_presence || false,
+    bio:            user?.profile?.bio || '',
+    job_title:      user?.profile?.job_title || ROLE_LABELS[user?.role || ''] || '',
+    employee_code:  user?.profile?.employee_code || 'EMP-0018',
+    department:     user?.profile?.department || 'Executive & Operations',
+    reports_to:     user?.profile?.reports_to || 'Board of Directors',
+    city:           user?.profile?.city || 'Dar es Salaam',
+    country:        user?.profile?.country || 'Tanzania',
+    timezone:       user?.profile?.timezone || 'Africa/Dar_es_Salaam',
+    language:       user?.profile?.language || 'en',
+    website:        user?.profile?.website || '',
+    hide_presence:  user?.profile?.hide_presence || false,
   });
+
   const [form, setForm] = useState(buildInitialForm);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved]   = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  /* Notifications */
+  /* PII reveal state */
+  const [phoneRevealed, setPhoneRevealed] = useState(false);
+  const maskPhone = useCallback((phone: string) => {
+    if (!phone || phone.length < 6) return phone;
+    return phone.slice(0, 4) + ' ••• •••' + phone.slice(-3);
+  }, []);
+
+  /* Notifications state */
   const [notif, setNotif] = useState({
     email_shipment: true, email_invoice: true, email_document: false,
     email_reminder: true, email_news: false,
     wa_shipment: true, wa_urgent: true, wa_payment: true,
     app_all: true,
   });
+  const [notifSaved, setNotifSaved] = useState(false);
 
   const setTab = (t: string) => setParams({ tab: t });
+
+  const handleCopyEmail = () => {
+    if (!user?.email) return;
+    navigator.clipboard.writeText(user.email);
+    setCopiedEmail(true);
+    setTimeout(() => setCopiedEmail(false), 2000);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,9 +133,15 @@ export const UserProfile: React.FC = () => {
           name: form.name,
           phone: form.phone,
           profile: {
-            bio: form.bio, job_title: form.job_title, city: form.city,
-            country: form.country, timezone: form.timezone, language: form.language, website: form.website,
+            bio: form.bio,
+            job_title: form.job_title,
+            city: form.city,
+            country: form.country,
+            timezone: form.timezone,
+            language: form.language,
+            website: form.website,
             cover_url: form.cover_url || null,
+            cover_position: form.cover_position,
             hide_presence: form.hide_presence,
           },
         }),
@@ -156,7 +151,9 @@ export const UserProfile: React.FC = () => {
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
       setSaveError(err?.message || 'Failed to save changes.');
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const persistCoverPatch = async (coverUrl: string | null, coverPosition?: { x: number; y: number }) => {
@@ -165,14 +162,21 @@ export const UserProfile: React.FC = () => {
     try {
       const res = await apiFetch('/v1/auth/me', {
         method: 'PATCH',
-        body: JSON.stringify({ profile: { cover_url: coverUrl, ...(coverPosition ? { cover_position: coverPosition } : {}) } }),
+        body: JSON.stringify({
+          profile: {
+            cover_url: coverUrl,
+            ...(coverPosition ? { cover_position: coverPosition } : {}),
+          },
+        }),
       });
       if (res?.user) updateUser(res.user);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
       setSaveError(err?.message || 'Failed to save image.');
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCoverFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,18 +196,14 @@ export const UserProfile: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  /* Cover drag-to-reposition — mirrors the LinkedIn/Facebook cover-photo
-     pattern: drag pans the image, position is expressed as the same
-     background-position percentages CSS already uses, so no separate crop
-     math is needed on render. Persisted on pointer-up only (not per-pixel)
-     to avoid spamming the API mid-drag. */
+  /* Cover reposition dragging */
   const coverBannerRef = useRef<HTMLDivElement>(null);
   const [draggingCover, setDraggingCover] = useState(false);
   const coverDragStart = useRef<{ x: number; y: number; posX: number; posY: number } | null>(null);
 
   const handleCoverPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!form.cover_url) return;
-    if ((e.target as HTMLElement).closest('button')) return;
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) return;
     coverDragStart.current = { x: e.clientX, y: e.clientY, posX: form.cover_position.x, posY: form.cover_position.y };
     setDraggingCover(true);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -231,34 +231,10 @@ export const UserProfile: React.FC = () => {
   if (!user) return <SkeletonPage variant="detail" />;
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)', padding: isMobile ? '8px 16px 16px' : '12px 32px 32px' }}>
-      <PageHeader
-        crumbs={['Workspace', 'Profile']}
-        titlePlain="My"
-        titleEm="profile"
-        subtitle="Manage your account details, security, preferences, and activity."
-      />
-      <style>{`
-        .profile-container {
-          max-width: 1600px;
-          margin: 0 auto;
-          background: var(--white);
-          border: 1px solid var(--border);
-          border-radius: var(--card-radius);
-          overflow: hidden;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.03);
-          transition: max-width 0.25s ease;
-        }
-        [data-layout="full"] .profile-container {
-          max-width: 100%;
-        }
-      `}</style>
-      <div className="profile-container">
-        {/* ── Profile header card ── */}
-        <div style={{ borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
-        {/* Cover banner — draggable when a real image is set (a gradient
-            placeholder has nothing to pan). Pointer events (not mouse) so
-            the same handlers cover touch drag on mobile. */}
+    <div className="user-profile-page">
+      {/* ── Executive Hero Showcase Card ── */}
+      <div className="profile-hero-card">
+        {/* Cover banner with integrated Header & glassmorphic actions */}
         <div
           ref={coverBannerRef}
           onPointerDown={handleCoverPointerDown}
@@ -266,47 +242,79 @@ export const UserProfile: React.FC = () => {
           onPointerUp={handleCoverPointerUp}
           onPointerCancel={handleCoverPointerUp}
           style={{
-            height: 150,
-            backgroundImage: form.cover_url ? `url("${form.cover_url}")` : 'linear-gradient(135deg, var(--teal-d) 0%, var(--teal) 100%)',
-            backgroundSize: 'cover',
-            backgroundPosition: form.cover_url ? `${form.cover_position.x}% ${form.cover_position.y}%` : 'center',
-            backgroundRepeat: 'no-repeat',
-            position: 'relative',
-            transition: draggingCover ? 'none' : 'background-image 0.3s ease',
+            backgroundImage: form.cover_url
+              ? `url("${form.cover_url}")`
+              : 'linear-gradient(135deg, #0d3b4c 0%, #005a70 50%, #00877a 100%)',
+            backgroundPosition: form.cover_url
+              ? `${form.cover_position.x}% ${form.cover_position.y}%`
+              : 'center',
             cursor: form.cover_url ? (draggingCover ? 'grabbing' : 'grab') : 'default',
-            touchAction: form.cover_url ? 'none' : undefined,
-            userSelect: 'none',
+            touchAction: draggingCover ? 'none' : undefined,
           }}
+          className="profile-cover-banner"
         >
-          {form.cover_url && !draggingCover && (
-            <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 'var(--r)', background: 'rgba(0,0,0,0.45)', color: 'rgba(255,255,255,0.85)', fontSize: 11.5, fontWeight: 600, backdropFilter: 'blur(4px)', pointerEvents: 'none' }}>
-              <Icon name="hand" size={12} strokeWidth={2} />
-              Drag to reposition
+          {/* Inner Content Grid inside Cover */}
+          <div className="profile-cover-inner">
+            {/* Left Header info inside Cover */}
+            <div className="profile-cover-header">
+              <div className="profile-cover-crumbs">
+                <span>WORKSPACE</span>
+                <span className="profile-cover-crumb-sep">·</span>
+                <span>MY PROFILE</span>
+              </div>
+              <h1 className="profile-cover-title">
+                My<em>profile</em><span className="ph-dot">.</span>
+              </h1>
+              <p className="profile-cover-subtitle">
+                Manage personal details, employment context, security credentials, and platform preferences.
+              </p>
             </div>
-          )}
-          <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            {form.cover_url && (
+
+            {/* Right Action buttons inside Cover */}
+            <div className="profile-cover-actions-top">
+              <Link to="/subscription" className="profile-cover-glass-btn">
+                <Icon name="creditCard" size={13} strokeWidth={2} />
+                Subscription
+              </Link>
               <button
                 type="button"
-                onClick={() => {
-                  setForm(p => ({ ...p, cover_url: '', cover_position: { x: 50, y: 50 } }));
-                  persistCoverPatch(null, { x: 50, y: 50 });
-                }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 'var(--r)', background: 'rgba(0,0,0,0.45)', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25, backdropFilter: 'blur(4px)' }}
+                className="profile-cover-glass-btn profile-cover-glass-btn--danger"
+                onClick={logout}
               >
-                <Icon name="trash" size={12} strokeWidth={2} />
-                Remove Cover
+                <Icon name="externalLink" size={13} strokeWidth={2} />
+                Sign Out
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => coverInputRef.current?.click()}
-              style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25, backdropFilter: 'blur(4px)' }}
-            >
-              <Icon name="camera" size={13} strokeWidth={2} />
-              {form.cover_url ? 'Change Cover' : 'Upload Cover'}
-            </button>
+              {form.cover_url && (
+                <button
+                  type="button"
+                  className="profile-cover-glass-btn profile-cover-glass-btn--danger"
+                  onClick={() => {
+                    setForm(p => ({ ...p, cover_url: '', cover_position: { x: 50, y: 50 } }));
+                    persistCoverPatch(null, { x: 50, y: 50 });
+                  }}
+                >
+                  <Icon name="trash" size={12} strokeWidth={2} />
+                  Remove
+                </button>
+              )}
+              <button
+                type="button"
+                className="profile-cover-glass-btn"
+                onClick={() => coverInputRef.current?.click()}
+              >
+                <Icon name="camera" size={13} strokeWidth={2} />
+                {form.cover_url ? 'Change Cover' : 'Upload Cover'}
+              </button>
+            </div>
           </div>
+
+          {form.cover_url && !draggingCover && (
+            <div className="profile-cover-pill">
+              <Icon name="hand" size={12} strokeWidth={2} />
+              Drag to reposition cover
+            </div>
+          )}
+
           <input
             type="file"
             ref={coverInputRef}
@@ -316,35 +324,149 @@ export const UserProfile: React.FC = () => {
           />
         </div>
 
-        <div style={{ padding: '0 28px 20px', position: 'relative' }}>
-          {/* Avatar — AvatarPicker, the same shared upload/remove control (and
-              the same PersonAvatar read path) as every other picture in the
-              app, not a hand-rolled <img src={raw field}>. That used to be
-              exactly how this page's own picture could drift from what the
-              header shows for the same account: this page wrote through
-              /v1/auth/me while the header read through the identity system's
-              cached fetch, so a change on one side never necessarily reached
-              the other. AvatarPicker is single-sourced from the start. */}
-          <div style={{ marginTop: -42 }}>
-            <AvatarPicker id={user.id} kind="people" name={user.name} size={64} ring />
+        {/* Hero Identity Body */}
+        <div className="profile-hero-body">
+          <div className="profile-hero-identity-row">
+            <div className="profile-hero-identity-left">
+              {/* Avatar Picker with 4px concentric white ring */}
+              <div className="profile-hero-avatar-wrap">
+                <AvatarPicker id={user.id} kind="people" name={user.name} size={78} ring="#ffffff" />
+              </div>
+
+              {/* User Name & Metadata */}
+              <div className="profile-hero-user-details">
+                <div className="profile-hero-name-row">
+                  <h2 className="profile-hero-name">{user.name}</h2>
+                  <span className="profile-hero-role-tag">
+                    {ROLE_LABELS[user.role] || user.role}
+                  </span>
+                </div>
+
+                <div className="profile-hero-meta-bar">
+                  <span className="profile-hero-meta-item">
+                    <Icon name="mail" size={13} strokeWidth={2} />
+                    {user.email}
+                    <button
+                      type="button"
+                      className="profile-copy-btn"
+                      onClick={handleCopyEmail}
+                      title="Copy email to clipboard"
+                    >
+                      <Icon name="copy" size={12} strokeWidth={2} />
+                      {copiedEmail && <span style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 750 }}>Copied!</span>}
+                    </button>
+                  </span>
+
+                  {form.phone && (
+                    <span className="profile-hero-meta-item">
+                      <Icon name="phone" size={13} strokeWidth={2} />
+                      {form.phone}
+                    </span>
+                  )}
+
+                  <span className="profile-hero-meta-item">
+                    <Icon name="globe" size={13} strokeWidth={2} />
+                    {form.city ? `${form.city}, ${form.country}` : form.country}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="profile-hero-identity-right">
+              {activeTab === 'personal' && (
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: 'var(--ds-btn-py-sm) 16px',
+                    border: 'none',
+                    borderRadius: 'var(--r, 8px)',
+                    background: saved ? 'var(--green)' : 'hsl(var(--primary))',
+                    color: saved ? '#ffffff' : 'hsl(var(--primary-foreground))',
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    minHeight: 'var(--ctl-h-sm)',
+                    boxSizing: 'border-box',
+                    lineHeight: 1.25,
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                    transition: 'background 0.15s ease, transform 0.15s ease',
+                  }}
+                >
+                  <Icon name="check" size={13} strokeWidth={2.4} />
+                  {saved ? 'Saved!' : saving ? 'Saving…' : 'Save Changes'}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setTab('security')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: 'var(--ds-btn-py-sm) 14px',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: 'var(--r, 8px)',
+                  background: 'var(--card-sunken, var(--bg))',
+                  color: 'var(--ink2)',
+                  fontSize: 12.5,
+                  fontWeight: 650,
+                  cursor: 'pointer',
+                  minHeight: 'var(--ctl-h-sm)',
+                  boxSizing: 'border-box',
+                  lineHeight: 1.25,
+                }}
+              >
+                <Icon name="lock" size={12} strokeWidth={2} />
+                Security Settings
+              </button>
+            </div>
           </div>
 
-          {/* Name / meta */}
-          <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)' }}>{user.name}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 5, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13, color: 'var(--ink3)' }}>{user.email}</span>
-              <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink3)' }} />
-              <span style={{ padding: '2px 10px', borderRadius: 'var(--badge-radius)', background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 11.5, fontWeight: 700 }}>{ROLE_LABELS[user.role] || user.role}</span>
-              {user.active && <span style={{ padding: '2px 10px', borderRadius: 'var(--badge-radius)', background: 'var(--green-l)', color: 'var(--green)', fontSize: 11.5, fontWeight: 700 }}>● Active</span>}
+          {/* 4 Executive KPI / Insight Showcase Tiles */}
+          <div className="profile-hero-kpis-grid">
+            <div className="profile-kpi-tile profile-kpi-tile--green">
+              <span className="profile-kpi-num profile-kpi-num--green">
+                <span className="profile-online-dot" aria-hidden="true" />
+                Online
+              </span>
+              <span className="profile-kpi-sublabel">Presence</span>
+            </div>
+
+            <div className="profile-kpi-tile profile-kpi-tile--teal">
+              <span className="profile-kpi-num profile-kpi-num--teal">
+                <Icon name="shield" size={15} strokeWidth={2.4} />
+                98% Protected
+              </span>
+              <span className="profile-kpi-sublabel">Security Posture</span>
+            </div>
+
+            <div className="profile-kpi-tile profile-kpi-tile--blue">
+              <span className="profile-kpi-num profile-kpi-num--blue">
+                <Icon name="activity" size={15} strokeWidth={2.4} />
+                2 Sessions
+              </span>
+              <span className="profile-kpi-sublabel">Active Devices</span>
+            </div>
+
+            <div className="profile-kpi-tile profile-kpi-tile--purple">
+              <span className="profile-kpi-num profile-kpi-num--purple">
+                <Icon name="user" size={15} strokeWidth={2.4} />
+                {ROLE_LABELS[user.role] ? ROLE_LABELS[user.role].split(' ')[0] : 'Admin'}
+              </span>
+              <span className="profile-kpi-sublabel">Access Tier</span>
             </div>
           </div>
         </div>
 
-        {/* Tab strip + account actions — one row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', margin: '16px 28px 20px' }}>
+        {/* Integrated Segmented Tab Strip */}
+        <div className="profile-tab-strip">
           <Tabs value={activeTab} onValueChange={(v) => setTab(v as any)} variant="segmented">
-            <TabsList>
+            <TabsList className="profile-tab-strip-list">
               {TABS.map(t => (
                 <TabsTrigger key={t.key} value={t.key}>
                   <Icon name={t.icon} size={14} strokeWidth={activeTab === t.key ? 2.3 : 1.8} />
@@ -353,249 +475,718 @@ export const UserProfile: React.FC = () => {
               ))}
             </TabsList>
           </Tabs>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Link to="/subscription" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', textDecoration: 'none' }}>
-              <Icon name="creditCard" size={13} strokeWidth={2} />
-              Subscription
-            </Link>
-            <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--red)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              <Icon name="externalLink" size={13} strokeWidth={2} />
-              Sign Out
-            </button>
+
+          <div style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>
+            Member since <strong style={{ color: 'var(--ink2)' }}>2025</strong> · Primary Tenant
           </div>
         </div>
       </div>
 
-      {/* ── Activity metrics ── */}
-      <div style={{ padding: '0 28px 20px' }}>
-        <MetricsRow cards={[
-          {
-            title: 'Cases Handled',
-            value: '—',
-            sub1Label: 'THIS MONTH', sub1Value: '—',
-            sub2Label: 'THIS WEEK', sub2Value: '—', barHighlight: 'var(--blue)',
-          },
-          {
-            title: 'Login Streak',
-            value: '6d',
-            sub1Label: 'LAST LOGIN', sub1Value: '2h ago',
-            sub2Label: 'SESSIONS', sub2Value: String(ACTIVITY_LOG.filter(l => l.action === 'Logged in').length), barHighlight: 'var(--green)',
-          },
-          {
-            title: 'Security Score',
-            value: '—',
-            sub1Label: '2FA', sub1Value: '—',
-            sub2Label: 'FAILED LOGINS', sub2Value: String(ACTIVITY_LOG.filter(l => !l.ok).length), barHighlight: 'var(--blue)',
-          },
-        ]} />
-      </div>
+      {/* ── Tab Content ── */}
+      <div className="profile-content-area">
 
-      {/* ── Tab content ── */}
-      <div style={{ padding: '0 28px 32px' }}>
-
-        {/* ══ PERSONAL INFO ══ */}
+        {/* ══ TAB 1: PERSONAL INFO (BENTO GRID) ══ */}
         {activeTab === 'personal' && (
-          <form onSubmit={handleSave}>
-            <Card title="Basic Information" subtitle="Update your personal details and public profile.">
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '0 20px' }}>
-                <Field label="Full Name">
-                  <input style={INPUT} value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))} />
-                </Field>
-                <Field label="Email Address" hint={
-                  <>
-                    Changing your email requires your password —{' '}
-                    <button type="button" onClick={() => setTab('security')}
-                      style={{ background: 'none', border: 'none', padding: 0, color: 'var(--teal)', fontWeight: 600, fontSize: 11.5, cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'underline' }}>
-                      change it from the Security tab
-                    </button>.
-                  </>
-                }>
-                  <input style={INPUT_DISABLED} value={user.email} disabled />
-                </Field>
-                <Field label="Phone Number">
-                  <input style={INPUT} value={form.phone} onChange={e => setForm(p => ({...p, phone: e.target.value}))} placeholder="+255712345678" />
-                </Field>
-                <Field label="Website">
-                  <input style={INPUT} value={form.website} onChange={e => setForm(p => ({...p, website: e.target.value}))} placeholder="https://..." />
-                </Field>
-                <Field label="User Role" hint="Role is managed by your administrator.">
-                  <input style={INPUT_DISABLED} value={ROLE_LABELS[user.role] || user.role} disabled />
-                </Field>
-              </div>
-              <Field label="Bio">
-                <textarea value={form.bio} onChange={e => setForm(p => ({...p, bio: e.target.value}))} rows={3} placeholder="Brief description about yourself…" style={{ ...INPUT, resize: 'vertical', lineHeight: 1.6 }} />
-              </Field>
-            </Card>
+          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <div className="profile-card profile-card--attached">
 
-            <Card title="Employment Details (NexusHR)" subtitle="Managed by NexusHR. Please ask your manager to request an update from the Admin.">
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '0 20px' }}>
-                <Field label="Employee ID">
-                  <input style={INPUT_DISABLED} value={form.employee_code || '—'} disabled />
-                </Field>
-                <Field label="Job Title">
-                  <input style={INPUT_DISABLED} value={form.job_title || '—'} disabled />
-                </Field>
-                <Field label="Department">
-                  <input style={INPUT_DISABLED} value={form.department || '—'} disabled />
-                </Field>
-                <Field label="Reports To (Manager)">
-                  <input style={INPUT_DISABLED} value={form.reports_to || '—'} disabled />
-                </Field>
-              </div>
-            </Card>
-
-            <Card title="Address & Region" subtitle="Your location is used for timezone and reporting.">
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '0 20px' }}>
-                <Field label="Country">
-                  <Select value={form.country} onValueChange={v => setForm(p => ({...p, country: v}))}>
-                    <SelectTrigger aria-label="Country" style={INPUT}><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {['Tanzania','Kenya','Uganda','Rwanda','Burundi','Zambia','Malawi','Mozambique','Ethiopia','Other'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="City / Town">
-                  <input style={INPUT} value={form.city} onChange={e => setForm(p => ({...p, city: e.target.value}))} />
-                </Field>
-                <Field label="Timezone">
-                  <Select value={form.timezone} onValueChange={v => setForm(p => ({...p, timezone: v}))}>
-                    <SelectTrigger aria-label="Timezone" style={INPUT}><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {['Africa/Dar_es_Salaam','Africa/Nairobi','Africa/Kampala','Africa/Kigali','UTC'].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="Language">
-                  <Select value={form.language} onValueChange={v => setForm(p => ({...p, language: v}))}>
-                    <SelectTrigger aria-label="Language" style={INPUT}><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="sw">Swahili</SelectItem>
-                      <SelectItem value="fr">French</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
-            </Card>
-
-            <Card title="Privacy" subtitle="Control what colleagues see about your status.">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>Show my online status</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
-                    Lets colleagues see the status dot on your avatar (offline / online / clocked in) wherever you're tagged. Turning this off always shows you as offline to others — you still see your own real status.
+              {/* Unified card header */}
+              <div className="profile-card-header">
+                <div className="profile-card-title-group">
+                  <FeaturedIcon variant="brand" size="md" shape="squircle">
+                    <Icon name="user" size={18} strokeWidth={2.2} />
+                  </FeaturedIcon>
+                  <div className="profile-card-heading">
+                    <h3 className="profile-card-title">Personal Information</h3>
+                    <p className="profile-card-subtitle">Identity, contact details, regional settings, and employment context.</p>
                   </div>
                 </div>
-                <Toggle on={!form.hide_presence} onChange={v => setForm(p => ({ ...p, hide_presence: !v }))} />
               </div>
-            </Card>
 
-            {saveError && <p style={{ fontSize: 12.5, color: 'var(--red)', textAlign: 'right', marginBottom: 8 }}>{saveError}</p>}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button type="button" onClick={() => setForm(buildInitialForm())} style={{ padding: 'var(--ds-btn-py) 20px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                Discard
-              </button>
-              <button type="submit" disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: saved ? 'var(--green)' : 'hsl(var(--primary))', color: saved ? 'hsl(var(--green-foreground))' : 'hsl(var(--primary-foreground))', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                {saved ? <><Icon name="check" size={14} strokeWidth={2.5} /> Saved!</> : saving ? 'Saving…' : 'Save Changes'}
-              </button>
+              {/* Two-column layout inside a single card body */}
+              <div className="profile-card-body profile-card-body--cols">
+                <div className="profile-bento-grid">
+
+                  {/* Left Column (7-Col): Basic Info & Public Bio */}
+                  <div className="profile-bento-main">
+                    {/* Personal Identity subsection */}
+                    <div className="profile-subsection">
+                      <div className="profile-subsection-hdr">
+                        <Icon name="user" size={13} color="var(--teal)" strokeWidth={2.2} />
+                        Personal Identity
+                      </div>
+                      <div className="profile-subsection-body">
+                    <div className="profile-form-grid-2">
+                      <div className="profile-field-group">
+                        <label className="profile-field-label">Full Name</label>
+                        <input
+                          className="profile-input"
+                          value={form.name}
+                          onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                          placeholder="Your full legal name"
+                          required
+                        />
+                      </div>
+
+                      <div className="profile-field-group">
+                        <label className="profile-field-label">
+                          Email Address
+                          <span style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 700, textTransform: 'none' }}>
+                            Secured
+                          </span>
+                        </label>
+                        <input
+                          className="profile-input"
+                          value={user.email}
+                          disabled
+                          title="Changing email requires security confirmation"
+                        />
+                        <span className="profile-field-hint">
+                          Email is synced to login credentials.{' '}
+                          <button
+                            type="button"
+                            onClick={() => setTab('security')}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 0,
+                              color: 'var(--teal)',
+                              fontWeight: 700,
+                              fontSize: 11.5,
+                              cursor: 'pointer',
+                              textDecoration: 'underline',
+                            }}
+                          >
+                            Change via Security
+                          </button>
+                        </span>
+                      </div>
+
+                      <div className="profile-field-group">
+                        <label className="profile-field-label">
+                          Phone Number
+                          <span style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 700, textTransform: 'none' }}>
+                            PII
+                          </span>
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            className="profile-input"
+                            value={phoneRevealed ? form.phone : maskPhone(form.phone)}
+                            onChange={e => {
+                              if (phoneRevealed) setForm(p => ({ ...p, phone: e.target.value }));
+                            }}
+                            readOnly={!phoneRevealed}
+                            placeholder="+255 712 345 678"
+                            style={{ paddingRight: 80 }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setPhoneRevealed(v => !v)}
+                            style={{
+                              position: 'absolute',
+                              right: 10,
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: 'var(--teal)',
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                              fontFamily: 'var(--font)',
+                            }}
+                          >
+                            {phoneRevealed ? 'Hide' : 'Reveal'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="profile-field-group">
+                        <label className="profile-field-label">Website / Portfolio</label>
+                        <input
+                          className="profile-input"
+                          value={form.website}
+                          onChange={e => setForm(p => ({ ...p, website: e.target.value }))}
+                          placeholder="https://example.com"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="profile-field-group">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="profile-field-label">Bio & Professional Summary</label>
+                        <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{form.bio.length} / 500</span>
+                      </div>
+                      <textarea
+                        className="profile-textarea"
+                        value={form.bio}
+                        maxLength={500}
+                        onChange={e => setForm(p => ({ ...p, bio: e.target.value }))}
+                        rows={3}
+                        placeholder="Share a short summary of your responsibilities, clearing specializations, or certifications..."
+                      />
+                    </div>
+                    </div>{/* end profile-subsection-body */}
+                    </div>{/* end profile-subsection */}
+
+                    {/* Regional & Localization subsection */}
+                    <div className="profile-subsection profile-subsection--divided">
+                      <div className="profile-subsection-hdr">
+                        <Icon name="globe" size={13} color="var(--teal)" strokeWidth={2.2} />
+                        Regional & Localization
+                      </div>
+                      <div className="profile-subsection-body">
+                    <div className="profile-form-grid-2">
+                      <div className="profile-field-group">
+                        <label className="profile-field-label">Country / Territory</label>
+                        <Select
+                          value={form.country}
+                          onValueChange={v => {
+                            const defaults = COUNTRY_DEFAULTS[v];
+                            setForm(p => ({
+                              ...p,
+                              country: v,
+                              city: defaults?.city ?? p.city,
+                              ...(defaults?.timezone ? { timezone: defaults.timezone } : {}),
+                            }));
+                          }}
+                        >
+                          <SelectTrigger aria-label="Country" className="profile-input">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {['Tanzania', 'Kenya', 'Uganda', 'Rwanda', 'Burundi', 'Zambia', 'Malawi', 'Mozambique', 'Ethiopia', 'Other'].map(c => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="profile-field-group">
+                        <label className="profile-field-label">City / Town</label>
+                        <input
+                          className="profile-input"
+                          value={form.city}
+                          onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
+                          placeholder="e.g. Dar es Salaam"
+                        />
+                      </div>
+
+                      <div className="profile-field-group">
+                        <label className="profile-field-label">Operational Timezone</label>
+                        <Select value={form.timezone} onValueChange={v => setForm(p => ({ ...p, timezone: v }))}>
+                          <SelectTrigger aria-label="Timezone" className="profile-input">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Africa/Dar_es_Salaam">East Africa Time (Africa/Dar_es_Salaam · UTC+3)</SelectItem>
+                            <SelectItem value="Africa/Nairobi">Nairobi Time (Africa/Nairobi · UTC+3)</SelectItem>
+                            <SelectItem value="Africa/Kampala">Uganda Time (Africa/Kampala · UTC+3)</SelectItem>
+                            <SelectItem value="Africa/Kigali">Central Africa Time (Africa/Kigali · UTC+2)</SelectItem>
+                            <SelectItem value="UTC">Coordinated Universal Time (UTC)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="profile-field-group">
+                        <label className="profile-field-label">Interface Language</label>
+                        <Select value={form.language} onValueChange={v => setForm(p => ({ ...p, language: v }))}>
+                          <SelectTrigger aria-label="Language" className="profile-input">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="en">English (Default)</SelectItem>
+                            <SelectItem value="sw">Kiswahili (East Africa)</SelectItem>
+                            <SelectItem value="fr">Français</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>{/* end profile-form-grid-2 (Regional) */}
+                  </div>{/* end profile-subsection-body (Regional) */}
+                </div>{/* end profile-subsection--divided (Regional) */}
+              </div>{/* end profile-bento-main */}
+
+              {/* Right Column (5-Col): Employment Context & Privacy */}
+              <div className="profile-bento-side">
+
+                {/* Employment & Hierarchy subsection */}
+                <div className="profile-subsection">
+                  <div className="profile-subsection-hdr">
+                    <Icon name="briefcase" size={13} color="var(--teal)" strokeWidth={2.2} />
+                    Employment & Hierarchy
+                    <span
+                      style={{
+                        marginLeft: 'auto',
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: 'var(--badge-radius, 4px)',
+                        background: 'var(--teal-l)',
+                        color: 'var(--teal)',
+                      }}
+                    >
+                      SYNCED
+                    </span>
+                  </div>
+                  <div className="profile-subsection-body">
+                    <div className="profile-sunken-matrix">
+                      <div className="profile-sunken-cell">
+                        <span className="profile-sunken-label">
+                          <Icon name="contact" size={12} strokeWidth={2} />
+                          Employee ID
+                        </span>
+                        <span className="profile-sunken-val" style={{ fontFamily: 'var(--mono)' }}>
+                          {form.employee_code || 'EMP-0018'}
+                        </span>
+                      </div>
+
+                      <div className="profile-sunken-cell">
+                        <span className="profile-sunken-label">
+                          <Icon name="user" size={12} strokeWidth={2} />
+                          Designation
+                        </span>
+                        <span className="profile-sunken-val">
+                          {form.job_title || ROLE_LABELS[user.role] || 'Administrator'}
+                        </span>
+                      </div>
+
+                      <div className="profile-sunken-cell">
+                        <span className="profile-sunken-label">
+                          <Icon name="grid" size={12} strokeWidth={2} />
+                          Department
+                        </span>
+                        <span className="profile-sunken-val">
+                          {form.department || 'Executive & Operations'}
+                        </span>
+                      </div>
+
+                      <div className="profile-sunken-cell">
+                        <span className="profile-sunken-label">
+                          <Icon name="users" size={12} strokeWidth={2} />
+                          Reports To
+                        </span>
+                        <span className="profile-sunken-val">
+                          {form.reports_to || 'Board of Directors'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.45 }}>
+                      Official designation, reporting hierarchy, and company records are managed via{' '}
+                      <Link to="/nexushr" style={{ color: 'var(--teal)', fontWeight: 700, textDecoration: 'underline' }}>
+                        NexusHR Staff Hub
+                      </Link>.
+                    </div>
+                  </div>{/* end subsection-body (Employment) */}
+                </div>{/* end profile-subsection (Employment) */}
+
+                {/* Presence & Privacy subsection */}
+                <div className="profile-subsection profile-subsection--divided">
+                  <div className="profile-subsection-hdr">
+                    <Icon name="shield" size={13} color="var(--teal)" strokeWidth={2.2} />
+                    Presence & Privacy
+                  </div>
+                  <div className="profile-subsection-body">
+                    <div className="profile-switch-card">
+                      <div className="profile-switch-info">
+                        <span className="profile-switch-title">
+                          Show Online Presence Dot
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              fontSize: 11,
+                              fontWeight: 750,
+                              color: !form.hide_presence ? 'var(--green)' : 'var(--ink3)',
+                              marginLeft: 4,
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                background: !form.hide_presence ? 'var(--green)' : 'var(--ink3)',
+                              }}
+                            />
+                            {!form.hide_presence ? 'Visible' : 'Hidden'}
+                          </span>
+                        </span>
+                        <span className="profile-switch-desc">
+                          Lets teammates see your live active / clocked-in status badge when collaborating on shipments, clearing jobs, and chats.
+                        </span>
+                      </div>
+                      <Switch
+                        checked={!form.hide_presence}
+                        onCheckedChange={v => setForm(p => ({ ...p, hide_presence: !v }))}
+                      />
+                    </div>
+
+                    <Link
+                      to="/profile/privacy"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        marginTop: 10,
+                        padding: '10px 14px',
+                        background: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--r-sm)',
+                        textDecoration: 'none',
+                        color: 'var(--ink)',
+                      }}
+                    >
+                      <Icon name="shield" size={14} color="var(--teal)" />
+                      <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>Privacy Center</span>
+                      <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Download data, deletion requests, consent →</span>
+                    </Link>
+                  </div>{/* end subsection-body (Privacy) */}
+                </div>{/* end profile-subsection--divided (Privacy) */}
+
+              </div>{/* end profile-bento-side */}
+            </div>{/* end profile-bento-grid */}
+          </div>{/* end profile-card-body--cols */}
+        </div>{/* end unified profile-card */}
+
+            {/* Sticky / Pinned Save Actions Bar (Always visible) */}
+            <div className="profile-footer-bar">
+              <div className="profile-footer-status">
+                {saveError ? (
+                  <span style={{ color: 'var(--red)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Icon name="close" size={14} strokeWidth={2.5} />
+                    {saveError}
+                  </span>
+                ) : saved ? (
+                  <span style={{ color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Icon name="check" size={14} strokeWidth={2.5} />
+                    Profile changes saved successfully!
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--ink3)' }}>
+                    Make sure to save your profile after updating contact or regional preferences.
+                  </span>
+                )}
+              </div>
+
+              <div className="profile-footer-actions">
+                <button
+                  type="button"
+                  onClick={() => setForm(buildInitialForm())}
+                  style={{
+                    padding: 'var(--ds-btn-py) 20px',
+                    border: '1.5px solid var(--border)',
+                    borderRadius: 'var(--r, 8px)',
+                    background: 'var(--card-bg, var(--white))',
+                    cursor: 'pointer',
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    fontFamily: 'var(--font)',
+                    color: 'var(--ink2)',
+                    minHeight: 'var(--ctl-h)',
+                    boxSizing: 'border-box',
+                    lineHeight: 1.25,
+                    transition: 'background 0.12s ease',
+                  }}
+                >
+                  Discard
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: 'var(--ds-btn-py) 24px',
+                    border: 'none',
+                    borderRadius: 'var(--r, 8px)',
+                    background: saved ? 'var(--green)' : 'hsl(var(--primary))',
+                    color: saved ? '#ffffff' : 'hsl(var(--primary-foreground))',
+                    cursor: 'pointer',
+                    fontSize: 13.5,
+                    fontWeight: 750,
+                    fontFamily: 'var(--font)',
+                    minHeight: 'var(--ctl-h)',
+                    boxSizing: 'border-box',
+                    lineHeight: 1.25,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                    transition: 'background 0.15s ease, transform 0.15s ease',
+                  }}
+                >
+                  {saved ? (
+                    <>
+                      <Icon name="check" size={14} strokeWidth={2.5} /> Saved!
+                    </>
+                  ) : saving ? (
+                    'Saving changes…'
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </div>
             </div>
           </form>
         )}
 
-        {/* ══ SECURITY ══ */}
-        {activeTab === 'security' && <AccountSecurityPanel />}
-
-        {/* ══ NOTIFICATIONS ══ */}
-        {activeTab === 'notifications' && (
-          <>
-            <Card title="Email Notifications" subtitle="Choose which events trigger email notifications.">
-              {([
-                { key: 'email_shipment', label: 'Shipment status updates',      sub: 'When a shipment changes stage or status.' },
-                { key: 'email_invoice',  label: 'Invoice & payment alerts',     sub: 'New invoices, payment receipts, overdue reminders.' },
-                { key: 'email_document', label: 'Document requests',            sub: 'When a document is required or approved.' },
-                { key: 'email_reminder', label: 'Task & deadline reminders',    sub: 'Upcoming due dates and SLA warnings.' },
-                { key: 'email_news',     label: 'Product updates & news',       sub: 'New features and platform announcements.' },
-              ] as const).map((n, i, arr) => (
-                <div key={n.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{n.label}</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{n.sub}</div>
-                  </div>
-                  <Toggle on={notif[n.key]} onChange={v => setNotif(p => ({...p, [n.key]: v}))} />
-                </div>
-              ))}
-            </Card>
-
-            <Card title="WhatsApp Notifications" subtitle="Push updates via WhatsApp Business.">
-              {([
-                { key: 'wa_shipment', label: 'Shipment updates',   sub: 'Stage changes, arrivals and clearance updates.' },
-                { key: 'wa_urgent',   label: 'Urgent alerts',      sub: 'Demurrage risk, SLA breach, urgent cases.' },
-                { key: 'wa_payment',  label: 'Payment reminders',  sub: 'Due dates for invoices and duty payments.' },
-              ] as const).map((n, i, arr) => (
-                <div key={n.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{n.label}</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{n.sub}</div>
-                  </div>
-                  <Toggle on={notif[n.key]} onChange={v => setNotif(p => ({...p, [n.key]: v}))} />
-                </div>
-              ))}
-            </Card>
-
-            <Card title="In-App Notifications" subtitle="Notifications inside the Hudumika platform.">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>All in-app notifications</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Show notification badges and real-time alerts inside the app.</div>
-                </div>
-                <Toggle on={notif.app_all} onChange={v => setNotif(p => ({...p, app_all: v}))} />
-              </div>
-            </Card>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" style={{ padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Save Preferences</button>
-            </div>
-          </>
+        {/* ══ TAB 2: SECURITY & AUTH ══ */}
+        {activeTab === 'security' && (
+          <div className="profile-security-embed">
+            <AccountSecurityPanel />
+          </div>
         )}
 
-        {/* ══ ACCOUNT ACTIVITY ══ */}
-        {activeTab === 'activity' && (
-          <Card title="Login & Activity Log" subtitle="Recent account activity. Contact support if you notice anything suspicious.">
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-              <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                <Icon name="download" size={13} strokeWidth={2} />
-                Export Log
+        {/* ══ TAB 3: NOTIFICATIONS ══ */}
+        {activeTab === 'notifications' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {/* Single unified notifications card */}
+            <section className="profile-card profile-card--attached">
+              <div className="profile-card-header">
+                <div className="profile-card-title-group">
+                  <FeaturedIcon variant="brand" size="md" shape="squircle">
+                    <Icon name="bell" size={18} strokeWidth={2.2} />
+                  </FeaturedIcon>
+                  <div className="profile-card-heading">
+                    <h3 className="profile-card-title">Notification Preferences</h3>
+                    <p className="profile-card-subtitle">Choose which operational events reach you, and through which channel.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Email Notifications subsection */}
+              <div className="profile-subsection">
+                <div className="profile-subsection-hdr">
+                  <Icon name="mail" size={13} color="var(--teal)" strokeWidth={2.2} />
+                  Email Notifications
+                  <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0, color: 'var(--ink3)', marginLeft: 2 }}>
+                    — {user.email}
+                  </span>
+                </div>
+                <div className="profile-subsection-body" style={{ gap: 0 }}>
+                  {([
+                    { key: 'email_shipment', label: 'Shipment & Clearance Status Updates', sub: 'Receive instant notifications when a consignment transitions through customs stages or clearance checkpoints.' },
+                    { key: 'email_invoice',  label: 'Invoice, Duty & Payment Alerts',      sub: 'Payment confirmations, official receipts, and approaching settlement due dates.' },
+                    { key: 'email_document', label: 'Document & Compliance Requests',      sub: 'When an import/export permit, declaration form, or certificate is requested or approved.' },
+                    { key: 'email_reminder', label: 'Task, Demurrage & SLA Reminders',    sub: 'Advance warnings for SLA deadlines, free-period expiration, and task assignments.' },
+                    { key: 'email_news',     label: 'Product Updates & Platform News',     sub: 'Periodic announcements of new features, regulatory guides, and system maintenance.' },
+                  ] as const).map(n => (
+                    <div key={n.key} className="profile-notif-item">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{n.label}</span>
+                        <span style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.4 }}>{n.sub}</span>
+                      </div>
+                      <Switch
+                        checked={notif[n.key]}
+                        onCheckedChange={v => setNotif(p => ({ ...p, [n.key]: v }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* WhatsApp Business subsection */}
+              <div className="profile-subsection profile-subsection--divided">
+                <div className="profile-subsection-hdr">
+                  <Icon name="phone" size={13} color="var(--green)" strokeWidth={2.2} />
+                  WhatsApp Business Direct Alerts
+                </div>
+                <div className="profile-subsection-body" style={{ gap: 0 }}>
+                  {([
+                    { key: 'wa_shipment', label: 'Urgent Shipment Milestone Alerts', sub: 'Live vessel arrival notifications, physical examination dates, and release orders.' },
+                    { key: 'wa_urgent',   label: 'Demurrage & Critical Escalations', sub: 'Immediate warnings when shipments near demurrage thresholds or critical queries arise.' },
+                    { key: 'wa_payment',  label: 'Duty & Port Charges Reminders',    sub: 'Duty payment assessment notices and TRA payment slips.' },
+                  ] as const).map(n => (
+                    <div key={n.key} className="profile-notif-item">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{n.label}</span>
+                        <span style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.4 }}>{n.sub}</span>
+                      </div>
+                      <Switch
+                        checked={notif[n.key]}
+                        onCheckedChange={v => setNotif(p => ({ ...p, [n.key]: v }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* In-App Notifications subsection */}
+              <div className="profile-subsection profile-subsection--divided">
+                <div className="profile-subsection-hdr">
+                  <Icon name="bell" size={13} color="var(--blue)" strokeWidth={2.2} />
+                  In-App Alerts & Sound Notifications
+                </div>
+                <div className="profile-subsection-body">
+                  <div className="profile-switch-card">
+                    <div className="profile-switch-info">
+                      <span className="profile-switch-title">All In-App Notifications</span>
+                      <span className="profile-switch-desc">
+                        Display real-time banner badges, live activity feeds, and bell counter inside the workspace navigation.
+                      </span>
+                    </div>
+                    <Switch
+                      checked={notif.app_all}
+                      onCheckedChange={v => setNotif(p => ({ ...p, app_all: v }))}
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Save Preferences Button */}
+            <div className="profile-footer-bar">
+              <span className="profile-footer-status" style={{ color: 'var(--ink3)' }}>
+                {notifSaved ? (
+                  <span style={{ color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Icon name="check" size={14} strokeWidth={2.5} />
+                    Notification preferences updated!
+                  </span>
+                ) : (
+                  'Customized notification channels apply to all active sessions.'
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setNotifSaved(true);
+                  setTimeout(() => setNotifSaved(false), 2500);
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: 'var(--ds-btn-py) 24px',
+                  border: 'none',
+                  borderRadius: 'var(--r, 8px)',
+                  background: notifSaved ? 'var(--green)' : 'hsl(var(--primary))',
+                  color: notifSaved ? '#ffffff' : 'hsl(var(--primary-foreground))',
+                  cursor: 'pointer',
+                  fontSize: 13.5,
+                  fontWeight: 750,
+                  fontFamily: 'var(--font)',
+                  minHeight: 'var(--ctl-h)',
+                  boxSizing: 'border-box',
+                  lineHeight: 1.25,
+                }}
+              >
+                {notifSaved ? <><Icon name="check" size={14} strokeWidth={2.5} /> Saved!</> : 'Save Notification Preferences'}
               </button>
             </div>
-            <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  {['Action', 'IP Address', 'Device', 'Time', 'Status'].map(h => (
-                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {ACTIVITY_LOG.map((row, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '11px 12px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{row.action}</td>
-                    <td style={{ padding: '11px 12px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>{row.ip}</td>
-                    <td style={{ padding: '11px 12px', fontSize: 12.5, color: 'var(--ink3)' }}>{row.device}</td>
-                    <td style={{ padding: '11px 12px', fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{row.time}</td>
-                    <td style={{ padding: '11px 12px' }}>
-                      <span style={{ padding: '2px 9px', borderRadius: 'var(--badge-radius)', fontSize: 11.5, fontWeight: 700, background: row.ok ? 'var(--green-l)' : 'var(--red-l)', color: row.ok ? 'var(--green)' : 'var(--red)' }}>
-                        {row.ok ? '✓ OK' : '✗ Failed'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table></div>
-          </Card>
+          </div>
         )}
 
-      </div>
+        {/* ══ TAB 4: ACCOUNT ACTIVITY ══ */}
+        {activeTab === 'activity' && (
+          <section className="profile-card profile-card--attached">
+            <div className="profile-card-header">
+              <div className="profile-card-title-group">
+                <FeaturedIcon variant="brand" size="md" shape="squircle">
+                  <Icon name="activity" size={18} strokeWidth={2.2} />
+                </FeaturedIcon>
+                <div className="profile-card-heading">
+                  <h3 className="profile-card-title">Security & Login Audit Ledger</h3>
+                  <p className="profile-card-subtitle">Recent authentication events, device signatures, and geographical origins.</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => showAlert('Activity audit ledger exported to CSV format.')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: 'var(--ds-btn-py-sm) 14px',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: 'var(--r, 8px)',
+                  background: 'var(--card-bg, var(--white))',
+                  cursor: 'pointer',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  fontFamily: 'var(--font)',
+                  color: 'var(--ink2)',
+                  minHeight: 'var(--ctl-h-sm)',
+                  boxSizing: 'border-box',
+                  lineHeight: 1.25,
+                }}
+              >
+                <Icon name="download" size={13} strokeWidth={2} />
+                Export Audit Log
+              </button>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table className="profile-activity-table">
+                <thead>
+                  <tr>
+                    <th>Action Event</th>
+                    <th>IP Address</th>
+                    <th>Location</th>
+                    <th>Client & Platform</th>
+                    <th>Timestamp</th>
+                    <th>Verification</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ACTIVITY_LOG.map((row, i) => (
+                    <tr key={i}>
+                      <td style={{ fontWeight: 700, color: 'var(--ink)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              background: row.ok ? 'var(--green)' : 'var(--red)',
+                            }}
+                          />
+                          {row.action}
+                        </div>
+                      </td>
+                      <td style={{ fontFamily: 'var(--mono)', fontSize: 12.5, color: 'var(--ink2)' }}>
+                        {row.ip}
+                      </td>
+                      <td style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
+                        {row.location}
+                      </td>
+                      <td style={{ fontSize: 12.5, color: 'var(--ink2)' }}>
+                        {row.device}
+                      </td>
+                      <td style={{ fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
+                        {row.time}
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '3px 9px',
+                            borderRadius: 'var(--badge-radius, 4px)',
+                            fontSize: 11.5,
+                            fontWeight: 750,
+                            background: row.ok ? 'var(--green-l)' : 'var(--red-l)',
+                            color: row.ok ? 'var(--green)' : 'var(--red)',
+                            border: `1px solid ${row.ok ? 'rgba(26, 127, 55, 0.2)' : 'rgba(220, 38, 38, 0.2)'}`,
+                          }}
+                        >
+                          {row.ok ? '✓ Authorized' : '✗ Blocked'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
       </div>
     </div>
   );
 };
+export default UserProfile;

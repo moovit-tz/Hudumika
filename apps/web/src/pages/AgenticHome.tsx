@@ -10,12 +10,12 @@ import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { getMood } from '../lib/greeting.js';
-import { resolveLandingStyle } from '../lib/landingStyle.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { WorkspaceHome } from './WorkspaceHome.js';
 import { STAGE_LABELS } from '@hudumika/types';
 import { AgenticExecutionStage, PRESET_WORKFLOWS, AgentWorkflow } from '../components/agentic/AgenticExecutionStage.js';
 import { LauncherAppSvg } from '../components/LauncherApps.js';
+import { AppLauncher } from '../components/AppLauncher.js';
 import { AIInsights } from './AIInsights.js';
 import { AgentControls } from './AgentControls.js';
 import { AIAutomations } from './AIAutomations.js';
@@ -117,7 +117,7 @@ const TABS: { key: Tab; label: string; icon: any }[] = [
 ];
 
 export const AgenticHome: React.FC = () => {
-  const { user, logout, updateUser } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const enabledApps = useEnabledApps();
   // Automations/Insights/Controls call the same /v1/ai/* and /v1/agent/*
@@ -145,7 +145,6 @@ export const AgenticHome: React.FC = () => {
   const [pendingApproval, setPendingApproval] = useState<PendingApproval | null>(null);
   const [decisionBusy, setDecisionBusy] = useState(false);
   const [momentum, setMomentum] = useState(0);
-  const [switching, setSwitching] = useState(false);
 
   // ── Search (real /v1/search, debounced) ──
   const [searchQ, setSearchQ] = useState('');
@@ -221,15 +220,6 @@ export const AgenticHome: React.FC = () => {
       // Real state wins on the next load if this failed — this is a
       // dashboard summary, not the Tasks app's own source of truth.
     }
-  }
-
-  async function switchToAdvanced() {
-    if (switching) return;
-    setSwitching(true);
-    try {
-      const res = await apiFetch('/auth/me', { method: 'PATCH', body: JSON.stringify({ profile: { landing_style: 'advanced' } }) });
-      if (res?.user) updateUser(res.user);
-    } catch {} finally { setSwitching(false); }
   }
 
   /** Renders the outcome of one round of the real agent loop (a fresh run,
@@ -450,15 +440,20 @@ export const AgenticHome: React.FC = () => {
       <div className="app-main">
         <div className="ah-header">
           <div className="ah-header-left">
-            <button
-              type="button"
-              className="ah-header-mark"
-              onClick={switchToAdvanced}
-              disabled={switching}
-              title="Switch to Advanced landing"
-            >
-              <Icon name="layoutDashboard" size={15} color="#fff" />
-            </button>
+            <AppLauncher
+              renderTrigger={({ open, onClick }) => (
+                <button
+                  type="button"
+                  className={`ah-header-mark${open ? ' is-open' : ''}`}
+                  onClick={onClick}
+                  title="Quick apps"
+                  aria-label="Open Quick Apps navigation"
+                  aria-expanded={open}
+                >
+                  <Icon name="grid" size={16} color="#fff" />
+                </button>
+              )}
+            />
 
             {/* Dynamic App Brand Switching */}
             <div className="ah-header-brand-lockup" title={`${activeAppBrand.name} · ${activeAppBrand.sub}`}>

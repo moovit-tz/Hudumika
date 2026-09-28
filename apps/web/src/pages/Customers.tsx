@@ -1265,7 +1265,7 @@ export const Customers: React.FC = () => {
 
             {/* View Mode 1: Table View */}
             {viewMode === 'table' && (
-              <div style={{ overflowX: 'auto' }}>
+              <div className="crm-customer-table-scroll" style={{ overflowX: 'auto' }}>
                 <table className="crm-table crm-customer-table">
                   <thead>
                     <tr>

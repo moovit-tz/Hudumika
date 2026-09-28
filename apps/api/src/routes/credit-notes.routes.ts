@@ -191,7 +191,7 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
       if (cn.status === 'VOID') return reply.status(409).send({ error: 'This credit note is already void.' });
 
       await GLService.reverseBySource(user.tenant_id, 'AR', cn.id, user.sub, `Credit note voided: ${reason}`);
-      await trx.updateTable('credit_notes').set({ status: 'VOID', notes: `${cn.notes ? cn.notes + ' | ' : ''}Voided: ${reason}`, updated_at: new Date() }).where('id', '=', id).execute();
+      await trx.updateTable('credit_notes').set({ status: 'VOID', notes: `${cn.notes ? cn.notes + ' | ' : ''}Voided: ${reason}`, updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
 
       return { success: true };
     });

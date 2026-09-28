@@ -55,7 +55,7 @@ async function generate(): Promise<Buffer> {
 
   const attrs = [
     { name: 'commonName', value: 'Hudumika eSign' },
-    { name: 'organizationName', value: 'Hudumika LLC' },
+    { name: 'organizationName', value: 'Moovit Mobility Limited' },
     { shortName: 'OU', value: 'eSign' },
   ];
   cert.setSubject(attrs);

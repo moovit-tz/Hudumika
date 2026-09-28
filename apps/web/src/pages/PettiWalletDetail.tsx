@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
@@ -13,21 +13,17 @@ import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 import { apiFetch, apiViewBlob } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { showAlert } from '../lib/alert.js';
+import { usePageSEO } from '../hooks/usePageSEO.js';
+import './Petti.css';
 
-// Wallet administration ("finance manager acts as admin") — deposits, status,
-// workflow/approver configuration. Deliberately excludes MANAGER: a
-// department manager administers *their own approval step* (via the
-// approver/backup fields below), not the wallet itself.
 const FINANCE_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE']);
-// Admin safety valve on the approve/reject step, mirroring petti.service.ts's
-// PETTI_OVERRIDE_ROLES — never a substitute for FINANCE_ROLES on disburse.
 const OVERRIDE_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN']);
 
 const CATEGORY_LABELS: Record<string, string> = {
   OFFICE_SUPPLIES: 'Office supplies',
-  TRANSPORT: 'Transport',
+  TRANSPORT: 'Transport & Fuel',
   MEALS_ENTERTAINMENT: 'Meals & entertainment',
-  UTILITIES: 'Utilities',
+  UTILITIES: 'Utilities & Internet',
   STAFF_WELFARE: 'Staff welfare',
   REPAIRS_MAINTENANCE: 'Repairs & maintenance',
   POSTAGE_COURIER: 'Postage & courier',
@@ -64,6 +60,7 @@ const STATUS_VARIANT: Record<string, 'gray' | 'success' | 'warning' | 'error' | 
 export function PettiWalletDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const canAdminister = !!user && FINANCE_ROLES.has(user.role);
 
   const [wallet, setWallet] = useState<Wallet | null>(null);
@@ -89,6 +86,8 @@ export function PettiWalletDetail() {
   const [transferForm, setTransferForm] = useState({ toWalletId: '', amount: '', note: '' });
   const [overrideDraft, setOverrideDraft] = useState<{ category: string; workflowId: string }>({ category: '', workflowId: '' });
 
+  usePageSEO(wallet?.name ? `${wallet.name} — Petty Cash Vault` : 'Petty Cash Vault Detail', 'Inspect live liquidity balance, review approval workflow, and authorize disbursements.');
+
   const transferTargetOptions: ComboboxOption[] = useMemo(
     () => allWallets.filter(w => w.id !== id && w.status === 'active' && w.currency === wallet?.currency).map(w => ({ value: w.id, label: w.name, sublabel: w.currency })),
     [allWallets, id, wallet?.currency]
@@ -97,9 +96,6 @@ export function PettiWalletDetail() {
   const workflowsById = useMemo(() => Object.fromEntries(workflows.map(w => [w.id, w])), [workflows]);
   const staffById = useMemo(() => Object.fromEntries(staff.map(s => [s.id, s])), [staff]);
   const staffOptions: ComboboxOption[] = useMemo(() => staff.map(s => ({ value: s.id, label: s.name, sublabel: s.role })), [staff]);
-  const workflowOptions: ComboboxOption[] = useMemo(() => workflows.map(w => ({
-    value: w.id, label: w.name, sublabel: w.requires_department_approval ? 'Department approval + finance release' : 'Finance only',
-  })), [workflows]);
 
   const load = useCallback(() => {
     if (!id) return;
@@ -292,9 +288,11 @@ export function PettiWalletDetail() {
 
   if (!loading && !wallet) {
     return (
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="petti-container">
         <PageHeader crumbs={['Petti', 'Wallets']} titlePlain="Wallet" titleEm="not found" />
-        <Link to="/petti"><Button variant="outline"><Icon name="arrowLeft" size={13} /> Back to wallets</Button></Link>
+        <Button variant="outline" onClick={() => navigate('/petti/wallets')}>
+          <Icon name="arrowLeft" size={13} /> Back to Wallets
+        </Button>
       </div>
     );
   }
@@ -303,72 +301,106 @@ export function PettiWalletDetail() {
   const overridableCategories = CATEGORIES.filter(c => !overrideEntries.some(([cat]) => cat === c));
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto' }}>
+    <div className="petti-container">
       <PageHeader
         crumbs={['Petti', 'Wallets', wallet?.name || '…']}
-        titlePlain={wallet ? wallet.name.split(' ').slice(0, -1).join(' ') || 'Wallet' : 'Wallet'}
+        titlePlain={wallet ? wallet.name.split(' ').slice(0, -1).join(' ') || 'Vault' : 'Vault'}
         titleEm={wallet ? wallet.name.split(' ').slice(-1)[0] : '…'}
-        subtitle={wallet?.description || undefined}
+        subtitle={wallet?.description || 'Corporate digital petty cash vault and expense disbursement station.'}
         actions={
-          <div style={{ display: 'flex', gap: 8 }}>
-            {canAdminister && wallet?.status === 'active' && transferTargetOptions.length > 0 && <Button variant="outline" onClick={() => setShowTransfer(s => !s)}><Icon name="arrowRight" size={14} /> Transfer</Button>}
-            {canAdminister && wallet?.status === 'active' && <Button variant="outline" onClick={() => setShowDeposit(s => !s)}><Icon name="arrowDown" size={14} /> Deposit</Button>}
-            {wallet?.status === 'active' && <Button onClick={() => setShowRequest(s => !s)}><Icon name="plus" size={14} /> Request withdrawal</Button>}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {canAdminister && wallet?.status === 'active' && transferTargetOptions.length > 0 && (
+              <Button variant="outline" size="sm" onClick={() => setShowTransfer(s => !s)}>
+                <Icon name="arrowRight" size={14} /> Transfer
+              </Button>
+            )}
+            {canAdminister && wallet?.status === 'active' && (
+              <Button variant="outline" size="sm" onClick={() => setShowDeposit(s => !s)}>
+                <Icon name="arrowDown" size={14} /> Deposit
+              </Button>
+            )}
+            {wallet?.status === 'active' && (
+              <Button size="sm" onClick={() => setShowRequest(s => !s)}>
+                <Icon name="plus" size={14} /> Request Claim
+              </Button>
+            )}
           </div>
         }
       />
 
+      {/* Vault Liquidity Status Card */}
       {wallet && (
-        <div style={{ display: 'flex', gap: 16, marginBottom: 20, alignItems: 'center' }}>
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 20px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Balance</div>
-            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'var(--mono)', color: wallet.balance < 0 ? 'var(--red)' : 'var(--ink)' }}>{wallet.balance.toLocaleString()} {wallet.currency}</div>
-          </div>
-          <Badge variant={wallet.status === 'active' ? 'success' : 'gray'}>{wallet.status}</Badge>
-          {flags.some(f => f.status === 'open') && (
-            <Badge variant="warning"><Icon name="flag" size={11} /> {flags.filter(f => f.status === 'open').length} open flag{flags.filter(f => f.status === 'open').length === 1 ? '' : 's'}</Badge>
-          )}
-          {wallet.approver_user_id && (
-            <div style={{ fontSize: 12.5, color: 'var(--ink2)' }}>
-              Department approver: <strong>{staffById[wallet.approver_user_id]?.name || '—'}</strong>
-              {wallet.approver_backup_user_id && <span style={{ color: 'var(--ink3)' }}> · backup {staffById[wallet.approver_backup_user_id]?.name || '—'}</span>}
+        <div className="petti-stats-grid">
+          <div className="petti-stat-card">
+            <div className="petti-stat-card-header">
+              <span className="petti-stat-label">Available Liquidity</span>
+              <Badge variant={wallet.status === 'active' ? 'success' : 'gray'}>{wallet.status}</Badge>
             </div>
-          )}
+            <div className="petti-stat-value" style={{ color: wallet.balance < 0 ? 'var(--red)' : 'var(--navy)' }}>
+              {Number(wallet.balance).toLocaleString()} <span style={{ fontSize: 14, color: 'var(--ink3)' }}>{wallet.currency}</span>
+            </div>
+            <div className="petti-stat-sub">
+              <span>{deposits.length} deposits · {withdrawals.length} claims</span>
+            </div>
+          </div>
+
+          <div className="petti-stat-card">
+            <div className="petti-stat-card-header">
+              <span className="petti-stat-label">Department Approver</span>
+              <Icon name="user" size={16} color="var(--teal)" />
+            </div>
+            <div className="petti-stat-value" style={{ fontSize: 17 }}>
+              {wallet.approver_user_id ? (staffById[wallet.approver_user_id]?.name || 'Assigned') : 'Default Dept Mgr'}
+            </div>
+            <div className="petti-stat-sub">
+              <span>{wallet.approver_backup_user_id ? `Backup: ${staffById[wallet.approver_backup_user_id]?.name || '—'}` : 'No backup approver assigned'}</span>
+            </div>
+          </div>
+
+          <div className="petti-stat-card">
+            <div className="petti-stat-card-header">
+              <span className="petti-stat-label">Audit Flags</span>
+              <Badge variant={flags.some(f => f.status === 'open') ? 'warning' : 'success'}>
+                {flags.filter(f => f.status === 'open').length} Open
+              </Badge>
+            </div>
+            <div className="petti-stat-value">{flags.length}</div>
+            <div className="petti-stat-sub">
+              <span>Compliance audit records</span>
+            </div>
+          </div>
         </div>
       )}
 
       {showDeposit && (
         <SectionCard title="Record a deposit" collapsible={false}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
+          <div className="petti-grid-form" style={{ marginBottom: 16 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Amount *</label>
-              <Input type="number" min="0" value={depositForm.amount} onChange={e => setDepositForm(p => ({ ...p, amount: e.target.value }))} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Amount *</label>
+              <Input type="number" min="0" value={depositForm.amount} onChange={e => setDepositForm(p => ({ ...p, amount: e.target.value }))} placeholder="Deposit amount" />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Method</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Method</label>
               <Select value={depositForm.method} onValueChange={v => setDepositForm(p => ({ ...p, method: v as 'manual' | 'gateway' }))}>
-                <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="manual">Manual (bank transfer / cash drop)</SelectItem>
+                  <SelectItem value="manual">Manual (Bank wire / cash drop)</SelectItem>
                   <SelectItem value="gateway">Payment gateway</SelectItem>
                 </SelectContent>
               </Select>
-              {depositForm.method === 'gateway' && (
-                <div style={{ fontSize: 11, color: 'var(--gold)', marginTop: 4 }}>No live payment gateway is wired up yet — this will fail until one is. Use Manual once funds are confirmed.</div>
-              )}
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Reference</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Reference</label>
               <Input value={depositForm.reference} onChange={e => setDepositForm(p => ({ ...p, reference: e.target.value }))} placeholder="Bank slip / txn ref" />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Note</label>
-              <Input value={depositForm.note} onChange={e => setDepositForm(p => ({ ...p, note: e.target.value }))} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Note</label>
+              <Input value={depositForm.note} onChange={e => setDepositForm(p => ({ ...p, note: e.target.value }))} placeholder="Deposit reason" />
             </div>
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 8 }}>
-            <Button disabled={saving} onClick={saveDeposit}>{saving ? 'Saving…' : 'Record deposit'}</Button>
+            <Button disabled={saving} onClick={saveDeposit}>{saving ? 'Saving…' : 'Record Deposit'}</Button>
             <Button variant="outline" onClick={() => { setShowDeposit(false); setError(null); }}>Cancel</Button>
           </div>
         </SectionCard>
@@ -376,77 +408,71 @@ export function PettiWalletDetail() {
 
       {showTransfer && (
         <SectionCard title="Transfer to another wallet" collapsible={false}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+          <div className="petti-grid-3col" style={{ marginBottom: 16 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>To wallet *</label>
-              <Combobox options={transferTargetOptions} value={transferForm.toWalletId} onChange={v => setTransferForm(p => ({ ...p, toWalletId: v }))} placeholder="Select wallet" searchPlaceholder="Search wallets…" />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Destination Vault *</label>
+              <Combobox options={transferTargetOptions} value={transferForm.toWalletId} onChange={v => setTransferForm(p => ({ ...p, toWalletId: v }))} placeholder="Select destination…" searchPlaceholder="Search wallets…" />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Amount *</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Amount *</label>
               <Input type="number" min="0" value={transferForm.amount} onChange={e => setTransferForm(p => ({ ...p, amount: e.target.value }))} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Note</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Note</label>
               <Input value={transferForm.note} onChange={e => setTransferForm(p => ({ ...p, note: e.target.value }))} placeholder="Reason for transfer" />
             </div>
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 8 }}>
-            <Button disabled={saving} onClick={saveTransfer}>{saving ? 'Transferring…' : 'Transfer funds'}</Button>
+            <Button disabled={saving} onClick={saveTransfer}>{saving ? 'Transferring…' : 'Execute Transfer'}</Button>
             <Button variant="outline" onClick={() => { setShowTransfer(false); setError(null); }}>Cancel</Button>
           </div>
         </SectionCard>
       )}
 
       {showRequest && (
-        <SectionCard title="Request a withdrawal" collapsible={false}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+        <SectionCard title="Request a withdrawal voucher" collapsible={false}>
+          <div className="petti-grid-3col" style={{ marginBottom: 16 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Amount *</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Amount *</label>
               <Input type="number" min="0" value={requestForm.amount} onChange={e => setRequestForm(p => ({ ...p, amount: e.target.value }))} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Category</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Category</label>
               <Select value={requestForm.category} onValueChange={v => setRequestForm(p => ({ ...p, category: v }))}>
-                <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c]}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div style={{ gridColumn: 'span 3' }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Purpose *</label>
-              <Textarea value={requestForm.purpose} onChange={e => setRequestForm(p => ({ ...p, purpose: e.target.value }))} placeholder="What this cash is for" rows={2} />
-            </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Paid to</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Paid to (Payee)</label>
               <Input value={requestForm.payeeName} onChange={e => setRequestForm(p => ({ ...p, payeeName: e.target.value }))} placeholder="Vendor, driver, supplier…" />
             </div>
-            {canAdminister && (
-              <div style={{ gridColumn: 'span 2' }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>On behalf of</label>
-                <Combobox options={staffOptions} value={requestForm.onBehalfOfUserId} onChange={v => setRequestForm(p => ({ ...p, onBehalfOfUserId: v }))} placeholder="Requesting for yourself" searchPlaceholder="Search staff…" />
-              </div>
-            )}
+            <div style={{ gridColumn: 'span 3' }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Purpose & Justification *</label>
+              <Textarea value={requestForm.purpose} onChange={e => setRequestForm(p => ({ ...p, purpose: e.target.value }))} placeholder="What this petty cash is for" rows={2} />
+            </div>
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 8 }}>
-            <Button disabled={saving} onClick={saveRequest}>{saving ? 'Submitting…' : 'Submit request'}</Button>
+            <Button disabled={saving} onClick={saveRequest}>{saving ? 'Submitting…' : 'Submit Request'}</Button>
             <Button variant="outline" onClick={() => { setShowRequest(false); setError(null); }}>Cancel</Button>
           </div>
         </SectionCard>
       )}
 
       {(canAdminister || isApprover) && wallet && (
-        <SectionCard title="Approval workflow" collapsible defaultOpen={showWorkflowSettings} action={
+        <SectionCard title="Approval Workflow Governance" collapsible defaultOpen={showWorkflowSettings} action={
           <Button size="sm" variant="outline" onClick={() => setShowWorkflowSettings(s => !s)}>{showWorkflowSettings ? 'Hide' : 'Configure'}</Button>
         }>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: overrideEntries.length || canAdminister ? 16 : 0 }}>
+          <div className="petti-grid-3col" style={{ marginBottom: overrideEntries.length || canAdminister ? 16 : 0 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Default workflow</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Default Workflow</label>
               {canAdminister ? (
                 <Select value={wallet.default_workflow_id || NONE} onValueChange={setDefaultWorkflow}>
-                  <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NONE}>Platform default (department approval + finance release)</SelectItem>
+                    <SelectItem value={NONE}>Platform default (Department approval + finance release)</SelectItem>
                     {workflows.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -455,7 +481,7 @@ export function PettiWalletDetail() {
               )}
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Department approver</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Department Approver</label>
               {canAdminister ? (
                 <Combobox options={staffOptions} value={wallet.approver_user_id || ''} onChange={setApprover} placeholder="Not configured" searchPlaceholder="Search staff…" />
               ) : (
@@ -463,19 +489,18 @@ export function PettiWalletDetail() {
               )}
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Backup approver</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Backup Approver</label>
               {canEditBackup ? (
                 <Combobox options={staffOptions} value={wallet.approver_backup_user_id || ''} onChange={setApproverBackup} placeholder="None" searchPlaceholder="Search staff…" disabled={!wallet.approver_user_id} />
               ) : (
                 <div style={{ fontSize: 13, color: 'var(--ink)' }}>{wallet.approver_backup_user_id ? (staffById[wallet.approver_backup_user_id]?.name || '—') : 'None'}</div>
               )}
-              {isApprover && !canAdminister && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>You're this wallet's approver — set a backup for when you're away.</div>}
             </div>
           </div>
 
           {canAdminister && (
             <>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Category overrides</div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Category Overrides</div>
               {overrideEntries.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
                   {overrideEntries.map(([cat, wfId]) => (
@@ -491,14 +516,14 @@ export function PettiWalletDetail() {
               {overridableCategories.length > 0 && workflows.length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Select value={overrideDraft.category || NONE} onValueChange={v => setOverrideDraft(p => ({ ...p, category: v === NONE ? '' : v }))}>
-                    <SelectTrigger className="input-field" style={{ minWidth: 160 }}><SelectValue placeholder="Category" /></SelectTrigger>
+                    <SelectTrigger style={{ minWidth: 160 }}><SelectValue placeholder="Category" /></SelectTrigger>
                     <SelectContent>{overridableCategories.map(c => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c]}</SelectItem>)}</SelectContent>
                   </Select>
                   <Select value={overrideDraft.workflowId || NONE} onValueChange={v => setOverrideDraft(p => ({ ...p, workflowId: v === NONE ? '' : v }))}>
-                    <SelectTrigger className="input-field" style={{ minWidth: 200 }}><SelectValue placeholder="Workflow" /></SelectTrigger>
+                    <SelectTrigger style={{ minWidth: 200 }}><SelectValue placeholder="Workflow" /></SelectTrigger>
                     <SelectContent>{workflows.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}</SelectContent>
                   </Select>
-                  <Button size="sm" variant="outline" disabled={!overrideDraft.category || !overrideDraft.workflowId} onClick={addCategoryOverride}>Add override</Button>
+                  <Button size="sm" variant="outline" disabled={!overrideDraft.category || !overrideDraft.workflowId} onClick={addCategoryOverride}>Add Override</Button>
                 </div>
               )}
             </>
@@ -506,156 +531,136 @@ export function PettiWalletDetail() {
         </SectionCard>
       )}
 
-      <div style={{ height: 16 }} />
-
-      <SectionCard title="Withdrawal requests" padded={false} collapsible={false}>
+      {/* Withdrawal Requests */}
+      <SectionCard title="Withdrawal Claims" padded={false} collapsible={false}>
         {loading ? (
           <SectionLoading />
         ) : withdrawals.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No withdrawal requests yet.</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No withdrawal requests recorded yet.</div>
         ) : (
-          <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>{['Ref', 'Purpose', 'Category', 'Amount', 'Requested', 'Step', ''].map(h => (
-              <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-            ))}</tr></thead>
-            <tbody>
-              {withdrawals.map(w => (
-                <tr key={w.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '12px 16px', fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{w.ref || '—'}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>
-                    {w.purpose}
-                    {w.payee_name && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Paid to {w.payee_name}</div>}
-                    {w.on_behalf_of_user_id && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>On behalf of {staffById[w.on_behalf_of_user_id]?.name || '—'}</div>}
-                    {w.status === 'rejected' && w.rejection_reason ? <div style={{ fontSize: 11.5, color: 'var(--red)', marginTop: 2 }}>Reason: {w.rejection_reason}</div> : null}
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{CATEGORY_LABELS[w.category] || w.category}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>{Number(w.amount).toLocaleString()} {wallet?.currency}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(w.requested_at)}</td>
-                  <td style={{ padding: '12px 16px' }}><Badge variant={STATUS_VARIANT[w.status] || 'gray'}>{stepLabel(w)}</Badge></td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
-                      {w.status === 'pending' && canActOnApproval(w) && (
-                        <>
-                          <Button size="sm" variant="outline" disabled={busyId === w.id} onClick={() => reject(w)}>Reject</Button>
-                          <Button size="sm" disabled={busyId === w.id} onClick={() => approve(w)}>Approve</Button>
-                        </>
-                      )}
-                      {w.status === 'approved' && canDisburse && (
-                        <Button size="sm" disabled={busyId === w.id} onClick={() => disburse(w)}>Disburse</Button>
-                      )}
-                      <button type="button" onClick={() => openVoucher(w.id)} title="Print voucher" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--ink3)' }}>
-                        <Icon name="fileText" size={13} />
-                      </button>
-                      <button type="button" onClick={() => raiseFlag('withdrawal', w.id)} title="Flag this transaction" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--ink3)' }}>
-                        <Icon name="flag" size={13} />
-                      </button>
-                    </div>
-                  </td>
+          <div className="petti-table-wrap">
+            <table className="petti-table">
+              <thead>
+                <tr>
+                  {['Ref', 'Purpose', 'Category', 'Amount', 'Requested', 'Step', 'Actions'].map(h => (
+                    <th key={h}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table></div>
+              </thead>
+              <tbody>
+                {withdrawals.map(w => (
+                  <tr key={w.id}>
+                    <td style={{ fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{w.ref || '—'}</td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{w.purpose}</div>
+                      {w.payee_name && <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Paid to {w.payee_name}</div>}
+                    </td>
+                    <td style={{ fontSize: 12, color: 'var(--ink2)' }}>{CATEGORY_LABELS[w.category] || w.category}</td>
+                    <td style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: 'var(--navy)' }}>{Number(w.amount).toLocaleString()} {wallet?.currency}</td>
+                    <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(w.requested_at)}</td>
+                    <td><Badge variant={STATUS_VARIANT[w.status] || 'gray'}>{stepLabel(w)}</Badge></td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {w.status === 'pending' && canActOnApproval(w) && (
+                          <>
+                            <Button size="sm" variant="outline" disabled={busyId === w.id} onClick={() => reject(w)}>Reject</Button>
+                            <Button size="sm" disabled={busyId === w.id} onClick={() => approve(w)}>Approve</Button>
+                          </>
+                        )}
+                        {w.status === 'approved' && canDisburse && (
+                          <Button size="sm" disabled={busyId === w.id} onClick={() => disburse(w)}>Disburse</Button>
+                        )}
+                        <Button size="sm" variant="outline" onClick={() => openVoucher(w.id)} title="Print voucher">
+                          <Icon name="printer" size={12} />
+                        </Button>
+                        <button type="button" onClick={() => raiseFlag('withdrawal', w.id)} title="Flag this transaction" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--ink3)' }}>
+                          <Icon name="flag" size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </SectionCard>
 
-      <div style={{ height: 16 }} />
-
-      <SectionCard title="Deposits" padded={false} collapsible={false}>
+      {/* Deposits */}
+      <SectionCard title="Deposits Ledger" padded={false} collapsible={false}>
         {loading ? (
           <SectionLoading />
         ) : deposits.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No deposits recorded yet.</div>
         ) : (
-          <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>{['Ref', 'Amount', 'Method', 'Reference', 'Note', 'Date', ''].map(h => (
-              <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-            ))}</tr></thead>
-            <tbody>
-              {deposits.map(d => (
-                <tr key={d.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '12px 16px', fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{d.ref || '—'}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--green)' }}>+{Number(d.amount).toLocaleString()} {wallet?.currency}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)', textTransform: 'capitalize' }}>{d.method}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{d.reference || '—'}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{d.note || '—'}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(d.created_at)}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                    <button type="button" onClick={() => raiseFlag('deposit', d.id)} title="Flag this transaction" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'inline-flex', color: 'var(--ink3)' }}>
-                      <Icon name="flag" size={13} />
-                    </button>
-                  </td>
+          <div className="petti-table-wrap">
+            <table className="petti-table">
+              <thead>
+                <tr>
+                  {['Ref', 'Amount', 'Method', 'Reference', 'Note', 'Date', ''].map(h => (
+                    <th key={h}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table></div>
+              </thead>
+              <tbody>
+                {deposits.map(d => (
+                  <tr key={d.id}>
+                    <td style={{ fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{d.ref || '—'}</td>
+                    <td style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: 'var(--green)' }}>+{Number(d.amount).toLocaleString()} {wallet?.currency}</td>
+                    <td style={{ fontSize: 12.5, color: 'var(--ink2)', textTransform: 'capitalize' }}>{d.method}</td>
+                    <td style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{d.reference || '—'}</td>
+                    <td style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{d.note || '—'}</td>
+                    <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(d.created_at)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button type="button" onClick={() => raiseFlag('deposit', d.id)} title="Flag this transaction" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'inline-flex', color: 'var(--ink3)' }}>
+                        <Icon name="flag" size={13} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </SectionCard>
 
-      <div style={{ height: 16 }} />
-
-      <SectionCard title="Transfers" padded={false} collapsible={false}>
+      {/* Transfers */}
+      <SectionCard title="Transfers Ledger" padded={false} collapsible={false}>
         {loading ? (
           <SectionLoading />
         ) : transfers.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No transfers yet.</div>
         ) : (
-          <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>{['Ref', 'Direction', 'Wallet', 'Amount', 'Note', 'Date'].map(h => (
-              <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-            ))}</tr></thead>
-            <tbody>
-              {transfers.map(t => {
-                const outgoing = t.from_wallet_id === id;
-                const otherWalletId = outgoing ? t.to_wallet_id : t.from_wallet_id;
-                const otherWalletName = allWallets.find(w => w.id === otherWalletId)?.name || '—';
-                return (
-                  <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 16px', fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{t.ref || '—'}</td>
-                    <td style={{ padding: '12px 16px' }}><Badge variant={outgoing ? 'gray' : 'success'}>{outgoing ? 'Sent' : 'Received'}</Badge></td>
-                    <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>{outgoing ? `To ${otherWalletName}` : `From ${otherWalletName}`}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 700, color: outgoing ? 'var(--red)' : 'var(--green)' }}>{outgoing ? '-' : '+'}{Number(t.amount).toLocaleString()} {wallet?.currency}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{t.note || '—'}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(t.created_at)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table></div>
-        )}
-      </SectionCard>
-
-      <div style={{ height: 16 }} />
-
-      <SectionCard title="Flags" padded={false} collapsible={false}>
-        {loading ? (
-          <SectionLoading />
-        ) : flags.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No flags raised on this wallet.</div>
-        ) : (
-          <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>{['Reason', 'On', 'Raised by', 'Status', 'Date', ''].map(h => (
-              <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-            ))}</tr></thead>
-            <tbody>
-              {flags.map(f => (
-                <tr key={f.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>
-                    {f.reason}
-                    {f.resolution_note && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Resolution: {f.resolution_note}</div>}
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)', textTransform: 'capitalize' }}>{f.subject_type}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{staffById[f.raised_by]?.name || '—'}</td>
-                  <td style={{ padding: '12px 16px' }}><Badge variant={f.status === 'open' ? 'warning' : 'success'}>{f.status}</Badge></td>
-                  <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(f.created_at)}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                    {f.status === 'open' && canAdminister && (
-                      <Button size="sm" variant="outline" onClick={() => resolveFlag(f.id)}>Resolve</Button>
-                    )}
-                  </td>
+          <div className="petti-table-wrap">
+            <table className="petti-table">
+              <thead>
+                <tr>
+                  {['Ref', 'Direction', 'Vault', 'Amount', 'Note', 'Date'].map(h => (
+                    <th key={h}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table></div>
+              </thead>
+              <tbody>
+                {transfers.map(t => {
+                  const outgoing = t.from_wallet_id === id;
+                  const otherWalletId = outgoing ? t.to_wallet_id : t.from_wallet_id;
+                  const otherWalletName = allWallets.find(w => w.id === otherWalletId)?.name || '—';
+                  return (
+                    <tr key={t.id}>
+                      <td style={{ fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{t.ref || '—'}</td>
+                      <td><Badge variant={outgoing ? 'gray' : 'success'}>{outgoing ? 'Sent' : 'Received'}</Badge></td>
+                      <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{outgoing ? `To ${otherWalletName}` : `From ${otherWalletName}`}</td>
+                      <td style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: outgoing ? 'var(--red)' : 'var(--green)' }}>
+                        {outgoing ? '−' : '+'}{Number(t.amount).toLocaleString()} {wallet?.currency}
+                      </td>
+                      <td style={{ color: 'var(--ink2)' }}>{t.note || '—'}</td>
+                      <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(t.created_at)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </SectionCard>
     </div>

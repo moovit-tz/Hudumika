@@ -4,6 +4,7 @@ import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { apiFetch } from '../../lib/api.js';
 import type { ProjectCommandCenterMetrics } from '@hudumika/types';
+import '../OperationalDashboards.css';
 
 interface ProjectCommandCenterProps {
   metrics?: ProjectCommandCenterMetrics | null;
@@ -69,7 +70,7 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
   const spiHealth = data.portfolio_spi >= 1.0 ? 'text-emerald-400' : data.portfolio_spi >= 0.85 ? 'text-amber-400' : 'text-rose-400';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div className="ops-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Hero Banner with Live EVM Radar */}
       <div
         style={{
@@ -116,8 +117,8 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
       </div>
 
       {/* KPI Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
+      <div className="ops-dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        <div className="ops-dashboard-project-card" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink3)' }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase' }}>Total Contract Value</span>
             <Icon name="fileText" size={16} style={{ color: 'var(--teal)' }} />
@@ -130,7 +131,7 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
+        <div className="ops-dashboard-project-card" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink3)' }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase' }}>Baseline Budget (BAC)</span>
             <Icon name="dollarSign" size={16} style={{ color: 'var(--blue)' }} />
@@ -143,7 +144,7 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
+        <div className="ops-dashboard-project-card" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink3)' }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase' }}>Total Earned Value (EV)</span>
             <Icon name="checkCircle" size={16} style={{ color: 'var(--green)' }} />
@@ -156,7 +157,7 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
+        <div className="ops-dashboard-project-card" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink3)' }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase' }}>Fleet Utilization</span>
             <Icon name="truck" size={16} style={{ color: 'var(--gold)' }} />
@@ -171,8 +172,8 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
       </div>
 
       {/* Health Distribution & Industry Packs Breakdown */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 18 }}>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20 }}>
+      <div className="ops-dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 18 }}>
+        <div className="ops-dashboard-project-card" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20 }}>
           <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
             Portfolio Health Classification
           </h3>
@@ -203,7 +204,7 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20 }}>
+        <div className="ops-dashboard-project-card" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20 }}>
           <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
             Active Industry Pack Distribution
           </h3>

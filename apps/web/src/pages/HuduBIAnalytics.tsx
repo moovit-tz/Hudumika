@@ -3,6 +3,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { apiFetch } from '../lib/api.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import './HuduBI.css';
 
 interface Analytics {
   topCustomers: { name: string; cases: number; cifUsd: number }[];
@@ -46,7 +47,7 @@ export function HuduBIAnalytics() {
   }, []);
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="hbi-page">
       <PageHeader
         crumbs={['HuduBI', 'Analytics']}
         titlePlain="Analytics &"
@@ -59,7 +60,7 @@ export function HuduBIAnalytics() {
       {data && (
         <>
           {/* Top customers */}
-          <SectionCard title="Top customers by volume">
+          <SectionCard title="Top customers by volume" collapsible={false}>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Shipment cases and total CIF value per customer</div>
             {data.topCustomers.length === 0 ? (
               <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No customer activity yet.</div>
@@ -78,15 +79,15 @@ export function HuduBIAnalytics() {
           </SectionCard>
 
           {/* CIF by mode + origin ports */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-            <SectionCard title="Consignment value by mode">
+          <div className="hbi-panel-grid hbi-panel-grid--two">
+            <div className="hbi-equal-card"><SectionCard title="Consignment value by mode" collapsible={false}>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Total CIF (USD) carried by each transport mode</div>
               <BarList rows={data.cifByMode.map(m => ({ label: `${MODE_LABELS[m.mode] || m.mode} · ${m.cases} cases`, value: m.cifUsd, display: usd(m.cifUsd) }))} />
-            </SectionCard>
-            <SectionCard title="Top origin ports">
+            </SectionCard></div>
+            <div className="hbi-equal-card"><SectionCard title="Top origin ports" collapsible={false}>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Where your shipments come from</div>
               <BarList rows={data.byOriginPort.map(p => ({ label: p.port, value: p.count, display: String(p.count) }))} />
-            </SectionCard>
+            </SectionCard></div>
           </div>
         </>
       )}

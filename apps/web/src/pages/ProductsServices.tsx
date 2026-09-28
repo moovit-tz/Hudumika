@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import { PaginationBar } from '../components/PaginationBar.js';
@@ -15,6 +16,7 @@ import { SectionCard } from '../components/SectionCard.js';
 import { FormPage } from '../components/FormPage.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Button } from '../components/ui/button.js';
+import './ProductsServices.css';
 
 // -- Types ---------------------------------------------------------------------
 // Field names/values below mirror the real `products` table (migration
@@ -619,6 +621,8 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
 
 export const ProductsServices: React.FC = () => {
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const isClearOS = location.pathname.startsWith('/clearos');
   const [products, setProducts]   = useState<Product[]>([]);
   const [loading, setLoading]     = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -846,9 +850,9 @@ export const ProductsServices: React.FC = () => {
         />
       )}
 
-      <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
+      <div className="products-services-page">
         <PageHeader
-          crumbs={['FINANCE', 'PRODUCTS & SERVICES']}
+          crumbs={[isClearOS ? 'CLEAROS' : 'FINANCE', 'PRODUCTS & SERVICES']}
           titlePlain="Product "
           titleEm="catalog"
           subtitle="Service pricing, billable inventory items and unit rates."
@@ -901,7 +905,7 @@ export const ProductsServices: React.FC = () => {
           { title: 'Categories', value: String(new Set(products.map(p => p.category)).size), sub1Label: 'TOP CATEGORY', sub1Value: products.length ? (CAT_CFG[topCat]?.label ?? '—') : '—', sub2Label: 'ITEMS', sub2Value: String(products.filter(p => p.category === topCat).length), barHighlight: 'var(--purple)' },
         ]} />
 
-        <div style={{ padding: '16px 0', display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <div className="products-action-bar">
           {!loading && products.length === 0 && (
             <button type="button" title="Add starter catalog" disabled={loadingStarter} onClick={handleLoadStarterCatalog} className="btn btn-secondary btn-sm">
               <Icon name="refresh" size={13} /> {loadingStarter ? 'Adding…' : 'Load Starter Catalog'}
@@ -917,10 +921,10 @@ export const ProductsServices: React.FC = () => {
         </div>
 
         {/* Filters Toolbar Card */}
-        <div style={{ marginBottom: 16 }}>
+        <div className="products-filter-card">
         <SectionCard>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="products-filter-layout">
+          <div className="products-filter-controls">
             {/* Category Dropdown */}
             <Select value={catFilter} onValueChange={v => { setCatFilter(v as CatFilter); setPage(1); }}>
               <SelectTrigger aria-label="Category" style={{ width: 'auto', minWidth: 160, height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}>
@@ -958,7 +962,7 @@ export const ProductsServices: React.FC = () => {
           </div>
 
           {/* Search Box */}
-          <div style={{ position: 'relative', width: isMobile ? '100%' : 260 }}>
+          <div className="products-search">
             <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
             <input type="text" title="Search services" placeholder="Search services…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
               style={{

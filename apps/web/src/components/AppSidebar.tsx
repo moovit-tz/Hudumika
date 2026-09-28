@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { useLocation, Link } from 'react-router-dom';
 import { Icon } from './Icon.js';
 import type { IconName } from './Icon.js';
-import { OndiLogo } from './OndiLogo.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { APP_LABELS, APP_COLORS, MobileNavContext } from '../shells/WorkspaceApp.js';
 import { useBranding } from '../hooks/useBranding.js';
@@ -11,11 +10,9 @@ import { useTenantPlan } from '../hooks/useTenantPlan.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { lightenHex } from '../lib/color.js';
 import { toggleThemeWithAnimation } from '../lib/theme.js';
-import { squirclePath } from '../lib/squircle.js';
+import { LauncherAppSvg } from './LauncherApps.js';
 import type { AppId } from '@hudumika/types';
 import './AppSidebar.css';
-
-const SIDEBAR_APP_ICON_CLIP = `path('${squirclePath(34)}')`;
 
 export interface SidebarNavItem {
   label: string;
@@ -279,7 +276,6 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
   }
 
   const appLabel    = branding.getAppName(appId, APP_LABELS[appId] ?? String(appId));
-  const appIcon     = APP_ICONS[appId]  ?? 'grid';
   const appSubtitle = branding.getAppSlogan(appId, t(`appSubtitles.${appId}`, APP_SUBTITLES[appId] ?? ''));
 
   function renderContent() {
@@ -290,20 +286,14 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
 
         {/* ── Brand header ── */}
         <div className="app-sb-brand">
-          <div className="app-sb-brand-icon" style={{ clipPath: SIDEBAR_APP_ICON_CLIP }}>
-            {branding.getAppLogo(appId) ? (
-              <img src={branding.getAppLogo(appId)} alt={appLabel} className="app-sb-brand-logo-img" />
-            ) : appId === 'ondi' ? (
-              // Ondi's real mark (white-glyph variant — .app-sb-brand-icon
-              // already draws its own --sb-color square behind whatever
-              // renders here, same as every other app's plain line icon;
-              // the full gradient-badge variant would double up two
-              // squares stacked on each other).
-              <OndiLogo size={18} variant="white" />
-            ) : (
-              <Icon name={appIcon} size={16} color="#fff" strokeWidth={2} />
-            )}
-          </div>
+          {/* LauncherAppSvg renders the squircle as an SVG fill path — a
+              single AA edge with no CSS clip-path fringe. */}
+          <LauncherAppSvg
+            id={appId}
+            color={appColor}
+            logoUrl={branding.getAppLogo(appId) || undefined}
+            size={34}
+          />
           {!railCollapsed && (
             <div className="app-sb-brand-text">
               <div className="app-sb-brand-name">{appLabel}</div>

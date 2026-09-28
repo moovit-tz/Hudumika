@@ -44,6 +44,10 @@ export function SmsCampaigns() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', body: '', templateId: '', groupId: '', scheduledAt: '' });
+  const [editTarget, setEditTarget] = useState<Campaign | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', body: '', templateId: '', groupId: '', scheduledAt: '' });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -79,6 +83,37 @@ export function SmsCampaigns() {
       load();
     } catch (err: any) { setError(err.message || 'Failed to create campaign'); }
     finally { setSaving(false); }
+  }
+
+  function startEdit(c: Campaign) {
+    setEditTarget(c);
+    setEditForm({
+      name: c.name, body: '', templateId: c.template_id || '', groupId: c.group_id || '',
+      scheduledAt: c.scheduled_at ? toLocalDateTimeString(new Date(c.scheduled_at)) : '',
+    });
+    setEditError(null);
+  }
+
+  async function saveEdit() {
+    if (!editTarget) return;
+    if (!editForm.name.trim()) { setEditError('Campaign name is required.'); return; }
+    if (!editForm.groupId) { setEditError('Choose a target group.'); return; }
+    setEditSaving(true); setEditError(null);
+    try {
+      await apiFetch(`/v1/sms/campaigns/${editTarget.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: editForm.name.trim(),
+          ...(editForm.body.trim() ? { body: editForm.body.trim() } : {}),
+          templateId: editForm.templateId || null,
+          groupId: editForm.groupId,
+          scheduledAt: editForm.scheduledAt ? new Date(editForm.scheduledAt).toISOString() : null,
+        }),
+      });
+      setEditTarget(null);
+      load();
+    } catch (err: any) { setEditError(err.message || 'Failed to save'); }
+    finally { setEditSaving(false); }
   }
 
   async function sendNow(c: Campaign) {
@@ -158,6 +193,43 @@ export function SmsCampaigns() {
         </SectionCard>
       )}
 
+      {editTarget && (
+        <SectionCard title={`Edit "${editTarget.name}"`} collapsible={false}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Campaign name *</label>
+              <Input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} autoFocus />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Target group *</label>
+              <Select value={editForm.groupId} onValueChange={v => setEditForm(p => ({ ...p, groupId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Choose a group…" /></SelectTrigger>
+                <SelectContent>
+                  {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name} ({g.memberCount})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>New message body (leave blank to keep existing)</label>
+            <Textarea value={editForm.body} onChange={e => setEditForm(p => ({ ...p, body: e.target.value }))} placeholder="Leave blank to keep current message…" rows={3} maxLength={1600} />
+          </div>
+          <div style={{ marginBottom: 14, maxWidth: 280 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Scheduled at</label>
+            <DateTimePicker
+              date={editForm.scheduledAt ? new Date(editForm.scheduledAt) : undefined}
+              onChange={d => setEditForm(p => ({ ...p, scheduledAt: d ? toLocalDateTimeString(d) : '' }))}
+              triggerClassName="w-full"
+            />
+          </div>
+          {editError && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{editError}</div>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button disabled={editSaving} onClick={saveEdit}>{editSaving ? 'Saving…' : 'Save changes'}</Button>
+            <Button variant="outline" onClick={() => setEditTarget(null)}>Cancel</Button>
+          </div>
+        </SectionCard>
+      )}
+
       <SectionCard title="Campaigns" padded={false} collapsible={false}>
         {loading ? (
           <SectionLoading />
@@ -183,6 +255,9 @@ export function SmsCampaigns() {
                   <td style={{ padding: '12px 16px', textAlign: 'right', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                     {(c.status === 'draft' || c.status === 'scheduled') && (
                       <Button size="sm" variant="outline" onClick={() => sendNow(c)}><Icon name="send" size={13} /> Send now</Button>
+                    )}
+                    {(c.status === 'draft' || c.status === 'scheduled') && (
+                      <Button size="sm" variant="ghost" onClick={() => startEdit(c)}><Icon name="edit" size={13} /></Button>
                     )}
                     <Link to={`/sms/campaigns/${c.id}`}><Button size="sm" variant="outline">Open</Button></Link>
                     {c.status !== 'sending' && <Button size="sm" variant="ghost" onClick={() => remove(c.id, c.name)}><Icon name="trash" size={13} color="var(--red)" /></Button>}

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   ReactFlow, MiniMap, Controls, Background, addEdge, applyNodeChanges, applyEdgeChanges,
   Connection, Node, Edge, NodeChange, EdgeChange, BackgroundVariant,
@@ -29,61 +29,82 @@ type FlowNodeData = {
 type FlowNode = Node<FlowNodeData>;
 type Workflow = { id: string; name: string; nodes: FlowNode[]; edges: Edge[] };
 
-const STORAGE_KEY = 'hudumika_automations_v1';
-
-const initialNodes: FlowNode[] = [
-  { id: '1', type: 'triggerNode', position: { x: 300, y: 40 }, data: { title: 'How are tasks being added to this project?', triggerType: 'manual' } },
-  { id: '10', type: 'actionNode', position: { x: 120, y: 220 }, data: { kind: 'webhook', label: 'Call Box API', config: { method: 'POST', url: 'https://jsonplaceholder.typicode.com/posts', query: '{"source":"hudumika-automation"}' } } },
-  { id: '9', type: 'actionNode', position: { x: 560, y: 220 }, data: { kind: 'delay', label: 'Wait 1 hour', config: { duration: 1, unit: 'hours' } } },
-  { id: '2', type: 'actionNode', position: { x: 340, y: 340 }, data: { kind: 'field', label: 'Set status: To do', config: { object: 'Task', field: 'status', value: 'To do' } } },
-  { id: '3', type: 'actionNode', position: { x: 190, y: 480 }, data: { kind: 'notify', label: 'Notify team', config: { channel: 'in-app', message: 'A new task needs attention.' } } },
-  { id: '4', type: 'actionNode', position: { x: 340, y: 480 }, data: { kind: 'assignee', label: 'Assign owner', config: { assignee: 'round-robin', notify: true } } },
-  { id: '5', type: 'actionNode', position: { x: 490, y: 480 }, data: { kind: 'field', label: 'Set priority', config: { object: 'Task', field: 'priority', value: 'Normal' } } },
-  { id: '6', type: 'statusNode', position: { x: 190, y: 620 }, data: { kind: 'status', label: 'Finish', status: 'pending' } },
-  { id: '7', type: 'statusNode', position: { x: 340, y: 620 }, data: { kind: 'condition', label: 'Overdue > 2 days?', status: 'success', config: { field: 'due_date', operator: 'greater_than', value: '2 days' } } },
-  { id: '8', type: 'statusNode', position: { x: 490, y: 620 }, data: { kind: 'status', label: 'Feedback', status: 'pending' } },
+// Used only when the backend returns no saved automations (first time).
+const STARTER_NODES: FlowNode[] = [
+  { id: '1', type: 'triggerNode', position: { x: 300, y: 40 }, data: { title: 'When does this automation run?', triggerType: 'manual' } },
+  { id: '2', type: 'actionNode', position: { x: 300, y: 200 }, data: { kind: 'notify', label: 'Notify team', config: { channel: 'in-app', message: '' } } },
+];
+const STARTER_EDGES: Edge[] = [
+  { id: 'e1-2', source: '1', target: '2', type: 'addEdge' },
 ];
 
-const initialEdges: Edge[] = [
-  { id: 'e1-2', source: '1', target: '2', type: 'addEdge', data: { label: 'Add trigger' } },
-  { id: 'e2-3', source: '2', target: '3', type: 'addEdge' },
-  { id: 'e2-4', source: '2', target: '4', type: 'addEdge' },
-  { id: 'e2-5', source: '2', target: '5', type: 'addEdge' },
-  { id: 'e3-6', source: '3', target: '6', type: 'addEdge' },
-  { id: 'e4-7', source: '4', target: '7', type: 'addEdge' },
-  { id: 'e5-8', source: '5', target: '8', type: 'addEdge' },
-  { id: 'e1-9', source: '1', target: '9', type: 'addEdge' },
-  { id: 'e1-10', source: '1', target: '10', type: 'addEdge' }
-];
-
-function defaultState(): { workflows: Workflow[]; activeId: string } {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed?.workflows) && parsed.workflows.length) {
-        const activeId = parsed.workflows.some((w: Workflow) => w.id === parsed.activeId)
-          ? parsed.activeId
-          : parsed.workflows[0].id;
-        return { workflows: parsed.workflows, activeId };
-      }
-    }
-  } catch { /* corrupt/absent storage — fall back to defaults */ }
-  return { workflows: [{ id: 'wf-1', name: 'Automation 1', nodes: initialNodes, edges: initialEdges }], activeId: 'wf-1' };
+function stateFromApi(rows: any[]): { workflows: Workflow[]; activeId: string } {
+  const workflows = rows.map(r => ({
+    id: r.id as string,
+    name: r.name as string,
+    nodes: (Array.isArray(r.nodes) ? r.nodes : []) as FlowNode[],
+    edges: (Array.isArray(r.edges) ? r.edges : []) as Edge[],
+  }));
+  return { workflows, activeId: workflows[0]?.id ?? '' };
 }
 
 export function AIAutomations() {
-  const [state, setState] = useState<{ workflows: Workflow[]; activeId: string }>(defaultState);
+  const [state, setState] = useState<{ workflows: Workflow[]; activeId: string }>({ workflows: [], activeId: '' });
+  const [loading, setLoading] = useState(true);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { workflows, activeId } = state;
   const activeWorkflow = workflows.find(w => w.id === activeId) ?? workflows[0];
 
+  // Load from backend on mount; fall back to empty starter if none saved yet.
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    apiFetch('/v1/ai/automations').then(res => {
+      const rows: any[] = res?.automations ?? [];
+      if (rows.length > 0) {
+        setState(stateFromApi(rows));
+      } else {
+        // First visit — create a starter automation in the backend so subsequent
+        // visits don't start with an empty canvas.
+        apiFetch('/v1/ai/automations', {
+          method: 'POST',
+          body: JSON.stringify({ name: 'Automation 1', nodes: STARTER_NODES, edges: STARTER_EDGES }),
+        }).then(created => {
+          if (created?.id) {
+            setState({ workflows: [{ id: created.id, name: created.name, nodes: STARTER_NODES, edges: STARTER_EDGES }], activeId: created.id });
+          }
+        }).catch(() => {
+          // Backend unavailable — render canvas anyway without persistence.
+          setState({ workflows: [{ id: 'local-1', name: 'Automation 1', nodes: STARTER_NODES, edges: STARTER_EDGES }], activeId: 'local-1' });
+        });
+      }
+    }).catch(() => {
+      setState({ workflows: [{ id: 'local-1', name: 'Automation 1', nodes: STARTER_NODES, edges: STARTER_EDGES }], activeId: 'local-1' });
+    }).finally(() => setLoading(false));
+  }, []);
+
+  // Debounced save — waits 600ms after the last change before calling PATCH.
+  // Skips local-* ids (backend unreachable) and skips the initial empty state.
+  const scheduleSave = useCallback((wf: Workflow) => {
+    if (wf.id.startsWith('local-')) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      apiFetch(`/v1/ai/automations/${wf.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name: wf.name, nodes: wf.nodes, edges: wf.edges }),
+      }).catch(() => { /* silent — don't interrupt the user on a save failure */ });
+    }, 600);
+  }, []);
 
   const updateActiveWorkflow = useCallback((fn: (wf: Workflow) => Workflow) => {
-    setState(s => ({ ...s, workflows: s.workflows.map(w => w.id === s.activeId ? fn(w) : w) }));
-  }, []);
+    setState(s => {
+      const updated = s.workflows.map(w => {
+        if (w.id !== s.activeId) return w;
+        const next = fn(w);
+        scheduleSave(next);
+        return next;
+      });
+      return { ...s, workflows: updated };
+    });
+  }, [scheduleSave]);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<'setup' | 'integration' | 'testing'>('setup');
@@ -200,12 +221,22 @@ export function AIAutomations() {
   }, [menuEdgeId, updateActiveWorkflow]);
 
   const handleNewPage = useCallback(() => {
-    const id = `wf-${Date.now()}`;
     const name = `Automation ${workflows.length + 1}`;
     const starter: FlowNode[] = [
       { id: `n-${Date.now()}`, type: 'triggerNode', position: { x: 300, y: 120 }, data: { title: 'New Automation', triggerType: 'manual' } },
     ];
-    setState(s => ({ workflows: [...s.workflows, { id, name, nodes: starter, edges: [] }], activeId: id }));
+    apiFetch('/v1/ai/automations', {
+      method: 'POST',
+      body: JSON.stringify({ name, nodes: starter, edges: [] }),
+    }).then(created => {
+      if (created?.id) {
+        setState(s => ({ workflows: [...s.workflows, { id: created.id, name: created.name, nodes: starter, edges: [] }], activeId: created.id }));
+      }
+    }).catch(() => {
+      // Fallback: local-only tab if API is down.
+      const localId = `local-${Date.now()}`;
+      setState(s => ({ workflows: [...s.workflows, { id: localId, name, nodes: starter, edges: [] }], activeId: localId }));
+    });
     setSelectedNodeId(null);
   }, [workflows.length]);
 
@@ -222,10 +253,20 @@ export function AIAutomations() {
       const activeId = s.activeId === id ? remaining[0].id : s.activeId;
       return { workflows: remaining, activeId };
     });
+    if (!id.startsWith('local-')) {
+      apiFetch(`/v1/ai/automations/${id}`, { method: 'DELETE' }).catch(() => {});
+    }
   }, []);
 
   const renameWorkflow = useCallback((id: string, name: string) => {
-    setState(s => ({ ...s, workflows: s.workflows.map(w => w.id === id ? { ...w, name: name || w.name } : w) }));
+    if (!name) return;
+    setState(s => ({ ...s, workflows: s.workflows.map(w => w.id === id ? { ...w, name } : w) }));
+    if (!id.startsWith('local-')) {
+      apiFetch(`/v1/ai/automations/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name }),
+      }).catch(() => {});
+    }
   }, []);
 
   const handleGenerate = useCallback(async () => {

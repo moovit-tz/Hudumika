@@ -15,7 +15,7 @@ import { Button } from './ui/button.js';
 import { Badge } from './ui/badge.js';
 import { Input } from './ui/input.js';
 import { Textarea } from './ui/textarea.js';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.js';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from './ui/select.js';
 import { Tip } from './ui/tooltip.js';
 import { apiFetch } from '../lib/api.js';
 import './EmailBlockBuilder.css';
@@ -29,15 +29,15 @@ function readCssAccent(): string {
 
 export type EmailBlock =
   // Content
-  | { id: string; type: 'heading'; text: string; level: 1 | 2 | 3; align: 'left' | 'center' | 'right'; color?: string }
-  | { id: string; type: 'paragraph'; text: string; align?: 'left' | 'center' | 'right'; color?: string; fontSize?: number }
+  | { id: string; type: 'heading'; text: string; level: 1 | 2 | 3; align: 'left' | 'center' | 'right'; color?: string; fontFamily?: string }
+  | { id: string; type: 'paragraph'; text: string; align?: 'left' | 'center' | 'right'; color?: string; fontSize?: number; fontFamily?: string }
   | { id: string; type: 'quote'; text: string; author: string; role?: string }
   // Interactive
   | { id: string; type: 'button'; label: string; url: string; align: 'left' | 'center'; color: string; fullWidth?: boolean; borderRadius?: number }
   | { id: string; type: 'social'; links: { platform: string; url: string; label: string }[] }
   // Media
   | { id: string; type: 'image'; src: string; alt: string; width: string; align: 'left' | 'center'; link?: string; borderRadius?: string }
-  | { id: string; type: 'logo'; src: string; alt: string; width: string; align: 'left' | 'center' | 'right' }
+  | { id: string; type: 'logo'; src: string; alt: string; width: string; align: 'left' | 'center' | 'right'; placement?: 'header' | 'content' }
   // Layout
   | { id: string; type: 'banner'; title: string; subtitle?: string; bgColor: string; textColor: string }
   | { id: string; type: 'divider'; style?: 'solid' | 'dashed' | 'dotted'; color?: string; thickness?: number }
@@ -80,7 +80,7 @@ function newBlock(type: BlockType): EmailBlock {
     case 'button':      return { id, type, label: 'Click here', url: '#', align: 'center', color: readCssAccent() };
     case 'social':      return { id, type, links: [{ platform: 'linkedin', url: '#', label: 'LinkedIn' }, { platform: 'twitter', url: '#', label: 'Twitter' }, { platform: 'facebook', url: '#', label: 'Facebook' }] };
     case 'image':       return { id, type, src: '', alt: '', width: '100%', align: 'center' };
-    case 'logo':        return { id, type, src: '', alt: 'Company Logo', width: '160px', align: 'center' };
+    case 'logo':        return { id, type, src: '', alt: 'Company Logo', width: '160px', align: 'center', placement: 'content' };
     case 'banner':      return { id, type, title: 'Your headline here', subtitle: 'Supporting text below the headline', bgColor: readCssAccent(), textColor: '#ffffff' };
     case 'divider':     return { id, type };
     case 'spacer':      return { id, type, size: 24 };
@@ -91,6 +91,59 @@ function newBlock(type: BlockType): EmailBlock {
   }
 }
 
+// ── Template settings & Google Fonts ────────────────────────────────────────
+
+export interface TemplateSettings {
+  headingFont: string;
+  bodyFont: string;
+}
+
+const DEFAULT_TEMPLATE_SETTINGS: TemplateSettings = { headingFont: '', bodyFont: '' };
+
+interface GoogleFont {
+  name: string;
+  family: string;
+  googleName: string | null;
+  category: 'System' | 'Sans-serif' | 'Serif' | 'Display' | 'Monospace';
+}
+
+const GOOGLE_FONTS: GoogleFont[] = [
+  { name: 'System default',   family: 'Arial, Helvetica, sans-serif',               googleName: null,                                  category: 'System' },
+  { name: 'Inter',            family: "'Inter', Arial, sans-serif",                  googleName: 'Inter:wght@400;600;700',               category: 'Sans-serif' },
+  { name: 'Roboto',           family: "'Roboto', Arial, sans-serif",                 googleName: 'Roboto:wght@400;500;700',              category: 'Sans-serif' },
+  { name: 'Open Sans',        family: "'Open Sans', Arial, sans-serif",              googleName: 'Open+Sans:wght@400;600;700',           category: 'Sans-serif' },
+  { name: 'Lato',             family: "'Lato', Arial, sans-serif",                   googleName: 'Lato:wght@400;700',                   category: 'Sans-serif' },
+  { name: 'Montserrat',       family: "'Montserrat', Arial, sans-serif",             googleName: 'Montserrat:wght@400;600;700',          category: 'Sans-serif' },
+  { name: 'Poppins',          family: "'Poppins', Arial, sans-serif",                googleName: 'Poppins:wght@400;600;700',             category: 'Sans-serif' },
+  { name: 'Nunito',           family: "'Nunito', Arial, sans-serif",                 googleName: 'Nunito:wght@400;600;700',              category: 'Sans-serif' },
+  { name: 'Source Sans 3',    family: "'Source Sans 3', Arial, sans-serif",          googleName: 'Source+Sans+3:wght@400;600;700',       category: 'Sans-serif' },
+  { name: 'Playfair Display', family: "'Playfair Display', Georgia, serif",          googleName: 'Playfair+Display:wght@400;600;700',    category: 'Serif' },
+  { name: 'Merriweather',     family: "'Merriweather', Georgia, serif",              googleName: 'Merriweather:wght@400;700',            category: 'Serif' },
+  { name: 'Lora',             family: "'Lora', Georgia, serif",                      googleName: 'Lora:wght@400;600;700',                category: 'Serif' },
+  { name: 'Georgia',          family: "Georgia, 'Times New Roman', serif",           googleName: null,                                  category: 'Serif' },
+  { name: 'Oswald',           family: "'Oswald', Arial, sans-serif",                 googleName: 'Oswald:wght@400;600;700',              category: 'Display' },
+  { name: 'Raleway',          family: "'Raleway', Arial, sans-serif",                googleName: 'Raleway:wght@400;600;700',             category: 'Display' },
+  { name: 'Roboto Mono',      family: "'Roboto Mono', monospace",                    googleName: 'Roboto+Mono:wght@400;600',             category: 'Monospace' },
+];
+
+const FONT_CATEGORIES = ['System', 'Sans-serif', 'Serif', 'Display', 'Monospace'] as const;
+
+function getFontFamily(name: string): string {
+  return GOOGLE_FONTS.find(f => f.name === name)?.family ?? 'Arial, Helvetica, sans-serif';
+}
+
+function loadGoogleFont(name: string): void {
+  const font = GOOGLE_FONTS.find(f => f.name === name);
+  if (!font?.googleName) return;
+  const id = `gf-${name.toLowerCase().replace(/\s+/g, '-')}`;
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${font.googleName}&display=swap`;
+  document.head.appendChild(link);
+}
+
 // ── HTML generation ──────────────────────────────────────────────────────────
 
 const SOCIAL_COLORS: Record<string, string> = {
@@ -99,19 +152,21 @@ const SOCIAL_COLORS: Record<string, string> = {
   github: '#333333', website: '#6b7280',
 };
 
-function blockToHtml(block: EmailBlock): string {
+function blockToHtml(block: EmailBlock, settings?: TemplateSettings): string {
   switch (block.type) {
     case 'heading': {
       const sizes = { 1: '26px', 2: '20px', 3: '16px' };
       const weight = { 1: '800', 2: '700', 3: '600' };
       const color = block.color ?? '#111827';
-      return `<h${block.level} style="margin:0 0 12px;font-size:${sizes[block.level]};font-weight:${weight[block.level]};color:${color};text-align:${block.align};line-height:1.3;">${block.text}</h${block.level}>`;
+      const ff = getFontFamily(block.fontFamily || settings?.headingFont || '');
+      return `<h${block.level} style="margin:0 0 12px;font-size:${sizes[block.level]};font-weight:${weight[block.level]};color:${color};text-align:${block.align};line-height:1.3;font-family:${ff};">${block.text}</h${block.level}>`;
     }
     case 'paragraph': {
       const align = block.align ?? 'left';
       const color = block.color ?? '#374151';
       const size = block.fontSize ?? 14;
-      return `<p style="margin:0 0 14px;font-size:${size}px;line-height:1.6;color:${color};text-align:${align};">${block.text.replace(/\n/g, '<br />')}</p>`;
+      const ff = getFontFamily(block.fontFamily || settings?.bodyFont || '');
+      return `<p style="margin:0 0 14px;font-size:${size}px;line-height:1.6;color:${color};text-align:${align};font-family:${ff};">${block.text.replace(/\n/g, '<br />')}</p>`;
     }
     case 'quote':
       return `<blockquote style="margin:16px 0;padding:12px 20px 12px 16px;border-left:3px solid #e5e7eb;background:#f9fafb;border-radius:0 4px 4px 0;"><p style="margin:0 0 8px;font-size:15px;font-style:italic;color:#374151;line-height:1.6;">${block.text}</p><cite style="font-size:12px;color:#6b7280;font-style:normal;font-weight:600;">— ${block.author}${block.role ? `, <span style="font-weight:400;">${block.role}</span>` : ''}</cite></blockquote>`;
@@ -140,11 +195,13 @@ function blockToHtml(block: EmailBlock): string {
     }
     case 'logo': {
       const alignStyle = block.align === 'center' ? 'text-align:center;' : block.align === 'right' ? 'text-align:right;' : '';
-      const imgStyle = `max-width:${block.width};height:auto;display:inline-block;`;
+      const imgStyle = `width:${block.width};max-width:100%;height:auto;display:inline-block;`;
       return `<div style="margin:12px 0;${alignStyle}">${block.src ? `<img src="${block.src}" alt="${block.alt}" style="${imgStyle}" />` : `<div style="display:inline-block;background:#f3f4f6;border:2px dashed #d1d5db;height:48px;width:${block.width};line-height:48px;text-align:center;border-radius:4px;color:#9ca3af;font-size:12px;">[Logo]</div>`}</div>`;
     }
-    case 'banner':
-      return `<div style="background:${block.bgColor};padding:28px 32px;text-align:center;margin:0 0 16px;border-radius:6px;"><h2 style="margin:0 0 8px;font-size:22px;font-weight:800;color:${block.textColor};line-height:1.3;">${block.title}</h2>${block.subtitle ? `<p style="margin:0;font-size:14px;color:${block.textColor};opacity:0.85;line-height:1.5;">${block.subtitle}</p>` : ''}</div>`;
+    case 'banner': {
+      const ff = getFontFamily(settings?.headingFont || '');
+      return `<div style="background:${block.bgColor};padding:28px 32px;text-align:center;margin:0 0 16px;border-radius:6px;font-family:${ff};"><h2 style="margin:0 0 8px;font-size:22px;font-weight:800;color:${block.textColor};line-height:1.3;">${block.title}</h2>${block.subtitle ? `<p style="margin:0;font-size:14px;color:${block.textColor};opacity:0.85;line-height:1.5;">${block.subtitle}</p>` : ''}</div>`;
+    }
     case 'divider': {
       const style = block.style ?? 'solid';
       const color = block.color ?? '#e5e7eb';
@@ -177,9 +234,9 @@ function blockToHtml(block: EmailBlock): string {
   }
 }
 
-export function blocksToHtml(blocks: EmailBlock[], vars?: Record<string, string>): string {
+export function blocksToHtml(blocks: EmailBlock[], vars?: Record<string, string>, settings?: TemplateSettings): string {
   return blocks.map(b => {
-    let html = blockToHtml(b);
+    let html = blockToHtml(b, settings);
     if (vars) {
       for (const [k, v] of Object.entries(vars)) {
         html = html.replaceAll(`{{${k}}}`, v);
@@ -189,12 +246,34 @@ export function blocksToHtml(blocks: EmailBlock[], vars?: Record<string, string>
   }).join('\n');
 }
 
-export function blocksToEmailHtml(blocks: EmailBlock[], accent = readCssAccent()): string {
-  const body = blocksToHtml(blocks);
+export function blocksToEmailHtml(blocks: EmailBlock[], accent = readCssAccent(), settings?: TemplateSettings): string {
+  // Collect all Google Fonts needed (template-level + per-block overrides)
+  const fontsNeeded = new Set<string>();
+  if (settings?.headingFont) fontsNeeded.add(settings.headingFont);
+  if (settings?.bodyFont) fontsNeeded.add(settings.bodyFont);
+  for (const block of blocks) {
+    if ((block.type === 'heading' || block.type === 'paragraph') && block.fontFamily) {
+      fontsNeeded.add(block.fontFamily);
+    }
+  }
+  const importLines = [...fontsNeeded]
+    .map(name => GOOGLE_FONTS.find(f => f.name === name))
+    .filter((f): f is GoogleFont => f != null && f.googleName != null)
+    .map(f => `  @import url('https://fonts.googleapis.com/css2?family=${f.googleName!}&display=swap');`)
+    .join('\n');
+
+  const bodyFontFamily = getFontFamily(settings?.bodyFont || '');
+
+  const headerLogo = blocks.find((block): block is Extract<EmailBlock, { type: 'logo' }> => block.type === 'logo' && block.placement === 'header');
+  const body = blocksToHtml(blocks.filter(block => block !== headerLogo), undefined, settings);
+  const headerAlign = headerLogo?.align === 'right' ? 'right' : headerLogo?.align === 'left' ? 'left' : 'center';
+  const header = headerLogo?.src
+    ? `<div style="padding:20px 32px;border-bottom:3px solid ${accent};text-align:${headerAlign};"><img src="${headerLogo.src}" alt="${headerLogo.alt}" style="display:inline-block;width:${headerLogo.width};max-width:100%;height:auto;max-height:120px;object-fit:contain;" /></div>`
+    : '';
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-  body{margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;}
+${importLines ? importLines + '\n' : ''}  body{margin:0;padding:0;background:#f3f4f6;font-family:${bodyFontFamily};}
   * { box-sizing: border-box; }
   a { color: inherit; }
 </style></head>
@@ -202,14 +281,12 @@ export function blocksToEmailHtml(blocks: EmailBlock[], accent = readCssAccent()
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
 <tr><td align="center">
 <div style="max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-  <div style="padding:20px 32px;border-bottom:3px solid ${accent};">
-    <span style="font-size:18px;font-weight:700;color:${accent};">Company Name</span>
-  </div>
+  ${header}
   <div style="padding:28px 32px;font-size:14px;line-height:1.6;color:#1a1a1a;">
     ${body}
   </div>
   <div style="padding:16px 32px;border-top:1px solid #e5e7eb;background:#f9fafb;">
-    <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">Company Name · Sent via Hudumika</p>
+    <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">Sent via Hudumika</p>
   </div>
 </div>
 </td></tr></table>
@@ -245,6 +322,64 @@ function ColorRow({ value, onChange, label }: { value: string; onChange: (v: str
             style={{ flex: 1, fontFamily: 'monospace', fontSize: 11 }} placeholder="#rrggbb" />
         </div>
       </div>
+    </div>
+  );
+}
+
+function FontPicker({ value, onChange, label, placeholder }: { value: string; onChange: (v: string) => void; label?: string; placeholder?: string }) {
+  const selected = GOOGLE_FONTS.find(f => f.name === value) ?? GOOGLE_FONTS[0];
+  // Radix SelectItem can't have an empty-string value — use sentinel
+  const selectValue = value || '__system__';
+
+  return (
+    <div>
+      {label && <label className="ebb-props-label">{label}</label>}
+      <Select value={selectValue} onValueChange={v => onChange(v === '__system__' ? '' : v)}>
+        <SelectTrigger>
+          <SelectValue placeholder={placeholder ?? 'System default'}>
+            <span style={{ fontFamily: selected.family }}>{selected.name}</span>
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {FONT_CATEGORIES.map(cat => {
+            const fonts = GOOGLE_FONTS.filter(f => f.category === cat);
+            return (
+              <SelectGroup key={cat}>
+                <SelectLabel>{cat}</SelectLabel>
+                {fonts.map(f => (
+                  <SelectItem key={f.name} value={f.name === 'System default' ? '__system__' : f.name}>
+                    <span style={{ fontFamily: f.family }}>{f.name}</span>
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            );
+          })}
+        </SelectContent>
+      </Select>
+      {value && value !== 'System default' && (
+        <div className="ebb-font-preview" style={{ fontFamily: selected.family }}>
+          The quick brown fox jumps over the lazy dog
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DesignPanel({ settings, onChange }: { settings: TemplateSettings; onChange: (s: TemplateSettings) => void }) {
+  return (
+    <div className="ebb-props">
+      <div className="ebb-props-title">Email design</div>
+      <p className="ebb-props-hint" style={{ marginBottom: 4 }}>Font settings apply to all text blocks unless overridden per block.</p>
+      <FontPicker
+        label="Body text font"
+        value={settings.bodyFont}
+        onChange={v => onChange({ ...settings, bodyFont: v })}
+      />
+      <FontPicker
+        label="Heading font"
+        value={settings.headingFont}
+        onChange={v => onChange({ ...settings, headingFont: v })}
+      />
     </div>
   );
 }
@@ -426,10 +561,11 @@ const SOCIAL_PLATFORMS = [
   { value: 'website',   label: 'Website / Other' },
 ];
 
-function BlockProps({ block, onChange, varGroups }: {
+function BlockProps({ block, onChange, varGroups, settings }: {
   block: EmailBlock;
   onChange: (updated: EmailBlock) => void;
   varGroups: VarGroup[];
+  settings: TemplateSettings;
 }) {
   const [insertTarget, setInsertTarget] = useState<string>('');
   const inputRefs = useRef<Record<string, HTMLInputElement | HTMLTextAreaElement | null>>({});
@@ -494,6 +630,12 @@ function BlockProps({ block, onChange, varGroups }: {
           <label className="ebb-props-label">Alignment</label>
           <AlignGroup value={block.align} onChange={v => onChange({ ...block, align: v as any })} />
           <ColorRow label="Text color" value={block.color ?? '#111827'} onChange={c => onChange({ ...block, color: c })} />
+          <FontPicker
+            label="Font override"
+            value={block.fontFamily ?? ''}
+            onChange={v => onChange({ ...block, fontFamily: v || undefined })}
+            placeholder={settings.headingFont ? `Template: ${settings.headingFont}` : 'System default'}
+          />
           {varPicker}
         </div>
       );
@@ -509,6 +651,12 @@ function BlockProps({ block, onChange, varGroups }: {
           <label className="ebb-props-label">Font size (px)</label>
           <Input type="number" value={block.fontSize ?? 14} min={11} max={24} step={1} onChange={e => onChange({ ...block, fontSize: Number(e.target.value) })} />
           <ColorRow label="Text color" value={block.color ?? '#374151'} onChange={c => onChange({ ...block, color: c })} />
+          <FontPicker
+            label="Font override"
+            value={block.fontFamily ?? ''}
+            onChange={v => onChange({ ...block, fontFamily: v || undefined })}
+            placeholder={settings.bodyFont ? `Template: ${settings.bodyFont}` : 'System default'}
+          />
           {varPicker}
         </div>
       );
@@ -610,7 +758,8 @@ function BlockProps({ block, onChange, varGroups }: {
         </div>
       );
 
-    case 'logo':
+    case 'logo': {
+      const widthValue = Math.min(320, Math.max(40, Number.parseInt(block.width, 10) || 160));
       return (
         <div className="ebb-props">
           <div className="ebb-props-title">Logo</div>
@@ -619,12 +768,25 @@ function BlockProps({ block, onChange, varGroups }: {
           <Input ref={ref('src') as any} value={block.src} placeholder="https://…" onChange={e => handleFieldChange('src', e.target.value)} onFocus={() => focusField('src')} />
           <label className="ebb-props-label">Alt text</label>
           <Input ref={ref('alt') as any} value={block.alt} onChange={e => handleFieldChange('alt', e.target.value)} onFocus={() => focusField('alt')} />
-          <label className="ebb-props-label">Width</label>
-          <Input value={block.width} placeholder="160px" onChange={e => onChange({ ...block, width: e.target.value })} />
+          <div className="ebb-props-label-row">
+            <label className="ebb-props-label">Logo width</label>
+            <span className="ebb-props-value">{widthValue}px</span>
+          </div>
+          <input type="range" className="ebb-size-range" min={40} max={320} step={4} value={widthValue}
+            aria-label="Logo width" onChange={e => onChange({ ...block, width: `${e.target.value}px` })} />
+          <div className="ebb-size-presets" role="group" aria-label="Logo size presets">
+            {[80, 120, 160, 240].map(size => (
+              <button key={size} type="button"
+                className={widthValue === size ? 'ebb-size-preset ebb-size-preset--active' : 'ebb-size-preset'}
+                onClick={() => onChange({ ...block, width: `${size}px` })}>{size}px</button>
+            ))}
+          </div>
           <label className="ebb-props-label">Alignment</label>
           <AlignGroup value={block.align} onChange={v => onChange({ ...block, align: v as any })} />
+          {block.placement === 'header' && <p className="ebb-props-hint">This logo is used in the email header and scales proportionally in sent emails.</p>}
         </div>
       );
+    }
 
     case 'banner':
       return (
@@ -762,10 +924,19 @@ export interface EmailBlockBuilderProps {
   onChange: (blocks: EmailBlock[]) => void;
   varGroups?: VarGroup[];
   accentColor?: string;
+  settings?: TemplateSettings;
+  onSettingsChange?: (settings: TemplateSettings) => void;
 }
 
-export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColor }: EmailBlockBuilderProps) {
+export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColor, settings: settingsProp, onSettingsChange }: EmailBlockBuilderProps) {
   const accent = accentColor ?? readCssAccent();
+  const [settingsInternal, setSettingsInternal] = useState<TemplateSettings>(settingsProp ?? DEFAULT_TEMPLATE_SETTINGS);
+  const settings = settingsProp ?? settingsInternal;
+  const handleSettingsChange = useCallback((s: TemplateSettings) => {
+    setSettingsInternal(s);
+    onSettingsChange?.(s);
+  }, [onSettingsChange]);
+
   const [selectedIdx, setSelectedIdx] = useState<number | null>(() => blocks.length ? 0 : null);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [search, setSearch] = useState('');
@@ -782,11 +953,38 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
   }, [blocks, onChange]);
 
   const selectedBlock = selectedIdx !== null ? blocks[selectedIdx] ?? null : null;
+  const headerLogoIndex = blocks.findIndex(block => block.type === 'logo' && block.placement === 'header');
+  const headerLogo = headerLogoIndex >= 0 ? blocks[headerLogoIndex] as Extract<EmailBlock, { type: 'logo' }> : null;
+  const bodyBlocks = blocks.map((block, index) => ({ block, index })).filter(({ block }) => block !== headerLogo);
+
+  const selectHeaderLogo = useCallback(() => {
+    if (headerLogoIndex >= 0) {
+      setSelectedIdx(headerLogoIndex);
+      return;
+    }
+    const created = { ...newBlock('logo'), placement: 'header' as const, align: 'left' as const } as Extract<EmailBlock, { type: 'logo' }>;
+    commit([created, ...blocks]);
+    setSelectedIdx(0);
+  }, [blocks, commit, headerLogoIndex]);
 
   useEffect(() => {
     if (!blocks.length) setSelectedIdx(null);
     else if (selectedIdx === null || selectedIdx >= blocks.length) setSelectedIdx(0);
   }, [blocks.length, selectedIdx]);
+
+  // Load Google Fonts into the page for the canvas preview
+  useEffect(() => {
+    if (settings.headingFont) loadGoogleFont(settings.headingFont);
+    if (settings.bodyFont) loadGoogleFont(settings.bodyFont);
+  }, [settings.headingFont, settings.bodyFont]);
+
+  useEffect(() => {
+    for (const block of blocks) {
+      if ((block.type === 'heading' || block.type === 'paragraph') && block.fontFamily) {
+        loadGoogleFont(block.fontFamily);
+      }
+    }
+  }, [blocks]);
 
   const addBlock = useCallback((type: BlockType) => {
     const next = [...blocks, newBlock(type)];
@@ -813,7 +1011,12 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
   }, [blocks, commit]);
 
   const duplicateBlock = useCallback((idx: number) => {
-    const clone = { ...blocks[idx], id: Math.random().toString(36).slice(2) } as EmailBlock;
+    const source = blocks[idx];
+    const clone = {
+      ...source,
+      id: Math.random().toString(36).slice(2),
+      ...(source.type === 'logo' && source.placement === 'header' ? { placement: 'content' as const } : {}),
+    } as EmailBlock;
     const next = [...blocks.slice(0, idx + 1), clone, ...blocks.slice(idx + 1)];
     commit(next);
     setSelectedIdx(idx + 1);
@@ -992,11 +1195,21 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
               <div className="ebb-canvas-email"
                 onDragOver={event => event.preventDefault()}
                 onDrop={event => { if (event.target === event.currentTarget) { event.preventDefault(); dropAtEnd(); } }}>
-                <div className="ebb-canvas-email-header" style={{ borderBottomColor: accent }}>
-                  <span style={{ color: accent, fontWeight: 700, fontSize: 18 }}>Company Name</span>
-                </div>
+                <button
+                  type="button"
+                  className={`ebb-canvas-email-header${selectedIdx === headerLogoIndex && headerLogoIndex >= 0 ? ' ebb-canvas-email-header--selected' : ''}`}
+                  style={{ borderBottomColor: accent, textAlign: headerLogo?.align ?? 'left' }}
+                  onClick={event => { event.stopPropagation(); selectHeaderLogo(); }}
+                  title={headerLogo?.src ? 'Edit company logo' : 'Upload company logo'}
+                >
+                  {headerLogo?.src ? (
+                    <img src={headerLogo.src} alt={headerLogo.alt || 'Company logo'} style={{ width: headerLogo.width, maxWidth: '100%', height: 'auto', maxHeight: 120 }} />
+                  ) : (
+                    <span className="ebb-canvas-logo-empty"><Icon name="upload" size={15} /> Upload company logo</span>
+                  )}
+                </button>
                 <div className="ebb-canvas-email-body">
-                  {blocks.map((b, i) => (
+                  {bodyBlocks.map(({ block: b, index: i }, visibleIndex) => (
                     <BlockItem
                       key={b.id}
                       block={b}
@@ -1006,8 +1219,8 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
                       onDuplicate={() => duplicateBlock(i)}
                       onMoveUp={() => moveBlock(i, -1)}
                       onMoveDown={() => moveBlock(i, 1)}
-                      isFirst={i === 0}
-                      isLast={i === blocks.length - 1}
+                      isFirst={visibleIndex === 0}
+                      isLast={visibleIndex === bodyBlocks.length - 1}
                       onDragStart={() => { dragIndex.current = i; }}
                       onDrop={() => dropBlock(i)}
                       onUpdateSrc={src => updateBlock(i, { ...b, src } as EmailBlock)}
@@ -1015,7 +1228,7 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
                   ))}
                 </div>
                 <div className="ebb-canvas-email-footer">
-                  <span>Company Name · Sent via Hudumika</span>
+                  <span>Sent via Hudumika</span>
                 </div>
               </div>
             )}
@@ -1026,7 +1239,7 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
       {/* RIGHT — properties */}
       <div className="ebb-panel ebb-panel--right">
         <div className="ebb-panel-hdr">
-          <span>{selectedBlock ? 'Block settings' : 'Inspector'}</span>
+          <span>{selectedBlock ? 'Block settings' : 'Design'}</span>
           {selectedBlock && (
             <Badge variant="brand" style={{ textTransform: 'capitalize', letterSpacing: 0 }}>
               {BLOCK_PALETTE.find(p => p.type === selectedBlock.type)?.label ?? selectedBlock.type}
@@ -1038,12 +1251,10 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
             block={selectedBlock}
             onChange={updated => updateBlock(selectedIdx!, updated)}
             varGroups={varGroups}
+            settings={settings}
           />
         ) : (
-          <div className="ebb-props-empty">
-            <Icon name="hand" size={28} className="ebb-props-empty-icon" />
-            <p>Select a block on the canvas to edit its properties</p>
-          </div>
+          <DesignPanel settings={settings} onChange={handleSettingsChange} />
         )}
       </div>
     </div>

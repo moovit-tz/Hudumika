@@ -51,8 +51,14 @@ export const FileBrowser: React.FC = () => {
   } = useCloud();
 
   const t = useCloudStrings();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'name' | 'size' | 'modified'>('modified');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => localStorage.getItem('hudumika_cloud_view') === 'list' ? 'list' : 'grid');
+  const [sortBy, setSortBy] = useState<'name' | 'size' | 'modified'>(() => {
+    const saved = localStorage.getItem('hudumika_cloud_sort');
+    return saved === 'name' || saved === 'size' ? saved : 'modified';
+  });
+
+  useEffect(() => { localStorage.setItem('hudumika_cloud_view', viewMode); }, [viewMode]);
+  useEffect(() => { localStorage.setItem('hudumika_cloud_sort', sortBy); }, [sortBy]);
 
   // Sync the context view with the URL so that deep-linking (or refresh on
   // /cloud/shared, /cloud/recent, /cloud/trash) restores the correct view.
@@ -142,6 +148,8 @@ export const FileBrowser: React.FC = () => {
   const filesOnly = displayItems.filter(i => i.type !== 'folder');
   const ordered = [...folders, ...filesOnly];
 
+  useEffect(() => { clearSelection(); }, [currentView, currentFolderId]);
+
   function selectItem(item: CloudFile, e: React.MouseEvent) {
     if (e.shiftKey && lastAnchorId) {
       const ai = ordered.findIndex(i => i.id === lastAnchorId);
@@ -208,7 +216,7 @@ export const FileBrowser: React.FC = () => {
   function handleMoveHere(draggedId: string, targetFolderId: string) { moveItem(draggedId, targetFolderId).catch(() => { /* surfaced by the context error banner */ }); }
 
   function bulkAction(action: (item: CloudFile) => void) {
-    const targets = files.filter(i => selectedIds.has(i.id));
+    const targets = ordered.filter(i => selectedIds.has(i.id));
     targets.forEach(action);
     clearSelection();
   }
@@ -278,9 +286,11 @@ export const FileBrowser: React.FC = () => {
             canPermanentlyDelete={canPermanentlyDelete}
             onEmptyTrash={emptyTrash}
             selectedCount={selectedIds.size}
+            itemCount={displayItems.length}
+            hasMore={Boolean(folderNextCursor)}
             onClearSelection={clearSelection}
             onBulkDownload={() => bulkAction(i => { if (i.type !== 'folder') downloadItem(i); })}
-            onBulkShare={() => setShareTarget(files.find(i => selectedIds.has(i.id))!)}
+            onBulkShare={() => setShareTarget(ordered.find(i => selectedIds.has(i.id)) ?? null)}
             onBulkMove={() => setMoveTarget([...selectedIds])}
             onBulkStar={() => bulkAction(i => starItem(i.id, true))}
             onBulkTrash={() => bulkAction(i => trashItem(i.id))}
@@ -299,7 +309,10 @@ export const FileBrowser: React.FC = () => {
             )}
 
             {(loading && files.length === 0 && !isSearching) || (currentView === 'all' && folderLoading && folderItems.length === 0) ? (
-              <div className="fb-state-center"><span>{t('fb.loading')}</span></div>
+              <div className="fb-state-center" role="status">
+                <span className="fb-spinner" aria-hidden="true" />
+                <span>{t('fb.loading')}</span>
+              </div>
             ) : null}
 
             {isSearching && searching && (
@@ -318,13 +331,15 @@ export const FileBrowser: React.FC = () => {
               <div className="fb-empty">
                 {isSearching ? (
                   <>
-                    <Icon name="search" size={48} color="var(--border)" />
-                    <span>{t('fb.search.noResults', { query: search })}</span>
+                    <span className="fb-empty-icon"><Icon name="search" size={24} /></span>
+                    <strong>{t('fb.search.noResults', { query: search })}</strong>
+                    <span>Try a shorter name or a different keyword.</span>
                   </>
                 ) : isTrashView ? (
                   <>
-                    <Icon name="trash" size={48} color="var(--border)" />
-                    <span>{t('fb.trash.empty')}</span>
+                    <span className="fb-empty-icon"><Icon name="trash" size={24} /></span>
+                    <strong>{t('fb.trash.empty')}</strong>
+                    <span>Items moved to the recycle bin will appear here.</span>
                   </>
                 ) : (
                   <div className="fb-dropzone-wrap">
@@ -419,6 +434,7 @@ export const FileBrowser: React.FC = () => {
       <button
         className="cloud-fab-btn"
         title="Upload or create"
+        aria-label="Upload files"
         onClick={() => {
           const input = document.createElement('input');
           input.type = 'file';

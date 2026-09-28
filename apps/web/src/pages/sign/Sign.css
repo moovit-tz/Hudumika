@@ -56,8 +56,8 @@
 .sign-envelope-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 18px 20px;
+  border-radius: var(--card-radius);
+  padding: 16px;
   display: flex;
   gap: 16px;
   align-items: flex-start;
@@ -68,13 +68,13 @@
 }
 .sign-envelope-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--elev);
   border-color: var(--teal);
 }
 .sign-envelope-icon {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: var(--teal-l);
   display: flex;
   align-items: center;
@@ -136,7 +136,7 @@
 .sign-view-toggle {
   display: flex;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r);
   overflow: hidden;
   flex-shrink: 0;
   background: var(--bg);
@@ -150,7 +150,7 @@
   padding: 0 10px;
   height: 30px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: transparent;
   color: var(--ink3);
   cursor: pointer;
@@ -160,9 +160,16 @@
   color: var(--ink);
 }
 .sign-view-toggle-btn--on {
-  background: var(--white);
+  background: var(--card-bg);
   color: var(--teal);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: var(--elev);
+}
+.sign-envelope-select {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  background: var(--card-bg);
 }
 
 /* ── Envelope containers ──────────────────────────────────────────────────── */
@@ -194,6 +201,153 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+/* Inbox workspace — one coherent, responsive Hudumika data surface. */
+.sign-inbox-page {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sign-inbox-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--elev);
+}
+
+.sign-inbox-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg);
+}
+
+.sign-inbox-tabs-scroll {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sign-inbox-tab-count {
+  display: inline-flex;
+  min-width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--ink2);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+[data-state="active"] > .sign-inbox-tab-count {
+  background: var(--teal-l);
+  color: var(--teal-d);
+}
+
+.sign-inbox-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.sign-inbox-search {
+  position: relative;
+  width: min(280px, 28vw);
+}
+.sign-inbox-search > svg {
+  position: absolute;
+  z-index: 1;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink3);
+  pointer-events: none;
+}
+.sign-inbox-search input { padding-left: 34px; }
+
+.sign-inbox-bulk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--teal-l);
+}
+.sign-inbox-bulk > span {
+  margin-right: 4px;
+  color: var(--teal-d);
+  font-size: 13px;
+  font-weight: 700;
+}
+.sign-inbox-void-btn { color: var(--red) !important; }
+.sign-inbox-clear-btn { margin-left: auto; }
+
+.sign-inbox-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.sign-inbox-empty {
+  flex: 1;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  text-align: center;
+}
+.sign-inbox-empty-title { color: var(--ink); font-size: 16px; font-weight: 700; }
+.sign-inbox-empty-copy { max-width: 360px; color: var(--ink3); font-size: 13px; line-height: 1.55; }
+
+.sign-inbox-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--card-bg);
+}
+.sign-inbox-table { width: 100%; background: var(--card-bg); }
+.sign-inbox-table tbody tr { transition: background-color 0.15s ease; }
+.sign-inbox-table tbody tr:hover { background: var(--surface2); }
+
+@media (max-width: 1100px) {
+  .sign-inbox-toolbar { align-items: stretch; flex-direction: column; gap: 10px; }
+  .sign-inbox-tools { justify-content: space-between; }
+  .sign-inbox-search { width: min(100%, 420px); flex: 1; }
+  .sign-inbox-tabs-scroll { overflow: visible; }
+}
+
+@media (max-width: 640px) {
+  .sign-inbox-metrics { display: none; }
+  .sign-inbox-panel { border-right: 0; border-left: 0; border-radius: 0; box-shadow: none; }
+  .sign-inbox-toolbar, .sign-inbox-content { padding: 12px; }
+  .sign-inbox-tools { align-items: stretch; }
+  .sign-inbox-search { width: 100%; }
+  .sign-view-toggle { flex-shrink: 0; }
+  .sign-inbox-bulk { flex-wrap: wrap; padding: 10px 12px; }
+  .sign-inbox-clear-btn { margin-left: 0; }
+  .sign-envelope-grid { grid-template-columns: 1fr; gap: 10px; }
+  .sign-inbox-table { min-width: 680px; }
 }
 
 /* ── Page document preview canvas ─────────────────────────────────────────── */
@@ -454,6 +608,196 @@
   letter-spacing: 0.07em;
   color: var(--ink3, #6b7280);
   padding: 16px 20px 8px;
+}
+
+/* New-envelope intake keeps the editor full-bleed while restoring the
+   platform's normal surface hierarchy: platform canvas, then white workspace. */
+.sign-new-envelope-page {
+  height: 100%;
+  min-height: 0;
+  padding: var(--page-pad-y) var(--page-pad-x);
+  overflow: hidden;
+  background: var(--bg);
+  font-family: var(--font);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+.sign-new-envelope-card {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+.sign-new-envelope-card > .page-header {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: var(--space-lg);
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+}
+.sign-new-envelope-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+}
+.sign-new-envelope-title-row label {
+  min-width: 96px;
+  color: var(--ink2);
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+.sign-new-envelope-title-row input {
+  width: min(620px, 100%);
+  background: var(--card-bg);
+}
+.sign-new-envelope-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: start center;
+  overflow-y: auto;
+  padding: var(--space-xl) var(--space-lg);
+  background: var(--card-sunken);
+}
+.sign-new-envelope-chooser {
+  width: min(600px, 100%);
+  padding: clamp(22px, 3vw, 32px);
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+.sign-new-envelope-chooser-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: var(--space-lg);
+}
+.sign-new-envelope-chooser-heading h2 {
+  margin: 0 0 3px;
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+.sign-new-envelope-chooser-heading p {
+  margin: 0;
+  color: var(--ink3);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+.sign-new-envelope-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.sign-new-envelope-action {
+  min-height: 80px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  color: var(--ink);
+  text-align: left;
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  cursor: pointer;
+  white-space: normal;
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.sign-new-envelope-action:hover {
+  border-color: var(--teal-m);
+  background: var(--teal-l);
+  box-shadow: var(--card-shadow);
+  transform: translateY(-1px);
+}
+.sign-new-envelope-action:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+.sign-new-envelope-action-copy {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+.sign-new-envelope-action-copy strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+.sign-new-envelope-action-copy small {
+  color: var(--ink3);
+  font-size: 12px;
+}
+.sign-new-envelope-action-arrow {
+  flex: 0 0 auto;
+  color: var(--ink3);
+}
+.sign-new-envelope-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 18px;
+  color: var(--ink3);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.sign-new-envelope-divider::before,
+.sign-new-envelope-divider::after {
+  height: 1px;
+  flex: 1;
+  content: '';
+  background: var(--border);
+}
+.sign-new-envelope-blank {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 16px;
+  background: var(--bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+}
+.sign-new-envelope-blank > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sign-new-envelope-blank strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+.sign-new-envelope-blank span {
+  color: var(--ink3);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .sign-new-envelope-page { padding: var(--page-pad-y) var(--page-pad-x); }
+  .sign-new-envelope-title-row { align-items: stretch; flex-direction: column; gap: 6px; padding: 12px; }
+  .sign-new-envelope-title-row label { min-width: 0; }
+  .sign-new-envelope-body { place-items: start center; padding: 16px 12px; }
+  .sign-new-envelope-chooser { padding: 18px 14px; }
+  .sign-new-envelope-chooser-heading { align-items: flex-start; }
+  .sign-new-envelope-actions { grid-template-columns: 1fr; }
+  .sign-new-envelope-blank { align-items: stretch; flex-direction: column; }
+  .sign-new-envelope-blank button { width: 100%; }
 }
 
 /* ── Field type palette (drag-from-list) ──────────────────────────────────── */

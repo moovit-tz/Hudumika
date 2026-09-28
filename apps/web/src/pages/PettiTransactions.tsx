@@ -11,8 +11,10 @@ import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { DateRangePicker } from '../components/ui/date-picker.js';
 import { PaginationBar } from '../components/PaginationBar.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
+import { usePageSEO } from '../hooks/usePageSEO.js';
 import type { DateRange } from 'react-day-picker';
 import './Petti.css';
 
@@ -41,6 +43,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 function fmtDate(s: string) { return new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
 
 export function PettiTransactions() {
+  usePageSEO('Transaction Ledger', 'Every deposit, withdrawal, and transfer across every digital petty cash wallet in real time.');
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [rows, setRows] = useState<TxRow[]>([]);
@@ -55,6 +58,8 @@ export function PettiTransactions() {
   const [range, setRange] = useState<DateRange | undefined>(undefined);
   const [page, setPage] = useState(1);
   const pageSize = 25;
+
+  const [summary, setSummary] = useState({ total_inflow: 0, total_outflow: 0, pending_count: 0 });
 
   /* View Mode & Modal State */
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
@@ -89,6 +94,19 @@ export function PettiTransactions() {
       .finally(() => setLoading(false));
   }, [walletId, type, status, debouncedSearch, range, page]);
 
+  // Summary metrics — scoped to current filters but not to the current page
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (walletId) params.set('wallet_id', walletId);
+    if (type) params.set('type', type);
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    if (range?.from) params.set('from', range.from.toISOString());
+    if (range?.to) params.set('to', range.to.toISOString());
+    apiFetch(`/v1/petti/transactions/summary?${params.toString()}`)
+      .then(res => setSummary({ total_inflow: res.total_inflow ?? 0, total_outflow: res.total_outflow ?? 0, pending_count: res.pending_count ?? 0 }))
+      .catch(() => setSummary({ total_inflow: 0, total_outflow: 0, pending_count: 0 }));
+  }, [walletId, type, debouncedSearch, range]);
+
   const walletsById = useMemo(() => Object.fromEntries(wallets.map(w => [w.id, w])), [wallets]);
   const staffById = useMemo(() => Object.fromEntries(staff.map(s => [s.id, s.name])), [staff]);
 
@@ -100,6 +118,7 @@ export function PettiTransactions() {
     { value: 'pending', label: 'Pending' }, { value: 'approved', label: 'Approved' },
     { value: 'disbursed', label: 'Disbursed' }, { value: 'rejected', label: 'Rejected' },
   ];
+
 
   /* Export CSV Function */
   function exportCSV() {
@@ -190,15 +209,14 @@ export function PettiTransactions() {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto' }}>
+    <div className="petti-container">
       <PageHeader
         crumbs={['Petti', 'Transactions']}
         titlePlain="Transaction"
         titleEm="ledger"
-        subtitle="Every deposit, withdrawal and transfer across every wallet, in one place."
+        subtitle="Complete audit trail of deposits, disbursements, and inter-wallet transfers across all currency vaults."
         actions={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* View Mode Switcher */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <Tabs value={viewMode} onValueChange={v => setViewMode(v as typeof viewMode)} variant="segmented">
               <TabsList>
                 <TabsTrigger value="list" title="Table List View">
@@ -217,68 +235,129 @@ export function PettiTransactions() {
         }
       />
 
+      {/* Transaction Metric Strip */}
+      <div className="petti-stats-grid">
+        <div className="petti-stat-card petti-stat-card--total">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Total Transactions</span>
+            <Badge variant="brand">{total.toLocaleString()}</Badge>
+          </div>
+          <div className="petti-stat-value">{total.toLocaleString()}</div>
+          <div className="petti-stat-sub">Filtered entries</div>
+        </div>
+
+        <div className="petti-stat-card petti-stat-card--inflow">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Inflow (Deposits)</span>
+            <Badge variant="success">IN</Badge>
+          </div>
+          <div className="petti-stat-value" style={{ color: 'var(--green)' }}>
+            +{summary.total_inflow.toLocaleString()}
+          </div>
+          <div className="petti-stat-sub">Replenishment volume</div>
+        </div>
+
+        <div className="petti-stat-card petti-stat-card--outflow">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Outflow (Claims)</span>
+            <Badge variant="error">OUT</Badge>
+          </div>
+          <div className="petti-stat-value" style={{ color: 'var(--red)' }}>
+            -{summary.total_outflow.toLocaleString()}
+          </div>
+          <div className="petti-stat-sub">Disbursed petty cash</div>
+        </div>
+
+        <div className="petti-stat-card petti-stat-card--pending">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Pending Approval</span>
+            <Badge variant={summary.pending_count > 0 ? 'warning' : 'gray'}>{summary.pending_count}</Badge>
+          </div>
+          <div className="petti-stat-value">{summary.pending_count}</div>
+          <div className="petti-stat-sub">Awaiting finance sign-off</div>
+        </div>
+      </div>
+
       {/* Toolbar Filters */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <SingleSelectFilter label="Wallet" options={walletOptions} value={walletId} onChange={setWalletId} />
-        <SingleSelectFilter label="Type" options={typeOptions} value={type} onChange={setType} />
-        <SingleSelectFilter label="Status" options={statusOptions} value={status} onChange={setStatus} />
-        <DateRangePicker range={range} onChange={setRange} placeholder="Any date" />
-        <Input
-          value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search description…" style={{ maxWidth: 240, marginLeft: 'auto' }}
-        />
+      <div className="petti-transaction-toolbar">
+        <div className="petti-transaction-filters">
+          <SingleSelectFilter label="Wallet" options={walletOptions} value={walletId} onChange={setWalletId} />
+          <SingleSelectFilter label="Type" options={typeOptions} value={type} onChange={setType} />
+          <SingleSelectFilter label="Status" options={statusOptions} value={status} onChange={setStatus} />
+          <DateRangePicker range={range} onChange={setRange} placeholder="Any date" />
+        </div>
+        <div className="petti-toolbar-search">
+          <Icon name="search" size={15} />
+          <Input
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search description or reference…"
+          />
+        </div>
       </div>
 
       {viewMode === 'list' ? (
-        <SectionCard title="Transactions List" padded={false} collapsible={false}>
+        <SectionCard title="Transactions Ledger" padded={false} collapsible={false}>
           {loading ? (
             <SectionLoading />
           ) : rows.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No transactions match these filters.</div>
           ) : (
             <>
-              <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead><tr>{['Ref', 'Date', 'Type', 'Wallet', 'Description', 'Category', 'Amount', 'Status', 'By', 'Action'].map(h => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase' }}>{h}</th>
-                ))}</tr></thead>
-                <tbody>
-                  {rows.map(r => (
-                    <tr
-                      key={`${r.type}-${r.id}`}
-                      style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                      onClick={() => setSelectedTx(r)}
-                    >
-                      <td style={{ padding: '12px 16px', fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{r.ref || '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(r.occurred_at)}</td>
-                      <td style={{ padding: '12px 16px' }}><Badge variant={TYPE_VARIANT[r.type] || 'gray'}>{TYPE_LABEL[r.type] || r.type}</Badge></td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{walletsById[r.wallet_id]?.name || '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description || '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{r.category ? (CATEGORY_LABELS[r.category] || r.category) : '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 800, color: r.type === 'deposit' ? 'var(--green)' : r.type === 'withdrawal' ? 'var(--red)' : 'var(--ink)' }}>
-                        {r.type === 'deposit' ? '+' : r.type === 'withdrawal' ? '-' : ''}{Number(r.amount).toLocaleString()} {walletsById[r.wallet_id]?.currency || ''}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>{r.status && <Badge variant={STATUS_VARIANT[r.status] || 'gray'} style={{ textTransform: 'capitalize' }}>{r.status}</Badge>}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{r.actor_id ? (staffById[r.actor_id] || '—') : '—'}</td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                        <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); printVoucher(r); }}>
-                          Print <Icon name="printer" size={12} />
-                        </Button>
-                      </td>
+              <div className="petti-table-wrap">
+                <table className="petti-table">
+                  <thead>
+                    <tr>
+                      {['Ref', 'Date', 'Type', 'Wallet', 'Description', 'Category', 'Amount', 'Status', 'Processed By', 'Action'].map(h => (
+                        <th key={h}>{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table></div>
+                  </thead>
+                  <tbody>
+                    {rows.map(r => (
+                      <tr
+                        key={`${r.type}-${r.id}`}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setSelectedTx(r)}
+                      >
+                        <td style={{ fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{r.ref || '—'}</td>
+                        <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(r.occurred_at)}</td>
+                        <td><Badge variant={TYPE_VARIANT[r.type] || 'gray'}>{TYPE_LABEL[r.type] || r.type}</Badge></td>
+                        <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{walletsById[r.wallet_id]?.name || '—'}</td>
+                        <td style={{ color: 'var(--ink2)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description || '—'}</td>
+                        <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{r.category ? (CATEGORY_LABELS[r.category] || r.category) : '—'}</td>
+                        <td style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: r.type === 'deposit' ? 'var(--green)' : r.type === 'withdrawal' ? 'var(--red)' : 'var(--ink)' }}>
+                          {r.type === 'deposit' ? '+' : r.type === 'withdrawal' ? '−' : ''}{Number(r.amount).toLocaleString()} {walletsById[r.wallet_id]?.currency || ''}
+                        </td>
+                        <td>{r.status && <Badge variant={STATUS_VARIANT[r.status] || 'gray'} style={{ textTransform: 'capitalize' }}>{r.status}</Badge>}</td>
+                        <td>
+                          {r.actor_id ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <PersonAvatar userId={r.actor_id} name={staffById[r.actor_id] || ''} size={22} />
+                              <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{staffById[r.actor_id] || '—'}</span>
+                            </div>
+                          ) : <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>—</span>}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); printVoucher(r); }}>
+                            Print <Icon name="printer" size={12} />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               <PaginationBar page={page} pageSize={pageSize} total={total} onPageChange={setPage} itemLabel="transaction" />
             </>
           )}
         </SectionCard>
       ) : (
         /* Card Grid View Mode */
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 24 }}>
+        <div className="petti-wallets-grid">
           {loading ? (
             <SectionLoading />
           ) : rows.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No transactions found.</div>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', gridColumn: '1 / -1' }}>No transactions found.</div>
           ) : (
             rows.map(r => {
               const wall = walletsById[r.wallet_id];
@@ -290,8 +369,8 @@ export function PettiTransactions() {
                     <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{fmtDate(r.occurred_at)}</span>
                   </div>
 
-                  <div style={{ fontSize: 20, fontWeight: 900, fontFamily: 'var(--mono)', color: r.type === 'deposit' ? 'var(--green)' : r.type === 'withdrawal' ? 'var(--red)' : 'var(--ink)', marginBottom: 4 }}>
-                    {r.type === 'deposit' ? '+' : r.type === 'withdrawal' ? '-' : ''}{Number(r.amount).toLocaleString()} {wall?.currency || ''}
+                  <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'var(--mono)', color: r.type === 'deposit' ? 'var(--green)' : r.type === 'withdrawal' ? 'var(--red)' : 'var(--ink)', marginBottom: 4 }}>
+                    {r.type === 'deposit' ? '+' : r.type === 'withdrawal' ? '−' : ''}{Number(r.amount).toLocaleString()} {wall?.currency || ''}
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{wall?.name || 'Wallet'}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>{r.description || 'No description'}</div>
@@ -318,17 +397,21 @@ export function PettiTransactions() {
             </DialogHeader>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 10 }}>
-              <div style={{ padding: '16px', background: 'var(--navy)', color: '#fff', borderRadius: 'var(--r)', textAlign: 'center' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>{TYPE_LABEL[selectedTx.type] || selectedTx.type} Amount</div>
-                <div style={{ fontSize: 28, fontWeight: 900, fontFamily: 'var(--mono)', marginTop: 2 }}>
+              <div style={{ padding: '18px', background: 'var(--navy)', color: '#fff', borderRadius: 'var(--r-lg)', textAlign: 'center' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>
+                  {TYPE_LABEL[selectedTx.type] || selectedTx.type} Amount
+                </div>
+                <div style={{ fontSize: 30, fontWeight: 900, fontFamily: 'var(--mono)', marginTop: 4 }}>
                   {Number(selectedTx.amount).toLocaleString()} {walletsById[selectedTx.wallet_id]?.currency || ''}
                 </div>
-                <div style={{ fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'rgba(255,255,255,0.85)', marginTop: 8 }}>{selectedTx.ref || selectedTx.id}</div>
+                <div style={{ fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'rgba(255,255,255,0.85)', marginTop: 8 }}>
+                  Ref: {selectedTx.ref || selectedTx.id}
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Wallet</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Target Vault</div>
                   <div style={{ fontWeight: 700, color: 'var(--ink)', marginTop: 2 }}>{walletsById[selectedTx.wallet_id]?.name || '—'}</div>
                 </div>
                 <div>
@@ -341,14 +424,17 @@ export function PettiTransactions() {
                 </div>
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Processed By</div>
-                  <div style={{ fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>{selectedTx.actor_id ? (staffById[selectedTx.actor_id] || 'Staff') : 'Admin'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                    {selectedTx.actor_id && <PersonAvatar userId={selectedTx.actor_id} name={staffById[selectedTx.actor_id] || ''} size={20} />}
+                    <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{selectedTx.actor_id ? (staffById[selectedTx.actor_id] || 'Staff') : 'Admin'}</span>
+                  </div>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Description / Purpose</div>
                   <div style={{ fontWeight: 500, color: 'var(--ink)', marginTop: 2 }}>{selectedTx.description || '—'}</div>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Date &amp; Time</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Timestamp</div>
                   <div style={{ fontWeight: 500, color: 'var(--ink3)', marginTop: 2 }}>{new Date(selectedTx.occurred_at).toLocaleString()}</div>
                 </div>
               </div>

@@ -63,8 +63,8 @@ export function SmsCampaignDetail() {
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
         crumbs={['SMS', 'Campaigns', campaign.name]}
-        titlePlain={campaign.name.split(' ').slice(0, -1).join(' ') || 'Campaign'}
-        titleEm={campaign.name.split(' ').slice(-1)[0] || campaign.name}
+        titlePlain={campaign.name.includes(' ') ? campaign.name.split(' ').slice(0, -1).join(' ') : 'Campaign'}
+        titleEm={campaign.name.split(' ').slice(-1)[0]}
         subtitle={campaign.body}
         actions={
           <div style={{ display: 'flex', gap: 8 }}>

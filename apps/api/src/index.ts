@@ -138,7 +138,7 @@ import { emailMetaRoutes } from './routes/email-meta.routes.js';
 import { emailTemplatesRoutes } from './routes/email-templates.routes.js';
 import { commEventsRoutes, marketplaceEmailRoutes } from './routes/comm-events.routes.js';
 import { syncCommEventRegistry } from './config/comm-event-registry.js';
-import { seedMarketplaceTemplates } from './services/marketplace-seed.service.js';
+import { installDefaultMarketplaceTemplates, seedMarketplaceTemplates } from './services/marketplace-seed.service.js';
 import { complyRoutes } from './routes/comply.routes.js';
 import { sealRoutes } from './routes/seal.routes.js';
 import { sealDocumentRoutes } from './routes/seal-documents.routes.js';
@@ -238,6 +238,9 @@ import { smsRoutes, smsWebhookRoutes } from './routes/sms.routes.js';
 import { setupGuideRoutes } from './routes/setup-guide.routes.js';
 import { developerRoutes } from './routes/developer.routes.js';
 import { projectOsRoutes } from './routes/project-os.routes.js';
+import { dsrRoutes } from './routes/data-subject-requests.routes.js';
+import { consentRoutes } from './routes/consent.routes.js';
+import { privacyAdminRoutes } from './routes/privacy-admin.routes.js';
 import { isDriverError, driverErrorResponse } from './utils/db-errors.js';
 
 const server = fastify({
@@ -646,6 +649,7 @@ export async function registerApp() {
     await server.register(emailTemplatesRoutes, { prefix: '/v1/email-templates' });
     try { await syncCommEventRegistry(); } catch (e) { console.error('[comm-events] syncCommEventRegistry failed (migration 513 not applied?):', e); }
     try { await seedMarketplaceTemplates(); } catch (e) { console.error('[marketplace-seed] seedMarketplaceTemplates failed:', e); }
+    try { await installDefaultMarketplaceTemplates(); } catch (e) { console.error('[marketplace-seed] installDefaultMarketplaceTemplates failed:', e); }
     await server.register(commEventsRoutes, { prefix: '/v1/comm' });
     await server.register(marketplaceEmailRoutes, { prefix: '/v1/marketplace/email-templates' });
     await server.register(complyRoutes, { prefix: '/v1/comply' });
@@ -696,6 +700,9 @@ export async function registerApp() {
     await server.register(supportRoutes, { prefix: '/v1/support' });
     await server.register(platformRoutes, { prefix: '/v1/platform' });
     await server.register(privacyPolicyRoutes, { prefix: '/v1/privacy-policy' });
+    await server.register(dsrRoutes, { prefix: '/v1' });
+    await server.register(consentRoutes, { prefix: '/v1' });
+    await server.register(privacyAdminRoutes, { prefix: '/v1' });
     await server.register(entitlementsRoutes, { prefix: '/v1/entitlements' });
     await server.register(relatedRecordsRoutes, { prefix: '/v1/related' });
     await server.register(apiKeysRoutes, { prefix: '/v1/api-keys' });

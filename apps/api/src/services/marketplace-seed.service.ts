@@ -5,6 +5,9 @@
  */
 
 import { EMAIL_TEMPLATE_DEFAULTS } from '../config/email-template-defaults.js';
+import { APP_EMAIL_TEMPLATE_CATALOG } from '../config/app-email-template-catalog.js';
+
+const CATALOG_META = new Map(APP_EMAIL_TEMPLATE_CATALOG.map(entry => [entry.key, entry]));
 
 const TEMPLATE_META: Record<string, { title: string; description: string; category: string; application: string; tags: string[] }> = {
   'security.email.verify':       { title: 'Verify Email Address',      description: 'Asks the user to confirm their email by clicking a verification link.',           category: 'auth',     application: 'Ondi',     tags: ['auth','account','verification'] },
@@ -74,13 +77,9 @@ export async function seedMarketplaceTemplates(): Promise<void> {
   try {
     const { dbPlatform } = await import('../db/client.js');
 
-    // Fetch existing slugs so we can skip already-seeded rows
-    const existing = await dbPlatform
-      .selectFrom('marketplace_email_templates')
-      .select('slug')
-      .where('is_hudumika_official', '=', true)
-      .execute();
-    const existingSlugs = new Set(existing.map(r => r.slug));
+    const existing = await dbPlatform.selectFrom('marketplace_email_templates')
+      .select('slug').where('is_hudumika_official', '=', true).execute();
+    const existingSlugs = new Set(existing.map(row => row.slug));
 
     const toInsert: Array<{
       slug: string; title: string; description: string; category: string; application: string;
@@ -92,15 +91,23 @@ export async function seedMarketplaceTemplates(): Promise<void> {
 
     for (const [key, def] of Object.entries(EMAIL_TEMPLATE_DEFAULTS)) {
       const slug = `hudumika-${key.replace(/\./g, '-')}`;
+      // A master may have been customized by a SuperAdmin. Startup seeding
+      // only creates missing masters and must never restore code defaults.
       if (existingSlugs.has(slug)) continue;
-
-      const meta = TEMPLATE_META[key] ?? {
+      const catalogMeta = CATALOG_META.get(key);
+      const meta = TEMPLATE_META[key] ?? (catalogMeta ? {
+        title: catalogMeta.title,
+        description: catalogMeta.description,
+        category: String(catalogMeta.category),
+        application: catalogMeta.application,
+        tags: catalogMeta.tags,
+      } : {
         title: key.split('.').pop()!.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
         description: `System email template for ${key}.`,
         category: 'general',
         application: 'Hudumika',
         tags: [],
-      };
+      });
 
       const bodyHtml = wrapForMarketplace(def.subject, def.body, meta.application);
       const availableVars = extractVars(def.subject + def.body);
@@ -134,10 +141,56 @@ export async function seedMarketplaceTemplates(): Promise<void> {
     }
 
     if (toInsert.length > 0) {
-      await dbPlatform.insertInto('marketplace_email_templates').values(toInsert).execute();
-      console.log(`[marketplace-seed] Seeded ${toInsert.length} official email templates`);
+      await dbPlatform.insertInto('marketplace_email_templates').values(toInsert)
+        .onConflict(conflict => conflict.column('slug').doNothing()).execute();
+      console.log(`[marketplace-seed] Seeded ${toInsert.length} missing official email templates`);
     }
   } catch (err) {
     console.error('[marketplace-seed] Failed to seed marketplace templates:', err);
   }
+}
+
+/**
+ * Installs each official default once per workspace. Existing tenant copies
+ * are never overwritten: after installation they belong to the tenant and
+ * may be edited safely while retaining Marketplace lineage.
+ */
+export async function installDefaultMarketplaceTemplates(): Promise<void> {
+  const { dbPlatform, withTenant } = await import('../db/client.js');
+  const [tenants, templates] = await Promise.all([
+    dbPlatform.selectFrom('tenants').select('id').where('active', '=', true).execute(),
+    dbPlatform.selectFrom('marketplace_email_templates').selectAll()
+      .where('is_hudumika_official', '=', true).where('status', '=', 'published').execute(),
+  ]);
+
+  for (const tenant of tenants) {
+    await withTenant(tenant.id, async trx => {
+      for (const source of templates) {
+        const templateKey = source.event_key ?? `marketplace.${source.slug.replace(/[^a-z0-9_]/gi, '_')}`;
+        await trx.insertInto('email_templates').values({
+          tenant_id: tenant.id,
+          template_key: templateKey,
+          category: source.category,
+          subject: source.subject,
+          preheader: source.preheader,
+          body_html: source.body_html,
+          body_plain: source.body_plain,
+          locale: source.locale,
+          status: 'active',
+          event_key: source.event_key,
+          application: source.application,
+          updated_by: null,
+          updated_at: new Date(),
+        }).onConflict(conflict => conflict.columns(['tenant_id', 'template_key', 'locale']).doNothing()).execute();
+
+        await trx.insertInto('tenant_marketplace_imports').values({
+          tenant_id: tenant.id,
+          marketplace_template_id: source.id,
+          local_template_key: templateKey,
+          source_version: source.version,
+        }).onConflict(conflict => conflict.columns(['tenant_id', 'marketplace_template_id']).doNothing()).execute();
+      }
+    });
+  }
+  console.log(`[marketplace-seed] Installed ${templates.length} defaults across ${tenants.length} active workspaces`);
 }

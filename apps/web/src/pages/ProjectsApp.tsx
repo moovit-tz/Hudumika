@@ -23,6 +23,7 @@ import { MentionInput, type MentionUser } from '../components/MentionInput.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuCheckboxItem } from '../components/ui/dropdown-menu.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
+import './OperationalDashboards.css';
 
 // Project OS Enterprise Modules
 import { ProjectCommandCenter } from './projects/ProjectCommandCenter.js';
@@ -684,7 +685,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
   // ═════════════════════════════════════════════════════════════════════
   if (!selectedId || !selected) {
     return (
-      <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
+      <div className="ops-dashboard" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
         {/* Top OS App Navigation Bar */}
         <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
@@ -816,8 +817,31 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
 
         {appViewMode === 'projects_list' && (
           <div style={{ padding: isMobile ? 16 : 32 }}>
+            <div className="ops-dashboard-summary">
+              <div className="ops-dashboard-summary__item">
+                <div className="ops-dashboard-summary__label">Active projects</div>
+                <div className="ops-dashboard-summary__value">{(projects || []).filter(p => p.status === 'in_progress').length}</div>
+                <div className="ops-dashboard-summary__meta">Currently in progress</div>
+              </div>
+              <div className="ops-dashboard-summary__item">
+                <div className="ops-dashboard-summary__label">Completed projects</div>
+                <div className="ops-dashboard-summary__value">{listCounts.finished || 0}</div>
+                <div className="ops-dashboard-summary__meta">Finished across the workspace</div>
+              </div>
+              <div className="ops-dashboard-summary__item">
+                <div className="ops-dashboard-summary__label">At risk</div>
+                <div className="ops-dashboard-summary__value">{(projects || []).filter(p => p.health_status === 'at_risk' || p.health_status === 'critical').length}</div>
+                <div className="ops-dashboard-summary__meta">Projects needing attention</div>
+              </div>
+              <div className="ops-dashboard-summary__item">
+                <div className="ops-dashboard-summary__label">Overall progress</div>
+                <div className="ops-dashboard-summary__value">{projects?.length ? Math.round(projects.reduce((sum, p) => sum + (p.progress_pct || (p.task_count > 0 ? (p.task_done_count / p.task_count) * 100 : 0)), 0) / projects.length) : 0}%</div>
+                <div className="ops-dashboard-summary__meta">Average portfolio completion</div>
+              </div>
+            </div>
+
             {/* Status Filter Bar */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+            <div className="ops-dashboard-toolbar" style={{ flexWrap: 'wrap', marginBottom: 20 }}>
               <button
                 type="button"
                 onClick={() => setListStatusFilter('all')}
@@ -865,7 +889,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                   : 'No projects registered in the OS yet. Click "New Enterprise Project" to create your first portfolio project.'}
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18 }}>
+              <div className="ops-dashboard-grid" style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18 }}>
                 {filteredProjects.map((p) => {
                   const statusMeta = PROJECT_STATUS_META[p.status] || PROJECT_STATUS_META.not_started;
                   const healthMeta = HEALTH_STATUS_META[p.health_status || 'on_track'] || HEALTH_STATUS_META.on_track;
@@ -884,7 +908,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 12,
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                        boxShadow: 'var(--card-shadow)',
                         transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                       }}
                     >

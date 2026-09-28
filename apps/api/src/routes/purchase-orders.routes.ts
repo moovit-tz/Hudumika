@@ -5,6 +5,7 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { getNextDocNumber } from '../lib/doc-numbering.js';
 import { isTaxCodeUserError, resolveTaxCode } from '../services/tax-code.service.js';
+import { InventoryService } from '../services/inventory.service.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 
@@ -20,6 +21,8 @@ const poLineSchema = z.object({
   tax_rate: z.number().optional(),
   tax_code_id: z.string().optional(),
   received_qty: z.number().optional(),
+  item_id: z.string().uuid().optional().nullable(),
+  item_uom: z.string().max(20).optional().nullable(),
 }).passthrough(); // buildPoLines does its own per-line validation — this only guards the shape isn't a non-object.
 const poCreateSchema = z.object({
   lines: z.array(poLineSchema).optional(),
@@ -90,6 +93,8 @@ async function buildPoLines(
       line_total: lineSub + lineTax,
       received_qty: Number(it.received_qty) || 0,
       sort_order: i,
+      item_id: it.item_id ?? null,
+      item_uom: it.item_uom ?? null,
     };
   });
   return { ok: true as const, lines, subtotal, tax };
@@ -274,6 +279,128 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // POST /v1/purchase-orders/:id/receive
+  // Confirm physical receipt of goods against a PO. For each submitted line:
+  //   1. Updates purchase_order_lines.received_qty by the delta
+  //   2. If the line has an item_id, posts an inventory movement
+  //      (DR 1300 Inventory / CR 2050 GRNI) via InventoryService
+  //   3. Re-derives PO status: fully-received → RECEIVED, partially → PARTIAL
+  //
+  // A line without item_id (services, freight, expenses) is tracked for
+  // quantity only — no inventory movement is posted.
+  fastify.post('/:id/receive', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { lines } = z.object({
+      lines: z.array(z.object({
+        line_id: z.string().uuid(),
+        received_qty: z.number().positive(),
+        location_id: z.string().uuid(),
+        unit_cost: z.number().nonnegative().optional(),
+      })).min(1),
+    }).parse(request.body);
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const po = await trx
+        .selectFrom('purchase_orders')
+        .selectAll()
+        .where('id', '=', id)
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+
+      if (!po) return reply.status(404).send({ error: 'Purchase order not found' });
+      if (po.status === 'CANCELLED') return reply.status(400).send({ error: 'Cannot receive goods against a cancelled purchase order.' });
+
+      const poLines = await trx
+        .selectFrom('purchase_order_lines')
+        .selectAll()
+        .where('po_id', '=', id)
+        .execute();
+
+      const lineMap = new Map(poLines.map(l => [l.id, l]));
+      const errors: string[] = [];
+      const movements: Array<{ lineId: string; itemId: string; qty: number; locationId: string; unitCost: number; uom: string; description: string }> = [];
+
+      for (const input of lines) {
+        const line = lineMap.get(input.line_id);
+        if (!line) { errors.push(`Line ${input.line_id} not found on this PO.`); continue; }
+
+        const alreadyReceived = Number(line.received_qty);
+        const ordered = Number(line.qty);
+        const newTotal = alreadyReceived + input.received_qty;
+        if (newTotal > ordered + 0.0001) {
+          errors.push(`Line "${line.description}": receiving ${input.received_qty} would exceed ordered qty of ${ordered} (already received: ${alreadyReceived}).`);
+          continue;
+        }
+
+        if (line.item_id) {
+          movements.push({
+            lineId: line.id,
+            itemId: line.item_id,
+            qty: input.received_qty,
+            locationId: input.location_id,
+            unitCost: input.unit_cost ?? Number(line.unit_price),
+            uom: line.item_uom || 'each',
+            description: line.description,
+          });
+        }
+      }
+
+      if (errors.length > 0) {
+        return reply.status(400).send({ error: errors.join(' ') });
+      }
+
+      // Post inventory movements first — if any throw (unknown UOM,
+      // missing item, etc.) the whole transaction rolls back before
+      // received_qty is updated, keeping the PO and stock in sync.
+      for (const m of movements) {
+        await InventoryService.recordMovement(trx, user.tenant_id, {
+          actorId: user.sub,
+          actorType: 'user',
+          movementType: 'receipt',
+          itemId: m.itemId,
+          toLocationId: m.locationId,
+          enteredQty: m.qty,
+          enteredUom: m.uom,
+          unitCost: m.unitCost,
+          reference: `PO-${po.po_number}`,
+          reasonCode: 'po_receipt',
+        });
+      }
+
+      // Update received_qty on each submitted line
+      for (const input of lines) {
+        const line = lineMap.get(input.line_id)!;
+        await trx
+          .updateTable('purchase_order_lines')
+          .set({ received_qty: Number(line.received_qty) + input.received_qty })
+          .where('id', '=', input.line_id)
+          .where('po_id', '=', id)
+          .execute();
+      }
+
+      // Re-derive PO status from updated line quantities
+      const updatedLines = await trx
+        .selectFrom('purchase_order_lines')
+        .select(['qty', 'received_qty'])
+        .where('po_id', '=', id)
+        .execute();
+
+      const allReceived = updatedLines.every(l => Number(l.received_qty) >= Number(l.qty) - 0.0001);
+      const anyReceived = updatedLines.some(l => Number(l.received_qty) > 0);
+      const newStatus = allReceived ? 'RECEIVED' : anyReceived ? 'PARTIAL' : po.status;
+
+      await trx
+        .updateTable('purchase_orders')
+        .set({ status: newStatus, updated_at: new Date() })
+        .where('id', '=', id)
+        .where('tenant_id', '=', user.tenant_id)
+        .execute();
+
+      return { success: true, status: newStatus, movements_posted: movements.length };
+    });
+  });
+
   // DELETE /v1/purchase-orders/:id
   fastify.delete('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request: any, reply) => {
     const user = request.user;
@@ -288,7 +415,7 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
 
       if (!existing) return reply.status(404).send({ error: 'Purchase order not found' });
 
-      await trx.deleteFrom('purchase_orders').where('id', '=', id).execute();
+      await trx.deleteFrom('purchase_orders').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { success: true };
     });
   });

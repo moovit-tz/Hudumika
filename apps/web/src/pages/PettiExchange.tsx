@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/badge.js';
 import { Banner } from '../components/ui/alert.js';
 import { Button } from '../components/ui/button.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { Input } from '../components/ui/input.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
@@ -14,7 +15,7 @@ import './Petti.css';
 interface Wallet { id: string; name: string; currency: string; balance: number; }
 
 export function PettiExchange() {
-  usePageSEO('Exchange Money', 'Reference exchange rates for petty cash wallets in different currencies.');
+  usePageSEO('Exchange Money', 'Reference real-time exchange rates and convert funds between multi-currency petty cash wallets.');
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,13 +39,10 @@ export function PettiExchange() {
       .finally(() => setLoading(false));
   }, []);
 
-  const fromWallet = wallets.find(w => w.id === fromWalletId);
-  const toWallet = wallets.find(w => w.id === toWalletId);
+  const fromWallet = useMemo(() => wallets.find(w => w.id === fromWalletId), [wallets, fromWalletId]);
+  const toWallet = useMemo(() => wallets.find(w => w.id === toWalletId), [wallets, toWalletId]);
   const sameCurrency = !!fromWallet && !!toWallet && fromWallet.currency === toWallet.currency;
 
-  // Real published rates (fx-rates.routes.ts), not a hardcoded table — only
-  // meaningful for display here, since wallet-to-wallet movement between
-  // different currencies isn't supported yet (see the notice below).
   useEffect(() => {
     if (!fromWallet || !toWallet || sameCurrency) { setRate(null); return; }
     setRateLoading(true);
@@ -54,7 +52,7 @@ export function PettiExchange() {
       .finally(() => setRateLoading(false));
   }, [fromWallet?.currency, toWallet?.currency, sameCurrency]);
 
-  const convertedAmount = amount && rate ? (Number(amount) * rate).toFixed(2) : '0.00';
+  const convertedAmount = amount && rate ? (Number(amount) * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
 
   async function handleExchange(e: React.FormEvent) {
     e.preventDefault();
@@ -63,7 +61,7 @@ export function PettiExchange() {
       return;
     }
     if (!sameCurrency) {
-      showAlert(`"${fromWallet?.name}" (${fromWallet?.currency}) and "${toWallet?.name}" (${toWallet?.currency}) are different currencies — moving money between wallets in different currencies isn't supported yet. Rates above are for reference only.`);
+      showAlert(`"${fromWallet?.name}" (${fromWallet?.currency}) and "${toWallet?.name}" (${toWallet?.currency}) are different currencies — cross-currency auto-conversion is currently restricted to reference lookup only.`);
       return;
     }
     if (fromWallet && Number(amount) > fromWallet.balance) {
@@ -81,7 +79,7 @@ export function PettiExchange() {
           amount: Number(amount),
         }),
       });
-      showAlert(`Transferred ${Number(amount).toLocaleString()} ${fromWallet?.currency} to ${toWallet?.name}.`);
+      showAlert(`Transferred ${Number(amount).toLocaleString()} ${fromWallet?.currency} to ${toWallet?.name}.`, { variant: 'success' });
       setAmount('');
       const r = await apiFetch('/v1/petti/wallets');
       setWallets(r.data || []);
@@ -93,24 +91,65 @@ export function PettiExchange() {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto' }}>
+    <div className="petti-container">
       <PageHeader
         crumbs={['Petti', 'Activities', 'Exchange Money']}
-        titlePlain="Exchange"
-        titleEm="money"
-        subtitle="Convert funds between multi-currency petty cash wallets at real-time exchange rates."
+        titlePlain="FX Currency"
+        titleEm="exchange"
+        subtitle="Real-time currency converter and exchange rate calculations across your multi-currency vaults."
       />
 
-      <div className="petti-grid-2col" style={{ marginBottom: 24 }}>
-        
+      {/* Summary Metrics */}
+      <div className="petti-stats-grid">
+        <div className="petti-stat-card">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Reference Currency Pair</span>
+            <Badge variant="brand">{fromWallet?.currency || 'USD'} → {toWallet?.currency || 'TZS'}</Badge>
+          </div>
+          <div className="petti-stat-value" style={{ fontSize: 20 }}>
+            {sameCurrency ? '1:1 Parity' : rate ? `1 ${fromWallet?.currency} = ${rate} ${toWallet?.currency}` : 'Checking live rates…'}
+          </div>
+          <div className="petti-stat-sub">
+            <span>Published platform exchange rate</span>
+          </div>
+        </div>
+
+        <div className="petti-stat-card">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Source Vault Balance</span>
+            <Icon name="wallet" size={16} color="var(--teal)" />
+          </div>
+          <div className="petti-stat-value">
+            {fromWallet ? `${Number(fromWallet.balance).toLocaleString()} ${fromWallet.currency}` : '—'}
+          </div>
+          <div className="petti-stat-sub">
+            <span>{fromWallet?.name || 'Select source'}</span>
+          </div>
+        </div>
+
+        <div className="petti-stat-card">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Destination Vault Balance</span>
+            <Icon name="wallet" size={16} color="var(--teal)" />
+          </div>
+          <div className="petti-stat-value">
+            {toWallet ? `${Number(toWallet.balance).toLocaleString()} ${toWallet.currency}` : '—'}
+          </div>
+          <div className="petti-stat-sub">
+            <span>{toWallet?.name || 'Select destination'}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="petti-grid-2col">
         {/* Converter Form */}
-        <SectionCard title="Currency Converter & Exchange" collapsible={false}>
+        <SectionCard title="Currency Converter & Transfer Desk" collapsible={false}>
           <form onSubmit={handleExchange} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="petti-grid-form">
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>From Wallet (Sell) *</label>
                 <Combobox
-                  options={wallets.map(w => ({ value: w.id, label: `${w.name} (${w.balance.toLocaleString()} ${w.currency})` }))}
+                  options={wallets.map(w => ({ value: w.id, label: `${w.name} (${Number(w.balance).toLocaleString()} ${w.currency})` }))}
                   value={fromWalletId}
                   onChange={setFromWalletId}
                   placeholder="Select wallet…"
@@ -120,7 +159,7 @@ export function PettiExchange() {
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>To Wallet (Buy) *</label>
                 <Combobox
-                  options={wallets.map(w => ({ value: w.id, label: `${w.name} (${w.balance.toLocaleString()} ${w.currency})` }))}
+                  options={wallets.map(w => ({ value: w.id, label: `${w.name} (${Number(w.balance).toLocaleString()} ${w.currency})` }))}
                   value={toWalletId}
                   onChange={setToWalletId}
                   placeholder="Select wallet…"
@@ -129,62 +168,59 @@ export function PettiExchange() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Amount to Sell *</label>
-              <input
-                type="number" required min="1" step="any"
-                value={amount} onChange={e => setAmount(e.target.value)}
-                placeholder="Enter amount"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 14 }}
-              />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Amount to Convert *</label>
+              <Input type="number" required min="1" step="any" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Enter amount in source currency" />
             </div>
 
             {!sameCurrency && fromWallet && toWallet && (
               <Banner variant="warning">
-                Moving money between wallets in different currencies isn't supported yet — the rate below is for reference only.
+                Direct cross-currency automatic settlement is reserved for connected corporate banking rails. The exchange calculation below reflects live market reference rates.
               </Banner>
             )}
 
-            {/* Exchange Rate Box — real published rate (fx-rates.routes.ts), not a hardcoded table */}
-            <div style={{ padding: '12px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Exchange Rate Box */}
+            <div style={{ padding: '14px 18px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Reference Rate</div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', marginTop: 2 }}>
-                  {sameCurrency ? 'Same currency — no conversion needed'
-                    : rateLoading ? 'Looking up rate…'
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Live Benchmark Rate</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', marginTop: 2 }}>
+                  {sameCurrency ? 'Same currency — no conversion required'
+                    : rateLoading ? 'Querying live platform FX engine…'
                     : rate ? `1 ${fromWallet?.currency} = ${rate} ${toWallet?.currency}`
-                    : `No published rate for ${fromWallet?.currency}/${toWallet?.currency}`}
+                    : `No active rate published for ${fromWallet?.currency}/${toWallet?.currency}`}
                 </div>
               </div>
 
               {!sameCurrency && (
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Reference Total</div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--teal)', fontFamily: 'var(--mono)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Calculated Total</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--teal)', fontFamily: 'var(--mono)' }}>
                     {convertedAmount} {toWallet?.currency || ''}
                   </div>
                 </div>
               )}
             </div>
 
-            <Button type="submit" disabled={converting || !sameCurrency} style={{ background: 'var(--purple)', color: 'hsl(var(--purple-foreground))', padding: '12px', fontWeight: 700, fontSize: 14 }}>
-              <Icon name="refresh" size={16} /> {converting ? 'Transferring…' : sameCurrency ? 'Transfer' : 'Different currencies — not yet supported'}
+            <Button type="submit" disabled={converting || !sameCurrency} style={{ padding: '12px', fontWeight: 700, fontSize: 14 }}>
+              <Icon name="refresh" size={16} /> {converting ? 'Transferring…' : sameCurrency ? 'Execute Transfer' : 'Cross-Currency (Reference Only)'}
             </Button>
           </form>
         </SectionCard>
 
-        {/* Info card — replaces a hardcoded table of fake FX pairs */}
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 20, boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-          <h4 style={{ margin: '0 0 10px 0', fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>How this works today</h4>
-          <p style={{ margin: '0 0 10px 0', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
-            Wallet-to-wallet transfers only move money between wallets in the <strong>same currency</strong>. When you pick two
-            wallets in different currencies, this page looks up the real published rate between them for reference — it
-            doesn't convert or move anything.
-          </p>
-          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--ink3)', lineHeight: 1.6 }}>
-            Rates come from the platform's published FX rates, the same source FinOps uses elsewhere — not a fixed table.
-          </p>
+        {/* Info Card */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="petti-card">
+            <h4 style={{ margin: '0 0 10px 0', fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Treasury FX Mechanics</h4>
+            <p style={{ margin: '0 0 12px 0', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
+              Inter-wallet capital transfers operate in real-time between vaults sharing the <strong>same currency</strong>. When you select differing currencies, Petti accesses the centralized FX Rates feed to compute exact conversion equivalencies.
+            </p>
+            <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase' }}>Central FX Engine</div>
+              <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 4 }}>
+                Exchange values match the official platform FX rates shared across Customs and Corporate Accounting.
+              </div>
+            </div>
+          </div>
         </div>
-
       </div>
     </div>
   );

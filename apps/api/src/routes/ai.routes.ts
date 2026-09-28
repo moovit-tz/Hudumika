@@ -481,4 +481,85 @@ Limit to at most 6 steps.`;
       return reply.status(500).send({ error: e.message });
     }
   });
+
+  // ── Workflow Automations (persistent backend storage) ────────────────────
+  // Migration 518 adds workflow_automations. Previously the builder stored
+  // everything in localStorage — clearing the browser permanently destroyed
+  // all workflows. These routes back the builder with real persistence.
+
+  fastify.get('/automations', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('workflow_automations')
+        .select(['id', 'name', 'nodes', 'edges', 'is_active', 'created_at', 'updated_at'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .orderBy('created_at', 'asc')
+        .execute();
+      return { automations: rows };
+    });
+  });
+
+  fastify.post('/automations', async (request: any, reply) => {
+    const user = request.user;
+    const body = z.object({
+      name: z.string().max(200).default('Automation'),
+      nodes: z.array(z.any()).default([]),
+      edges: z.array(z.any()).default([]),
+    }).parse(request.body);
+    const row = await withTenant(user.tenant_id, async (trx) =>
+      trx.insertInto('workflow_automations').values({
+        tenant_id: user.tenant_id,
+        user_id: user.sub,
+        name: body.name,
+        nodes: JSON.stringify(body.nodes),
+        edges: JSON.stringify(body.edges),
+      }).returningAll().executeTakeFirstOrThrow()
+    );
+    return reply.status(201).send(row);
+  });
+
+  fastify.patch('/automations/:id', async (request: any, reply) => {
+    const user = request.user;
+    if (!isUuid(request.params.id)) return reply.status(404).send({ error: 'Automation not found' });
+    const body = z.object({
+      name: z.string().max(200).optional(),
+      nodes: z.array(z.any()).optional(),
+      edges: z.array(z.any()).optional(),
+      is_active: z.boolean().optional(),
+    }).parse(request.body);
+    const updates: Record<string, unknown> = { updated_at: new Date() };
+    if (body.name !== undefined) updates.name = body.name;
+    if (body.nodes !== undefined) updates.nodes = JSON.stringify(body.nodes);
+    if (body.edges !== undefined) updates.edges = JSON.stringify(body.edges);
+    if (body.is_active !== undefined) updates.is_active = body.is_active;
+    const row = await withTenant(user.tenant_id, async (trx) => {
+      await trx.updateTable('workflow_automations')
+        .set(updates)
+        .where('id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .execute();
+      return trx.selectFrom('workflow_automations').selectAll()
+        .where('id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+    });
+    if (!row) return reply.status(404).send({ error: 'Automation not found' });
+    return row;
+  });
+
+  fastify.delete('/automations/:id', async (request: any, reply) => {
+    const user = request.user;
+    if (!isUuid(request.params.id)) return reply.status(404).send({ error: 'Automation not found' });
+    const deleted = await withTenant(user.tenant_id, trx =>
+      trx.deleteFrom('workflow_automations')
+        .where('id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .executeTakeFirst()
+    );
+    if (!Number(deleted.numDeletedRows)) return reply.status(404).send({ error: 'Automation not found' });
+    return reply.status(204).send();
+  });
 }

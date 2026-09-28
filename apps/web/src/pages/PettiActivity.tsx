@@ -6,16 +6,19 @@ import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { DateRangePicker } from '../components/ui/date-picker.js';
 import { PaginationBar } from '../components/PaginationBar.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
+import { usePageSEO } from '../hooks/usePageSEO.js';
 import type { DateRange } from 'react-day-picker';
+import './Petti.css';
 
 interface Wallet { id: string; name: string; currency: string; }
 interface StaffMember { id: string; name: string; }
 interface ActivityRow { id: string; action: string; walletId: string; amount: number; actorId: string | null; at: string; ref: string | null; }
 
 const ACTION_LABEL: Record<string, string> = {
-  deposit_recorded: 'Deposit recorded', withdrawal_requested: 'Withdrawal requested',
-  withdrawal_approved: 'Approved', withdrawal_rejected: 'Rejected', withdrawal_disbursed: 'Disbursed',
+  deposit_recorded: 'Deposit Recorded', withdrawal_requested: 'Withdrawal Requested',
+  withdrawal_approved: 'Approved by Dept', withdrawal_rejected: 'Rejected', withdrawal_disbursed: 'Disbursed by Finance',
 };
 const ACTION_VARIANT: Record<string, 'gray' | 'success' | 'warning' | 'error' | 'info'> = {
   deposit_recorded: 'success', withdrawal_requested: 'warning',
@@ -25,6 +28,7 @@ const ACTION_VARIANT: Record<string, 'gray' | 'success' | 'warning' | 'error' | 
 function fmtDateTime(s: string) { return new Date(s).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
 
 export function PettiActivity() {
+  usePageSEO('Activity Logs', 'Complete audit trail of petty cash operations, approvals, rejections, and disbursements.');
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [rows, setRows] = useState<ActivityRow[]>([]);
@@ -65,45 +69,93 @@ export function PettiActivity() {
   const walletOptions = useMemo(() => wallets.map(w => ({ value: w.id, label: w.name })), [wallets]);
   const actorOptions = useMemo(() => staff.map(s => ({ value: s.id, label: s.name })), [staff]);
 
+  const depositCount = useMemo(() => rows.filter(r => r.action === 'deposit_recorded').length, [rows]);
+  const disburseCount = useMemo(() => rows.filter(r => r.action === 'withdrawal_disbursed').length, [rows]);
+
   return (
-    <div style={{ flex: 1, overflowY: 'auto' }}>
+    <div className="petti-container">
       <PageHeader
         crumbs={['Petti', 'Activity']}
-        titlePlain="Activity"
-        titleEm="log"
-        subtitle="Who requested, approved, rejected, disbursed or deposited — every step, every wallet."
+        titlePlain="Audit & Activity"
+        titleEm="logs"
+        subtitle="Chronological audit timeline of every deposit, approval, rejection, and disbursement across all wallets."
       />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+      {/* Summary Metrics */}
+      <div className="petti-stats-grid">
+        <div className="petti-stat-card">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Total Logged Events</span>
+            <Icon name="clock" size={16} color="var(--teal)" />
+          </div>
+          <div className="petti-stat-value">{total}</div>
+          <div className="petti-stat-sub">
+            <span>Audit trail entries</span>
+          </div>
+        </div>
+
+        <div className="petti-stat-card">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Deposits Logged</span>
+            <Badge variant="success">INFLOW</Badge>
+          </div>
+          <div className="petti-stat-value" style={{ color: 'var(--green)' }}>{depositCount}</div>
+          <div className="petti-stat-sub">
+            <span>Top-up records</span>
+          </div>
+        </div>
+
+        <div className="petti-stat-card">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Disbursements Executed</span>
+            <Badge variant="brand">PAID</Badge>
+          </div>
+          <div className="petti-stat-value">{disburseCount}</div>
+          <div className="petti-stat-sub">
+            <span>Approved payouts</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Toolbar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <SingleSelectFilter label="Wallet" options={walletOptions} value={walletId} onChange={setWalletId} />
-        <SingleSelectFilter label="By" options={actorOptions} value={actorId} onChange={setActorId} />
+        <SingleSelectFilter label="Processed By" options={actorOptions} value={actorId} onChange={setActorId} />
         <DateRangePicker range={range} onChange={setRange} placeholder="Any date" />
       </div>
 
-      <SectionCard title="Activity" padded={false} collapsible={false}>
+      <SectionCard title="Chronological Activity Ledger" padded={false} collapsible={false}>
         {loading ? (
           <SectionLoading />
         ) : rows.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No activity matches these filters.</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No activity entries match these filters.</div>
         ) : (
           <>
-            <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr>{['Ref', 'Date & time', 'Action', 'Wallet', 'Amount', 'By'].map(h => (
-                <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-              ))}</tr></thead>
-              <tbody>
-                {rows.map(r => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 16px', fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{r.ref || '—'}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDateTime(r.at)}</td>
-                    <td style={{ padding: '12px 16px' }}><Badge variant={ACTION_VARIANT[r.action] || 'gray'}>{ACTION_LABEL[r.action] || r.action}</Badge></td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink)' }}>{walletsById[r.walletId]?.name || '—'}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>{r.amount.toLocaleString()} {walletsById[r.walletId]?.currency || ''}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{r.actorId ? (staffById[r.actorId] || '—') : '—'}</td>
+            <div className="petti-table-wrap">
+              <table className="petti-table">
+                <thead>
+                  <tr>
+                    {['Ref', 'Date & Time', 'Action Event', 'Target Wallet', 'Amount', 'Actor'].map(h => (
+                      <th key={h}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table></div>
+                </thead>
+                <tbody>
+                  {rows.map(r => (
+                    <tr key={r.id}>
+                      <td style={{ fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{r.ref || '—'}</td>
+                      <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmtDateTime(r.at)}</td>
+                      <td><Badge variant={ACTION_VARIANT[r.action] || 'gray'}>{ACTION_LABEL[r.action] || r.action}</Badge></td>
+                      <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{walletsById[r.walletId]?.name || '—'}</td>
+                      <td style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: 'var(--navy)' }}>
+                        {r.amount.toLocaleString()} {walletsById[r.walletId]?.currency || ''}
+                      </td>
+                      <td style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{r.actorId ? (staffById[r.actorId] || '—') : 'System Engine'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <PaginationBar page={page} pageSize={pageSize} total={total} onPageChange={setPage} itemLabel="event" />
           </>
         )}

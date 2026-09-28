@@ -122,7 +122,10 @@ export function LauncherAppSvg({ id, color, logoUrl, size = 52 }: { id: string; 
     );
   }
   return (
-    <svg viewBox="0 0 40 40" width={size} height={size} className="app-lnch-svg-icon" style={{ clipPath: customClip }}>
+    // No CSS clip-path here — the squircle fill path below already makes corners
+    // transparent. A redundant clip-path at the same boundary doubles the AA edge
+    // and produces a visible fringe at the corners.
+    <svg viewBox="0 0 40 40" width={size} height={size} className="app-lnch-svg-icon">
       <path d={SQUIRCLE_PATH_40} fill={color} />
       {LAUNCHER_SVG_ICONS[id] ?? <rect x="10" y="10" width="20" height="20" rx="4" fill="white" opacity="0.7"/>}
     </svg>

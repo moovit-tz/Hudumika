@@ -26,15 +26,11 @@ const SHRINKAGE_ACCOUNT = '5011';
 // GL wiring (HUD-0054): every movement type that changes value now posts —
 // 'issue' (pre-existing, COGS/1300), 'receipt' (1300/GRNI), and 'adjust'/
 // 'count_correction' (1300/Shrinkage, direction by qty_delta's sign).
-// 'transfer' never posts — it moves location, not value. Still NOT wired:
-// Purchase Orders never call into this service at all (purchase-orders.
-// routes.ts only updates its own `received_qty`/status columns), so marking
-// a PO "Received" still has zero effect on stock or the GL — the only way
-// stock enters this ledger is a manual movement through this app itself.
-// Closing that needs a real product decision (should a PO receipt
-// auto-create a movement, and does that require a match-to-bill step before
-// GRNI clears to 2000?) this fix doesn't make unilaterally — same standing
-// rule as every other design-level gap in this arc.
+// 'transfer' never posts — it moves location, not value.
+// Purchase Orders: wired via migration 517 (item_id on purchase_order_lines)
+// + POST /v1/purchase-orders/:id/receive, which calls recordMovement for
+// each line that has an item_id. Non-inventory lines (services, freight)
+// are tracked for quantity only — no movement is posted for them.
 
 export class UnknownUom extends Error {
   constructor(public uomCode: string) {

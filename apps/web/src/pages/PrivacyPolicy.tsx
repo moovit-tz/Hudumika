@@ -57,7 +57,7 @@ export const PrivacyPolicy: React.FC = () => {
               {page && <span>Last updated: <strong>{new Date(page.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</strong></span>}
             </div>
             <div className="lp-notice">
-              This Privacy Policy describes how <strong>Hudumika LLC</strong> ("Hudumika", "we", "us") collects, uses, and protects your personal information when you use our platform and services. By using Hudumika, you agree to the practices described here.
+              This Privacy Policy describes how <strong>Moovit Mobility Limited</strong> ("Hudumika Workspace", "we", "us") collects, uses, and protects your personal information when you use our platform and services. By using Hudumika Workspace, you agree to the practices described here.
             </div>
           </div>
 
@@ -71,7 +71,7 @@ export const PrivacyPolicy: React.FC = () => {
 
       <footer className="lp-footer">
         <div className="lp-footer-inner">
-          <span>Copyrights © {new Date().getFullYear()} by <strong>Hudumika LLC</strong>. All rights reserved.</span>
+          <span>Hudumika Workspace · © {new Date().getFullYear()} Moovit Mobility Limited</span>
           <nav className="lp-footer-links">
             <Link to="/terms">Terms of Service</Link>
             <Link to="/privacy">Privacy Policy</Link>

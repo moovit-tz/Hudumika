@@ -1,125 +1,554 @@
-/* ── Petti Cash & Financial Operations Design System & Responsive Layout ── */
+/* ── Petti.css — Hudumika Digital Banking & Corporate Treasury Operations ── */
 
 .petti-container {
-  max-width: 1360px;
-  margin: 0 auto;
-  padding-bottom: 32px;
-}
-
-.petti-hero-banner {
-  background: linear-gradient(135deg, #0e1f3d 0%, #1e1b4b 45%, #0d7a6b 100%);
-  border-radius: 16px;
-  padding: 28px 32px;
-  color: #ffffff;
-  margin-bottom: 24px;
-  box-shadow: 0 10px 30px rgba(14, 31, 61, 0.18);
-  position: relative;
-  overflow: hidden;
-}
-
-.petti-hero-glow {
-  position: absolute;
-  top: -40px; right: -40px;
-  width: 260px; height: 260px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.petti-hero-content {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 20px;
-  position: relative;
-  z-index: 1;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
 }
 
-.petti-hero-actions {
+/* ── Base card surface ──────────────────────────────────────────────────── */
+.petti-card {
+  background: var(--white);
+  border: 1px solid var(--border2);      /* border2 = visible in both modes */
+  border-radius: var(--r-lg, 12px);
+  padding: 20px 24px;
+  box-shadow: var(--elev-sm);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── FX & Market Ticker Strip ──────────────────────────────────────────── */
+.petti-fx-strip {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  padding: 9px 14px;
+  background: var(--white);
+  border: 1px solid var(--border2);
+  border-radius: var(--r, 8px);
+  box-shadow: var(--elev-sm);
 }
 
+.petti-fx-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--bg);
+  white-space: nowrap;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  color: var(--ink2);
+  font-weight: 600;
+}
+
+.petti-fx-item strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* ── Bento grid: equal-height columns ──────────────────────────────────── */
+.petti-bento {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 18px;
+  width: 100%;
+  /* align-items: stretch is the grid default — ensure children fill */
+}
+
+/* These wrapper divs must be flex columns so their children can flex-fill */
+.petti-hero-col,
+.petti-bento-12-7,
+.petti-bento-12-5 {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* prevent overflow in narrow grid cells */
+}
+
+/* Children of hero columns fill to equal height */
+.petti-hero-col > .petti-banking-hero,
+.petti-hero-col > .petti-virtual-card,
+.petti-bento-12-7 > .petti-card,
+.petti-bento-12-5 > .petti-card {
+  flex: 1;
+}
+
+/* ── Hero Banking Operations Center Card ──────────────────────────────── */
+.petti-banking-hero {
+  /* Fixed dark-navy backbone — --navy flips to light in dark mode */
+  background: linear-gradient(145deg, #0e1f3d 0%, #1a3260 60%, color-mix(in srgb, var(--teal) 30%, #0e1f3d) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--r-lg, 14px);
+  padding: 24px 28px;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 24px -4px rgba(14, 31, 61, 0.35);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .petti-banking-hero {
+  background: linear-gradient(145deg, #070d18 0%, #0a172c 65%, color-mix(in srgb, var(--teal) 18%, #0a172c) 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+}
+
+.petti-hero-glow-1 {
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--teal) 28%, transparent) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.petti-hero-glow-2 {
+  position: absolute;
+  bottom: -60px;
+  left: -40px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── Primary Wallet Card (right column of hero row) ────────────────────── */
+.petti-virtual-card {
+  /* Same fixed-dark gradient as the hero for visual family */
+  background: linear-gradient(145deg, #0e1f3d 0%, #1a3260 55%, color-mix(in srgb, var(--teal) 45%, #0d1e3b) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--r-lg, 14px);
+  padding: 24px 26px;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  transition: box-shadow 0.2s ease;
+}
+
+[data-theme="dark"] .petti-virtual-card {
+  background: linear-gradient(145deg, #07111f 0%, #0a1a30 55%, color-mix(in srgb, var(--teal) 20%, #0a1a30) 100%);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.petti-virtual-card:hover {
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Wallet mini-cards grid ─────────────────────────────────────────────── */
+.petti-wallet-card {
+  background: var(--white);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-lg, 12px);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--elev-sm);
+}
+
+.petti-wallet-card:hover {
+  border-color: var(--teal);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.09);
+}
+
+/* Push footer to the bottom regardless of description length */
+.petti-wallet-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.petti-wallet-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Stat Metric Cards ──────────────────────────────────────────────────── */
+.petti-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+.petti-stat-card {
+  background: var(--white);
+  border: 1px solid var(--border2);
+  border-radius: var(--r, 10px);
+  min-height: 122px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  box-shadow: var(--elev-sm);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  box-sizing: border-box;
+}
+
+.petti-stat-card-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.petti-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--teal);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* Colored top-bar accent per card type */
+.petti-stat-card--total  { border-top: 3px solid var(--teal); }
+.petti-stat-card--inflow { border-top: 3px solid var(--green); }
+.petti-stat-card--outflow { border-top: 3px solid var(--red); }
+.petti-stat-card--pending { border-top: 3px solid var(--gold); }
+
+.petti-stat-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+}
+
+.petti-stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  font-family: var(--mono);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 32px;
+}
+
+.petti-stat-sub {
+  font-size: 11.5px;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+}
+
+/* ── Interactive card (hover lift) ────────────────────────────────────── */
 .petti-card-interactive {
   background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px 22px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-lg, 12px);
+  padding: 18px 20px;
+  box-shadow: var(--elev-sm);
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .petti-card-interactive:hover {
+  border-color: var(--teal);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-  border-color: var(--teal-m, var(--teal));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
 }
 
+/* Transactions and wallet directory controls share one compact operations bar. */
+.petti-transaction-toolbar,
+.petti-wallet-toolbar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+
+.petti-transaction-filters,
+.petti-wallet-currency-filter {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.petti-transaction-filters {
+  flex: 1 1 auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.petti-transaction-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.petti-transaction-filters > * {
+  flex: 0 0 auto;
+}
+
+.petti-toolbar-search {
+  position: relative;
+  flex: 0 1 360px;
+  min-width: 220px;
+  margin-left: auto;
+}
+
+.petti-toolbar-search > svg {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 12px;
+  color: var(--ink3);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.petti-toolbar-search input {
+  width: 100%;
+  padding-left: 36px;
+}
+
+.petti-wallets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+.petti-wallet-tile {
+  min-height: 218px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* ── Gateway / transfer pill ────────────────────────────────────────────── */
+.petti-gateway-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--r, 8px);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.petti-gateway-pill:hover {
+  background: var(--white);
+  border-color: var(--teal);
+}
+
+/* ── 2-column form layout ───────────────────────────────────────────────── */
 .petti-grid-2col {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: 1.2fr 0.8fr;
   gap: 20px;
-  align-items: start;
 }
 
 .petti-grid-3col {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
 .petti-grid-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.petti-gateway-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
 }
 
-/* ── Mobile & Responsive Breakpoints ── */
+/* ── Tables ─────────────────────────────────────────────────────────────── */
+.petti-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-lg, 10px);
+  background: var(--white);
+}
 
-@media (max-width: 1024px) {
-  .petti-grid-2col {
-    grid-template-columns: 1fr !important;
+.petti-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.petti-table th {
+  padding: 12px 16px;
+  background: var(--card-sunken, var(--bg));
+  color: var(--ink3);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border2);
+}
+
+.petti-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+.petti-table tr:last-child td { border-bottom: none; }
+
+.petti-table tr:hover td {
+  background: color-mix(in srgb, var(--teal) 4%, transparent);
+}
+
+/* Quick amount chips */
+.petti-amount-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.petti-amount-chip {
+  padding: 5px 11px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--ink2);
+  border: 1px solid var(--border2);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.petti-amount-chip:hover {
+  background: var(--teal-l);
+  color: var(--teal);
+  border-color: var(--teal);
+}
+
+/* Visual transfer flow box */
+.petti-flow-box {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--r, 8px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Dark mode card surface polish ──────────────────────────────────────── */
+[data-theme="dark"] .petti-card {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .petti-fx-strip,
+[data-theme="dark"] .petti-stat-card,
+[data-theme="dark"] .petti-wallet-card,
+[data-theme="dark"] .petti-card-interactive,
+[data-theme="dark"] .petti-table-wrap {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .petti-transaction-toolbar,
+[data-theme="dark"] .petti-wallet-toolbar {
+  border-color: var(--border);
+  box-shadow: var(--card-shadow);
+}
+
+[data-theme="dark"] .petti-gateway-pill {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--border2);
+}
+
+[data-theme="dark"] .petti-gateway-pill:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--teal);
+}
+
+[data-theme="dark"] .petti-flow-box {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 960px) {
+  .petti-bento {
+    grid-template-columns: 1fr;
+  }
+  .petti-hero-col,
+  .petti-bento-12-7,
+  .petti-bento-12-5 {
+    grid-column: span 1 !important;
+  }
+  .petti-grid-2col { grid-template-columns: 1fr; }
+  .petti-grid-3col { grid-template-columns: 1fr; }
+  .petti-grid-form { grid-template-columns: 1fr; }
+  .petti-banking-hero { padding: 20px; }
+  /* On mobile, virtual card reverts to content height */
+  .petti-hero-col > .petti-virtual-card {
+    min-height: 200px;
+  }
+
+  .petti-transaction-toolbar,
+  .petti-wallet-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .petti-transaction-filters {
+    width: 100%;
+    padding-bottom: 2px;
+  }
+
+  .petti-wallet-currency-filter {
+    width: 100%;
+  }
+
+  .petti-toolbar-search {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex-basis: auto;
+    margin-left: 0;
   }
 }
 
-@media (max-width: 768px) {
-  .petti-hero-banner {
-    padding: 20px !important;
-    border-radius: 12px !important;
+@media (max-width: 560px) {
+  .petti-stats-grid,
+  .petti-wallets-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .petti-hero-content {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-  }
-
-  .petti-hero-actions {
-    width: 100% !important;
-    justify-content: flex-start !important;
-  }
-
-  .petti-grid-3col, .petti-grid-form {
-    grid-template-columns: 1fr !important;
-    gap: 12px !important;
-  }
-
-  .petti-gateway-grid {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .petti-gateway-grid {
-    grid-template-columns: 1fr !important;
+  .petti-stat-card,
+  .petti-wallet-tile {
+    min-height: 0;
   }
 }

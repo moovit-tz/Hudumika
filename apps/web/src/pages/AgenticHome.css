@@ -10,7 +10,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 0 18px;
-  height: 56px;
+  height: 64px;
   border-bottom: 1px solid var(--border);
   background: var(--white);
   flex-shrink: 0;
@@ -28,10 +28,10 @@
 }
 
 .ah-header-mark {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--r-sm);
-  background: var(--teal);
+  background: #0e1f3d;
   border: none;
   cursor: pointer;
   display: flex;
@@ -42,8 +42,13 @@
 }
 
 .ah-header-mark:hover {
-  opacity: 0.9;
-  transform: scale(1.02);
+  background: color-mix(in srgb, #0e1f3d 88%, var(--teal));
+  transform: translateY(-1px);
+}
+
+.ah-header-mark.is-open {
+  background: hsl(var(--primary));
+  box-shadow: 0 0 0 3px var(--teal-l);
 }
 
 /* ── Dynamic App Brand Lockup in Header ── */
@@ -62,7 +67,7 @@
   justify-content: center;
   border-radius: var(--r-sm);
   overflow: hidden;
-  box-shadow: var(--elev-sm);
+  box-shadow: none;
   flex-shrink: 0;
   transition: transform 0.2s ease;
 }
@@ -100,7 +105,7 @@
 .ah-header-center {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex: 1;
   justify-content: center;
   min-width: 0;
@@ -116,6 +121,7 @@
   background: var(--card-sunken);
   border: 1px solid var(--border);
   border-radius: 9999px;
+  min-height: 40px;
   padding: 3px;
   display: inline-flex;
   align-items: center;
@@ -152,7 +158,8 @@
 }
 
 .ah-tab-trigger {
-  padding: 5px 12px;
+  min-height: 32px;
+  padding: 5px 13px;
   border-radius: 9999px;
   font-size: 12.5px;
   font-weight: 600;
@@ -189,13 +196,13 @@
 /* ── Search Bar (Live AJAX Search + Shortcut) ── */
 .ah-header-search {
   position: relative;
-  flex: 0 1 240px;
-  min-width: 130px;
+  flex: 0 1 300px;
+  min-width: 180px;
   transition: flex-basis 0.2s ease, max-width 0.2s ease;
 }
 
 .ah-header-search--focused {
-  flex: 0 1 290px;
+  flex: 0 1 360px;
 }
 
 .ah-search-icon {
@@ -209,7 +216,7 @@
 
 .ah-search-input {
   width: 100%;
-  height: 34px;
+  height: 40px;
   border-radius: var(--r);
   background: var(--bg);
   border: 1px solid var(--border);
@@ -846,5 +853,4 @@
     margin-left: auto;
   }
 }
-
 

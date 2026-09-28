@@ -10,6 +10,9 @@ import type { SignFieldType } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
+import { Input } from '../../components/ui/input.js';
+import { Textarea } from '../../components/ui/textarea.js';
+import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { Checkbox } from '../../components/ui/checkbox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../../components/ui/popover.js';
@@ -40,6 +43,7 @@ import { StirlingPdfTools } from './StirlingPdfTools.js';
 import { VersionHistoryPanel } from './VersionHistoryPanel.js';
 import { draftKey, loadDraft, saveDraft, clearDraft, isMeaningfulDraft, type SignDraft } from './draftStore.js';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
+import { PageHeader } from '../../components/PageHeader.js';
 import './Sign.css';
 
 const FIELD_TYPES: { type: SignFieldType; label: string; icon: IconName; defaultW: number; defaultH: number }[] = [
@@ -193,6 +197,10 @@ export function SignEditor() {
 
   const pageRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scanInputRef = useRef<HTMLInputElement>(null);
+  // When true, bypass the upload-first screen and go straight into the editor
+  // (user clicked "start without a document"). Persists for this session only.
+  const [skipUploadStep, setSkipUploadStep] = useState(false);
 
   // The recipient picker below searches CRM customers first, then staff —
   // whoever this document is actually for is usually a customer, and staff
@@ -651,8 +659,85 @@ export function SignEditor() {
   const removeField = (id: string) => { setFields(prev => prev.filter(f => f.id !== id)); setSelectedField(null); };
   const selectedFieldData = fields.find(f => f.id === selectedField);
 
+  // ── Upload-first screen — new envelope, no document yet ───────────────────
+  // Shown instead of the full 3-panel editor until a file is chosen. Once
+  // previewSrc is set (by handleFile, a restored draft, or ?fileId=), this
+  // branch is skipped and the full editor renders automatically.
+  if (!previewSrc && !envelopeId && !skipUploadStep) {
+    return (
+      <main className="sign-new-envelope-page">
+        <section className="sign-new-envelope-card" aria-label="Create a new envelope">
+          <PageHeader
+            crumbs={['eSign', 'Create']}
+            titlePlain="New"
+            titleEm="envelope"
+            subtitle="Upload or scan a document, then place signature fields anywhere on each page."
+            actions={
+              <Tip label="Return to your eSign documents without creating an envelope">
+                <Button variant="outline" size="sm" onClick={() => navigate('/sign')}>
+                  <Icon name="arrowLeft" size={14} /> Back
+                </Button>
+              </Tip>
+            }
+          />
+
+          <div className="sign-new-envelope-title-row">
+            <label htmlFor="envelope-title">Envelope title</label>
+            <Input
+              id="envelope-title"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Optional — filled from the filename"
+            />
+          </div>
+
+          <div className="sign-new-envelope-body">
+            <div className="sign-new-envelope-chooser">
+              <div className="sign-new-envelope-chooser-heading">
+                <FeaturedIcon variant="brand" size="lg" shape="circle"><Icon name="fileText" size={20} /></FeaturedIcon>
+                <div>
+                  <h2>Choose how to start</h2>
+                  <p>Add the document your recipients need to review and sign.</p>
+                </div>
+              </div>
+              <div className="sign-new-envelope-actions">
+                <Tip label="Choose an existing PDF, DOCX, PNG, or JPG from your device">
+                  <Button type="button" variant="outline" className="sign-new-envelope-action" onClick={() => fileInputRef.current?.click()}>
+                    <FeaturedIcon variant="brand" size="lg" shape="circle"><Icon name="upload" size={20} /></FeaturedIcon>
+                    <span className="sign-new-envelope-action-copy"><strong>Upload file</strong><small>PDF, DOCX, PNG or JPG</small></span>
+                    <Icon name="arrowRight" size={16} className="sign-new-envelope-action-arrow" />
+                  </Button>
+                </Tip>
+                <Tip label="Open your device camera to capture a document">
+                  <Button type="button" variant="outline" className="sign-new-envelope-action" onClick={() => scanInputRef.current?.click()}>
+                    <FeaturedIcon variant="gray" size="lg" shape="circle"><Icon name="camera" size={20} /></FeaturedIcon>
+                    <span className="sign-new-envelope-action-copy"><strong>Scan document</strong><small>Use your device camera</small></span>
+                    <Icon name="arrowRight" size={16} className="sign-new-envelope-action-arrow" />
+                  </Button>
+                </Tip>
+              </div>
+
+              <div className="sign-new-envelope-divider"><span>or</span></div>
+              <div className="sign-new-envelope-blank">
+                <div><strong>Start with a blank page</strong><span>Create an envelope and place fields without uploading a document.</span></div>
+                <Tip label="Open a blank signing page without attaching a document">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setSkipUploadStep(true)}>
+                    Start blank <Icon name="arrowRight" size={14} />
+                  </Button>
+                </Tip>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.docx" style={{ display: 'none' }} onChange={handleFile} />
+        <input ref={scanInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleFile} />
+      </main>
+    );
+  }
+
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'var(--font)', background: 'var(--bg)' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'var(--font)', background: 'var(--card-bg)' }}>
       {/* Top control bar with responsive flex wrapping */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, padding: '8px 16px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)', flexShrink: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 250px' }}>
@@ -712,26 +797,15 @@ export function SignEditor() {
                 <Icon name="save" size={13} /> {saving ? 'Saving…' : 'Save'} <Icon name="chevronDown" size={11} style={{ opacity: 0.6 }} />
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" style={{ width: 175, padding: 4 }}>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                style={{ width: '100%', textAlign: 'left', padding: '8px 10px', fontSize: 12.5, fontWeight: 600, borderRadius: 'var(--r-sm)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'none'}
-              >
+            <PopoverContent align="end" style={{ width: 185, padding: 4 }}>
+              <Button variant="ghost" size="sm" onClick={handleSave} disabled={saving}
+                style={{ width: '100%', justifyContent: 'flex-start', fontWeight: 600, gap: 8 }}>
                 <Icon name="fileText" size={14} color="var(--blue)" /> Save Draft
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveAsTemplate}
-                style={{ width: '100%', textAlign: 'left', padding: '8px 10px', fontSize: 12.5, fontWeight: 600, borderRadius: 'var(--r-sm)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'none'}
-              >
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleSaveAsTemplate}
+                style={{ width: '100%', justifyContent: 'flex-start', fontWeight: 600, gap: 8 }}>
                 <Icon name="copy" size={14} color="var(--teal)" /> Save as Template
-              </button>
+              </Button>
             </PopoverContent>
           </Popover>
 
@@ -759,19 +833,20 @@ export function SignEditor() {
             { key: 'center', label: 'Document Canvas', icon: 'fileText' },
             showPdfTools ? { key: 'right', label: 'PDF Tools', icon: 'layers' } : { key: 'right', label: 'Field Options', icon: 'settings' },
           ].map(tab => (
-            <button
+            <Button
               key={tab.key}
-              type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setMobileTab(tab.key as any)}
               style={{
-                flex: 1, padding: '6px 8px', borderRadius: 'var(--r-sm)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: 'none',
+                flex: 1,
                 background: mobileTab === tab.key ? 'var(--teal-l)' : 'transparent',
                 color: mobileTab === tab.key ? 'var(--teal)' : 'var(--ink3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4
+                fontWeight: 700, fontSize: 11.5, gap: 4,
               }}
             >
               <Icon name={tab.icon as any} size={13} /> {tab.label}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -876,12 +951,12 @@ export function SignEditor() {
               createLabel={q => `Add "${q}" as an external signer`}
               hint="Searches customers, then staff. Picking a colleague auto-fills their details and adds an in-app notification alongside email/SMS. No match? Type their name and fill in the fields below."
             />
-            {['name', 'email', 'phone', 'role_label'].map(key => (
-              <input key={key}
+            {(['name', 'email', 'phone', 'role_label'] as const).map(key => (
+              <Input key={key}
                 value={(recipients[activeRecipient] as any)?.[key] ?? ''}
                 onChange={e => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, [key]: e.target.value } : r))}
                 placeholder={key === 'role_label' ? 'Role (e.g. Customer)' : key === 'phone' ? 'Phone (optional — WhatsApp delivery)' : key.charAt(0).toUpperCase() + key.slice(1)}
-                style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, marginTop: 6, boxSizing: 'border-box' }}
+                style={{ marginTop: 6 }}
               />
             ))}
 
@@ -946,18 +1021,15 @@ export function SignEditor() {
                     </p>
                   ) : null;
                 })()}
-                <input value={recipients[activeRecipient]?.certifier_title ?? ''}
+                <Input value={recipients[activeRecipient]?.certifier_title ?? ''}
                   onChange={e => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, certifier_title: e.target.value } : r))}
-                  placeholder="Title (e.g. Advocate, Commissioner for Oaths)"
-                  style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, boxSizing: 'border-box' }} />
-                <input value={recipients[activeRecipient]?.certifier_roll_number ?? ''}
+                  placeholder="Title (e.g. Advocate, Commissioner for Oaths)" />
+                <Input value={recipients[activeRecipient]?.certifier_roll_number ?? ''}
                   onChange={e => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, certifier_roll_number: e.target.value } : r))}
-                  placeholder="Practising certificate / roll number"
-                  style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, boxSizing: 'border-box' }} />
-                <input value={recipients[activeRecipient]?.certifier_firm ?? ''}
+                  placeholder="Practising certificate / roll number" />
+                <Input value={recipients[activeRecipient]?.certifier_firm ?? ''}
                   onChange={e => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, certifier_firm: e.target.value } : r))}
-                  placeholder="Law firm (optional)"
-                  style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, boxSizing: 'border-box' }} />
+                  placeholder="Law firm (optional)" />
                 <p style={{ fontSize: 11, color: 'var(--ink3)', margin: 0, lineHeight: 1.4 }}>
                   Place a “Certified True Copy Stamp” field (below) and assign it to this recipient — the roll number above is baked into the signed PDF as real text, next to their signature.
                 </p>
@@ -986,10 +1058,9 @@ export function SignEditor() {
           {/* Message */}
           <div className="sign-panel-title">Message (optional)</div>
           <div style={{ padding: '0 12px 16px' }}>
-            <textarea value={message} onChange={e => setMessage(e.target.value)}
+            <Textarea value={message} onChange={e => setMessage(e.target.value)}
               placeholder="Add a personal message to signers…"
-              rows={3}
-              style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, resize: 'vertical', boxSizing: 'border-box' }} />
+              rows={3} />
           </div>
 
           {/* Matter / Reference — Phase S7, a free-text case tag, not a
@@ -997,9 +1068,8 @@ export function SignEditor() {
               onto /sign/matters once set; most tenants leave it blank. */}
           <div className="sign-panel-title">Matter / Reference (optional)</div>
           <div style={{ padding: '0 12px 16px' }}>
-            <input value={matterReference} onChange={e => setMatterReference(e.target.value)}
-              placeholder="e.g. CASE-2026-014"
-              style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, boxSizing: 'border-box' }} />
+            <Input value={matterReference} onChange={e => setMatterReference(e.target.value)}
+              placeholder="e.g. CASE-2026-014" />
           </div>
 
           {/* Remote session — Phase S4. Reuses Bliss's own meeting system
@@ -1045,7 +1115,7 @@ export function SignEditor() {
             <>
               <div className="sign-panel-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>AI Scan</span>
-                <button type="button" onClick={() => setAiAssist(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 0 }}><Icon name="x" size={13} /></button>
+                <Button variant="ghost" size="icon" onClick={() => setAiAssist(null)} style={{ height: 20, width: 20, minHeight: 0, color: 'var(--ink3)' }}><Icon name="x" size={13} /></Button>
               </div>
               <div style={{ margin: '0 12px 16px' }}>
                 {!aiAssist.available ? (
@@ -1109,22 +1179,22 @@ export function SignEditor() {
                   fields already carried a `page` property, it just had
                   nowhere to go before since page 1 was the only page ever
                   rendered. */}
-              {isPdf && pdfDoc && pdfNumPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>
-                  <button onClick={() => setCurrentPdfPage(p => Math.max(1, p - 1))} disabled={currentPdfPage <= 1}
-                    style={{ background: 'none', border: 'none', cursor: currentPdfPage <= 1 ? 'default' : 'pointer', opacity: currentPdfPage <= 1 ? 0.3 : 1, display: 'flex', padding: 2 }}>
-                    <Icon name="chevronLeft" size={14} color="#f8fafc" />
-                  </button>
-                  <span style={{ fontSize: 12, color: '#f8fafc', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--mono)' }}>
+              {isPdf && pdfDoc && pdfNumPages >= 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#1e293b', borderRadius: 'var(--r-sm)', padding: '2px 6px', flexShrink: 0 }}>
+                  <Button variant="ghost" size="icon" onClick={() => setCurrentPdfPage(p => Math.max(1, p - 1))} disabled={currentPdfPage <= 1}
+                    style={{ height: 26, width: 26, minHeight: 0, opacity: currentPdfPage <= 1 ? 0.3 : 1, color: '#f8fafc' }}>
+                    <Icon name="chevronLeft" size={14} />
+                  </Button>
+                  <span style={{ fontSize: 12, color: '#f8fafc', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--mono)', padding: '0 4px' }}>
                     {currentPdfPage} / {pdfNumPages}
                   </span>
-                  <button onClick={() => setCurrentPdfPage(p => Math.min(pdfNumPages, p + 1))} disabled={currentPdfPage >= pdfNumPages}
-                    style={{ background: 'none', border: 'none', cursor: currentPdfPage >= pdfNumPages ? 'default' : 'pointer', opacity: currentPdfPage >= pdfNumPages ? 0.4 : 1, display: 'flex', padding: 2 }}>
-                    <Icon name="chevronRight" size={14} color="#f8fafc" />
-                  </button>
+                  <Button variant="ghost" size="icon" onClick={() => setCurrentPdfPage(p => Math.min(pdfNumPages, p + 1))} disabled={currentPdfPage >= pdfNumPages}
+                    style={{ height: 26, width: 26, minHeight: 0, opacity: currentPdfPage >= pdfNumPages ? 0.3 : 1, color: '#f8fafc' }}>
+                    <Icon name="chevronRight" size={14} />
+                  </Button>
                   {fields.some(f => f.page !== currentPdfPage) && (
-                    <span style={{ fontSize: 11, color: '#94a3b8', borderLeft: '1px solid #334155', paddingLeft: 8, marginLeft: 2 }}>
-                      {fields.filter(f => f.page !== currentPdfPage).length} elsewhere
+                    <span style={{ fontSize: 11, color: '#94a3b8', borderLeft: '1px solid #334155', paddingLeft: 8, marginLeft: 4 }}>
+                      {fields.filter(f => f.page !== currentPdfPage).length} on other pages
                     </span>
                   )}
                 </div>
@@ -1132,17 +1202,36 @@ export function SignEditor() {
             </div>
           )}
 
-          {/* File upload area */}
+          {/* File upload area — two actions: Upload File and Scan Document */}
           {!previewSrc && (
-            <div onClick={() => fileInputRef.current?.click()}
-              role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
-              style={{ width: pageW, height: Math.round(pageW * 0.3), border: '2px dashed var(--border)', borderRadius: 'var(--r)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', background: 'var(--card-bg)', color: 'var(--ink3)', transition: 'border-color 0.15s', marginTop: fileName ? 0 : undefined }}>
-              <Icon name="file" size={36} style={{ opacity: 0.4 }} />
-              <div style={{ fontSize: 14, fontWeight: 600 }}>Upload Document</div>
-              <div style={{ fontSize: 12 }}>PDF, DOCX, PNG, JPG</div>
+            <div style={{ width: pageW, border: '2px dashed var(--border)', borderRadius: 'var(--r)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '32px 24px', background: 'var(--card-bg)', color: 'var(--ink3)', boxSizing: 'border-box' }}>
+              <Icon name="fileText" size={40} style={{ opacity: 0.3 }} />
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Add a document to get started</div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>PDF, DOCX, PNG, JPG — every page will be loaded</div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                  <Icon name="upload" size={14} /> Upload File
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => scanInputRef.current?.click()}>
+                  <Icon name="camera" size={14} /> Scan Document
+                </Button>
+              </div>
+            </div>
+          )}
+          {/* Document page-count confirmation — shown once a PDF is loaded so
+              the user knows all pages came through before placing fields */}
+          {isPdf && pdfDoc && pdfNumPages > 1 && !pdfLoading && (
+            <div style={{ width: pageW, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r-sm)', boxSizing: 'border-box', fontSize: 12.5, color: 'var(--ink2)' }}>
+              <Icon name="checkCircle" size={14} style={{ color: 'var(--teal)', flexShrink: 0 }} />
+              <span><strong style={{ color: 'var(--ink)' }}>{pdfNumPages} pages</strong> loaded — use the page controls above to navigate</span>
             </div>
           )}
           <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.docx" style={{ display: 'none' }} onChange={handleFile} />
+          {/* Camera/scan input — capture="environment" opens the back camera on mobile;
+              on desktop it falls back to a regular image file picker */}
+          <input ref={scanInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleFile} />
 
           {/* Page canvas — sized to the real document page's own
               proportions (see naturalPageSize above), not a fixed A4 guess */}
@@ -1260,10 +1349,9 @@ export function SignEditor() {
               </div>
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Placeholder Text</label>
-                <input value={selectedFieldData.placeholder ?? ''}
+                <Input value={selectedFieldData.placeholder ?? ''}
                   onChange={e => setFields(prev => prev.map(f => f.id === selectedField ? { ...f, placeholder: e.target.value } : f))}
-                  placeholder="e.g. Sign here"
-                  style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, boxSizing: 'border-box' }} />
+                  placeholder="e.g. Sign here" />
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                 <Checkbox checked={selectedFieldData.required}

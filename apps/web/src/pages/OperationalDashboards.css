@@ -1,0 +1,103 @@
+.ops-dashboard {
+  min-width: 0;
+}
+
+.ops-dashboard-grid {
+  display: grid;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.ops-dashboard-grid > * {
+  min-width: 0;
+  height: 100%;
+  box-shadow: var(--card-shadow);
+}
+
+.ops-dashboard-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.ops-dashboard-summary__item {
+  min-width: 0;
+  min-height: 104px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--white);
+  box-shadow: var(--card-shadow);
+}
+
+.ops-dashboard-summary__label { color: var(--ink3); font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.ops-dashboard-summary__value { margin-top: 8px; color: var(--ink); font-size: 25px; font-weight: 800; line-height: 1; }
+.ops-dashboard-summary__meta { margin-top: 8px; color: var(--ink3); font-size: 12px; }
+
+.ops-dashboard-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--white);
+  box-shadow: var(--card-shadow);
+}
+
+.ops-dashboard-grid--kpis {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ops-dashboard-grid--three {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr);
+}
+
+.ops-dashboard-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ops-dashboard-card,
+.ops-dashboard-card > * {
+  min-width: 0;
+  height: 100%;
+}
+
+.ops-dashboard-card > *,
+.ops-dashboard-kpi {
+  box-shadow: var(--card-shadow);
+}
+
+.ops-dashboard-kpi {
+  display: flex;
+  align-items: center;
+  min-height: 92px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--white);
+}
+
+.ops-dashboard-project-card {
+  height: 100%;
+  min-height: 132px;
+  box-shadow: var(--card-shadow);
+}
+
+@media (max-width: 1100px) {
+  .ops-dashboard-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ops-dashboard-grid--kpis,
+  .ops-dashboard-grid--three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .ops-dashboard-summary { grid-template-columns: minmax(0, 1fr); }
+  .ops-dashboard-grid--kpis,
+  .ops-dashboard-grid--three,
+  .ops-dashboard-grid--two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

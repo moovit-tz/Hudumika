@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon.js';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './ui/tooltip.js';
+import './HeaderPill.css';
 
 /**
  * The header's resting state: one unread notification at a time, swapped on a

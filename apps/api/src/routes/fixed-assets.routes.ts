@@ -97,7 +97,7 @@ export async function fixedAssetRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('fixed_assets').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Fixed asset not found' });
-      const asset = await trx.updateTable('fixed_assets').set({ ...body, updated_at: new Date() }).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+      const asset = await trx.updateTable('fixed_assets').set({ ...body, updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
       return asset;
     });
   });
@@ -159,7 +159,7 @@ export async function fixedAssetRoutes(fastify: FastifyInstance) {
       await GLService.reverseBySource(user.tenant_id, 'MANUAL', id, user.sub, 'Fixed asset deleted before any depreciation was posted');
     }
     return withTenant(user.tenant_id, async (trx) => {
-      const r = await trx.deleteFrom('fixed_assets').where('id', '=', id).execute();
+      const r = await trx.deleteFrom('fixed_assets').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { success: true, deleted: Number(r[0]?.numDeletedRows ?? 0) };
     });
   });

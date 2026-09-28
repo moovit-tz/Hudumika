@@ -1355,6 +1355,38 @@ select.input-field { cursor: pointer; }
 /* Customer directory: identity is the scanning anchor, so it gets a fixed,
    generous column rather than wrapping beside the avatar. */
 .crm-customer-table .crm-col-company { width: 360px; min-width: 360px; }
+.crm-customer-table-scroll {
+  position: relative;
+  isolation: isolate;
+}
+.crm-customer-table-scroll .crm-customer-table > thead > tr > :first-child,
+.crm-customer-table-scroll .crm-customer-table > tbody > tr > :first-child {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  background: var(--card-bg, var(--white));
+}
+.crm-customer-table-scroll .crm-customer-table > thead > tr > .crm-col-company,
+.crm-customer-table-scroll .crm-customer-table > tbody > tr > .crm-col-company {
+  position: sticky;
+  left: 42px;
+  z-index: 3;
+  background: var(--card-bg, var(--white));
+  box-shadow: 1px 0 0 var(--border);
+}
+.crm-customer-table-scroll .crm-customer-table > thead > tr > :first-child,
+.crm-customer-table-scroll .crm-customer-table > thead > tr > .crm-col-company {
+  z-index: 5;
+  background: var(--bg);
+}
+.crm-customer-table-scroll .crm-customer-table > tbody > tr:hover > :first-child,
+.crm-customer-table-scroll .crm-customer-table > tbody > tr:hover > .crm-col-company {
+  background: color-mix(in srgb, var(--bg) 82%, var(--white));
+}
+.crm-customer-table-scroll .crm-customer-table > tbody > tr:has([data-state="checked"]) > :first-child,
+.crm-customer-table-scroll .crm-customer-table > tbody > tr:has([data-state="checked"]) > .crm-col-company {
+  background: var(--teal-l, var(--bg));
+}
 .crm-company-cell > div { min-width: 0; }
 .crm-company-cell > div > div:last-child { min-width: 0; }
 .crm-company-cell > div > div:last-child > div:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3818,6 +3850,34 @@ html:not([data-theme="dark"]) .page-layout {
   border: 1px solid var(--border);
   border-radius: var(--r);
   background: var(--white);
+}
+
+/* Wide data tables keep their row identity visible while the remaining
+   columns scroll. This covers the established responsive-table wrapper and
+   the shared React table primitive. Decorative leading cells can opt out. */
+:where(.rtbl-wrap, .hud-table-scroll):not([data-freeze-first-column="false"]) {
+  position: relative;
+  isolation: isolate;
+}
+
+:where(.rtbl-wrap, .hud-table-scroll):not([data-freeze-first-column="false"]) > table > thead > tr > :first-child,
+:where(.rtbl-wrap, .hud-table-scroll):not([data-freeze-first-column="false"]) > table > tbody > tr > :first-child,
+:where(.rtbl-wrap, .hud-table-scroll):not([data-freeze-first-column="false"]) > table > tfoot > tr > :first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--white);
+  box-shadow: 1px 0 0 var(--border);
+}
+
+:where(.rtbl-wrap, .hud-table-scroll):not([data-freeze-first-column="false"]) > table > thead > tr > :first-child {
+  z-index: 4;
+  background: var(--bg);
+}
+
+:where(.rtbl-wrap, .hud-table-scroll):not([data-freeze-first-column="false"]) > table > tbody > tr:hover > :first-child,
+:where(.rtbl-wrap, .hud-table-scroll):not([data-freeze-first-column="false"]) > table > tbody > tr[data-state="selected"] > :first-child {
+  background: color-mix(in srgb, var(--bg) 82%, var(--white));
 }
 .rtbl {
   width: 100%;

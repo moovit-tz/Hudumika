@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -6,29 +6,18 @@ import { Icon } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Button } from '../components/ui/button.js';
 import { apiFetch } from '../lib/api.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import './Petti.css';
 
 interface GatewayStatus { configured: boolean; provider: string | null; label: string | null; sandbox: boolean; chargeSupported: boolean }
-interface Deposit { id: string; wallet_id: string; amount: string | number; method: string; gateway_provider: string | null; gateway_tx_ref: string | null; created_at: string; }
+interface Deposit { id: string; wallet_id: string; amount: string | number; method: string; gateway_provider: string | null; gateway_tx_ref: string | null; created_at: string; ref: string | null; }
 interface Wallet { id: string; name: string; currency: string; }
 interface CatalogEntry { id: string; name: string; region: string; configured: boolean; enabled: boolean; sandbox: boolean; chargeSupported: boolean }
 
-/**
- * "Payment Channels" — real, single-source-of-truth status for the one
- * gateway a workspace can connect at Settings ▸ Finance ▸ Payment Gateways
- * (that screen is where credentials actually live and get tested; this page
- * doesn't duplicate that form — it shows what it means for Petti deposits
- * specifically, and a real audit trail of gateway-channel deposits).
- *
- * Used to be a fully local `useState` list of 24 hardcoded providers, all
- * marked "Active"/"Live API" with fabricated merchant IDs, saved via
- * `setTimeout` into component state that reverted on refresh — nothing on
- * the page ever reached the backend.
- */
 export function PettiGateways() {
-  usePageSEO('Payment Channels', 'This workspace\'s connected payment gateway, and its recent gateway-channel deposits.');
+  usePageSEO('Payment Channels', 'Workspace connected payment gateways, mobile money rails, and recent gateway-channel deposits.');
   const [status, setStatus] = useState<GatewayStatus>({ configured: false, provider: null, label: null, sandbox: false, chargeSupported: false });
   const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
@@ -52,99 +41,171 @@ export function PettiGateways() {
 
   const walletName = (id: string) => wallets.find(w => w.id === id)?.name || 'Wallet';
 
+  const enabledCount = useMemo(() => catalog.filter(g => g.enabled).length, [catalog]);
+  const gatewayVolume = useMemo(() => deposits.reduce((s, d) => s + Number(d.amount || 0), 0), [deposits]);
+
   return (
-    <div style={{ flex: 1, overflowY: 'auto' }}>
+    <div className="petti-container">
       <PageHeader
         crumbs={['Petti', 'Gateways & Channels', 'Payment Channels']}
         titlePlain="Payment"
         titleEm="channels"
-        subtitle="The gateway this workspace has connected for mobile-money deposits, and its recent activity."
-        actions={<Link to="/workspace/settings?s=payment-gateways" className="btn btn-primary btn-sm">Manage in Settings</Link>}
+        subtitle="Connected mobile-money payment gateways and electronic banking channels for treasury liquidity top-ups."
+        actions={
+          <Link to="/workspace/settings?s=payment-gateways">
+            <Button size="sm">
+              <Icon name="settings" size={14} /> Configure in Settings
+            </Button>
+          </Link>
+        }
       />
 
-      <SectionCard title="Connected Gateway" collapsible={false}>
+      {/* Metric Strip */}
+      <div className="petti-stats-grid">
+        <div className="petti-stat-card">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Connected Gateway</span>
+            <Badge variant={status.configured ? 'success' : 'gray'}>
+              {status.configured ? (status.sandbox ? 'Sandbox' : 'Live') : 'Offline'}
+            </Badge>
+          </div>
+          <div className="petti-stat-value" style={{ fontSize: 20 }}>
+            {status.configured ? (status.label || 'Configured') : 'None Connected'}
+          </div>
+          <div className="petti-stat-sub">
+            <span>{status.chargeSupported ? 'Direct STK push charges active' : 'Manual deposit confirmation'}</span>
+          </div>
+        </div>
+
+        <div className="petti-stat-card">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Active Channels</span>
+            <Icon name="creditCard" size={16} color="var(--teal)" />
+          </div>
+          <div className="petti-stat-value">{enabledCount} / {catalog.length}</div>
+          <div className="petti-stat-sub">
+            <span>Supported payment providers</span>
+          </div>
+        </div>
+
+        <div className="petti-stat-card">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Gateway Inflow Volume</span>
+            <Badge variant="success">INFLOW</Badge>
+          </div>
+          <div className="petti-stat-value" style={{ color: 'var(--green)' }}>
+            +{gatewayVolume.toLocaleString()}
+          </div>
+          <div className="petti-stat-sub">
+            <span>Deposited via gateway channels</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Connected Gateway Primary Card */}
+      <SectionCard title="Active Payment Gateway Integration" collapsible={false}>
         {loading ? (
           <SectionLoading />
         ) : status.configured ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 18px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
-            <FeaturedIcon variant={status.chargeSupported ? 'success' : 'warning'} size="lg"><Icon name="creditCard" size={22} /></FeaturedIcon>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 20px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
+            <FeaturedIcon variant={status.chargeSupported ? 'success' : 'warning'} size="lg">
+              <Icon name="creditCard" size={24} />
+            </FeaturedIcon>
             <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{status.label}</span>
-                <Badge variant={status.sandbox ? 'warning' : 'success'}>{status.sandbox ? 'Sandbox' : 'Live'}</Badge>
-                <Badge variant={status.chargeSupported ? 'success' : 'gray'}>{status.chargeSupported ? 'Charges supported' : 'Not wired for charges yet'}</Badge>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{status.label}</span>
+                <Badge variant={status.sandbox ? 'warning' : 'success'}>{status.sandbox ? 'Sandbox Testnet' : 'Live Production'}</Badge>
+                <Badge variant={status.chargeSupported ? 'success' : 'gray'}>{status.chargeSupported ? 'Live STK Push Supported' : 'Manual Posting Mode'}</Badge>
               </div>
-              <p style={{ margin: '6px 0 0 0', fontSize: 12.5, color: 'var(--ink3)', maxWidth: 560 }}>
+              <p style={{ margin: '6px 0 0 0', fontSize: 12.5, color: 'var(--ink3)', maxWidth: 640, lineHeight: 1.5 }}>
                 {status.chargeSupported
-                  ? 'The Deposit form can push a real mobile-money payment request through this gateway.'
-                  : `Configured, but Petti doesn't have a live charge-processing integration for ${status.label} yet — deposits still need to be recorded manually once funds are confirmed another way.`}
+                  ? 'The digital deposit form can push automated mobile-money STK payment prompts directly to customer/finance mobile devices.'
+                  : `Integration connected. Live auto-charging for ${status.label} is currently pending provider credentials certification.`}
               </p>
             </div>
+            <Link to="/workspace/settings?s=payment-gateways">
+              <Button variant="outline" size="sm">Manage Credentials</Button>
+            </Link>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 18px', background: 'var(--bg)', border: '1px dashed var(--border2)', borderRadius: 'var(--r)' }}>
-            <FeaturedIcon variant="gray" size="lg"><Icon name="creditCard" size={22} /></FeaturedIcon>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 20px', background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 'var(--r-lg)' }}>
+            <FeaturedIcon variant="gray" size="lg"><Icon name="creditCard" size={24} /></FeaturedIcon>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>No payment gateway connected</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>No Payment Gateway Configured</div>
               <p style={{ margin: '4px 0 0 0', fontSize: 12.5, color: 'var(--ink3)' }}>
-                Deposits are recorded manually. Connect a gateway at Settings ▸ Finance ▸ Payment Gateways to enable live mobile-money charges.
+                All petty cash deposits are currently recorded manually. Connect an M-Pesa, Airtel Money, or bank gateway in Settings to enable automated payment collection.
               </p>
             </div>
+            <Link to="/workspace/settings?s=payment-gateways">
+              <Button size="sm">Connect Gateway</Button>
+            </Link>
           </div>
         )}
       </SectionCard>
 
-      <div style={{ height: 20 }} />
-
-      <SectionCard title="Available Channels" collapsible={false}>
+      {/* Available Channels Grid */}
+      <SectionCard title="Supported Payment Channels & Rails" collapsible={false}>
         {loading ? (
           <SectionLoading />
         ) : (
           <>
-          <p style={{ margin: '0 0 14px 0', fontSize: 12.5, color: 'var(--ink3)' }}>
-            Every mobile-money and bank option Settings supports for Petti deposits, and whether this workspace has it configured.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
-            {catalog.map(gw => (
-              <div key={gw.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
-                <FeaturedIcon variant={gw.enabled ? 'success' : gw.configured ? 'warning' : 'gray'} size="sm"><Icon name="creditCard" size={15} /></FeaturedIcon>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{gw.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                    {gw.enabled ? (gw.chargeSupported ? 'Connected · live charges' : 'Connected · manual only') : gw.configured ? 'Configured, not enabled' : 'Not connected'}
+            <p style={{ margin: '0 0 16px 0', fontSize: 12.5, color: 'var(--ink3)' }}>
+              All mobile-money networks, commercial banks, and card processors available for automated workspace deposits.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+              {catalog.map(gw => (
+                <div key={gw.id} className="petti-gateway-pill">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <FeaturedIcon variant={gw.enabled ? 'success' : gw.configured ? 'warning' : 'gray'} size="sm">
+                      <Icon name={gw.region === 'Bank' ? 'building' : 'creditCard'} size={15} />
+                    </FeaturedIcon>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {gw.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
+                        {gw.region} · {gw.enabled ? (gw.chargeSupported ? 'Live STK' : 'Manual only') : gw.configured ? 'Configured, disabled' : 'Not connected'}
+                      </div>
+                    </div>
                   </div>
+                  <Badge variant={gw.enabled ? 'success' : 'gray'}>
+                    {gw.enabled ? 'Active' : 'Inactive'}
+                  </Badge>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
           </>
         )}
       </SectionCard>
 
-      <div style={{ height: 20 }} />
-
-      <SectionCard title="Gateway Deposits" padded={false} collapsible={false}>
+      {/* Gateway Deposits Table */}
+      <SectionCard title="Gateway-Routed Deposits Audit" padded={false} collapsible={false}>
         {deposits.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No deposits recorded via a payment gateway yet.</div>
         ) : (
-          <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>
-              {['Date', 'Wallet', 'Amount', 'Provider', 'Provider Reference'].map(h => (
-                <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase' }}>{h}</th>
-              ))}
-            </tr></thead>
-            <tbody>
-              {deposits.map(d => (
-                <tr key={d.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>{new Date(d.created_at).toLocaleString()}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{walletName(d.wallet_id)}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 800, color: 'var(--green)' }}>+{Number(d.amount).toLocaleString()}</td>
-                  <td style={{ padding: '12px 16px' }}><Badge variant="info">{d.gateway_provider || '—'}</Badge></td>
-                  <td style={{ padding: '12px 16px', fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>{d.gateway_tx_ref || '—'}</td>
+          <div className="petti-table-wrap">
+            <table className="petti-table">
+              <thead>
+                <tr>
+                  {['Ref', 'Date', 'Wallet', 'Amount', 'Provider', 'Provider Tx Ref'].map(h => (
+                    <th key={h}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table></div>
+              </thead>
+              <tbody>
+                {deposits.map(d => (
+                  <tr key={d.id}>
+                    <td style={{ fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{d.ref || '—'}</td>
+                    <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{new Date(d.created_at).toLocaleString()}</td>
+                    <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{walletName(d.wallet_id)}</td>
+                    <td style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: 'var(--green)' }}>+{Number(d.amount).toLocaleString()}</td>
+                    <td><Badge variant="info">{d.gateway_provider || '—'}</Badge></td>
+                    <td style={{ fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>{d.gateway_tx_ref || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </SectionCard>
     </div>

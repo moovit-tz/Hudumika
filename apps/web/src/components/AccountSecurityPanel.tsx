@@ -8,7 +8,7 @@ import { OndiSecuritySettings } from '../pages/OndiSecuritySettings.js';
  * they never drift.
  */
 export function AccountSecurityPanel() {
-  return <OndiSecuritySettings />;
+  return <OndiSecuritySettings embedded />;
 }
 
 export default AccountSecurityPanel;

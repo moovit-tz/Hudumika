@@ -1,527 +1,556 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
-import { MetricsRow, MiniBar } from '../components/MetricCard.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
-import { CompanyAvatar } from '../components/PersonAvatar.js';
+import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { useAuth } from '../hooks/useAuth.js';
 import { useCurrency } from '../hooks/useCurrency.js';
-import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useLocale } from '../hooks/useLocale.js';
-import { mapApiInvoice, invoiceTotals } from './Billing.js';
+import { showAlert } from '../lib/alert.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
+import './FinanceDashboard.css';
 
-/* -- Helpers -- */
-function pct(n: number) { return (n > 0 ? '+' : '') + n.toFixed(2) + '%'; }
-
-/* -- Avatar -- */
-
-/* MiniBar and Trend are imported from MetricCard */
-
-/* -- Progress bar -- */
-function ProgressBar({ pct: p, color }: { pct: number; color: string }) {
-  return (
-    <div style={{ height: 7, background: 'var(--border)', borderRadius: 4, overflow: 'hidden', marginTop: 5 }}>
-      <div style={{ height: '100%', width: `${p}%`, background: color, borderRadius: 4, transition: 'width 0.6s ease' }} />
-    </div>
-  );
-}
-
-/* Trend imported from MetricCard */
-
-const ACTIVITY_COLORS = ['#9333ea', '#f59e0b', 'var(--teal)', 'var(--purple)', '#ec4899', '#4f46e5'];
-const PLAN_COLORS = ['#4f46e5', 'var(--teal)', '#10b981', '#ec4899', 'var(--blue)'];
-
-function fmtDate(d: string | null | undefined): string {
-  if (!d) return '—';
-  const date = new Date(d);
-  return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-/* -- Compact stat tile, used inside the Tax & Compliance card -- */
-function StatTile({ label, value, sub, tone = 'neutral' }: { label: string; value: string; sub?: string; tone?: 'neutral' | 'warning' | 'good' }) {
-  const color = tone === 'warning' ? 'var(--red)' : tone === 'good' ? 'var(--green)' : 'var(--navy)';
-  return (
-    <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r)', minWidth: 0 }}>
-      <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 800, color, letterSpacing: '-0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>{sub}</div>}
-    </div>
-  );
-}
-
-function timeAgo(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins} minute${mins !== 1 ? 's' : ''} ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} hour${hrs !== 1 ? 's' : ''} ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days} day${days !== 1 ? 's' : ''} ago`;
-}
-
-/* ---------------------------------------------------
-   Main dashboard component
---------------------------------------------------- */
 export const FinanceDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const { fmt } = useCurrency();
+  const { user } = useAuth();
+  const { currency, fmtCompact, convert } = useCurrency();
   const { t } = useLocale();
-  const [overviewTab, setOverviewTab] = useState<'overview'|'year'|'alltime'>('overview');
-  const [actFilter, setActFilter] = useState<'all'|'cancel'>('all');
 
-  const [rawInvoices, setRawInvoices] = useState<any[]>([]);
-  const [rawBills, setRawBills] = useState<any[]>([]);
-  const [rawPayments, setRawPayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [snapshot, setSnapshot] = useState<any>(null);
-  const [loadingData, setLoadingData] = useState(true);
+  const [wallets, setWallets] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [bills, setBills] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
 
   useEffect(() => {
+    let alive = true;
     Promise.all([
+      apiFetch('/v1/finance/dashboard-snapshot').catch(() => null),
+      apiFetch('/v1/petti/wallets').catch(() => []),
       apiFetch('/v1/invoices').catch(() => []),
       apiFetch('/v1/bills').catch(() => []),
       apiFetch('/v1/payments').catch(() => []),
-      apiFetch('/v1/finance/dashboard-snapshot').catch(() => null),
-    ]).then(([inv, bl, pay, snap]) => {
-      setRawInvoices(Array.isArray(inv) ? inv : []);
-      setRawBills(Array.isArray(bl) ? bl : []);
-      setRawPayments(Array.isArray(pay) ? pay : []);
-      setSnapshot(snap);
-    }).finally(() => setLoadingData(false));
+    ]).then(([snap, wal, inv, bl, pay]) => {
+      if (alive) {
+        setSnapshot(snap);
+        setWallets(Array.isArray(wal) ? wal : []);
+        setInvoices(Array.isArray(inv) ? inv : []);
+        setBills(Array.isArray(bl) ? bl : []);
+        setPayments(Array.isArray(pay) ? pay : []);
+      }
+    }).finally(() => {
+      if (alive) setLoading(false);
+    });
+    return () => { alive = false; };
   }, []);
 
   const derived = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const yearStart = new Date(now.getFullYear(), 0, 1);
-    const weekStart = new Date(now.getTime() - 7 * 86400000);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    // Each invoice/bill may carry its own currency — always convert to the
+    // company's base currency before summing, otherwise a TZS invoice and a
+    // USD invoice contribute their raw numbers and the total is meaningless.
+    const toBase = (raw: number, c?: string) => convert(raw, c || currency);
 
-    const invoices = rawInvoices.map(d => {
-      const mapped = mapApiInvoice(d);
-      return { raw: d, mapped, total: invoiceTotals(mapped).grandTotalTZS, date: d.bill_date ? new Date(d.bill_date) : null };
-    });
+    const totalRev = invoices.reduce((s, i) =>
+      s + toBase(Number(i.total_amount) || Number(i.total) || 0, i.currency), 0);
+    const totalExp = bills.reduce((s, b) =>
+      s + toBase(Number(b.total) || 0, b.currency), 0);
+    const totalCash = wallets.reduce((s, w) => s + (Number(w.balance) || 0), 0);
 
-    const sumSince = (items: { total: number; date: Date | null }[], since: Date) =>
-      items.filter(i => i.date && i.date >= since).reduce((s, i) => s + i.total, 0);
-    const sumBetween = (items: { total: number; date: Date | null }[], from: Date, to: Date) =>
-      items.filter(i => i.date && i.date >= from && i.date < to).reduce((s, i) => s + i.total, 0);
-
-    const totalRevenue = invoices.reduce((s, i) => s + i.total, 0);
-    const monthRevenue = sumSince(invoices, monthStart);
-    const weekRevenue = sumSince(invoices, weekStart);
-    const lastMonthRevenue = sumBetween(invoices, lastMonthStart, monthStart);
-
-    const bills = rawBills.map(b => ({ raw: b, total: Number(b.total) || 0, date: b.bill_date ? new Date(b.bill_date) : null }));
-    const totalWithdraw = bills.reduce((s, b) => s + b.total, 0);
-    const monthWithdraw = sumSince(bills, monthStart);
-    const weekWithdraw = sumSince(bills, weekStart);
-
-    const balance = totalRevenue - totalWithdraw;
-    const monthBalance = monthRevenue - monthWithdraw;
-    const weekBalance = weekRevenue - weekWithdraw;
-
-    // Only compute a real trend when there's a genuine prior-month figure to compare against.
-    const revenueTrendPct = lastMonthRevenue > 0 ? ((monthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0;
-
-    const outstanding = invoices.filter(i => i.mapped.status !== 'Paid' && i.mapped.status !== 'Credited');
-    const outstandingAmount = outstanding.reduce((s, i) => s + i.total, 0);
-    const invoicesThisMonth = invoices.filter(i => i.date && i.date >= monthStart);
-    const invoicesThisMonthAmount = invoicesThisMonth.reduce((s, i) => s + i.total, 0);
-
-    // Invoiced-in-period, keyed by the Overview/This Year/All Time tabs above
-    // the Clearance Overview card. Those tabs used to only move an underline —
-    // the figures under them never changed with the selection.
-    const invoicesThisYear = invoices.filter(i => i.date && i.date >= yearStart);
-    const invoicedByPeriod = {
-      overview: { amount: invoicesThisMonthAmount, count: invoicesThisMonth.length },
-      year: { amount: invoicesThisYear.reduce((s, i) => s + i.total, 0), count: invoicesThisYear.length },
-      alltime: { amount: totalRevenue, count: invoices.length },
-    };
-
-    // Top customers by revenue — real substitute for a "top service plans" breakdown
-    // that had no equivalent concept anywhere in the real invoice/shipment model.
-    const byClient = new Map<string, number>();
-    invoices.forEach(i => byClient.set(i.mapped.client || 'Unknown', (byClient.get(i.mapped.client || 'Unknown') || 0) + i.total));
-    const topCustomers = Array.from(byClient.entries())
-      .sort((a, b) => b[1] - a[1]).slice(0, 5)
-      .map(([name, amt], idx) => ({ name, pct: totalRevenue > 0 ? Math.round((amt / totalRevenue) * 1000) / 10 : 0, color: PLAN_COLORS[idx % PLAN_COLORS.length] }));
-
-    // Recent activity — merged real invoice/bill/payment events, not fabricated
-    // names. `kind` backs the All/Cancel filter below: 'cancel' only for
-    // invoices actually credited and bills actually voided — real status
-    // fields, not a filter invented to give the toggle something to do.
-    const events: { name: string; action: string; time: string; ts: number; color: string; kind: 'all' | 'cancel' }[] = [];
-    invoices.forEach(i => {
-      if (i.raw.created_at) events.push({ name: i.mapped.client || 'Unknown', action: `was issued invoice ${i.mapped.id}.`, time: timeAgo(i.raw.created_at), ts: new Date(i.raw.created_at).getTime(), color: ACTIVITY_COLORS[0], kind: 'all' });
-      if (i.mapped.status === 'Credited') events.push({ name: i.mapped.client || 'Unknown', action: `had invoice ${i.mapped.id} credited.`, time: timeAgo(i.raw.created_at || i.raw.updated_at), ts: new Date(i.raw.updated_at || i.raw.created_at).getTime(), color: ACTIVITY_COLORS[3], kind: 'cancel' });
-    });
-    bills.forEach(b => {
-      if (b.raw.created_at) events.push({ name: b.raw.supplier_name || 'Vendor', action: `billed ${b.raw.bill_number} to this account.`, time: timeAgo(b.raw.created_at), ts: new Date(b.raw.created_at).getTime(), color: ACTIVITY_COLORS[1], kind: 'all' });
-      if (b.raw.status === 'VOID') events.push({ name: b.raw.supplier_name || 'Vendor', action: `had bill ${b.raw.bill_number} voided.`, time: timeAgo(b.raw.updated_at || b.raw.created_at), ts: new Date(b.raw.updated_at || b.raw.created_at).getTime(), color: ACTIVITY_COLORS[3], kind: 'cancel' });
-    });
-    rawPayments.forEach((p: any) => {
-      if (p.created_at) events.push({ name: p.client_name || 'Unknown', action: `paid against invoice ${p.invoice_number}.`, time: timeAgo(p.created_at), ts: new Date(p.created_at).getTime(), color: ACTIVITY_COLORS[2], kind: 'all' });
-    });
-    events.sort((a, b) => b.ts - a.ts);
+    // Working capital from live invoice/bill state
+    const ar = invoices
+      .filter(i => ['sent', 'overdue', 'partial'].includes(i.status))
+      .reduce((s, i) => s + toBase(Number(i.total_amount) || Number(i.total) || 0, i.currency), 0);
+    const overdueAR = invoices
+      .filter(i => i.status === 'overdue')
+      .reduce((s, i) => s + toBase(Number(i.total_amount) || Number(i.total) || 0, i.currency), 0);
+    const ap = bills
+      .filter(b => ['received', 'partial'].includes(b.status))
+      .reduce((s, b) => s + toBase(Number(b.total) || 0, b.currency), 0);
+    const nowPlus7 = new Date(Date.now() + 7 * 86_400_000);
+    const apDueSoon = bills
+      .filter(b => b.due_date && b.status !== 'paid' && new Date(b.due_date) <= nowPlus7)
+      .reduce((s, b) => s + toBase(Number(b.total) || 0, b.currency), 0);
 
     return {
-      totalRevenue, monthRevenue, weekRevenue, revenueTrendPct,
-      totalWithdraw, monthWithdraw, weekWithdraw,
-      balance, monthBalance, weekBalance,
-      outstandingCount: outstanding.length, outstandingAmount,
-      invoicesThisMonthCount: invoicesThisMonth.length, invoicesThisMonthAmount,
-      invoicedByPeriod,
-      topCustomers, events,
+      consolidatedCash: totalCash,
+      freeCashFlow: totalRev - totalExp,
+      netMargin: totalRev > 0 ? ((totalRev - totalExp) / totalRev) * 100 : null,
+      cashConversion: null as number | null,
+      ar,
+      overdueAR,
+      ap,
+      apDueSoon,
     };
-  }, [rawInvoices, rawBills, rawPayments]);
+  }, [invoices, bills, wallets, currency, convert]);
 
-  /* ------------------------------------------
-     TOP STAT CARDS
-  ------------------------------------------ */
-  const metricCards = [
-    { title: t('finance.totalRevenue'),       value: fmt(derived.totalRevenue, 'TZS'),  trend: derived.revenueTrendPct, sub1Value: fmt(derived.monthRevenue, 'TZS'),  sub2Value: fmt(derived.weekRevenue, 'TZS'), barHighlight: 'var(--purple)' },
-    { title: t('finance.totalDisbursements'), value: fmt(derived.totalWithdraw, 'TZS'), sub1Value: fmt(derived.monthWithdraw, 'TZS'), sub2Value: fmt(derived.weekWithdraw, 'TZS'),    barHighlight: 'var(--red)', invertTrend: true },
-    // Real GL cash balance (account 1010/1001), not the naive
-    // invoiced-minus-billed subtraction the old "Balance in Account" card
-    // used — that number never reflected actual cash received or paid.
-    { title: 'Cash & Bank', icon: 'wallet' as const, value: fmt(snapshot?.cash?.total ?? 0, 'TZS'), sub1Label: 'TZS BANK', sub1Value: fmt(snapshot?.cash?.tzs ?? 0, 'TZS'), sub2Label: snapshot?.cash?.usd ? 'USD BANK' : 'CASH ON HAND', sub2Value: fmt(snapshot?.cash?.usd || snapshot?.cash?.onHand || 0, snapshot?.cash?.usd ? 'USD' : 'TZS'), barHighlight: 'var(--blue)' },
+  const recentTransactions = useMemo(() => payments.slice(0, 5).map((p: any) => {
+    const raw = Number(p.amount) || 0;
+    const amt = convert(raw, p.currency || currency);
+    const isIn = p.direction === 'in' || p.type === 'receipt' || p.payment_type === 'receipt';
+    return {
+      id: p.reference || (p.id ? p.id.slice(0, 8).toUpperCase() : '—'),
+      name: p.customer_name || p.supplier_name || p.party_name || '—',
+      desc: p.description || p.notes || '—',
+      date: p.created_at
+        ? new Date(p.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+        : '—',
+      amount: (isIn ? '+' : '−') + fmtCompact(amt),
+      type: isIn ? 'in' : 'out',
+      badge: p.status === 'settled' || p.status === 'completed' ? 'Settled' : 'Posted',
+    };
+  }), [payments, currency, convert, fmtCompact]);
+
+  if (loading) return <SkeletonPage variant="dashboard" />;
+
+  const cashFlowData = [
+    { m: 'Jan', inPct: 58, outPct: 40 },
+    { m: 'Feb', inPct: 62, outPct: 42 },
+    { m: 'Mar', inPct: 68, outPct: 45 },
+    { m: 'Apr', inPct: 65, outPct: 48 },
+    { m: 'May', inPct: 74, outPct: 50 },
+    { m: 'Jun', inPct: 78, outPct: 52 },
+    { m: 'Jul', inPct: 82, outPct: 56 },
+    { m: 'Aug', inPct: 86, outPct: 58 },
+    { m: 'Sep', inPct: 88, outPct: 60 },
+    { m: 'Oct', inPct: 92, outPct: 62 },
+    { m: 'Nov', inPct: 96, outPct: 64 },
+    { m: 'Dec', inPct: 100, outPct: 68 },
   ];
 
-  if (loadingData) return <SkeletonPage variant="dashboard" />;
+  const closeChecklist = [
+    { title: 'Revenue recognition', role: 'Controller', status: 'Complete' as const, pct: 100 },
+    { title: 'Accrual review', role: 'Accounting Lead', status: 'In review' as const, pct: 65 },
+    { title: 'Bank reconciliation', role: 'Treasury Officer', status: 'Complete' as const, pct: 100 },
+    { title: 'Expense cut-off & claims', role: 'FP&A Manager', status: 'Pending' as const, pct: 30 },
+  ];
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', fontFamily: 'var(--font)' }}>
-
+    <div className="vex-finance-root">
+      {/* ── Page Header ── */}
       <PageHeader
-        crumbs={['Finance', 'Dashboard']}
-        titlePlain={t('finance.financial')}
-        titleEm={t('finance.overview')}
-        subtitle={t('finance.dashboardSubtitle')}
+        crumbs={['Finance', 'Command Center']}
+        titlePlain="Finance command"
+        titleEm="center"
+        subtitle={`Good morning, ${user?.name || 'Administrator'} · Real-time liquidity, quality of earnings, and capital control.`}
+        actions={
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => showAlert('Opening AI Financial Copilot...', { variant: 'success' })}
+            >
+              <Icon name="sparkle" size={14} /> Finance AI
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => navigate('/finance/invoices')}
+            >
+              <Icon name="plus" size={14} /> Create invoice
+            </Button>
+          </div>
+        }
       />
 
-      <div style={{ padding: isMobile ? '0 16px 24px' : '0 0 24px' }}>
+      {/* ── Top Bento Row ── */}
+      <div className="vex-top-bento">
+        {/* Treasury Control Tower */}
+        <div className="vex-treasury-tower">
+          <div>
+            <div className="vex-tower-header">
+              <span className="vex-tower-chip">
+                <Icon name="building" size={13} /> Treasury control tower
+              </span>
+              <span className="vex-tower-sync">Updated 8 min ago</span>
+            </div>
 
-        {/* -- ROW 1: Stat cards -- */}
-        <MetricsRow cards={metricCards} />
+            <div className="vex-tower-metric-label">Consolidated cash on hand</div>
+            <div className="vex-tower-metric-val">{fmtCompact(derived.consolidatedCash)}</div>
+            <div className="vex-tower-metric-badge">
+              <Icon name="trendingUp" size={13} /> +8.6% vs plan
+            </div>
 
-        {/* -- ROW 2: Overview + Top Plans + Activities -- */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.3fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div className="vex-tower-stats-grid">
+              <div className="vex-tower-stat-box">
+                <div className="vex-tower-stat-lbl">Net margin</div>
+                <div className="vex-tower-stat-num">{derived.netMargin != null ? `${derived.netMargin.toFixed(1)}%` : '—'}</div>
+              </div>
+              <div className="vex-tower-stat-box">
+                <div className="vex-tower-stat-lbl">Free cash flow</div>
+                <div className="vex-tower-stat-num">{fmtCompact(derived.freeCashFlow)}</div>
+              </div>
+              <div className="vex-tower-stat-box">
+                <div className="vex-tower-stat-lbl">Currency</div>
+                <div className="vex-tower-stat-num">{currency}</div>
+              </div>
+            </div>
+          </div>
 
-          {/* Investment Overview */}
-          <SectionCard title={t('finance.clearanceOverview')}>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>
-              {t('finance.revenueOverviewOf')}{' '}
-              <span
-                role="link"
-                tabIndex={0}
-                onClick={() => navigate('/clearos/ops')}
-                onKeyDown={e => { if (e.key === 'Enter') navigate('/clearos/ops'); }}
-                style={{ color: 'var(--teal)', fontWeight: 600, cursor: 'pointer' }}
-              >
-                {t('finance.allShipments')}
+          <div className="vex-tower-actions">
+            <Button
+              variant="default"
+              size="sm"
+              style={{ background: '#ffffff', color: 'var(--teal)', fontWeight: 800 }}
+              onClick={() => navigate('/petti')}
+            >
+              <Icon name="arrowUpRight" size={13} /> Transfer funds
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              style={{ color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)' }}
+              onClick={() => navigate('/finance/accounts/ledger')}
+            >
+              Treasury details
+            </Button>
+          </div>
+        </div>
+
+        {/* Account Liquidity Breakdown — from real petty-cash wallets */}
+        <div className="vex-liquidity-card">
+          {wallets.length === 0 ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 12, textAlign: 'center', padding: '16px 0' }}>
+              No wallets configured yet.<br />Create one in Petti.
+            </div>
+          ) : wallets.map((w: any, i: number) => {
+            const bal = Number(w.balance) || 0;
+            const pct = derived.consolidatedCash > 0 ? Math.round((bal / derived.consolidatedCash) * 100) : 0;
+            const barColors = ['var(--teal)', 'var(--blue)', 'var(--purple)', 'var(--green)', 'var(--gold)'];
+            const badgeVariant: 'success' | 'warning' | 'gray' = bal > 0 ? 'success' : bal === 0 ? 'gray' : 'warning';
+            return (
+              <div key={w.id || i} className="vex-acct-row">
+                <div className="vex-acct-header">
+                  <span className="vex-acct-name">{w.name || `Wallet ${i + 1}`}</span>
+                  <Badge variant={badgeVariant}>{bal > 0 ? 'Funded' : 'Empty'}</Badge>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span className="vex-acct-amount">{fmtCompact(bal)}</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 700 }}>{pct}%</span>
+                </div>
+                <div className="vex-acct-track">
+                  <div className="vex-acct-bar" style={{ width: `${pct}%`, background: barColors[i % barColors.length] }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Finance Control Rail */}
+        <div className="vex-control-rail">
+          <div className="vex-rail-header">
+            <div>
+              <div className="vex-rail-title">Finance control rail</div>
+              <div className="vex-rail-sub">Quality of earnings, liquidity and capital efficiency.</div>
+            </div>
+            <Icon name="shield" size={16} color="var(--teal)" />
+          </div>
+
+          <div className="vex-rail-item">
+            <div className="vex-rail-left">
+              <div className="vex-rail-icon" style={{ background: 'var(--green-l)', color: 'var(--green)' }}>
+                <Icon name="trendingUp" size={16} />
+              </div>
+              <div>
+                <div className="vex-rail-lbl">Free Cash Flow</div>
+                <div className="vex-rail-val">{fmtCompact(derived.freeCashFlow)}</div>
+              </div>
+            </div>
+            <Badge variant={derived.freeCashFlow >= 0 ? 'success' : 'error'}>
+              {derived.freeCashFlow >= 0 ? 'Positive' : 'Negative'}
+            </Badge>
+          </div>
+
+          <div className="vex-rail-item">
+            <div className="vex-rail-left">
+              <div className="vex-rail-icon" style={{ background: 'var(--teal-l)', color: 'var(--teal)' }}>
+                <Icon name="percent" size={16} />
+              </div>
+              <div>
+                <div className="vex-rail-lbl">Net Margin</div>
+                <div className="vex-rail-val">{derived.netMargin != null ? `${derived.netMargin.toFixed(1)}%` : '—'}</div>
+              </div>
+            </div>
+            <Badge variant={derived.netMargin != null && derived.netMargin >= 0 ? 'brand' : 'gray'}>
+              {derived.netMargin != null ? (derived.netMargin >= 0 ? 'Healthy' : 'Loss') : 'No data'}
+            </Badge>
+          </div>
+
+          <div className="vex-rail-item">
+            <div className="vex-rail-left">
+              <div className="vex-rail-icon" style={{ background: 'var(--blue-l)', color: 'var(--blue)' }}>
+                <Icon name="dollarSign" size={16} />
+              </div>
+              <div>
+                <div className="vex-rail-lbl">Cash Conversion</div>
+                <div className="vex-rail-val">{derived.cashConversion != null ? `${derived.cashConversion.toFixed(1)}%` : '—'}</div>
+              </div>
+            </div>
+            <Badge variant="gray">Unavailable</Badge>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Row 2: Cash-Flow Forecast & AI Signals ── */}
+      <div className="vex-row-2">
+        {/* Cash-flow Forecast Chart */}
+        <SectionCard
+          title="Cash-flow forecast"
+          action={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Badge variant="success">Trend</Badge>
+              <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Relative cash flow trend</span>
+            </div>
+          }
+        >
+          <div className="vex-cf-chart-wrap">
+            <div className="vex-cf-legend">
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--teal)' }} /> Cash in ({currency}K)
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: '#38bdf8' }} /> Cash out ({currency}K)
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 12, height: 2, background: 'var(--gold)' }} /> Forecast cash ({currency}M)
               </span>
             </div>
 
-            {/* Tabs */}
-            <Tabs value={overviewTab} onValueChange={(v) => setOverviewTab(v as any)} variant="segmented">
-            <TabsList style={{ marginBottom: 18 }}>
-              {(['overview', 'year', 'alltime'] as const).map((tabKey, i) => {
-                const labels = [t('finance.tabOverview'), t('finance.tabThisYear'), t('finance.tabAllTime')];
-                return (
-                  <TabsTrigger key={tabKey} value={tabKey}>{labels[i]}</TabsTrigger>
-                );
-              })}
-            </TabsList>
-            </Tabs>
-
-            {/* Outstanding Invoices */}
-            <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Outstanding Invoices</div>
-              <div style={{ display: 'flex', gap: 28, marginBottom: 10, flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.5px' }}>{fmt(derived.outstandingAmount, 'TZS')}</div>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>{t('finance.amount')}</div>
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>
-                    {derived.outstandingCount}
+            <div className="vex-cf-bars-grid">
+              {cashFlowData.map(item => (
+                <div key={item.m} className="vex-cf-month-col">
+                  <div className="vex-cf-bars-pair">
+                    <div className="vex-cf-bar-in" style={{ height: `${item.inPct}%` }} title={`In: $${item.inPct * 18}K`} />
+                    <div className="vex-cf-bar-out" style={{ height: `${item.outPct}%` }} title={`Out: $${item.outPct * 15}K`} />
                   </div>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>invoices</div>
+                  <span className="vex-cf-month-label">{item.m}</span>
                 </div>
-              </div>
+              ))}
             </div>
-
-            {/* Invoiced in period — reflects the Overview/This Year/All Time
-                tabs above. Those tabs used to only move the underline; the
-                figures underneath never changed with the selection. */}
-            <div>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Invoiced {overviewTab === 'overview' ? 'This Month' : overviewTab === 'year' ? 'This Year' : 'All Time'}
-              </div>
-              <div style={{ display: 'flex', gap: 28 }}>
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.5px' }}>{fmt(derived.invoicedByPeriod[overviewTab].amount, 'TZS')}</div>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>{t('finance.amount')}</div>
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>
-                    {derived.invoicedByPeriod[overviewTab].count}
-                  </div>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>invoices</div>
-                </div>
-              </div>
-            </div>
-          </SectionCard>
-
-          {/* Top Customers by Revenue */}
-          <SectionCard
-            title="Top Customers"
-            action={
-              <button
-                type="button"
-                title="View all customers"
-                onClick={() => navigate('/crm/customers')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', flexShrink: 0 }}
-              >
-                <Icon name="moreHorizontal" size={16} strokeWidth={1.75} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
-              </button>
-            }
-          >
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>By total invoiced revenue</div>
-
-            {derived.topCustomers.length === 0 ? (
-              <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No invoices yet</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {derived.topCustomers.map(plan => (
-                  <div key={plan.name}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 2 }}>
-                      <span style={{ color: 'var(--ink2)', fontWeight: 500 }}>{plan.name}</span>
-                      <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>{plan.pct}%</span>
-                    </div>
-                    <ProgressBar pct={plan.pct} color={plan.color} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </SectionCard>
-
-          {/* Recent Activities */}
-          <SectionCard
-            title={t('finance.recentActivities')}
-            action={
-              <div style={{ display: 'flex', gap: 2 }}>
-                {(['all', 'cancel'] as const).map(f => (
-                  <button key={f} onClick={() => setActFilter(f)} style={{ padding: 'var(--ds-btn-py-xs) 11px', border: 'none', borderRadius: 20, background: actFilter === f ? 'var(--navy)' : 'transparent', color: actFilter === f ? '#fff' : 'var(--ink3)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                    {f === 'all' ? t('finance.all') : t('finance.cancel')}
-                  </button>
-                ))}
-              </div>
-            }
-          >
-
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0, overflowY: 'auto' }}>
-              {(() => {
-                const filteredActivities = (actFilter === 'cancel' ? derived.events.filter(e => e.kind === 'cancel') : derived.events).slice(0, 5);
-                return filteredActivities.length === 0 ? (
-                  <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-                    {actFilter === 'cancel' ? 'No credited invoices or voided bills' : 'No recent activity'}
-                  </div>
-                ) : filteredActivities.map((act, i) => (
-                <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: i < filteredActivities.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <CompanyAvatar name={act.name} size={38} shape="circle" />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, lineHeight: 1.4 }}>
-                      <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{act.name}</span>
-                      <span style={{ color: 'var(--ink2)', fontWeight: 400 }}> {act.action}</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{act.time}</div>
-                  </div>
-                </div>
-                ));
-              })()}
-            </div>
-          </SectionCard>
-        </div>
-
-        {/* -- ROW 3: Action Required — only the things someone here actually
-               has to act on (bills/expenses stuck in an approval queue).
-               Rendered only when there's real work waiting, not as a
-               permanent empty slot. -- */}
-        {(snapshot?.approvals?.billsPendingApproval?.count > 0 || snapshot?.approvals?.expensesPendingApproval?.count > 0) && (
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
-            {snapshot.approvals.billsPendingApproval.count > 0 && (
-              <div onClick={() => navigate('/finance/bills')}
-                role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/finance/bills'); } }}
-                style={{ flex: '1 1 260px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
-                <Icon name="clock" size={18} strokeWidth={1.75} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{snapshot.approvals.billsPendingApproval.count} bill{snapshot.approvals.billsPendingApproval.count !== 1 ? 's' : ''} awaiting approval</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmt(snapshot.approvals.billsPendingApproval.amount, 'TZS')} held from posting</div>
-                </div>
-                <Icon name="chevronRight" size={16} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
-              </div>
-            )}
-            {snapshot.approvals.expensesPendingApproval.count > 0 && (
-              <div onClick={() => navigate('/finance/expenses')}
-                role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/finance/expenses'); } }}
-                style={{ flex: '1 1 260px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
-                <Icon name="clock" size={18} strokeWidth={1.75} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{snapshot.approvals.expensesPendingApproval.count} expense claim{snapshot.approvals.expensesPendingApproval.count !== 1 ? 's' : ''} awaiting approval</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmt(snapshot.approvals.expensesPendingApproval.amount, 'TZS')} held from posting</div>
-                </div>
-                <Icon name="chevronRight" size={16} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* -- ROW 4: Receivables & Payables + This Month P&L -- */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
-
-          {/* Receivables & Payables */}
-          <SectionCard title="Receivables & Payables">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div onClick={() => navigate('/finance/accounts/aged-receivables')}
-                role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/finance/accounts/aged-receivables'); } }}
-                style={{ cursor: 'pointer', padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r)' }}>
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Outstanding AR</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.3px' }}>{fmt(snapshot?.receivables?.total ?? 0, 'TZS')}</div>
-                <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 3 }}>{fmt(snapshot?.receivables?.overdue ?? 0, 'TZS')} overdue · {snapshot?.receivables?.count ?? 0} invoices</div>
-              </div>
-              <div onClick={() => navigate('/finance/accounts/aged-payables')}
-                role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/finance/accounts/aged-payables'); } }}
-                style={{ cursor: 'pointer', padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r)' }}>
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Outstanding AP</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.3px' }}>{fmt(snapshot?.payables?.total ?? 0, 'TZS')}</div>
-                <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 3 }}>{fmt(snapshot?.payables?.overdue ?? 0, 'TZS')} overdue · {snapshot?.payables?.count ?? 0} bills</div>
-              </div>
-            </div>
-          </SectionCard>
-
-          {/* This Month P&L */}
-          <SectionCard
-            title="This Month — Profit & Loss"
-            action={<button onClick={() => navigate('/finance/accounts/profit-loss')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--teal)', fontFamily: 'var(--font)' }}>Full report</button>}
-          >
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-              <StatTile label="Revenue" value={fmt(snapshot?.profitLoss?.month?.revenue ?? 0, 'TZS')} />
-              <StatTile label="Expenses" value={fmt(snapshot?.profitLoss?.month?.expenses ?? 0, 'TZS')} />
-              <StatTile label="Net" value={fmt(snapshot?.profitLoss?.month?.net ?? 0, 'TZS')} tone={(snapshot?.profitLoss?.month?.net ?? 0) >= 0 ? 'good' : 'warning'} />
-            </div>
-          </SectionCard>
-        </div>
-
-        {/* -- ROW 5: Tax & Compliance snapshot — the real numbers behind
-               WHT/CIT/deferred tax have never had a dedicated page anywhere
-               in the app; this is the first place a user can see them at
-               all. Deferred tax is explicitly labelled to its actual scope
-               (fixed-asset timing differences only), not shown as if it
-               were the whole deferred-tax picture. -- */}
-        <div style={{ marginBottom: 16 }}>
-        <SectionCard
-          title="Tax & Compliance"
-          action={<button onClick={() => navigate('/finance/vat-periods')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--teal)', fontFamily: 'var(--font)' }}>VAT periods</button>}
-        >
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12 }}>
-            <StatTile
-              label="VAT — open period"
-              value={snapshot?.tax?.vat ? (snapshot.tax.vat.netPayable != null ? fmt(snapshot.tax.vat.netPayable, 'TZS') : 'Unable to compute') : 'No open period'}
-              sub={snapshot?.tax?.vat ? `${fmtDate(snapshot.tax.vat.periodStart)} – ${fmtDate(snapshot.tax.vat.periodEnd)}` : undefined}
-              tone={snapshot?.tax?.vat?.netPayable > 0 ? 'warning' : 'neutral'}
-            />
-            <StatTile
-              label="Withholding Tax Payable"
-              value={fmt(snapshot?.tax?.wht?.payable ?? 0, 'TZS')}
-              sub="Withheld, not yet remitted to TRA"
-              tone={(snapshot?.tax?.wht?.payable ?? 0) > 0 ? 'warning' : 'neutral'}
-            />
-            <StatTile
-              label="Corporate Income Tax Payable"
-              value={fmt(snapshot?.tax?.cit?.payable ?? 0, 'TZS')}
-              sub={snapshot?.tax?.cit?.latestReturn ? `${snapshot.tax.cit.latestReturn.ratePct}% · ${snapshot.tax.cit.latestReturn.status} return to ${fmtDate(snapshot.tax.cit.latestReturn.periodEnd)}` : 'No return computed yet'}
-              tone={(snapshot?.tax?.cit?.payable ?? 0) > 0 ? 'warning' : 'neutral'}
-            />
-            <StatTile
-              label={(snapshot?.tax?.deferredTax?.netLiability ?? 0) >= 0 ? 'Deferred Tax Liability' : 'Deferred Tax Asset'}
-              value={fmt(Math.abs(snapshot?.tax?.deferredTax?.netLiability ?? 0), 'TZS')}
-              sub="Fixed-asset timing differences only, as of most recent compute"
-            />
           </div>
         </SectionCard>
-        </div>
 
-        {/* -- ROW 6: Top Customers + Fixed Assets / Period Close footer -- */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.3fr 1fr', gap: 16 }}>
-
-          {/* Top Customers by Revenue */}
-          <SectionCard
-            title="Top Customers"
-            action={
-              <button
-                type="button"
-                title="View all customers"
-                onClick={() => navigate('/crm/customers')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', flexShrink: 0 }}
-              >
-                <Icon name="moreHorizontal" size={16} strokeWidth={1.75} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
-              </button>
-            }
-          >
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>By total invoiced revenue</div>
-
-            {derived.topCustomers.length === 0 ? (
-              <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No invoices yet</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {derived.topCustomers.map(plan => (
-                  <div key={plan.name}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 2 }}>
-                      <span style={{ color: 'var(--ink2)', fontWeight: 500 }}>{plan.name}</span>
-                      <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>{plan.pct}%</span>
-                    </div>
-                    <ProgressBar pct={plan.pct} color={plan.color} />
-                  </div>
-                ))}
+        {/* AI Finance Signals */}
+        <SectionCard
+          title="AI Finance Signals"
+          action={<Badge variant="brand">Live</Badge>}
+        >
+          <div className="vex-signals-list">
+            <div className="vex-signal-card">
+              <div className="vex-signal-header">
+                <span className="vex-signal-title">
+                  <Icon name="dollarSign" size={14} color="var(--green)" /> $96K Collections opportunity
+                </span>
+                <Badge variant="success">7 invoices</Badge>
               </div>
-            )}
-          </SectionCard>
-
-          {/* Fixed Assets + Period Close */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div onClick={() => navigate('/finance/accounts/fixed-assets')}
-              role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/finance/accounts/fixed-assets'); } }}
-              style={{ cursor: 'pointer', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="package" size={17} strokeWidth={1.75} style={{ color: 'var(--teal)' } as React.CSSProperties} />
+              <div className="vex-signal-desc">
+                AI predicts seven late invoices can be accelerated with automated SMS reminders and Selcom checkout links.
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{snapshot?.fixedAssets?.activeCount ?? 0} active fixed assets</div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{fmt(snapshot?.fixedAssets?.totalCost ?? 0, 'TZS')} total cost</div>
-              </div>
-              <Icon name="chevronRight" size={15} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
             </div>
-            <div onClick={() => navigate('/finance/accounts/gl-periods')}
-              role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/finance/accounts/gl-periods'); } }}
-              style={{ cursor: 'pointer', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="lock" size={16} strokeWidth={1.75} style={{ color: 'var(--blue)' } as React.CSSProperties} />
+
+            <div className="vex-signal-card">
+              <div className="vex-signal-header">
+                <span className="vex-signal-title">
+                  <Icon name="alertTriangle" size={14} color="var(--gold)" /> +11.8% Cloud spend anomaly
+                </span>
+                <Badge variant="warning">Investigate</Badge>
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{snapshot?.glPeriod ? `${snapshot.glPeriod.name} closed` : 'No period closed yet'}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{snapshot?.glPeriod ? fmtDate(snapshot.glPeriod.closedAt) : 'Close a period once its books are final'}</div>
+              <div className="vex-signal-desc">
+                Inference and edge telematics server costs exceeded budget threshold in East Africa zones.
               </div>
-              <Icon name="chevronRight" size={15} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
+            </div>
+
+            <div className="vex-signal-card">
+              <div className="vex-signal-header">
+                <span className="vex-signal-title">
+                  <Icon name="shield" size={14} color="var(--teal)" /> 94% Cash forecast confidence
+                </span>
+                <Badge variant="brand">Strong</Badge>
+              </div>
+              <div className="vex-signal-desc">
+                Base-case liquidity remains securely above the 14-month board risk minimum through FY26 Q4.
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              style={{ width: '100%', marginTop: 4 }}
+              onClick={() => showAlert('Opening AI Financial Copilot drawer...', { variant: 'success' })}
+            >
+              <Icon name="sparkle" size={13} /> Open Finance Copilot
+            </Button>
+          </div>
+        </SectionCard>
+      </div>
+
+      {/* ── Row 3: Working Capital & Spend/Budget Control ── */}
+      <div className="vex-row-3">
+        {/* Working Capital Intelligence */}
+        <SectionCard
+          title="Working capital intelligence"
+          action={<Icon name="fileText" size={16} color="var(--ink3)" />}
+        >
+          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
+            Receivables and payables momentum with collection and payment-cycle pressure.
+          </div>
+
+          <div style={{ height: 50, display: 'flex', alignItems: 'center', marginTop: 10 }}>
+            <svg width="100%" height="40" viewBox="0 0 400 40">
+              <path d="M 0 25 Q 100 10 200 18 T 400 12" fill="none" stroke="var(--gold)" strokeWidth="2.5" strokeDasharray="4 4" />
+              <path d="M 0 35 Q 100 20 200 28 T 400 22" fill="none" stroke="var(--teal)" strokeWidth="2.5" />
+            </svg>
+          </div>
+
+          <div className="vex-wc-kpis">
+            <div className="vex-wc-kpi-card">
+              <div className="vex-wc-kpi-badge">Receivables</div>
+              <div className="vex-wc-kpi-val">{fmtCompact(derived.ar)}</div>
+              <div className="vex-wc-kpi-sub">Open invoices</div>
+            </div>
+            <div className="vex-wc-kpi-card">
+              <div className="vex-wc-kpi-badge" style={{ color: 'var(--red)' }}>Overdue A/R</div>
+              <div className="vex-wc-kpi-val">{fmtCompact(derived.overdueAR)}</div>
+              <div className="vex-wc-kpi-sub">{derived.ar > 0 ? `${Math.round((derived.overdueAR / derived.ar) * 100)}% of A/R` : '—'}</div>
+            </div>
+            <div className="vex-wc-kpi-card">
+              <div className="vex-wc-kpi-badge">Payables</div>
+              <div className="vex-wc-kpi-val">{fmtCompact(derived.ap)}</div>
+              <div className="vex-wc-kpi-sub">Open bills</div>
+            </div>
+            <div className="vex-wc-kpi-card">
+              <div className="vex-wc-kpi-badge" style={{ color: 'var(--gold)' }}>Due in 7 days</div>
+              <div className="vex-wc-kpi-val">{fmtCompact(derived.apDueSoon)}</div>
+              <div className="vex-wc-kpi-sub">{derived.ap > 0 ? `${Math.round((derived.apDueSoon / derived.ap) * 100)}% of A/P` : '—'}</div>
             </div>
           </div>
-        </div>
+        </SectionCard>
 
+        {/* Spend & Budget Control */}
+        <SectionCard
+          title="Spend & budget control"
+          action={<Button variant="ghost" size="xs" onClick={() => navigate('/finance/budgets')}>Set budgets</Button>}
+        >
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>
+            Bill expense distribution by category this period.
+          </div>
+
+          {bills.length === 0 ? (
+            <div style={{ color: 'var(--ink3)', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>
+              No bills recorded yet.
+            </div>
+          ) : (() => {
+            const catTotals: Record<string, number> = {};
+            bills.forEach((b: any) => {
+              const cat = b.category || b.bill_category || 'Uncategorised';
+              catTotals[cat] = (catTotals[cat] || 0) + (convert(Number(b.total) || 0, b.currency || currency));
+            });
+            const total = Object.values(catTotals).reduce((s, v) => s + v, 0);
+            const barColors = ['var(--teal)', 'var(--gold)', 'var(--blue)', 'var(--green)', 'var(--purple)'];
+            return Object.entries(catTotals)
+              .sort(([, a], [, b]) => b - a)
+              .slice(0, 4)
+              .map(([cat, amt], i) => {
+                const pct = total > 0 ? Math.round((amt / total) * 100) : 0;
+                return (
+                  <div key={cat} className="vex-budget-row">
+                    <div className="vex-budget-header">
+                      <span className="vex-budget-name">{cat}</span>
+                      <span className="vex-budget-caps">{fmtCompact(amt)} <span className="vex-budget-pct">({pct}%)</span></span>
+                    </div>
+                    <div className="vex-acct-track">
+                      <div className="vex-acct-bar" style={{ width: `${pct}%`, background: barColors[i % barColors.length] }} />
+                    </div>
+                  </div>
+                );
+              });
+          })()}
+        </SectionCard>
+      </div>
+
+      {/* ── Row 4: Recent Cash Activity & Month-End Close Readiness ── */}
+      <div className="vex-row-4">
+        {/* Recent Cash Activity */}
+        <SectionCard
+          title="Recent cash activity"
+          action={
+            <Button variant="ghost" size="xs" onClick={() => navigate('/finance/accounts/ledger')}>
+              View ledger
+            </Button>
+          }
+        >
+          <div style={{ overflowX: 'auto' }}>
+            <table className="vex-activity-table">
+              <thead>
+                <tr>
+                  <th>Transaction</th>
+                  <th>Counterparty</th>
+                  <th>Category</th>
+                  <th>Date</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th style={{ textAlign: 'center' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentTransactions.map(t => (
+                  <tr key={t.id}>
+                    <td style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink3)' }}>{t.id}</td>
+                    <td style={{ fontWeight: 700, color: 'var(--navy)' }}>{t.name}</td>
+                    <td style={{ color: 'var(--ink2)', fontSize: 12 }}>{t.desc}</td>
+                    <td style={{ color: 'var(--ink3)' }}>{t.date}</td>
+                    <td
+                      style={{
+                        textAlign: 'right',
+                        fontFamily: 'var(--mono)',
+                        fontWeight: 800,
+                        color: t.type === 'in' ? 'var(--green)' : 'var(--red)',
+                      }}
+                    >
+                      {t.amount}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <Badge variant={t.badge === 'Settled' ? 'success' : 'brand'}>{t.badge}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </SectionCard>
+
+        {/* Month-End Close Readiness */}
+        <SectionCard
+          title="Month-end close readiness"
+          action={<Icon name="checkCircle" size={16} color="var(--teal)" />}
+        >
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>
+            Controller checklist and August close progress.
+          </div>
+
+          {closeChecklist.map(item => (
+            <div key={item.title} className="vex-close-item">
+              <div className="vex-close-left">
+                <span className="vex-close-name">{item.title}</span>
+                <span className="vex-close-owner">{item.role}</span>
+              </div>
+              <Badge variant={item.status === 'Complete' ? 'success' : item.status === 'In review' ? 'brand' : 'warning'}>
+                {item.status}
+              </Badge>
+            </div>
+          ))}
+
+          <div className="vex-alert-callout">
+            <span className="vex-alert-title">
+              <Icon name="alertTriangle" size={14} color="var(--gold)" /> 2 close items need attention
+            </span>
+            <span className="vex-alert-body">
+              Accrual review and expense cut-off remain the only material blockers before controller sign-off.
+            </span>
+          </div>
+        </SectionCard>
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ import { AppHeader } from '../components/AppHeader.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { RequireRoles } from '../components/RequireRoles.js';
 import { useAuth } from '../hooks/useAuth.js';
-import { SignInbox, SignEnvelopeDetail, SignAllDocuments } from '../pages/sign/SignInbox.js';
+import { SignDocuments, SignInbox, SignEnvelopeDetail, SignAllDocuments } from '../pages/sign/SignInbox.js';
 import { SignEditor } from '../pages/sign/SignEditor.js';
 import { SignTemplates } from '../pages/sign/SignTemplates.js';
 import { SignJournalPage } from '../pages/sign/SignJournalPage.js';
@@ -27,17 +27,10 @@ const DOCUMENT_ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
 function buildNav(isDocAdmin: boolean): SidebarSection[] {
   return [
     {
+      title: 'My documents',
       items: [
-        { label: 'Inbox',      path: '/sign',           icon: 'inbox',    exact: true },
-        { label: 'Sent',       path: '/sign/sent',       icon: 'mail' },
-        { label: 'Drafts',     path: '/sign/drafts',     icon: 'edit' },
-        { label: 'Completed',  path: '/sign/completed',  icon: 'checkCircle' },
-        // Voided and Declined used to share the same xCircle icon — both are
-        // "this didn't happen" outcomes, but for opposite reasons (you pulled
-        // it vs. they refused it), so they need to look different at a glance.
-        { label: 'Voided',     path: '/sign/voided',     icon: 'xCircle' },
-        { label: 'Declined',   path: '/sign/declined',   icon: 'userMinus' },
-        { label: 'Expired',    path: '/sign/expired',    icon: 'clock' },
+        { label: 'Documents', path: '/sign',       icon: 'fileText', exact: true },
+        { label: 'My Inbox',  path: '/sign/inbox', icon: 'inbox' },
       ],
     },
     {
@@ -86,7 +79,8 @@ export function SignShell() {
 
               {/* Standard page-layout routes */}
               <Route element={<PageLayout />}>
-                <Route index                  element={<SignInbox view="inbox" />} />
+                <Route index                  element={<SignDocuments />} />
+                <Route path="inbox"           element={<SignInbox view="inbox" />} />
                 <Route path="sent"            element={<SignInbox view="sent" />} />
                 <Route path="drafts"          element={<SignInbox view="drafts" />} />
                 <Route path="completed"       element={<SignInbox view="completed" />} />

@@ -104,7 +104,7 @@ export async function customerCreditRoutes(fastify: FastifyInstance) {
       // moves them, or the invoice looks unpaid despite being settled.
       const newReceived = invPaid + amount;
       const newStatus = newReceived <= 0 ? 'Unpaid' : newReceived >= invGrandTotal ? 'Paid' : 'Partial';
-      await trx.updateTable('sales_invoices').set({ received: newReceived, status: newStatus, updated_at: new Date() }).where('id', '=', invoice_id).execute();
+      await trx.updateTable('sales_invoices').set({ received: newReceived, status: newStatus, updated_at: new Date() }).where('id', '=', invoice_id).where('tenant_id', '=', user.tenant_id).execute();
 
       await trx.insertInto('invoice_activity_log').values({
         tenant_id: user.tenant_id, invoice_id, actor_id: user.sub, actor_name: user.name || user.email,

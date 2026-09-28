@@ -1,0 +1,117 @@
+.budgets-page {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 20px;
+  font-family: var(--font);
+}
+
+.budgets-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 26px;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(135deg, #0e1f3d 0%, #1a3260 60%, color-mix(in srgb, var(--teal) 35%, #0e1f3d) 100%);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+
+.budgets-toolbar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+
+.budgets-toolbar-tabs {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.budgets-toolbar-tabs [role="tablist"] {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.budgets-toolbar-actions,
+.budgets-mode-switch {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.budgets-account-picker {
+  width: 230px;
+}
+
+.budgets-account-picker > * {
+  width: 100%;
+}
+
+[data-theme="dark"] .budgets-hero {
+  border-color: var(--border);
+  box-shadow: var(--card-shadow);
+}
+
+[data-theme="dark"] .budgets-toolbar {
+  border-color: var(--border);
+  box-shadow: var(--card-shadow);
+}
+
+@media (max-width: 1180px) {
+  .budgets-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .budgets-toolbar-tabs {
+    width: 100%;
+  }
+
+  .budgets-toolbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .budgets-account-picker {
+    flex: 1 1 220px;
+    width: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .budgets-hero {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 18px;
+  }
+
+  .budgets-toolbar-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .budgets-mode-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .budgets-mode-switch > *,
+  .budgets-toolbar-actions > button,
+  .budgets-account-picker {
+    width: 100%;
+  }
+}

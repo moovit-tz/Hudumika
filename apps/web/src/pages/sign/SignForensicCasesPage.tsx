@@ -6,8 +6,10 @@
 // CONTENT_DIFFERENCE / INCONCLUSIVE); this page is where an investigator
 // reviews what was found, the evidence it was built from, and the full
 // chain of custody, then resolves or dismisses it.
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
 import { apiFetch, BASE_URL } from '../../lib/api.js';
 import { Icon, type IconName } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
@@ -203,6 +205,45 @@ function getAuditIcon(action: string): IconName {
   }
 }
 
+const PER_PAGE_OPTIONS = [10, 20, 50, 100];
+
+function Pagination({ total, page, perPage, onPage }: { total: number; page: number; perPage: number; onPage: (p: number) => void }) {
+  const totalPages = Math.ceil(total / perPage);
+  if (totalPages <= 1) return null;
+  const pages: (number | '...')[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (page > 3) pages.push('...');
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+    if (page < totalPages - 2) pages.push('...');
+    pages.push(totalPages);
+  }
+  const btnBase: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 32, height: 32, padding: '0 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center', padding: '16px 0' }}>
+      <button type="button" style={{ ...btnBase, opacity: page === 1 ? 0.4 : 1 }} disabled={page === 1} onClick={() => onPage(page - 1)}>
+        <Icon name="chevronLeft" size={13} />
+      </button>
+      {pages.map((p, i) => p === '...' ? (
+        <span key={`e${i}`} style={{ color: 'var(--ink3)', fontSize: 12.5, padding: '0 4px' }}>…</span>
+      ) : (
+        <button key={p} type="button" onClick={() => onPage(p as number)}
+          style={{ ...btnBase, background: p === page ? 'hsl(var(--primary))' : 'var(--bg)', color: p === page ? 'hsl(var(--primary-foreground))' : 'var(--ink)', borderColor: p === page ? 'hsl(var(--primary))' : 'var(--border)' }}>
+          {p}
+        </button>
+      ))}
+      <button type="button" style={{ ...btnBase, opacity: page === totalPages ? 0.4 : 1 }} disabled={page === totalPages} onClick={() => onPage(page + 1)}>
+        <Icon name="chevronRight" size={13} />
+      </button>
+      <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--ink3)' }}>
+        {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}
+      </span>
+    </div>
+  );
+}
+
 export function SignForensicCasesPage() {
   const { id } = useParams<{ id?: string }>();
   if (id) return <CaseDetailView id={id} />;
@@ -216,19 +257,31 @@ function CaseListView() {
   const navigate = useNavigate();
   const [cases, setCases] = useState<CaseSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<'all' | CaseStatus>('all');
+  const [statusFilter, setStatusFilter] = useState<CaseStatus | null>(null);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
 
   useEffect(() => {
     setLoading(true);
-    apiFetch(`/v1/sign/forensics/cases${statusFilter === 'all' ? '' : `?status=${statusFilter}`}`)
+    apiFetch(`/v1/sign/forensics/cases${statusFilter ? `?status=${statusFilter}` : ''}`)
       .then((res: any) => setCases(Array.isArray(res) ? res : []))
       .catch(() => setCases([]))
       .finally(() => setLoading(false));
   }, [statusFilter]);
 
+  useEffect(() => { setPage(1); }, [statusFilter, perPage]);
+
   const openCount = cases.filter(c => c.status === 'open').length;
   const reviewingCount = cases.filter(c => c.status === 'reviewing').length;
   const resolvedCount = cases.filter(c => c.status === 'resolved').length;
+  const pageItems = useMemo(() => cases.slice((page - 1) * perPage, page * perPage), [cases, page, perPage]);
+
+  const STATUS_OPTIONS = [
+    { value: 'open',      label: openCount > 0 ? `Open (${openCount})` : 'Open' },
+    { value: 'reviewing', label: reviewingCount > 0 ? `Reviewing (${reviewingCount})` : 'Reviewing' },
+    { value: 'resolved',  label: resolvedCount > 0 ? `Resolved (${resolvedCount})` : 'Resolved' },
+    { value: 'dismissed', label: 'Dismissed' },
+  ];
 
   return (
     <div className="sfc-page-root">
@@ -259,31 +312,24 @@ function CaseListView() {
         </div>
       </div>
 
-      {/* Status Filter Tabs */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: 4, background: 'var(--bg)', borderRadius: 'var(--r)', padding: 3 }}>
-          {(['all', 'open', 'reviewing', 'resolved', 'dismissed'] as const).map(s => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setStatusFilter(s)}
-              style={{
-                padding: '6px 14px',
-                border: 'none',
-                borderRadius: 'var(--r-sm)',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: 12,
-                textTransform: 'capitalize',
-                background: statusFilter === s ? 'var(--white)' : 'transparent',
-                color: statusFilter === s ? 'var(--ink)' : 'var(--ink3)',
-                boxShadow: statusFilter === s ? 'var(--elev-sm)' : 'none',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {s}{s === 'open' && openCount > 0 ? ` (${openCount})` : ''}
-            </button>
-          ))}
+      {/* Status Filter + per-page */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+        <SingleSelectFilter
+          label="Status"
+          options={STATUS_OPTIONS}
+          value={statusFilter}
+          onChange={v => setStatusFilter(v as CaseStatus | null)}
+          allLabel="All Cases"
+        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)', marginLeft: 'auto' }}>
+          <span>Show</span>
+          <Select value={String(perPage)} onValueChange={v => setPerPage(Number(v))}>
+            <SelectTrigger style={{ height: 30, fontSize: 12, padding: '0 8px', width: 72 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {PER_PAGE_OPTIONS.map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <span>per page</span>
         </div>
       </div>
 
@@ -324,7 +370,7 @@ function CaseListView() {
               <Icon name="shield" size={26} />
             </div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
-              {statusFilter === 'all' ? 'No Forensic Cases' : `No ${statusFilter} cases`}
+              {statusFilter ? `No ${statusFilter} cases` : 'No Forensic Cases'}
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink3)', maxWidth: 400, lineHeight: 1.5 }}>
               A case opens automatically the moment a verification's seal fails to validate or its content doesn't match the canonical document — all documents in this tenant are authentic.
@@ -345,7 +391,7 @@ function CaseListView() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cases.map(c => {
+                  {pageItems.map(c => {
                     const verdict = getVerdictInfo(c.content_verdict);
                     return (
                       <tr
@@ -385,7 +431,7 @@ function CaseListView() {
 
             {/* Mobile Card Grid */}
             <div className="sfc-list-card-grid">
-              {cases.map(c => {
+              {pageItems.map(c => {
                 const verdict = getVerdictInfo(c.content_verdict);
                 return (
                   <div
@@ -421,6 +467,7 @@ function CaseListView() {
                 );
               })}
             </div>
+            <Pagination total={cases.length} page={page} perPage={perPage} onPage={setPage} />
           </>
         )}
       </div>
@@ -597,7 +644,8 @@ function CaseDetailView({ id }: { id: string }) {
       {/* Page Header */}
       <PageHeader
         crumbs={['eSign', 'Forensics']}
-        title={kase.envelope_title}
+        titlePlain={kase.envelope_title.split(' ').slice(0, -1).join(' ') || 'Forensic'}
+        titleEm={kase.envelope_title.split(' ').slice(-1)[0] || 'case'}
         subtitle={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
             <span style={{ color: 'var(--ink3)', fontSize: 13 }}>Verification Code:</span>

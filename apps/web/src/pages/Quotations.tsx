@@ -1076,7 +1076,7 @@ export const Quotations: React.FC = () => {
   async function handleConvert(id:string){
     if(!(await showConfirm('Convert to Shipment Case? This cannot be undone.', { variant: 'warning', confirmLabel: 'Convert' }))) return;
     const r = await apiFetch(`/v1/quotations/${id}/convert`,{method:'POST'});
-    showAlert(`Shipment ${r.shipment?.ref_number??''} created!`);
+    showAlert(`Shipment ${r.shipment?.ref_number??''} created!`, { variant: 'success' });
     await fetchQuotes(); if(selected?.id===id) await fetchDetail(id);
   }
   async function handleSend(id:string,email:string,msg:string){
@@ -1084,7 +1084,7 @@ export const Quotations: React.FC = () => {
       await apiFetch(`/v1/quotations/${id}/send`,{method:'POST',body:JSON.stringify({email,message:msg})});
       await fetchQuotes();
       await fetchDetail(id);
-      showAlert('Quotation queued for delivery.');
+      showAlert('Quotation queued for delivery.', { variant: 'success' });
     }
     catch(e:any){ showAlert(e?.message || 'Could not send this quotation.'); }
   }
@@ -1094,7 +1094,7 @@ export const Quotations: React.FC = () => {
     setView('list'); setSelected(null); await fetchQuotes();
   }
   async function handleDuplicate(id:string){
-    try{ const r=await apiFetch(`/v1/quotations/${id}/duplicate`,{method:'POST'}); await fetchQuotes(); if(r?.id) await fetchDetail(r.id); else showAlert('Quotation duplicated.'); }
+    try{ const r=await apiFetch(`/v1/quotations/${id}/duplicate`,{method:'POST'}); await fetchQuotes(); if(r?.id) await fetchDetail(r.id); else showAlert('Quotation duplicated.', { variant: 'success' }); }
     catch(e:any){ showAlert(e?.message || 'Could not duplicate this quotation.'); }
   }
   async function handleSave(id:string|null, data:QuoteFormData, asDraft:boolean){

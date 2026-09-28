@@ -5,7 +5,7 @@ import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { NotificationService } from './notification.service.js';
 import { SmsService } from './sms.service.js';
 import { attachCommOutcomes, settleQueuedComm, type CommOutcome } from './workflow-runs.service.js';
-import { assertPublicHttpUrl } from '../lib/ssrf-guard.js';
+import { safeFetch } from '../lib/ssrf-guard.js';
 import type { AutoComm } from '@hudumika/types';
 
 /**
@@ -170,7 +170,36 @@ export async function resolveComm(
       out.toPhone = officer?.phone || undefined;
       out.toUserId = officer?.id;
     } else if (comm.recipient === 'manager') {
-      const manager = await trx.selectFrom('users').selectAll().where('tenant_id', '=', tenantId).where('role', '=', 'MANAGER').where('active', '=', true).executeTakeFirst();
+      // Prefer the assigned officer's direct manager via the org chart
+      // (org_chart_nodes.parent_id chain). Falls back to the first active
+      // MANAGER-role user — the old behaviour — when the org chart has no
+      // node for this shipment's officer, or the platform has no chart at all.
+      let manager: { id: string; email: string | null; phone: string | null } | null = null;
+      if (officer) {
+        const node = await trx.selectFrom('org_chart_nodes')
+          .select(['parent_id'])
+          .where('tenant_id', '=', tenantId)
+          .where('user_id', '=', officer.id)
+          .executeTakeFirst();
+        if (node?.parent_id) {
+          const parentNode = await trx.selectFrom('org_chart_nodes as n')
+            .leftJoin('users as u', 'u.id', 'n.user_id')
+            .select(['u.id', 'u.email', 'u.phone'])
+            .where('n.id', '=', node.parent_id)
+            .where('n.tenant_id', '=', tenantId)
+            .executeTakeFirst();
+          if (parentNode?.id) manager = { id: parentNode.id, email: parentNode.email ?? null, phone: parentNode.phone ?? null };
+        }
+      }
+      if (!manager) {
+        const fallback = await trx.selectFrom('users')
+          .select(['id', 'email', 'phone'])
+          .where('tenant_id', '=', tenantId)
+          .where('role', '=', 'MANAGER')
+          .where('active', '=', true)
+          .executeTakeFirst();
+        if (fallback) manager = { id: fallback.id, email: fallback.email ?? null, phone: fallback.phone ?? null };
+      }
       out.toEmail = manager?.email || undefined;
       out.toPhone = manager?.phone || undefined;
       out.toUserId = manager?.id;
@@ -216,8 +245,7 @@ export async function sendOneComm(tenantId: string, shipmentId: string, comm: Au
         // stage transition was a way to make the server itself issue an
         // authenticated-looking POST to an internal address of the
         // admin's choosing on every run.
-        await assertPublicHttpUrl(url);
-        const res = await fetch(url, {
+        const res = await safeFetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ event: 'workflow.step_entered', shipmentId, refNumber: shipment.ref_number, step: stepName, subject, message: body }),

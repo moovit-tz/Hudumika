@@ -582,6 +582,17 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
       });
     }
 
+    // Backfill the Google profile photo the first time this account logs in
+    // via Google — stored as a plain URL; identity.routes.ts's avatar endpoint
+    // already proxies external URLs same-origin so PersonAvatar can fetch it
+    // with the auth header.  Never overwrite a photo the user set themselves.
+    if (!user.avatar_url && data.picture && typeof data.picture === 'string') {
+      await dbPlatform.updateTable('users')
+        .set({ avatar_url: data.picture })
+        .where('id', '=', user.id)
+        .execute();
+    }
+
     await recordAuthEvent(user.tenant_id, user.id, 'google_login', { ip: request.ip, userAgent: String(request.headers['user-agent'] || '') });
     return issueSessionFor(fastify, reply, user, request.ip, String(request.headers['user-agent'] || ''));
   });

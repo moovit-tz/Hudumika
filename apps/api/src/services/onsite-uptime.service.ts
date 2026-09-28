@@ -13,7 +13,7 @@
 import net from 'node:net';
 import type { Kysely, Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
-import { assertPublicHttpUrl } from '../lib/ssrf-guard.js';
+import { safeFetch } from '../lib/ssrf-guard.js';
 
 type Db = Kysely<Database> | Transaction<Database>;
 
@@ -55,11 +55,9 @@ export async function probe(target: {
     // this, "add a monitor" was a way to make the server itself probe its
     // own private network (cloud metadata, internal services) and report
     // back the resulting status code/timing.
-    await assertPublicHttpUrl(target.url);
-    const res = await fetch(target.url, {
+    const res = await safeFetch(target.url, {
       method: target.method || 'GET',
       signal: controller.signal,
-      redirect: 'follow',
       // A monitor should look like a monitor in the target's own access log.
       headers: { 'User-Agent': 'Hudumika-Onsite-Monitor/1.0' },
     });

@@ -32,6 +32,7 @@ import { CaseManagement } from '../pages/CaseManagement.js';
 import { HrChecklists } from '../pages/HrChecklists.js';
 import { HrBenefits } from '../pages/HrBenefits.js';
 import { OndiGroups } from '../pages/OndiGroups.js';
+import { DPODashboard } from '../pages/DPODashboard.js';
 // Calls (1:1 + group meetings) moved to Bliss, matching Team Chat's own
 // precedent — see BlissShell.tsx. The nav item below now just links out.
 import {
@@ -143,6 +144,7 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
       { label: 'Login History',       icon: 'lock',       path: '/ondi/login-activity'       },
       { label: 'Devices',             icon: 'smartphone', path: '/ondi/sessions'             },
       { label: 'Delete Requests',     icon: 'userMinus',  path: '/nexushr/delete-requests'   },
+      { label: 'Data Protection',     icon: 'shield',     path: '/nexushr/privacy'            },
       { label: 'Invitations',         icon: 'userPlus',   path: '/ondi?tab=invites'          },
       // Confirmed entirely absent in the platform-wide audit — warnings,
       // PIPs, suspensions, grievances. MGMT-only, same as the routes
@@ -270,6 +272,7 @@ export function NexusHRShell() {
               <Route path="assets"            element={<RequireRoles roles={MGMT_ROLES}><HrAssets /></RequireRoles>} />
               {/* Permission Matrix merged into the Roles & Permissions page itself (a view toggle there now). */}
               <Route path="permissions"       element={<Navigate to="/nexushr/roles" replace />} />
+              <Route path="privacy"           element={<RequireRoles roles={[...ADMIN_ROLES]}><DPODashboard /></RequireRoles>} />
             </Route>
 
             <Route path="*" element={<Navigate to="/nexushr" replace />} />

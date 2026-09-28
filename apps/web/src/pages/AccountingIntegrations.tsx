@@ -91,7 +91,7 @@ export function AccountingIntegrations() {
     const oauth = qs.get('oauth');
     if (!oauth) return;
     const provider = PROVIDER_BRANDS[(qs.get('provider') || '').toUpperCase()]?.name || qs.get('provider') || 'Provider';
-    if (oauth === 'success') showAlert(`${provider} connected successfully.`);
+    if (oauth === 'success') showAlert(`${provider} connected successfully.`, { variant: 'success' });
     else showAlert(qs.get('msg') || `Connecting ${provider} failed.`);
     qs.delete('oauth'); qs.delete('provider'); qs.delete('msg');
     const rest = qs.toString();
@@ -114,6 +114,7 @@ export function AccountingIntegrations() {
     try {
       await apiFetch(`/v1/accounting-integrations/${providerName}/disconnect`, { method: 'POST' });
       await loadData();
+      showAlert(`${PROVIDER_BRANDS[providerName]?.name || providerName} disconnected.`, { variant: 'success' });
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Disconnection failed');
     }
@@ -124,7 +125,7 @@ export function AccountingIntegrations() {
     try {
       await apiFetch(`/v1/accounting-integrations/${providerName}/test-connection`, { method: 'POST' });
       await loadData();
-      showAlert(`Connection to ${PROVIDER_BRANDS[providerName]?.name || providerName} is working.`);
+      showAlert(`Connection to ${PROVIDER_BRANDS[providerName]?.name || providerName} is working.`, { variant: 'success' });
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Test connection failed');
     } finally {
@@ -137,7 +138,7 @@ export function AccountingIntegrations() {
     try {
       const result = await apiFetch(`/v1/accounting-integrations/${providerName}/sync`, { method: 'POST' });
       await loadData();
-      showAlert(`Pulled ${result.accounts?.length ?? 0} accounts from ${PROVIDER_BRANDS[providerName]?.name || providerName}'s real chart of accounts.`);
+      showAlert(`Pulled ${result.accounts?.length ?? 0} accounts from ${PROVIDER_BRANDS[providerName]?.name || providerName}'s real chart of accounts.`, { variant: 'success' });
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Sync failed');
     } finally {
@@ -152,7 +153,7 @@ export function AccountingIntegrations() {
         method: 'POST',
         body: JSON.stringify({ providerName: item.name }),
       });
-      showAlert(`${item.name} has been added to your integration queue. Our team will reach out to complete setup.`);
+      showAlert(`${item.name} has been added to your integration queue. Our team will reach out to complete setup.`, { variant: 'success' });
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Failed to request integration');
     } finally {

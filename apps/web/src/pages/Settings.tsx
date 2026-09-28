@@ -150,6 +150,7 @@ const Toggle: React.FC<{ value: boolean; onChange: (v: boolean) => void; disable
     title={value ? 'Disable' : 'Enable'}
     disabled={disabled}
   >
+    <span className="s-tog-label"><span>{value ? 'On' : 'Off'}</span></span>
     <span className="s-tog-thumb" />
   </button>
 );

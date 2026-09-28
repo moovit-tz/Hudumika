@@ -10,8 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { PaginationBar } from '../components/PaginationBar.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
+import { useAuth } from '../hooks/useAuth.js';
 import './Store.css';
 import './StoreEmailTemplatesManager.css';
 
@@ -29,6 +33,7 @@ interface MarketplaceTemplate {
   subject: string;
   preheader: string;
   body_html: string;
+  body_plain: string;
   available_vars: string[];
   version: string;
   downloads: number;
@@ -296,12 +301,16 @@ function DetailDialog({
   imported,
   importing,
   onImport,
+  canEditMaster,
+  onEditMaster,
   onClose,
 }: {
   template: MarketplaceTemplate;
   imported: boolean;
   importing: boolean;
   onImport: (t: MarketplaceTemplate) => void;
+  canEditMaster: boolean;
+  onEditMaster: (t: MarketplaceTemplate) => void;
   onClose: () => void;
 }) {
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
@@ -777,6 +786,11 @@ function DetailDialog({
 
           <div className="setm-modal-footer-actions">
             <Button variant="outline" onClick={onClose}>Close</Button>
+            {canEditMaster && (
+              <Button variant="outline" onClick={() => onEditMaster(template)}>
+                <Icon name="edit" size={14} /> Customize master
+              </Button>
+            )}
             <Button
               disabled={imported || importing}
               onClick={() => onImport(template)}
@@ -796,9 +810,122 @@ function DetailDialog({
   );
 }
 
+function MasterTemplateEditor({
+  template,
+  saving,
+  onSave,
+  onClose,
+}: {
+  template: MarketplaceTemplate;
+  saving: boolean;
+  onSave: (template: MarketplaceTemplate, changes: Partial<MarketplaceTemplate>) => void;
+  onClose: () => void;
+}) {
+  const [draft, setDraft] = useState({
+    title: template.title,
+    description: template.description,
+    subject: template.subject,
+    preheader: template.preheader,
+    body_html: template.body_html,
+    body_plain: template.body_plain ?? '',
+    category: template.category,
+    application: template.application ?? '',
+    tags: template.tags.join(', '),
+    is_featured: template.is_featured,
+  });
+  const update = (key: keyof typeof draft, value: string | boolean) => setDraft(current => ({ ...current, [key]: value }));
+  const valid = draft.title.trim() && draft.description.trim() && draft.subject.trim() && draft.body_html.trim() && draft.category.trim();
+
+  return (
+    <Dialog open onOpenChange={open => { if (!open && !saving) onClose(); }}>
+      <DialogContent size="full">
+        <DialogHeader>
+          <DialogTitle>Customize Marketplace template</DialogTitle>
+          <DialogDescription>
+            Editing the official master creates a new source version. Imported tenant copies remain unchanged until their administrator applies the update.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogBody className="grid min-h-0 grid-cols-1 gap-5 lg:grid-cols-[minmax(360px,0.85fr)_minmax(440px,1.15fr)]">
+          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground sm:col-span-2">
+                Template name
+                <Input value={draft.title} onChange={event => update('title', event.target.value)} />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+                Application
+                <Input value={draft.application} onChange={event => update('application', event.target.value)} />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+                Category
+                <Input value={draft.category} onChange={event => update('category', event.target.value)} />
+              </label>
+            </div>
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+              Description
+              <Textarea rows={3} value={draft.description} onChange={event => update('description', event.target.value)} />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+              Subject
+              <Input value={draft.subject} onChange={event => update('subject', event.target.value)} />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+              Preview text
+              <Input value={draft.preheader} onChange={event => update('preheader', event.target.value)} />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+              HTML body
+              <Textarea className="min-h-64 font-mono text-xs" value={draft.body_html} onChange={event => update('body_html', event.target.value)} />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+              Plain-text fallback
+              <Textarea rows={7} value={draft.body_plain} onChange={event => update('body_plain', event.target.value)} />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+              Search tags <span className="font-normal text-muted-foreground">Comma separated</span>
+              <Input value={draft.tags} onChange={event => update('tags', event.target.value)} />
+            </label>
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Checkbox checked={draft.is_featured} onCheckedChange={checked => update('is_featured', checked === true)} />
+              Feature this template in the Store
+            </label>
+          </div>
+          <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-muted/30">
+            <div className="border-b border-border bg-card px-4 py-3">
+              <div className="text-sm font-semibold text-foreground">Live preview</div>
+              <div className="mt-0.5 truncate text-xs text-muted-foreground">{populateSampleData(draft.subject)}</div>
+            </div>
+            <iframe
+              title={`Editing ${draft.title}`}
+              sandbox="allow-same-origin"
+              className="min-h-0 flex-1 border-0 bg-white"
+              srcDoc={preparePreviewHtml(populateSampleData(draft.body_html))}
+            />
+          </div>
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="outline" disabled={saving} onClick={onClose}>Cancel</Button>
+          <Button
+            disabled={!valid || saving}
+            onClick={() => onSave(template, {
+              ...draft,
+              application: draft.application.trim() || null,
+              tags: draft.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+            } as Partial<MarketplaceTemplate>)}
+          >
+            {saving ? 'Saving…' : 'Publish new version'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /* ── Main Component ──────────────────────────────────────────────────────────── */
 
 export function StoreEmailTemplatesManager({ embedded = false }: { embedded?: boolean } = {}) {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const [templates, setTemplates] = useState<MarketplaceTemplate[]>([]);
   const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -810,6 +937,8 @@ export function StoreEmailTemplatesManager({ embedded = false }: { embedded?: bo
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
+  const [editingMaster, setEditingMaster] = useState<MarketplaceTemplate | null>(null);
+  const [savingMaster, setSavingMaster] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -843,6 +972,24 @@ export function StoreEmailTemplatesManager({ embedded = false }: { embedded?: bo
       setImportingId(null);
     }
   }, [detail]);
+
+  const saveMasterTemplate = useCallback(async (template: MarketplaceTemplate, changes: Partial<MarketplaceTemplate>) => {
+    setSavingMaster(true);
+    try {
+      const updated = await apiFetch(`/v1/marketplace/email-templates/${template.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(changes),
+      }) as MarketplaceTemplate;
+      setTemplates(current => current.map(item => item.id === updated.id ? updated : item));
+      setDetail(updated);
+      setEditingMaster(null);
+      showAlert(`“${updated.title}” published as version ${updated.version}.`, { variant: 'success' });
+    } catch (error: any) {
+      showAlert(error?.message ?? 'Could not update the Marketplace template.');
+    } finally {
+      setSavingMaster(false);
+    }
+  }, []);
 
   const q = search.trim().toLowerCase();
   const visible = templates.filter(t => {
@@ -1150,7 +1297,17 @@ export function StoreEmailTemplatesManager({ embedded = false }: { embedded?: bo
             imported={importedIds.has(detail.id)}
             importing={importingId === detail.id}
             onImport={importTemplate}
+            canEditMaster={isSuperAdmin}
+            onEditMaster={template => { setDetail(null); setEditingMaster(template); }}
             onClose={() => setDetail(null)}
+          />
+        )}
+        {editingMaster && (
+          <MasterTemplateEditor
+            template={editingMaster}
+            saving={savingMaster}
+            onSave={saveMasterTemplate}
+            onClose={() => setEditingMaster(null)}
           />
         )}
       </div>

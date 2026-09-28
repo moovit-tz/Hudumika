@@ -68,7 +68,7 @@ function fmtDateTime(d: string): string {
   });
 }
 
-export const OndiSecuritySettings: React.FC = () => {
+export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { user, updateUser } = useAuth();
   const [activeSection, setActiveSection] = useState<'all' | 'password' | 'mfa' | 'passkeys' | 'phone' | 'kyc' | 'recovery' | 'sessions'>('all');
 
@@ -392,34 +392,36 @@ export const OndiSecuritySettings: React.FC = () => {
 
   return (
     <div className="oss-page">
-      <PageHeader
-        crumbs={['Ondi', 'Personal']}
-        titlePlain="Security"
-        titleEm="hub"
-        subtitle="Password safeguards, two-factor authentication, biometric passkeys, government verification, and emergency recovery."
-        actions={
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Link to="/ondi/personal">
-              <Button variant="outline" size="sm">
-                <Icon name="fingerprint" size={13} style={{ marginRight: 5 }} />
-                My Identity
-              </Button>
-            </Link>
-            <Link to="/ondi/personal/trust">
-              <Button variant="outline" size="sm">
-                <Icon name="trendingUp" size={13} style={{ marginRight: 5 }} />
-                Trust Score
-              </Button>
-            </Link>
-            <Link to="/ondi/personal/activity">
-              <Button variant="outline" size="sm">
-                <Icon name="activity" size={13} style={{ marginRight: 5 }} />
-                Activity Trail
-              </Button>
-            </Link>
-          </div>
-        }
-      />
+      {!embedded && (
+        <PageHeader
+          crumbs={['Ondi', 'Personal']}
+          titlePlain="Security"
+          titleEm="hub"
+          subtitle="Password safeguards, two-factor authentication, biometric passkeys, government verification, and emergency recovery."
+          actions={
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Link to="/ondi/personal">
+                <Button variant="outline" size="sm">
+                  <Icon name="fingerprint" size={13} style={{ marginRight: 5 }} />
+                  My Identity
+                </Button>
+              </Link>
+              <Link to="/ondi/personal/trust">
+                <Button variant="outline" size="sm">
+                  <Icon name="trendingUp" size={13} style={{ marginRight: 5 }} />
+                  Trust Score
+                </Button>
+              </Link>
+              <Link to="/ondi/personal/activity">
+                <Button variant="outline" size="sm">
+                  <Icon name="activity" size={13} style={{ marginRight: 5 }} />
+                  Activity Trail
+                </Button>
+              </Link>
+            </div>
+          }
+        />
+      )}
 
       {/* ── Top Executive Posture KPI Grid (Compact 2x2 on Mobile) ── */}
       <div className="oss-kpi-grid">

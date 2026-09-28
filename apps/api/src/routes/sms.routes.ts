@@ -538,6 +538,22 @@ export async function smsRoutes(fastify: FastifyInstance) {
           const data: any = await res.json().catch(() => ({}));
           return res.ok && data?.sid ? { success: true } : { success: false, error: data?.message || `HTTP ${res.status}` };
         })()
+      : gateway.provider === 'nexmo'
+      ? await (async () => {
+          if (!cfg.apiKey || !cfg.apiSecret) return { success: false, error: 'Nexmo API key/secret not configured' };
+          const res = await fetch('https://rest.nexmo.com/sms/json', {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              api_key: cfg.apiKey, api_secret: cfg.apiSecret,
+              to: body.to, text: 'Hudumika SMS gateway test — if you received this, it works.',
+              ...(gateway.sender_id ? { from: gateway.sender_id } : {}),
+            }).toString(),
+          });
+          const data: any = await res.json().catch(() => ({}));
+          const msg = data?.messages?.[0];
+          return res.ok && msg?.status === '0' ? { success: true } : { success: false, error: msg?.['error-text'] || `Nexmo status ${msg?.status ?? res.status}` };
+        })()
       : { success: false, error: `${gateway.provider} is not yet wired for live sending` };
 
     await withTenant(user.tenant_id, trx => trx.updateTable('sms_gateways')

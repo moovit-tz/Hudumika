@@ -1,19 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useParams, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth.js';
 import { getOndiConfig } from './lib/ondiConfig.js';
 import { OrgAuthProvider, useOrgAuth } from './hooks/useOrgAuth.js';
 import { IdleLockProvider, useIdleLock } from './hooks/useIdleLock.js';
 import { LockScreen } from './components/LockScreen.js';
-import { OrgLogin } from './pages/OrgLogin.js';
-import { OrgShell } from './pages/OrgShell.js';
 import { useBranding } from './hooks/useBranding.js';
 import { AutoSEO } from './components/AutoSEO.js';
 import type { UserRole } from '@hudumika/types';
-import { MGMT_ROLES, OPS_ROLES, FIN_ROLES } from './lib/permissions.js';
+import { OPS_ROLES, FIN_ROLES } from './lib/permissions.js';
 import { WorkspaceProvider } from './contexts/WorkspaceContext.js';
 import { Icon, type IconName } from './components/Icon.js';
 import { SkeletonPage } from './components/ui/skeleton.js';
+import { CheckInWidget } from './components/CheckInWidget.js';
+import { ClockInProvider } from './contexts/ClockInContext.js';
+import { DesignSystemProvider } from './components/DesignSystemProvider.js';
+import { SeoAnalyticsProvider } from './components/SeoAnalyticsProvider.js';
+import { AlertHost } from './components/AlertHost.js';
+import { ConfirmHost } from './components/ConfirmHost.js';
+import { PromptHost } from './components/PromptHost.js';
+import { InAppBrowserHost } from './components/InAppBrowserHost.js';
+import { AppHeader } from './components/AppHeader.js';
+import { resolveLandingStyle } from './lib/landingStyle.js';
+
+// Fast critical auth pages kept eagerly loaded for instant initial render
 import { Login }           from './pages/Login.js';
 import { TwoFaSetupRequired } from './pages/TwoFaSetupRequired.js';
 import { OndiLogin }       from './pages/OndiLogin.js';
@@ -26,85 +36,81 @@ import { MagicLinkPage }   from './pages/MagicLinkPage.js';
 import { SsoCompletePage } from './pages/SsoCompletePage.js';
 import { AcceptInvite }    from './pages/AcceptInvite.js';
 import { VerifyEmail }     from './pages/VerifyEmail.js';
-import { ComplyOSSales }   from './pages/ComplyOSSales.js';
-import { AgencyDirectory } from './pages/AgencyDirectory.js';
 
-import { CommandCenter }  from './pages/CommandCenter.js';
-import { ActivityMonitorPage } from './pages/ActivityMonitor.js';
-import { ShipmentsList }  from './pages/ShipmentsList.js';
-import { ShipmentDetail } from './pages/ShipmentDetail.js';
-import { TrackingShared } from './pages/TrackingShared.js';
-import { ShipmentReportShared } from './pages/ShipmentReportShared.js';
-import { SharedLandedCostReport } from './pages/SharedLandedCostReport.js';
-import { UserProfile }    from './pages/UserProfile.js';
-import { BlissInbox }     from './pages/bliss/BlissInbox.js';
-import { SupportOverview }from './pages/SupportOverview.js';
-import { FileBrowser }    from './pages/cloud/FileBrowser.js';
-import { Chat }           from './pages/Chat.js';
-import { Escalations }    from './pages/Escalations.js';
-import { ToolsOverview }  from './pages/ToolsOverview.js';
-import { LandedCostPage } from './pages/LandedCostPage.js';
-import { CompliancePage } from './pages/CompliancePage.js';
-import { PenaltyPage }    from './pages/PenaltyPage.js';
-import { CarbonCreditsPage } from './pages/CarbonCreditsPage.js';
-import { TasksApp }       from './pages/TasksApp.js';
-import { CalendarApp }    from './pages/CalendarApp.js';
-import { CustomerDashboard }  from './pages/CustomerDashboard.js';
-import { CustomerSupport }    from './pages/CustomerSupport.js';
-import { CustomerInvoices }   from './pages/CustomerInvoices.js';
-import { CustomerDocuments }  from './pages/CustomerDocuments.js';
-import { CustomerQuotations } from './pages/CustomerQuotations.js';
-import { TermsOfService }     from './pages/TermsOfService.js';
-import { PrivacyPolicy }      from './pages/PrivacyPolicy.js';
-import { SupportTicket }      from './pages/SupportTicket.js';
-import { OneSitePublic }      from './pages/OneSitePublic.js';
-import { CheckInWidget }      from './components/CheckInWidget.js';
-import { ClockInProvider }    from './contexts/ClockInContext.js';
-import { DesignSystemProvider } from './components/DesignSystemProvider.js';
-import { SeoAnalyticsProvider } from './components/SeoAnalyticsProvider.js';
-import { AlertHost } from './components/AlertHost.js';
-import { ConfirmHost } from './components/ConfirmHost.js';
-import { PromptHost } from './components/PromptHost.js';
-import { InAppBrowserHost } from './components/InAppBrowserHost.js';
+// Lazy loaded pages & hub modules
+const OrgLogin = React.lazy(() => import('./pages/OrgLogin.js').then(m => ({ default: m.OrgLogin })));
+const OrgShell = React.lazy(() => import('./pages/OrgShell.js').then(m => ({ default: m.OrgShell })));
+const WorkspaceHome = React.lazy(() => import('./pages/WorkspaceHome.js').then(m => ({ default: m.WorkspaceHome })));
+const AgenticHome = React.lazy(() => import('./pages/AgenticHome.js').then(m => ({ default: m.AgenticHome })));
+const ComplyOSSales = React.lazy(() => import('./pages/ComplyOSSales.js').then(m => ({ default: m.ComplyOSSales })));
+const AgencyDirectory = React.lazy(() => import('./pages/AgencyDirectory.js').then(m => ({ default: m.AgencyDirectory })));
+const CommandCenter = React.lazy(() => import('./pages/CommandCenter.js').then(m => ({ default: m.CommandCenter })));
+const ActivityMonitorPage = React.lazy(() => import('./pages/ActivityMonitor.js').then(m => ({ default: m.ActivityMonitorPage })));
+const ShipmentsList = React.lazy(() => import('./pages/ShipmentsList.js').then(m => ({ default: m.ShipmentsList })));
+const ShipmentDetail = React.lazy(() => import('./pages/ShipmentDetail.js').then(m => ({ default: m.ShipmentDetail })));
+const TrackingShared = React.lazy(() => import('./pages/TrackingShared.js').then(m => ({ default: m.TrackingShared })));
+const ShipmentReportShared = React.lazy(() => import('./pages/ShipmentReportShared.js').then(m => ({ default: m.ShipmentReportShared })));
+const SharedLandedCostReport = React.lazy(() => import('./pages/SharedLandedCostReport.js').then(m => ({ default: m.SharedLandedCostReport })));
+const UserProfile = React.lazy(() => import('./pages/UserProfile.js').then(m => ({ default: m.UserProfile })));
+const PrivacyCenter = React.lazy(() => import('./pages/PrivacyCenter.js').then(m => ({ default: m.PrivacyCenter })));
+const DPODashboard = React.lazy(() => import('./pages/DPODashboard.js').then(m => ({ default: m.DPODashboard })));
+const BlissInbox = React.lazy(() => import('./pages/bliss/BlissInbox.js').then(m => ({ default: m.BlissInbox })));
+const SupportOverview = React.lazy(() => import('./pages/SupportOverview.js').then(m => ({ default: m.SupportOverview })));
+const FileBrowser = React.lazy(() => import('./pages/cloud/FileBrowser.js').then(m => ({ default: m.FileBrowser })));
+const Chat = React.lazy(() => import('./pages/Chat.js').then(m => ({ default: m.Chat })));
+const Escalations = React.lazy(() => import('./pages/Escalations.js').then(m => ({ default: m.Escalations })));
+const ToolsOverview = React.lazy(() => import('./pages/ToolsOverview.js').then(m => ({ default: m.ToolsOverview })));
+const LandedCostPage = React.lazy(() => import('./pages/LandedCostPage.js').then(m => ({ default: m.LandedCostPage })));
+const CompliancePage = React.lazy(() => import('./pages/CompliancePage.js').then(m => ({ default: m.CompliancePage })));
+const PenaltyPage = React.lazy(() => import('./pages/PenaltyPage.js').then(m => ({ default: m.PenaltyPage })));
+const CarbonCreditsPage = React.lazy(() => import('./pages/CarbonCreditsPage.js').then(m => ({ default: m.CarbonCreditsPage })));
+const TasksApp = React.lazy(() => import('./pages/TasksApp.js').then(m => ({ default: m.TasksApp })));
+const CalendarApp = React.lazy(() => import('./pages/CalendarApp.js').then(m => ({ default: m.CalendarApp })));
+const CustomerDashboard = React.lazy(() => import('./pages/CustomerDashboard.js').then(m => ({ default: m.CustomerDashboard })));
+const CustomerSupport = React.lazy(() => import('./pages/CustomerSupport.js').then(m => ({ default: m.CustomerSupport })));
+const CustomerInvoices = React.lazy(() => import('./pages/CustomerInvoices.js').then(m => ({ default: m.CustomerInvoices })));
+const CustomerDocuments = React.lazy(() => import('./pages/CustomerDocuments.js').then(m => ({ default: m.CustomerDocuments })));
+const CustomerQuotations = React.lazy(() => import('./pages/CustomerQuotations.js').then(m => ({ default: m.CustomerQuotations })));
+const TermsOfService = React.lazy(() => import('./pages/TermsOfService.js').then(m => ({ default: m.TermsOfService })));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy.js').then(m => ({ default: m.PrivacyPolicy })));
+const SupportTicket = React.lazy(() => import('./pages/SupportTicket.js').then(m => ({ default: m.SupportTicket })));
+const OneSitePublic = React.lazy(() => import('./pages/OneSitePublic.js').then(m => ({ default: m.OneSitePublic })));
+const SignPublicPage = React.lazy(() => import('./pages/sign/SignPublicPage.js').then(m => ({ default: m.SignPublicPage })));
+const SignVerifyPage = React.lazy(() => import('./pages/sign/SignVerifyPage.js').then(m => ({ default: m.SignVerifyPage })));
+const BookingPublicPage = React.lazy(() => import('./pages/BookingPublicPage.js').then(m => ({ default: m.BookingPublicPage })));
+const GuestMeetingJoin = React.lazy(() => import('./pages/calls/GuestMeetingJoin.js').then(m => ({ default: m.GuestMeetingJoin })));
 
-import { ClearOSShell } from './shells/ClearOSShell.js';
-import { FinOpsShell }  from './shells/FinOpsShell.js';
-import { LensShell }    from './shells/LensShell.js';
-import { NexusHRShell }   from './shells/NexusHRShell.js';
-import { BlissShell }   from './shells/BlissShell.js';
-import { CloudShell }   from './shells/CloudShell.js';
-import { AdminShell }        from './shells/AdminShell.js';
-import { SuperAdminShell }   from './shells/SuperAdminShell.js';
-import { ComplyOSShell } from './shells/ComplyOSShell.js';
-import { SealShell } from './shells/SealShell.js';
-import { InventoryShell } from './shells/InventoryShell.js';
-import { EmailShell }   from './shells/EmailShell.js';
-import { CRMShell }     from './shells/CRMShell.js';
-import { ContactsShell } from './shells/ContactsShell.js';
-import { StoreShell }    from './shells/StoreShell.js';
-import { OndiShell }     from './shells/OndiShell.js';
-import { TrackingShell } from './shells/TrackingShell.js';
-import { CargoTrackerShell } from './shells/CargoTrackerShell.js';
-import { PettiShell } from './shells/PettiShell.js';
-import { SmsShell } from './shells/SmsShell.js';
-import { CalendarShell } from './shells/CalendarShell.js';
-import { TasksShell }    from './shells/TasksShell.js';
-import { ProjectsShell } from './shells/ProjectsShell.js';
-import { NotesShell }    from './shells/NotesShell.js';
-import { CMSShell }      from './shells/CMSShell.js';
-import { StudioShell } from './shells/StudioShell.js';
-import { OnsiteShell } from './shells/OnsiteShell.js';
-import { HuduBIShell } from './shells/HuduBIShell.js';
-import { SignShell } from './shells/SignShell.js';
-import { DeveloperShell } from './shells/DeveloperShell.js';
-import { SignPublicPage } from './pages/sign/SignPublicPage.js';
-import { SignVerifyPage } from './pages/sign/SignVerifyPage.js';
-import { BookingPublicPage } from './pages/BookingPublicPage.js';
-import { GuestMeetingJoin } from './pages/calls/GuestMeetingJoin.js';
-import { AppHeader }    from './components/AppHeader.js';
-import { WorkspaceHome } from './pages/WorkspaceHome.js';
-import { AgenticHome } from './pages/AgenticHome.js';
-import { resolveLandingStyle } from './lib/landingStyle.js';
+// Lazy loaded workspace shells (30+ apps split into individual chunks)
+const ClearOSShell = React.lazy(() => import('./shells/ClearOSShell.js').then(m => ({ default: m.ClearOSShell })));
+const FinOpsShell = React.lazy(() => import('./shells/FinOpsShell.js').then(m => ({ default: m.FinOpsShell })));
+const LensShell = React.lazy(() => import('./shells/LensShell.js').then(m => ({ default: m.LensShell })));
+const NexusHRShell = React.lazy(() => import('./shells/NexusHRShell.js').then(m => ({ default: m.NexusHRShell })));
+const BlissShell = React.lazy(() => import('./shells/BlissShell.js').then(m => ({ default: m.BlissShell })));
+const CloudShell = React.lazy(() => import('./shells/CloudShell.js').then(m => ({ default: m.CloudShell })));
+const AdminShell = React.lazy(() => import('./shells/AdminShell.js').then(m => ({ default: m.AdminShell })));
+const SuperAdminShell = React.lazy(() => import('./shells/SuperAdminShell.js').then(m => ({ default: m.SuperAdminShell })));
+const ComplyOSShell = React.lazy(() => import('./shells/ComplyOSShell.js').then(m => ({ default: m.ComplyOSShell })));
+const SealShell = React.lazy(() => import('./shells/SealShell.js').then(m => ({ default: m.SealShell })));
+const InventoryShell = React.lazy(() => import('./shells/InventoryShell.js').then(m => ({ default: m.InventoryShell })));
+const EmailShell = React.lazy(() => import('./shells/EmailShell.js').then(m => ({ default: m.EmailShell })));
+const CRMShell = React.lazy(() => import('./shells/CRMShell.js').then(m => ({ default: m.CRMShell })));
+const ContactsShell = React.lazy(() => import('./shells/ContactsShell.js').then(m => ({ default: m.ContactsShell })));
+const StoreShell = React.lazy(() => import('./shells/StoreShell.js').then(m => ({ default: m.StoreShell })));
+const OndiShell = React.lazy(() => import('./shells/OndiShell.js').then(m => ({ default: m.OndiShell })));
+const TrackingShell = React.lazy(() => import('./shells/TrackingShell.js').then(m => ({ default: m.TrackingShell })));
+const CargoTrackerShell = React.lazy(() => import('./shells/CargoTrackerShell.js').then(m => ({ default: m.CargoTrackerShell })));
+const PettiShell = React.lazy(() => import('./shells/PettiShell.js').then(m => ({ default: m.PettiShell })));
+const SmsShell = React.lazy(() => import('./shells/SmsShell.js').then(m => ({ default: m.SmsShell })));
+const CalendarShell = React.lazy(() => import('./shells/CalendarShell.js').then(m => ({ default: m.CalendarShell })));
+const TasksShell = React.lazy(() => import('./shells/TasksShell.js').then(m => ({ default: m.TasksShell })));
+const ProjectsShell = React.lazy(() => import('./shells/ProjectsShell.js').then(m => ({ default: m.ProjectsShell })));
+const NotesShell = React.lazy(() => import('./shells/NotesShell.js').then(m => ({ default: m.NotesShell })));
+const CMSShell = React.lazy(() => import('./shells/CMSShell.js').then(m => ({ default: m.CMSShell })));
+const StudioShell = React.lazy(() => import('./shells/StudioShell.js').then(m => ({ default: m.StudioShell })));
+const OnsiteShell = React.lazy(() => import('./shells/OnsiteShell.js').then(m => ({ default: m.OnsiteShell })));
+const HuduBIShell = React.lazy(() => import('./shells/HuduBIShell.js').then(m => ({ default: m.HuduBIShell })));
+const SignShell = React.lazy(() => import('./shells/SignShell.js').then(m => ({ default: m.SignShell })));
+const DeveloperShell = React.lazy(() => import('./shells/DeveloperShell.js').then(m => ({ default: m.DeveloperShell })));
 
 /* ── Hub page — shares search state between header and workspace.
    Branches between the Advanced hub (WorkspaceHome, under the shared
@@ -117,13 +123,21 @@ const HubPage: React.FC = () => {
   const [hubSearch, setHubSearch] = React.useState('');
   const { user } = useAuth();
   const isBasic = resolveLandingStyle(user) === 'basic';
-  if (isBasic) return <AgenticHome />;
+  if (isBasic) {
+    return (
+      <Suspense fallback={<SkeletonPage />}>
+        <AgenticHome />
+      </Suspense>
+    );
+  }
   return (
     <div className="app-shell">
       <div className="app-main">
         <AppHeader hubSearch={hubSearch} onHubSearchChange={setHubSearch} />
         <div className="app-shell-content">
-          <WorkspaceHome externalSearch={hubSearch} />
+          <Suspense fallback={<SkeletonPage />}>
+            <WorkspaceHome externalSearch={hubSearch} />
+          </Suspense>
         </div>
       </div>
     </div>
@@ -271,21 +285,23 @@ const CustomerShell: React.FC = () => {
       </div>
       {/* Page content */}
       <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
-        <Routes>
-          <Route path="/"                element={<CustomerDashboard />} />
-          <Route path="/billing"         element={<CustomerInvoices />} />
-          <Route path="/quotations"      element={<CustomerQuotations />} />
-          <Route path="/documents"       element={<CustomerDocuments />} />
-          <Route path="/support/tickets" element={<CustomerSupport />} />
-          <Route path="/support"         element={<CustomerSupport />} />
-          <Route path="/chat"            element={<Chat />} />
-          <Route path="/profile"         element={<UserProfile />} />
-          <Route path="/clearance/:id"   element={<ShipmentDetail />} />
-          <Route path="comply"      element={<CompliancePage />} />
-          <Route path="penalty"     element={<PenaltyPage />} />
-          <Route path="carbon-credits" element={<CarbonCreditsPage />} />
-          <Route path="*"           element={<Navigate to="overview" replace />} />
-        </Routes>
+        <Suspense fallback={<SkeletonPage />}>
+          <Routes>
+            <Route path="/"                element={<CustomerDashboard />} />
+            <Route path="/billing"         element={<CustomerInvoices />} />
+            <Route path="/quotations"      element={<CustomerQuotations />} />
+            <Route path="/documents"       element={<CustomerDocuments />} />
+            <Route path="/support/tickets" element={<CustomerSupport />} />
+            <Route path="/support"         element={<CustomerSupport />} />
+            <Route path="/chat"            element={<Chat />} />
+            <Route path="/profile"         element={<UserProfile />} />
+            <Route path="/clearance/:id"   element={<ShipmentDetail />} />
+            <Route path="comply"      element={<CompliancePage />} />
+            <Route path="penalty"     element={<PenaltyPage />} />
+            <Route path="carbon-credits" element={<CarbonCreditsPage />} />
+            <Route path="*"           element={<Navigate to="overview" replace />} />
+          </Routes>
+        </Suspense>
       </main>
       <CustomerBottomNav />
     </div>
@@ -315,10 +331,18 @@ const AppContentBody: React.FC = () => {
      session can exist with or without a staff/customer session in the same
      browser, and /org/login must be reachable regardless of either. ── */
   if (pathname === '/org/login' && !orgUser) {
-    return <OrgLogin />;
+    return (
+      <Suspense fallback={<SkeletonPage />}>
+        <OrgLogin />
+      </Suspense>
+    );
   }
   if (!orgLoading && orgUser) {
-    return <OrgShell />;
+    return (
+      <Suspense fallback={<SkeletonPage />}>
+        <OrgShell />
+      </Suspense>
+    );
   }
 
   if (loading) {
@@ -333,73 +357,75 @@ const AppContentBody: React.FC = () => {
   }
 
   if (!user) return (
-    <Routes>
-      <Route path="/maintenance"          element={<MaintenancePage />} />
-      <Route path="/signup"               element={<OnboardingWizard />} />
-      <Route path="/auth/register"        element={<Navigate to="/signup" replace />} />
-      <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-      <Route path="/auth/reset-password"  element={<ResetPassword />} />
-      {/* Ondi feature-gap pass (M4): mutual-consent recovery via a trusted
-          contact, for when email access is lost too — not just a copy edit
-          of ForgotPassword, a genuinely separate flow (see RecoveryPage.tsx). */}
-      <Route path="/auth/recovery"        element={<RecoveryPage />} />
-      {/* Passwordless email sign-in — a new entry point alongside the
-          password form, not a change to it (see MagicLinkPage.tsx). */}
-      <Route path="/auth/magic-link"      element={<MagicLinkPage />} />
-      {/* Lands a real browser navigation (SAML's ACS redirect, not a fetch
-          call) — see SsoCompletePage.tsx's own header comment. */}
-      <Route path="/auth/sso-complete"    element={<SsoCompletePage />} />
-      <Route path="/accept-invite"        element={<AcceptInvite />} />
-      <Route path="/auth/verify-email"    element={<VerifyEmail />} />
-      <Route path="/terms"                element={<TermsOfService />} />
-      <Route path="/privacy"              element={<PrivacyPolicy />} />
-      <Route path="/support-ticket"       element={<SupportTicket />} />
-      <Route path="/track/shared/:token"  element={<TrackingShared />} />
-      <Route path="/track/shipment-report/:token" element={<ShipmentReportShared />} />
-      <Route path="/r/:token"             element={<SharedLandedCostReport />} />
-      <Route path="/why-complyos"         element={<ComplyOSSales />} />
-      <Route path="/agency-directory"     element={<AgencyDirectory />} />
-      <Route path="/site/:tenantSlug"                    element={<OneSitePublic />} />
-      <Route path="/site/:tenantSlug/search"             element={<OneSitePublic />} />
-      <Route path="/site/:tenantSlug/blog"               element={<OneSitePublic />} />
-      <Route path="/site/:tenantSlug/blog/archive/:year/:month" element={<OneSitePublic />} />
-      <Route path="/site/:tenantSlug/blog/author/:authorId" element={<OneSitePublic />} />
-      <Route path="/site/:tenantSlug/blog/:postSlug"      element={<OneSitePublic />} />
-      <Route path="/site/:tenantSlug/m/:modelKey"         element={<OneSitePublic />} />
-      <Route path="/site/:tenantSlug/m/:modelKey/:entrySlug" element={<OneSitePublic />} />
-      <Route path="/site/:tenantSlug/:pageSlug"          element={<OneSitePublic />} />
-      {/* eSign public routes — external signers access these without a Hudumika account */}
-      <Route path="/sign/public/:token"  element={<SignPublicPage />} />
-      <Route path="/sign/verify/:code"   element={<SignVerifyPage />} />
-      <Route path="/sign/verify"         element={<SignVerifyPage />} />
-      {/* Calendly-style booking pages — anyone with the link can book, no account needed */}
-      <Route path="/book/:slug"          element={<BookingPublicPage />} />
-      {/* Bliss "join like Zoom/Meet/Teams" guest meeting link — no Hudumika
-          account needed, gated by the host's own password/waiting-room
-          controls instead (calls-public routes). Mounted here AND in the
-          signed-in tree below so a staff member's own active session in the
-          same browser doesn't get in the way of a guest link they were
-          personally sent. */}
-      <Route path="/meet/:id"            element={<GuestMeetingJoin />} />
-      <Route path="/ondi/login"          element={<OndiLogin />} />
-      {/* Always the password page, unconditionally — the one stable target
-          for OndiLogin's "Sign in with password instead" link. Without this,
-          /login had no route of its own and fell through to the same
-          flag-conditional catch-all below, so flipping Ondi SSO on made
-          that link loop back to Ondi instead of ever reaching the password
-          page — caught by testing the link, not just the default view. */}
-      <Route path="/login"                element={<Login />} />
-      <Route path="/2fa-setup-required"   element={<TwoFaSetupRequired />} />
-      {/* Same gap, different link: ForgotPassword/AcceptInvite/ResetPassword
-          all point back to /auth/login (not /login) after a password reset
-          or invite acceptance. That path had no route of its own either, so
-          it fell through to the flag-conditional catch-all below the same
-          way /login did before the fix above — a user who just set a new
-          password would land back on OndiLogin instead of the form that
-          needs it once Ondi SSO is the default. */}
-      <Route path="/auth/login"           element={<Navigate to="/login" replace />} />
-      <Route path="*"                     element={ondiSsoDefault ? <OndiLogin /> : <Login />} />
-    </Routes>
+    <Suspense fallback={<SkeletonPage />}>
+      <Routes>
+        <Route path="/maintenance"          element={<MaintenancePage />} />
+        <Route path="/signup"               element={<OnboardingWizard />} />
+        <Route path="/auth/register"        element={<Navigate to="/signup" replace />} />
+        <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+        <Route path="/auth/reset-password"  element={<ResetPassword />} />
+        {/* Ondi feature-gap pass (M4): mutual-consent recovery via a trusted
+            contact, for when email access is lost too — not just a copy edit
+            of ForgotPassword, a genuinely separate flow (see RecoveryPage.tsx). */}
+        <Route path="/auth/recovery"        element={<RecoveryPage />} />
+        {/* Passwordless email sign-in — a new entry point alongside the
+            password form, not a change to it (see MagicLinkPage.tsx). */}
+        <Route path="/auth/magic-link"      element={<MagicLinkPage />} />
+        {/* Lands a real browser navigation (SAML's ACS redirect, not a fetch
+            call) — see SsoCompletePage.tsx's own header comment. */}
+        <Route path="/auth/sso-complete"    element={<SsoCompletePage />} />
+        <Route path="/accept-invite"        element={<AcceptInvite />} />
+        <Route path="/auth/verify-email"    element={<VerifyEmail />} />
+        <Route path="/terms"                element={<TermsOfService />} />
+        <Route path="/privacy"              element={<PrivacyPolicy />} />
+        <Route path="/support-ticket"       element={<SupportTicket />} />
+        <Route path="/track/shared/:token"  element={<TrackingShared />} />
+        <Route path="/track/shipment-report/:token" element={<ShipmentReportShared />} />
+        <Route path="/r/:token"             element={<SharedLandedCostReport />} />
+        <Route path="/why-complyos"         element={<ComplyOSSales />} />
+        <Route path="/agency-directory"     element={<AgencyDirectory />} />
+        <Route path="/site/:tenantSlug"                    element={<OneSitePublic />} />
+        <Route path="/site/:tenantSlug/search"             element={<OneSitePublic />} />
+        <Route path="/site/:tenantSlug/blog"               element={<OneSitePublic />} />
+        <Route path="/site/:tenantSlug/blog/archive/:year/:month" element={<OneSitePublic />} />
+        <Route path="/site/:tenantSlug/blog/author/:authorId" element={<OneSitePublic />} />
+        <Route path="/site/:tenantSlug/blog/:postSlug"      element={<OneSitePublic />} />
+        <Route path="/site/:tenantSlug/m/:modelKey"         element={<OneSitePublic />} />
+        <Route path="/site/:tenantSlug/m/:modelKey/:entrySlug" element={<OneSitePublic />} />
+        <Route path="/site/:tenantSlug/:pageSlug"          element={<OneSitePublic />} />
+        {/* eSign public routes — external signers access these without a Hudumika account */}
+        <Route path="/sign/public/:token"  element={<SignPublicPage />} />
+        <Route path="/sign/verify/:code"   element={<SignVerifyPage />} />
+        <Route path="/sign/verify"         element={<SignVerifyPage />} />
+        {/* Calendly-style booking pages — anyone with the link can book, no account needed */}
+        <Route path="/book/:slug"          element={<BookingPublicPage />} />
+        {/* Bliss "join like Zoom/Meet/Teams" guest meeting link — no Hudumika
+            account needed, gated by the host's own password/waiting-room
+            controls instead (calls-public routes). Mounted here AND in the
+            signed-in tree below so a staff member's own active session in the
+            same browser doesn't get in the way of a guest link they were
+            personally sent. */}
+        <Route path="/meet/:id"            element={<GuestMeetingJoin />} />
+        <Route path="/ondi/login"          element={<OndiLogin />} />
+        {/* Always the password page, unconditionally — the one stable target
+            for OndiLogin's "Sign in with password instead" link. Without this,
+            /login had no route of its own and fell through to the same
+            flag-conditional catch-all below, so flipping Ondi SSO on made
+            that link loop back to Ondi instead of ever reaching the password
+            page — caught by testing the link, not just the default view. */}
+        <Route path="/login"                element={<Login />} />
+        <Route path="/2fa-setup-required"   element={<TwoFaSetupRequired />} />
+        {/* Same gap, different link: ForgotPassword/AcceptInvite/ResetPassword
+            all point back to /auth/login (not /login) after a password reset
+            or invite acceptance. That path had no route of its own either, so
+            it fell through to the flag-conditional catch-all below the same
+            way /login did before the fix above — a user who just set a new
+            password would land back on OndiLogin instead of the form that
+            needs it once Ondi SSO is the default. */}
+        <Route path="/auth/login"           element={<Navigate to="/login" replace />} />
+        <Route path="*"                     element={ondiSsoDefault ? <OndiLogin /> : <Login />} />
+      </Routes>
+    </Suspense>
   );
 
   /* ── Customer portal — dedicated mobile shell ── */
@@ -411,173 +437,176 @@ const AppContentBody: React.FC = () => {
     <div className="app-container">
       <ImpersonationBanner />
       <main className={`main-content${isHub ? ' main-content-hub' : ''}`}>
-        <Routes>
-          {/* Hub — WorkspaceHome with shared search state */}
-          <Route path="/" element={<HubPage />} />
+        <Suspense fallback={<SkeletonPage />}>
+          <Routes>
+            {/* Hub — WorkspaceHome with shared search state */}
+            <Route path="/" element={<HubPage />} />
 
-          {/* Public legal pages — self-contained layout */}
-          <Route path="/maintenance"    element={<MaintenancePage />} />
-          <Route path="/terms"          element={<TermsOfService />} />
-          <Route path="/privacy"        element={<PrivacyPolicy />} />
-          <Route path="/support-ticket" element={<SupportTicket />} />
-          <Route path="/why-complyos"   element={<ComplyOSSales />} />
-          <Route path="/agency-directory" element={<AgencyDirectory />} />
-          <Route path="/site/:tenantSlug"               element={<OneSitePublic />} />
-          <Route path="/site/:tenantSlug/search"        element={<OneSitePublic />} />
-          <Route path="/site/:tenantSlug/blog"          element={<OneSitePublic />} />
-          <Route path="/site/:tenantSlug/blog/archive/:year/:month" element={<OneSitePublic />} />
-          <Route path="/site/:tenantSlug/blog/author/:authorId" element={<OneSitePublic />} />
-          <Route path="/site/:tenantSlug/blog/:postSlug" element={<OneSitePublic />} />
-          <Route path="/site/:tenantSlug/m/:modelKey"      element={<OneSitePublic />} />
-          <Route path="/site/:tenantSlug/m/:modelKey/:entrySlug" element={<OneSitePublic />} />
-          <Route path="/site/:tenantSlug/:pageSlug"     element={<OneSitePublic />} />
-          <Route path="/book/:slug"                 element={<BookingPublicPage />} />
-          <Route path="/meet/:id"                   element={<GuestMeetingJoin />} />
-          <Route path="/subscription" element={<Navigate to="/workspace/billing" replace />} />
+            {/* Public legal pages — self-contained layout */}
+            <Route path="/maintenance"    element={<MaintenancePage />} />
+            <Route path="/terms"          element={<TermsOfService />} />
+            <Route path="/privacy"        element={<PrivacyPolicy />} />
+            <Route path="/support-ticket" element={<SupportTicket />} />
+            <Route path="/why-complyos"   element={<ComplyOSSales />} />
+            <Route path="/agency-directory" element={<AgencyDirectory />} />
+            <Route path="/site/:tenantSlug"               element={<OneSitePublic />} />
+            <Route path="/site/:tenantSlug/search"        element={<OneSitePublic />} />
+            <Route path="/site/:tenantSlug/blog"          element={<OneSitePublic />} />
+            <Route path="/site/:tenantSlug/blog/archive/:year/:month" element={<OneSitePublic />} />
+            <Route path="/site/:tenantSlug/blog/author/:authorId" element={<OneSitePublic />} />
+            <Route path="/site/:tenantSlug/blog/:postSlug" element={<OneSitePublic />} />
+            <Route path="/site/:tenantSlug/m/:modelKey"      element={<OneSitePublic />} />
+            <Route path="/site/:tenantSlug/m/:modelKey/:entrySlug" element={<OneSitePublic />} />
+            <Route path="/site/:tenantSlug/:pageSlug"     element={<OneSitePublic />} />
+            <Route path="/book/:slug"                 element={<BookingPublicPage />} />
+            <Route path="/meet/:id"                   element={<GuestMeetingJoin />} />
+            <Route path="/subscription" element={<Navigate to="/workspace/billing" replace />} />
 
-          {/* Full-viewport apps — no page-layout (manage their own height/overflow) */}
-          <Route path="/ops" element={<RequireRoles roles={OPS_ROLES}><CommandCenter /></RequireRoles>} />
+            {/* Full-viewport apps — no page-layout (manage their own height/overflow) */}
+            <Route path="/ops" element={<RequireRoles roles={OPS_ROLES}><CommandCenter /></RequireRoles>} />
 
-          {/* Opt-in activity monitoring — reachable from the visible collector chip in any app. */}
-          <Route path="/activity-monitor" element={<div className="app-shell-content"><ActivityMonitorPage /></div>} />
+            {/* Opt-in activity monitoring — reachable from the visible collector chip in any app. */}
+            <Route path="/activity-monitor" element={<div className="app-shell-content"><ActivityMonitorPage /></div>} />
 
-          {/* ── App shells (prefix-based routes) ── */}
-          <Route path="/clearos/*"  element={<ClearOSShell />} />
-          {/* Lens — internal developer record. SuperAdmin only, never in a
-              customer launcher. */}
-          <Route path="/lens/*"     element={<RequireRoles roles={['SUPER_ADMIN']}><LensShell /></RequireRoles>} />
-          <Route path="/finance/*"  element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
-          <Route path="/finops/*"   element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
-          <Route path="/nexushr/*"    element={<NexusHRShell />} />
-          {/* /onepi is retired as the HR prefix — it is being freed for the
-              separate KPI-management app. Bookmarks, printed reports and the
-              links inside already-sent notifications still point here, so the
-              whole subtree redirects with its path preserved. */}
-          <Route path="/onepi/*"    element={<OnepiToNexusHR />} />
-          <Route path="/bliss/*"    element={<BlissShell />} />
-          <Route path="/cloud/*"    element={<CloudShell />} />
-          <Route path="/workspace/*"element={<AdminShell />} />
-          <Route path="/admin/*"    element={<SuperAdminShell />} />
-          {/* The standalone AI app is retired — Agent Flow, Automations,
-              Insights and Controls all live as tabs on the Agentic home
-              (HubPage below) now. Old links redirect to "/" rather than
-              404ing or resurrecting the shell. */}
-          <Route path="/ai/*"       element={<Navigate to="/" replace />} />
-          <Route path="/agent"      element={<Navigate to="/" replace />} />
-          <Route path="/complyos/*" element={<ComplyOSShell />} />
-          <Route path="/seal/*"     element={<SealShell />} />
-          <Route path="/inventory/*" element={<InventoryShell />} />
-          <Route path="/email/*"    element={<EmailShell />} />
-          <Route path="/crm/*"      element={<CRMShell />} />
-          <Route path="/contacts/*"  element={<ContactsShell />} />
-          <Route path="/store/*"     element={<StoreShell />} />
-          <Route path="/ondi/*"      element={<OndiShell />} />
-          {/* Ondi moved from /oneid to /ondi; the old path stays as a
-              redirect so existing bookmarks and links keep working. */}
-          <Route path="/oneid/*"     element={<Navigate to="/ondi" replace />} />
-          <Route path="/tracking/*"  element={<TrackingShell />} />
-          <Route path="/cargotracker/*" element={<CargoTrackerShell />} />
-          <Route path="/cms/*"       element={<CMSShell />} />
-          <Route path="/studio/*"    element={<StudioShell />} />
-          <Route path="/onsite/*"    element={<OnsiteShell />} />
-          <Route path="/hudubi/*"    element={<HuduBIShell />} />
-          <Route path="/petti/*"     element={<PettiShell />} />
-          <Route path="/sms/*"       element={<SmsShell />} />
-          <Route path="/developer/*" element={<DeveloperShell />} />
-          <Route path="/dev/*"       element={<Navigate to="/developer" replace />} />
+            {/* ── App shells (prefix-based routes) ── */}
+            <Route path="/clearos/*"  element={<ClearOSShell />} />
+            {/* Lens — internal developer record. SuperAdmin only, never in a
+                customer launcher. */}
+            <Route path="/lens/*"     element={<RequireRoles roles={['SUPER_ADMIN']}><LensShell /></RequireRoles>} />
+            <Route path="/finance/*"  element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
+            <Route path="/finops/*"   element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
+            <Route path="/nexushr/*"    element={<NexusHRShell />} />
+            {/* /onepi is retired as the HR prefix — it is being freed for the
+                separate KPI-management app. Bookmarks, printed reports and the
+                links inside already-sent notifications still point here, so the
+                whole subtree redirects with its path preserved. */}
+            <Route path="/onepi/*"    element={<OnepiToNexusHR />} />
+            <Route path="/bliss/*"    element={<BlissShell />} />
+            <Route path="/cloud/*"    element={<CloudShell />} />
+            <Route path="/workspace/*"element={<AdminShell />} />
+            <Route path="/admin/*"    element={<SuperAdminShell />} />
+            {/* The standalone AI app is retired — Agent Flow, Automations,
+                Insights and Controls all live as tabs on the Agentic home
+                (HubPage below) now. Old links redirect to "/" rather than
+                404ing or resurrecting the shell. */}
+            <Route path="/ai/*"       element={<Navigate to="/" replace />} />
+            <Route path="/agent"      element={<Navigate to="/" replace />} />
+            <Route path="/complyos/*" element={<ComplyOSShell />} />
+            <Route path="/seal/*"     element={<SealShell />} />
+            <Route path="/inventory/*" element={<InventoryShell />} />
+            <Route path="/email/*"    element={<EmailShell />} />
+            <Route path="/crm/*"      element={<CRMShell />} />
+            <Route path="/contacts/*"  element={<ContactsShell />} />
+            <Route path="/store/*"     element={<StoreShell />} />
+            <Route path="/ondi/*"      element={<OndiShell />} />
+            {/* Ondi moved from /oneid to /ondi; the old path stays as a
+                redirect so existing bookmarks and links keep working. */}
+            <Route path="/oneid/*"     element={<Navigate to="/ondi" replace />} />
+            <Route path="/tracking/*"  element={<TrackingShell />} />
+            <Route path="/cargotracker/*" element={<CargoTrackerShell />} />
+            <Route path="/cms/*"       element={<CMSShell />} />
+            <Route path="/studio/*"    element={<StudioShell />} />
+            <Route path="/onsite/*"    element={<OnsiteShell />} />
+            <Route path="/hudubi/*"    element={<HuduBIShell />} />
+            <Route path="/petti/*"     element={<PettiShell />} />
+            <Route path="/sms/*"       element={<SmsShell />} />
+            <Route path="/developer/*" element={<DeveloperShell />} />
+            <Route path="/dev/*"       element={<Navigate to="/developer" replace />} />
 
-          {/* Legacy redirects for old routes */}
-          <Route path="/billing"         element={<Navigate to="/finance/invoices"        replace />} />
-          <Route path="/quotations"      element={<Navigate to="/finance/quotations"      replace />} />
-          <Route path="/purchase-orders" element={<Navigate to="/finance/purchase-orders" replace />} />
-          <Route path="/expenses"        element={<Navigate to="/finance/expenses"        replace />} />
-          <Route path="/accounts"        element={<Navigate to="/finance/accounts"        replace />} />
-          <Route path="/customers"       element={<Navigate to="/crm/customers"           replace />} />
-          <Route path="/customers/*"     element={<Navigate to="/crm/customers"           replace />} />
-          <Route path="/leads"           element={<Navigate to="/crm/leads"               replace />} />
-          <Route path="/leads/:id"       element={<Navigate to="/crm/leads"               replace />} />
-          <Route path="/tracker"         element={<Navigate to="/cargotracker"            replace />} />
-          <Route path="/demurrage/*"     element={<Navigate to="/cargotracker/demurrage"  replace />} />
+            {/* Legacy redirects for old routes */}
+            <Route path="/billing"         element={<Navigate to="/finance/invoices"        replace />} />
+            <Route path="/quotations"      element={<Navigate to="/finance/quotations"      replace />} />
+            <Route path="/purchase-orders" element={<Navigate to="/finance/purchase-orders" replace />} />
+            <Route path="/expenses"        element={<Navigate to="/finance/expenses"        replace />} />
+            <Route path="/accounts"        element={<Navigate to="/finance/accounts"        replace />} />
+            <Route path="/customers"       element={<Navigate to="/crm/customers"           replace />} />
+            <Route path="/customers/*"     element={<Navigate to="/crm/customers"           replace />} />
+            <Route path="/leads"           element={<Navigate to="/crm/leads"               replace />} />
+            <Route path="/leads/:id"       element={<Navigate to="/crm/leads"               replace />} />
+            <Route path="/tracker"         element={<Navigate to="/cargotracker"            replace />} />
+            <Route path="/demurrage/*"     element={<Navigate to="/cargotracker/demurrage"  replace />} />
 
-          {/* ── Legacy redirects for old admin / settings paths ── */}
-          {/* ?s=company matches the sidebar's own "General" group first item
-              (AdminShell.tsx) so the just-landed page highlights a real
-              section instead of no sidebar item matching anything. */}
-          <Route path="/settings"          element={<Navigate to="/workspace/settings?s=company" replace />} />
-          <Route path="/system-update"     element={<Navigate to="/admin"              replace />} />
-          <Route path="/tenant-management" element={<Navigate to="/admin"              replace />} />
-          <Route path="/superadmin"        element={<Navigate to="/admin"              replace />} />
-          <Route path="/clearos/trade-wizard" element={<Navigate to="/clearos/compliance/advanced" replace />} />
-          <Route path="/reports"           element={<Navigate to="/workspace/reports"  replace />} />
-          <Route path="/utilities"         element={<Navigate to="/workspace/utilities" replace />} />
-          <Route path="/setup"             element={<Navigate to="/workspace/settings?s=company" replace />} />
+            {/* ── Legacy redirects for old admin / settings paths ── */}
+            {/* ?s=company matches the sidebar's own "General" group first item
+                (AdminShell.tsx) so the just-landed page highlights a real
+                section instead of no sidebar item matching anything. */}
+            <Route path="/settings"          element={<Navigate to="/workspace/settings?s=company" replace />} />
+            <Route path="/system-update"     element={<Navigate to="/admin"              replace />} />
+            <Route path="/tenant-management" element={<Navigate to="/admin"              replace />} />
+            <Route path="/superadmin"        element={<Navigate to="/admin"              replace />} />
+            <Route path="/clearos/trade-wizard" element={<Navigate to="/clearos/compliance/advanced" replace />} />
+            <Route path="/reports"           element={<Navigate to="/workspace/reports"  replace />} />
+            <Route path="/utilities"         element={<Navigate to="/workspace/utilities" replace />} />
+            <Route path="/setup"             element={<Navigate to="/workspace/settings?s=company" replace />} />
 
-          {/* ── CRM / Sales / Finance shortcuts → canonical shell routes ── */}
-          <Route path="/customers/overview"    element={<Navigate to="/crm/overview"              replace />} />
-          <Route path="/customers/bulk-upload" element={<Navigate to="/crm/customers/bulk-upload" replace />} />
-          <Route path="/sales"                 element={<Navigate to="/crm/sales"                 replace />} />
-          <Route path="/delivery-notes"        element={<Navigate to="/finance/delivery-notes"    replace />} />
-          <Route path="/accounts/ledger"           element={<Navigate to="/finance/ledger"           replace />} />
-          <Route path="/accounts/trial-balance"    element={<Navigate to="/finance/trial-balance"    replace />} />
-          <Route path="/accounts/balance-sheet"    element={<Navigate to="/finance/balance-sheet"    replace />} />
-          <Route path="/accounts/profit-loss"      element={<Navigate to="/finance/profit-loss"      replace />} />
-          <Route path="/accounts/aged-receivables" element={<Navigate to="/finance/aged-receivables" replace />} />
-          <Route path="/accounts/aged-payables"    element={<Navigate to="/finance/aged-payables"    replace />} />
+            {/* ── CRM / Sales / Finance shortcuts → canonical shell routes ── */}
+            <Route path="/customers/overview"    element={<Navigate to="/crm/overview"              replace />} />
+            <Route path="/customers/bulk-upload" element={<Navigate to="/crm/customers/bulk-upload" replace />} />
+            <Route path="/sales"                 element={<Navigate to="/crm/sales"                 replace />} />
+            <Route path="/delivery-notes"        element={<Navigate to="/finance/delivery-notes"    replace />} />
+            <Route path="/accounts/ledger"           element={<Navigate to="/finance/ledger"           replace />} />
+            <Route path="/accounts/trial-balance"    element={<Navigate to="/finance/trial-balance"    replace />} />
+            <Route path="/accounts/balance-sheet"    element={<Navigate to="/finance/balance-sheet"    replace />} />
+            <Route path="/accounts/profit-loss"      element={<Navigate to="/finance/profit-loss"      replace />} />
+            <Route path="/accounts/aged-receivables" element={<Navigate to="/finance/aged-receivables" replace />} />
+            <Route path="/accounts/aged-payables"    element={<Navigate to="/finance/aged-payables"    replace />} />
 
-          {/* ── Tool / staff pages — AppHeader shell, no sidebar ── */}
-          <Route element={<NavShell />}>
-            {/* Legacy CFA routes */}
-            <Route path="/shipments"     element={<RequireRoles roles={[...OPS_ROLES, 'FINANCE']}><ShipmentsList /></RequireRoles>} />
-            <Route path="/clearance/:id" element={<ClearanceRedirect />} />
-            <Route path="/clearance/:id/edit" element={<ClearanceRedirect edit />} />
-            <Route path="/customs-tools" element={<RequireRoles roles={OPS_ROLES}><LandedCostPage /></RequireRoles>} />
-            <Route path="/compliance"    element={<RequireRoles roles={OPS_ROLES}><CompliancePage /></RequireRoles>} />
-            <Route path="/penalty"       element={<RequireRoles roles={OPS_ROLES}><PenaltyPage /></RequireRoles>} />
+            {/* ── Tool / staff pages — AppHeader shell, no sidebar ── */}
+            <Route element={<NavShell />}>
+              {/* Legacy CFA routes */}
+              <Route path="/shipments"     element={<RequireRoles roles={[...OPS_ROLES, 'FINANCE']}><ShipmentsList /></RequireRoles>} />
+              <Route path="/clearance/:id" element={<ClearanceRedirect />} />
+              <Route path="/clearance/:id/edit" element={<ClearanceRedirect edit />} />
+              <Route path="/customs-tools" element={<RequireRoles roles={OPS_ROLES}><LandedCostPage /></RequireRoles>} />
+              <Route path="/compliance"    element={<RequireRoles roles={OPS_ROLES}><CompliancePage /></RequireRoles>} />
+              <Route path="/penalty"       element={<RequireRoles roles={OPS_ROLES}><PenaltyPage /></RequireRoles>} />
 
-            {/* Tools — all staff */}
-            <Route path="/documents"        element={<FileBrowser />} />
-            <Route path="/support/overview" element={<SupportOverview />} />
-            <Route path="/support/tickets"  element={<BlissInbox />} />
-            <Route path="/support"          element={<SupportOverview />} />
-            <Route path="/chat"             element={<Chat />} />
-            {/* Escalations.tsx (real backend: migration 406/412,
-                escalations.routes.ts) had a fully-built page and table but
-                was never actually routed anywhere — navConfigs.ts already
-                listed '/escalations' in the Tools section's match prefixes,
-                just missing both this <Route> and the nav item itself. */}
-            <Route path="/escalations"      element={<Escalations />} />
-            <Route path="/profile"          element={<UserProfile />} />
-            <Route path="/tools/overview"   element={<ToolsOverview />} />
-            <Route path="/carbon-credits"   element={<CarbonCreditsPage />} />
+              {/* Tools — all staff */}
+              <Route path="/documents"        element={<FileBrowser />} />
+              <Route path="/support/overview" element={<SupportOverview />} />
+              <Route path="/support/tickets"  element={<BlissInbox />} />
+              <Route path="/support"          element={<SupportOverview />} />
+              <Route path="/chat"             element={<Chat />} />
+              {/* Escalations.tsx (real backend: migration 406/412,
+                  escalations.routes.ts) had a fully-built page and table but
+                  was never actually routed anywhere — navConfigs.ts already
+                  listed '/escalations' in the Tools section's match prefixes,
+                  just missing both this <Route> and the nav item itself. */}
+              <Route path="/escalations"      element={<Escalations />} />
+              <Route path="/profile"          element={<UserProfile />} />
+              <Route path="/profile/privacy"  element={<PrivacyCenter />} />
+              <Route path="/tools/overview"   element={<ToolsOverview />} />
+              <Route path="/carbon-credits"   element={<CarbonCreditsPage />} />
 
-          </Route>
+            </Route>
 
-          {/* ── App shells (prefix-based routes) that use WorkspaceApp ── */}
-          <Route path="/calendar/*"       element={<CalendarShell />} />
-          <Route path="/tasks/*"          element={<TasksShell />} />
-          <Route path="/projects/*"       element={<ProjectsShell />} />
-          <Route path="/notes/*"          element={<NotesShell />} />
-          <Route path="/sign/*"           element={<SignShell />} />
+            {/* ── App shells (prefix-based routes) that use WorkspaceApp ── */}
+            <Route path="/calendar/*"       element={<CalendarShell />} />
+            <Route path="/tasks/*"          element={<TasksShell />} />
+            <Route path="/projects/*"       element={<ProjectsShell />} />
+            <Route path="/notes/*"          element={<NotesShell />} />
+            <Route path="/sign/*"           element={<SignShell />} />
 
-          {/* Legacy HRM routes — superseded by the OnePI shell (/nexushr/*), kept as redirects for old links/bookmarks */}
-          <Route path="/hrm"           element={<Navigate to="/nexushr" replace />} />
-          <Route path="/hrm/staff/:id" element={<HrmStaffRedirect />} />
-          {['employees','roles','permissions','delete-requests','departments','designations','teams','invitations',
-            'staff-directory','activity-logs','login-history','device-management','leaves','attendance','shifts',
-            'holidays','payroll','announcements','org-chart'].map(seg => (
-            <Route key={seg} path={`/hrm/${seg}`} element={<Navigate to={`/nexushr/${seg}`} replace />} />
-          ))}
+            {/* Legacy HRM routes — superseded by the OnePI shell (/nexushr/*), kept as redirects for old links/bookmarks */}
+            <Route path="/hrm"           element={<Navigate to="/nexushr" replace />} />
+            <Route path="/hrm/staff/:id" element={<HrmStaffRedirect />} />
+            {['employees','roles','permissions','delete-requests','departments','designations','teams','invitations',
+              'staff-directory','activity-logs','login-history','device-management','leaves','attendance','shifts',
+              'holidays','payroll','announcements','org-chart'].map(seg => (
+              <Route key={seg} path={`/hrm/${seg}`} element={<Navigate to={`/nexushr/${seg}`} replace />} />
+            ))}
 
-          <Route path="/track/shared/:token" element={<TrackingShared />} />
-          <Route path="/track/shipment-report/:token" element={<ShipmentReportShared />} />
-          <Route path="/r/:token" element={<SharedLandedCostReport />} />
-          {/* eSign public routes accessible while authenticated too */}
-          <Route path="/sign/public/:token"  element={<SignPublicPage />} />
-          <Route path="/sign/verify/:code"   element={<SignVerifyPage />} />
-          <Route path="/sign/verify"         element={<SignVerifyPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="/track/shared/:token" element={<TrackingShared />} />
+            <Route path="/track/shipment-report/:token" element={<ShipmentReportShared />} />
+            <Route path="/r/:token" element={<SharedLandedCostReport />} />
+            {/* eSign public routes accessible while authenticated too */}
+            <Route path="/sign/public/:token"  element={<SignPublicPage />} />
+            <Route path="/sign/verify/:code"   element={<SignVerifyPage />} />
+            <Route path="/sign/verify"         element={<SignVerifyPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
 
-        </Routes>
+          </Routes>
+        </Suspense>
       </main>
       <CheckInWidget />
     </div>

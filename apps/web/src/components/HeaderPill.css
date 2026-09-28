@@ -1,0 +1,146 @@
+/* ── HeaderPill — announcement / notification ticker ──────────────────────
+   A pill-shaped bar that rotates through unread items one at a time.
+   Replaces (or sits beside) the search input in the header centre slot.
+   Also embeddable standalone anywhere an event stream needs a compact
+   ticker: page banners, dashboard summary bars, feed previews.
+
+   Anatomy
+   ┌─────────────────────────────────────────────────────────────────────────┐
+   │ [🔍] [ NEW ] Title text here        secondary detail   1/3 ⏸ ‹ › ×    │
+   └─────────────────────────────────────────────────────────────────────────┘
+   .app-header-pill
+     .app-header-pill-search      ← magnifier button (optional: collapses to search)
+     .app-header-pill-body        ← clickable item region (animated on swap)
+       .app-header-pill-badge     ← colored keyword pill: NEW / MAINTENANCE / RELEASE
+       .app-header-pill-title     ← bold title, truncates with ellipsis
+       .app-header-pill-sub       ← lighter supporting text, hidden ≤1100px
+     .app-header-pill-controls    ← right-side controls wrapper
+       .app-header-pill-count     ← "1/3" tabular counter
+       .app-header-pill-icon ×4   ← pause/play, prev, next, dismiss
+   ────────────────────────────────────────────────────────────────────────── */
+
+.app-header-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  min-width: 0;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 6px 0 4px;
+  box-sizing: border-box;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  /* Fully rounded — pill shape is the point here, not a token radius. */
+  border-radius: 999px;
+}
+
+.app-header-pill-search,
+.app-header-pill-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 999px;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.app-header-pill-search:hover,
+.app-header-pill-icon:hover { background: var(--white); color: var(--ink); }
+.app-header-pill-icon[aria-pressed="true"] { color: var(--teal); }
+
+/* The announcement itself — min-width:0 on both this and the title is what
+   lets the title ellipsize rather than forcing the pill wider. */
+.app-header-pill-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font);
+  animation: pill-enter .28s ease;
+}
+
+@keyframes pill-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Colored keyword badge — NEW / MAINTENANCE / RELEASE / etc. */
+.app-header-pill-badge {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--teal-l);
+  color: var(--teal);
+  text-transform: uppercase;
+}
+
+/* Bold event title — ellipsis past 45% of the pill body. */
+.app-header-pill-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  max-width: 45%;
+}
+
+/* Secondary detail — first thing hidden when squeezed. */
+.app-header-pill-sub {
+  font-size: 12px;
+  color: var(--ink3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Right-side controls — count + pause/prev/next/dismiss. */
+.app-header-pill-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* "1/3" counter — tabular-nums keeps it from shifting width. */
+.app-header-pill-count {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink3);
+  font-variant-numeric: tabular-nums;
+  padding: 0 2px;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+
+/* Below 1100px the sub-line competes with too much; drop it. */
+@media (max-width: 1100px) {
+  .app-header-pill-sub { display: none; }
+  .app-header-pill-title { max-width: 100%; }
+}
+
+/* Reduced motion: JS already stops rotation; this also cancels the enter
+   animation so nothing moves for users who requested stillness. */
+@media (prefers-reduced-motion: reduce) {
+  .app-header-pill-body { animation: none; }
+}

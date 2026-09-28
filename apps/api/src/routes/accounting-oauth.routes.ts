@@ -125,7 +125,7 @@ export async function accountingOAuthRoutes(fastify: FastifyInstance) {
           updated_at: new Date(),
         };
         if (existing) {
-          await trx.updateTable('accounting_integrations').set(values).where('id', '=', existing.id).execute();
+          await trx.updateTable('accounting_integrations').set(values).where('id', '=', existing.id).where('tenant_id', '=', claims.tenantId).execute();
         } else {
           await trx.insertInto('accounting_integrations').values({ tenant_id: claims.tenantId, provider, config: '{}' as any, ...values }).execute();
         }

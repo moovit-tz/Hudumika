@@ -4,7 +4,13 @@ import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
+import { Button } from '../../components/ui/button.js';
+import { FeaturedIcon } from '../../components/ui/featured-icon.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
 import { Icon } from '../../components/Icon.js';
+import { Input } from '../../components/ui/input.js';
+import { Textarea } from '../../components/ui/textarea.js';
 import { apiFetch } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
 
@@ -32,11 +38,50 @@ interface JournalEntry {
 }
 
 const EVENT_TYPE_BADGES: Record<string, { label: string; variant: 'brand' | 'success' | 'warning' | 'error' | 'info' | 'gray'; icon: string }> = {
-  certified: { label: 'Notarial Certification', variant: 'brand', icon: 'shield' },
-  witnessed: { label: 'Witnessed Signature', variant: 'info', icon: 'eye' },
-  declared: { label: 'Affidavit Declaration', variant: 'warning', icon: 'fileText' },
-  journal_correction: { label: 'Journal Correction', variant: 'error', icon: 'alertCircle' },
+  certified:          { label: 'Notarial Certification', variant: 'brand',   icon: 'shield'      },
+  witnessed:          { label: 'Witnessed Signature',    variant: 'info',    icon: 'eye'         },
+  declared:           { label: 'Affidavit Declaration',  variant: 'warning', icon: 'fileText'    },
+  journal_correction: { label: 'Journal Correction',     variant: 'error',   icon: 'alertCircle' },
 };
+
+const PER_PAGE_OPTIONS = [10, 20, 50, 100];
+
+function Pagination({ total, page, perPage, onPage }: { total: number; page: number; perPage: number; onPage: (p: number) => void }) {
+  const totalPages = Math.ceil(total / perPage);
+  if (totalPages <= 1) return null;
+  const pages: (number | '...')[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (page > 3) pages.push('...');
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+    if (page < totalPages - 2) pages.push('...');
+    pages.push(totalPages);
+  }
+  const btnBase: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 32, height: 32, padding: '0 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', transition: 'background 0.15s' };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center', padding: '16px 0' }}>
+      <button type="button" style={{ ...btnBase, opacity: page === 1 ? 0.4 : 1 }} disabled={page === 1} onClick={() => onPage(page - 1)}>
+        <Icon name="chevronLeft" size={13} />
+      </button>
+      {pages.map((p, i) => p === '...' ? (
+        <span key={`e${i}`} style={{ color: 'var(--ink3)', fontSize: 12.5, padding: '0 4px' }}>…</span>
+      ) : (
+        <button key={p} type="button" onClick={() => onPage(p as number)}
+          style={{ ...btnBase, background: p === page ? 'hsl(var(--primary))' : 'var(--bg)', color: p === page ? 'hsl(var(--primary-foreground))' : 'var(--ink)', borderColor: p === page ? 'hsl(var(--primary))' : 'var(--border)' }}>
+          {p}
+        </button>
+      ))}
+      <button type="button" style={{ ...btnBase, opacity: page === totalPages ? 0.4 : 1 }} disabled={page === totalPages} onClick={() => onPage(page + 1)}>
+        <Icon name="chevronRight" size={13} />
+      </button>
+      <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--ink3)' }}>
+        {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}
+      </span>
+    </div>
+  );
+}
 
 export function SignJournalPage() {
   const { user } = useAuth();
@@ -44,8 +89,9 @@ export function SignJournalPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
 
-  // Correction modal state
   const [selectedEvent, setSelectedEvent] = useState<JournalEntry | null>(null);
   const [correctionNote, setCorrectionNote] = useState('');
   const [savingCorrection, setSavingCorrection] = useState(false);
@@ -57,7 +103,6 @@ export function SignJournalPage() {
       const params = new URLSearchParams();
       if (search.trim()) params.set('search', search.trim());
       if (typeFilter !== 'all') params.set('type', typeFilter);
-
       const res = await apiFetch(`/v1/sign/journal?${params.toString()}`);
       setEntries(res.data || []);
     } catch {
@@ -67,25 +112,25 @@ export function SignJournalPage() {
     }
   }, [search, typeFilter]);
 
-  useEffect(() => {
-    loadJournal();
-  }, [loadJournal]);
+  useEffect(() => { loadJournal(); }, [loadJournal]);
+  useEffect(() => { setPage(1); }, [search, typeFilter, perPage]);
 
   const stats = useMemo(() => {
     if (!entries) return { total: 0, certified: 0, witnessed: 0, declared: 0, corrections: 0 };
     return {
-      total: entries.length,
-      certified: entries.filter(e => e.event_type === 'certified').length,
-      witnessed: entries.filter(e => e.event_type === 'witnessed').length,
-      declared: entries.filter(e => e.event_type === 'declared').length,
+      total:       entries.length,
+      certified:   entries.filter(e => e.event_type === 'certified').length,
+      witnessed:   entries.filter(e => e.event_type === 'witnessed').length,
+      declared:    entries.filter(e => e.event_type === 'declared').length,
       corrections: entries.filter(e => e.event_type === 'journal_correction').length,
     };
   }, [entries]);
 
+  const pageItems = useMemo(() => (entries ?? []).slice((page - 1) * perPage, page * perPage), [entries, page, perPage]);
+
   async function handleAddCorrection(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedEvent || !correctionNote.trim()) return;
-
     setSavingCorrection(true);
     try {
       await apiFetch(`/v1/sign/journal/${selectedEvent.event_id}/correction`, {
@@ -109,324 +154,227 @@ export function SignJournalPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <PageHeader
-        crumbs={['Sign', 'Electronic Journal']}
-        titlePlain="Electronic "
-        titleEm="Journal"
+        crumbs={['eSign', 'Electronic Journal']}
+        titlePlain="Electronic"
+        titleEm="journal"
         subtitle="Chronological, append-only official register of all witnessed, notarized, and declared signatures."
       />
 
-      {/* Stats Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between shadow-xs">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Recorded Acts</p>
-            <p className="text-2xl font-bold mt-1 text-foreground">{stats.total}</p>
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 20 }}>
+        {[
+          { label: 'Total Recorded Acts',      value: stats.total,       icon: 'fileText'   as const, variant: 'brand'   as const },
+          { label: 'Notarial Certifications',  value: stats.certified,   icon: 'shield'     as const, variant: 'brand'   as const },
+          { label: 'Witnessed Signatures',     value: stats.witnessed,   icon: 'eye'        as const, variant: 'info'    as const },
+          { label: 'Affidavits & Declarations',value: stats.declared,    icon: 'fileText'   as const, variant: 'warning' as const },
+        ].map(card => (
+          <div key={card.label} style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{card.label}</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)', lineHeight: 1 }}>{card.value}</div>
+            </div>
+            <FeaturedIcon variant={card.variant} size="md" shape="square"><Icon name={card.icon} size={18} /></FeaturedIcon>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-teal-500/10 text-teal-600 flex items-center justify-center">
-            <Icon name="fileText" size={20} />
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between shadow-xs">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Notarial Certifications</p>
-            <p className="text-2xl font-bold mt-1 text-teal-600">{stats.certified}</p>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-teal-500/10 text-teal-600 flex items-center justify-center">
-            <Icon name="shield" size={20} />
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between shadow-xs">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Witnessed Signatures</p>
-            <p className="text-2xl font-bold mt-1 text-sky-600">{stats.witnessed}</p>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-sky-500/10 text-sky-600 flex items-center justify-center">
-            <Icon name="eye" size={20} />
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between shadow-xs">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Affidavits & Declarations</p>
-            <p className="text-2xl font-bold mt-1 text-amber-600">{stats.declared}</p>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
-            <Icon name="fileText" size={20} />
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Filter & Search Bar */}
+      {/* Filter + Search toolbar */}
+      <div style={{ marginBottom: 16 }}>
       <SectionCard>
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-          <div className="flex-1 flex gap-2 items-center">
-            <div className="relative flex-1">
-              <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search document title, certifier, roll number, code or notes..."
-                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-              />
-            </div>
-
-            <select
-              value={typeFilter}
-              onChange={e => setTypeFilter(e.target.value)}
-              className="px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-            >
-              <option value="all">All Acts & Events</option>
-              <option value="certified">Notarial Certifications</option>
-              <option value="witnessed">Witnessed Signatures</option>
-              <option value="declared">Affidavit Declarations</option>
-              <option value="journal_correction">Corrections</option>
-            </select>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+            <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', zIndex: 1 }} />
+            <Input
+              type="search" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search document title, certifier, roll number, code or notes…"
+              style={{ paddingLeft: 34 }}
+            />
           </div>
-
-          <button
-            onClick={loadJournal}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors"
-          >
-            <Icon name="refresh" size={14} className={loading ? 'animate-spin' : ''} />
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger style={{ height: 38, fontSize: 13, width: 220 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Acts & Events</SelectItem>
+              <SelectItem value="certified">Notarial Certifications</SelectItem>
+              <SelectItem value="witnessed">Witnessed Signatures</SelectItem>
+              <SelectItem value="declared">Affidavit Declarations</SelectItem>
+              <SelectItem value="journal_correction">Corrections</SelectItem>
+            </SelectContent>
+          </Select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)' }}>
+            <span>Show</span>
+            <Select value={String(perPage)} onValueChange={v => { setPerPage(Number(v)); setPage(1); }}>
+              <SelectTrigger style={{ height: 30, fontSize: 12, padding: '0 8px', width: 72 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PER_PAGE_OPTIONS.map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <span>per page</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadJournal} disabled={loading}>
+            <Icon name="refresh" size={14} style={{ animation: loading ? 'spin 1s linear infinite' : undefined }} />
             Refresh
-          </button>
+          </Button>
         </div>
       </SectionCard>
+      </div>
 
-      {/* Journal Table */}
-      <SectionCard>
-        {loading && !entries ? (
-          <SectionLoading />
-        ) : !entries || entries.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground space-y-3">
-            <div className="w-12 h-12 rounded-full bg-muted/60 text-muted-foreground flex items-center justify-center mx-auto">
-              <Icon name="fileText" size={24} />
+      {/* Journal table */}
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20, display: 'flex', flexDirection: 'column' }}>
+        <SectionCard padded={false}>
+          {loading && !entries ? (
+            <SectionLoading />
+          ) : !entries || entries.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 280, gap: 14, textAlign: 'center', padding: 32 }}>
+              <FeaturedIcon variant="gray" size="lg" shape="circle"><Icon name="fileText" size={24} /></FeaturedIcon>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>No journal entries found</div>
+              <div style={{ fontSize: 13, color: 'var(--ink3)', maxWidth: 400, lineHeight: 1.55 }}>
+                When documents are certified by a Notary Public, witnessed, or signed under affidavit, an immutable journal entry will automatically appear here.
+              </div>
             </div>
-            <p className="font-medium text-foreground">No journal entries found</p>
-            <p className="text-sm max-w-md mx-auto text-muted-foreground">
-              When documents are certified by a Notary Public, witnessed, or signed under affidavit, an immutable journal entry will automatically appear here.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs uppercase bg-muted/40 text-muted-foreground border-b border-border">
-                <tr>
-                  <th className="py-3 px-4 font-semibold">Date & Time</th>
-                  <th className="py-3 px-4 font-semibold">Act / Event</th>
-                  <th className="py-3 px-4 font-semibold">Document & Code</th>
-                  <th className="py-3 px-4 font-semibold">Professional / Actor</th>
-                  <th className="py-3 px-4 font-semibold">Integrity Hash</th>
-                  <th className="py-3 px-4 font-semibold">Audit Notes</th>
-                  <th className="py-3 px-4 font-semibold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {entries.map((entry) => {
-                  const badgeInfo = EVENT_TYPE_BADGES[entry.event_type] || {
-                    label: entry.event_type,
-                    variant: 'gray' as const,
-                    icon: 'file',
-                  };
-
-                  return (
-                    <tr key={entry.event_id} className="hover:bg-muted/30 transition-colors">
-                      {/* Timestamp */}
-                      <td className="py-3.5 px-4 whitespace-nowrap text-xs text-muted-foreground">
-                        <div className="font-medium text-foreground">
-                          {new Date(entry.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                        </div>
-                        <div className="text-muted-foreground text-[11px]">
-                          {new Date(entry.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                        </div>
-                      </td>
-
-                      {/* Event Type Badge */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <Badge variant={badgeInfo.variant}>
-                          <Icon name={badgeInfo.icon as any} size={12} className="mr-1 inline" />
-                          {badgeInfo.label}
-                        </Badge>
-                      </td>
-
-                      {/* Document Title & Verification Code */}
-                      <td className="py-3.5 px-4">
-                        <div className="font-medium text-foreground line-clamp-1 max-w-xs">
-                          {entry.envelope_title || 'Untitled Document'}
-                        </div>
-                        {entry.verification_code && (
-                          <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
-                            <span className="font-mono text-[11px] text-teal-600 bg-teal-500/10 px-1.5 py-0.5 rounded">
-                              {entry.verification_code}
-                            </span>
-                            <Link
-                              to={`/sign/verify/${entry.verification_code}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-muted-foreground hover:text-teal-600 transition-colors"
-                              title="Open public verification page"
-                            >
-                              <Icon name="externalLink" size={12} />
-                            </Link>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Professional / Actor */}
-                      <td className="py-3.5 px-4">
-                        <div className="font-medium text-foreground">
-                          {entry.recipient_name || entry.actor_name || 'System / Unspecified'}
-                        </div>
-                        {entry.certifier_title && (
-                          <div className="text-xs text-muted-foreground">
-                            {entry.certifier_title}
-                            {entry.certifier_roll_number ? ` • Roll #${entry.certifier_roll_number}` : ''}
-                          </div>
-                        )}
-                        {entry.certifier_firm && (
-                          <div className="text-[11px] text-muted-foreground/80 italic">
-                            {entry.certifier_firm}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Hash */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        {entry.anchor_hash ? (
-                          <div className="flex items-center gap-1.5">
-                            <code className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                              {entry.anchor_hash.slice(0, 10)}...{entry.anchor_hash.slice(-6)}
-                            </code>
-                            <button
-                              onClick={() => copyToClipboard(entry.anchor_hash!, entry.event_id)}
-                              className="text-muted-foreground hover:text-foreground p-1"
-                              title="Copy SHA-256 Hash"
-                            >
-                              <Icon name={copiedHash === entry.event_id ? 'check' : 'copy'} size={13} className={copiedHash === entry.event_id ? 'text-teal-600' : ''} />
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground italic">Pending Hash</span>
-                        )}
-                      </td>
-
-                      {/* Audit Note */}
-                      <td className="py-3.5 px-4 text-xs text-muted-foreground max-w-xs">
-                        {entry.note ? (
-                          <span className="line-clamp-2">{entry.note}</span>
-                        ) : (
-                          <span className="italic text-muted-foreground/60">—</span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-3.5 px-4 whitespace-nowrap text-right">
-                        {entry.event_type !== 'journal_correction' && (
-                          <button
-                            onClick={() => {
-                              setSelectedEvent(entry);
-                              setCorrectionNote('');
-                            }}
-                            className="inline-flex items-center gap-1 text-xs text-teal-600 hover:text-teal-700 font-medium px-2 py-1 rounded hover:bg-teal-500/10 transition-colors"
-                            title="Add official append-only correction note"
-                          >
-                            <Icon name="edit" size={12} />
-                            Add Correction
-                          </button>
-                        )}
-                      </td>
+          ) : (
+            <>
+              <div className="rtbl-wrap">
+                <table className="rtbl">
+                  <thead>
+                    <tr>
+                      <th>Date & Time</th>
+                      <th>Act / Event</th>
+                      <th>Document & Code</th>
+                      <th>Professional / Actor</th>
+                      <th>Integrity Hash</th>
+                      <th>Audit Notes</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </SectionCard>
-
-      {/* Append-Only Correction Modal */}
-      {selectedEvent && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-600 flex items-center justify-center">
-                  <Icon name="shield" size={16} />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground text-base">Append Journal Correction</h3>
-                  <p className="text-xs text-muted-foreground">Original records are never altered or deleted</p>
-                </div>
+                  </thead>
+                  <tbody>
+                    {pageItems.map(entry => {
+                      const badge = EVENT_TYPE_BADGES[entry.event_type] ?? { label: entry.event_type, variant: 'gray' as const, icon: 'file' };
+                      return (
+                        <tr key={entry.event_id}>
+                          <td style={{ whiteSpace: 'nowrap' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 13 }}>
+                              {new Date(entry.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
+                              {new Date(entry.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </div>
+                          </td>
+                          <td>
+                            <Badge variant={badge.variant}>
+                              <Icon name={badge.icon as any} size={12} style={{ marginRight: 4, display: 'inline' }} />
+                              {badge.label}
+                            </Badge>
+                          </td>
+                          <td>
+                            <div style={{ fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
+                              {entry.envelope_title || 'Untitled Document'}
+                            </div>
+                            {entry.verification_code && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 'var(--r-sm)' }}>
+                                  {entry.verification_code}
+                                </span>
+                                <Link to={`/sign/verify/${entry.verification_code}`} target="_blank" rel="noreferrer" style={{ color: 'var(--ink3)' }} title="Open public verification page">
+                                  <Icon name="externalLink" size={12} />
+                                </Link>
+                              </div>
+                            )}
+                          </td>
+                          <td>
+                            <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 13 }}>
+                              {entry.recipient_name || entry.actor_name || 'System / Unspecified'}
+                            </div>
+                            {entry.certifier_title && (
+                              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
+                                {entry.certifier_title}{entry.certifier_roll_number ? ` · Roll #${entry.certifier_roll_number}` : ''}
+                              </div>
+                            )}
+                            {entry.certifier_firm && (
+                              <div style={{ fontSize: 11, color: 'var(--ink3)', fontStyle: 'italic' }}>{entry.certifier_firm}</div>
+                            )}
+                          </td>
+                          <td style={{ whiteSpace: 'nowrap' }}>
+                            {entry.anchor_hash ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <code style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink3)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 'var(--r-sm)' }}>
+                                  {entry.anchor_hash.slice(0, 10)}…{entry.anchor_hash.slice(-6)}
+                                </code>
+                                <button type="button" onClick={() => copyToClipboard(entry.anchor_hash!, entry.event_id)}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }} title="Copy SHA-256 Hash">
+                                  <Icon name={copiedHash === entry.event_id ? 'check' : 'copy'} size={13} style={{ color: copiedHash === entry.event_id ? 'var(--green)' : undefined }} />
+                                </button>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic' }}>Pending</span>
+                            )}
+                          </td>
+                          <td style={{ fontSize: 12, color: 'var(--ink3)', maxWidth: 200 }}>
+                            {entry.note ? (
+                              <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{entry.note}</span>
+                            ) : <span style={{ fontStyle: 'italic', opacity: 0.5 }}>—</span>}
+                          </td>
+                          <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            {entry.event_type !== 'journal_correction' && (
+                              <Button variant="ghost" size="sm" onClick={() => { setSelectedEvent(entry); setCorrectionNote(''); }}
+                                style={{ fontSize: 12, height: 28, gap: 4 }}>
+                                <Icon name="edit" size={12} /> Add Correction
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-              <button
-                onClick={() => setSelectedEvent(null)}
-                className="text-muted-foreground hover:text-foreground p-1 rounded-lg"
-              >
-                <Icon name="x" size={18} />
-              </button>
+              <Pagination total={entries.length} page={page} perPage={perPage} onPage={setPage} />
+            </>
+          )}
+        </SectionCard>
+      </div>
+
+      {/* Correction dialog */}
+      <Dialog open={!!selectedEvent} onOpenChange={open => { if (!open) setSelectedEvent(null); }}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <FeaturedIcon variant="brand" size="sm" shape="square"><Icon name="shield" size={16} /></FeaturedIcon>
+                Append Journal Correction
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px', fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>
+              <div style={{ fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>Document: {selectedEvent?.envelope_title}</div>
+              <div>Event ID: <span style={{ fontFamily: 'var(--mono)' }}>{selectedEvent?.event_id}</span></div>
+              <div>Professional: {selectedEvent?.recipient_name || selectedEvent?.actor_name || 'N/A'}</div>
             </div>
-
-            <div className="bg-muted/40 p-3 rounded-lg text-xs space-y-1 text-muted-foreground border border-border/50">
-              <div className="font-medium text-foreground">
-                Document: <span className="font-normal">{selectedEvent.envelope_title}</span>
-              </div>
-              <div>
-                Event ID: <span className="font-mono">{selectedEvent.event_id}</span>
-              </div>
-              <div>
-                Professional: <span className="text-foreground">{selectedEvent.recipient_name || selectedEvent.actor_name || 'N/A'}</span>
-              </div>
-            </div>
-
-            <form onSubmit={handleAddCorrection} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
-                  Correction / Clarification Note <span className="text-destructive">*</span>
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  value={correctionNote}
-                  onChange={e => setCorrectionNote(e.target.value)}
-                  placeholder="Explain why this correction is being appended (e.g., Typo in commissioner roll number, clarified firm name, added court jurisdiction reference)..."
-                  className="w-full p-3 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                />
-              </div>
-
-              <div className="text-[11px] text-muted-foreground bg-amber-500/10 text-amber-900 dark:text-amber-200 p-2.5 rounded-lg flex items-start gap-2">
-                <Icon name="alertCircle" size={14} className="shrink-0 mt-0.5" />
-                <span>
-                  This correction will be permanently logged in the electronic journal under your identity ({user?.name || user?.email}) and timestamped in the audit chain.
-                </span>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedEvent(null)}
-                  disabled={savingCorrection}
-                  className="px-4 py-2 rounded-lg text-sm font-medium border border-border text-foreground hover:bg-muted transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingCorrection || !correctionNote.trim()}
-                  className="px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 transition-colors shadow-xs"
-                >
-                  {savingCorrection ? 'Appending...' : 'Append Correction'}
-                </button>
+            <form id="correction-form" onSubmit={handleAddCorrection}>
+              <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                Correction / Clarification Note <span style={{ color: 'var(--red)' }}>*</span>
+              </label>
+              <Textarea
+                required rows={4} value={correctionNote}
+                onChange={e => setCorrectionNote(e.target.value)}
+                placeholder="Explain why this correction is being appended (e.g., Typo in commissioner roll number, clarified firm name…)"
+              />
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10, padding: '8px 12px', background: 'var(--gold-l)', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--ink2)' }}>
+                <Icon name="alertCircle" size={14} style={{ color: 'var(--gold)', flexShrink: 0, marginTop: 1 }} />
+                This correction will be permanently logged under your identity ({user?.name || user?.email}) and timestamped in the audit chain.
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedEvent(null)} disabled={savingCorrection}>Cancel</Button>
+            <Button form="correction-form" type="submit" disabled={savingCorrection || !correctionNote.trim()}>
+              {savingCorrection ? 'Appending…' : 'Append Correction'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

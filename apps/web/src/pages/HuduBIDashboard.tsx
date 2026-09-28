@@ -5,6 +5,9 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
+import { Button } from '../components/ui/button.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import './HuduBI.css';
 
 interface Dashboard {
   period: string;
@@ -21,7 +24,6 @@ const usd = (v: number) => v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(2)}M` : 
 const tzs = (v: number) => v >= 1_000_000 ? `TZS ${(v / 1_000_000).toFixed(1)}M` : `TZS ${Math.round(v).toLocaleString()}`;
 const monthLabel = (m: string) => { const [y, mo] = m.split('-'); return new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString('en-US', { month: 'short' }); };
 
-const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' };
 const cardSub: React.CSSProperties = { fontSize: 12, color: 'var(--ink3)', marginTop: 2 };
 
 // A labelled horizontal bar list, shares of a total. Colour comes from the
@@ -75,16 +77,16 @@ export function HuduBIDashboard() {
   ] : [];
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="hbi-page">
       <PageHeader
         crumbs={['HuduBI', 'Overview']}
         titlePlain="Executive"
         titleEm="snapshot"
         subtitle="Live figures aggregated directly from your operational and finance data — no forecasts, no invented numbers."
         actions={
-          <button type="button" className="btn btn-secondary btn-sm" onClick={openExplain} style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          <Button type="button" variant="outline" size="sm" onClick={openExplain}>
             <Icon name="info" size={14} /> How this is computed
-          </button>
+          </Button>
         }
       />
 
@@ -111,39 +113,37 @@ export function HuduBIDashboard() {
           </SectionCard>
 
           {/* KPI grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14 }}>
+          <div className="hbi-kpi-grid">
             {kpis.map(kpi => (
-              <div key={kpi.label} style={card}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name={kpi.icon} size={16} color="var(--teal)" />
-                  </div>
+              <div key={kpi.label} className="hbi-kpi-card">
+                <div className="hbi-kpi-icon">
+                  <FeaturedIcon variant="brand" size="sm"><Icon name={kpi.icon} size={16} /></FeaturedIcon>
                 </div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{kpi.value}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>{kpi.label}</div>
+                <div className="hbi-kpi-value">{kpi.value}</div>
+                <div className="hbi-kpi-label">{kpi.label}</div>
               </div>
             ))}
           </div>
 
           {/* Pipeline + mode */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-            <SectionCard title="Clearance pipeline">
+          <div className="hbi-panel-grid hbi-panel-grid--two">
+            <div className="hbi-equal-card"><SectionCard title="Clearance pipeline" collapsible={false}>
               <div style={{ ...cardSub, marginBottom: 16 }}>Active shipment cases by clearance stage</div>
               <BarList rows={data.shipmentPipeline.map(s => ({ label: s.label, value: s.count }))} />
-            </SectionCard>
-            <SectionCard title="Shipment mix">
+            </SectionCard></div>
+            <div className="hbi-equal-card"><SectionCard title="Shipment mix" collapsible={false}>
               <div style={{ ...cardSub, marginBottom: 16 }}>Cases by transport mode</div>
               <BarList rows={data.shipmentsByMode.map(m => ({ label: m.label, value: m.count }))} />
-            </SectionCard>
+            </SectionCard></div>
           </div>
 
           {/* Segments + monthly volume */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-            <SectionCard title="Customer segments">
+          <div className="hbi-panel-grid hbi-panel-grid--two">
+            <div className="hbi-equal-card"><SectionCard title="Customer segments" collapsible={false}>
               <div style={{ ...cardSub, marginBottom: 16 }}>Customers by category</div>
               <BarList rows={data.customersBySegment.map(s => ({ label: s.segment.charAt(0).toUpperCase() + s.segment.slice(1), value: s.count }))} />
-            </SectionCard>
-            <SectionCard title="Shipment volume">
+            </SectionCard></div>
+            <div className="hbi-equal-card"><SectionCard title="Shipment volume" collapsible={false}>
               <div style={{ ...cardSub, marginBottom: 16 }}>New cases per month</div>
               {data.monthlyVolume.length === 0 ? (
                 <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No cases yet.</div>
@@ -161,7 +161,7 @@ export function HuduBIDashboard() {
                   </div>
                 );
               })()}
-            </SectionCard>
+            </SectionCard></div>
           </div>
         </>
       )}

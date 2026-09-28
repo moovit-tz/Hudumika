@@ -269,13 +269,44 @@ export async function signRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // ── Per-view envelope counts — for Documents page tab badges ─────────────
+  fastify.get('/envelopes/counts', async (req: FastifyRequest, reply: FastifyReply) => {
+    const tid = tenantId(req);
+    const uid = userId(req);
+    const email = userEmail(req);
+    return withTenant(tid, async (trx) => {
+      const inboxRows = await trx
+        .selectFrom('sign_recipients')
+        .select('envelope_id')
+        .where('tenant_id', '=', tid)
+        .where('email', '=', email)
+        .where('status', 'in', ['pending', 'viewed'])
+        .execute();
+      const mine = await trx
+        .selectFrom('sign_envelopes')
+        .select(['id', 'status'])
+        .where('tenant_id', '=', tid)
+        .where('created_by', '=', uid)
+        .execute();
+      return {
+        inbox:     inboxRows.length,
+        sent:      mine.filter(e => e.status === 'sent').length,
+        drafts:    mine.filter(e => e.status === 'draft').length,
+        completed: mine.filter(e => e.status === 'completed').length,
+        voided:    mine.filter(e => e.status === 'voided').length,
+        declined:  mine.filter(e => e.status === 'declined').length,
+        expired:   mine.filter(e => e.status === 'expired').length,
+      };
+    });
+  });
+
   // ── List envelopes (inbox + sent) ──────────────────────────────────────────
   fastify.get('/envelopes', async (req: FastifyRequest, reply: FastifyReply) => {
     const tid = tenantId(req);
     const uid = userId(req);
     const query = req.query as Record<string, string>;
     const status = query.status;
-    const view = query.view; // 'inbox' | 'sent' | 'completed' | 'voided' | 'declined' | 'drafts' | 'all'
+    const view = query.view; // 'inbox' | 'sent' | 'completed' | 'voided' | 'declined' | 'drafts' | 'all' | 'mine'
     const search = query.search?.trim();
     // Additive — omitted keeps the pre-existing "first 100, no paging"
     // behavior so no existing caller breaks; a caller that wants page 2+
@@ -317,6 +348,24 @@ export async function signRoutes(fastify: FastifyInstance) {
         // nothing pending, rather than just returning no rows.
         if (inboxIds.length === 0) return reply.send([]);
         q = q.where('id', 'in', inboxIds);
+      }
+      if (view === 'mine') {
+        // Documents landing: all envelopes where I'm creator OR an invited recipient
+        const recipientRows = await trx
+          .selectFrom('sign_recipients')
+          .select('envelope_id')
+          .where('tenant_id', '=', tid)
+          .where('email', '=', userEmail(req))
+          .execute();
+        const recipientIds = [...new Set(recipientRows.map(r => r.envelope_id))];
+        if (recipientIds.length > 0) {
+          q = q.where((eb) => eb.or([
+            eb('created_by', '=', uid),
+            eb('id', 'in', recipientIds),
+          ]));
+        } else {
+          q = q.where('created_by', '=', uid);
+        }
       }
       if (status) q = q.where('status', '=', status as any);
 

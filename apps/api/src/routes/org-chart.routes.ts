@@ -212,4 +212,50 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // GET /org-chart/manager-of/:userId — resolve the direct manager of a user
+  // via the org chart parent_id chain. Used by approval flows (Petti, HR leave
+  // escalations) and by frontend "route to manager" pickers. Falls back to
+  // {manager: null} when the person has no node or their node has no parent —
+  // callers should fall back to role-based lookup or ask the user to pick.
+  fastify.get('/manager-of/:userId', async (req, reply) => {
+    const { userId } = req.params as { userId: string };
+    const { tenant_id } = req.user;
+
+    if (!userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      return reply.status(400).send({ error: 'userId must be a valid UUID' });
+    }
+
+    return withTenant(tenant_id, async (trx) => {
+      const node = await trx.selectFrom('org_chart_nodes')
+        .select(['parent_id'])
+        .where('tenant_id', '=', tenant_id)
+        .where('user_id', '=', userId)
+        .executeTakeFirst();
+
+      if (!node?.parent_id) return { manager: null };
+
+      const parent = await trx.selectFrom('org_chart_nodes as n')
+        .leftJoin('users as u', 'u.id', 'n.user_id')
+        .select([
+          'n.id as node_id', 'n.user_id', 'n.label', 'n.job_title', 'n.department',
+          'n.email as node_email', 'u.name as user_name', 'u.email as user_email',
+        ])
+        .where('n.id', '=', node.parent_id)
+        .where('n.tenant_id', '=', tenant_id)
+        .executeTakeFirst();
+
+      if (!parent) return { manager: null };
+      return {
+        manager: {
+          node_id: parent.node_id,
+          user_id: parent.user_id,
+          name: parent.user_name ?? parent.label,
+          job_title: parent.job_title,
+          department: parent.department,
+          email: parent.user_email ?? parent.node_email,
+        },
+      };
+    });
+  });
+
 }

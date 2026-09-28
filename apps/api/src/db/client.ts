@@ -5417,6 +5417,7 @@ export interface Database {
   ai_conversations: AiConversationsTable;
   ai_messages: AiMessagesTable;
   ai_memory: AiMemoryTable;
+  workflow_automations: WorkflowAutomationsTable;
   agent_identities: AgentIdentitiesTable;
   agent_tool_grants: AgentToolGrantsTable;
   agent_runs: AgentRunsTable;
@@ -5714,6 +5715,17 @@ export interface Database {
   project_resources: ProjectResourcesTable;
   project_resource_allocations: ProjectResourceAllocationsTable;
   project_industry_data: ProjectIndustryDataTable;
+  // ── PII Protection System (Migrations 520–527) ────────────────────────────
+  pii_data_domains: PiiDataDomainsTable;
+  pii_field_registry: PiiFieldRegistryTable;
+  pii_access_log: PiiAccessLogTable;
+  data_subject_requests: DataSubjectRequestsTable;
+  dsr_processing_log: DsrProcessingLogTable;
+  processing_activities: ProcessingActivitiesTable;
+  consent_records: ConsentRecordsTable;
+  data_retention_policies: DataRetentionPoliciesTable;
+  app_privacy_manifests: AppPrivacyManifestsTable;
+  oauth_resource_scopes: OauthResourceScopesTable;
 }
 
 export interface DeveloperAccountsTable {
@@ -8691,6 +8703,8 @@ export interface PurchaseOrderLinesTable {
   line_total: Generated<number>;
   received_qty: Generated<number>;
   sort_order: Generated<number>;
+  item_id: string | null;
+  item_uom: string | null;
 }
 
 export interface HrTasksTable {
@@ -10015,6 +10029,19 @@ export interface AnnouncementDismissalsTable {
   dismissed_at:    Generated<Date>;
 }
 
+/** ReactFlow workflow automations — migration 518. */
+export interface WorkflowAutomationsTable {
+  id:         Generated<string>;
+  tenant_id:  string;
+  user_id:    string;
+  name:       string;
+  nodes:      string; // JSONB stored as string by Kysely
+  edges:      string; // JSONB stored as string by Kysely
+  is_active:  Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 /** The assistant's transcript and its durable memory — migration 176. */
 export interface AiConversationsTable {
   id:         Generated<string>;
@@ -11199,4 +11226,77 @@ export interface TenantMarketplaceImportsTable {
   id: Generated<string>; tenant_id: string; marketplace_template_id: string;
   local_template_key: string; source_version: string;
   update_available: Generated<boolean>; imported_at: Generated<Date>;
+}
+
+// ── PII Protection System (Migrations 520–527) ───────────────────────────────
+export interface PiiDataDomainsTable {
+  id: string; label: string; description: string | null;
+  default_sensitivity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  requires_special_role: string[] | null; break_glass_eligible: Generated<boolean>;
+}
+export interface PiiFieldRegistryTable {
+  id: Generated<string>; table_name: string; column_name: string;
+  data_domain: string; sensitivity_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  pii_category: string; requires_purpose: Generated<boolean>;
+  requires_explicit_consent: Generated<boolean>; retention_days: number | null;
+  notes: string | null;
+}
+export interface PiiAccessLogTable {
+  id: Generated<string>; tenant_id: string;
+  accessor_id: string | null; accessor_type: Generated<'USER' | 'API_KEY' | 'AGENT' | 'SERVICE'>;
+  accessor_ref: string | null; subject_id: string | null;
+  subject_table: string; subject_record_id: string;
+  fields_accessed: string[]; data_domain: string; sensitivity_level: string;
+  purpose: string | null; route: string | null; ip: string | null;
+  user_agent: string | null; created_at: Generated<Date>;
+}
+export interface DataSubjectRequestsTable {
+  id: Generated<string>; tenant_id: string; requester_id: string | null;
+  requester_email: string; request_type: 'ACCESS' | 'ERASURE' | 'PORTABILITY' | 'RECTIFICATION' | 'RESTRICTION' | 'OBJECTION';
+  status: Generated<'PENDING' | 'IN_REVIEW' | 'PROCESSING' | 'COMPLETED' | 'REJECTED' | 'PARTIALLY_COMPLETED' | 'CANCELLED'>;
+  details: Generated<Record<string, unknown>>; identity_verified: Generated<boolean>;
+  result_file_key: string | null; rejection_reason: string | null;
+  created_at: Generated<Date>; due_at: Generated<Date>;
+  processed_at: Date | null; processed_by: string | null;
+}
+export interface DsrProcessingLogTable {
+  id: Generated<string>; request_id: string;
+  step: string; actor_id: string | null; notes: string | null;
+  metadata: Generated<Record<string, unknown>>; created_at: Generated<Date>;
+}
+export interface ProcessingActivitiesTable {
+  id: Generated<string>; tenant_id: string; name: string; purpose: string;
+  lawful_basis: 'CONSENT' | 'CONTRACT' | 'LEGAL_OBLIGATION' | 'VITAL_INTERESTS' | 'PUBLIC_TASK' | 'LEGITIMATE_INTERESTS';
+  data_categories: Generated<string[]>; data_domains: Generated<string[]>;
+  recipients: Generated<string[]>; retention_days: number | null;
+  is_automated: Generated<boolean>; dpia_required: Generated<boolean>;
+  dpia_completed_at: Date | null; is_active: Generated<boolean>;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+export interface ConsentRecordsTable {
+  id: Generated<string>; tenant_id: string; user_id: string; activity_id: string;
+  status: Generated<'ACTIVE' | 'WITHDRAWN' | 'EXPIRED'>;
+  granted_at: Generated<Date>; withdrawn_at: Date | null; withdrawal_reason: string | null;
+  evidence: Generated<Record<string, unknown>>; version: Generated<number>;
+}
+export interface DataRetentionPoliciesTable {
+  id: Generated<string>; tenant_id: string | null; table_name: string;
+  data_domain: string; retention_days: number;
+  action_on_expiry: 'ANONYMISE' | 'PSEUDONYMISE' | 'DELETE' | 'ARCHIVE';
+  legal_hold: Generated<boolean>; target_columns: Generated<string[]>;
+  last_run_at: Date | null; is_active: Generated<boolean>; created_at: Generated<Date>;
+}
+export interface AppPrivacyManifestsTable {
+  id: Generated<string>; client_id: string; version: Generated<number>;
+  data_access: Generated<string[]>; purposes: Generated<string[]>;
+  external_processing: Generated<boolean>; ai_processing: Generated<boolean>;
+  retention_days: number | null; subprocessors: Generated<unknown[]>;
+  deletion_supported: Generated<boolean>; privacy_policy_url: string | null;
+  published_at: Date | null; is_current: Generated<boolean>; created_at: Generated<Date>;
+}
+export interface OauthResourceScopesTable {
+  scope: string; resource: string; operation: string;
+  sensitivity_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'; data_domain: string;
+  description: string | null; requires_tenant_approval: Generated<boolean>;
+  requires_hudumika_verification: Generated<boolean>; is_active: Generated<boolean>;
 }

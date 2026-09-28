@@ -116,8 +116,8 @@ export function SmsGroupDetail() {
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
         crumbs={['SMS', 'Groups', group.name]}
-        titlePlain={group.name.split(' ').slice(0, -1).join(' ') || 'Group'}
-        titleEm={group.name.split(' ').slice(-1)[0] || group.name}
+        titlePlain={group.name.includes(' ') ? group.name.split(' ').slice(0, -1).join(' ') : 'Group'}
+        titleEm={group.name.split(' ').slice(-1)[0]}
         subtitle={group.description || `${group.members.length} member(s)`}
         actions={<Button variant="ghost" onClick={removeGroup}><Icon name="trash" size={14} color="var(--red)" /> Delete group</Button>}
       />

@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import { TRIGGERS, type AppId } from '../studio/triggers.js';
 import { ACTIONS } from '../studio/actions.js';
 import { TEMPLATES, TEMPLATES_BY_ID } from '../studio/templates.js';
@@ -110,13 +111,13 @@ function describeInput(schema: z.ZodTypeAny): { name: string; required: boolean 
   }));
 }
 
+/** Per-tenant count of workflow runs currently executing, for the concurrency cap below. */
+const activeRuns = new Map<string, number>();
+const MAX_CONCURRENT_RUNS = 5;
+
 export async function workflowStudioRoutes(server: FastifyInstance) {
   server.addHook('preHandler', server.authenticate);
-  // HUD-0024 continuation: this file had no entitlement gate and no role
-  // check at all — any authenticated user of the tenant, any plan tier,
-  // could list/create/run internal workflow automations. CUSTOMER-excluded
-  // at minimum; the missing plan-entitlement gate is a separate, lower-
-  // priority metering gap (not fixed here).
+  server.addHook('preHandler', requireEntitlement('studio'));
   server.addHook('preHandler', async (request: any, reply) => {
     if (request.user.role === 'CUSTOMER') {
       return reply.status(403).send({ error: 'Not available for this account type.' });
@@ -438,49 +439,68 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
     const runBody = workflowRunSchema.parse(request.body ?? {});
     const payload = runBody.payload || {};
 
-    const app = await withTenant(tenantId, async (trx) => {
-      return await trx
-        .selectFrom('workflow_studio_apps')
-        .where('id', '=', id)
-        .where('tenant_id', '=', tenantId)
-        .selectAll()
-        .executeTakeFirst();
-    });
-
-    if (!app) {
-      return reply.status(404).send({ error: 'NOT_FOUND', message: 'Workflow app not found' });
+    // Per-tenant concurrency cap: an unbounded burst of manual test runs would
+    // each allocate an open transaction and execute real action steps. Five
+    // concurrent runs is a generous interactive limit; automated triggers from
+    // domain events bypass this path entirely.
+    const current = activeRuns.get(tenantId) ?? 0;
+    if (current >= MAX_CONCURRENT_RUNS) {
+      return reply.status(429).send({
+        error: 'TOO_MANY_REQUESTS',
+        message: `This workspace already has ${MAX_CONCURRENT_RUNS} workflow runs in progress. Wait for one to finish before starting another.`,
+      });
     }
+    activeRuns.set(tenantId, current + 1);
 
-    // Manual runs default to a dry run. Executing real actions — opening a
-    // ticket, booking an expense, releasing bonded cargo — from a "Run Test"
-    // button is not a safe default; the caller has to ask for it.
-    const simulate = runBody.simulate !== false;
+    try {
+      const app = await withTenant(tenantId, async (trx) => {
+        return await trx
+          .selectFrom('workflow_studio_apps')
+          .where('id', '=', id)
+          .where('tenant_id', '=', tenantId)
+          .selectAll()
+          .executeTakeFirst();
+      });
 
-    const outcome = await executeAndRecord({
-      tenantId,
-      workflow: app,
-      payload,
-      entityId: runBody.entityId ?? null,
-      domainEventId: null,          // manual runs are always allowed to repeat
-      simulate,
-      triggerSource: simulate ? 'manual_dry_run' : 'manual_run',
-    });
-    if (!outcome) return reply.status(409).send({ error: 'CONFLICT', message: 'This event already produced a run for this workflow.' });
+      if (!app) {
+        return reply.status(404).send({ error: 'NOT_FOUND', message: 'Workflow app not found' });
+      }
 
-    const rawRun = await withTenant(tenantId, trx => trx
-      .selectFrom('workflow_studio_runs')
-      .selectAll()
-      .where('id', '=', outcome.runId)
-      .where('tenant_id', '=', tenantId)
-      .executeTakeFirstOrThrow());
+      // Manual runs default to a dry run. Executing real actions — opening a
+      // ticket, booking an expense, releasing bonded cargo — from a "Run Test"
+      // button is not a safe default; the caller has to ask for it.
+      const simulate = runBody.simulate !== false;
 
-    return reply.send({
-      data: {
-        ...rawRun,
-        payload: typeof rawRun.payload === 'string' ? JSON.parse(rawRun.payload) : rawRun.payload,
-        step_results: typeof rawRun.step_results === 'string' ? JSON.parse(rawRun.step_results) : rawRun.step_results,
-      },
-    });
+      const outcome = await executeAndRecord({
+        tenantId,
+        workflow: app,
+        payload,
+        entityId: runBody.entityId ?? null,
+        domainEventId: null,          // manual runs are always allowed to repeat
+        simulate,
+        triggerSource: simulate ? 'manual_dry_run' : 'manual_run',
+      });
+      if (!outcome) return reply.status(409).send({ error: 'CONFLICT', message: 'This event already produced a run for this workflow.' });
+
+      const rawRun = await withTenant(tenantId, trx => trx
+        .selectFrom('workflow_studio_runs')
+        .selectAll()
+        .where('id', '=', outcome.runId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirstOrThrow());
+
+      return reply.send({
+        data: {
+          ...rawRun,
+          payload: typeof rawRun.payload === 'string' ? JSON.parse(rawRun.payload) : rawRun.payload,
+          step_results: typeof rawRun.step_results === 'string' ? JSON.parse(rawRun.step_results) : rawRun.step_results,
+        },
+      });
+    } finally {
+      const after = activeRuns.get(tenantId) ?? 1;
+      if (after <= 1) activeRuns.delete(tenantId);
+      else activeRuns.set(tenantId, after - 1);
+    }
   });
 
   // ── GET /v1/workflow-studio/apps/:id/runs ─────────────────────────────────────

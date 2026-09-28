@@ -1011,12 +1011,22 @@ export const BlissWhatsApp: React.FC = () => {
               </div>
             </div>
 
-            {/* Bottom Fake Input Bar */}
+            {/* Input bar — typing here updates testText (text mode) and send triggers sendTest */}
             <div style={{ background: 'var(--card-bg, var(--white))', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--border)' }}>
-              <div style={{ flex: 1, background: 'var(--card-sunken)', borderRadius: 'var(--r)', padding: '6px 14px', fontSize: 12, color: 'var(--ink3)', border: '1px solid var(--border)' }}>
-                Message
-              </div>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--teal)', color: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <input
+                value={testMode === 'text' ? testText : ''}
+                onChange={e => { if (testMode === 'text') setTestText(e.target.value); }}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !sendingTest) { e.preventDefault(); sendTest(); } }}
+                placeholder={testMode === 'text' ? 'Type a message…' : 'Select a template above'}
+                disabled={testMode !== 'text'}
+                style={{ flex: 1, background: 'var(--card-sunken)', borderRadius: 'var(--r)', padding: '6px 14px', fontSize: 12, color: 'var(--ink)', border: '1px solid var(--border)', outline: 'none', minWidth: 0 }}
+              />
+              <div
+                onClick={sendingTest ? undefined : sendTest}
+                role="button"
+                aria-label="Send"
+                style={{ width: 32, height: 32, borderRadius: '50%', background: sendingTest ? 'var(--ink3)' : 'var(--teal)', color: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: sendingTest ? 'default' : 'pointer', flexShrink: 0 }}
+              >
                 <Icon name="send" size={13} />
               </div>
             </div>

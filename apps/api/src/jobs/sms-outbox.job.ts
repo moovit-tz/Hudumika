@@ -86,7 +86,7 @@ export async function runSmsOutboxJob(): Promise<void> {
 
         await trx.insertInto('sms_messages').values(members.map(m => ({
           tenant_id: campaign.tenant_id, user_id: campaign.created_by, to_number: m.phone, body,
-          status: 'queued' as const, segments: Math.max(1, Math.ceil(body.length / 153)), source_app: 'sms',
+          status: 'queued' as const, segments: body.length <= 160 ? 1 : Math.ceil(body.length / 153), source_app: 'sms',
           campaign_id: campaign.id, template_id: campaign.template_id, contact_name: m.name,
         }))).execute();
 

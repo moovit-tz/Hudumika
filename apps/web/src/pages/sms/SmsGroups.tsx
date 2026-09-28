@@ -21,6 +21,10 @@ export function SmsGroups() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', description: '' });
+  const [editTarget, setEditTarget] = useState<Group | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', description: '' });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -38,6 +42,27 @@ export function SmsGroups() {
       load();
     } catch (err: any) { setError(err.message || 'Failed to create group'); }
     finally { setSaving(false); }
+  }
+
+  function startEdit(g: Group) {
+    setEditTarget(g);
+    setEditForm({ name: g.name, description: g.description || '' });
+    setEditError(null);
+  }
+
+  async function saveEdit() {
+    if (!editTarget) return;
+    if (!editForm.name.trim()) { setEditError('Group name is required.'); return; }
+    setEditSaving(true); setEditError(null);
+    try {
+      await apiFetch(`/v1/sms/groups/${editTarget.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name: editForm.name.trim(), description: editForm.description.trim() || null }),
+      });
+      setGroups(prev => prev.map(g => g.id === editTarget.id ? { ...g, name: editForm.name.trim(), description: editForm.description.trim() || null } : g));
+      setEditTarget(null);
+    } catch (err: any) { setEditError(err.message || 'Failed to save'); }
+    finally { setEditSaving(false); }
   }
 
   async function remove(id: string, name: string) {
@@ -76,6 +101,26 @@ export function SmsGroups() {
         </SectionCard>
       )}
 
+      {editTarget && (
+        <SectionCard title={`Edit "${editTarget.name}"`} collapsible={false}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, marginBottom: 16 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Name *</label>
+              <Input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} autoFocus />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Description</label>
+              <Textarea value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} rows={1} />
+            </div>
+          </div>
+          {editError && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{editError}</div>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button disabled={editSaving} onClick={saveEdit}>{editSaving ? 'Saving…' : 'Save changes'}</Button>
+            <Button variant="outline" onClick={() => setEditTarget(null)}>Cancel</Button>
+          </div>
+        </SectionCard>
+      )}
+
       <SectionCard title="Groups" padded={false} collapsible={false}>
         {loading ? (
           <SectionLoading />
@@ -97,6 +142,7 @@ export function SmsGroups() {
                   <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{new Date(g.created_at).toLocaleDateString()}</td>
                   <td style={{ padding: '12px 16px', textAlign: 'right', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                     <Link to={`/sms/groups/${g.id}`}><Button size="sm" variant="outline">Open <Icon name="arrowRight" size={13} /></Button></Link>
+                    <Button size="sm" variant="ghost" onClick={() => startEdit(g)}><Icon name="edit" size={13} /></Button>
                     <Button size="sm" variant="ghost" onClick={() => remove(g.id, g.name)}><Icon name="trash" size={13} color="var(--red)" /></Button>
                   </td>
                 </tr>

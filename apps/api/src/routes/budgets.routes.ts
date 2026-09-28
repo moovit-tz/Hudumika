@@ -84,7 +84,7 @@ export async function budgetRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('budgets').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Budget not found' });
-      await trx.deleteFrom('budgets').where('id', '=', id).execute();
+      await trx.deleteFrom('budgets').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { success: true };
     });
   });

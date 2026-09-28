@@ -15,6 +15,7 @@ import { env } from '../config/env.js';
 import { settleEntry, MIN_SHIFT_MINUTES } from '../services/time-entry.service.js';
 import { callAI } from './ai.routes.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
+import { logPiiAccess, fromRequest } from '../lib/pii-access-logger.js';
 import { computeAttendance, type Shift } from '../services/attendance.service.js';
 import { createEvent, updateEvent, deleteEvent, type Guest } from '../services/calendar-events.service.js';
 import { renderOfferLetterPdf } from '../services/offer-letter-pdf.service.js';
@@ -3477,6 +3478,27 @@ export async function hrRoutes(fastify: FastifyInstance) {
       // Withhold by tier, server-side. hire_date stays visible at every tier —
       // it drives hireDate below, which approvers need to reset a leave
       // allowance on the right day.
+
+      // Audit PII access when high-sensitivity fields are being returned.
+      if (access === 'full' || access === 'team') {
+        const sensitiveFields = access === 'full'
+          ? ['national_id', 'tax_id', 'social_security_no', 'health_insurance_no', 'basic_salary', 'bank_account_no', 'bank_account_name', 'mobile_money_number']
+          : ['national_id', 'tax_id', 'social_security_no', 'health_insurance_no'];
+        logPiiAccess({
+          tenantId: user.tenant_id,
+          accessorId: user.sub ?? (user as any).id ?? null,
+          subjectId: id,
+          subjectTable: 'users',
+          subjectRecordId: id,
+          fieldsAccessed: sensitiveFields,
+          domain: access === 'full' ? 'PAYROLL' : 'IDENTITY',
+          sensitivity: access === 'full' ? 'CRITICAL' : 'HIGH',
+          purpose: 'HR_REVIEW',
+          route: req.url,
+          ...fromRequest(req),
+        });
+      }
+
       return {
         ...redactStaffRecord(staff, access),
         record_access: access,
@@ -3984,6 +4006,37 @@ export async function hrRoutes(fastify: FastifyInstance) {
       .where('user_id', '=', id)
       .orderBy('is_primary', 'desc')
       .orderBy('name')
+      .execute());
+
+  staffRecordRoute('/coaching', async (trx, req, id) =>
+    trx.selectFrom('hr_goals')
+      .select(['id', 'title', 'description', 'goal_type', 'target_value', 'current_value',
+               'unit', 'weight', 'due_date', 'status', 'parent_goal_id', 'created_at', 'updated_at'])
+      .where('tenant_id', '=', req.user.tenant_id)
+      .where('owner_id', '=', id)
+      .orderBy('created_at', 'desc')
+      .limit(100)
+      .execute());
+
+  staffRecordRoute('/performance', async (trx, req, id) =>
+    trx.selectFrom('hr_review_instances as i')
+      .innerJoin('hr_review_cycles as c', 'c.id', 'i.cycle_id')
+      .select(['i.id', 'i.cycle_id', 'i.self_rating', 'i.manager_rating', 'i.final_rating',
+               'i.calibration_notes', 'i.created_at', 'i.updated_at',
+               'c.name as cycle_name', 'c.type as cycle_type',
+               'c.start_date', 'c.end_date', 'c.status as cycle_status'])
+      .where('i.tenant_id', '=', req.user.tenant_id)
+      .where('i.user_id', '=', id)
+      .orderBy('c.start_date', 'desc')
+      .limit(50)
+      .execute());
+
+  staffRecordRoute('/compensation', async (trx, req, id) =>
+    trx.selectFrom('hr_compensations')
+      .select(['id', 'effective_date', 'end_date', 'base_salary', 'currency', 'pay_frequency', 'created_at'])
+      .where('tenant_id', '=', req.user.tenant_id)
+      .where('user_id', '=', id)
+      .orderBy('effective_date', 'desc')
       .execute());
 
   fastify.post<{ Params: { id: string } }>('/staff/:id/contracts',

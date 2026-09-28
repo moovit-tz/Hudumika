@@ -75,10 +75,7 @@ export function FeatureToggleRow({
       </div>
       <div className="flex shrink-0 items-center gap-2.5">
         {trailingExtra}
-        <span className={cn("text-xs font-semibold", checked && !disabled ? "text-primary" : "text-muted-foreground")}>
-          {checked ? "On" : "Off"}
-        </span>
-        <Switch size="lg" showCheckIcon checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+        <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
       </div>
     </div>
   )

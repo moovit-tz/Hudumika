@@ -1,4 +1,5 @@
 import type { EmailTemplateCategory } from '@hudumika/types';
+import { APP_EMAIL_TEMPLATE_CATALOG, buildCatalogBody } from './app-email-template-catalog.js';
 
 export interface EmailTemplateDefault {
   category: EmailTemplateCategory;
@@ -561,7 +562,590 @@ export const EMAIL_TEMPLATE_DEFAULTS: Record<string, EmailTemplateDefault> = {
       <p><a href="{{fileUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Open file</a></p>
     `,
   },
+
+  // ── Ondi (identity, security, access) ────────────────────────────────────
+  'ondi.mfa.otp': {
+    category: 'account',
+    subject: 'Your Hudumika verification code',
+    body: `
+      <p>Use the code below to complete your sign-in. It expires in 10 minutes.</p>
+      <p style="font-size:32px;font-weight:800;letter-spacing:0.18em;text-align:center;padding:20px 0;color:#111827;">{{code}}</p>
+      <p>If you did not attempt to sign in, someone may be trying to access your account — reset your password immediately.</p>
+    `,
+  },
+  'ondi.mfa.enabled': {
+    category: 'account',
+    subject: 'Two-factor authentication enabled on your account',
+    body: `
+      <p>Hi {{first_name}},</p>
+      <p>Two-factor authentication has been successfully enabled on your Hudumika account.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Method</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{mfaMethod}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Enabled at</td><td style="padding:8px 0;text-align:right;">{{enabledAt}}</td></tr>
+      </table>
+      <p>If you did not make this change, contact your workspace admin immediately.</p>
+    `,
+  },
+  'ondi.mfa.disabled': {
+    category: 'account',
+    subject: 'Two-factor authentication removed from your account',
+    body: `
+      <p>Hi {{first_name}},</p>
+      <p style="background:#fef2f2;border-left:3px solid #dc2626;padding:12px 16px;border-radius:4px;">
+        Two-factor authentication has been <strong>removed</strong> from your account. Your account is now less secure.
+      </p>
+      <p>If you did not make this change, reset your password and re-enable 2FA immediately.</p>
+    `,
+  },
+  'ondi.password.changed': {
+    category: 'account',
+    subject: 'Your Hudumika password was changed',
+    body: `
+      <p>Hi {{first_name}},</p>
+      <p>Your Hudumika password was successfully changed.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Changed at</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{changedAt}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Device</td><td style="padding:8px 0;text-align:right;">{{device}}</td></tr>
+      </table>
+      <p>If this wasn't you, reset your password immediately and contact your workspace admin.</p>
+    `,
+  },
+  'ondi.session.revoked': {
+    category: 'account',
+    subject: 'A session was signed out of your Hudumika account',
+    body: `
+      <p>Hi {{first_name}},</p>
+      <p>A session was signed out of your account{{revokedBy}}.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Device</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{device}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Signed out at</td><td style="padding:8px 0;text-align:right;">{{revokedAt}}</td></tr>
+      </table>
+      <p>If you did not request this, review your active sessions in <strong>Ondi ▸ Security Settings</strong>.</p>
+    `,
+  },
+  'ondi.account.locked': {
+    category: 'account',
+    subject: 'Your Hudumika account has been temporarily locked',
+    body: `
+      <p>Hi {{first_name}},</p>
+      <p style="background:#fef2f2;border-left:3px solid #dc2626;padding:12px 16px;border-radius:4px;">
+        Your account was locked after <strong>{{failedAttempts}}</strong> failed sign-in attempts. It will automatically unlock after <strong>{{unlockAfter}}</strong>.
+      </p>
+      <p>To unlock it now, reset your password:</p>
+      <p><a href="{{resetUrl}}" style="background:#dc2626;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Reset password</a></p>
+    `,
+  },
+  'ondi.jit.grant': {
+    category: 'account',
+    subject: 'Temporary access granted — {{resourceName}}',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p>You have been granted temporary just-in-time (JIT) access to <strong>{{resourceName}}</strong>.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Granted by</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{grantedBy}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Access level</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{accessLevel}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Expires</td><td style="padding:8px 0;text-align:right;font-weight:600;color:#dc2626;">{{expiresAt}}</td></tr>
+      </table>
+      <p>This access is time-limited and will be revoked automatically when it expires.</p>
+    `,
+  },
+  'ondi.breakglass.used': {
+    category: 'account',
+    subject: 'SECURITY ALERT — Break-glass access used on {{tenantName}}',
+    body: `
+      <p style="background:#fef2f2;border-left:3px solid #dc2626;padding:12px 16px;border-radius:4px;font-weight:600;">
+        Emergency break-glass access was exercised on your workspace.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Accessed by</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{accessedBy}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Reason</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{reason}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Time</td><td style="padding:8px 0;text-align:right;">{{accessedAt}}</td></tr>
+      </table>
+      <p>A full audit trail has been recorded. If this was not authorised, contact Hudumika support immediately.</p>
+    `,
+  },
+  'ondi.email.changed': {
+    category: 'account',
+    subject: 'Your Hudumika login email was changed',
+    body: `
+      <p>Hi {{first_name}},</p>
+      <p>The login email on your Hudumika account was changed from <strong>{{oldEmail}}</strong> to <strong>{{newEmail}}</strong>.</p>
+      <p>If you did not make this change, contact your workspace admin and reset your password immediately.</p>
+    `,
+  },
+
+  // ── FinOps extensions ─────────────────────────────────────────────────────
+  'finops.expense.approved': {
+    category: 'transactional',
+    subject: 'Your expense claim has been approved — {{expenseTitle}}',
+    body: `
+      <p>Hi {{employeeName}},</p>
+      <p>Your expense claim has been approved and will be included in your next payroll run.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Claim</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{expenseTitle}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Amount</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;color:#059669;">{{amount}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Approved by</td><td style="padding:8px 0;text-align:right;">{{approvedBy}}</td></tr>
+      </table>
+    `,
+  },
+  'finops.expense.rejected': {
+    category: 'transactional',
+    subject: 'Your expense claim was not approved — {{expenseTitle}}',
+    body: `
+      <p>Hi {{employeeName}},</p>
+      <p>Your expense claim for <strong>{{amount}}</strong> was not approved.</p>
+      <p><strong>Reason:</strong> {{rejectionReason}}</p>
+      <p>Please speak to your manager or finance team if you have questions.</p>
+    `,
+  },
+  'finops.budget.alert': {
+    category: 'transactional',
+    subject: 'Budget alert — {{budgetName}} is {{percentage}}% used',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p style="background:#fffbeb;border-left:3px solid #f59e0b;padding:12px 16px;border-radius:4px;">
+        The <strong>{{budgetName}}</strong> budget has reached <strong>{{percentage}}%</strong> of its limit.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Budget</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{budgetName}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Spent</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{spent}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Limit</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{limit}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Period</td><td style="padding:8px 0;text-align:right;">{{period}}</td></tr>
+      </table>
+      <p><a href="{{budgetUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">View budget</a></p>
+    `,
+  },
+  'finops.statement.ready': {
+    category: 'transactional',
+    subject: 'Your {{period}} statement is ready — {{companyName}}',
+    body: `
+      <p>Dear {{customerName}},</p>
+      <p>Your account statement for <strong>{{period}}</strong> is now available.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Period</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{period}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Opening balance</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{openingBalance}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Closing balance</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{closingBalance}}</td></tr>
+      </table>
+      <p><a href="{{statementUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">View statement</a></p>
+    `,
+  },
+  'finops.credit_note.issued': {
+    category: 'transactional',
+    subject: 'Credit note {{creditNoteNumber}} issued — {{companyName}}',
+    body: `
+      <p>Dear {{customerName}},</p>
+      <p>A credit note has been issued against invoice <strong>{{invoiceNumber}}</strong>.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Credit note</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{creditNoteNumber}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Original invoice</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{invoiceNumber}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Reason</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{reason}}</td></tr>
+        <tr><td style="padding:12px 0;font-weight:700;">Credit amount</td><td style="padding:12px 0;text-align:right;font-weight:700;color:#059669;">{{creditAmount}}</td></tr>
+      </table>
+      <p>This credit will be applied to your next invoice or refunded per your payment terms.</p>
+      <p><a href="{{creditNoteUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">View credit note</a></p>
+    `,
+  },
+  'finops.payment.failed': {
+    category: 'transactional',
+    subject: 'Payment failed — Invoice {{invoiceNumber}}',
+    body: `
+      <p>Dear {{customerName}},</p>
+      <p style="background:#fef2f2;border-left:3px solid #dc2626;padding:12px 16px;border-radius:4px;">
+        A payment attempt for invoice <strong>{{invoiceNumber}}</strong> ({{amountDue}}) was unsuccessful.
+      </p>
+      <p><strong>Reason:</strong> {{failureReason}}</p>
+      <p>Please update your payment details or try a different method.</p>
+      <p><a href="{{invoiceUrl}}" style="background:#dc2626;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Retry payment</a></p>
+    `,
+  },
+  'finops.bank_recon.discrepancy': {
+    category: 'transactional',
+    subject: 'Reconciliation discrepancy found — {{bankAccount}} — {{period}}',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p style="background:#fffbeb;border-left:3px solid #f59e0b;padding:12px 16px;border-radius:4px;">
+        A discrepancy was found during bank reconciliation for <strong>{{bankAccount}}</strong>.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Account</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{bankAccount}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Period</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{period}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Book balance</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{bookBalance}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Bank balance</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{bankBalance}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Difference</td><td style="padding:8px 0;text-align:right;font-weight:700;color:#dc2626;">{{difference}}</td></tr>
+      </table>
+      <p><a href="{{reconUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Review reconciliation</a></p>
+    `,
+  },
+  'finops.gl.period_closed': {
+    category: 'transactional',
+    subject: 'GL period closed — {{period}}',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p>The accounting period <strong>{{period}}</strong> has been closed by <strong>{{closedBy}}</strong>.</p>
+      <p>No further journal entries or adjustments can be posted to this period. Any corrections must be made in the current open period.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Period</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{period}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Closed at</td><td style="padding:8px 0;text-align:right;">{{closedAt}}</td></tr>
+      </table>
+    `,
+  },
+  'finops.petti.approved': {
+    category: 'transactional',
+    subject: 'Petty cash disbursement approved — {{expenseTitle}}',
+    body: `
+      <p>Hi {{employeeName}},</p>
+      <p>Your petty cash request has been approved and disbursed.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Description</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{expenseTitle}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Amount</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;color:#059669;">{{amount}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Approved by</td><td style="padding:8px 0;text-align:right;">{{approvedBy}}</td></tr>
+      </table>
+    `,
+  },
+
+  // ── NexusHR extensions ────────────────────────────────────────────────────
+  'nexushr.onboarding.welcome': {
+    category: 'account',
+    subject: 'Welcome to {{companyName}} — your first day',
+    body: `
+      <p>Hi {{firstName}},</p>
+      <p>We're thrilled to have you joining <strong>{{companyName}}</strong> as <strong>{{jobTitle}}</strong> on <strong>{{startDate}}</strong>.</p>
+      <p>Here are a few things to get you started:</p>
+      <ul style="padding-left:20px;color:#374151;line-height:1.8;">
+        <li>Your manager is <strong>{{managerName}}</strong></li>
+        <li>Reporting to: <strong>{{department}}</strong></li>
+        <li>Work location: <strong>{{workLocation}}</strong></li>
+      </ul>
+      <p>Your Hudumika account is ready — sign in to complete your profile, review your contract, and access your onboarding checklist.</p>
+      <p><a href="{{loginUrl}}" style="background:#0d7a6b;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;font-weight:600;">Get started</a></p>
+    `,
+  },
+  'nexushr.contract.sent': {
+    category: 'transactional',
+    subject: 'Your employment contract is ready to sign — {{companyName}}',
+    body: `
+      <p>Hi {{employeeName}},</p>
+      <p>Your employment contract from <strong>{{companyName}}</strong> is ready for your review and signature.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Role</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{jobTitle}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Start date</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{startDate}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Please sign by</td><td style="padding:8px 0;text-align:right;font-weight:600;color:#dc2626;">{{signBy}}</td></tr>
+      </table>
+      <p><a href="{{signUrl}}" style="background:#0d7a6b;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;font-weight:600;">Review and sign</a></p>
+    `,
+  },
+  'nexushr.performance.review_due': {
+    category: 'transactional',
+    subject: 'Performance review due — {{revieweeName}}',
+    body: `
+      <p>Hi {{reviewerName}},</p>
+      <p>A performance review for <strong>{{revieweeName}}</strong> is due on <strong>{{dueDate}}</strong>.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Employee</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{revieweeName}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Review cycle</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{reviewCycle}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Due date</td><td style="padding:8px 0;text-align:right;font-weight:600;">{{dueDate}}</td></tr>
+      </table>
+      <p><a href="{{reviewUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Start review</a></p>
+    `,
+  },
+  'nexushr.recruitment.application_received': {
+    category: 'transactional',
+    subject: 'Application received — {{jobTitle}} at {{companyName}}',
+    body: `
+      <p>Dear {{applicantName}},</p>
+      <p>Thank you for applying for the <strong>{{jobTitle}}</strong> position at <strong>{{companyName}}</strong>. We have received your application and will be in touch.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Position</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{jobTitle}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Application ref</td><td style="padding:8px 0;text-align:right;">{{applicationRef}}</td></tr>
+      </table>
+      <p>We review all applications carefully. If your profile is a good fit, we will contact you to arrange an interview.</p>
+    `,
+  },
+  'nexushr.recruitment.interview_scheduled': {
+    category: 'transactional',
+    subject: 'Interview scheduled — {{jobTitle}} at {{companyName}}',
+    body: `
+      <p>Dear {{applicantName}},</p>
+      <p>We'd like to invite you to an interview for the <strong>{{jobTitle}}</strong> role.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Date &amp; time</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{interviewTime}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Format</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{interviewFormat}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Interviewer(s)</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{interviewers}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Location / link</td><td style="padding:8px 0;text-align:right;">{{interviewLocation}}</td></tr>
+      </table>
+      <p>Please confirm your attendance by replying to this email.</p>
+    `,
+  },
+  'nexushr.employee.offboarded': {
+    category: 'transactional',
+    subject: 'Offboarding confirmation — {{employeeName}}',
+    body: `
+      <p>Hi {{employeeName}},</p>
+      <p>This confirms that your employment with <strong>{{companyName}}</strong> has ended on <strong>{{lastWorkingDay}}</strong>.</p>
+      <p>Your Hudumika account will remain accessible until <strong>{{accessRevokedAt}}</strong>. Please ensure you have saved any personal files before then.</p>
+      <p>Your final payslip and any outstanding payments will be processed in the next payroll run. Please contact HR if you have any questions.</p>
+    `,
+  },
+
+  // ── CargoTracker ──────────────────────────────────────────────────────────
+  'cargotracker.booking.confirmed': {
+    category: 'transactional',
+    subject: 'Booking confirmed — {{bookingRef}}',
+    body: `
+      <p>Dear {{customerName}},</p>
+      <p>Your cargo booking has been confirmed.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Booking ref</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{bookingRef}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Carrier</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{carrier}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Service</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{service}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">ETD</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{etd}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">ETA</td><td style="padding:8px 0;text-align:right;">{{eta}}</td></tr>
+      </table>
+      <p><a href="{{bookingUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">View booking</a></p>
+    `,
+  },
+  'cargotracker.booking.cancelled': {
+    category: 'transactional',
+    subject: 'Booking cancelled — {{bookingRef}}',
+    body: `
+      <p>Dear {{customerName}},</p>
+      <p>Your cargo booking <strong>{{bookingRef}}</strong> has been cancelled.</p>
+      <p><strong>Reason:</strong> {{cancellationReason}}</p>
+      <p>Please contact us to rebook or discuss alternatives.</p>
+    `,
+  },
+  'cargotracker.delivery.scheduled': {
+    category: 'transactional',
+    subject: 'Delivery scheduled — {{bookingRef}}',
+    body: `
+      <p>Dear {{customerName}},</p>
+      <p>Delivery of your cargo <strong>{{bookingRef}}</strong> has been scheduled.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Delivery date</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{deliveryDate}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Delivery address</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{deliveryAddress}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Driver</td><td style="padding:8px 0;text-align:right;">{{driverName}}</td></tr>
+      </table>
+      <p>Please ensure someone is available at the delivery address to receive the goods.</p>
+    `,
+  },
+
+  // ── HuduFreight ───────────────────────────────────────────────────────────
+  'freight.trip.assigned': {
+    category: 'transactional',
+    subject: 'New trip assigned — {{tripRef}}',
+    body: `
+      <p>Hi {{driverName}},</p>
+      <p>A new trip has been assigned to you.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Trip ref</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{tripRef}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Pickup</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{pickupLocation}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Delivery</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{deliveryLocation}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Departure</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{departureTime}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Vehicle</td><td style="padding:8px 0;text-align:right;">{{vehiclePlate}}</td></tr>
+      </table>
+      <p><a href="{{tripUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">View trip details</a></p>
+    `,
+  },
+  'freight.trip.completed': {
+    category: 'transactional',
+    subject: 'Trip completed — {{tripRef}}',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p>Trip <strong>{{tripRef}}</strong> has been completed by <strong>{{driverName}}</strong>.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Driver</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{driverName}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Completed at</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{completedAt}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Distance</td><td style="padding:8px 0;text-align:right;">{{distance}}</td></tr>
+      </table>
+      <p><a href="{{tripUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">View trip report</a></p>
+    `,
+  },
+
+  // ── Bliss (meetings / calls) ──────────────────────────────────────────────
+  'bliss.meeting.summary': {
+    category: 'transactional',
+    subject: 'Meeting summary — {{meetingTitle}}',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p>Here is the AI-generated summary for your meeting <strong>{{meetingTitle}}</strong> on {{meetingDate}}.</p>
+      <h4 style="margin:16px 0 8px;font-size:14px;font-weight:700;color:#111827;">Key points</h4>
+      <div style="background:#f9fafb;border-radius:6px;padding:14px 16px;font-size:13px;line-height:1.7;color:#374151;">{{summaryContent}}</div>
+      <h4 style="margin:16px 0 8px;font-size:14px;font-weight:700;color:#111827;">Action items</h4>
+      <div style="background:#f0fdf4;border-radius:6px;padding:14px 16px;font-size:13px;line-height:1.7;color:#374151;">{{actionItems}}</div>
+      <p><a href="{{meetingUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">View full transcript</a></p>
+    `,
+  },
+  'bliss.meeting.recording_ready': {
+    category: 'transactional',
+    subject: 'Recording ready — {{meetingTitle}}',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p>The recording for <strong>{{meetingTitle}}</strong> is ready.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Meeting</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{meetingTitle}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Date</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{meetingDate}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Duration</td><td style="padding:8px 0;text-align:right;">{{duration}}</td></tr>
+      </table>
+      <p>The recording will be available for <strong>{{retentionDays}}</strong> days.</p>
+      <p><a href="{{recordingUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Watch recording</a></p>
+    `,
+  },
+
+  // ── Calendar ──────────────────────────────────────────────────────────────
+  'calendar.event.reminder': {
+    category: 'transactional',
+    subject: 'Reminder: {{eventTitle}} starts in {{reminderTime}}',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p>Your event <strong>{{eventTitle}}</strong> starts in <strong>{{reminderTime}}</strong>.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">When</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{startTime}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Duration</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{duration}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Location</td><td style="padding:8px 0;text-align:right;">{{location}}</td></tr>
+      </table>
+      {{joinLinkHtml}}
+    `,
+  },
+  'calendar.event.cancelled': {
+    category: 'transactional',
+    subject: 'Event cancelled: {{eventTitle}}',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p>The event <strong>{{eventTitle}}</strong> scheduled for <strong>{{startTime}}</strong> has been cancelled by <strong>{{organizer}}</strong>.</p>
+      {{cancellationNoteHtml}}
+    `,
+  },
+  'calendar.booking.confirmed': {
+    category: 'transactional',
+    subject: 'Booking confirmed — {{eventTitle}} with {{hostName}}',
+    body: `
+      <p>Hi {{bookerName}},</p>
+      <p>Your booking has been confirmed.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Event</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{eventTitle}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">With</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{hostName}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">When</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{startTime}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Duration</td><td style="padding:8px 0;text-align:right;">{{duration}}</td></tr>
+      </table>
+      <p><a href="{{joinUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Join meeting</a></p>
+      <p>Need to reschedule? <a href="{{rescheduleUrl}}">Click here</a></p>
+    `,
+  },
+
+  // ── ComplyOS extensions ───────────────────────────────────────────────────
+  'complyos.permit.expiring': {
+    category: 'transactional',
+    subject: 'Permit expiring soon — {{permitName}} — {{daysLeft}} day(s) remaining',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p style="background:#fffbeb;border-left:3px solid #f59e0b;padding:12px 16px;border-radius:4px;">
+        <strong>{{permitName}}</strong> is due to expire on <strong>{{expiryDate}}</strong> — only <strong>{{daysLeft}}</strong> day(s) remaining.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Permit</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{permitName}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Issuing authority</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{issuingAuthority}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Expiry date</td><td style="padding:8px 0;text-align:right;font-weight:600;color:#dc2626;">{{expiryDate}}</td></tr>
+      </table>
+      <p><a href="{{permitUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Renew permit</a></p>
+    `,
+  },
+  'complyos.audit.scheduled': {
+    category: 'transactional',
+    subject: 'Compliance audit scheduled — {{auditTitle}}',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p>A compliance audit has been scheduled for your workspace.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Audit</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{auditTitle}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Scheduled date</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{auditDate}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Assigned to</td><td style="padding:8px 0;text-align:right;">{{assignedTo}}</td></tr>
+      </table>
+      <p><a href="{{auditUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Prepare for audit</a></p>
+    `,
+  },
+
+  // ── Projects / Tasks extensions ───────────────────────────────────────────
+  'projects.task.overdue': {
+    category: 'transactional',
+    subject: 'Overdue task: {{taskTitle}} — {{daysOverdue}} day(s) past due',
+    body: `
+      <p>Hi {{assigneeName}},</p>
+      <p style="background:#fef2f2;border-left:3px solid #dc2626;padding:12px 16px;border-radius:4px;">
+        Task <strong>{{taskTitle}}</strong> was due on <strong>{{dueDate}}</strong> and is now <strong>{{daysOverdue}} day(s) overdue</strong>.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Project</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{projectName}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Original due date</td><td style="padding:8px 0;text-align:right;">{{dueDate}}</td></tr>
+      </table>
+      <p><a href="{{taskUrl}}" style="background:#dc2626;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Update task</a></p>
+    `,
+  },
+  'projects.comment.mention': {
+    category: 'transactional',
+    subject: '{{mentionedBy}} mentioned you in {{contextTitle}}',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p><strong>{{mentionedBy}}</strong> mentioned you in a comment on <strong>{{contextTitle}}</strong>.</p>
+      <div style="background:#f9fafb;border-left:3px solid #e5e7eb;padding:12px 16px;border-radius:0 4px 4px 0;margin:12px 0;font-size:13px;color:#374151;line-height:1.6;">{{commentText}}</div>
+      <p><a href="{{contextUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">View comment</a></p>
+    `,
+  },
+
+  // ── CRM extensions ────────────────────────────────────────────────────────
+  'crm.contract.expiring': {
+    category: 'transactional',
+    subject: 'Contract expiring soon — {{customerName}} — {{daysLeft}} day(s) remaining',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p>The contract with <strong>{{customerName}}</strong> is set to expire on <strong>{{expiryDate}}</strong>.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Customer</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{customerName}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Contract value</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{contractValue}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Expiry date</td><td style="padding:8px 0;text-align:right;font-weight:600;color:#dc2626;">{{expiryDate}}</td></tr>
+      </table>
+      <p><a href="{{contractUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Renew contract</a></p>
+    `,
+  },
+  'crm.followup.due': {
+    category: 'transactional',
+    subject: 'Follow-up due today — {{contactName}}',
+    body: `
+      <p>Hi {{assigneeName}},</p>
+      <p>You have a follow-up scheduled today with <strong>{{contactName}}</strong>.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Contact</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{contactName}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Company</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{company}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Notes</td><td style="padding:8px 0;text-align:right;">{{followUpNote}}</td></tr>
+      </table>
+      <p><a href="{{contactUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">View contact</a></p>
+    `,
+  },
+
+  // ── SMS ───────────────────────────────────────────────────────────────────
+  'sms.campaign.completed': {
+    category: 'transactional',
+    subject: 'SMS campaign sent — {{campaignName}}',
+    body: `
+      <p>Hi {{recipientName}},</p>
+      <p>Your SMS campaign <strong>{{campaignName}}</strong> has finished sending.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Total sent</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">{{totalSent}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Delivered</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;color:#059669;font-weight:600;">{{delivered}}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Failed</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;color:#dc2626;">{{failed}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Delivery rate</td><td style="padding:8px 0;text-align:right;font-weight:700;">{{deliveryRate}}%</td></tr>
+      </table>
+      <p><a href="{{campaignUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">View campaign report</a></p>
+    `,
+  },
 };
+
+for (const entry of APP_EMAIL_TEMPLATE_CATALOG) {
+  EMAIL_TEMPLATE_DEFAULTS[entry.key] ??= {
+    category: entry.category,
+    subject: entry.title + ' — {{reference}}',
+    body: buildCatalogBody(entry),
+  };
+}
 
 /** Which merge tags a template actually uses, derived from its own default
  *  subject+body rather than hand-declared — a hand-maintained list would

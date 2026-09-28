@@ -173,7 +173,7 @@ export async function productRoutes(fastify: FastifyInstance) {
           updates.tax_code_id = null;
         }
       }
-      const row = await trx.updateTable('products').set(updates).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+      const row = await trx.updateTable('products').set(updates).where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
       return row;
     });
   });
@@ -185,7 +185,7 @@ export async function productRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('products').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Product not found' });
-      await trx.deleteFrom('products').where('id', '=', id).execute();
+      await trx.deleteFrom('products').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return reply.status(204).send();
     });
   });

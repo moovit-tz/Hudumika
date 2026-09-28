@@ -15,7 +15,7 @@ export const PageLayout: React.FC = () => {
       <footer className="page-footer">
         {/* Left Aligned Copyrights */}
         <div className="page-footer-copyright">
-          Copyrights © {year} by <strong>Hudumika LLC</strong>. All rights reserved.
+          Hudumika Workspace · © {year} Moovit Mobility Limited
         </div>
 
         {/* Right Aligned Links */}

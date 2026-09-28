@@ -1,4 +1,6 @@
 import type { CommunicationEventDefinition, CommunicationRecipientDefinition, CommunicationVariableDefinition } from '@hudumika/types';
+import { EMAIL_TEMPLATE_DEFAULTS } from './email-template-defaults.js';
+import { APP_EMAIL_TEMPLATE_CATALOG } from './app-email-template-catalog.js';
 
 /**
  * Central Communication Event Registry — the single authoritative catalog
@@ -704,6 +706,68 @@ const EVENT_REGISTRATIONS: LegacyCommEventDefinition[] = [
     is_required: false,
   },
 ];
+
+const registeredTemplateKeys = new Set(
+  EVENT_REGISTRATIONS.map(event => event.default_template).filter((key): key is string => Boolean(key)),
+);
+const catalogByKey = new Map(APP_EMAIL_TEMPLATE_CATALOG.map(entry => [entry.key, entry]));
+const LEGACY_TEMPLATE_EVENT_KEYS: Record<string, string> = {
+  'auth.recovery_request': 'security.account.recovery_requested',
+  'onboarding.join_request': 'onboarding.workspace.join_requested',
+  'onboarding.join_approved': 'onboarding.workspace.join_approved',
+  'onboarding.join_denied': 'onboarding.workspace.join_denied',
+  'customers.claim_code': 'customers.portal.claim_code',
+  'hr.staff_invitation_reminder': 'hr.staff.invitation_reminder',
+  'agency.client_tenant_ready': 'agency.client.workspace_ready',
+  'agency.client_detached': 'agency.client.detached',
+  'agency.directory_inquiry': 'agency.directory.inquiry',
+  'admin.raw_sql_otp': 'admin.database.raw_sql_otp',
+  'complyos.renewal_alert': 'complyos.renewal.alert',
+  'support.ticket_update': 'support.ticket.updated',
+  'notification.generic': 'platform.notification.generic',
+  'hudubi.digest': 'hudubi.metrics.digest',
+};
+
+/**
+ * A published default must also be an addressable communication event. This
+ * fills registry coverage for newly added app templates while preserving the
+ * richer, hand-authored definitions above for established business events.
+ */
+for (const [templateKey, templateDefault] of Object.entries(EMAIL_TEMPLATE_DEFAULTS)) {
+  if (registeredTemplateKeys.has(templateKey)) continue;
+  const eventKey = LEGACY_TEMPLATE_EVENT_KEYS[templateKey] ?? templateKey;
+  const catalog = catalogByKey.get(templateKey);
+  const variableNames = [...new Set(
+    `${templateDefault.subject} ${templateDefault.body}`.matchAll(/{{\s*(\w+)\s*}}/g),
+  )].map(match => match[1]);
+  const application = catalog?.application
+    ?? ({ ondi: 'Ondi', finops: 'FinOps', nexushr: 'NexusHR', cargotracker: 'CargoTracker', freight: 'HuduFreight', bliss: 'Bliss', calendar: 'Calendar', complyos: 'ComplyOS', projects: 'Projects', crm: 'CRM', sms: 'SMS' } as Record<string, string>)[templateKey.split('.')[0]]
+    ?? templateKey.split('.')[0].replace(/(^|_)(\w)/g, (_, __, char: string) => char.toUpperCase());
+  const name = catalog?.title ?? templateKey.split('.').slice(1).join(' ').replace(/_/g, ' ').replace(/\b\w/g, value => value.toUpperCase());
+  EVENT_REGISTRATIONS.push({
+    event_key: eventKey,
+    application,
+    name,
+    description: catalog?.description ?? `Default ${application} communication for ${name.toLowerCase()}.`,
+    category: templateDefault.category === 'account' ? 'security' : 'transactional',
+    trigger_type: templateKey.includes('.report') || templateKey.includes('.digest') || templateKey.includes('.metrics') ? 'scheduled' : 'domain_event',
+    available_channels: ['EMAIL', 'IN_APP'],
+    default_channel: 'EMAIL',
+    available_variables: {
+      Content: Object.fromEntries(variableNames.map(variable => [variable, {
+        label: variable.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ').replace(/\b\w/g, value => value.toUpperCase()),
+        example: variable.toLowerCase().includes('url') ? '#' : `Sample ${variable}`,
+      }])),
+    },
+    sample_context: Object.fromEntries(variableNames.map(variable => [variable,
+      variable.toLowerCase().includes('url') ? '#' : variable === 'actionLabel' ? 'View details' : `Sample ${variable}`,
+    ])),
+    recipient_resolvers: ['self', 'manual_recipient'],
+    default_template: templateKey,
+    priority: templateKey.includes('failed') || templateKey.includes('alert') || templateKey.includes('offline') ? 'high' : 'normal',
+    is_required: /(^security\.|\.mfa\.|password|breakglass|api_key|role_changed|settings_changed)/.test(eventKey),
+  });
+}
 
 function registerEvents(registrations: LegacyCommEventDefinition[]): CommunicationEventDefinition[] {
   const keys = new Set<string>();

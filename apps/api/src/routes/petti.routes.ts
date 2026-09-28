@@ -423,6 +423,19 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     return { data: await PettiService.listDeposits(user.tenant_id, { walletId: wallet_id, from, to }) };
   });
 
+  // ── Transaction summary metrics (wallet/date/search filters, no pagination) ──
+  fastify.get('/transactions/summary', async (request) => {
+    const user = request.user;
+    const q = request.query as {
+      wallet_id?: string; type?: 'deposit' | 'withdrawal' | 'transfer'; category?: string;
+      from?: string; to?: string; search?: string;
+    };
+    return PettiService.summarizeTransactions(user.tenant_id, {
+      walletId: q.wallet_id, type: q.type, category: q.category,
+      from: q.from, to: q.to, search: q.search,
+    });
+  });
+
   // ── Unified transaction ledger ──────────────────────────────────────────
   fastify.get('/transactions', async (request) => {
     const user = request.user;

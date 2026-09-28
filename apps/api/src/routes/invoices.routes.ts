@@ -136,13 +136,17 @@ export function invoiceGrandTotal(
   exchangeRate: number,
 ): number {
   const base = (invoiceCurrency || 'TZS').toUpperCase();
-  return lines.reduce((sum, l) => {
-    const gross = Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100);
+  const total = lines.reduce((sum, l) => {
+    // Round per-line before accumulating — floating-point drift on
+    // 18% tax (1.1799999…) compounds across many lines otherwise.
+    const lineGross = Math.round(Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100) * 100) / 100;
     // A line with no currency recorded is in the invoice's currency; that is
     // what the column's default has always meant.
     const cur = (l.currency || base).toUpperCase();
-    return sum + (cur === base ? gross : gross * exchangeRate);
+    const converted = cur === base ? lineGross : Math.round(lineGross * exchangeRate * 100) / 100;
+    return sum + converted;
   }, 0);
+  return Math.round(total * 100) / 100;
 }
 
 /** The same conversion as invoiceGrandTotal, split into its net and tax parts. */
@@ -152,14 +156,16 @@ export function invoiceNetAndTax(
   exchangeRate: number,
 ): { net: number; tax: number } {
   const base = (invoiceCurrency || 'TZS').toUpperCase();
-  return lines.reduce((acc, l) => {
+  const result = lines.reduce((acc, l) => {
     const cur = (l.currency || base).toUpperCase();
     const fx = cur === base ? 1 : exchangeRate;
-    const net = Number(l.qty) * Number(l.rate) * fx;
-    acc.net += net;
-    acc.tax += net * (Number(l.tax_pct) / 100);
+    const lineNet = Math.round(Number(l.qty) * Number(l.rate) * fx * 100) / 100;
+    const lineTax = Math.round(lineNet * (Number(l.tax_pct) / 100) * 100) / 100;
+    acc.net = Math.round((acc.net + lineNet) * 100) / 100;
+    acc.tax = Math.round((acc.tax + lineTax) * 100) / 100;
     return acc;
   }, { net: 0, tax: 0 });
+  return result;
 }
 
 /**
@@ -402,7 +408,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('recurring_invoices').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Recurring invoice not found' });
-      await trx.deleteFrom('recurring_invoices').where('id', '=', id).execute();
+      await trx.deleteFrom('recurring_invoices').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { success: true };
     });
   });
@@ -905,7 +911,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       for (const f of fields) {
         if (b[f] !== undefined) updates[f] = f === 'client_address' ? JSON.stringify(b[f]) : b[f];
       }
-      await trx.updateTable('sales_invoices').set(updates).where('id', '=', id).execute();
+      await trx.updateTable('sales_invoices').set(updates).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       
       let lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', id).execute();
       if (Array.isArray(body.items)) {
@@ -1042,7 +1048,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         throw e;
       }
       await trx.deleteFrom('sales_invoice_lines').where('invoice_id', '=', id).execute();
-      await trx.deleteFrom('sales_invoices').where('id', '=', id).execute();
+      await trx.deleteFrom('sales_invoices').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { success: true };
     });
   });
@@ -1101,7 +1107,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       if (totalPaid <= 0) newStatus = 'Unpaid';
       else if (totalPaid >= grandTotal) newStatus = 'Paid';
       else newStatus = 'Partial';
-      await trx.updateTable('sales_invoices').set({ received: totalPaid, status: newStatus, updated_at: new Date() }).where('id', '=', id).execute();
+      await trx.updateTable('sales_invoices').set({ received: totalPaid, status: newStatus, updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
 
       // Post payment to GL
       const journalEntryId = await GLService.post(user.tenant_id, {
@@ -1408,4 +1414,3 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     });
   });
 }
-

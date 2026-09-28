@@ -3,7 +3,7 @@ import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
-import { assertPublicHttpUrl } from '../lib/ssrf-guard.js';
+import { safeFetch } from '../lib/ssrf-guard.js';
 
 export interface DomainEvent {
   type: string;
@@ -119,7 +119,7 @@ async function dispatchToMarketplaceWebhooks(tenantId: string, event: DomainEven
     // specifically check for an internal address, and this fires for every
     // tenant that installs the app on every one of their domain events —
     // defense in depth, not the only check.
-    assertPublicHttpUrl(app.webhook_url).then(() => fetch(app.webhook_url, {
+    safeFetch(app.webhook_url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ async function dispatchToMarketplaceWebhooks(tenantId: string, event: DomainEven
         'X-Hudumika-Signature': `sha256=${signature}`,
       },
       body,
-    })).catch(err => console.error(`[DomainEvents] webhook to "${app.name}" failed:`, err.message));
+    }).catch(err => console.error(`[DomainEvents] webhook to "${app.name}" failed:`, err.message));
   }
 }
 

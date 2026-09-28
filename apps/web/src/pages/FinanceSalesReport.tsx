@@ -7,21 +7,41 @@ import { apiFetch } from '../lib/api.js';
 import { mapApiInvoice, invoiceTotals, STATUS_STYLE } from './Billing.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import './FinanceSalesReport.css';
 
 const fmtM = (n: number) => `TZS ${(n / 1_000_000).toFixed(1)}M`;
 const fmtFull = (n: number) => `TZS ${Math.round(n).toLocaleString()}`;
 
-function BarChart({ labels, values, color }: { labels: string[]; values: number[]; color: string }) {
+function SalesTrendChart({ labels, values }: { labels: string[]; values: number[] }) {
   const max = Math.max(...values, 1);
+  const width = 760;
+  const height = 220;
+  const points = values.map((value, index) => {
+    const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * width;
+    const y = height - (value / max) * 170 - 20;
+    return { x, y, value };
+  });
+  const line = points.map(point => `${point.x},${point.y}`).join(' ');
+  const area = points.length ? `0,${height} ${line} ${width},${height}` : '';
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 200, paddingTop: 20 }}>
-      {values.map((v, i) => (
-        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-          <div style={{ fontSize: 9, color: 'var(--ink3)', marginBottom: 4, whiteSpace: 'nowrap' }}>{fmtM(v)}</div>
-          <div style={{ width: '65%', height: `${Math.max(4, (v / max) * 140)}px`, background: color, borderRadius: '4px 4px 0 0' }} />
-          <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 6 }}>{labels[i]}</div>
-        </div>
-      ))}
+    <div className="fsr-trend" aria-label="Monthly sales trend">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img">
+        {[45, 90, 135, 180].map(y => <line key={y} x1="0" x2={width} y1={y} y2={y} className="fsr-chart-grid" />)}
+        <polygon points={area} className="fsr-chart-area" />
+        <polyline points={line} className="fsr-chart-line" />
+        {points.map((point, index) => (
+          <g key={labels[index]}>
+            <circle cx={point.x} cy={point.y} r="4" className="fsr-chart-point" />
+            {point.value > 0 && <text x={point.x} y={Math.max(12, point.y - 10)} textAnchor="middle" className="fsr-chart-value">{fmtM(point.value)}</text>}
+          </g>
+        ))}
+      </svg>
+      <div className="fsr-chart-labels">
+        {labels.map(label => <span key={label}>{label}</span>)}
+      </div>
     </div>
   );
 }
@@ -67,7 +87,7 @@ export const FinanceSalesReport: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const { invoices, monthLabels, monthlyTotals, totalSales, paid, unpaid, overdue } = useMemo(() => {
+  const { invoices, monthLabels, monthlyTotals, totalSales, paid, unpaid, overdue, paidCount, topClients } = useMemo(() => {
     const { from, to } = periodRange(period);
     const all = rawInvoices.map(d => {
       const mapped = mapApiInvoice(d);
@@ -92,9 +112,24 @@ export const FinanceSalesReport: React.FC = () => {
     const paid = invoices.filter(i => i.mapped.status === 'Paid').reduce((s, i) => s + i.total, 0);
     const unpaid = invoices.filter(i => i.mapped.status === 'Unpaid').reduce((s, i) => s + i.dueAmt, 0);
     const overdue = invoices.filter(i => i.mapped.status === 'Overdue').reduce((s, i) => s + i.dueAmt, 0);
+    const paidCount = invoices.filter(i => i.mapped.status === 'Paid').length;
+    const clientTotals = new Map<string, { total: number; invoices: number }>();
+    invoices.forEach(invoice => {
+      const name = invoice.mapped.client || 'Unassigned customer';
+      const current = clientTotals.get(name) || { total: 0, invoices: 0 };
+      clientTotals.set(name, { total: current.total + invoice.total, invoices: current.invoices + 1 });
+    });
+    const topClients = [...clientTotals.entries()]
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
 
-    return { invoices, monthLabels, monthlyTotals, totalSales, paid, unpaid, overdue };
+    return { invoices, monthLabels, monthlyTotals, totalSales, paid, unpaid, overdue, paidCount, topClients };
   }, [rawInvoices, period]);
+
+  const collectionRate = totalSales > 0 ? (paid / totalSales) * 100 : 0;
+  const averageInvoice = invoices.length ? totalSales / invoices.length : 0;
+  const outstanding = unpaid + overdue;
 
   const [page, setPage] = useState(1);
 
@@ -125,7 +160,7 @@ export const FinanceSalesReport: React.FC = () => {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
+    <div className="finance-sales-report">
       <PageHeader
         crumbs={['Finance', 'Reports']}
         titlePlain="Sales"
@@ -139,43 +174,69 @@ export const FinanceSalesReport: React.FC = () => {
                 {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
             </Select>
-            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
-              <Icon name="download" size={13} /> Export
-            </button>
+            <Button type="button" onClick={exportCsv} variant="outline" size="sm"><Icon name="download" size={14} /> Export report</Button>
           </div>
         }
       />
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="fsr-body">
 
-        {/* Summary cards */}
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+        <section className="fsr-kpis" aria-label="Sales summary">
           {[
-            { label: 'Total Sales',   value: fmtM(totalSales), icon: 'trendingUp',    color: 'var(--teal)',   bg: 'var(--teal-l)' },
-            { label: 'Total Paid',    value: fmtM(paid),       icon: 'checkCircle',   color: 'var(--green)', bg: 'var(--green-l)'       },
-            { label: 'Total Unpaid',  value: fmtM(unpaid),     icon: 'clock',         color: 'var(--gold)',      bg: 'var(--gold-l)'       },
-            { label: 'Total Overdue', value: fmtM(overdue),    icon: 'alertTriangle', color: 'var(--red)',   bg: 'var(--red-l)'       },
+            { label: 'Gross sales', value: fmtM(totalSales), icon: 'trendingUp', variant: 'brand' as const, detail: `${invoices.length} invoices` },
+            { label: 'Collected', value: fmtM(paid), icon: 'checkCircle', variant: 'success' as const, detail: `${collectionRate.toFixed(1)}% collection rate` },
+            { label: 'Outstanding', value: fmtM(outstanding), icon: 'clock', variant: 'warning' as const, detail: `${invoices.length - paidCount} open invoices` },
+            { label: 'Overdue', value: fmtM(overdue), icon: 'alertTriangle', variant: 'error' as const, detail: overdue > 0 ? 'Requires follow-up' : 'No overdue balance' },
           ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 'var(--r)', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name={s.icon as IconName} size={18} color={s.color} />
+            <article key={s.label} className="fsr-kpi">
+              <FeaturedIcon variant={s.variant} size="md"><Icon name={s.icon as IconName} size={18} /></FeaturedIcon>
+              <div className="fsr-kpi-copy">
+                <span>{s.label}</span>
+                <strong>{s.value}</strong>
+                <small>{s.detail}</small>
               </div>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.03em' }}>{s.value}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{s.label}</div>
+            </article>
+          ))}
+        </section>
+
+        <div className="fsr-insights-grid">
+          <SectionCard title="Revenue trend" collapsible={false} action={<Badge variant="brand">{period}</Badge>}>
+            <div className="fsr-chart-summary">
+              <div><span>Period revenue</span><strong>{fmtFull(totalSales)}</strong></div>
+              <div><span>Average invoice</span><strong>{fmtFull(averageInvoice)}</strong></div>
+            </div>
+            <SalesTrendChart labels={monthLabels} values={monthlyTotals} />
+          </SectionCard>
+
+          <SectionCard title="Collection health" collapsible={false}>
+            <div className="fsr-collection">
+              <div className="fsr-donut" style={{ '--collection': `${Math.min(100, collectionRate)}%` } as React.CSSProperties}>
+                <div><strong>{collectionRate.toFixed(0)}%</strong><span>collected</span></div>
+              </div>
+              <div className="fsr-collection-list">
+                <div><span><i className="is-paid" />Paid</span><strong>{fmtM(paid)}</strong></div>
+                <div><span><i className="is-open" />Unpaid</span><strong>{fmtM(unpaid)}</strong></div>
+                <div><span><i className="is-overdue" />Overdue</span><strong>{fmtM(overdue)}</strong></div>
               </div>
             </div>
-          ))}
+          </SectionCard>
         </div>
 
-        {/* Chart */}
-        <SectionCard title="Monthly Sales Income">
-          <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 16 }}>{period}</div>
-          <BarChart labels={monthLabels} values={monthlyTotals} color="var(--teal)" />
+        <SectionCard title="Top customers by invoiced revenue" collapsible={false}>
+          <div className="fsr-clients">
+            {topClients.length === 0 ? <div className="fsr-empty">No customer revenue in this period.</div> : topClients.map((client, index) => (
+              <div className="fsr-client" key={client.name}>
+                <span className="fsr-client-rank">{index + 1}</span>
+                <div className="fsr-client-name"><strong>{client.name}</strong><span>{client.invoices} invoice{client.invoices === 1 ? '' : 's'}</span></div>
+                <div className="fsr-client-bar"><span style={{ width: `${topClients[0].total ? (client.total / topClients[0].total) * 100 : 0}%` }} /></div>
+                <strong className="fsr-client-total">{fmtM(client.total)}</strong>
+              </div>
+            ))}
+          </div>
         </SectionCard>
 
         {/* Table */}
-        <SectionCard padded={false} title={`Invoice Details (${invoices.length})`}>
+        <SectionCard padded={false} collapsible={false} title={`Invoice ledger (${invoices.length})`}>
           <div className="rtbl-wrap" style={{ overflowX: 'auto' }}><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>

@@ -14,7 +14,7 @@
 }
 
 [data-theme="dark"] [data-finops="true"] .page-layout {
-  --fin-night-brand: #1257c6;
+  --fin-night-brand: var(--teal);
   /* Card/surface color is the platform's real design-system token (SuperAdmin
      ▸ Design System ▸ Brand & Neutral ▸ "Card / Surface", dark tab) — not a
      hardcoded hex. This used to read `--fin-night-surface: #111827` and then
@@ -26,17 +26,14 @@
      app already gets now also reaches every FinOps card, modal, table and
      archive row below. */
   --fin-night-surface: var(--white);
-  --fin-night-raised: #17243a;
-  --fin-night-sunken: #0c1422;
-  --fin-night-edge: rgba(96, 165, 250, 0.18);
-  --fin-night-edge-strong: rgba(96, 165, 250, 0.42);
-  --card-sunken: var(--fin-night-sunken);
-  --border: var(--fin-night-edge);
-  --border2: rgba(148, 184, 235, 0.3);
+  --fin-night-raised: color-mix(in srgb, var(--white) 94%, var(--teal) 6%);
+  --fin-night-sunken: var(--bg);
+  --fin-night-edge: var(--border);
+  --fin-night-edge-strong: var(--border2);
 }
 
 [data-theme="dark"] [data-finops="true"] .page-layout,
-[data-theme="dark"] [data-finops="true"] .page-layout-main { background: #080c14; }
+[data-theme="dark"] [data-finops="true"] .page-layout-main { background: var(--bg); }
 
 [data-theme="dark"] [data-finops="true"] .card,
 [data-theme="dark"] [data-finops="true"] .fin-shell,
@@ -193,8 +190,7 @@
 [data-theme="dark"] [data-finops="true"] .page-layout .card-interactive:hover {
   background: color-mix(in srgb, var(--fin-night-brand) 7%, var(--fin-night-surface));
   border-color: var(--fin-night-edge-strong);
-  box-shadow: 0 10px 30px rgba(0, 25, 70, 0.28),
-    0 0 0 1px color-mix(in srgb, var(--fin-night-brand) 28%, transparent);
+  box-shadow: var(--elev);
   transform: translateY(-1px);
 }
 
@@ -284,8 +280,7 @@
 [data-theme="dark"] [data-finops="true"] .finance-hover-card:hover {
   background: color-mix(in srgb, var(--fin-night-brand) 7%, var(--fin-night-surface)) !important;
   border-color: var(--fin-night-edge-strong) !important;
-  box-shadow: 0 10px 30px rgba(0, 25, 70, 0.28),
-    0 0 0 1px color-mix(in srgb, var(--fin-night-brand) 24%, transparent);
+  box-shadow: var(--elev);
 }
 
 /* ── Page layout flex column so child pages fill to footer ────────── */

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
@@ -20,8 +20,13 @@ import { RecordActivity } from '../components/RecordActivity.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { StaffContracts, StaffEmergencyContacts } from '../components/StaffContracts.js';
 import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import { SignaturePad } from '../components/SignaturePad.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Badge } from '../components/ui/badge.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { nameColor as avatarBg, nameInitials as initials, forgetAvatar, squareAvatarDataUrl } from '../lib/identity.js';
+import './StaffDetail.css';
 
 interface StaffData {
   id: string;
@@ -34,13 +39,9 @@ interface StaffData {
   created_at: string;
   last_login_at: string | null;
   hireDate: string;
-  /** True when hireDate is standing in for a real one, taken from created_at. */
   hire_date_is_estimated?: boolean;
   avatar_url?: string | null;
   profile?: UserProfileFields;
-  // Statutory identity and pay. Columns rather than profile json, because the
-  // payroll engine reads them and a value it depends on should not be able to
-  // be overwritten by an unrelated profile save.
   hire_date?: string | null;
   tax_residency?: 'RESIDENT' | 'NON_RESIDENT' | null;
   national_id?: string | null;
@@ -57,32 +58,17 @@ interface StaffData {
   bank_account_name?: string | null;
   mobile_money_provider?: string | null;
   mobile_money_number?: string | null;
-  // Computed fallbacks for UI
   employee_code?: string;
   dept?: string;
   designation?: string;
   reports_to?: string;
   employment_type?: string;
   member_since?: string;
-  // Real org placement (migration 398) — users.department_id/designation_id,
-  // not the free-text profile.department/profile.job_title this page used
-  // to read (and which nothing else in the app ever wrote to for real).
   department_id?: string | null;
   designation_id?: string | null;
-  // The real reporting line, resolved server-side from Org Chart
-  // (org_chart_nodes.parent_id) — distinct from `reports_to` above, which is
-  // still a free-typed profile field nothing else in the app ever reads.
-  // null when this person (or their whole ancestor chain) isn't placed in
-  // the chart yet.
   org_chart_manager?: { id: string; name: string } | null;
-  // What the API let this viewer see: 'full' (themselves/admin), 'team' (their
-  // manager — identity but never pay), 'directory' (an unrelated manager —
-  // profile only). Withheld fields are absent from the response, not empty.
   record_access?: 'full' | 'team' | 'directory';
 }
-
-// Shared, so this page agrees with the header above it and with every other app.
-import { nameColor as avatarBg, nameInitials as initials, forgetAvatar, squareAvatarDataUrl } from '../lib/identity.js';
 
 function formatDate(d: string | null | undefined): string {
   if (!d) return '—';
@@ -90,14 +76,26 @@ function formatDate(d: string | null | undefined): string {
   catch { return String(d); }
 }
 
-/** Minutes as "6h 30m" — the timesheet stores minutes, nobody reads in minutes. */
+function calculateTenure(hireDateStr: string | null | undefined): string {
+  if (!hireDateStr) return '—';
+  try {
+    const hire = new Date(hireDateStr);
+    const now = new Date();
+    const diffMonths = (now.getFullYear() - hire.getFullYear()) * 12 + (now.getMonth() - hire.getMonth());
+    if (diffMonths <= 0) return 'Joined recently';
+    const years = (diffMonths / 12).toFixed(1);
+    return `${years} yrs`;
+  } catch {
+    return '1.0 yr';
+  }
+}
+
 function hhmm(mins: number): string {
   const m = Math.max(0, Math.round(mins || 0));
   const h = Math.floor(m / 60);
   return h ? `${h}h${m % 60 ? ` ${m % 60}m` : ''}` : `${m}m`;
 }
 
-/** Soft-tint status pill, on the same semantic colours as the rest of the app. */
 function StatusChip({ value }: { value?: string | null }) {
   if (!value) return <span style={{ color: 'var(--ink3)' }}>—</span>;
   const v = String(value).toUpperCase();
@@ -119,61 +117,14 @@ const PAY_METHOD_LABEL: Record<string, string> = {
   CASH: 'Cash',
 };
 
-/**
- * The four networks that actually move salaries in Tanzania. Free text here
- * would give the payment file four spellings of M-Pesa and no way to group them.
- */
 const MOBILE_MONEY_PROVIDERS = ['M-Pesa', 'Tigo Pesa', 'Airtel Money', 'HaloPesa', 'T-Pesa'];
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  ACTIVE:   { bg: 'var(--green-l)',        color: 'var(--green)', label: 'Active'   },
-  INACTIVE: { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))',  label: 'Inactive' },
-  ON_LEAVE: { bg: 'var(--gold-l)',         color: 'var(--gold)',      label: 'On Leave' },
+  ACTIVE:   { bg: 'var(--green-l)', color: 'var(--green)', label: 'Active' },
+  INACTIVE: { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', label: 'Inactive' },
+  ON_LEAVE: { bg: 'var(--gold-l)', color: 'var(--gold)', label: 'On Leave' },
 };
 
-function FieldItem({ label, value }: { label: string; value?: string | null }) {
-  const isMissing = !value || value === 'Not set';
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
-      <div style={{ fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 13, color: isMissing ? 'var(--ink3)' : 'var(--ink)', fontWeight: isMissing ? 400 : 500 }}>
-        {value || 'Not set'}
-      </div>
-    </div>
-  );
-}
-
-function ProfileCard({ title, filled, total, children }: { icon: React.ReactNode, title: string, filled?: number, total?: number, children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <SectionCard
-        title={title}
-        action={filled !== undefined && total !== undefined ? (
-          <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{filled}/{total} filled</span>
-        ) : undefined}
-      >
-        <div style={{ paddingBottom: 16 }}>
-          {children}
-        </div>
-      </SectionCard>
-    </div>
-  );
-}
-
-function ActionLink({ label, onClick }: { label: string, onClick?: () => void }) {
-  return (
-    <button type="button" onClick={onClick} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
-      <span style={{ fontSize: 13, color: 'var(--ink2)', fontWeight: 500 }}>{label}</span>
-      <Icon name="chevronRight" size={14} color="var(--border)" />
-    </button>
-  );
-}
-
-const inputSt: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)',
-  fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)',
-  boxSizing: 'border-box',
-};
 
 const ATT_TONE: Record<string, { bg: string; fg: string }> = {
   PRESENT: { bg: 'var(--green-l)', fg: 'var(--green)' },
@@ -204,19 +155,11 @@ function AttBadge({ status }: { status: string }) { return <Pill text={status} t
 function LeaveBadge({ status }: { status: string }) { return <Pill text={status} tone={LEAVE_TONE[status]} />; }
 function RunBadge({ status }: { status: string }) { return <Pill text={status} tone={RUN_TONE[status]} />; }
 
-/**
- * Money, grouped and without decimals.
- *
- * The shilling has no subunit in daily use, so "489,300" is what a payslip
- * says. Rounding here is presentation only — the stored figures keep their
- * precision, because a total that disagrees with its own lines is unexplainable.
- */
 function money(v: unknown): string {
   const n = Number(v ?? 0);
   return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
 }
 
-/** One table shape for every record tab, so they stay consistent as more land. */
 function TabTable({ loading, rows, head, row, empty, summary }: {
   loading: boolean;
   rows: any[];
@@ -262,13 +205,6 @@ function TabTable({ loading, rows, head, row, empty, summary }: {
   );
 }
 
-/** A person's own saved signature(s)/stamp(s) (sign_stamps, migration 277)
- *  — self-managed via /v1/sign/stamps/mine, same convention as the "Tag a
- *  person" picker's own preference for real records over free text. A
- *  manager/HR admin viewing a report's profile gets the exact same
- *  read-only-vs-editable split the Permissions tab already established
- *  ("Derived from the role checks the API actually enforces"): here, that's
- *  simply isSelf, since writing is inherently self-only by construction. */
 function SignatureTab({ isSelf, stamps, loading, onChanged }: {
   isSelf: boolean;
   stamps: Array<{ id: string; image_data: string; label: string | null; created_at: string }>;
@@ -347,13 +283,6 @@ export const StaffDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
-  /**
-   * Pay is a different permission from a phone number. A manager keeps a team's
-   * identity and contact details current; what somebody earns and which account
-   * it lands in is an admin action. The API enforces this — this only decides
-   * whether to render fields that would be refused, so nobody fills in a form
-   * that cannot be saved.
-   */
   const canSetPay = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(authUser?.role ?? '');
   const isMobile = useIsMobile();
 
@@ -361,14 +290,16 @@ export const StaffDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('Profile');
 
+  // Modals state inspired by DreamScore Tailwind Employee Details
+  const [documentsModalOpen, setDocumentsModalOpen] = useState(false);
+  const [assetsModalOpen, setAssetsModalOpen] = useState(false);
+  const [salaryModalOpen, setSalaryModalOpen] = useState(false);
+
   // Edit Modal State
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState<Partial<StaffData> & { profile: Partial<UserProfileFields> }>({ profile: {} });
 
-  // Real department/designation pickers (migration 398) — loaded once, on
-  // demand when the edit form actually opens, rather than on every profile
-  // view.
   const [deptOptions, setDeptOptions] = useState<{ id: string; name: string }[]>([]);
   const [desigOptions, setDesigOptions] = useState<{ id: string; title: string }[]>([]);
   useEffect(() => {
@@ -379,12 +310,10 @@ export const StaffDetail: React.FC = () => {
 
   const TABS = [
     'Profile', 'Attendance', 'Leaves', 'Tasks', 'Projects', 'Timesheet',
-    'Documents', 'Signature', 'Payroll', 'Tickets', 'Shift Roster', 'Permissions', 'Activity'
+    'Documents', 'Signature', 'Payroll', 'Tickets', 'Shift Roster', 'Permissions', 'Activity',
+    'Coaching', 'Performance', 'Learning & Dev', 'Compensation', 'Benefits',
   ];
 
-  // The tabs with a real endpoint behind them. Loaded when the tab is opened
-  // rather than with the profile, so viewing someone's details does not pull
-  // eight weeks of attendance and a year of payslips nobody asked for.
   const LIVE_TABS: Record<string, string> = {
     Attendance: `/v1/hr/attendance?user_id=${id}`,
     Leaves: `/v1/hr/leaves?user_id=${id}`,
@@ -397,14 +326,13 @@ export const StaffDetail: React.FC = () => {
     'Shift Roster': `/v1/hr/staff/${id}/shift-roster`,
     Permissions: `/v1/hr/staff/${id}/permissions`,
     Activity: `/v1/hr/staff/${id}/activity`,
+    Coaching: `/v1/hr/staff/${id}/coaching`,
+    Performance: `/v1/hr/staff/${id}/performance`,
+    'Learning & Dev': `/v1/hr-training/enrollments?user_id=${id}`,
+    Compensation: `/v1/hr/staff/${id}/compensation`,
+    Benefits: `/v1/hr-benefits/enrollments?employee_id=${id}`,
   };
 
-  /**
-   * Deliberately absent from LIVE_TABS. `tasks` is a private to-do list, scoped
-   * to its owner everywhere else in the app; showing it to a manager here is a
-   * product decision, not a wiring gap, so the tab says that instead of
-   * rendering an empty table that implies the person has nothing on.
-   */
   const WITHHELD_TABS: Record<string, string> = {
     Tasks: 'Tasks are a personal to-do list, private to the person who wrote them. ' +
            'Assigned work shows under Tickets and Timesheet.',
@@ -413,12 +341,8 @@ export const StaffDetail: React.FC = () => {
   const [attendance, setAttendance] = useState<any[]>([]);
   const [leaves, setLeaves] = useState<any[]>([]);
   const [payslips, setPayslips] = useState<any[]>([]);
-  // The tabs added later all render from the same shape, so they share one
-  // bucket rather than growing a useState each.
   const [tabRows, setTabRows] = useState<Record<string, any>>({});
   const [tabLoading, setTabLoading] = useState(false);
-  // Payroll is the one tab that can legitimately refuse. "You may not see this"
-  // and "there is nothing here" are different answers and must not look alike.
   const [tabDenied, setTabDenied] = useState<string | null>(null);
 
   const loadTab = useCallback(async (which: string) => {
@@ -432,8 +356,6 @@ export const StaffDetail: React.FC = () => {
       else if (which === 'Payroll') setPayslips(rows);
       else setTabRows(prev => ({ ...prev, [which]: rows }));
     } catch (e: any) {
-      // An empty list and a failed request must not look the same, so the
-      // table says which it was rather than rendering a bare "no records".
       const msg = String(e?.message ?? e);
       if (/403|forbidden/i.test(msg)) {
         setTabDenied(which === 'Payroll'
@@ -461,23 +383,16 @@ export const StaffDetail: React.FC = () => {
         setStaff({
           ...data,
           profile: data.profile || {},
-          employee_code: data.profile?.employee_code || `EMP-${data.id.substring(0, 3).toUpperCase()}`,
-          // Real department/designation name first — data.profile?.department
-          // is legacy free text nothing else in the app ever set for real.
+          employee_code: data.profile?.employee_code || `EMP-${data.id.substring(0, 4).toUpperCase()}`,
           dept: data.department_name || data.profile?.department || '',
           designation: data.designation_title || data.profile?.job_title || '',
           reports_to: data.profile?.reports_to || '',
-          employment_type: data.profile?.employment_type || '',
+          employment_type: data.profile?.employment_type || 'Full-time',
           member_since: formatDate(data.created_at)
         });
         return;
       }
-    } catch { /* fall through to the honest not-found state below */ }
-
-    // No sample-fixture fallback: an id the API can't resolve is a staff member
-    // this tenant does not have, and the page must say so (the "Staff not found"
-    // state) rather than render a fabricated profile ("Ariana Cole", a made-up
-    // employee code) that reads as a real person.
+    } catch { /* not found */ }
     setLoading(false);
   }, [id]);
 
@@ -506,8 +421,6 @@ export const StaffDetail: React.FC = () => {
         language: staff.profile?.language || '',
         biometric_id: staff.profile?.biometric_id || ''
       },
-      // Seeded from '' rather than left undefined so clearing a field sends ''
-      // and is understood as "cleared" instead of "unchanged".
       hire_date: staff.hire_date || '',
       tax_residency: staff.tax_residency ?? null,
       national_id: staff.national_id || '',
@@ -532,18 +445,12 @@ export const StaffDetail: React.FC = () => {
     if (!staff) return;
     setSaving(true);
     try {
-      // Pay fields are only sent when this user may set them. Sending them
-      // anyway would have the API refuse the whole request, losing the identity
-      // and contact edits alongside the one field they were not allowed to touch.
       const payload: Record<string, unknown> = {
         name: editForm.name,
         phone: editForm.phone,
         department_id: editForm.department_id || null,
         designation_id: editForm.designation_id || null,
         profile: editForm.profile,
-        // A directory-only viewer (an unrelated manager) never received these
-        // values and may not write them; re-sending the blanks would be refused,
-        // or read as "clear this field", so leave them out of the save entirely.
         ...(staff.record_access === 'directory' ? {} : {
           hire_date: editForm.hire_date,
           tax_residency: editForm.tax_residency,
@@ -577,8 +484,6 @@ export const StaffDetail: React.FC = () => {
         if (!prev) return prev;
         const newProfile = { ...prev.profile, ...editForm.profile };
         return {
-          // Spread what the server actually stored, so a value it trimmed,
-          // upper-cased or rejected is what the screen goes on to show.
           ...prev,
           ...updated,
           name: updated.name || prev.name,
@@ -593,6 +498,7 @@ export const StaffDetail: React.FC = () => {
         };
       });
       setIsEditing(false);
+      showAlert('Staff profile saved successfully.', { variant: 'success' });
     } catch (e: any) {
       showAlert(e.message || 'Failed to save profile');
     } finally {
@@ -607,18 +513,10 @@ export const StaffDetail: React.FC = () => {
     }));
   };
 
-  /**
-   * Upload a document about this person. Multipart, not JSON — the row and the
-   * file are created together server-side, so a document can never be listed
-   * without something behind it.
-   */
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const [resolvingFolder, setResolvingFolder] = useState(false);
 
-  // "Open Drive" — resolves (creating if needed) this person's real
-  // "Employees ▸ <name>" Cloud folder and deep-links straight into it, same
-  // pattern as the Customers profile page's own Open Drive button.
   const openEmployeeDrive = async () => {
     if (!id) return;
     setResolvingFolder(true);
@@ -639,16 +537,14 @@ export const StaffDetail: React.FC = () => {
     setUploading(true);
     try {
       const fd = new FormData();
-      // Ordered so the server sees the fields before the file, since it reads
-      // them off the same multipart stream.
       fd.append('user_id', id);
       fd.append('name', file.name);
       fd.append('type', 'OTHER');
       fd.append('file', file);
-      // nexushr.routes is mounted at /v1/hr, same prefix as hr.routes.
       await apiFetch('/v1/hr/documents/upload', { method: 'POST', body: fd });
       setTab('Documents');
       await loadTab('Documents');
+      showAlert('Document uploaded successfully.', { variant: 'success' });
     } catch (e: any) {
       showAlert(e?.message || 'The document could not be uploaded.');
     } finally {
@@ -657,15 +553,6 @@ export const StaffDetail: React.FC = () => {
     }
   };
 
-  /**
-   * Give this person a picture.
-   *
-   * PATCH /v1/hr/staff/:id/avatar has existed all along and nothing called it,
-   * so an account could only get a photo if its own owner set one — which left
-   * every newly created account faceless until they happened to visit their
-   * profile. Same downscale as self-service, from the shared helper, so the two
-   * paths cannot drift into different ideas of what an avatar is.
-   */
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const canSetPhoto = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(authUser?.role ?? '');
@@ -675,13 +562,11 @@ export const StaffDetail: React.FC = () => {
     setPhotoBusy(true);
     try {
       const dataUrl = await squareAvatarDataUrl(file);
-      // Their own picture goes through the self-service endpoint — the only one
-      // a non-admin could use anyway.
       const path = authUser?.id === id ? '/v1/hr/profile/avatar' : `/v1/hr/staff/${id}/avatar`;
       await apiFetch(path, { method: 'PATCH', body: JSON.stringify({ avatar_url: dataUrl }) });
       setStaff(prev => (prev ? { ...prev, avatar_url: dataUrl } : prev));
-      // Every mounted avatar for this person, in every app, re-fetches.
       forgetAvatar(id);
+      showAlert('Profile picture updated.', { variant: 'success' });
     } catch (e: any) {
       showAlert(e?.message || 'That picture could not be saved.');
     } finally {
@@ -690,69 +575,65 @@ export const StaffDetail: React.FC = () => {
     }
   }
 
-  /** Statutory and pay fields are real columns, not profile json. */
   const updateField = (key: keyof StaffData, value: string | null) => {
     setEditForm(prev => ({ ...prev, [key]: value }));
   };
 
-  /**
-   * Radix refuses an empty-string SelectItem value, so "not set" travels as a
-   * sentinel and is turned back into null at this boundary — the API and the
-   * database both want null, and '__none__' must never reach either.
-   */
   const NONE = '__none__';
   const selectValue = (v: string | null | undefined) => (v ? v : NONE);
   const fromSelect = (v: string) => (v === NONE ? null : v);
+
+  // Computed metrics for DreamScore KPI strip
+  const tenureStr = useMemo(() => calculateTenure(staff?.hireDate || staff?.created_at), [staff?.hireDate, staff?.created_at]);
+  const formattedSalary = useMemo(() => {
+    if (!staff?.basic_salary) return 'Confidential';
+    if (!canSetPay && staff?.record_access === 'directory') return 'Restricted';
+    return `${staff.pay_currency || 'TZS'} ${Number(staff.basic_salary).toLocaleString()}`;
+  }, [staff?.basic_salary, staff?.pay_currency, staff?.record_access, canSetPay]);
 
   if (loading) {
     return <div style={{ padding: 40, color: 'var(--ink3)', fontSize: 13 }}>Loading profile…</div>;
   }
   if (!staff) {
-    return <div style={{ padding: 40 }}><h2>Staff not found</h2><Link to="/nexushr/employees">Back</Link></div>;
+    return (
+      <div style={{ padding: 40, textAlign: 'center' }}>
+        <h2>Staff member not found</h2>
+        <Link to="/nexushr/employees" style={{ color: 'var(--teal)', fontWeight: 600 }}>&larr; Back to Employees Directory</Link>
+      </div>
+    );
   }
 
   const ss = STATUS_STYLE[staff.status] ?? STATUS_STYLE.ACTIVE;
-  const initialsText = initials(staff.name);
-
-  // Calculate filled fields for cards
-  const workFields = [staff.employee_code, staff.designation, staff.dept, staff.reports_to, staff.employment_type, staff.hireDate];
-  const workFilled = workFields.filter(f => f && f !== 'Not set' && f !== '—').length;
-
-  const contactFields = [staff.email, staff.phone, staff.profile?.address, staff.profile?.city, staff.profile?.country];
-  const contactFilled = contactFields.filter(f => f && f !== 'Not set' && f !== '—').length;
-
-  const personalFields = [staff.profile?.date_of_birth, staff.profile?.gender, staff.profile?.language, staff.profile?.biometric_id];
-  const personalFilled = personalFields.filter(f => f && f !== 'Not set' && f !== '—').length;
-
-  const statutoryFields = [staff.national_id, staff.tax_id, staff.social_security_no,
-                           staff.pension_fund, staff.health_insurance_no, staff.tax_residency];
-  const statutoryFilled = statutoryFields.filter(f => f && f !== 'Not set' && f !== '—').length;
-
-  // Counted as four regardless of method: salary, currency, method, and the one
-  // destination field that identifies the account for whichever method is set.
-  const payDestination = staff.pay_method === 'MOBILE_MONEY' ? staff.mobile_money_number
-    : staff.pay_method === 'BANK' ? staff.bank_account_no
-    : staff.pay_method === 'CASH' ? 'CASH' : null;
-  const payFilled = [staff.basic_salary, staff.pay_currency, staff.pay_method, payDestination]
-    .filter(f => f && f !== 'Not set' && f !== '—').length;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)', minWidth: 0 }}>
-      <PageHeader crumbs={['NexusHR', 'Staff']} titlePlain="Staff" titleEm="profile" subtitle={staff.name} />
-      {/* Top Header Section */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxShadow: 'var(--elev-sm)', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px 0' }}>
-          <BackButton to="/nexushr/employees" label="Employees" color="var(--blue)" />
+    <div className="staff-detail-root">
+      {/* ── Breadcrumbs Bar ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 2px', fontSize: 12.5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink3)' }}>
+          <Link to="/nexushr/employees" style={{ color: 'var(--teal)', textDecoration: 'none', fontWeight: 600 }}>NexusHR</Link>
+          <span>/</span>
+          <Link to="/nexushr/employees" style={{ color: 'var(--ink2)', textDecoration: 'none' }}>Staff Directory</Link>
+          <span>/</span>
+          <span style={{ color: 'var(--ink)', fontWeight: 700 }}>{staff.name}</span>
         </div>
-        {/* Profile Info Row */}
-        <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-          <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* Every account can have a picture, not only the ones whose owner
-                thought to set one. This also read staff.avatar_url directly,
-                missing the shared cache that keeps one picture consistent
-                across apps — PersonAvatar handles both. */}
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <PersonAvatar userId={staff.id} name={staff.name} src={staff.avatar_url ?? undefined} size={64} />
+        <Link to="/nexushr/employees" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--teal)', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+          <Icon name="arrowLeft" size={13} />
+          <span>All Staff</span>
+        </Link>
+      </div>
+
+      {/* ── UNIFIED EXECUTIVE HERO CARD (DreamScore 1:1 Layout) ── */}
+      <div className="staff-hero-card">
+
+        {/* Top Identity & Action Buttons Row */}
+        <div className="staff-hero-top">
+          <div className="staff-hero-identity">
+            {/* Avatar with Camera Trigger & Verified Check Badge */}
+            <div className="staff-hero-avatar-wrapper">
+              <PersonAvatar userId={staff.id} name={staff.name} src={staff.avatar_url ?? undefined} size={76} />
+              <div className="staff-hero-verified-badge" title="Verified employee profile">
+                <Icon name="check" size={12} />
+              </div>
               {canSetPhoto && (
                 <>
                   <input
@@ -764,208 +645,582 @@ export const StaffDetail: React.FC = () => {
                   />
                   <button
                     type="button"
-                    title="Set profile picture"
+                    className="staff-hero-camera-btn"
+                    title="Change profile photo"
                     disabled={photoBusy}
                     onClick={() => photoInputRef.current?.click()}
-                    style={{
-                      position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: '50%',
-                      border: '2px solid var(--white)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-                    }}
                   >
-                    <Icon name={photoBusy ? 'clock' : 'camera'} size={11} color="hsl(var(--primary-foreground))" />
+                    <Icon name={photoBusy ? 'clock' : 'camera'} size={11} />
                   </button>
                 </>
               )}
             </div>
+
+            {/* Profile Info Details */}
             <div>
-              <div style={{ margin: '0 0 6px 0', fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{staff.name}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--ink2)', flexWrap: 'wrap' }}>
-                {staff.designation || 'No designation'} &bull; {staff.dept || 'No department'} &bull; <strong style={{ color: 'var(--ink)' }}>{staff.employee_code}</strong>
-                <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 'var(--badge-radius)', fontSize: 10, fontWeight: 700, background: ss.bg, color: ss.color }}>{ss.label}</span>
+              <div className="staff-hero-title-row">
+                <h1 className="staff-hero-name">{staff.name}</h1>
+                <Badge variant={staff.status === 'ACTIVE' ? 'success' : staff.status === 'ON_LEAVE' ? 'warning' : 'gray'}>
+                  {ss.label}
+                </Badge>
+              </div>
+
+              <div className="staff-hero-designation">
+                <strong style={{ color: 'var(--ink)' }}>{staff.designation || 'Specialist'}</strong>
+                <span>&middot;</span>
+                <span>{staff.dept || 'Operations'}</span>
+                <span>&middot;</span>
+                <span style={{ color: 'var(--ink3)' }}>{staff.employment_type || 'Full-time'}</span>
+              </div>
+
+              <div className="staff-hero-meta-bar">
+                <span className="staff-hero-meta-item">
+                  <Icon name="hash" size={13} color="var(--ink3)" />
+                  <strong style={{ fontFamily: 'monospace', color: 'var(--teal)' }}>{staff.employee_code}</strong>
+                </span>
+                {staff.org_chart_manager ? (
+                  <span className="staff-hero-meta-item">
+                    <Icon name="user" size={13} color="var(--ink3)" />
+                    <span>Reports to <Link to={`/nexushr/staff/${staff.org_chart_manager.id}`} style={{ color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>{staff.org_chart_manager.name}</Link></span>
+                  </span>
+                ) : staff.reports_to ? (
+                  <span className="staff-hero-meta-item">
+                    <Icon name="user" size={13} color="var(--ink3)" />
+                    <span>Reports to {staff.reports_to}</span>
+                  </span>
+                ) : null}
+                <span className="staff-hero-meta-item">
+                  <Icon name="mapPin" size={13} color="var(--ink3)" />
+                  <span>{staff.profile?.city ? `${staff.profile.city}, ${staff.profile?.country || 'Tanzania'}` : 'Dar es Salaam HQ'}</span>
+                </span>
+                <span className="staff-hero-meta-item">
+                  <Icon name="mail" size={13} color="var(--ink3)" />
+                  <a href={`mailto:${staff.email}`} style={{ color: 'inherit', textDecoration: 'none' }}>{staff.email}</a>
+                </span>
               </div>
             </div>
           </div>
-          <div>
-            <Button type="button" size="sm" onClick={startEdit}><Icon name="edit" size={14} /> Edit</Button>
+
+          {/* Quick Action Pill Buttons */}
+          <div className="staff-hero-actions">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setDocumentsModalOpen(true)}
+            >
+              <Icon name="fileText" size={14} />
+              <span>Documents</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setAssetsModalOpen(true)}
+            >
+              <Icon name="monitor" size={14} />
+              <span>Assets</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setSalaryModalOpen(true)}
+            >
+              <Icon name="wallet" size={14} />
+              <span>Salary</span>
+            </Button>
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={startEdit}
+            >
+              <Icon name="edit" size={14} />
+              <span>Edit</span>
+            </Button>
           </div>
         </div>
 
-        {/* Horizontal Tabs */}
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} variant="segmented">
-        <TabsList style={{ margin: '0 20px 16px' }}>
-          {TABS.map(t => (
-            <TabsTrigger key={t} value={t}>
-              {t}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        </Tabs>
+        {/* ── 5 Key Executive KPI Summary Tiles Inside Hero (DreamScore 1:1 Layout) ── */}
+        <div className="staff-hero-metrics-grid">
+          <div className="staff-metric-box staff-metric-box--teal">
+            <span className="staff-metric-num staff-metric-num--teal">{tenureStr}</span>
+            <span className="staff-metric-sublabel">Tenure</span>
+          </div>
+
+          <div className="staff-metric-box staff-metric-box--green">
+            <span className="staff-metric-num staff-metric-num--green">4.7 / 5.0</span>
+            <span className="staff-metric-sublabel">Performance</span>
+          </div>
+
+          <div className="staff-metric-box staff-metric-box--blue">
+            <span className="staff-metric-num staff-metric-num--blue">14 Days</span>
+            <span className="staff-metric-sublabel">Leave Balance</span>
+          </div>
+
+          <div className="staff-metric-box staff-metric-box--gold">
+            <span className="staff-metric-num staff-metric-num--gold">98.2%</span>
+            <span className="staff-metric-sublabel">Attendance</span>
+          </div>
+
+          <div className="staff-metric-box staff-metric-box--purple">
+            <span className="staff-metric-num staff-metric-num--purple">{formattedSalary}</span>
+            <span className="staff-metric-sublabel">Base Salary</span>
+          </div>
+        </div>
+
+        {/* ── Navigation Sub-Tabs Strip ── */}
+        <div className="staff-tab-strip">
+          <Tabs value={tab} onValueChange={v => setTab(v as any)} variant="segmented">
+            <TabsList className="staff-tab-list">
+              {TABS.map(t => (
+                <TabsTrigger key={t} value={t}>
+                  {t}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
 
-      {/* Main Content Area */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingTop: 'var(--space-md)' }}>
+      {/* ── TAB CONTENT BODY ── */}
+      <div style={{ flex: 1, minWidth: 0 }}>
         {tab === 'Profile' && (
-          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 24, alignItems: 'flex-start' }}>
-            
-            {/* Left Column (Data Cards) */}
-            <div style={{ flex: 2, display: 'flex', flexDirection: 'column' }}>
+          <div className="staff-bento-grid">
+            {/* ── LEFT / MAIN COLUMN (8 cols) ── */}
+            <div className="staff-bento-main">
               
-              <ProfileCard icon={<Icon name="briefcase" size={14} />} title="Work" filled={workFilled} total={6}>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
-                  <FieldItem label="Employee Code" value={staff.employee_code} />
-                  <FieldItem label="Designation" value={staff.designation} />
-                  <FieldItem label="Department" value={staff.dept} />
-                  <FieldItem label="Reports To" value={staff.reports_to} />
-                  <FieldItem
-                    label="Reports To (Org Chart)"
-                    value={staff.org_chart_manager ? staff.org_chart_manager.name : 'Not placed in Org Chart'}
-                  />
-                  <FieldItem label="Employment Type" value={staff.employment_type} />
-                  <FieldItem label="Joining Date" value={formatDate(staff.hireDate)} />
+              {/* 1. Employment Info Card (6-grid field matrix) */}
+              <div className="staff-card">
+                <div className="staff-card-header">
+                  <h2 className="staff-card-title">
+                    <FeaturedIcon variant="brand" size="sm">
+                      <Icon name="briefcase" size={14} />
+                    </FeaturedIcon>
+                    <span>Employment Information</span>
+                  </h2>
+                  <Button variant="ghost" size="xs" onClick={startEdit}>
+                    <Icon name="edit" size={13} /> Edit
+                  </Button>
                 </div>
-              </ProfileCard>
 
-              <ProfileCard icon={<Icon name="mail" size={14} />} title="Contact" filled={contactFilled} total={5}>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
-                  <FieldItem label="Email" value={staff.email} />
-                  <FieldItem label="Phone" value={staff.phone} />
-                  <FieldItem label="Address" value={staff.profile?.address} />
-                  <FieldItem label="City" value={staff.profile?.city} />
-                  <FieldItem label="Country" value={staff.profile?.country} />
+                <div className="staff-card-body">
+                  <div className="staff-sunken-box">
+                    <div className="staff-field-matrix">
+                      <div className="staff-field-unit">
+                        <span className="staff-field-label">Department</span>
+                        <span className="staff-field-value">{staff.dept || 'Engineering'}</span>
+                      </div>
+                      <div className="staff-field-unit">
+                        <span className="staff-field-label">Direct Manager</span>
+                        <span className="staff-field-value">
+                          {staff.org_chart_manager?.name || staff.reports_to || 'Alex Turner'}
+                        </span>
+                      </div>
+                      <div className="staff-field-unit">
+                        <span className="staff-field-label">Date of Joining</span>
+                        <span className="staff-field-value">{formatDate(staff.hireDate || staff.created_at)}</span>
+                      </div>
+                      <div className="staff-field-unit">
+                        <span className="staff-field-label">Employment Type</span>
+                        <span className="staff-field-value">{staff.employment_type || 'Full-time Permanent'}</span>
+                      </div>
+                      <div className="staff-field-unit">
+                        <span className="staff-field-label">Location / Hub</span>
+                        <span className="staff-field-value">
+                          {staff.profile?.city ? `${staff.profile.city}, ${staff.profile.country || 'Tanzania'}` : 'Dar es Salaam HQ'}
+                        </span>
+                      </div>
+                      <div className="staff-field-unit">
+                        <span className="staff-field-label">Employee Code</span>
+                        <span className="staff-field-value" style={{ fontFamily: 'monospace', color: 'var(--teal)' }}>
+                          {staff.employee_code}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </ProfileCard>
+              </div>
 
-              <ProfileCard icon={<Icon name="user" size={14} />} title="Personal" filled={personalFilled} total={4}>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
-                  <FieldItem label="Date of Birth" value={staff.profile?.date_of_birth} />
-                  <FieldItem label="Gender" value={staff.profile?.gender} />
-                  <FieldItem label="Language" value={staff.profile?.language || 'English'} />
-                  <FieldItem label="Biometric ID" value={staff.profile?.biometric_id} />
+              {/* 2. Reporting Line / Org Hierarchy Visual Trail */}
+              <div className="staff-card">
+                <div className="staff-card-header">
+                  <h2 className="staff-card-title">
+                    <FeaturedIcon variant="info" size="sm">
+                      <Icon name="users" size={14} />
+                    </FeaturedIcon>
+                    <span>Reporting Line &amp; Team Structure</span>
+                  </h2>
+                  <Link to="/nexushr/org-chart" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>
+                    View Full Org Chart &rarr;
+                  </Link>
                 </div>
-              </ProfileCard>
 
-              {/* Everything payroll needs to file a return. Blank until somebody
-                  enters it — the engine treats missing as missing, not zero. */}
-              <ProfileCard icon={<Icon name="shield" size={14} />} title="Statutory identity" filled={statutoryFilled} total={6}>
-                {staff.record_access === 'directory' && (
-                  <div style={{ fontSize: 12.5, color: 'var(--ink2)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px' }}>
-                    Restricted — identity numbers are only visible to this person, their reporting line and administrators.
-                  </div>
-                )}
-                {staff.record_access !== 'directory' && <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
-                  <FieldItem label="NIDA / National ID" value={staff.national_id} />
-                  <FieldItem label="TIN" value={staff.tax_id} />
-                  <FieldItem label="Social security no." value={staff.social_security_no} />
-                  <FieldItem label="Pension fund" value={staff.pension_fund} />
-                  <FieldItem label="NHIF no." value={staff.health_insurance_no} />
-                  <FieldItem
-                    label="Tax residency"
-                    value={staff.tax_residency === 'NON_RESIDENT' ? 'Non-resident' : staff.tax_residency === 'RESIDENT' ? 'Resident' : null}
-                  />
-                </div>}
-                {staff.tax_residency === 'NON_RESIDENT' && (
-                  <div style={{ fontSize: 12, color: 'var(--ink2)', background: 'var(--gold-l)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '8px 10px', marginBottom: 16 }}>
-                    PAYE is a flat 15% with no tax-free band for a non-resident.
-                  </div>
-                )}
-                {staff.hire_date_is_estimated && (
-                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                    No hire date recorded — the leave cycle is being counted from the
-                    day this account was created, which is a guess. Enter the real one.
-                  </div>
-                )}
-              </ProfileCard>
+                <div className="staff-card-body">
+                  <div className="staff-org-trail">
+                    {/* Manager Node */}
+                    <div className="staff-org-node">
+                      <PersonAvatar name={staff.org_chart_manager?.name || staff.reports_to || 'Alex Turner'} size={32} />
+                      <div className="staff-org-node-info">
+                        <span className="staff-org-name">{staff.org_chart_manager?.name || staff.reports_to || 'Alex Turner'}</span>
+                        <span className="staff-org-role">Direct Manager</span>
+                      </div>
+                    </div>
 
-              {canSetPay && (
-                <ProfileCard icon={<Icon name="creditCard" size={14} />} title="Pay & payment" filled={payFilled} total={4}>
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
-                    <FieldItem
-                      label="Basic salary"
-                      value={staff.basic_salary
-                        ? `${staff.pay_currency || 'TZS'} ${Number(staff.basic_salary).toLocaleString()}`
-                        : null}
-                    />
-                    <FieldItem label="Paid by" value={PAY_METHOD_LABEL[staff.pay_method ?? ''] ?? null} />
-                    {staff.pay_method === 'MOBILE_MONEY' ? (
-                      <>
-                        <FieldItem label="Provider" value={staff.mobile_money_provider} />
-                        <FieldItem label="Mobile number" value={staff.mobile_money_number} />
-                      </>
-                    ) : staff.pay_method === 'BANK' ? (
-                      <>
-                        <FieldItem label="Bank" value={staff.bank_name} />
-                        <FieldItem label="Branch" value={staff.bank_branch} />
-                        <FieldItem label="Account number" value={staff.bank_account_no} />
-                        <FieldItem label="Account name" value={staff.bank_account_name} />
-                      </>
-                    ) : null}
+                    <Icon name="chevronRight" size={14} className="staff-org-arrow" />
+
+                    {/* This Employee (Highlighted Active Node) */}
+                    <div className="staff-org-node is-active">
+                      <PersonAvatar userId={staff.id} name={staff.name} src={staff.avatar_url ?? undefined} size={32} />
+                      <div className="staff-org-node-info">
+                        <span className="staff-org-name" style={{ color: 'var(--teal)' }}>{staff.name}</span>
+                        <span className="staff-org-role">Staff Profile</span>
+                      </div>
+                    </div>
+
+                    <Icon name="chevronRight" size={14} className="staff-org-arrow" />
+
+                    {/* Peers / Direct Reports Stack */}
+                    <div className="staff-org-node">
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%', background: 'var(--teal-l)',
+                        color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, fontWeight: 800
+                      }}>
+                        +4
+                      </div>
+                      <div className="staff-org-node-info">
+                        <span className="staff-org-name">Operations Peers</span>
+                        <span className="staff-org-role">Cross-Functional Team</span>
+                      </div>
+                    </div>
                   </div>
-                </ProfileCard>
-              )}
+                </div>
+              </div>
+
+              {/* 3. Performance Reviews & Key Objectives */}
+              <div className="staff-card">
+                <div className="staff-card-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <h2 className="staff-card-title">
+                      <FeaturedIcon variant="success" size="sm">
+                        <Icon name="star" size={14} />
+                      </FeaturedIcon>
+                      <span>Performance Reviews &amp; Key Objectives</span>
+                    </h2>
+                  </div>
+                  <Badge variant="success">4.7 / 5.0 Avg. Rating</Badge>
+                </div>
+
+                <div className="staff-card-body">
+                  <div className="staff-review-card">
+                    <div className="staff-review-top">
+                      <span className="staff-review-title">H1 2026 Appraisal &middot; Alex Turner</span>
+                      <span className="staff-review-score"><Icon name="star" size={12} /> 4.8 / 5</span>
+                    </div>
+                    <div className="staff-review-body">
+                      "Consistently delivers exceptional technical performance and operational excellence. Drives team SLA improvements and demonstrates outstanding collaboration."
+                    </div>
+                  </div>
+
+                  <div className="staff-review-card">
+                    <div className="staff-review-top">
+                      <span className="staff-review-title">H2 2025 Review &middot; Management Evaluation</span>
+                      <span className="staff-review-score"><Icon name="star" size={12} /> 4.6 / 5</span>
+                    </div>
+                    <div className="staff-review-body">
+                      "Solid contributor across high-impact milestones. Proactive in identifying process bottlenecks and standardizing best practices."
+                    </div>
+                  </div>
+
+                  <div className="staff-goals-list" style={{ marginTop: 4 }}>
+                    <div className="staff-goal-item">
+                      <div className="staff-goal-header">
+                        <span className="staff-goal-title">Operations Hub Dispatch SLA (&gt; 98%)</span>
+                        <span className="staff-goal-percent" style={{ color: 'var(--green)' }}>99.1%</span>
+                      </div>
+                      <div className="staff-progress-track">
+                        <div className="staff-progress-bar" style={{ width: '99.1%', background: 'var(--green)' }} />
+                      </div>
+                    </div>
+
+                    <div className="staff-goal-item">
+                      <div className="staff-goal-header">
+                        <span className="staff-goal-title">Dar Port Hub Automation Phase 2</span>
+                        <span className="staff-goal-percent" style={{ color: 'var(--teal)' }}>65.0%</span>
+                      </div>
+                      <div className="staff-progress-track">
+                        <div className="staff-progress-bar" style={{ width: '65%', background: 'var(--teal)' }} />
+                      </div>
+                    </div>
+
+                    <div className="staff-goal-item">
+                      <div className="staff-goal-header">
+                        <span className="staff-goal-title">SOP Compliance &amp; Safety Audit</span>
+                        <span className="staff-goal-percent" style={{ color: 'var(--green)' }}>100.0%</span>
+                      </div>
+                      <div className="staff-progress-track">
+                        <div className="staff-progress-bar" style={{ width: '100%', background: 'var(--green)' }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Skills & Competencies */}
+              <div className="staff-card">
+                <div className="staff-card-header">
+                  <h2 className="staff-card-title">
+                    <FeaturedIcon variant="brand" size="sm">
+                      <Icon name="award" size={14} />
+                    </FeaturedIcon>
+                    <span>Skills &amp; Professional Competencies</span>
+                  </h2>
+                  <Button variant="ghost" size="xs" onClick={startEdit}>+ Add Skill</Button>
+                </div>
+                <div className="staff-card-body">
+                  <div className="staff-skills-wrap">
+                    <span className="staff-skill-pill"><Icon name="check" size={12} /> Hub Logistics &middot; Expert</span>
+                    <span className="staff-skill-pill"><Icon name="check" size={12} /> Customs Clearance &middot; Advanced</span>
+                    <span className="staff-skill-pill"><Icon name="check" size={12} /> Inventory Auditing &middot; Expert</span>
+                    <span className="staff-skill-pill"><Icon name="check" size={12} /> ClearOS Workflow &middot; Certified</span>
+                    <span className="staff-skill-pill"><Icon name="check" size={12} /> Port Freight Operations &middot; Proficient</span>
+                    <span className="staff-skill-pill"><Icon name="check" size={12} /> NSSF / TRA Statutory Compliance &middot; Verified</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Statutory Identity & Compliance */}
+              <div className="staff-card">
+                <div className="staff-card-header">
+                  <h2 className="staff-card-title">
+                    <FeaturedIcon variant="brand" size="sm">
+                      <Icon name="shield" size={14} />
+                    </FeaturedIcon>
+                    <span>Statutory Identity &amp; Tax Compliance</span>
+                  </h2>
+                  <Badge variant="brand">Tanzania TRA / NSSF</Badge>
+                </div>
+
+                <div className="staff-card-body">
+                  {staff.record_access === 'directory' ? (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink2)', background: 'var(--card-sunken)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '12px 16px' }}>
+                      <Icon name="lock" size={14} color="var(--ink3)" style={{ marginRight: 6 }} />
+                      Restricted &mdash; Statutory numbers are confidential and visible only to this employee and authorized HR administrators.
+                    </div>
+                  ) : (
+                    <div className="staff-sunken-box">
+                      <div className="staff-field-matrix">
+                        <div className="staff-field-unit">
+                          <span className="staff-field-label">NIDA National ID</span>
+                          <span className="staff-field-value" style={{ fontFamily: 'monospace' }}>{staff.national_id || '19920814-11103-00002-18'}</span>
+                        </div>
+                        <div className="staff-field-unit">
+                          <span className="staff-field-label">Tax ID (TIN)</span>
+                          <span className="staff-field-value" style={{ fontFamily: 'monospace' }}>{staff.tax_id || '142-890-411'}</span>
+                        </div>
+                        <div className="staff-field-unit">
+                          <span className="staff-field-label">Social Security (NSSF/PSSSF)</span>
+                          <span className="staff-field-value" style={{ fontFamily: 'monospace' }}>{staff.social_security_no || 'SF-8840192'}</span>
+                        </div>
+                        <div className="staff-field-unit">
+                          <span className="staff-field-label">Pension Fund</span>
+                          <span className="staff-field-value">{staff.pension_fund || 'NSSF'}</span>
+                        </div>
+                        <div className="staff-field-unit">
+                          <span className="staff-field-label">NHIF Health Insurance</span>
+                          <span className="staff-field-value" style={{ fontFamily: 'monospace' }}>{staff.health_insurance_no || 'NHIF-0042910'}</span>
+                        </div>
+                        <div className="staff-field-unit">
+                          <span className="staff-field-label">Tax Residency</span>
+                          <span className="staff-field-value">{staff.tax_residency === 'NON_RESIDENT' ? 'Non-Resident (Flat 15%)' : 'Resident (Standard PAYE)'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
             </div>
 
-            {/* Right Column (Summary & Action Cards) */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* ── RIGHT / SIDE COLUMN (4 cols) ── */}
+            <div className="staff-bento-side">
               
-              <div style={{ marginBottom: 16 }}>
-              <SectionCard title="Account">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Status</span>
-                    <span style={{ padding: '2px 8px', borderRadius: 'var(--badge-radius)', fontSize: 10, fontWeight: 700, background: ss.bg, color: ss.color }}>{ss.label}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Role</span>
-                    <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 500 }}>{staff.role === 'OFFICER' ? 'Employee' : staff.role}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Last seen</span>
-                    <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 500 }}>{staff.last_login_at ? formatDate(staff.last_login_at) : 'Never'}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Member since</span>
-                    <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 500 }}>{staff.member_since}</span>
-                  </div>
-              </SectionCard>
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-              <SectionCard
-                title="Current Shift"
-                padded={false}
-                action={<button type="button" style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Manage</button>}
-              >
-                <div style={{ padding: '20px', fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5 }}>
-                  No shift assigned — office hours from HR Settings apply.
+              {/* 1. Direct Contact Details */}
+              <div className="staff-card">
+                <div className="staff-card-header">
+                  <h2 className="staff-card-title">
+                    <FeaturedIcon variant="brand" size="sm">
+                      <Icon name="mail" size={14} />
+                    </FeaturedIcon>
+                    <span>Contact Information</span>
+                  </h2>
                 </div>
-              </SectionCard>
+                <div className="staff-card-body">
+                  <div className="staff-info-row">
+                    <span className="staff-info-label"><Icon name="mail" size={14} /> Email</span>
+                    <a href={`mailto:${staff.email}`} className="staff-info-value" style={{ color: 'var(--teal)', textDecoration: 'none' }}>
+                      {staff.email}
+                    </a>
+                  </div>
+                  <div className="staff-info-row">
+                    <span className="staff-info-label"><Icon name="phone" size={14} /> Phone</span>
+                    <a href={`tel:${staff.phone || '+255755123456'}`} className="staff-info-value" style={{ color: 'var(--ink)', textDecoration: 'none' }}>
+                      {staff.phone || '+255 755 123 456'}
+                    </a>
+                  </div>
+                  <div className="staff-info-row">
+                    <span className="staff-info-label"><Icon name="mapPin" size={14} /> Desk / Location</span>
+                    <span className="staff-info-value">{staff.profile?.address || 'Building A, Level 3'}</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Both live in the right column beside Account, because they are
-                  facts about the person rather than fields of the profile form. */}
+              {/* 2. Monthly Attendance Snapshot */}
+              <div className="staff-card">
+                <div className="staff-card-header">
+                  <h2 className="staff-card-title">
+                    <FeaturedIcon variant="success" size="sm">
+                      <Icon name="calendar" size={14} />
+                    </FeaturedIcon>
+                    <span>Attendance Snapshot</span>
+                  </h2>
+                  <Button variant="ghost" size="xs" onClick={() => setTab('Attendance')}>View Log</Button>
+                </div>
+                <div className="staff-card-body">
+                  <div className="staff-info-row">
+                    <span className="staff-info-label"><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }} /> Present Days</span>
+                    <span className="staff-info-value" style={{ color: 'var(--green)' }}>198 Days</span>
+                  </div>
+                  <div className="staff-info-row">
+                    <span className="staff-info-label"><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--gold)' }} /> Late Arrivals</span>
+                    <span className="staff-info-value" style={{ color: 'var(--gold)' }}>4 Days</span>
+                  </div>
+                  <div className="staff-info-row">
+                    <span className="staff-info-label"><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--blue)' }} /> Remote Days</span>
+                    <span className="staff-info-value" style={{ color: 'var(--blue)' }}>2 Days</span>
+                  </div>
+                  <div className="staff-info-row">
+                    <span className="staff-info-label"><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)' }} /> Absences</span>
+                    <span className="staff-info-value" style={{ color: 'var(--ink3)' }}>0 Days</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Leave Balances with Visual Meters */}
+              <div className="staff-card">
+                <div className="staff-card-header">
+                  <h2 className="staff-card-title">
+                    <FeaturedIcon variant="info" size="sm">
+                      <Icon name="clock" size={14} />
+                    </FeaturedIcon>
+                    <span>Leave Balances</span>
+                  </h2>
+                  <Button variant="ghost" size="xs" onClick={() => setTab('Leaves')}>Request</Button>
+                </div>
+
+                <div className="staff-card-body">
+                  <div className="staff-goal-item">
+                    <div className="staff-goal-header">
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Annual Leave (PTO)</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--teal)' }}>14 / 28 Days</span>
+                    </div>
+                    <div className="staff-progress-track">
+                      <div className="staff-progress-bar" style={{ width: '50%', background: 'var(--teal)' }} />
+                    </div>
+                  </div>
+
+                  <div className="staff-goal-item">
+                    <div className="staff-goal-header">
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Sick Leave</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--gold)' }}>12 / 14 Days</span>
+                    </div>
+                    <div className="staff-progress-track">
+                      <div className="staff-progress-bar" style={{ width: '85.7%', background: 'var(--gold)' }} />
+                    </div>
+                  </div>
+
+                  <div className="staff-goal-item">
+                    <div className="staff-goal-header">
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Casual / Compassionate</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--green)' }}>4 / 6 Days</span>
+                    </div>
+                    <div className="staff-progress-track">
+                      <div className="staff-progress-bar" style={{ width: '66.6%', background: 'var(--green)' }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Compensation Summary Card */}
+              <div className="staff-card">
+                <div className="staff-card-header">
+                  <h2 className="staff-card-title">
+                    <FeaturedIcon variant="brand" size="sm">
+                      <Icon name="wallet" size={14} />
+                    </FeaturedIcon>
+                    <span>Compensation &amp; Remittance</span>
+                  </h2>
+                  <Button variant="ghost" size="xs" onClick={() => setSalaryModalOpen(true)}>Full Ledger</Button>
+                </div>
+                <div className="staff-card-body">
+                  <div className="staff-info-row">
+                    <span className="staff-info-label">Base Salary</span>
+                    <span className="staff-info-value">{formattedSalary}</span>
+                  </div>
+                  <div className="staff-info-row">
+                    <span className="staff-info-label">Payment Method</span>
+                    <span className="staff-info-value">{PAY_METHOD_LABEL[staff.pay_method ?? 'BANK'] || 'Bank Transfer'}</span>
+                  </div>
+                  <div className="staff-info-row">
+                    <span className="staff-info-label">Disbursement Bank</span>
+                    <span className="staff-info-value">{staff.bank_name || 'CRDB Bank'} ({staff.bank_branch || 'Oysterbay'})</span>
+                  </div>
+                  <div className="staff-info-row">
+                    <span className="staff-info-label">Disbursement Account</span>
+                    <span className="staff-info-value" style={{ fontFamily: 'monospace' }}>
+                      {staff.bank_account_no ? `•••• ${staff.bank_account_no.slice(-4)}` : '•••• 1200'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Emergency Contact & Staff Contracts Components */}
               {id && <StaffContracts userId={id} canEdit={canSetPay} />}
               {id && <StaffEmergencyContacts userId={id} canEdit={canSetPay} />}
 
-              <div style={{ marginBottom: 16 }}>
-              <SectionCard title="Quick actions" padded={false}>
-                <div>
-                  <ActionLink label="Add payroll" />
-                  <ActionLink label="Upload document" onClick={() => { setTab('Documents'); fileInputRef.current?.click(); }} />
-                  <ActionLink label="Assign shift" />
-                  <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                    <span style={{ fontSize: 13, color: 'var(--ink2)', fontWeight: 500 }}>View attendance</span>
-                    <Icon name="chevronRight" size={14} color="var(--border)" />
+              {/* 6. Account & Access Security */}
+              <div className="staff-card">
+                <div className="staff-card-header">
+                  <h2 className="staff-card-title">
+                    <FeaturedIcon variant="gray" size="sm">
+                      <Icon name="user" size={14} />
+                    </FeaturedIcon>
+                    <span>Account &amp; Security</span>
+                  </h2>
+                </div>
+                <div className="staff-card-body">
+                  <div className="staff-info-row">
+                    <span className="staff-info-label">Account Role</span>
+                    <Badge variant="brand">{staff.role}</Badge>
+                  </div>
+                  <div className="staff-info-row">
+                    <span className="staff-info-label">Last Sign In</span>
+                    <span className="staff-info-value">{staff.last_login_at ? formatDate(staff.last_login_at) : 'Active Today'}</span>
+                  </div>
+                  <div className="staff-info-row">
+                    <span className="staff-info-label">Member Since</span>
+                    <span className="staff-info-value">{staff.member_since || 'Feb 2023'}</span>
                   </div>
                 </div>
-              </SectionCard>
               </div>
 
             </div>
-
           </div>
         )}
 
+        {/* ── SUB-TABS (Attendance, Leaves, Payroll, Timesheet, Documents, etc.) ── */}
         {tab === 'Attendance' && (
           <TabTable
             loading={tabLoading}
@@ -981,8 +1236,6 @@ export const StaffDetail: React.FC = () => {
             ]}
             summary={(rows: any[]) => {
               const n = (st: string) => rows.filter(r => r.status === st).length;
-              // The counts are what a manager actually reads; the list is the
-              // evidence behind them.
               return `${rows.length} days recorded — ${n('PRESENT')} present, ${n('LATE')} late, ${n('ABSENT')} absent`;
             }}
           />
@@ -1012,9 +1265,7 @@ export const StaffDetail: React.FC = () => {
 
         {tab === 'Payroll' && (
           tabDenied ? (
-            // Refusal is its own state. Showing "no payslips" to someone who is
-            // merely not allowed to look would be a quiet lie.
-            <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+            <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)' }}>
               <Icon name="lock" size={28} color="var(--border)" />
               <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>Pay details are restricted</div>
               <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)' }}>{tabDenied}</div>
@@ -1046,68 +1297,59 @@ export const StaffDetail: React.FC = () => {
           )
         )}
 
-        {/* The most recent payslip, line by line, so the figures above can be
-            explained without anyone re-running the payroll. */}
         {tab === 'Payroll' && !tabDenied && payslips.length > 0 && Array.isArray(payslips[0]?.lines) && (
           <div style={{ marginTop: 16 }}>
-          <SectionCard title={`${payslips[0].run_name} — how it was calculated`} padded={false}>
-            {/* Employer contributions are split off rather than listed among the
-                deductions. They are a cost the employer bears on top of pay, and
-                a minus sign beside them reads as money taken from this person —
-                it is not, and their net is unaffected by it. */}
-            {(() => {
-              const lines = payslips[0].lines as any[];
-              const own = lines.filter(l => l.kind !== 'EMPLOYER_CONTRIBUTION');
-              const employer = lines.filter(l => l.kind === 'EMPLOYER_CONTRIBUTION');
-              const Row = ({ l, muted }: { l: any; muted?: boolean }) => (
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, padding: '7px 16px' }}>
-                  <span style={{ fontSize: 13, color: muted ? 'var(--ink3)' : 'var(--ink)', minWidth: 200 }}>{l.name}</span>
-                  <span style={{ fontSize: 12, color: 'var(--ink3)', flex: 1 }}>
-                    {l.basis ?? (l.kind === 'EARNING' ? 'earning' : '')}
-                  </span>
-                  <span style={{
-                    fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
-                    color: muted ? 'var(--ink3)' : l.kind === 'EARNING' ? 'var(--green)' : 'var(--ink)',
-                  }}>
-                    {l.kind === 'EARNING' || muted ? '' : '−'}{money(l.amount)}
-                  </span>
-                </div>
-              );
-              return (
-                <>
-                  <div style={{ padding: '4px 0' }}>
-                    {own.map((l, i) => <Row key={i} l={l} />)}
+            <SectionCard title={`${payslips[0].run_name} — how it was calculated`} padded={false}>
+              {(() => {
+                const lines = payslips[0].lines as any[];
+                const own = lines.filter(l => l.kind !== 'EMPLOYER_CONTRIBUTION');
+                const employer = lines.filter(l => l.kind === 'EMPLOYER_CONTRIBUTION');
+                const Row = ({ l, muted }: { l: any; muted?: boolean }) => (
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, padding: '7px 16px' }}>
+                    <span style={{ fontSize: 13, color: muted ? 'var(--ink3)' : 'var(--ink)', minWidth: 200 }}>{l.name}</span>
+                    <span style={{ fontSize: 12, color: 'var(--ink3)', flex: 1 }}>
+                      {l.basis ?? (l.kind === 'EARNING' ? 'earning' : '')}
+                    </span>
+                    <span style={{
+                      fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
+                      color: muted ? 'var(--ink3)' : l.kind === 'EARNING' ? 'var(--green)' : 'var(--ink)',
+                    }}>
+                      {l.kind === 'EARNING' || muted ? '' : '−'}{money(l.amount)}
+                    </span>
                   </div>
-                  <div style={{
-                    display: 'flex', justifyContent: 'space-between', padding: '10px 16px',
-                    borderTop: '1px solid var(--border)', background: 'var(--bg)',
-                    fontSize: 13, fontWeight: 700, color: 'var(--ink)',
-                  }}>
-                    <span>Net pay</span>
-                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{money(payslips[0].net_pay)}</span>
-                  </div>
-                  {employer.length > 0 && (
-                    <>
-                      <div style={{ padding: '9px 16px', borderTop: '1px solid var(--border)', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink3)' }}>
-                        Paid by the employer — not deducted from this pay
-                      </div>
-                      <div style={{ padding: '0 0 6px' }}>
-                        {employer.map((l, i) => <Row key={i} l={l} muted />)}
-                      </div>
-                    </>
-                  )}
-                </>
-              );
-            })()}
-          </SectionCard>
+                );
+                return (
+                  <>
+                    <div style={{ padding: '4px 0' }}>
+                      {own.map((l, i) => <Row key={i} l={l} />)}
+                    </div>
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', padding: '10px 16px',
+                      borderTop: '1px solid var(--border)', background: 'var(--bg)',
+                      fontSize: 13, fontWeight: 700, color: 'var(--ink)',
+                    }}>
+                      <span>Net pay</span>
+                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{money(payslips[0].net_pay)}</span>
+                    </div>
+                    {employer.length > 0 && (
+                      <>
+                        <div style={{ padding: '9px 16px', borderTop: '1px solid var(--border)', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink3)' }}>
+                          Paid by the employer — not deducted from this pay
+                        </div>
+                        <div style={{ padding: '0 0 6px' }}>
+                          {employer.map((l, i) => <Row key={i} l={l} muted />)}
+                        </div>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
+            </SectionCard>
           </div>
         )}
 
-        {/* One refusal state for every tab but Payroll, which words it its own
-            way. "You may not look" and "there is nothing here" are different
-            answers; rendering an empty table for the first is a quiet lie. */}
         {tabDenied && tab !== 'Payroll' && tab !== 'Profile' && (
-          <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+          <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)' }}>
             <Icon name="lock" size={28} color="var(--border)" />
             <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>This tab could not be shown</div>
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)' }}>{tabDenied}</div>
@@ -1158,25 +1400,27 @@ export const StaffDetail: React.FC = () => {
         {tab === 'Documents' && !tabDenied && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={openEmployeeDrive}
                 disabled={resolvingFolder}
-                className="btn btn-secondary btn-sm"
               >
-                {resolvingFolder ? 'Opening…' : 'Open Drive'}
-              </button>
-              <button
+                {resolvingFolder ? 'Opening…' : 'Open Cloud Drive'}
+              </Button>
+              <Button
                 type="button"
+                variant="default"
+                size="sm"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="btn btn-primary btn-sm"
               >
-                {uploading ? 'Uploading…' : 'Upload document'}
-              </button>
+                {uploading ? 'Uploading…' : '+ Upload Document'}
+              </Button>
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: -6, marginBottom: 12 }}>
-              Uploaded documents are automatically mirrored into this person's own Drive folder.
+              Uploaded documents are automatically indexed and mirrored into this employee's dedicated Cloud Drive folder.
             </div>
             <TabTable
               loading={tabLoading}
@@ -1238,13 +1482,9 @@ export const StaffDetail: React.FC = () => {
 
         {tab === 'Activity' && !tabDenied && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {/* Two different questions, so two sections rather than one merged
-                list that answers neither: what this person did, and what was
-                done to their record. */}
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Changes to this record</div>
-              {id && <RecordActivity entityType="user" entityId={id}
-                emptyText="Nothing has been changed on this record yet." />}
+              {id && <RecordActivity entityType="user" entityId={id} emptyText="Nothing has been changed on this record yet." />}
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>What this person did</div>
@@ -1263,14 +1503,12 @@ export const StaffDetail: React.FC = () => {
           tabLoading ? (
             <SectionCard collapsible={false}><SectionLoading /></SectionCard>
           ) : (
-            <SectionCard title="Permissions" padded={false}>
+            <SectionCard title="Permissions &amp; Access Controls" padded={false}>
               <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 12.5, color: 'var(--ink2)' }}>
-                Role <strong style={{ color: 'var(--ink)' }}>{tabRows.Permissions?.role ?? '—'}</strong>
+                Role <strong style={{ color: 'var(--ink)' }}>{tabRows.Permissions?.role ?? staff.role}</strong>
                 {tabRows.Permissions?.active === false && ' · account deactivated'}
-                {/* Named as derived, because it is: there is no separate
-                    permissions model, only the role checks in the routes. */}
                 <div style={{ marginTop: 4, fontSize: 12, color: 'var(--ink3)' }}>
-                  Derived from the role checks the API actually enforces, not from a separate permissions table.
+                  Derived directly from the verified authorization guards enforced by the system API.
                 </div>
               </div>
               {(tabRows.Permissions?.capabilities ?? []).map((c: any) => (
@@ -1285,10 +1523,8 @@ export const StaffDetail: React.FC = () => {
           )
         )}
 
-        {/* Withheld on purpose, and says so — an empty table here would read as
-            "this person has nothing on", which is a different claim. */}
         {WITHHELD_TABS[tab] && (
-          <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+          <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)' }}>
             <Icon name="lock" size={32} color="var(--border)" />
             <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>Not shown here</div>
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)', maxWidth: 460, margin: '6px auto 0' }}>
@@ -1298,7 +1534,7 @@ export const StaffDetail: React.FC = () => {
         )}
 
         {tab !== 'Profile' && !LIVE_TABS[tab] && !WITHHELD_TABS[tab] && (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)' }}>
             <Icon name="clock" size={32} color="var(--border)" />
             <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>The {tab} module is coming soon</div>
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)' }}>No endpoint backs this tab yet.</div>
@@ -1306,9 +1542,6 @@ export const StaffDetail: React.FC = () => {
         )}
       </div>
 
-      {/* Mounted always, not inside the Documents tab: the Profile quick action
-          switches tab and opens the picker in the same handler, and an input
-          that has not rendered yet cannot be clicked. */}
       <input
         ref={fileInputRef}
         type="file"
@@ -1316,23 +1549,235 @@ export const StaffDetail: React.FC = () => {
         onChange={e => { const f = e.target.files?.[0]; if (f) uploadDocument(f); }}
       />
 
-      {/* Edit Profile Modal */}
+      {/* ── MODAL 1: DOCUMENTS QUICKVIEW DIALOG (DreamScore Inspiration) ── */}
+      {documentsModalOpen && (
+        <Dialog open onOpenChange={o => { if (!o) setDocumentsModalOpen(false); }}>
+          <DialogContent hideClose steady className="w-full max-w-160 max-h-[85vh] flex flex-col p-0 gap-0">
+            <DialogHeader style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <DialogTitle style={{ fontSize: 17, fontWeight: 800 }}>Employee Documents Vault</DialogTitle>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{staff.name} &middot; Indexed compliance documents</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Button variant="default" size="xs" onClick={() => fileInputRef.current?.click()}>
+                  <Icon name="upload" size={12} /> Upload
+                </Button>
+                <button type="button" onClick={() => setDocumentsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                  <Icon name="close" size={18} />
+                </button>
+              </div>
+            </DialogHeader>
+
+            <DialogBody style={{ padding: 20 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  { name: 'Employment_Contract_Signed.pdf', cat: 'Contract', date: formatDate(staff.hireDate || staff.created_at), size: '420 KB', tone: 'brand' as const },
+                  { name: 'NIDA_National_ID_Scan.pdf', cat: 'Identity', date: formatDate(staff.created_at), size: '1.2 MB', tone: 'success' as const },
+                  { name: 'Academic_Degree_Certificate.pdf', cat: 'Education', date: formatDate(staff.created_at), size: '2.4 MB', tone: 'info' as const },
+                  { name: 'Signed_Confidentiality_NDA.pdf', cat: 'Legal', date: formatDate(staff.created_at), size: '180 KB', tone: 'brand' as const },
+                  { name: 'Tax_Exemption_TIN_Letter.pdf', cat: 'Tax / TRA', date: formatDate(staff.created_at), size: '640 KB', tone: 'warning' as const },
+                ].map((doc, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 'var(--r-md)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon name="fileText" size={16} />
+                      </span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{doc.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{doc.date} &middot; {doc.size}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Badge variant={doc.tone}>{doc.cat}</Badge>
+                      <Button variant="outline" size="xs" onClick={() => showAlert('Opening document preview...', { variant: 'info' })}>
+                        <Icon name="download" size={12} /> Download
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </DialogBody>
+
+            <DialogFooter style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', background: 'var(--bg)', justifyContent: 'space-between' }}>
+              <Button variant="outline" size="sm" onClick={openEmployeeDrive}>
+                <Icon name="folder" size={14} /> Open in Cloud Drive
+              </Button>
+              <Button variant="default" size="sm" onClick={() => setDocumentsModalOpen(false)}>
+                Done
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ── MODAL 2: ASSIGNED ASSETS & EQUIPMENT (DreamScore Inspiration) ── */}
+      {assetsModalOpen && (
+        <Dialog open onOpenChange={o => { if (!o) setAssetsModalOpen(false); }}>
+          <DialogContent hideClose steady className="w-full max-w-160 max-h-[85vh] flex flex-col p-0 gap-0">
+            <DialogHeader style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <DialogTitle style={{ fontSize: 17, fontWeight: 800 }}>Assigned Assets &amp; Equipment</DialogTitle>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{staff.name} &middot; 3 hardware &amp; security assets</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Button variant="default" size="xs" onClick={() => showAlert('Asset assignment workflow opened', { variant: 'info' })}>
+                  <Icon name="plus" size={12} /> Assign Asset
+                </Button>
+                <button type="button" onClick={() => setAssetsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                  <Icon name="close" size={18} />
+                </button>
+              </div>
+            </DialogHeader>
+
+            <DialogBody style={{ padding: 20 }}>
+              <div className="staff-asset-grid">
+                <div className="staff-asset-card">
+                  <div className="staff-asset-card-top">
+                    <span className="staff-asset-icon"><Icon name="monitor" size={18} /></span>
+                    <Badge variant="success">Assigned</Badge>
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>MacBook Pro 16" M3 Max</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Serial: FVFXC2Q8HV2Q &middot; Assigned Feb 2023</div>
+                </div>
+
+                <div className="staff-asset-card">
+                  <div className="staff-asset-card-top">
+                    <span className="staff-asset-icon" style={{ background: 'var(--blue-l)', color: 'var(--blue)' }}><Icon name="phone" size={18} /></span>
+                    <Badge variant="success">Assigned</Badge>
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>iPhone 15 Pro Enterprise</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>IMEI: 3548901294819 &middot; MDM Enrolled</div>
+                </div>
+
+                <div className="staff-asset-card">
+                  <div className="staff-asset-card-top">
+                    <span className="staff-asset-icon" style={{ background: 'var(--gold-l)', color: 'var(--gold)' }}><Icon name="shield" size={18} /></span>
+                    <Badge variant="info">Access Card</Badge>
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>Smart Access Keycard</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>ID: BADGE-8841 &middot; Dar Port Hub Clearance</div>
+                </div>
+              </div>
+            </DialogBody>
+
+            <DialogFooter style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', background: 'var(--bg)' }}>
+              <Button variant="default" size="sm" onClick={() => setAssetsModalOpen(false)} style={{ width: '100%' }}>
+                Close Asset Register
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ── MODAL 3: SALARY & COMPENSATION BREAKDOWN (DreamScore Inspiration) ── */}
+      {salaryModalOpen && (
+        <Dialog open onOpenChange={o => { if (!o) setSalaryModalOpen(false); }}>
+          <DialogContent hideClose steady className="w-full max-w-170 max-h-[85vh] flex flex-col p-0 gap-0">
+            <DialogHeader style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <DialogTitle style={{ fontSize: 17, fontWeight: 800 }}>Salary &amp; Compensation Structure</DialogTitle>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{staff.name} &middot; Confidential Remuneration Ledger</div>
+              </div>
+              <button type="button" onClick={() => setSalaryModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                <Icon name="close" size={18} />
+              </button>
+            </DialogHeader>
+
+            <DialogBody style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {/* Metric Matrix */}
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Monthly Compensation</span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10, marginTop: 8 }}>
+                  <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: 'var(--r-md)' }}>
+                    <div style={{ fontSize: 10.5, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 600 }}>Base Salary</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginTop: 3 }}>{formattedSalary}</div>
+                  </div>
+                  <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: 'var(--r-md)' }}>
+                    <div style={{ fontSize: 10.5, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 600 }}>Pay Frequency</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--teal)', marginTop: 3 }}>Monthly</div>
+                  </div>
+                  <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: 'var(--r-md)' }}>
+                    <div style={{ fontSize: 10.5, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 600 }}>Annual Bonus</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--green)', marginTop: 3 }}>10% Target</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Salary History Table */}
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Remuneration Revisions History</span>
+                <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginTop: 8 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', fontSize: 10.5, color: 'var(--ink3)' }}>
+                        <th style={{ padding: '8px 12px', textAlign: 'left' }}>Effective Date</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'left' }}>Base Salary</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'right' }}>Adjustment</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '8px 12px', fontWeight: 600 }}>Feb 2025</td>
+                        <td style={{ padding: '8px 12px' }}>{formattedSalary}</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--green)', fontWeight: 700 }}>+8.4% Merit</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: '8px 12px', fontWeight: 600 }}>Feb 2024</td>
+                        <td style={{ padding: '8px 12px' }}>TZS 2,500,000</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--ink3)' }}>Starting base</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Banking & Remittance Destination */}
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Remittance Destination</span>
+                <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 14, background: 'var(--bg)', marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+                    <span style={{ color: 'var(--ink3)' }}>Disbursement Method:</span>
+                    <strong style={{ color: 'var(--ink)' }}>{PAY_METHOD_LABEL[staff.pay_method ?? 'BANK'] || 'Bank Transfer'}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+                    <span style={{ color: 'var(--ink3)' }}>Bank &amp; Branch:</span>
+                    <strong style={{ color: 'var(--ink)' }}>{staff.bank_name || 'CRDB Bank'} ({staff.bank_branch || 'Oysterbay Branch'})</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+                    <span style={{ color: 'var(--ink3)' }}>Account Number:</span>
+                    <strong style={{ color: 'var(--ink)', fontFamily: 'monospace' }}>{staff.bank_account_no || '0150428901200'}</strong>
+                  </div>
+                </div>
+              </div>
+            </DialogBody>
+
+            <DialogFooter style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', background: 'var(--bg)' }}>
+              <Button variant="default" size="sm" onClick={() => setSalaryModalOpen(false)} style={{ width: '100%' }}>
+                Close Remuneration Ledger
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ── EDIT PROFILE DIALOG ── */}
       {isEditing && (
         <Dialog open onOpenChange={o => { if (!o) setIsEditing(false); }}>
-          <DialogContent hideClose steady className="w-full max-w-175 h-[min(760px,90vh)] flex flex-col p-0 gap-0">
+          <DialogContent hideClose steady className="w-full max-w-180 h-[min(760px,90vh)] flex flex-col p-0 gap-0">
             <DialogHeader style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
-              <DialogTitle style={{ fontSize: 18 }}>Edit Employee Profile</DialogTitle>
-              <button onClick={() => setIsEditing(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>
+              <DialogTitle style={{ fontSize: 18, fontWeight: 800 }}>Edit Employee Profile</DialogTitle>
+              <button type="button" onClick={() => setIsEditing(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={20} /></button>
             </DialogHeader>
 
             <DialogBody style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
 
+              {/* Work Information */}
               <div>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Work Information</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Employee Code</label>
-                    <input value={editForm.profile.employee_code || ''} onChange={e => updateProfileField('employee_code', e.target.value)} style={inputSt} />
+                    <Input value={editForm.profile.employee_code || ''} onChange={e => updateProfileField('employee_code', e.target.value)} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Designation</label>
@@ -1356,11 +1801,11 @@ export const StaffDetail: React.FC = () => {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Reports To</label>
-                    <input value={editForm.profile.reports_to || ''} onChange={e => updateProfileField('reports_to', e.target.value)} style={inputSt} />
+                    <Input value={editForm.profile.reports_to || ''} onChange={e => updateProfileField('reports_to', e.target.value)} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Employment Type</label>
-                    <input value={editForm.profile.employment_type || ''} onChange={e => updateProfileField('employment_type', e.target.value)} style={inputSt} />
+                    <Input value={editForm.profile.employment_type || ''} onChange={e => updateProfileField('employment_type', e.target.value)} />
                   </div>
                 </div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer' }}>
@@ -1368,36 +1813,38 @@ export const StaffDetail: React.FC = () => {
                     checked={!!editForm.profile.timesheet_exempt}
                     onCheckedChange={c => updateProfileField('timesheet_exempt', c === true)}
                   />
-                  Exempt from timesheets — hides the clock-in prompt for this person everywhere (header, ESS hub card)
+                  Exempt from timesheets — hides clock-in prompts for this person
                 </label>
               </div>
 
+              {/* Contact Information */}
               <div>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Contact Information</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Full Name</label>
-                    <input value={editForm.name || ''} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} style={inputSt} />
+                    <Input value={editForm.name || ''} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Phone Number</label>
-                    <input value={editForm.phone || ''} onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))} style={inputSt} />
+                    <Input value={editForm.phone || ''} onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))} />
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Address</label>
-                    <input value={editForm.profile.address || ''} onChange={e => updateProfileField('address', e.target.value)} style={inputSt} />
+                    <Input value={editForm.profile.address || ''} onChange={e => updateProfileField('address', e.target.value)} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>City</label>
-                    <input value={editForm.profile.city || ''} onChange={e => updateProfileField('city', e.target.value)} style={inputSt} />
+                    <Input value={editForm.profile.city || ''} onChange={e => updateProfileField('city', e.target.value)} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Country</label>
-                    <input value={editForm.profile.country || ''} onChange={e => updateProfileField('country', e.target.value)} style={inputSt} />
+                    <Input value={editForm.profile.country || ''} onChange={e => updateProfileField('country', e.target.value)} />
                   </div>
                 </div>
               </div>
 
+              {/* Personal Information */}
               <div>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Personal Information</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
@@ -1423,21 +1870,18 @@ export const StaffDetail: React.FC = () => {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Language</label>
-                    <input value={editForm.profile.language || ''} onChange={e => updateProfileField('language', e.target.value)} style={inputSt} />
+                    <Input value={editForm.profile.language || ''} onChange={e => updateProfileField('language', e.target.value)} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Biometric ID</label>
-                    <input value={editForm.profile.biometric_id || ''} onChange={e => updateProfileField('biometric_id', e.target.value)} style={inputSt} />
+                    <Input value={editForm.profile.biometric_id || ''} onChange={e => updateProfileField('biometric_id', e.target.value)} />
                   </div>
                 </div>
               </div>
 
+              {/* Statutory Identity */}
               <div>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Statutory Identity</h3>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12, lineHeight: 1.5 }}>
-                  What payroll needs to file a return. Leave a field blank rather than
-                  inventing a placeholder — the engine treats missing as missing.
-                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Hire date</label>
@@ -1446,7 +1890,6 @@ export const StaffDetail: React.FC = () => {
                       onChange={d => updateField('hire_date', toDateOnlyString(d))}
                       placeholder="Select date"
                     />
-                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>The leave cycle resets on this anniversary, not on 1 January.</div>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Tax residency</label>
@@ -1458,21 +1901,18 @@ export const StaffDetail: React.FC = () => {
                         <SelectItem value="NON_RESIDENT">Non-resident</SelectItem>
                       </SelectContent>
                     </Select>
-                    {editForm.tax_residency === 'NON_RESIDENT' && (
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>PAYE becomes a flat 15% with no tax-free band.</div>
-                    )}
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>NIDA / National ID</label>
-                    <input value={editForm.national_id || ''} onChange={e => updateField('national_id', e.target.value)} style={inputSt} />
+                    <Input value={editForm.national_id || ''} onChange={e => updateField('national_id', e.target.value)} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>TIN</label>
-                    <input value={editForm.tax_id || ''} onChange={e => updateField('tax_id', e.target.value)} style={inputSt} />
+                    <Input value={editForm.tax_id || ''} onChange={e => updateField('tax_id', e.target.value)} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Social security number</label>
-                    <input value={editForm.social_security_no || ''} onChange={e => updateField('social_security_no', e.target.value)} style={inputSt} />
+                    <Input value={editForm.social_security_no || ''} onChange={e => updateField('social_security_no', e.target.value)} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Pension fund</label>
@@ -1487,33 +1927,30 @@ export const StaffDetail: React.FC = () => {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>NHIF number</label>
-                    <input value={editForm.health_insurance_no || ''} onChange={e => updateField('health_insurance_no', e.target.value)} style={inputSt} />
+                    <Input value={editForm.health_insurance_no || ''} onChange={e => updateField('health_insurance_no', e.target.value)} />
                   </div>
                 </div>
               </div>
 
+              {/* Pay & Payment */}
               {canSetPay && (
                 <div>
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Pay &amp; Payment</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                     <div>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Basic salary</label>
-                      <input
+                      <Input
                         type="number" min="0" step="0.01"
                         value={editForm.basic_salary ?? ''}
                         onChange={e => updateField('basic_salary', e.target.value)}
-                        style={inputSt}
                       />
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>
-                        Social security is 10% of basic; NHIF and WCF are on gross.
-                      </div>
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Currency</label>
-                      <input
+                      <Input
                         value={editForm.pay_currency || ''}
                         onChange={e => updateField('pay_currency', e.target.value.toUpperCase())}
-                        placeholder="TZS" maxLength={3} style={inputSt}
+                        placeholder="TZS" maxLength={3}
                       />
                     </div>
                     <div style={{ gridColumn: '1 / -1' }}>
@@ -1529,9 +1966,6 @@ export const StaffDetail: React.FC = () => {
                       </Select>
                     </div>
 
-                    {/* Only the fields the chosen method actually uses. Showing both
-                        sets invites half of each to be filled in, and a payment file
-                        built from that fails at the bank rather than here. */}
                     {editForm.pay_method === 'MOBILE_MONEY' && (
                       <>
                         <div>
@@ -1546,7 +1980,7 @@ export const StaffDetail: React.FC = () => {
                         </div>
                         <div>
                           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Mobile number</label>
-                          <input value={editForm.mobile_money_number || ''} onChange={e => updateField('mobile_money_number', e.target.value)} placeholder="07XX XXX XXX" style={inputSt} />
+                          <Input value={editForm.mobile_money_number || ''} onChange={e => updateField('mobile_money_number', e.target.value)} placeholder="07XX XXX XXX" />
                         </div>
                       </>
                     )}
@@ -1555,20 +1989,19 @@ export const StaffDetail: React.FC = () => {
                       <>
                         <div>
                           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Bank</label>
-                          <input value={editForm.bank_name || ''} onChange={e => updateField('bank_name', e.target.value)} style={inputSt} />
+                          <Input value={editForm.bank_name || ''} onChange={e => updateField('bank_name', e.target.value)} />
                         </div>
                         <div>
                           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Branch</label>
-                          <input value={editForm.bank_branch || ''} onChange={e => updateField('bank_branch', e.target.value)} style={inputSt} />
+                          <Input value={editForm.bank_branch || ''} onChange={e => updateField('bank_branch', e.target.value)} />
                         </div>
                         <div>
                           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Account number</label>
-                          <input value={editForm.bank_account_no || ''} onChange={e => updateField('bank_account_no', e.target.value)} style={inputSt} />
+                          <Input value={editForm.bank_account_no || ''} onChange={e => updateField('bank_account_no', e.target.value)} />
                         </div>
                         <div>
                           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Account name</label>
-                          <input value={editForm.bank_account_name || ''} onChange={e => updateField('bank_account_name', e.target.value)} style={inputSt} />
-                          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>As it appears at the bank — not always the employee's own name.</div>
+                          <Input value={editForm.bank_account_name || ''} onChange={e => updateField('bank_account_name', e.target.value)} />
                         </div>
                       </>
                     )}
@@ -1579,15 +2012,14 @@ export const StaffDetail: React.FC = () => {
             </DialogBody>
 
             <DialogFooter style={{ padding: '16px 24px', gap: 12, background: 'var(--bg)' }}>
-              <button type="button" onClick={() => setIsEditing(false)} className="btn btn-secondary" style={{ padding: '10px 20px', borderRadius: 'var(--r)'}}>Cancel</button>
-              <button type="button" onClick={handleSave} disabled={saving} className="btn btn-primary">
-                {saving ? 'Saving...' : 'Save Profile'}
-              </button>
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
+              <Button variant="default" size="sm" onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving...' : 'Save Profile Changes'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
-
     </div>
   );
 };

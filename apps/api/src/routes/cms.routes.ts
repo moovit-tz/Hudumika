@@ -7,7 +7,7 @@ import { CMSService, CommentValidationError } from '../services/cms.service.js';
 import { listRevisions, getRevision } from '../services/cms-revisions.service.js';
 import { CMSWebhooksService } from '../services/cms-webhooks.service.js';
 import { callAI } from './ai.routes.js';
-import { assertPublicHttpUrl } from '../lib/ssrf-guard.js';
+import { safeFetch, UnsafeUrlError } from '../lib/ssrf-guard.js';
 import { withTenant } from '../db/client.js';
 import { CMSCapabilitiesService, CMS_CAPABILITY_ROLES, CMS_CAPABILITY_AREAS } from '../services/cms-capabilities.service.js';
 import type { CmsCapabilityArea } from '@hudumika/types';
@@ -701,17 +701,12 @@ export async function cmsRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Alt-text generation currently requires an Anthropic (Claude) API key — set one in Settings > Integrations > AI Integration.' });
     }
 
-    try {
-      await assertPublicHttpUrl(url);
-    } catch (e: any) {
-      return reply.status(400).send({ error: e.message });
-    }
-
     let imgRes: globalThis.Response;
     try {
-      imgRes = await fetch(url);
-    } catch {
-      return reply.status(400).send({ error: 'Could not fetch that image URL.' });
+      imgRes = await safeFetch(url);
+    } catch (e: any) {
+      const msg = e instanceof UnsafeUrlError ? e.message : 'Could not fetch that image URL.';
+      return reply.status(400).send({ error: msg });
     }
     if (!imgRes.ok) return reply.status(400).send({ error: `Could not fetch that image (HTTP ${imgRes.status}).` });
     const contentType = (imgRes.headers.get('content-type') || '').split(';')[0].trim();

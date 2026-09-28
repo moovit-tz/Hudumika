@@ -777,6 +777,74 @@ export class PettiService {
    * unfiltered, all-wallets view, since each transfer is still exactly one
    * row here, not two.
    */
+  static async summarizeTransactions(tenantId: string, filters: {
+    walletId?: string; type?: 'deposit' | 'withdrawal' | 'transfer'; category?: string;
+    from?: string; to?: string; search?: string;
+  } = {}) {
+    // Inflow/outflow/pending are always scoped to their own transaction types
+    // regardless of the UI type filter — the summary cards reflect the
+    // *financial picture* of the current filter set, not just what row type
+    // the list happens to be showing.
+    const includeDeposits = !filters.type || filters.type === 'deposit';
+    const includeWithdrawals = !filters.type || filters.type === 'withdrawal';
+
+    return withTenant(tenantId, async (trx) => {
+      let depositsQ = trx.selectFrom('petti_deposits')
+        .select(sql<string>`COALESCE(SUM(amount), 0)`.as('total'))
+        .where('tenant_id', '=', tenantId);
+
+      let outflowQ = trx.selectFrom('petti_withdrawal_requests')
+        .select(sql<string>`COALESCE(SUM(amount), 0)`.as('total'))
+        .where('tenant_id', '=', tenantId)
+        .where('status', '=', 'disbursed');
+
+      let pendingQ = trx.selectFrom('petti_withdrawal_requests')
+        .select(trx.fn.countAll<string>().as('n'))
+        .where('tenant_id', '=', tenantId)
+        .where('status', '=', 'pending');
+
+      if (filters.walletId) {
+        depositsQ = depositsQ.where('wallet_id', '=', filters.walletId);
+        outflowQ = outflowQ.where('wallet_id', '=', filters.walletId);
+        pendingQ = pendingQ.where('wallet_id', '=', filters.walletId);
+      }
+      if (filters.category) {
+        outflowQ = outflowQ.where('category', '=', filters.category);
+        pendingQ = pendingQ.where('category', '=', filters.category);
+      }
+      if (filters.from) {
+        depositsQ = depositsQ.where('created_at', '>=', new Date(filters.from));
+        outflowQ = outflowQ.where('requested_at', '>=', new Date(filters.from));
+        pendingQ = pendingQ.where('requested_at', '>=', new Date(filters.from));
+      }
+      if (filters.to) {
+        depositsQ = depositsQ.where('created_at', '<=', new Date(filters.to));
+        outflowQ = outflowQ.where('requested_at', '<=', new Date(filters.to));
+        pendingQ = pendingQ.where('requested_at', '<=', new Date(filters.to));
+      }
+      if (filters.search) {
+        depositsQ = depositsQ.where((eb) => eb.or([
+          eb('reference', 'ilike', `%${filters.search}%`),
+          eb('note', 'ilike', `%${filters.search}%`),
+        ]));
+        outflowQ = outflowQ.where('purpose', 'ilike', `%${filters.search}%`);
+        pendingQ = pendingQ.where('purpose', 'ilike', `%${filters.search}%`);
+      }
+
+      const [inflowRow, outflowRow, pendingRow] = await Promise.all([
+        includeDeposits ? depositsQ.executeTakeFirst() : Promise.resolve(undefined),
+        includeWithdrawals ? outflowQ.executeTakeFirst() : Promise.resolve(undefined),
+        includeWithdrawals ? pendingQ.executeTakeFirst() : Promise.resolve(undefined),
+      ]);
+
+      return {
+        total_inflow: Number(inflowRow?.total ?? 0),
+        total_outflow: Number(outflowRow?.total ?? 0),
+        pending_count: Number(pendingRow?.n ?? 0),
+      };
+    });
+  }
+
   static async listTransactions(tenantId: string, filters: {
     walletId?: string; type?: 'deposit' | 'withdrawal' | 'transfer'; status?: string; category?: string;
     from?: string; to?: string; search?: string;

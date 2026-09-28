@@ -63,6 +63,7 @@ export function TrackingShell() {
         { label: 'Trailers',       icon: 'box3',    path: '/tracking/trailers' },
         { label: 'Drivers',        icon: 'user',    path: '/tracking/drivers' },
         { label: 'Trips',          icon: 'package', path: '/tracking/shipments' },
+        { label: 'Operations Ledger', icon: 'clipboardList', path: '/tracking/ledger' },
         { label: 'Route Planner',  icon: 'compass', path: '/tracking/route-planner' },
         { label: 'Cargo Loading',  icon: 'layers', path: '/tracking/cargo-loading', ...enterpriseBadge },
         { label: 'Expense Entry',  icon: 'dollarSign', path: '/tracking/expenses/new' },
@@ -159,6 +160,7 @@ export function TrackingShell() {
                 <Route path="drivers/new" element={<TrackingDriverNew />} />
                 <Route path="drivers/:id" element={<TrackingDriverDetail />} />
                 <Route path="shipments" element={<TrackingShipments />} />
+                <Route path="ledger" element={<Navigate to="/tracking?tab=ledger" replace />} />
                 <Route path="trips" element={<Navigate to="/tracking/shipments" replace />} />
                 <Route path="consignments" element={<Navigate to="/tracking/shipments" replace />} />
                 <Route path="cargo-loading" element={<TrackingCargoLoading />} />

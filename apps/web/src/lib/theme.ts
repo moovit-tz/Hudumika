@@ -1,3 +1,18 @@
+// Sync the theme across tabs: when another tab writes localStorage.theme,
+// apply the same data-theme attribute here so both tabs stay in step.
+// This runs once at module load — theme.ts is already imported everywhere
+// toggleThemeWithAnimation is called, so no extra wiring is needed.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e: StorageEvent) => {
+    if (e.key !== 'theme') return;
+    if (e.newValue === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  });
+}
+
 /**
  * Helper to toggle light/dark theme with the Katalyst View Transitions expanding circular wave reveal animation.
  */

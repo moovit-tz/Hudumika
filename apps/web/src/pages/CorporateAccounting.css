@@ -1,0 +1,464 @@
+/* ==========================================================================
+   Hudumika Design System - Corporate Accounting Control Center Styles
+   ========================================================================== */
+
+.acct-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0 0 32px;
+  font-family: var(--font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  color: var(--ink);
+}
+
+/* ── Hero Banner: Corporate Accounting Control Center ── */
+.acct-hero-banner {
+  /* Fixed dark-navy backbone so the banner stays dark in both light and dark
+     mode — --navy and --navy2 flip to light blue in dark mode, which would
+     put white text on a near-white gradient. Only the teal accent adapts. */
+  background: linear-gradient(135deg, #0e1f3d 0%, #1a3260 60%, color-mix(in srgb, var(--teal) 35%, #0e1f3d) 100%);
+  border-radius: var(--r-lg, 12px);
+  padding: 24px 28px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(14, 31, 61, 0.3), 0 8px 10px -6px rgba(14, 31, 61, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.acct-hero-banner::before {
+  content: "";
+  position: absolute;
+  top: -40%;
+  right: -10%;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--teal) 25%, transparent) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.acct-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  z-index: 1;
+}
+
+.acct-score-circle {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 4px solid color-mix(in srgb, var(--teal) 35%, transparent);
+  border-top-color: var(--teal);
+  border-right-color: var(--teal);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--teal) 30%, transparent);
+}
+
+.acct-score-val {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+}
+
+.acct-score-max {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.acct-hero-badge,
+.acct-hero-banner [data-badge],
+.acct-hero-banner .badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.16) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  color: #ffffff !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+}
+
+.acct-hero-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  max-width: 500px;
+  line-height: 1.45;
+}
+
+.acct-hero-kpis {
+  display: grid;
+  /* minmax(0,1fr) lets tiles shrink freely — no implicit min-content floor */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  z-index: 1;
+  min-width: 0;
+}
+
+.acct-hero-kpi-tile {
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--r, 8px);
+  padding: 10px 12px;
+  min-width: 0;        /* allow the grid cell to shrink below content width */
+  overflow: hidden;
+}
+
+.acct-hero-kpi-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acct-hero-kpi-val {
+  /* clamp: minimum 11px, scales with viewport, caps at 15px — handles amounts
+     from "4.78x" up to "100Q TZS" without overflowing a minmax(0,1fr) cell */
+  font-size: clamp(11px, 1.3vw, 15px);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;     /* wrap inside a word only when unavoidable */
+  word-break: break-word;
+  line-height: 1.25;
+}
+
+.acct-hero-kpi-sub {
+  font-size: 10.5px;
+  /* Always on a fixed dark background — rgba is visible in both modes,
+     whereas var(--teal-l) collapses to rgba(18,87,198,0.18) in dark. */
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ── Accounting 4-Cards Row ── */
+.acct-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.acct-metric-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 8px);
+  padding: 12px 14px;
+  box-shadow: var(--card-shadow, 0 1px 3px rgba(0, 0, 0, 0.05));
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.acct-metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.acct-metric-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.acct-metric-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.acct-metric-spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+.acct-metric-spark-bar {
+  flex: 1;
+  /* color-mix stays proportional to --teal in both themes;
+     var(--teal-l) collapses to near-transparent in dark mode. */
+  background: color-mix(in srgb, var(--teal) 22%, transparent);
+  border-radius: 2px;
+  transition: height 0.4s ease, background 0.2s ease;
+}
+
+.acct-metric-spark-bar:hover {
+  background: color-mix(in srgb, var(--teal) 65%, transparent);
+}
+
+/* ── General Ledger Overview & Distribution ── */
+.acct-gl-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.acct-gl-month-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.acct-gl-month-label {
+  width: 40px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink2);
+}
+
+.acct-gl-month-tracks {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.acct-gl-track {
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.acct-gl-fill-debit {
+  height: 100%;
+  background: var(--teal);
+  border-radius: 4px;
+}
+
+.acct-gl-fill-credit {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 4px;
+}
+
+/* ── Aging Breakdown System ── */
+.acct-aging-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.acct-aging-box {
+  background: var(--card-sunken, var(--bg));
+  border-radius: var(--r, 8px);
+  padding: 16px;
+  border: 1px solid var(--border);
+}
+
+.acct-aging-tiers {
+  display: flex;
+  gap: 6px;
+  height: 16px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 12px 0;
+}
+
+.acct-aging-tier-item {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.acct-aging-legend {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  font-size: 11px;
+}
+
+.acct-aging-legend-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ── Bank Reconciliation Sync Card ── */
+.acct-bank-sync-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--bg);
+  border-radius: var(--r, 8px);
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+
+/* ── Tables & Ledger stream ── */
+.acct-table-container {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r, 8px);
+  background: var(--white);
+}
+
+.acct-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  text-align: left;
+}
+
+.acct-table th {
+  padding: 10px 14px;
+  background: var(--card-sunken, var(--bg));
+  color: var(--ink3);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+
+.acct-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+.acct-table tr:last-child td {
+  border-bottom: none;
+}
+
+.acct-table tr:hover td {
+  background: color-mix(in srgb, var(--teal) 3%, transparent);
+}
+
+/* ── Responsive adjustments ── */
+@media (max-width: 900px) {
+  .acct-hero-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .acct-hero-kpis {
+    width: 100%;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .acct-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .acct-aging-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .acct-hero-left {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .acct-hero-kpis {
+    grid-template-columns: 1fr;
+  }
+  .acct-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Dark mode corrections ──────────────────────────────────────────────────
+   Each rule targets a specific rendering defect in dark mode.
+   ────────────────────────────────────────────────────────────────────────── */
+
+[data-theme="dark"] .acct-hero-banner {
+  box-shadow: var(--elev-sm);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .acct-score-circle {
+  border-color: rgba(255, 255, 255, 0.08);
+  border-top-color: var(--teal);
+  border-right-color: var(--teal);
+  box-shadow: none;
+}
+
+[data-theme="dark"] .acct-hero-kpi-tile {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Metric cards — stronger presence on the deep dark page background */
+[data-theme="dark"] .acct-metric-card {
+  background: var(--white);
+  border-color: var(--border2);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* GL chart tracks — var(--bg) on --white cards = near-zero contrast in dark */
+[data-theme="dark"] .acct-gl-track {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* Aging boxes and bank sync rows — stronger border */
+[data-theme="dark"] .acct-aging-box {
+  background: var(--card-sunken);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .acct-bank-sync-row {
+  background: var(--card-sunken);
+  border-color: var(--border);
+}
+
+/* Ledger table container — stronger border so card edge is visible */
+[data-theme="dark"] .acct-table-container {
+  background: var(--white);
+  border-color: var(--border);
+}
+
+/* Account type group header tint — make the soft tint visible */
+[data-theme="dark"] .acct-type-group-header {
+  background: var(--card-sunken) !important;
+  border-bottom-width: 1px !important;
+}
+
+[data-theme="dark"] .acct-container .finance-ledger-group {
+  background: transparent;
+}
+
+[data-theme="dark"] .acct-container .finance-ledger-account-row {
+  border-radius: 0;
+  color: var(--ink);
+}
+
+[data-theme="dark"] .acct-container .finance-ledger-detail {
+  background: var(--card-sunken) !important;
+}
+
+[data-theme="dark"] .acct-container .finance-ledger-entry-row[data-stripe="true"] {
+  background: color-mix(in srgb, var(--white) 82%, var(--bg));
+}

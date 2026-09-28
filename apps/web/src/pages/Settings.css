@@ -27,11 +27,61 @@
    Primitives
 ══════════════════════════════════════════════════════════ */
 
-/* Toggle */
-.s-tog          { width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer; background: var(--border); position: relative; transition: background .2s; flex-shrink: 0; }
-.s-tog--on      { background: var(--teal); }
-.s-tog-thumb    { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s; display: block; box-shadow: var(--elev-sm); }
-.s-tog--on .s-tog-thumb { left: 21px; }
+/* Toggle — matches the platform's labeled Switch (ui/switch.tsx), 56×22px (70% of original 80×32) */
+.s-tog {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 56px;
+  height: 22px;
+  border-radius: 11px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  background: #6b7280;
+  transition: background .2s ease;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.s-tog--on { background: hsl(var(--primary)); }
+.s-tog:disabled { cursor: not-allowed; opacity: .5; }
+
+/* Sliding circle */
+.s-tog-thumb {
+  position: relative;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+  transform: translateX(3px); /* 3px left gap; inner = 52px */
+  transition: transform .2s ease;
+  display: block;
+  z-index: 1;
+  flex-shrink: 0;
+}
+.s-tog--on .s-tog-thumb { transform: translateX(32px); /* 52 inner − 17 thumb − 3 gap */ }
+
+/* Embedded label */
+.s-tog-label {
+  position: absolute;
+  font-size: 8px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  right: 6px;
+  transition: left .2s ease, right .2s ease;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.s-tog-label span {
+  display: block;
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: rgba(0,0,0,.25);
+}
+.s-tog--on .s-tog-label { right: auto; left: 6px; }
+.s-tog--on .s-tog-label span { background: rgba(255,255,255,.15); }
 
 /* Field */
 .s-fld          { /* spans 1 column by default in s-card-grid */ }

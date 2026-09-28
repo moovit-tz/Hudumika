@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -20,9 +21,9 @@ interface Withdrawal {
 
 const CATEGORY_LABELS: Record<string, string> = {
   OFFICE_SUPPLIES: 'Office supplies',
-  TRANSPORT: 'Transport',
+  TRANSPORT: 'Transport & Fuel',
   MEALS_ENTERTAINMENT: 'Meals & entertainment',
-  UTILITIES: 'Utilities',
+  UTILITIES: 'Utilities & Internet',
   STAFF_WELFARE: 'Staff welfare',
   REPAIRS_MAINTENANCE: 'Repairs & maintenance',
   POSTAGE_COURIER: 'Postage & courier',
@@ -59,6 +60,12 @@ export function PettiRequest() {
 
   useEffect(() => { loadData(); }, []);
 
+  const pendingCount = useMemo(() => requests.filter(r => r.status === 'pending').length, [requests]);
+  const approvedCount = useMemo(() => requests.filter(r => r.status === 'approved').length, [requests]);
+  const disbursedTotal = useMemo(() => requests.filter(r => r.status === 'disbursed').reduce((s, r) => s + Number(r.amount || 0), 0), [requests]);
+
+  const selectedWallet = useMemo(() => wallets.find(w => w.id === walletId), [wallets, walletId]);
+
   async function handleSubmitRequest(e: React.FormEvent) {
     e.preventDefault();
     if (!walletId || !amount || Number(amount) <= 0 || !purpose.trim()) {
@@ -87,127 +94,177 @@ export function PettiRequest() {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto' }}>
+    <div className="petti-container">
       <PageHeader
         crumbs={['Petti', 'Activities', 'Request Money']}
         titlePlain="Request"
-        titleEm="money"
-        subtitle="Submit petty cash voucher requests for departmental approval & instant disbursement."
+        titleEm="voucher"
+        subtitle="Submit petty cash voucher claims for departmental review and finance release."
       />
 
-      <div className="petti-grid-2col" style={{ marginBottom: 24 }}>
-        
+      {/* Summary Metrics */}
+      <div className="petti-stats-grid">
+        <div className="petti-stat-card">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Pending Approval</span>
+            <Badge variant={pendingCount > 0 ? 'warning' : 'gray'}>{pendingCount} In Queue</Badge>
+          </div>
+          <div className="petti-stat-value">{pendingCount}</div>
+          <div className="petti-stat-sub">
+            <span>Awaiting department manager review</span>
+          </div>
+        </div>
+
+        <div className="petti-stat-card">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Approved · Ready for Release</span>
+            <Badge variant="info">{approvedCount}</Badge>
+          </div>
+          <div className="petti-stat-value">{approvedCount}</div>
+          <div className="petti-stat-sub">
+            <span>Finance ready to disburse funds</span>
+          </div>
+        </div>
+
+        <div className="petti-stat-card">
+          <div className="petti-stat-card-header">
+            <span className="petti-stat-label">Disbursed Volume</span>
+            <Badge variant="success">PAID</Badge>
+          </div>
+          <div className="petti-stat-value" style={{ color: 'var(--green)' }}>
+            {disbursedTotal.toLocaleString()}
+          </div>
+          <div className="petti-stat-sub">
+            <span>Synchronized to FinOps Expenses</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="petti-grid-2col">
         {/* Request Form */}
         <SectionCard title="New Petty Cash Voucher" collapsible={false}>
           <form onSubmit={handleSubmitRequest} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Select Wallet *</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Select Target Wallet *</label>
               <Combobox
-                options={wallets.map(w => ({ value: w.id, label: `${w.name} (${w.balance.toLocaleString()} ${w.currency})` }))}
+                options={wallets.map(w => ({ value: w.id, label: `${w.name} (${Number(w.balance).toLocaleString()} ${w.currency})` }))}
                 value={walletId}
                 onChange={setWalletId}
                 placeholder="Select wallet…"
               />
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Requested Amount *</label>
-              <input
-                type="number" required min="1" step="any"
-                value={amount} onChange={e => setAmount(e.target.value)}
-                placeholder="e.g. 75000"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 14 }}
-              />
-            </div>
+            <div className="petti-grid-form">
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Requested Amount *</label>
+                <Input type="number" required min="1" step="any" value={amount} onChange={e => setAmount(e.target.value)} placeholder="e.g. 75000" />
+              </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Expense Category</label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(CATEGORY_LABELS).map(([k, label]) => (
-                    <SelectItem key={k} value={k}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Expense Category *</label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(CATEGORY_LABELS).map(([k, label]) => (
+                      <SelectItem key={k} value={k}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Purpose / Justification *</label>
-              <input
-                type="text" required
-                value={purpose} onChange={e => setPurpose(e.target.value)}
-                placeholder="e.g. Emergency fuel for delivery van"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
-              />
+              <Input required value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="e.g. Emergency fuel for delivery van run to airport" />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Payee / Vendor Name (Optional)</label>
-              <input
-                type="text"
-                value={payeeName} onChange={e => setPayeeName(e.target.value)}
-                placeholder="e.g. Shell Station Mwenge"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}
-              />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Payee / Beneficiary Name (Optional)</label>
+              <Input value={payeeName} onChange={e => setPayeeName(e.target.value)} placeholder="e.g. Shell Mwenge Station / Office Mart" />
             </div>
 
-            <Button type="submit" disabled={saving} style={{ background: 'var(--green)', color: 'hsl(var(--green-foreground))', padding: '12px', fontWeight: 700, fontSize: 14 }}>
-              <Icon name="fileText" size={16} /> {saving ? 'Submitting…' : 'Submit Voucher Request'}
+            <Button type="submit" disabled={saving} style={{ padding: '12px', fontWeight: 700, fontSize: 14 }}>
+              <Icon name="fileText" size={16} /> {saving ? 'Submitting…' : `Submit Voucher Request ${amount ? `(${Number(amount).toLocaleString()} ${selectedWallet?.currency || ''})` : ''}`}
             </Button>
           </form>
         </SectionCard>
 
-        {/* Workflow Info Box */}
-        <div>
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 20, boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="check" size={15} color="var(--teal)" />
+        {/* Workflow Info Box & Stage Timeline */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="petti-card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="check" size={16} color="var(--teal)" />
               </div>
-              <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>Approval Process</h4>
+              <div>
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Governance & Verification Stages</h4>
+                <p style={{ margin: '2px 0 0 0', fontSize: 11.5, color: 'var(--ink3)' }}>Automated workflow for petty cash control</p>
+              </div>
             </div>
 
-            <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
-              <li style={{ marginBottom: 6 }}><strong>Submission:</strong> Request enters the Pending Queue.</li>
-              <li style={{ marginBottom: 6 }}><strong>Department Approval:</strong> The wallet's assigned approver reviews it (skipped if the wallet's workflow doesn't require one).</li>
-              <li><strong>Finance Release:</strong> Finance disburses the approved request — a manual step, not automatic — and it appears in FinOps Expenses as soon as it's disbursed.</li>
-            </ol>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: 10, background: 'var(--bg)', borderRadius: 'var(--r)' }}>
+                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 10, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>1</span>
+                <div style={{ flex: 1, fontSize: 12 }}>
+                  <strong style={{ color: 'var(--ink)' }}>Voucher Submission:</strong>
+                  <div style={{ color: 'var(--ink3)', marginTop: 2 }}>Staff requests an expense advance or reimbursement with target vault and justification.</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: 10, background: 'var(--bg)', borderRadius: 'var(--r)' }}>
+                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 10, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>2</span>
+                <div style={{ flex: 1, fontSize: 12 }}>
+                  <strong style={{ color: 'var(--ink)' }}>Department Verification:</strong>
+                  <div style={{ color: 'var(--ink3)', marginTop: 2 }}>Assigned department approver reviews the voucher. Approver backups act automatically if on leave.</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: 10, background: 'var(--bg)', borderRadius: 'var(--r)' }}>
+                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 10, background: 'var(--green)', color: 'hsl(var(--primary-foreground))' }}>3</span>
+                <div style={{ flex: 1, fontSize: 12 }}>
+                  <strong style={{ color: 'var(--ink)' }}>Finance Release & Posting:</strong>
+                  <div style={{ color: 'var(--ink3)', marginTop: 2 }}>Finance disburses cash. The transaction posts instantly into <strong>FinOps Expenses</strong> with auto-generated receipt vouchers.</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
       </div>
 
       {/* Requests Queue Table */}
-      <SectionCard title="Voucher Requests Queue" padded={false} collapsible={false}>
+      <SectionCard title="Active Voucher Requests Queue" padded={false} collapsible={false}>
         {requests.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No cash requests submitted yet.</div>
         ) : (
-          <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>
-              {['Ref', 'Date', 'Wallet', 'Purpose', 'Category', 'Amount', 'Status'].map(h => (
-                <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase' }}>{h}</th>
-              ))}
-            </tr></thead>
-            <tbody>
-              {requests.map(r => {
-                const w = wallets.find(wall => wall.id === r.wallet_id);
-                return (
-                  <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 16px', fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{r.ref || '—'}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>{new Date(r.requested_at).toLocaleString()}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{w?.name || 'Wallet'}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>{r.purpose}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink2)' }}>{CATEGORY_LABELS[r.category || ''] || r.category || 'General'}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 800, color: 'var(--ink)' }}>
-                      {Number(r.amount).toLocaleString()} {w?.currency || ''}
-                    </td>
-                    <td style={{ padding: '12px 16px' }}><Badge variant={STATUS_VARIANT[r.status] || 'gray'}>{r.status}</Badge></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table></div>
+          <div className="petti-table-wrap">
+            <table className="petti-table">
+              <thead>
+                <tr>
+                  {['Ref', 'Date', 'Wallet', 'Purpose', 'Category', 'Amount', 'Status'].map(h => (
+                    <th key={h}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map(r => {
+                  const w = wallets.find(wall => wall.id === r.wallet_id);
+                  return (
+                    <tr key={r.id}>
+                      <td style={{ fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{r.ref || '—'}</td>
+                      <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{new Date(r.requested_at).toLocaleString()}</td>
+                      <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{w?.name || 'Wallet'}</td>
+                      <td style={{ color: 'var(--ink)' }}>{r.purpose}</td>
+                      <td style={{ fontSize: 12, color: 'var(--ink2)' }}>{CATEGORY_LABELS[r.category || ''] || r.category || 'General'}</td>
+                      <td style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: 'var(--teal)' }}>
+                        {Number(r.amount).toLocaleString()} {w?.currency || ''}
+                      </td>
+                      <td><Badge variant={STATUS_VARIANT[r.status] || 'gray'}>{r.status}</Badge></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </SectionCard>
     </div>
