@@ -6,6 +6,7 @@ import { getUsageSummary, getUsageHistory } from '../lib/usage.js';
 import { getAiCreditBalance, isByokAllowed } from '../lib/ai-credits.js';
 import { agencyManagedOnsiteGrant, hasActiveAddonGrant } from '../middleware/entitlement.js';
 import { isLicensedForApp } from '../lib/app-license.js';
+import { getFinanceCapabilities } from '../services/finance-capability.service.js';
 
 /**
  * The features this endpoint reports on.
@@ -33,7 +34,7 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
   fastify.get('/', async (request, reply) => {
     const user = request.user;
 
-    const [[appStatusRows, settingsRow, tenant], usage, history, aiCredits, byokAllowed] = await Promise.all([
+    const [[appStatusRows, settingsRow, tenant], usage, history, aiCredits, byokAllowed, finance] = await Promise.all([
       withTenant(user.tenant_id, trx => Promise.all([
         trx.selectFrom('app_status').select(['app_id', 'status', 'is_beta']).execute(),
         trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
@@ -47,6 +48,7 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
       // plan-derived UI decision already reads off this one endpoint.
       getAiCreditBalance(user.tenant_id),
       isByokAllowed(user.tenant_id),
+      getFinanceCapabilities(user.tenant_id, user.role === 'SUPER_ADMIN'),
     ]);
 
     const appStatus: Record<string, string> = {};
@@ -128,6 +130,6 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
       }));
     }
 
-    return { features, appStatus, betaApps, usage: { ...usage, history }, aiCredits, byokAllowed };
+    return { features, appStatus, betaApps, usage: { ...usage, history }, aiCredits, byokAllowed, finance };
   });
 }

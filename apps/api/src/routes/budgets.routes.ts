@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireFinanceCapability } from '../middleware/finance-capability.js';
+import { requireFinanceCapability } from '../middleware/finance-capability.js';
 
 const lineSchema = z.object({
   account_code: z.string().min(1).max(20),
@@ -13,6 +15,7 @@ const lineSchema = z.object({
 export async function budgetRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
+  fastify.addHook('preHandler', requireFinanceCapability('finance.budgets'));
 
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,
   // fleet ops, HR, identity/access admin, or tenant configuration) with only
@@ -31,7 +34,7 @@ export async function budgetRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+  fastify.post('/', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'), requireFinanceCapability('finance.budgets')] }, async (request, reply) => {
     const user = request.user;
     const body = z.object({ name: z.string().trim().min(1).max(300), fiscal_year: z.number().int(), entity_id: z.string().uuid().optional(), notes: z.string().max(2000).optional() }).parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
@@ -62,7 +65,7 @@ export async function budgetRoutes(fastify: FastifyInstance) {
   // PUT /:id/lines — bulk replace. A budget is edited as a whole grid
   // (account x month), not one cell at a time, so a full replace per save
   // is simpler and safer than diffing individual cells.
-  fastify.put('/:id/lines', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+  fastify.put('/:id/lines', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'), requireFinanceCapability('finance.budgets')] }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const { lines } = z.object({ lines: z.array(lineSchema) }).parse(request.body);
@@ -78,7 +81,7 @@ export async function budgetRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
+  fastify.delete('/:id', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE'), requireFinanceCapability('finance.budgets')] }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {

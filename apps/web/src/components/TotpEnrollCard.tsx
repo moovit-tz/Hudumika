@@ -126,7 +126,7 @@ export function TotpEnrollCard() {
             </div>
             <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>1. Scan the QR code, or copy the secret key</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontFamily: 'var(--mono)', fontSize: 12.5 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontFamily: 'var(--font)', fontSize: 12.5 }}>
                 <span style={{ flex: 1, overflow: 'auto', whiteSpace: 'nowrap' }}>{setupData.secret}</span>
                 <button type="button" onClick={() => { navigator.clipboard.writeText(setupData.secret); showAlert('Secret key copied.', { variant: 'success' }); }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, display: 'flex' }}>
@@ -138,7 +138,7 @@ export function TotpEnrollCard() {
               <input
                 type="text" value={verifyCode}
                 onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="000000" style={{ ...inputStyle, fontFamily: 'var(--mono)', fontSize: 16, letterSpacing: '0.2em', textAlign: 'center', width: 160 }}
+                placeholder="000000" style={{ ...inputStyle, fontFamily: 'var(--font)', fontSize: 16, letterSpacing: '0.2em', textAlign: 'center', width: 160 }}
               />
 
               <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
@@ -158,7 +158,7 @@ export function TotpEnrollCard() {
                 <Icon name="copy" size={12} /> Copy all
               </button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, fontFamily: 'var(--mono)', fontSize: 12.5, color: 'var(--ink2)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, fontFamily: 'var(--font)', fontSize: 12.5, color: 'var(--ink2)' }}>
               {backupCodes.map((code) => <div key={code}>{code}</div>)}
             </div>
           </div>
@@ -180,7 +180,7 @@ export function TotpEnrollCard() {
                 <input
                   type="text" value={disableCode}
                   onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="Enter 6-digit code" style={{ ...inputStyle, width: 160, fontFamily: 'var(--mono)', letterSpacing: '0.1em' }}
+                  placeholder="Enter 6-digit code" style={{ ...inputStyle, width: 160, fontFamily: 'var(--font)', letterSpacing: '0.1em' }}
                 />
                 <Button variant="outline" size="sm" onClick={disable} disabled={busy || disableCode.length < 6} style={{ color: 'var(--red)', borderColor: 'var(--red)' }}>Confirm disconnect</Button>
                 <Button variant="outline" size="sm" onClick={() => { setShowDisable(false); setDisableCode(''); }}>Cancel</Button>

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -9,7 +9,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 
 /**
- * AgencyHost M8 — every referral commission across every tenant, in one
+ * AgencyHost M8 â€” every referral commission across every tenant, in one
  * queue. Cross-tenant by design (dbPlatform, SUPER_ADMIN-gated at the route
  * level), same shape as SuperAdminIssues.tsx.
  */
@@ -80,7 +80,7 @@ export const SuperAdminReferrals: React.FC = () => {
         crumbs={['Admin', 'Referrals']}
         titlePlain="Referral"
         titleEm="commissions"
-        subtitle="Every commission earned across the platform — approve, reject, or record a manual payout. No automatic payout provider is connected yet."
+        subtitle="Every commission earned across the platform â€” approve, reject, or record a manual payout. No automatic payout provider is connected yet."
       />
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
@@ -116,9 +116,9 @@ export const SuperAdminReferrals: React.FC = () => {
             <tbody>
               {rows.map(r => (
                 <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 600 }}>{r.referring_tenant_name ?? '—'}</td>
-                  <td style={{ padding: '10px 14px' }}>{r.referred_tenant_name ?? '—'}</td>
-                  <td style={{ padding: '10px 14px', fontFamily: 'var(--mono)' }}>{r.amount} {r.currency}</td>
+                  <td style={{ padding: '10px 14px', fontWeight: 600 }}>{r.referring_tenant_name ?? 'â€”'}</td>
+                  <td style={{ padding: '10px 14px' }}>{r.referred_tenant_name ?? 'â€”'}</td>
+                  <td style={{ padding: '10px 14px', fontFamily: 'var(--font)' }}>{r.amount} {r.currency}</td>
                   <td style={{ padding: '10px 14px' }}>
                     <Badge variant={STATUS_VARIANT[r.status] ?? 'gray'} title={r.flagged_reason ?? undefined}>
                       {STATUS_LABEL[r.status] ?? r.status}

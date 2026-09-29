@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { FormPage } from '../components/FormPage.js';
 import { Icon } from '../components/Icon.js';
 import { useCurrency } from '../hooks/useCurrency.js';
@@ -39,12 +39,12 @@ const EMPTY_PRODUCT: Product = {
   id: '', code: '', name: '', type: 'service', description: '',
   category: 'Clearance Services', unit: 'shipment',
   salePrice: 0, purchasePrice: 0, currency: 'TZS',
-  // No hardcoded 18 — a new product takes the workspace's default treatment,
+  // No hardcoded 18 â€” a new product takes the workspace's default treatment,
   // which carries its own rate. See ProductForm.
   taxRate: 0, taxCodeId: null, status: 'active', createdAt: '',
 };
 
-/* ── Detail Panel ───────────────────────────────────────────────────────────── */
+/* â”€â”€ Detail Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function ProductDetail({ product, onClose, onEdit, isMobile }: {
   product: Product; onClose: () => void; onEdit: (p: Product) => void; isMobile?: boolean;
 }) {
@@ -73,7 +73,7 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
             </span>
           </div>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', lineHeight: 1.3 }}>{product.name}</div>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3, fontFamily: 'var(--mono)' }}>{product.code}</div>
+          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3, fontFamily: 'var(--font)' }}>{product.code}</div>
         </div>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           <button type="button" onClick={() => onEdit(product)} title="Edit"
@@ -92,12 +92,12 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
           <div style={{ padding: '13px 14px', background: 'var(--teal-l)', borderRadius: 'var(--r)', border: '1px solid var(--teal-m)' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Sale Price</div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--teal)', fontFamily: 'var(--mono)' }}>{fmt(product.salePrice)}</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--teal)', fontFamily: 'var(--font)' }}>{fmt(product.salePrice)}</div>
             <div style={{ fontSize: 10, color: 'var(--teal)', marginTop: 3 }}>per {product.unit}</div>
           </div>
           <div style={{ padding: '13px 14px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Purchase Price</div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{fmt(product.purchasePrice)}</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{fmt(product.purchasePrice)}</div>
             <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 3 }}>per {product.unit}</div>
           </div>
         </div>
@@ -106,7 +106,7 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
           <div style={{ padding: '10px 12px', background: margin !== null && margin > 0 ? 'var(--green-l)' : 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', textAlign: 'center' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Margin</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: margin !== null && margin > 0 ? 'var(--green)' : 'var(--ink3)' }}>{margin !== null ? `${margin}%` : '—'}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: margin !== null && margin > 0 ? 'var(--green)' : 'var(--ink3)' }}>{margin !== null ? `${margin}%` : 'â€”'}</div>
           </div>
           <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', textAlign: 'center' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Tax</div>
@@ -131,7 +131,7 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
           ].map(r => (
             <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border)', fontSize: 12.5 }}>
               <span style={{ color: 'var(--ink3)' }}>{r.label}</span>
-              <span style={{ fontWeight: 600, color: 'var(--ink)', fontFamily: r.mono ? 'var(--mono)' : undefined }}>{r.value}</span>
+              <span style={{ fontWeight: 600, color: 'var(--ink)', fontFamily: r.mono ? 'var(--font)' : undefined }}>{r.value}</span>
             </div>
           ))}
         </div>
@@ -147,13 +147,13 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
   );
 }
 
-/* ── Add / Edit Modal ───────────────────────────────────────────────────────── */
+/* â”€â”€ Add / Edit Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function ProductForm({ product, onSave, onClose }: {
   product: Product | null; onSave: (p: Product) => void; onClose: () => void;
 }) {
   const [form, setForm] = useState<Product>(product ?? { ...EMPTY_PRODUCT });
   const [saving, setSaving] = useState(false);
-  // Sales-side treatments only — a blocked-input-tax code is a purchase
+  // Sales-side treatments only â€” a blocked-input-tax code is a purchase
   // concept and the API refuses it on an invoice anyway.
   const taxCodes = useTaxCodes().filter(c => c.appliesTo !== 'PURCHASE');
 
@@ -197,13 +197,13 @@ function ProductForm({ product, onSave, onClose }: {
   return (
     <FormPage
       title={product ? `Edit ${product.name}` : 'New Product / Service'}
-      subtitle="What you sell or bill for — its code, price, tax treatment and category."
+      subtitle="What you sell or bill for â€” its code, price, tax treatment and category."
       onCancel={onClose}
       actions={
         <>
           <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
           <button type="button" onClick={handleSave} disabled={saving || !form.name.trim()} className="btn btn-primary">
-            <Icon name="check" size={14} color="#fff" /> {saving ? 'Saving…' : product ? 'Save Changes' : 'Add Item'}
+            <Icon name="check" size={14} color="#fff" /> {saving ? 'Savingâ€¦' : product ? 'Save Changes' : 'Add Item'}
           </button>
         </>
       }
@@ -265,26 +265,26 @@ function ProductForm({ product, onSave, onClose }: {
             <input style={inp} type="number" min={0} value={form.purchasePrice} onChange={e => set('purchasePrice', +e.target.value)} />
           </F>
           {/* Tax treatment, not a bare rate. The old control offered 0% and 18%
-              and labelled 0% "(Exempt)" — which is one of four things 0% can
+              and labelled 0% "(Exempt)" â€” which is one of four things 0% can
               mean, and the wrong one for most of what this catalogue sells. */}
           <F label="Tax Treatment">
             <Select value={form.taxCodeId ?? ''} onValueChange={setTaxCode}>
               <SelectTrigger><SelectValue placeholder="Not classified" /></SelectTrigger>
               <SelectContent>
                 {taxCodes.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.name} — {c.rate}%</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>{c.name} â€” {c.rate}%</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <div style={{ fontSize: 11, color: 'var(--ink3)', lineHeight: 1.4, marginTop: 2 }}>
               {selectedCode
                 ? TAX_CODE_KIND_HINT[selectedCode.kind]
-                : 'This item has no recorded treatment — it will not classify correctly on a return.'}
+                : 'This item has no recorded treatment â€” it will not classify correctly on a return.'}
             </div>
           </F>
           <F label="Description" col2>
             <textarea style={{ ...inp, minHeight: 72, resize: 'vertical' } as React.CSSProperties}
-              value={form.description} onChange={e => set('description', e.target.value)} placeholder="Brief description…" />
+              value={form.description} onChange={e => set('description', e.target.value)} placeholder="Brief descriptionâ€¦" />
           </F>
         </div>
 
@@ -292,7 +292,7 @@ function ProductForm({ product, onSave, onClose }: {
   );
 }
 
-/* ── Main Page ──────────────────────────────────────────────────────────────── */
+/* â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export function FinanceProducts() {
   const { fmt } = useCurrency();
   const isMobile = useIsMobile();
@@ -327,7 +327,7 @@ export function FinanceProducts() {
   }), [products, search, filterType, filterCat, filterStatus]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  // Filtering can shrink the list under the page you are standing on — narrow
+  // Filtering can shrink the list under the page you are standing on â€” narrow
   // a 200-item list to 3 while on page 5 and you would be looking at an empty
   // table with no clue why. Clamping keeps the last page reachable instead.
   const currentPage = Math.min(page, pageCount);
@@ -357,7 +357,7 @@ export function FinanceProducts() {
     if (selected?.id === id) setSelected(null);
   }
 
-  // The form replaces the list rather than layering over it — see FormPage.
+  // The form replaces the list rather than layering over it â€” see FormPage.
   if (showForm) {
     return (
       <ProductForm
@@ -441,7 +441,7 @@ export function FinanceProducts() {
         <div style={{ position: 'relative', width: isMobile ? '100%' : 260 }}>
           <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' } as React.CSSProperties} />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search products & services…"
+            placeholder="Search products & servicesâ€¦"
             style={{ width: '100%', padding: '8px 12px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r, 6px)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
         </div>
         </div>
@@ -475,7 +475,7 @@ export function FinanceProducts() {
                     onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--bg)'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isActive ? 'var(--teal-l)' : ''; }}
                   >
-                    <td style={{ padding: '11px 14px', fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{p.code}</td>
+                    <td style={{ padding: '11px 14px', fontFamily: 'var(--font)', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{p.code}</td>
                     <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--ink)', maxWidth: 200 }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
                     </td>
@@ -484,7 +484,7 @@ export function FinanceProducts() {
                     </td>
                     <td style={{ padding: '11px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{p.category}</td>
                     <td style={{ padding: '11px 14px', color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{p.unit}</td>
-                    <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--teal)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmt(p.salePrice)}</td>
+                    <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--teal)', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmt(p.salePrice)}</td>
                     <td style={{ padding: '11px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>
                       {p.taxRate}%
                       <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: p.taxCodeId ? 'var(--ink3)' : 'var(--gold)' }}>
@@ -518,7 +518,7 @@ export function FinanceProducts() {
 
           {/* Pager. Same shape as the landed-cost history footer: what you are
               looking at on the left, the controls on the right. Hidden when
-              everything already fits on one page — a pager that can only ever
+              everything already fits on one page â€” a pager that can only ever
               say "Page 1 of 1" is noise. */}
           {filtered.length > PAGE_SIZE && (
             <div style={{
@@ -527,7 +527,7 @@ export function FinanceProducts() {
               fontSize: 12.5, color: 'var(--ink3)',
             }}>
               <span>
-                {offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length.toLocaleString()} item{filtered.length === 1 ? '' : 's'}
+                {offset + 1}â€“{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length.toLocaleString()} item{filtered.length === 1 ? '' : 's'}
               </span>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button type="button" disabled={currentPage === 1}

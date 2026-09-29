@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
@@ -108,7 +108,7 @@ export const FinanceCashFlow: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading cash flow…</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading cash flowâ€¦</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
@@ -135,7 +135,7 @@ export const FinanceCashFlow: React.FC = () => {
         </div>
 
         {/* Cash Flow table */}
-        <SectionCard padded={false} title={`Monthly Cash Flow — ${year}`}>
+        <SectionCard padded={false} title={`Monthly Cash Flow â€” ${year}`}>
           <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
@@ -148,27 +148,27 @@ export const FinanceCashFlow: React.FC = () => {
               {rows.map((row, i) => (
                 <tr key={row.month} style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 600 }}>{row.month} {year}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{fmtFull(row.open)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--mono)' }}>{fmtFull(row.cashIn)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--red)', fontWeight: 600, fontFamily: 'var(--mono)' }}>{fmtFull(row.cashOut)}</td>
-                  <td style={{ padding: '10px 16px', color: row.net >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 700, fontFamily: 'var(--mono)' }}>{row.net >= 0 ? '+' : ''}{fmtFull(row.net)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--mono)' }}>{fmtFull(row.close)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--ink2)', fontFamily: 'var(--font)' }}>{fmtFull(row.open)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--font)' }}>{fmtFull(row.cashIn)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--red)', fontWeight: 600, fontFamily: 'var(--font)' }}>{fmtFull(row.cashOut)}</td>
+                  <td style={{ padding: '10px 16px', color: row.net >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 700, fontFamily: 'var(--font)' }}>{row.net >= 0 ? '+' : ''}{fmtFull(row.net)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--font)' }}>{fmtFull(row.close)}</td>
                 </tr>
               ))}
               <tr style={{ background: 'var(--bg)' }}>
                 <td style={{ padding: '10px 16px', fontWeight: 700, color: 'var(--ink)', borderTop: '2px solid var(--border)' }}>Total {year}</td>
                 <td style={{ padding: '10px 16px', borderTop: '2px solid var(--border)' }} />
-                <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totalIn)}</td>
-                <td style={{ padding: '10px 16px', color: 'var(--red)', fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totalOut)}</td>
-                <td style={{ padding: '10px 16px', color: 'var(--green)', fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{totalNet >= 0 ? '+' : ''}{fmtFull(totalNet)}</td>
-                <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(closing)}</td>
+                <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totalIn)}</td>
+                <td style={{ padding: '10px 16px', color: 'var(--red)', fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totalOut)}</td>
+                <td style={{ padding: '10px 16px', color: 'var(--green)', fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{totalNet >= 0 ? '+' : ''}{fmtFull(totalNet)}</td>
+                <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(closing)}</td>
               </tr>
             </tbody>
           </table></div>
         </SectionCard>
 
         {/* Breakdown note */}
-        <SectionCard title={`Cash Movement Breakdown — ${year}`}>
+        <SectionCard title={`Cash Movement Breakdown â€” ${year}`}>
           <div style={{ display: 'flex', gap: 14 }}>
             {sourceBreakdown.map(s => (
               <div key={s.label} style={{ flex: 1 }}>

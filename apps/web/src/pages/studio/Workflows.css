@@ -1,11 +1,11 @@
-/* ═══════════════════════════════════════════════════════
-   ClearOS Workflows — Workflows.css
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   ClearOS Workflows â€” Workflows.css
    Workflow List Page + Visual Canvas Builder
-   ═══════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* ─────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    SHARED UTILITIES
-   ───────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .wf-badge { display:inline-flex; align-items:center; gap:3px; padding:var(--badge-py) var(--badge-px); border-radius:100px; font-size:var(--badge-fs); font-weight:600; white-space:nowrap; }
 .wf-badge-green  { background:var(--green-l); color:var(--green); }
@@ -39,9 +39,9 @@
 .wfb-toggle-label { font-size:12.5px; font-weight:700; color:var(--ink); }
 .wfb-toggle-sub { font-size:11px; color:var(--ink3); margin-top:1px; }
 
-/* ─────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    WORKFLOW LIST PAGE  (WorkflowsPage)
-   ───────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .wf-page { display:flex; flex-direction:column; height:100%; overflow:hidden; }
 
@@ -86,13 +86,13 @@
 .wf-empty-title { font-size:14px; font-weight:700; color:var(--navy); }
 .wf-empty-sub   { font-size:12.5px; color:var(--ink3); max-width:280px; line-height:1.5; }
 
-/* ─────────────────────────────────────────────────────
-   WORKFLOW BUILDER — VISUAL CANVAS
-   ───────────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   WORKFLOW BUILDER â€” VISUAL CANVAS
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .wfb-page { display:flex; flex-direction:column; height:100%; overflow:hidden; background:var(--white); }
 
-/* ── Top bar ── */
+/* â”€â”€ Top bar â”€â”€ */
 .wfb-topbar {
   display:flex; align-items:center; gap:10px; padding:10px 16px;
   background:var(--white); border-bottom:1px solid var(--border,#E2E8F0);
@@ -107,10 +107,10 @@
 .wfb-topbar-name:focus { background:var(--bg,#f8fafc); border:1.5px solid var(--teal); padding:2px 8px; }
 .wfb-topbar-name::placeholder { color:var(--ink3); font-weight:400; }
 
-/* ── Main layout ── */
+/* â”€â”€ Main layout â”€â”€ */
 .wfb-main { display:flex; flex:1; min-height:0; overflow:hidden; }
 
-/* ── Canvas area — dot grid ── */
+/* â”€â”€ Canvas area â€” dot grid â”€â”€ */
 .wfb-canvas-area {
   flex:1; overflow:auto; position:relative;
   background-color:var(--bg);
@@ -128,14 +128,14 @@
   transform-origin:0 0;
 }
 
-/* SVG connection layer — sits on top of canvas, under nodes */
+/* SVG connection layer â€” sits on top of canvas, under nodes */
 .wfb-svg-layer {
   position:absolute; top:0; left:0;
   pointer-events:none; overflow:visible;
   z-index:1;
 }
 
-/* ── Node card ── */
+/* â”€â”€ Node card â”€â”€ */
 .wfb-node {
   position:absolute; z-index:2;
   width:240px;
@@ -201,7 +201,7 @@
 .wfb-add-first { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:10px; }
 .wfb-add-first-label { font-size:13px; color:var(--ink3); }
 
-/* ── Right configuration panel ── */
+/* â”€â”€ Right configuration panel â”€â”€ */
 .wfb-right-panel {
   width:320px; flex-shrink:0;
   border-left:1px solid var(--border,#E2E8F0);
@@ -240,7 +240,7 @@
 .wfb-comm-ch-badge { font-size:var(--badge-fs-sm); font-weight:700; padding:var(--badge-py-sm) var(--badge-px-sm); border-radius:100px; color:var(--ink); }
 
 .wfb-var-chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:3px; }
-.wfb-var-chip { font-size:var(--badge-fs-sm); font-family:var(--mono); background:var(--bg); border:1px solid var(--border); border-radius:var(--r-sm); padding:var(--badge-py-sm) var(--badge-px-sm); color:var(--teal); cursor:pointer; transition:background-color .16s,border-color .16s; }
+.wfb-var-chip { font-size:var(--badge-fs-sm); font-family:var(--font); background:var(--bg); border:1px solid var(--border); border-radius:var(--r-sm); padding:var(--badge-py-sm) var(--badge-px-sm); color:var(--teal); cursor:pointer; transition:background-color .16s,border-color .16s; }
 .wfb-var-chip:hover { background:var(--teal-l); border-color:var(--teal); }
 
 /* Color picker dots */
@@ -260,13 +260,13 @@
 .wfb-tag-pill:hover { border-color:var(--teal); color:var(--teal); }
 .wfb-tag-pill.sel { background:hsl(var(--primary)); border-color:hsl(var(--primary)); color:hsl(var(--primary-foreground)); }
 
-/* ── Test / History drawer (migration 168 capabilities) ─────────────
+/* â”€â”€ Test / History drawer (migration 168 capabilities) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Right-anchored sheet on the desktop, full-height bottom sheet on a
-   phone — the builder canvas is already horizontally cramped there. */
+   phone â€” the builder canvas is already horizontally cramped there. */
 .wfb-insights-backdrop {
   /* 1000 is this app's modal-backdrop layer (index.css). Anything lower sits
      under the sidebar (200) and the app header, and under the z-50 portal
-     Radix popovers render into — which made the shipment picker inside this
+     Radix popovers render into â€” which made the shipment picker inside this
      drawer visible but unclickable. */
   position:fixed; inset:0; z-index:1000;
   background:rgba(15,23,42,0.34);

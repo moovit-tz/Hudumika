@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -90,7 +90,7 @@ export const ShipmentEdit: React.FC = () => {
   const [form, setForm] = useState<Record<string, string>>({});
   const [customer, setCustomer] = useState<{ id: string | null; name: string | null }>({ id: null, name: null });
 
-  // Nature of Goods — captured right here on Cargo Details rather than a
+  // Nature of Goods â€” captured right here on Cargo Details rather than a
   // separate placement on the shipment page (that inline panel is gone;
   // the Overview tab now only ever *displays* what's saved here). At most
   // one declaration per shipment, matching CreateShipmentPage's own
@@ -140,7 +140,7 @@ export const ShipmentEdit: React.FC = () => {
           .then((res: DgReferenceEntry[]) => {
             const entry = res.find(e => e.un_number === dg.un_number) ?? null;
             setSelectedDgEntry(entry);
-            setSelectedDg({ id: dg.un_number, label: entry ? `${entry.un_number} — ${entry.proper_shipping_name}` : dg.un_number });
+            setSelectedDg({ id: dg.un_number, label: entry ? `${entry.un_number} â€” ${entry.proper_shipping_name}` : dg.un_number });
           })
           .catch(() => {});
       }
@@ -175,7 +175,7 @@ export const ShipmentEdit: React.FC = () => {
   const searchDg = async (q: string): Promise<PickerItem[]> => {
     if (!q.trim()) return [];
     const res: DgReferenceEntry[] = await apiFetch(`/v1/dangerous-goods/reference?q=${encodeURIComponent(q)}`);
-    return res.map(e => ({ id: e.un_number, label: `${e.un_number} — ${e.proper_shipping_name}`, sublabel: `Class ${e.class_or_division}${e.packing_group ? ` · PG ${e.packing_group}` : ''}` }));
+    return res.map(e => ({ id: e.un_number, label: `${e.un_number} â€” ${e.proper_shipping_name}`, sublabel: `Class ${e.class_or_division}${e.packing_group ? ` Â· PG ${e.packing_group}` : ''}` }));
   };
 
   const onPickDg = async (item: PickerItem | null) => {
@@ -186,7 +186,7 @@ export const ShipmentEdit: React.FC = () => {
   };
 
   /** Creates, edits, or removes the shipment's linked dg_declarations row
-   *  to match the Cargo Details step's own Nature of Goods choice — never
+   *  to match the Cargo Details step's own Nature of Goods choice â€” never
    *  touched at all once a declaration has been issued (a real filed
    *  document; the backend refuses that edit too, this is just the honest
    *  UI reflection of the same rule). */
@@ -289,7 +289,7 @@ export const ShipmentEdit: React.FC = () => {
   }
 
   if (loading) return (
-    <PageLoading label="Loading shipment…" size={32} />
+    <PageLoading label="Loading shipmentâ€¦" size={32} />
   );
 
   return (
@@ -300,7 +300,7 @@ export const ShipmentEdit: React.FC = () => {
           <Link to={`/clearos/clearance/${id}`} className="create-shipment-brand" style={{ color: 'var(--ink2)', fontSize: 14 }}>
             <Icon name="chevronLeft" size={16} /> Back to Shipment
           </Link>
-          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--mono)', marginBottom: 32, marginTop: -16 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--font)', marginBottom: 32, marginTop: -16 }}>
             {form.ref_number}
           </div>
           
@@ -354,8 +354,8 @@ export const ShipmentEdit: React.FC = () => {
             }
             subtitle={
               <>
-                {form.ref_number && <>Editing <strong>{form.ref_number}</strong> — </>}
-                {currentStep === 1 && 'Core shipment details — edits save directly to the customs case.'}
+                {form.ref_number && <>Editing <strong>{form.ref_number}</strong> â€” </>}
+                {currentStep === 1 && 'Core shipment details â€” edits save directly to the customs case.'}
                 {currentStep === 2 && 'Port details, vessel, and ETA tracking.'}
                 {currentStep === 3 && 'Weight, CIF value, and invoicing basics.'}
                 {currentStep === 4 && 'Internal remarks and team assignments.'}
@@ -392,13 +392,13 @@ export const ShipmentEdit: React.FC = () => {
                 </div>
 
                 {/* An issued declaration is a real filed document (mirrored
-                    to the shipment's own Cloud folder) — it stays visible
+                    to the shipment's own Cloud folder) â€” it stays visible
                     here but locked; view or re-print it from the Overview
                     tab, which is now the only place it renders. */}
                 {existingDg?.status === 'issued' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink)' }}>
                     <Icon name="checkCircle" size={15} color="var(--green)" />
-                    A dangerous goods declaration for this shipment has already been issued and can no longer be edited here — view or print it from the Overview tab.
+                    A dangerous goods declaration for this shipment has already been issued and can no longer be edited here â€” view or print it from the Overview tab.
                   </div>
                 )}
 
@@ -406,7 +406,7 @@ export const ShipmentEdit: React.FC = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 18, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)'}}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Icon name="alertTriangle" size={16} color="var(--gold)" />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Dangerous goods — extra requirements</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Dangerous goods â€” extra requirements</span>
                     </div>
                     {dgError && <div style={{ fontSize: 12, color: 'var(--red)' }}>{dgError}</div>}
 
@@ -424,7 +424,7 @@ export const ShipmentEdit: React.FC = () => {
                       </div>
                       <div style={{ flex: 2 }}>
                         <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>UN number / goods *</label>
-                        <EntityPicker value={selectedDg} onChange={onPickDg} search={searchDg} placeholder="Search UN number or name…" />
+                        <EntityPicker value={selectedDg} onChange={onPickDg} search={searchDg} placeholder="Search UN number or nameâ€¦" />
                       </div>
                     </div>
 
@@ -435,7 +435,7 @@ export const ShipmentEdit: React.FC = () => {
                         <span style={{ color: 'var(--ink3)' }}>
                           Class {selectedDgEntry.class_or_division}
                           {selectedDgEntry.subsidiary_risk ? ` (sub. ${selectedDgEntry.subsidiary_risk})` : ''}
-                          {selectedDgEntry.packing_group ? ` · PG ${selectedDgEntry.packing_group}` : ''}
+                          {selectedDgEntry.packing_group ? ` Â· PG ${selectedDgEntry.packing_group}` : ''}
                         </span>
                         {dgForm.transportMode === 'AIR' && selectedDgEntry.air_transport_restriction && (
                           <span style={{
@@ -543,7 +543,7 @@ export const ShipmentEdit: React.FC = () => {
             {currentStep === 4 ? (
               <button type="button" onClick={handleDelete} disabled={deleting}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--red)', background: 'var(--red-l)', color: 'var(--red)', fontSize: 13, fontWeight: 700, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                <Icon name="trash" size={14} /> {deleting ? 'Deleting…' : 'Delete'}
+                <Icon name="trash" size={14} /> {deleting ? 'Deletingâ€¦' : 'Delete'}
               </button>
             ) : (
               <div /> // Spacer
@@ -562,7 +562,7 @@ export const ShipmentEdit: React.FC = () => {
               ) : (
                 <button type="button" onClick={handleSave} disabled={saving}
                   style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                  {saving ? 'Saving…' : 'Save Changes'}
+                  {saving ? 'Savingâ€¦' : 'Save Changes'}
                 </button>
               )}
             </div>

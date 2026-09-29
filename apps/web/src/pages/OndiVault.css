@@ -1,9 +1,9 @@
-/* ══════════════════════════════════════════════════════════
-   OndiVault.css — Ondi Personal · ID Documents & Vault
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   OndiVault.css â€” Ondi Personal Â· ID Documents & Vault
    Personal identity document management with Cloud Drive
    integration. Mobile-first, 2x2 compact KPIs, 0% transparency,
    zero AI gradients.
-   ══════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .ov-page {
   display: flex;
@@ -12,7 +12,7 @@
   width: 100%;
 }
 
-/* ── Top Posture KPI Grid ── */
+/* â”€â”€ Top Posture KPI Grid â”€â”€ */
 .ov-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -99,7 +99,7 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-family: var(--mono);
+  font-family: var(--font);
 }
 
 .ov-kpi-sub {
@@ -110,7 +110,7 @@
   gap: 5px;
 }
 
-/* ── Main Layout: Content Grid (2 Columns Desktop) ── */
+/* â”€â”€ Main Layout: Content Grid (2 Columns Desktop) â”€â”€ */
 .ov-layout-grid {
   display: grid;
   grid-template-columns: 1fr 320px;
@@ -132,7 +132,7 @@
   gap: 20px;
 }
 
-/* ── Enterprise Card System (0% Transparency) ── */
+/* â”€â”€ Enterprise Card System (0% Transparency) â”€â”€ */
 .ov-card {
   background: var(--white, #ffffff);
   border: 1px solid var(--border);
@@ -182,7 +182,7 @@
   gap: 16px;
 }
 
-/* ── Filter & Search Toolbar ── */
+/* â”€â”€ Filter & Search Toolbar â”€â”€ */
 .ov-toolbar {
   display: flex;
   align-items: center;
@@ -218,7 +218,7 @@
   color: var(--ink3);
 }
 
-/* ── Document List & Items ── */
+/* â”€â”€ Document List & Items â”€â”€ */
 .ov-doc-list {
   display: flex;
   flex-direction: column;
@@ -292,7 +292,7 @@
   flex-shrink: 0;
 }
 
-/* ── Upload Area ── */
+/* â”€â”€ Upload Area â”€â”€ */
 .ov-upload-dropzone {
   border: 1.5px dashed var(--border);
   border-radius: var(--r, 12px);
@@ -313,7 +313,7 @@
   background: var(--teal-l);
 }
 
-/* ── Mobile Viewports (<640px) ── */
+/* â”€â”€ Mobile Viewports (<640px) â”€â”€ */
 @media (max-width: 640px) {
   .ov-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -370,7 +370,7 @@
   }
 }
 
-/* ── Tablet/Mobile Collapse (<1024px) ── */
+/* â”€â”€ Tablet/Mobile Collapse (<1024px) â”€â”€ */
 @media (max-width: 1024px) {
   .ov-layout-grid {
     grid-template-columns: 1fr;

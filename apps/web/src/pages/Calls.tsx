@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch, BASE_URL } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -40,9 +40,9 @@ type CallState = 'idle' | 'calling' | 'incoming' | 'in-call';
 const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return 'â€”';
   const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' · ' +
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' Â· ' +
     d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
@@ -65,17 +65,17 @@ export function Calls() {
   const [error, setError] = useState<string | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
 
-  // ── Tabs State ──
+  // â”€â”€ Tabs State â”€â”€
   const [tab, setTab] = useState<'directory' | 'history' | 'dialpad'>('directory');
 
-  // ── Filter & Pagination States - Directory ──
+  // â”€â”€ Filter & Pagination States - Directory â”€â”€
   const [searchStaff, setSearchStaff] = useState('');
   const [presenceFilter, setPresenceFilter] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
   const [dirPage, setDirPage] = useState(1);
   const DIR_PAGE_SIZE = 8;
 
-  // ── Filter & Pagination States - History Log ──
+  // â”€â”€ Filter & Pagination States - History Log â”€â”€
   const [searchHistory, setSearchHistory] = useState('');
   const [directionFilter, setDirectionFilter] = useState<string | null>(null);
   const [historyKindFilter, setHistoryKindFilter] = useState<string | null>(null);
@@ -83,7 +83,7 @@ export function Calls() {
   const [historyPage, setHistoryPage] = useState(1);
   const HISTORY_PAGE_SIZE = 10;
 
-  // ── Dialpad State ──
+  // â”€â”€ Dialpad State â”€â”€
   const [dialpadNumber, setDialpadNumber] = useState('');
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -117,7 +117,7 @@ export function Calls() {
 
   useEffect(() => { load(); }, [load]);
 
-  // ── WebRTC Signaling Socket ──
+  // â”€â”€ WebRTC Signaling Socket â”€â”€
   const send = (m: any) => {
     try { wsRef.current?.send(JSON.stringify(m)); } catch { /* */ }
   };
@@ -216,7 +216,7 @@ export function Calls() {
     return () => { try { ws.close(); } catch { /* */ } };
   }, [callState, newPeerConnection, cleanup]);
 
-  // ── Actions ──
+  // â”€â”€ Actions â”€â”€
   const startCall = async (person: Staff, k: 'VIDEO' | 'VOICE') => {
     setError(null); setKind(k); setPeer(person);
     try {
@@ -231,7 +231,7 @@ export function Calls() {
     }
   };
 
-  // Deep-link entry point — Chat.tsx's "Start Voice/Video Call" buttons (a
+  // Deep-link entry point â€” Chat.tsx's "Start Voice/Video Call" buttons (a
   // DM's header and its details drawer) navigate here with ?call=<userId>
   // instead of just landing on the generic directory, so clicking one
   // actually rings that specific person via the same real WebRTC signaling
@@ -271,7 +271,7 @@ export function Calls() {
 
   const inCall = callState === 'in-call' || callState === 'calling';
 
-  // ── Filtering Logic: Directory ──
+  // â”€â”€ Filtering Logic: Directory â”€â”€
   const availableRoles = useMemo(() => Array.from(new Set(staff.map(s => s.role).filter(Boolean))), [staff]);
   
   const filteredStaff = useMemo(() => {
@@ -290,7 +290,7 @@ export function Calls() {
   const totalDirPages = Math.max(1, Math.ceil(filteredStaff.length / DIR_PAGE_SIZE));
   const paginatedStaff = filteredStaff.slice((dirPage - 1) * DIR_PAGE_SIZE, dirPage * DIR_PAGE_SIZE);
 
-  // ── Filtering Logic: History ──
+  // â”€â”€ Filtering Logic: History â”€â”€
   const filteredHistory = useMemo(() => {
     return history.filter(h => {
       const outgoing = h.caller_id === user?.id;
@@ -359,7 +359,7 @@ export function Calls() {
       background: 'var(--bg)',
       minHeight: '100%',
     }}>
-      {/* ── Standard PageHeader ── */}
+      {/* â”€â”€ Standard PageHeader â”€â”€ */}
       <PageHeader
         crumbs={['Bliss', 'Calls']}
         titlePlain="Call"
@@ -382,7 +382,7 @@ export function Calls() {
 
       {error && <Banner variant="error">{error}</Banner>}
 
-      {/* ── Top Metrics Ribbon (Responsive Grid) ── */}
+      {/* â”€â”€ Top Metrics Ribbon (Responsive Grid) â”€â”€ */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
@@ -455,18 +455,18 @@ export function Calls() {
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--ink2)', fontWeight: 600, marginTop: 1 }}>Signaling Gateway</div>
             <div style={{ fontSize: 10.5, color: wsConnected ? 'var(--green)' : 'var(--red)', fontWeight: 700 }}>
-              {wsConnected ? 'Ready for incoming/outgoing' : 'Reconnecting gateway…'}
+              {wsConnected ? 'Ready for incoming/outgoing' : 'Reconnecting gatewayâ€¦'}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Segmented Navigation Tabs Bar ──
+      {/* â”€â”€ Segmented Navigation Tabs Bar â”€â”€
           Wraps instead of scrolling: nowrap + overflow-x:auto + a hidden
           scrollbar let the Export button silently scroll off-screen with no
-          visible way to reach it whenever the row didn't fit — same defect
+          visible way to reach it whenever the row didn't fit â€” same defect
           fixed in MeetingCenter.tsx's toolbar. Wrapping can never hide a
-          control. ── */}
+          control. â”€â”€ */}
       <div style={{
         background: 'var(--card-bg, var(--white))',
         borderRadius: 'var(--r, 14px)',
@@ -516,7 +516,7 @@ export function Calls() {
         )}
       </div>
 
-      {/* ── TAB 1: COLLEAGUE DIRECTORY ── */}
+      {/* â”€â”€ TAB 1: COLLEAGUE DIRECTORY â”€â”€ */}
       {tab === 'directory' && (
         <div style={{
           display: 'grid',
@@ -534,7 +534,7 @@ export function Calls() {
             flexDirection: 'column',
             overflow: 'hidden',
           }}>
-            {/* Single Row Filter Bar — wraps rather than a hidden-scrollbar overflow (see Calls tab bar above) */}
+            {/* Single Row Filter Bar â€” wraps rather than a hidden-scrollbar overflow (see Calls tab bar above) */}
             <div style={{
               padding: '12px 16px',
               borderBottom: '1px solid var(--border)',
@@ -630,7 +630,7 @@ export function Calls() {
                           </div>
                           <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2 }}>
                             {p.role || 'Staff Member'}
-                            {p.department && ` • ${p.department}`}
+                            {p.department && ` â€¢ ${p.department}`}
                           </div>
                         </div>
                       </div>
@@ -689,7 +689,7 @@ export function Calls() {
                 gap: 10,
               }}>
                 <div>
-                  Showing {Math.min(filteredStaff.length, (dirPage - 1) * DIR_PAGE_SIZE + 1)}–{Math.min(filteredStaff.length, dirPage * DIR_PAGE_SIZE)} of {filteredStaff.length} team members
+                  Showing {Math.min(filteredStaff.length, (dirPage - 1) * DIR_PAGE_SIZE + 1)}â€“{Math.min(filteredStaff.length, dirPage * DIR_PAGE_SIZE)} of {filteredStaff.length} team members
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Button variant="outline" size="sm" disabled={dirPage <= 1} onClick={() => setDirPage(p => Math.max(1, p - 1))}>
@@ -762,7 +762,7 @@ export function Calls() {
                             {other}
                           </div>
                           <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>
-                            {outgoing ? 'Outgoing' : 'Incoming'} • {fmtDate(h.started_at)}
+                            {outgoing ? 'Outgoing' : 'Incoming'} â€¢ {fmtDate(h.started_at)}
                           </div>
                         </div>
                       </div>
@@ -781,7 +781,7 @@ export function Calls() {
         </div>
       )}
 
-      {/* ── TAB 2: CALL LOGS & HISTORY (Hybrid Desktop Table + Mobile Cards) ── */}
+      {/* â”€â”€ TAB 2: CALL LOGS & HISTORY (Hybrid Desktop Table + Mobile Cards) â”€â”€ */}
       {tab === 'history' && (
         <div style={{
           background: 'var(--card-bg, var(--white))',
@@ -792,7 +792,7 @@ export function Calls() {
           flexDirection: 'column',
           overflow: 'hidden',
         }}>
-          {/* Single Row Filter Bar — wraps rather than a hidden-scrollbar overflow (see Calls tab bar above) */}
+          {/* Single Row Filter Bar â€” wraps rather than a hidden-scrollbar overflow (see Calls tab bar above) */}
           <div style={{
             padding: '12px 16px',
             borderBottom: '1px solid var(--border)',
@@ -908,7 +908,7 @@ export function Calls() {
                         </Badge>
                         <span>{h.kind}</span>
                       </div>
-                      <div style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>
+                      <div style={{ fontWeight: 700, fontFamily: 'var(--font)' }}>
                         {missed ? '0s' : fmtDur(h.duration_seconds)}
                       </div>
                     </div>
@@ -978,7 +978,7 @@ export function Calls() {
                           </span>
                         </td>
 
-                        <td style={{ padding: '12px 16px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>
                           {missed ? '0s' : fmtDur(h.duration_seconds)}
                         </td>
 
@@ -1030,7 +1030,7 @@ export function Calls() {
               gap: 10,
             }}>
               <div>
-                Showing {Math.min(filteredHistory.length, (historyPage - 1) * HISTORY_PAGE_SIZE + 1)}–{Math.min(filteredHistory.length, historyPage * HISTORY_PAGE_SIZE)} of {filteredHistory.length} records
+                Showing {Math.min(filteredHistory.length, (historyPage - 1) * HISTORY_PAGE_SIZE + 1)}â€“{Math.min(filteredHistory.length, historyPage * HISTORY_PAGE_SIZE)} of {filteredHistory.length} records
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Button variant="outline" size="sm" disabled={historyPage <= 1} onClick={() => setHistoryPage(p => Math.max(1, p - 1))}>
@@ -1046,7 +1046,7 @@ export function Calls() {
         </div>
       )}
 
-      {/* ── TAB 3: QUICK DIALPAD & EXTENSION CALLER ── */}
+      {/* â”€â”€ TAB 3: QUICK DIALPAD & EXTENSION CALLER â”€â”€ */}
       {tab === 'dialpad' && (
         <div style={{
           display: 'flex',
@@ -1096,7 +1096,7 @@ export function Calls() {
                   fontWeight: 700,
                   color: 'var(--ink)',
                   width: '100%',
-                  fontFamily: 'var(--mono)',
+                  fontFamily: 'var(--font)',
                   letterSpacing: '0.05em',
                 }}
               />
@@ -1142,7 +1142,7 @@ export function Calls() {
                     }}
                   >
                     <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{s.name}</span>
-                    <span style={{ fontSize: 11, color: 'var(--teal)' }}>Call Now ↗</span>
+                    <span style={{ fontSize: 11, color: 'var(--teal)' }}>Call Now â†—</span>
                   </button>
                 ))}
               </div>
@@ -1217,7 +1217,7 @@ export function Calls() {
         </div>
       )}
 
-      {/* ── INCOMING CALL PROMPT MODAL ── */}
+      {/* â”€â”€ INCOMING CALL PROMPT MODAL â”€â”€ */}
       {callState === 'incoming' && peer && (
         <div style={{
           position: 'fixed',
@@ -1259,7 +1259,7 @@ export function Calls() {
             <div style={{ fontSize: 19, fontWeight: 900, color: 'var(--ink)' }}>{peer.name}</div>
             <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 4, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icon name={kind === 'VIDEO' ? 'camera' : 'phone'} size={14} color="var(--teal)" />
-              <span>Incoming WebRTC {kind === 'VIDEO' ? 'Video' : 'Voice'} Call…</span>
+              <span>Incoming WebRTC {kind === 'VIDEO' ? 'Video' : 'Voice'} Callâ€¦</span>
             </div>
 
             <div style={{ display: 'flex', gap: 14, width: '100%', justifyContent: 'center' }}>
@@ -1284,7 +1284,7 @@ export function Calls() {
         </div>
       )}
 
-      {/* ── ACTIVE FULLSCREEN CALL STAGE ── */}
+      {/* â”€â”€ ACTIVE FULLSCREEN CALL STAGE â”€â”€ */}
       {inCall && peer && (
         <div style={{
           position: 'fixed',
@@ -1336,7 +1336,7 @@ export function Calls() {
                 <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.02em' }}>{peer.name}</div>
                 <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Icon name={kind === 'VIDEO' ? 'camera' : 'phone'} size={15} />
-                  <span>{callState === 'calling' ? 'Ringing WebRTC peer…' : `In Voice Call • ${fmtDur(elapsed)}`}</span>
+                  <span>{callState === 'calling' ? 'Ringing WebRTC peerâ€¦' : `In Voice Call â€¢ ${fmtDur(elapsed)}`}</span>
                 </div>
               </div>
             )}
@@ -1361,8 +1361,8 @@ export function Calls() {
               }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }} />
                 <span>{peer.name}</span>
-                <span style={{ color: 'rgba(255,255,255,0.6)' }}>•</span>
-                <span style={{ fontFamily: 'var(--mono)' }}>{fmtDur(elapsed)}</span>
+                <span style={{ color: 'rgba(255,255,255,0.6)' }}>â€¢</span>
+                <span style={{ fontFamily: 'var(--font)' }}>{fmtDur(elapsed)}</span>
               </div>
             )}
 

@@ -1,4 +1,5 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireFinanceCapability } from '../middleware/finance-capability.js';
 import { requireRole } from '../middleware/rbac.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -51,6 +52,7 @@ export async function glRoutes(fastify: FastifyInstance) {
   // Ensure user is authenticated for all GL routes
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
+  fastify.addHook('preHandler', requireFinanceCapability('finance.accounting.advanced'));
   // Every route in this file reads or writes GL data — gate the whole
   // plugin by role once here rather than per-route, so a new report
   // endpoint added later doesn't silently ship without one (as every GET
@@ -199,7 +201,7 @@ export async function glRoutes(fastify: FastifyInstance) {
   });
 
   // Journal Entries
-  fastify.post('/journal-entries', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
+  fastify.post('/journal-entries', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'), requireFinanceCapability('finance.accounting.advanced')] }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const body = journalEntrySchema.parse(request.body);
@@ -217,7 +219,7 @@ export async function glRoutes(fastify: FastifyInstance) {
   // API at all — this posts the mirror-image reversal and marks the
   // original VOIDED, same reversal-not-deletion shape invoices/bills
   // already use when voiding their own postings.
-  fastify.post('/journal-entries/:id/void', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request: any, reply) => {
+  fastify.post('/journal-entries/:id/void', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE'), requireFinanceCapability('finance.accounting.advanced')] }, async (request: any, reply) => {
     const { id } = request.params as { id: string };
     const { reason } = z.object({ reason: z.string().trim().min(1).max(500) }).parse(request.body);
     try {
@@ -334,7 +336,7 @@ export async function glRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post('/entities', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+  fastify.post('/entities', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'), requireFinanceCapability('finance.consolidation')] }, async (request: any, reply) => {
     const body = z.object({
       name: z.string().trim().min(1).max(200),
       entityCode: z.string().trim().min(1).max(20),
@@ -350,7 +352,7 @@ export async function glRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.patch('/entities/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+  fastify.patch('/entities/:id', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'), requireFinanceCapability('finance.consolidation')] }, async (request: any, reply) => {
     const { id } = request.params as { id: string };
     const body = z.object({
       name: z.string().trim().min(1).max(200).optional(),
@@ -385,7 +387,7 @@ export async function glRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post('/intercompany-transactions', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+  fastify.post('/intercompany-transactions', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'), requireFinanceCapability('finance.consolidation')] }, async (request: any, reply) => {
     const body = z.object({
       fromEntityId: z.string().uuid(),
       toEntityId: z.string().uuid(),

@@ -11,6 +11,9 @@ import { PageLayout } from '../components/PageLayout.js';
 import { FIN_ROLES } from '../lib/permissions.js';
 import { useLocale } from '../hooks/useLocale.js';
 import type { TFunction } from 'i18next';
+import type { FinanceCapabilityKey } from '@hudumika/types';
+import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
+import { FinanceCapabilityGate } from '../components/FinanceCapabilityGate.js';
 
 function buildNav(t: TFunction): SidebarSection[] {
   return [
@@ -77,8 +80,34 @@ function buildNav(t: TFunction): SidebarSection[] {
         { label: t('finance.nav.accountingSync'), icon: 'zap', path: '/finance/integrations' },
       ],
     },
+    {
+      title: 'Settings',
+      items: [{ label: 'Capabilities', icon: 'settings', path: '/finance/settings/capabilities' }],
+    },
   ];
 }
+
+const CAPABILITY_BY_PATH: Partial<Record<string, FinanceCapabilityKey>> = {
+  // Payables
+  '/finance/purchase-orders':                'finance.procurement',
+  // Accounts — advanced accounting
+  '/finance/accounts/journal-entries':       'finance.accounting.advanced',
+  '/finance/accounts/ledger':                'finance.accounting.advanced',
+  '/finance/accounts/multi-entity':          'finance.consolidation',
+  '/finance/accounts/bank-reconciliation':   'finance.accounting.advanced',
+  '/finance/accounts/gl-periods':            'finance.accounting.advanced',
+  '/finance/accounts/approval-workflows':    'finance.accounting.advanced',
+  // Accounts — optional modules
+  '/finance/accounts/fixed-assets':          'finance.fixed_assets',
+  '/finance/accounts/budgets':               'finance.budgets',
+  // Advanced reports (require accounting.advanced for meaningful data)
+  '/finance/accounts/trial-balance':         'finance.accounting.advanced',
+  '/finance/accounts/balance-sheet':         'finance.accounting.advanced',
+  '/finance/accounts/profit-loss':           'finance.accounting.advanced',
+  '/finance/accounts/equity-statement':      'finance.accounting.advanced',
+  '/finance/accounts/aged-receivables':      'finance.accounting.advanced',
+  '/finance/accounts/aged-payables':         'finance.accounting.advanced',
+};
 
 import { FinanceDashboard }       from '../pages/FinanceDashboard.js';
 import { Billing }                from '../pages/Billing.js';
@@ -122,10 +151,17 @@ import { Budgets }                     from '../pages/Budgets.js';
 import { BankReconciliation }          from '../pages/BankReconciliation.js';
 import { GlPeriods }                   from '../pages/GlPeriods.js';
 import { ApApprovalWorkflows }         from '../pages/ApApprovalWorkflows.js';
+import { FinanceCapabilities }         from '../pages/FinanceCapabilities.js';
 
 export function FinOpsShell() {
   const { t } = useLocale();
-  const NAV = buildNav(t);
+  const { data: financeAccess } = useFinanceCapabilities();
+  const enabled = new Set(financeAccess?.capabilities.filter(item => item.enabled).map(item => item.key));
+  const NAV = buildNav(t).map(section => ({
+    ...section,
+    items: section.items.filter(item => !CAPABILITY_BY_PATH[item.path] || !financeAccess || enabled.has(CAPABILITY_BY_PATH[item.path]!)),
+  })).filter(section => section.items.length > 0);
+  const gated = (capability: FinanceCapabilityKey, page: React.ReactNode) => <FinanceCapabilityGate capability={capability}><RequireRoles roles={FIN_ROLES}>{page}</RequireRoles></FinanceCapabilityGate>;
   return (
     <WorkspaceApp appId="finops">
       <div className="app-shell" data-finops="true">
@@ -148,7 +184,7 @@ export function FinOpsShell() {
           <Route path="delivery-notes" element={<Navigate to="/finance/delivery-documents" replace />} />
 
           {/* Payables */}
-          <Route path="purchase-orders" element={<RequireRoles roles={FIN_ROLES}><PurchaseOrders /></RequireRoles>} />
+          <Route path="purchase-orders" element={gated('finance.procurement', <PurchaseOrders />)} />
           <Route path="bills"           element={<RequireRoles roles={FIN_ROLES}><Bills /></RequireRoles>} />
           <Route path="vendors"         element={<RequireRoles roles={FIN_ROLES}><FinanceVendors /></RequireRoles>} />
           <Route path="expenses"        element={<RequireRoles roles={FIN_ROLES}><Expenses /></RequireRoles>} />
@@ -164,20 +200,20 @@ export function FinOpsShell() {
           <Route path="accounts">
             <Route index                  element={<RequireRoles roles={FIN_ROLES}><AccountsQuery /></RequireRoles>} />
             <Route path="chart-of-accounts" element={<RequireRoles roles={FIN_ROLES}><ChartOfAccounts /></RequireRoles>} />
-            <Route path="journal-entries" element={<RequireRoles roles={FIN_ROLES}><JournalEntries /></RequireRoles>} />
-            <Route path="ledger"          element={<RequireRoles roles={FIN_ROLES}><FinanceLedger /></RequireRoles>} />
-            <Route path="trial-balance"   element={<RequireRoles roles={FIN_ROLES}><FinanceTrialBalance /></RequireRoles>} />
-            <Route path="balance-sheet"   element={<RequireRoles roles={FIN_ROLES}><FinanceBalanceSheet /></RequireRoles>} />
-            <Route path="profit-loss"     element={<RequireRoles roles={FIN_ROLES}><FinanceProfitLoss /></RequireRoles>} />
-            <Route path="equity-statement" element={<RequireRoles roles={FIN_ROLES}><FinanceEquityStatement /></RequireRoles>} />
-            <Route path="aged-receivables"element={<RequireRoles roles={FIN_ROLES}><FinanceAgedReceivables /></RequireRoles>} />
-            <Route path="aged-payables"   element={<RequireRoles roles={FIN_ROLES}><FinanceAgedPayables /></RequireRoles>} />
-            <Route path="multi-entity"    element={<RequireRoles roles={FIN_ROLES}><MultiEntityAccounting /></RequireRoles>} />
-            <Route path="fixed-assets"    element={<RequireRoles roles={FIN_ROLES}><FixedAssets /></RequireRoles>} />
-            <Route path="budgets"         element={<RequireRoles roles={FIN_ROLES}><Budgets /></RequireRoles>} />
-            <Route path="bank-reconciliation" element={<RequireRoles roles={FIN_ROLES}><BankReconciliation /></RequireRoles>} />
-            <Route path="gl-periods"      element={<RequireRoles roles={FIN_ROLES}><GlPeriods /></RequireRoles>} />
-            <Route path="approval-workflows" element={<RequireRoles roles={FIN_ROLES}><ApApprovalWorkflows /></RequireRoles>} />
+            <Route path="journal-entries" element={gated('finance.accounting.advanced', <JournalEntries />)} />
+            <Route path="ledger"          element={gated('finance.accounting.advanced', <FinanceLedger />)} />
+            <Route path="trial-balance"   element={gated('finance.accounting.advanced', <FinanceTrialBalance />)} />
+            <Route path="balance-sheet"   element={gated('finance.accounting.advanced', <FinanceBalanceSheet />)} />
+            <Route path="profit-loss"     element={gated('finance.accounting.advanced', <FinanceProfitLoss />)} />
+            <Route path="equity-statement" element={gated('finance.accounting.advanced', <FinanceEquityStatement />)} />
+            <Route path="aged-receivables"element={gated('finance.accounting.advanced', <FinanceAgedReceivables />)} />
+            <Route path="aged-payables"   element={gated('finance.accounting.advanced', <FinanceAgedPayables />)} />
+            <Route path="multi-entity"    element={gated('finance.consolidation', <MultiEntityAccounting />)} />
+            <Route path="fixed-assets"    element={gated('finance.fixed_assets', <FixedAssets />)} />
+            <Route path="budgets"         element={gated('finance.budgets', <Budgets />)} />
+            <Route path="bank-reconciliation" element={gated('finance.accounting.advanced', <BankReconciliation />)} />
+            <Route path="gl-periods"      element={gated('finance.accounting.advanced', <GlPeriods />)} />
+            <Route path="approval-workflows" element={gated('finance.accounting.advanced', <ApApprovalWorkflows />)} />
           </Route>
 
           {/* Reports */}
@@ -194,6 +230,7 @@ export function FinOpsShell() {
 
           {/* Integrations */}
           <Route path="integrations" element={<RequireRoles roles={FIN_ROLES}><AccountingIntegrations /></RequireRoles>} />
+          <Route path="settings/capabilities" element={<RequireRoles roles={FIN_ROLES}><FinanceCapabilities /></RequireRoles>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/finance" replace />} />

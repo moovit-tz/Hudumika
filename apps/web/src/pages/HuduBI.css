@@ -1,4 +1,4 @@
-.hbi-page {
+﻿.hbi-page {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -36,7 +36,7 @@
 .hbi-kpi-value {
   overflow: hidden;
   color: var(--ink);
-  font-family: var(--mono);
+  font-family: var(--font);
   font-size: clamp(19px, 1.7vw, 24px);
   font-weight: 800;
   line-height: 1.1;

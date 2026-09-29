@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Icon } from '../../components/Icon.js';
@@ -17,7 +17,7 @@ import { showAlert } from '../../lib/alert.js';
  * anywhere in the platform is already screened server-side, best-effort, at
  * creation time (customers.routes.ts) against the shared OFAC SDN + UN
  * Consolidated lists synced daily (sanctions-sync.job.ts). This page is
- * where a real, unresolved match — status 'flagged' — gets a human decision,
+ * where a real, unresolved match â€” status 'flagged' â€” gets a human decision,
  * plus an ad-hoc screen box for checking a name before it becomes a record.
  */
 
@@ -55,7 +55,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function fmtScore(s: Screening['best_match_score']): string {
-  if (s == null) return '—';
+  if (s == null) return 'â€”';
   return `${Math.round(Number(s) * 100)}%`;
 }
 
@@ -139,7 +139,7 @@ export function SanctionsScreeningPage() {
         crumbs={['ClearOS', 'Compliance', 'Screening']}
         titlePlain="Sanctions"
         titleEm="screening"
-        subtitle="Every customer is checked against the OFAC SDN and UN Consolidated lists at creation — flagged matches wait here for a human decision."
+        subtitle="Every customer is checked against the OFAC SDN and UN Consolidated lists at creation â€” flagged matches wait here for a human decision."
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -148,12 +148,12 @@ export function SanctionsScreeningPage() {
             <Input
               value={adhocName}
               onChange={e => setAdhocName(e.target.value)}
-              placeholder="Full name or company name…"
+              placeholder="Full name or company nameâ€¦"
               style={{ maxWidth: 340 }}
               onKeyDown={e => { if (e.key === 'Enter') runAdhocScreen(); }}
             />
             <Button disabled={adhocBusy || !adhocName.trim()} onClick={runAdhocScreen}>
-              {adhocBusy ? 'Screening…' : 'Screen'}
+              {adhocBusy ? 'Screeningâ€¦' : 'Screen'}
             </Button>
           </div>
           {adhocResult && (
@@ -168,7 +168,7 @@ export function SanctionsScreeningPage() {
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
                       <Badge variant={m.score >= 0.45 ? 'error' : 'warning'}>{Math.round(m.score * 100)}%</Badge>
                       <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{m.matchedName}</span>
-                      <span style={{ color: 'var(--ink3)' }}>· {m.source} {m.entryType.toLowerCase()} · {m.programs || 'no program listed'}</span>
+                      <span style={{ color: 'var(--ink3)' }}>Â· {m.source} {m.entryType.toLowerCase()} Â· {m.programs || 'no program listed'}</span>
                     </div>
                   ))}
                 </div>
@@ -221,9 +221,9 @@ export function SanctionsScreeningPage() {
                         >
                           {row.best_match_name}
                         </button>
-                      ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
+                      ) : <span style={{ color: 'var(--ink3)' }}>â€”</span>}
                     </td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{fmtScore(row.best_match_score)}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--ink3)' }}>{fmtScore(row.best_match_score)}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <Badge variant={STATUS_VARIANT[row.status] ?? 'gray'}>{STATUS_LABEL[row.status] ?? row.status}</Badge>
                     </td>
@@ -250,10 +250,10 @@ export function SanctionsScreeningPage() {
             </div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Note (optional)</div>
-              <Textarea value={reviewNote} onChange={e => setReviewNote(e.target.value)} rows={3} placeholder="Why this is (or isn't) the same party…" />
+              <Textarea value={reviewNote} onChange={e => setReviewNote(e.target.value)} rows={3} placeholder="Why this is (or isn't) the same partyâ€¦" />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
-              <Button variant="outline" disabled={reviewBusy} onClick={() => submitReview('cleared_false_positive')}>Clear — false positive</Button>
+              <Button variant="outline" disabled={reviewBusy} onClick={() => submitReview('cleared_false_positive')}>Clear â€” false positive</Button>
               <Button variant="destructive" disabled={reviewBusy} onClick={() => submitReview('confirmed_match')}>Confirm match</Button>
             </div>
           </div>

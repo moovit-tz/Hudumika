@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
@@ -13,7 +13,7 @@ import { apiFetch } from '../lib/api.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 
 /**
- * Carrier buy-rate contract storage + rate shopping (ClearOS M7) —
+ * Carrier buy-rate contract storage + rate shopping (ClearOS M7) â€”
  * distinct from FreightRateCardsPage's bundled cost+sell rate cards. A
  * lane can now hold several carriers' contracts at once, which is what
  * makes "compare carriers for this lane" a real feature rather than a
@@ -33,9 +33,9 @@ interface ShoppingResult {
 }
 
 const MODES = [
-  { value: 'FCL_20', label: 'FCL — 20ft' },
-  { value: 'FCL_40', label: 'FCL — 40ft' },
-  { value: 'FCL_40HC', label: 'FCL — 40ft HC' },
+  { value: 'FCL_20', label: 'FCL â€” 20ft' },
+  { value: 'FCL_40', label: 'FCL â€” 40ft' },
+  { value: 'FCL_40HC', label: 'FCL â€” 40ft HC' },
   { value: 'LCL', label: 'LCL (per CBM)' },
   { value: 'AIR', label: 'Air (per kg)' },
   { value: 'ROAD', label: 'Road' },
@@ -118,7 +118,7 @@ export function CarrierContractsPage() {
         crumbs={['CargoTracker', 'Freight Booking', 'Carrier Contracts']}
         titlePlain="Carrier"
         titleEm="contracts"
-        subtitle="Real buy-side carrier rates — several contracts can cover the same lane, so you can actually shop between them."
+        subtitle="Real buy-side carrier rates â€” several contracts can cover the same lane, so you can actually shop between them."
         actions={
           <Button onClick={() => setShowForm(s => !s)}>
             <Icon name="plus" size={14} /> {showForm ? 'Cancel' : 'Add contract'}
@@ -144,7 +144,7 @@ export function CarrierContractsPage() {
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Destination</label>
               <Input value={shop.destination_port} onChange={e => setShop(p => ({ ...p, destination_port: e.target.value }))} placeholder="e.g. Dar es Salaam" style={{ width: 180 }} />
             </div>
-            <Button disabled={shopping} onClick={runRateShopping}>{shopping ? 'Searching…' : 'Compare carriers'}</Button>
+            <Button disabled={shopping} onClick={runRateShopping}>{shopping ? 'Searchingâ€¦' : 'Compare carriers'}</Button>
           </div>
 
           {shopResults && (
@@ -158,9 +158,9 @@ export function CarrierContractsPage() {
                       {i === 0 && <Badge variant="brand">Cheapest</Badge>}
                       <PersonAvatar userId={r.carrier_id} kind="carriers" name={r.carrier_name ?? ''} size={22} style={{ borderRadius: 'var(--r-sm)'}} />
                       <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.carrier_name}</span>
-                      <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)', fontWeight: 700 }}>{r.currency} {Number(r.buy_rate).toFixed(2)}</span>
+                      <span style={{ fontFamily: 'var(--font)', color: 'var(--ink)', fontWeight: 700 }}>{r.currency} {Number(r.buy_rate).toFixed(2)}</span>
                       {r.transit_days != null && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{r.transit_days} days transit</span>}
-                      {r.contract_reference && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>· {r.contract_reference}</span>}
+                      {r.contract_reference && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Â· {r.contract_reference}</span>}
                     </div>
                   ))}
                 </div>
@@ -174,7 +174,7 @@ export function CarrierContractsPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Carrier *</label>
-                <Combobox options={activeCarriers.map(c => ({ value: c.id, label: c.name }))} value={form.carrier_id} onChange={v => setForm(p => ({ ...p, carrier_id: v }))} placeholder="Choose carrier…" />
+                <Combobox options={activeCarriers.map(c => ({ value: c.id, label: c.name }))} value={form.carrier_id} onChange={v => setForm(p => ({ ...p, carrier_id: v }))} placeholder="Choose carrierâ€¦" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Contract reference</label>
@@ -218,7 +218,7 @@ export function CarrierContractsPage() {
               </div>
             </div>
             {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-            <Button disabled={saving} onClick={saveContract}>{saving ? 'Saving…' : 'Save contract'}</Button>
+            <Button disabled={saving} onClick={saveContract}>{saving ? 'Savingâ€¦' : 'Save contract'}</Button>
           </SectionCard>
         )}
 
@@ -242,15 +242,15 @@ export function CarrierContractsPage() {
                     <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
                         <PersonAvatar userId={c.carrier_id} kind="carriers" name={c.carrier_name ?? ''} size={26} style={{ borderRadius: 'var(--r-sm)'}} />
-                        <span>{c.carrier_name || '—'}{c.contract_reference && <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{c.contract_reference}</div>}</span>
+                        <span>{c.carrier_name || 'â€”'}{c.contract_reference && <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{c.contract_reference}</div>}</span>
                       </span>
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{MODES.find(m => m.value === c.mode)?.label || c.mode}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.origin_port} → {c.destination_port}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>{c.currency} {Number(c.buy_rate).toFixed(2)}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>{c.transit_days != null ? `${c.transit_days}d` : '—'}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.origin_port} â†’ {c.destination_port}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>{c.currency} {Number(c.buy_rate).toFixed(2)}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>{c.transit_days != null ? `${c.transit_days}d` : 'â€”'}</td>
                     <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>
-                      {c.valid_from ? new Date(c.valid_from).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'} – {c.valid_to ? new Date(c.valid_to).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'}
+                      {c.valid_from ? new Date(c.valid_from).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'â€”'} â€“ {c.valid_to ? new Date(c.valid_to).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'â€”'}
                     </td>
                     <td style={{ padding: '12px 16px' }}><Badge variant={c.active ? 'success' : 'gray'}>{c.active ? 'active' : 'inactive'}</Badge></td>
                   </tr>

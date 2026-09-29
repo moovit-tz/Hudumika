@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, createContext, useContext, useMemo } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback, createContext, useContext, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
@@ -47,7 +47,7 @@ const SettingsCtx = createContext<SettingsCtxType>({ s: {}, save: async () => {}
 // Exported: AdminShell.tsx builds the main app sidebar's Settings entries
 // straight from this array (one expandable top-level item per group) rather
 // than hand-duplicating the same list in two places. This used to be 8
-// groups, several down to a single item after the DEAD/STUB cleanup below —
+// groups, several down to a single item after the DEAD/STUB cleanup below â€”
 // regrouped into 5 properly populated categories instead of leaving
 // one-item groups (Platform, Sales, App Settings, Other) standing alone.
 export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: string; label: string; icon: IconName }> }> = [
@@ -55,7 +55,7 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
     { key: 'company',            label: 'Company Information',  icon: 'building'      },
     { key: 'localization',       label: 'Localization',         icon: 'globe'         },
     { key: 'landing-experience', label: 'Landing Experience',   icon: 'layoutDashboard' },
-    // 'branding' removed as its own nav entry — merged into Company
+    // 'branding' removed as its own nav entry â€” merged into Company
     // Information's "Company Branding" card (workspace name/colour/logo/
     // favicon, all in one place; see CompanySection). ?s=branding still
     // resolves, via renderSection's redirect below, so old links don't 404.
@@ -67,28 +67,28 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
   { group: 'Finance', icon: 'dollarSign', items: [
     { key: 'finance-general',    label: 'General',              icon: 'dollarSign'    },
     // Now the real source of truth for Petti's wallet gateway and the
-    // onboarding charge flow — see lib/payment-gateway.ts. Payment Modes
+    // onboarding charge flow â€” see lib/payment-gateway.ts. Payment Modes
     // and e-Invoice were removed: no component, no backend, gated nothing.
     { key: 'payment-gateways',   label: 'Payment Gateways',     icon: 'creditCard'    },
     { key: 'invoices',           label: 'Invoices',             icon: 'fileText'      },
     // Tax rates, quotations, purchase orders and currencies each had a panel
     // here that saved to a key nothing read, while the real implementations
     // live in FinOps. One control per thing; this one points at it.
-    // Expense Categories used to be its own entry too — unlike its siblings
+    // Expense Categories used to be its own entry too â€” unlike its siblings
     // it was genuinely live (FinanceExpenseNew.tsx really reads this key),
-    // so it moved rather than got deleted: FinOps ▸ Expenses ▸ Manage
+    // so it moved rather than got deleted: FinOps â–¸ Expenses â–¸ Manage
     // Categories (/finance/expenses/categories), same underlying data,
     // reachable from where it's actually used. The row below still points
     // there for anyone who lands here first.
     { key: 'elsewhere',          label: 'Finance setup',        icon: 'externalLink' },
-    // Credit Notes and Subscriptions removed: no component, no backend —
+    // Credit Notes and Subscriptions removed: no component, no backend â€”
     // real credit-note/subscription concepts live elsewhere (Customers,
     // seal-billing, SuperAdmin's Company Subscriptions), not this key.
   ]},
   // "Configure Features" (Customers/Tasks/Support/Leads) removed. Tasks,
   // Support and Leads had no component or backend at all. Customers' one
-  // real, enforced toggle (Enable Customer Portal) moved to NexusHR ▸ Team
-  // ▸ People, per the "control access from Team" decision — the rest of
+  // real, enforced toggle (Enable Customer Portal) moved to NexusHR â–¸ Team
+  // â–¸ People, per the "control access from Team" decision â€” the rest of
   // that panel (self-registration, VAT field, groups) either gated a
   // feature that doesn't exist (no customer self-signup route anywhere) or
   // was write-only with no consumer, so it didn't move with it.
@@ -96,47 +96,47 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
     { key: 'app-freight',        label: 'ClearOS / Freight',    icon: 'package'       },
     // Calendar, PDF and Tags removed: no component, no backend (PDF's
     // "engine: wkhtmltopdf" option didn't even match how this platform
-    // actually generates PDFs — pdfkit, everywhere).
+    // actually generates PDFs â€” pdfkit, everywhere).
     { key: 'other-esign',        label: 'E-Sign',               icon: 'stamp'         },
   ]},
   { group: 'Integrations', icon: 'globe', items: [
     { key: 'int-google',         label: 'Google',               icon: 'globe'         },
     // Own OAuth app, same reasoning as mail-oauth.routes.ts/calendar-sync.routes.ts
-    // each registering their own — this one backs contacts-sync.routes.ts's
-    // real Outlook/Microsoft 365 contact sync (Contacts app ▸ Outlook sync).
+    // each registering their own â€” this one backs contacts-sync.routes.ts's
+    // real Outlook/Microsoft 365 contact sync (Contacts app â–¸ Outlook sync).
     { key: 'int-microsoft',      label: 'Microsoft',            icon: 'globe'         },
     // 'int-ai' and 'int-openai' were two NAV rows pointing at the exact same
     // component and the exact same settings key (OpenAISection / 'int-ai')
-    // — not two settings, one form shown twice. Kept the one label that
+    // â€” not two settings, one form shown twice. Kept the one label that
     // doesn't imply a specific provider, since the model picker inside
     // isn't OpenAI-only.
     { key: 'int-ai',             label: 'AI Integration',       icon: 'sparkle'       },
     // SMS only: no tenant-level WhatsApp credential exists anywhere in the
-    // platform — whatsapp.ts always uses the platform-wide META_* env vars,
+    // platform â€” whatsapp.ts always uses the platform-wide META_* env vars,
     // and the tenant-override params it accepts have no caller. This label
     // used to claim a WhatsApp config that didn't exist here or anywhere.
     { key: 'int-sms',            label: 'SMS',                  icon: 'messageSquare' },
     { key: 'int-tancis',         label: 'TRA VFD / EFDMS',      icon: 'anchor'        },
     // 'int-tpa' (TPA Port Authority) removed: no component (fell through to
     // the "Configuration pending" placeholder), no backend, and no real TPA
-    // API integration anywhere in the platform to eventually back it with —
+    // API integration anywhere in the platform to eventually back it with â€”
     // same category as the other dead placeholders already removed.
     { key: 'int-shipsgo',        label: 'ShipsGo / Ship24',     icon: 'compass'       },
     { key: 'int-gpswox',         label: 'GPSWOX Fleet Tracking', icon: 'mapPin'       },
     // MinIO, Redis/BullMQ and the vague "General" tab are removed. They are
-    // platform infrastructure — the object store and the queue backend the
-    // operator configures with REDIS_URL and S3 env vars — not tenant settings.
+    // platform infrastructure â€” the object store and the queue backend the
+    // operator configures with REDIS_URL and S3 env vars â€” not tenant settings.
     // Nothing read them from a tenant's settings, and a tenant admin has no
     // business configuring the platform's message queue; a settings tab for it
     // is a category error, not just a dead stub.
   ]},
   { group: 'Developer', icon: 'key', items: [
     { key: 'developer-api',      label: 'API Keys',             icon: 'key'           },
-    // SIEM Export moved off this sidebar — it streams Ondi's own security
+    // SIEM Export moved off this sidebar â€” it streams Ondi's own security
     // audit chain (ondi_auth_events), so Ondi's own nav is where a security
     // engineer configuring it actually looks, not tenant billing settings.
-    // The section itself (SiemExportSection below) didn't move — same
-    // /v1/settings-backed key, still reachable at ?s=siem-export — only the
+    // The section itself (SiemExportSection below) didn't move â€” same
+    // /v1/settings-backed key, still reachable at ?s=siem-export â€” only the
     // sidebar entry did. See OndiShell.tsx's Business nav.
   ]},
 ];
@@ -193,7 +193,7 @@ const SaveRow: React.FC<{ extra?: React.ReactNode; onSave?: () => void; saving?:
     {saved && <span className="s-save-ok"><Icon name="check" size={13} color="var(--green)" /> Saved</span>}
     {extra}
     <button type="button" className="btn btn-primary" onClick={onSave} disabled={saving}>
-      {saving ? 'Saving…' : 'Save Changes'}
+      {saving ? 'Savingâ€¦' : 'Save Changes'}
     </button>
   </div>
 );
@@ -206,7 +206,7 @@ function useFields<T extends Record<string, string>>(init: T): [T, (k: keyof T, 
 }
 
 /** Like useFields, but re-syncs its initial values from the already-saved
- * settings blob (SettingsCtx's `s[key]`) the first time it becomes available —
+ * settings blob (SettingsCtx's `s[key]`) the first time it becomes available â€”
  * fixes every section that "saves successfully" but always shows hardcoded
  * defaults again on reload, because plain useState(init) only reads its
  * initializer once and `s` arrives asynchronously after GET /v1/settings resolves. */
@@ -239,7 +239,7 @@ const CompanySection: React.FC = () => {
   const [saved, setSaved] = useState(false);
 
   // organization_id lives on the real tenants row, not the tenant_settings
-  // JSONB blob SettingsCtx carries — fetched independently here rather than
+  // JSONB blob SettingsCtx carries â€” fetched independently here rather than
   // threading a new field through the shared context, same as WorkspaceFacts
   // below does its own GET /v1/settings for what it needs.
   const [linkedOrg, setLinkedOrg] = useState<{ id: string; label: string } | null>(null);
@@ -251,10 +251,10 @@ const CompanySection: React.FC = () => {
   }, []);
 
   // Workspace name + accent colour used to live in a separate "Branding"
-  // section (pushTenantBranding/useBranding — feeds the in-app UI: sidebar,
+  // section (pushTenantBranding/useBranding â€” feeds the in-app UI: sidebar,
   // browser tab, per-app accent) while this card only ever covered the logo
   // used on PDF documents. Two places to upload the same logo, easy to drift
-  // — folded here instead, so this one card is the actual single source and
+  // â€” folded here instead, so this one card is the actual single source and
   // one Save writes both the document-branding store and the in-app one.
   const [workspaceName, setWorkspaceName] = useState('');
   const [accentColor, setAccentColor] = useState('');
@@ -293,13 +293,13 @@ const CompanySection: React.FC = () => {
     setSaving(true);
     setCompany({ name: f.name, email: f.email, phone: f.phone, website: f.website, taxId: f.vat, address: f.address, city: f.city, tagline: f.desc, businessType: f.businessType, contactPerson: f.contactPerson, logoUrl, logoUrlDark, faviconUrl });
     try { await apiSave('company', { name: f.name, email: f.email, phone: f.phone, website: f.website, vat: f.vat, address: f.address, city: f.city, state: f.state, zip: f.zip, country: f.country, desc: f.desc, businessType: f.businessType, contactPerson: f.contactPerson, logoUrl, logoUrlDark, faviconUrl, organizationId: linkedOrg?.id ?? null }); } catch {}
-    // Same logo/favicon, pushed to the in-app UI branding store too — one
+    // Same logo/favicon, pushed to the in-app UI branding store too â€” one
     // upload here is now the only place either gets set. Empty string clears
     // an override and falls back to the platform default, same as
     // pushTenantBranding's own contract, which is why logoUrl/faviconUrl are
     // coerced to '' rather than omitted when unset. logoDark was already a
     // supported field on that endpoint (TENANT_BRANDING_FIELDS in
-    // settings.routes.ts) — nothing on this page ever sent it until now.
+    // settings.routes.ts) â€” nothing on this page ever sent it until now.
     try { await pushTenantBranding({ workspaceName: workspaceName.trim(), logoLight: logoUrl ?? '', logoDark: logoUrlDark ?? '', favicon: faviconUrl ?? '', accentColor: accentColor.trim() }); } catch {}
     setSaving(false);
     setSaved(true);
@@ -331,7 +331,7 @@ const CompanySection: React.FC = () => {
           </Select>
         </Field>
         <Field label="Company Description" full>
-          <textarea className="input-field s-resize-v" rows={3} value={f.desc} onChange={e => set('desc', e.target.value)} placeholder="Short description of your company…" />
+          <textarea className="input-field s-resize-v" rows={3} value={f.desc} onChange={e => set('desc', e.target.value)} placeholder="Short description of your companyâ€¦" />
         </Field>
         <Field label="Linked Organization" full hint="If this workspace also serves as a customer of another clearing agent on Hudumika, link the same shared identity here so your team's own portal usage and your customer-portal usage (if any) are traceable to one company.">
           <EntityPicker
@@ -345,15 +345,15 @@ const CompanySection: React.FC = () => {
               const created = await apiFetch('/v1/organizations', { method: 'POST', body: JSON.stringify({ name }) });
               return { id: created.id, label: created.name };
             }}
-            placeholder="Search or create an organization…"
+            placeholder="Search or create an organizationâ€¦"
           />
         </Field>
       </Card>
-      <Card title="Company Branding" desc="Your workspace's name, colour, logo and favicon — used on PDF invoices, quotes and portal documents, and everywhere in the app your team signs into. The pre-authentication sign-in screen is shared by every workspace on the platform, so it isn't set here.">
+      <Card title="Company Branding" desc="Your workspace's name, colour, logo and favicon â€” used on PDF invoices, quotes and portal documents, and everywhere in the app your team signs into. The pre-authentication sign-in screen is shared by every workspace on the platform, so it isn't set here.">
         <Field label="Workspace Name" hint="Shown in the browser tab and beside your logo in the app.">
           <input className="input-field" value={workspaceName} onChange={e => setWorkspaceName(e.target.value)} placeholder={f.name || 'Your company name'} />
         </Field>
-        <Field label="Brand Colour" hint="Used by apps that have no colour of their own — each app keeps its own by design.">
+        <Field label="Brand Colour" hint="Used by apps that have no colour of their own â€” each app keeps its own by design.">
           <div className="s-brand-colour">
             <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(accentColor) ? accentColor : '#0f766e'}
               onChange={e => setAccentColor(e.target.value)} aria-label="Brand colour" />
@@ -361,15 +361,15 @@ const CompanySection: React.FC = () => {
             {accentColor && <button type="button" className="s-brand-clear" onClick={() => setAccentColor('')}>Clear</button>}
           </div>
         </Field>
-        <Field label="Company Logo" hint="Recommended: 400×100px PNG or SVG" full>
+        <Field label="Company Logo" hint="Recommended: 400Ã—100px PNG or SVG" full>
           <label className={`s-upload${logoUrl ? ' s-upload--on' : ''}`}>
             {logoUrl
               ? <img src={logoUrl} alt="Logo preview" className="s-upload-preview" />
               : <div className="s-upload-ph s-upload-ph--lg">LOGO</div>
             }
             <div className="s-upload-info">
-              <div className={`s-upload-lbl${logoUrl ? ' s-upload-lbl--on' : ' s-upload-lbl--off'}`}>{logoUrl ? 'Logo uploaded · click to change' : 'Click to upload logo'}</div>
-              <div className="s-upload-hint">PNG, SVG or JPG · max 2 MB</div>
+              <div className={`s-upload-lbl${logoUrl ? ' s-upload-lbl--on' : ' s-upload-lbl--off'}`}>{logoUrl ? 'Logo uploaded Â· click to change' : 'Click to upload logo'}</div>
+              <div className="s-upload-hint">PNG, SVG or JPG Â· max 2 MB</div>
             </div>
             {logoUrl && (
               <button type="button" title="Remove logo" onClick={e => { e.preventDefault(); setLogoUrl(null); }} className="s-upload-rm">
@@ -379,15 +379,15 @@ const CompanySection: React.FC = () => {
             <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
           </label>
         </Field>
-        <Field label="Dark Mode Logo" hint="Shown wherever this logo renders on a dark background — invoices, quotes and purchase orders viewed in dark mode, and the in-app header when dark mode is on. Optional: falls back to the logo above if not set." full>
+        <Field label="Dark Mode Logo" hint="Shown wherever this logo renders on a dark background â€” invoices, quotes and purchase orders viewed in dark mode, and the in-app header when dark mode is on. Optional: falls back to the logo above if not set." full>
           <label className={`s-upload${logoUrlDark ? ' s-upload--on' : ''}`}>
             {logoUrlDark
               ? <div className="s-upload-preview-dark-wrap"><img src={logoUrlDark} alt="Dark mode logo preview" className="s-upload-preview" /></div>
               : <div className="s-upload-ph s-upload-ph--lg">LOGO</div>
             }
             <div className="s-upload-info">
-              <div className={`s-upload-lbl${logoUrlDark ? ' s-upload-lbl--on' : ' s-upload-lbl--off'}`}>{logoUrlDark ? 'Dark-mode logo uploaded · click to change' : 'Click to upload a dark-mode variant'}</div>
-              <div className="s-upload-hint">PNG or SVG, ideally with a transparent background · max 2 MB</div>
+              <div className={`s-upload-lbl${logoUrlDark ? ' s-upload-lbl--on' : ' s-upload-lbl--off'}`}>{logoUrlDark ? 'Dark-mode logo uploaded Â· click to change' : 'Click to upload a dark-mode variant'}</div>
+              <div className="s-upload-hint">PNG or SVG, ideally with a transparent background Â· max 2 MB</div>
             </div>
             {logoUrlDark && (
               <button type="button" title="Remove dark-mode logo" onClick={e => { e.preventDefault(); setLogoUrlDark(null); }} className="s-upload-rm">
@@ -409,15 +409,15 @@ const CompanySection: React.FC = () => {
             </div>
           </Field>
         )}
-        <Field label="Favicon" hint="512×512px · PNG, JPG, SVG or ICO">
+        <Field label="Favicon" hint="512Ã—512px Â· PNG, JPG, SVG or ICO">
           <label className={`s-upload s-upload--sm${faviconUrl ? ' s-upload--on' : ''}`}>
             {faviconUrl
               ? <img src={faviconUrl} alt="Favicon preview" className="s-upload-preview--sq" />
               : <div className="s-upload-ph s-upload-ph--sq">ICO</div>
             }
             <div className="s-upload-info">
-              <div className={`s-upload-lbl${faviconUrl ? ' s-upload-lbl--on' : ' s-upload-lbl--off'}`}>{faviconUrl ? 'Favicon uploaded · click to change' : 'Upload favicon'}</div>
-              <div className="s-upload-hint">512×512px · PNG, JPG, SVG or ICO</div>
+              <div className={`s-upload-lbl${faviconUrl ? ' s-upload-lbl--on' : ' s-upload-lbl--off'}`}>{faviconUrl ? 'Favicon uploaded Â· click to change' : 'Upload favicon'}</div>
+              <div className="s-upload-hint">512Ã—512px Â· PNG, JPG, SVG or ICO</div>
             </div>
             {faviconUrl && (
               <button type="button" title="Remove favicon" onClick={e => { e.preventDefault(); setFaviconUrl(null); }} className="s-upload-rm">
@@ -438,7 +438,7 @@ const LocalizationSection: React.FC = () => {
   const { language, setLanguage, LANGUAGES } = useLocale();
   // Language and timezone only. The number/date-pattern fields that used to sit
   // here (decimals, separators, currency position, week start) were stored and
-  // honoured by nothing — the app formats through Intl, which derives those from
+  // honoured by nothing â€” the app formats through Intl, which derives those from
   // the locale itself. Fields that cannot change anything do not belong on a
   // settings screen.
   const [f, set] = useSettingsFields('localization', { lang: language, tz: 'Africa/Dar_es_Salaam' });
@@ -488,7 +488,7 @@ const LocalizationSection: React.FC = () => {
 };
 
 // -- section: Landing Experience ---------------------------------------------
-// The tenant's default for Basic (Agentic) vs Advanced at "/" — a user's own
+// The tenant's default for Basic (Agentic) vs Advanced at "/" â€” a user's own
 // choice (the header toggle, PATCH /auth/me's profile.landing_style) always
 // overrides this for their own account; this is only the fallback everyone
 // else gets. Same useSettingsFields/save('landingStyle', ...) shape as
@@ -514,8 +514,8 @@ const LandingExperienceSection: React.FC = () => {
           <Select value={f.mode} onValueChange={v => set('mode', v)}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="advanced">Advanced — the app launcher</SelectItem>
-              <SelectItem value="basic">Basic — the agentic cockpit</SelectItem>
+              <SelectItem value="advanced">Advanced â€” the app launcher</SelectItem>
+              <SelectItem value="basic">Basic â€” the agentic cockpit</SelectItem>
             </SelectContent>
           </Select>
         </Field>
@@ -526,12 +526,12 @@ const LandingExperienceSection: React.FC = () => {
 };
 
 // -- section: SIEM Export -----------------------------------------------------
-// Fans Ondi's audit chain (ondi_auth_events — every login, KYC decision,
+// Fans Ondi's audit chain (ondi_auth_events â€” every login, KYC decision,
 // role grant/revoke, password/email change) out to a tenant-configured
 // webhook, signed the way Stripe/GitHub sign theirs: HMAC-SHA256 over the
 // raw JSON body, sent as X-Ondi-Signature. Any SIEM that can ingest a
-// signed HTTPS POST works — Splunk HEC, Sentinel, Datadog, or a tenant's
-// own collector — rather than one bespoke vendor integration. Dispatch
+// signed HTTPS POST works â€” Splunk HEC, Sentinel, Datadog, or a tenant's
+// own collector â€” rather than one bespoke vendor integration. Dispatch
 // itself lives in siem-export.ts, fired (unawaited) from recordAuthEvent.
 const SiemExportSection: React.FC = () => {
   const [on, setOn] = useState(false);
@@ -541,7 +541,7 @@ const SiemExportSection: React.FC = () => {
   const [saved, setSaved] = useState(false);
   const hydratedExtra = useRef(false);
   const entitlements = useEntitlements();
-  // undefined while loading — default to entitled so this doesn't flash an
+  // undefined while loading â€” default to entitled so this doesn't flash an
   // upgrade prompt before /v1/entitlements resolves.
   const governanceEntitled = entitlements ? entitlements.features['ondi.governance'] !== false : true;
 
@@ -621,7 +621,7 @@ const EmailSection: React.FC = () => {
   }, [s]);
 
   // Landed here fresh off an OAuth callback redirect (mail-oauth.routes.ts)
-  // — show what happened once, then strip the query params so a page
+  // â€” show what happened once, then strip the query params so a page
   // refresh doesn't re-show a stale result.
   useEffect(() => {
     const oauth = searchParams.get('oauth');
@@ -665,7 +665,7 @@ const EmailSection: React.FC = () => {
 
   // Save first (so the Client ID/Secret the user just typed actually exist
   // server-side), then fetch the real authorize URL via an authenticated
-  // apiFetch call, and only then navigate the browser there — a plain
+  // apiFetch call, and only then navigate the browser there â€” a plain
   // window.location.href straight to our own API would carry no
   // Authorization header (this app's JWT lives in localStorage, not a
   // cookie) and 401 before ever reaching Microsoft/Google.
@@ -710,7 +710,7 @@ const EmailSection: React.FC = () => {
           <Field label="SMTP Host"><input className="input-field" placeholder="mail.example.com" value={f.host} onChange={e => set('host', e.target.value)} /></Field>
           <Field label="Port"><input className="input-field" type="number" value={f.port} onChange={e => set('port', e.target.value)} /></Field>
           <Field label="Username"><input className="input-field" placeholder="your@email.com" value={f.user} onChange={e => set('user', e.target.value)} /></Field>
-          <Field label="Password" hint={f.pass === '••••••••' ? 'A password is already saved — re-enter it only if you want to change it.' : undefined}>
+          <Field label="Password" hint={f.pass === 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' ? 'A password is already saved â€” re-enter it only if you want to change it.' : undefined}>
             <input className="input-field" type="password" value={f.pass} onChange={e => set('pass', e.target.value)} />
           </Field>
           <Field label="Encryption">
@@ -728,7 +728,7 @@ const EmailSection: React.FC = () => {
       {protocol === 'mail' && (
         <Card title="Mail (system default)">
           <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0 }}>
-            Sends through Hudumika's own outgoing mail server — no setup needed. Switch to SMTP, Outlook or Gmail above if you'd rather send from your own domain/mailbox.
+            Sends through Hudumika's own outgoing mail server â€” no setup needed. Switch to SMTP, Outlook or Gmail above if you'd rather send from your own domain/mailbox.
           </p>
         </Card>
       )}
@@ -739,7 +739,7 @@ const EmailSection: React.FC = () => {
               onChange={e => set(protocol === 'outlook' ? 'outlookClientId' : 'gmailClientId', e.target.value)} />
           </Field>
           <Field label="Client Secret"
-            hint={(protocol === 'outlook' ? f.outlookClientSecret : f.gmailClientSecret) === '••••••••' ? 'A secret is already saved — re-enter it only if you want to change it.' : undefined}>
+            hint={(protocol === 'outlook' ? f.outlookClientSecret : f.gmailClientSecret) === 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' ? 'A secret is already saved â€” re-enter it only if you want to change it.' : undefined}>
             <input className="input-field" type="password" value={protocol === 'outlook' ? f.outlookClientSecret : f.gmailClientSecret}
               onChange={e => set(protocol === 'outlook' ? 'outlookClientSecret' : 'gmailClientSecret', e.target.value)} />
           </Field>
@@ -748,7 +748,7 @@ const EmailSection: React.FC = () => {
               {(protocol === 'outlook' ? f.outlookStatus : f.gmailStatus) === 'authorized' ? 'Authorized' : 'Unauthorized'}
             </Badge>
             <button type="button" className="btn btn-primary btn-sm" onClick={() => handleConnect(protocol as 'outlook' | 'gmail')} disabled={connecting === protocol}>
-              {connecting === protocol ? 'Connecting…' : 'Save & Authorize'}
+              {connecting === protocol ? 'Connectingâ€¦' : 'Save & Authorize'}
             </button>
           </div>
         </Card>
@@ -763,7 +763,7 @@ const EmailSection: React.FC = () => {
       <Card title="Inbound Mail (Support Tickets)">
         <ToggleRow
           label="Convert incoming email into support tickets"
-          hint="Polls this mailbox every few minutes — a reply referencing an existing ticket is appended to it; anything else from a known customer opens a new one."
+          hint="Polls this mailbox every few minutes â€” a reply referencing an existing ticket is appended to it; anything else from a known customer opens a new one."
           value={imapEnabled} onChange={setImapEnabled}
         />
         {imapEnabled && (
@@ -781,10 +781,10 @@ const EmailSection: React.FC = () => {
               </Select>
             </Field>
             <Field label="Username"><input className="input-field" placeholder="tickets@example.com" value={imap.user} onChange={e => setImap('user', e.target.value)} /></Field>
-            <Field label="Password" hint={imap.pass === '••••••••' ? 'A password is already saved — re-enter it only if you want to change it.' : undefined}>
+            <Field label="Password" hint={imap.pass === 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' ? 'A password is already saved â€” re-enter it only if you want to change it.' : undefined}>
               <input className="input-field" type="password" value={imap.pass} onChange={e => setImap('pass', e.target.value)} />
             </Field>
-            <Field label="Default Department" hint="Free text — matched against whatever department names this tenant already uses.">
+            <Field label="Default Department" hint="Free text â€” matched against whatever department names this tenant already uses.">
               <input className="input-field" value={imap.targetDepartment} onChange={e => setImap('targetDepartment', e.target.value)} />
             </Field>
             <Field label="Default Ticket Category"><input className="input-field" value={imap.ticketType} onChange={e => setImap('ticketType', e.target.value)} /></Field>
@@ -797,7 +797,7 @@ const EmailSection: React.FC = () => {
           protocol === 'smtp' ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button type="button" className="btn btn-secondary" onClick={handleTestEmail} disabled={testing}>
-                {testing ? 'Sending…' : 'Send Test Email'}
+                {testing ? 'Sendingâ€¦' : 'Send Test Email'}
               </button>
               {testResult && (
                 <span style={{ fontSize: 12, fontWeight: 600, color: testResult.ok ? 'var(--green)' : 'var(--red)' }}>
@@ -817,10 +817,10 @@ const EmailSection: React.FC = () => {
 /**
  * Used to also carry a "Tax & Pricing" card (a second, competing Default Tax
  * Rate select, plus "Show Tax Per Item"/"Show Quantity Field" toggles) that
- * saved to a `finance-general` key nothing in the platform ever reads —
+ * saved to a `finance-general` key nothing in the platform ever reads â€”
  * grepped the whole repo, zero hits outside this file. Real per-transaction
- * tax rates are configured once, for real, in FinOps ▸ Tax codes & rates
- * (linked from the "Finance setup" card below) — this used to be a second,
+ * tax rates are configured once, for real, in FinOps â–¸ Tax codes & rates
+ * (linked from the "Finance setup" card below) â€” this used to be a second,
  * dead surface for the exact same concern. Currency and Fiscal Year Start
  * are real (they write into the `company` key, read by tax-code seeding and
  * the invoice PDF header), so those stay.
@@ -847,7 +847,7 @@ const FinanceGeneralSection: React.FC = () => {
           <Select value={f.currency} onValueChange={v => set('currency', v)}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {[['TZS','TZS — Tanzanian Shilling'],['USD','USD — US Dollar'],['EUR','EUR — Euro'],['GBP','GBP — British Pound'],['KES','KES — Kenyan Shilling'],['UGX','UGX — Ugandan Shilling'],['ZAR','ZAR — South African Rand'],['AED','AED — UAE Dirham']].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+              {[['TZS','TZS â€” Tanzanian Shilling'],['USD','USD â€” US Dollar'],['EUR','EUR â€” Euro'],['GBP','GBP â€” British Pound'],['KES','KES â€” Kenyan Shilling'],['UGX','UGX â€” Ugandan Shilling'],['ZAR','ZAR â€” South African Rand'],['AED','AED â€” UAE Dirham']].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
             </SelectContent>
           </Select>
         </Field>
@@ -870,11 +870,11 @@ const FinanceGeneralSection: React.FC = () => {
 /**
  * Used to also carry Default Due Days, a Content & Appearance card (Show
  * Logo / Terms & Conditions / Footer Note) and a Payments card (Allow
- * Partial Payments / Payment Instructions) — all saved to a generic
+ * Partial Payments / Payment Instructions) â€” all saved to a generic
  * `invoices` settings key with zero readers anywhere in the platform
  * (grepped both apps/api and apps/web). FinOps's real Billing.tsx invoice
  * screen never consulted any of them; it has its own separate hardcoded
- * defaults (a 14-day terms string, always-on logo) — so "Terms &
+ * defaults (a 14-day terms string, always-on logo) â€” so "Terms &
  * Conditions" here was a second, dead, drifted copy of a decision FinOps
  * had already made elsewhere, not a real setting. Only Numbering survives:
  * it is genuinely backed by /v1/settings/numbering/invoice, the same
@@ -928,9 +928,9 @@ const InvoicesSection: React.FC = () => {
 // -- section: Quotations -----------------------------------------------------
 const QuotationsSection: React.FC = () => {
   // prefix/nextEst are backed by the real quotation counter (GET/PATCH
-  // /v1/settings/numbering/quotation) — the only genuinely live part of this
+  // /v1/settings/numbering/quotation) â€” the only genuinely live part of this
   // section. validity/terms/footer/logo/notif used to live here too, saved
-  // to settings.quotations, which nothing on the backend ever read — a form
+  // to settings.quotations, which nothing on the backend ever read â€” a form
   // that looked exactly as functional as the fields beside it but silently
   // did nothing when submitted. Removed rather than left to keep collecting
   // input no one downstream sees.
@@ -970,9 +970,9 @@ const QuotationsSection: React.FC = () => {
 // -- section: Purchase Orders ------------------------------------------------
 const PurchaseOrdersSection: React.FC = () => {
   // prefix is backed by the real numbering counter (GET/PATCH
-  // /v1/settings/numbering/purchase_order) — the only genuinely live part of
+  // /v1/settings/numbering/purchase_order) â€” the only genuinely live part of
   // this section. autoNo/approval/threshold used to live here too, saved to
-  // settings['purchase-orders'], which nothing on the backend ever read —
+  // settings['purchase-orders'], which nothing on the backend ever read â€”
   // an "approval required above this amount" control that never actually
   // gated anything. Removed rather than left implying an approval flow
   // exists.
@@ -1026,9 +1026,9 @@ const GATEWAYS: GatewayDef[] = [
     id: 'stripe', name: 'Stripe', desc: 'Global card payments, subscriptions & invoicing.',
     color: '#6772e5', bg: '#f0f0fd', abbr: 'S', region: 'International', sandbox: false,
     fields: [
-      { key: 'pub',     label: 'Publishable Key',  placeholder: 'pk_live_…' },
-      { key: 'sec',     label: 'Secret Key',        placeholder: 'sk_live_…', type: 'password' },
-      { key: 'webhook', label: 'Webhook Secret',    placeholder: 'whsec_…',   type: 'password', hint: 'From Stripe Dashboard → Webhooks' },
+      { key: 'pub',     label: 'Publishable Key',  placeholder: 'pk_live_â€¦' },
+      { key: 'sec',     label: 'Secret Key',        placeholder: 'sk_live_â€¦', type: 'password' },
+      { key: 'webhook', label: 'Webhook Secret',    placeholder: 'whsec_â€¦',   type: 'password', hint: 'From Stripe Dashboard â†’ Webhooks' },
     ],
   },
   {
@@ -1058,7 +1058,7 @@ const GATEWAYS: GatewayDef[] = [
     ],
   },
   {
-    id: 'authorize', name: 'Authorize.net', desc: 'Reliable US card gateway · AIM / SIM APIs.',
+    id: 'authorize', name: 'Authorize.net', desc: 'Reliable US card gateway Â· AIM / SIM APIs.',
     color: '#c8102e', bg: '#fdecea', abbr: 'AN', region: 'International', sandbox: true,
     fields: [
       { key: 'apiLogin',  label: 'API Login ID'  },
@@ -1085,7 +1085,7 @@ const GATEWAYS: GatewayDef[] = [
     ],
   },
   {
-    id: 'paystack', name: 'Paystack', desc: 'Stripe-backed gateway for Africa · cards & USSD.',
+    id: 'paystack', name: 'Paystack', desc: 'Stripe-backed gateway for Africa Â· cards & USSD.',
     color: '#00c3f7', bg: '#e6faff', abbr: 'PS', region: 'Pan-Africa', sandbox: true,
     fields: [
       { key: 'publicKey',  label: 'Public Key'  },
@@ -1126,17 +1126,17 @@ const GATEWAYS: GatewayDef[] = [
     ],
   },
   {
-    id: 'airtel', name: 'Airtel Money', desc: 'Airtel Africa mobile money · TZ, KE, UG, RW.',
+    id: 'airtel', name: 'Airtel Money', desc: 'Airtel Africa mobile money Â· TZ, KE, UG, RW.',
     color: '#e40000', bg: '#fdecea', abbr: 'AM', region: 'East Africa', sandbox: true,
     fields: [
       { key: 'clientId',     label: 'Client ID'   },
       { key: 'clientSecret', label: 'Client Secret', type: 'password' },
-      { key: 'country',      label: 'Country Code', placeholder: 'TZ, KE, UG, RW…' },
-      { key: 'currency',     label: 'Currency',     placeholder: 'TZS, KES, UGX…' },
+      { key: 'country',      label: 'Country Code', placeholder: 'TZ, KE, UG, RWâ€¦' },
+      { key: 'currency',     label: 'Currency',     placeholder: 'TZS, KES, UGXâ€¦' },
     ],
   },
   {
-    id: 'selcom', name: 'Selcom', desc: 'Tanzania payment aggregator · USSD, cards & wallets.',
+    id: 'selcom', name: 'Selcom', desc: 'Tanzania payment aggregator Â· USSD, cards & wallets.',
     color: 'var(--blue)', bg: 'var(--blue-l)', abbr: 'SC', region: 'East Africa', sandbox: true,
     fields: [
       { key: 'apiKey',    label: 'API Key'   },
@@ -1156,7 +1156,7 @@ const GATEWAYS: GatewayDef[] = [
 
   // -- Bank & Manual ------------------------------------------
   {
-    id: 'bank', name: 'Bank Transfer', desc: 'Manual bank transfers · CRDB, NMB, NBC and others.',
+    id: 'bank', name: 'Bank Transfer', desc: 'Manual bank transfers Â· CRDB, NMB, NBC and others.',
     color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted))', abbr: 'BK', region: 'Bank / Manual', sandbox: false,
     fields: [
       { key: 'bankName',   label: 'Bank Name',         placeholder: 'e.g. CRDB Bank' },
@@ -1240,13 +1240,13 @@ const PaymentGatewaysSection: React.FC = () => {
       {/* -- Header summary -- */}
       <div className="s-gw-hdr">
         <div className="s-gw-count">
-          {enabledCount} of {GATEWAYS.length} gateways active · customers will see enabled gateways at checkout.
+          {enabledCount} of {GATEWAYS.length} gateways active Â· customers will see enabled gateways at checkout.
         </div>
         <button type="button" className="btn btn-primary" disabled={saving} title="Save all gateway settings" onClick={async () => {
           setSaving(true);
           // Every top-level `gw-<id>` key directly, the exact same shape the
           // per-gateway "Save" button and lib/payment-gateway.ts's own
-          // getActiveGateway()/getConfiguredGateways() already read — this
+          // getActiveGateway()/getConfiguredGateways() already read â€” this
           // used to nest everything under one `payment-gateways` key
           // instead, which neither of those ever looked at, so a tenant who
           // configured gateways through this button (rather than one at a
@@ -1261,7 +1261,7 @@ const PaymentGatewaysSection: React.FC = () => {
           try { await apiFetch('/v1/settings', { method: 'PATCH', body: JSON.stringify(payload) }); } catch {}
           setSaving(false);
         }}>
-          {saving ? 'Saving…' : 'Save All Changes'}
+          {saving ? 'Savingâ€¦' : 'Save All Changes'}
         </button>
       </div>
 
@@ -1324,7 +1324,7 @@ const PaymentGatewaysSection: React.FC = () => {
                                 {sbx ? '? Sandbox / Test Mode' : '? Live Mode'}
                               </div>
                               <div className={`s-gw-mode-sub${sbx ? ' s-gw-mode-sub--sbx' : ' s-gw-mode-sub--live'}`}>
-                                {sbx ? 'No real money · use test credentials' : 'Real transactions will be processed'}
+                                {sbx ? 'No real money Â· use test credentials' : 'Real transactions will be processed'}
                               </div>
                             </div>
                             <Toggle value={sbx} onChange={v => setSandbox(s => ({ ...s, [gw.id]: v }))} />
@@ -1360,7 +1360,7 @@ const PaymentGatewaysSection: React.FC = () => {
                         <div className="s-gw-foot">
                           <button type="button" className="btn btn-primary btn-sm" title="Save gateway" onClick={() => save(`gw-${gw.id}`, { enabled: true, sandbox: sbx, ...values[gw.id] }).catch(() => {})}>Save</button>
                           <button type="button" className="btn btn-secondary btn-sm" title="Test Connection" disabled={testing === gw.id} onClick={() => testGateway(gw)}>
-                            {testing === gw.id ? 'Testing…' : 'Test Connection'}
+                            {testing === gw.id ? 'Testingâ€¦' : 'Test Connection'}
                           </button>
                           {testResults[gw.id] && (
                             <span style={{ fontSize: 11.5, marginLeft: 8, fontWeight: 600, color: testResults[gw.id].ok ? 'var(--green)' : 'var(--red)' }}>
@@ -1386,10 +1386,10 @@ const PaymentGatewaysSection: React.FC = () => {
 /**
  * Used to also carry "Google Analytics" (Measurement ID) and "Google Maps"
  * (API key) cards, both saved under this same `int-google` key. Neither had
- * a consumer anywhere — no gtag/GTM injection reads `gaId`, and no map
+ * a consumer anywhere â€” no gtag/GTM injection reads `gaId`, and no map
  * component anywhere in the codebase reads `mapsKey` (there IS a real GA4
  * analytics system, apps/web/src/pages/SeoAnalyticsView.tsx, but it is a
- * platform-level, SuperAdmin-only screen storing to localStorage — a
+ * platform-level, SuperAdmin-only screen storing to localStorage â€” a
  * different scope entirely, not this tenant key). OAuth + reCAPTCHA are
  * real: recaptcha.ts reads rcSecret, contacts-sync/google-contacts.ts read
  * oauthId/oauthSecret.
@@ -1434,7 +1434,7 @@ const GoogleSection: React.FC = () => {
 /** Backs contacts-sync.routes.ts's Outlook/Microsoft 365 contact sync
  * (getMicrosoftCreds reads oauthId/oauthSecret from this same 'int-microsoft'
  * key). Deliberately its own settings section rather than folded into
- * GoogleSection — mail-oauth.routes.ts and calendar-sync.routes.ts each
+ * GoogleSection â€” mail-oauth.routes.ts and calendar-sync.routes.ts each
  * already register their own separate Azure AD app under their own keys for
  * the same reason (different scopes/consent screens per feature). */
 const MicrosoftSection: React.FC = () => {
@@ -1445,11 +1445,11 @@ const MicrosoftSection: React.FC = () => {
   async function handleSave() { setSaving(true); try { await save('int-microsoft', { ...f }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
   return (
     <>
-      <Card title="Microsoft OAuth (Outlook contact sync)" desc="A real Azure AD app registration — create one at portal.azure.com and grant it the Contacts.Read and User.Read delegated permissions.">
+      <Card title="Microsoft OAuth (Outlook contact sync)" desc="A real Azure AD app registration â€” create one at portal.azure.com and grant it the Contacts.Read and User.Read delegated permissions.">
         <Field label="Application (Client) ID"><input className="input-field" value={f.oauthId} onChange={e => set('oauthId', e.target.value)} /></Field>
         <Field label="Client Secret"><input className="input-field" type="password" value={f.oauthSecret} onChange={e => set('oauthSecret', e.target.value)} /></Field>
       </Card>
-      <p className="s-fld-hint" style={{ margin: '4px 2px 0' }}>Until both are saved here, "Connect Outlook Account" in Contacts ▸ Outlook sync stays disabled.</p>
+      <p className="s-fld-hint" style={{ margin: '4px 2px 0' }}>Until both are saved here, "Connect Outlook Account" in Contacts â–¸ Outlook sync stays disabled.</p>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
   );
@@ -1470,7 +1470,7 @@ const ShipsGoSection: React.FC = () => {
         </Field>
       </Card>
       <Card title="Air Waybill Tracking (Ship24)" desc="Used for AWB tracking and as a fallback when ShipsGo has no result.">
-        <Field label="Ship24 API Key" hint="From your Ship24 account under Developers → API Keys.">
+        <Field label="Ship24 API Key" hint="From your Ship24 account under Developers â†’ API Keys.">
           <input className="input-field" type="password" placeholder="Enter Ship24 API key" value={f.ship24_api_key} onChange={e => set('ship24_api_key', e.target.value)} />
         </Field>
       </Card>
@@ -1510,31 +1510,31 @@ const GpswoxSection: React.FC = () => {
 
   return (
     <>
-      <Card title="GPSWOX Fleet Tracking" desc="Pulls real GPS device positions into HuduFreight's vehicle map, history, and geofence alerts. GPSWOX is typically self-hosted, so the base URL is specific to your instance · save credentials here first.">
-        <Field label="Base URL" hint="Your GPSWOX instance root, e.g. https://fleet.yourcompany.com · do not include /api.">
+      <Card title="GPSWOX Fleet Tracking" desc="Pulls real GPS device positions into HuduFreight's vehicle map, history, and geofence alerts. GPSWOX is typically self-hosted, so the base URL is specific to your instance Â· save credentials here first.">
+        <Field label="Base URL" hint="Your GPSWOX instance root, e.g. https://fleet.yourcompany.com Â· do not include /api.">
           <input className="input-field" placeholder="https://fleet.yourcompany.com" value={f.base_url} onChange={e => set('base_url', e.target.value)} />
         </Field>
         <Field label="Email">
           <input className="input-field" type="email" placeholder="fleet-account@yourcompany.com" value={f.email} onChange={e => set('email', e.target.value)} />
         </Field>
         <Field label="Password">
-          <input className="input-field" type="password" placeholder="••••••••" value={f.password} onChange={e => set('password', e.target.value)} />
+          <input className="input-field" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={f.password} onChange={e => set('password', e.target.value)} />
         </Field>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
           <button type="button" className="btn btn-outline btn-sm" onClick={handleTest} disabled={testing || !f.base_url || !f.email || !f.password}>
-            {testing ? 'Testing…' : 'Test Connection'}
+            {testing ? 'Testingâ€¦' : 'Test Connection'}
           </button>
           {testResult === 'ok' && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>Connected</span>}
-          {testResult === 'fail' && <span style={{ fontSize: 12, color: 'var(--red)', fontWeight: 600 }}>Connection failed · check URL/credentials</span>}
+          {testResult === 'fail' && <span style={{ fontSize: 12, color: 'var(--red)', fontWeight: 600 }}>Connection failed Â· check URL/credentials</span>}
         </div>
       </Card>
-      <p className="s-fld-hint" style={{ margin: '4px 2px 0' }}>Until credentials are saved and valid, vehicle positions must be entered manually · no simulated fleet data is shown.</p>
+      <p className="s-fld-hint" style={{ margin: '4px 2px 0' }}>Until credentials are saved and valid, vehicle positions must be entered manually Â· no simulated fleet data is shown.</p>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
   );
 };
 
-// Shared with SuperAdmin.tsx's platform-default AI key section — see
+// Shared with SuperAdmin.tsx's platform-default AI key section â€” see
 // apps/web/src/lib/aiProviders.ts (mirrors apps/api/src/lib/ai-providers.ts's
 // AI_PROVIDER_CONFIG) so the tenant BYOK picker and the SuperAdmin
 // platform-key picker can't drift on which models exist for which provider.
@@ -1561,7 +1561,7 @@ const OpenAISection: React.FC = () => {
   function changeProvider(value: string) {
     set('provider', value);
     // Switching provider without also switching the model would silently
-    // send e.g. "gpt-4o" to Groq's endpoint — always land on that
+    // send e.g. "gpt-4o" to Groq's endpoint â€” always land on that
     // provider's own recommended model instead.
     const next = AI_PROVIDERS.find(p => p.value === value);
     if (next) set('model', next.models[0].value);
@@ -1570,11 +1570,11 @@ const OpenAISection: React.FC = () => {
   async function handleSave() { setSaving(true); try { await save('int-ai', { on, ...f }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
 
   // Credits/limit come from GET /v1/entitlements (packages.monthly_ai_credits
-  // minus this month's agent_credit_ledger debits) — a plan with no
+  // minus this month's agent_credit_ledger debits) â€” a plan with no
   // platform-AI allowance at all (limit === 0) has nothing informative to
   // show here, so the line is skipped rather than showing "0 of 0 used".
   const creditsLine = aiCredits && aiCredits.limit > 0
-    ? `${aiCredits.used} of ${aiCredits.limit} platform AI credits used this month — resets at the start of next month.`
+    ? `${aiCredits.used} of ${aiCredits.limit} platform AI credits used this month â€” resets at the start of next month.`
     : null;
 
   return (
@@ -1585,7 +1585,7 @@ const OpenAISection: React.FC = () => {
           <>
             <ToggleRow label="Enable AI Features" value={on} onChange={setOn} />
             {on && <>
-              <Field label="Provider" hint="Groq and Google Gemini both offer a free API key — no credit card needed.">
+              <Field label="Provider" hint="Groq and Google Gemini both offer a free API key â€” no credit card needed.">
                 <Select value={f.provider} onValueChange={changeProvider}>
                   <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -1593,11 +1593,11 @@ const OpenAISection: React.FC = () => {
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="API Key" hint={`Your ${activeProvider.label.split(' — ')[0]} API key`} full>
-                <input className="input-field" type="password" placeholder="sk-…" value={f.apiKey} onChange={e => set('apiKey', e.target.value)} />
+              <Field label="API Key" hint={`Your ${activeProvider.label.split(' â€” ')[0]} API key`} full>
+                <input className="input-field" type="password" placeholder="sk-â€¦" value={f.apiKey} onChange={e => set('apiKey', e.target.value)} />
               </Field>
               {activeProvider.value === 'openai' &&
-                <Field label="Organization ID (optional)"><input className="input-field" placeholder="org-…" value={f.org} onChange={e => set('org', e.target.value)} /></Field>}
+                <Field label="Organization ID (optional)"><input className="input-field" placeholder="org-â€¦" value={f.org} onChange={e => set('org', e.target.value)} /></Field>}
               <Field label="Model">
                 <Select value={f.model} onValueChange={v => set('model', v)}>
                   <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
@@ -1606,18 +1606,18 @@ const OpenAISection: React.FC = () => {
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Temperature" hint="0 = deterministic · 1 = creative">
+              <Field label="Temperature" hint="0 = deterministic Â· 1 = creative">
                 <input className="input-field" type="number" step="0.1" min="0" max="2" value={f.temp} onChange={e => set('temp', e.target.value)} />
               </Field>
               <Field label="Max Tokens"><input className="input-field" type="number" value={f.maxTokens} onChange={e => set('maxTokens', e.target.value)} /></Field>
             </>}
           </>
         ) : (
-          // Not eligible to bring an own key on this plan — a key typed here
+          // Not eligible to bring an own key on this plan â€” a key typed here
           // would silently be ignored server-side (resolveAiCredentials()),
           // so there's nothing to save; show why instead of a dead form.
           <div className="s-fld-hint" style={{ margin: 0 }}>
-            AI is already available on your plan through Hudumika's shared assistant, billed to your workspace's monthly credits above — no setup needed.
+            AI is already available on your plan through Hudumika's shared assistant, billed to your workspace's monthly credits above â€” no setup needed.
             Bringing your own provider key (unlimited, billed directly to you instead) is available on the <b>Hudu Advanced</b> plan.
           </div>
         )}
@@ -1629,10 +1629,10 @@ const OpenAISection: React.FC = () => {
 
 // -- section: SMS ------------------------------------------------------------
 // Used to save a single provider's credentials straight to tenant_settings
-// (in plaintext — 'int-sms' was never registered in SECRET_FIELDS_BY_KEY).
+// (in plaintext â€” 'int-sms' was never registered in SECRET_FIELDS_BY_KEY).
 // The SMS app now owns gateway config for real: multiple gateways with
 // priority fallback, named sender IDs, encrypted credentials, and a live
-// test-send — one control here just points at it, same pattern as Finance
+// test-send â€” one control here just points at it, same pattern as Finance
 // setup's own ElsewhereSection above.
 const SMSSection: React.FC = () => (
   <Card title="SMS" desc="Gateways, sender IDs, opt-outs and campaigns are managed in the SMS app.">
@@ -1640,7 +1640,7 @@ const SMSSection: React.FC = () => (
       <Link to="/sms/gateways" className="s-elsewhere-row">
         <div>
           <div className="s-elsewhere-label">SMS gateways</div>
-          <div className="s-elsewhere-desc">Africa's Talking, Twilio and other providers — credentials, sender IDs, priority order and a live test-send.</div>
+          <div className="s-elsewhere-desc">Africa's Talking, Twilio and other providers â€” credentials, sender IDs, priority order and a live test-send.</div>
         </div>
         <Icon name="chevronRight" size={16} color="var(--ink3)" />
       </Link>
@@ -1755,21 +1755,21 @@ const TRASection: React.FC = () => {
   if (config?.isRegistered) {
     return (
       <>
-        <Card title="TRA VFD · Registered" desc="Fiscal receipts are signed and submitted to TRA through this registration. Invoices can now be submitted to TRA from Finance → Sales Invoices.">
+        <Card title="TRA VFD Â· Registered" desc="Fiscal receipts are signed and submitted to TRA through this registration. Invoices can now be submitted to TRA from Finance â†’ Sales Invoices.">
           <Field label="Status"><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--green)', fontWeight: 700 }}><Icon name="checkCircle" size={14} color="var(--green)" /> Registered</span></Field>
           <Field label="Environment"><span style={{ textTransform: 'uppercase', fontWeight: 700, color: config.environment === 'production' ? 'var(--red)' : 'var(--ink2)' }}>{config.environment}</span></Field>
-          <Field label="REGID"><span style={{ fontFamily: 'var(--mono)' }}>{config.reg_id}</span></Field>
-          <Field label="Receipt Code"><span style={{ fontFamily: 'var(--mono)' }}>{config.receipt_code}</span></Field>
-          <Field label="VRN"><span style={{ fontFamily: 'var(--mono)' }}>{config.vrn || '—'}</span></Field>
-          <Field label="Tax Office">{config.tax_office || '—'}</Field>
+          <Field label="REGID"><span style={{ fontFamily: 'var(--font)' }}>{config.reg_id}</span></Field>
+          <Field label="Receipt Code"><span style={{ fontFamily: 'var(--font)' }}>{config.receipt_code}</span></Field>
+          <Field label="VRN"><span style={{ fontFamily: 'var(--font)' }}>{config.vrn || 'â€”'}</span></Field>
+          <Field label="Tax Office">{config.tax_office || 'â€”'}</Field>
           <Field label="Receipts Issued (GC)">{config.gc ?? 0}</Field>
-          <Field label="Bearer Token"><span style={{ color: config.hasValidToken ? 'var(--green)' : 'var(--red)', fontWeight: 700 }}>{config.hasValidToken ? 'Valid' : 'Expired · will auto-refresh on next submission'}</span></Field>
+          <Field label="Bearer Token"><span style={{ color: config.hasValidToken ? 'var(--green)' : 'var(--red)', fontWeight: 700 }}>{config.hasValidToken ? 'Valid' : 'Expired Â· will auto-refresh on next submission'}</span></Field>
           <Field label="Last Z-Report">{config.last_zreport_date ? new Date(config.last_zreport_date).toLocaleDateString() : 'Never'}</Field>
         </Card>
         <Card title="Manual Actions" desc="Z-reports submit automatically every night. Use these only to test the connection or recover from a missed run.">
           <div className="s-fld--full" style={{ display: 'flex', gap: 10 }}>
-            <button type="button" className="btn btn-secondary" onClick={refreshToken} disabled={tokenRefreshing}>{tokenRefreshing ? 'Refreshing…' : 'Refresh Token'}</button>
-            <button type="button" className="btn btn-secondary" onClick={runZReport} disabled={zReporting}>{zReporting ? 'Submitting…' : 'Submit Z-Report Now'}</button>
+            <button type="button" className="btn btn-secondary" onClick={refreshToken} disabled={tokenRefreshing}>{tokenRefreshing ? 'Refreshingâ€¦' : 'Refresh Token'}</button>
+            <button type="button" className="btn btn-secondary" onClick={runZReport} disabled={zReporting}>{zReporting ? 'Submittingâ€¦' : 'Submit Z-Report Now'}</button>
           </div>
           {actionMsg && <div className="s-fld--full" style={{ marginTop: 10, fontSize: 12.5, color: 'var(--ink2)' }}>{actionMsg}</div>}
         </Card>
@@ -1779,7 +1779,7 @@ const TRASection: React.FC = () => {
 
   return (
     <>
-      <Card title="TRA VFD Registration" desc="One-time registration with the Tanzania Revenue Authority's Virtual Fiscal Device (EFDMS) API. You'll need the TIN, the device certificate key/serial TRA issued you, and the .pfx certificate file TRA provided. Once registered, invoices can be submitted for fiscalization from Finance → Sales Invoices.">
+      <Card title="TRA VFD Registration" desc="One-time registration with the Tanzania Revenue Authority's Virtual Fiscal Device (EFDMS) API. You'll need the TIN, the device certificate key/serial TRA issued you, and the .pfx certificate file TRA provided. Once registered, invoices can be submitted for fiscalization from Finance â†’ Sales Invoices.">
         <Field label="Environment">
           <Select value={environment} onValueChange={v => setEnvironment(v as 'test' | 'production')}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
@@ -1798,7 +1798,7 @@ const TRASection: React.FC = () => {
         <Field label="Certificate Password"><input title="Certificate Password" placeholder="Certificate password" className="input-field" type="password" value={pfxPassword} onChange={e => setPfxPassword(e.target.value)} /></Field>
         <div className="s-fld--full" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <button type="button" className="btn btn-secondary" onClick={uploadCert} disabled={!pfxFile || uploading}>
-            {uploading ? 'Uploading…' : pfxPath ? 'Re-upload Certificate' : 'Upload Certificate'}
+            {uploading ? 'Uploadingâ€¦' : pfxPath ? 'Re-upload Certificate' : 'Upload Certificate'}
           </button>
           {pfxPath && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={12} color="var(--green)" /> Uploaded</span>}
         </div>
@@ -1806,7 +1806,7 @@ const TRASection: React.FC = () => {
       {error && <div className="s-fld--full" style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 4 }}>{error}</div>}
       <div className="s-save-row">
         <button type="button" className="btn btn-primary" onClick={register} disabled={registering || !pfxPath}>
-          {registering ? 'Registering…' : 'Register with TRA'}
+          {registering ? 'Registeringâ€¦' : 'Register with TRA'}
         </button>
       </div>
     </>
@@ -1823,13 +1823,13 @@ interface ModuleCatalogEntry {
 
 const MODULE_CATALOG: Record<string, ModuleCatalogEntry> = {
   clearos:      { name: 'ClearOS',       desc: 'Customs clearance platform, declarations & TANCIS integration.', category: 'Logistics & Trade', color: '#ea580c' },
-  tracking:     { name: 'HuduFreight',   desc: 'Fleet, vehicle and driver tracking — live GPS positions & trips.', category: 'Logistics & Trade', color: '#0891b2' },
+  tracking:     { name: 'HuduFreight',   desc: 'Fleet, vehicle and driver tracking â€” live GPS positions & trips.', category: 'Logistics & Trade', color: '#0891b2' },
   cargotracker: { name: 'CargoTracker',  desc: 'AWB & Bill of Lading shipment tracking across sea & air carriers.', category: 'Logistics & Trade', color: '#4f46e5' },
   seal:         { name: 'SEAL',          desc: 'Bonded warehousing ledger, customs examination & storage clock.', category: 'Logistics & Trade', color: '#0f766e' },
   inventory:    { name: 'Inventory',     desc: 'Stock control, multi-warehouse counts, batches & reorder alerts.', category: 'Logistics & Trade', color: '#0f766e' },
   demurrage:    { name: 'Demurrage',     desc: 'Container dwell time and demurrage cost tracking.',               category: 'Logistics & Trade', color: '#f59e0b' },
   finops:       { name: 'FinOps',        desc: 'Financial accounts, TRA EFDMS integration, bills & ledgers.',     category: 'Finance & Accounts', color: '#0284c7' },
-  petti:        { name: 'Petti',         desc: 'Tenant petty-cash wallets — deposit, request, approve & disburse.', category: 'Finance & Accounts', color: '#16a34a' },
+  petti:        { name: 'Petti',         desc: 'Tenant petty-cash wallets â€” deposit, request, approve & disburse.', category: 'Finance & Accounts', color: '#16a34a' },
   complyos:     { name: 'ComplyOS',      desc: 'Compliance tracking, BRELA business search, permits & audits.',   category: 'Compliance & Legal', color: 'var(--green)' },
   sign:         { name: 'eSign',         desc: 'Secure electronic document signatures, approvals & audit logs.',  category: 'Compliance & Legal', color: '#2563eb' },
   nexushr:      { name: 'NexusHR',       desc: 'People operations, payroll, attendance & shift rosters.',         category: 'People & HR', color: '#0d9488' },
@@ -1844,12 +1844,12 @@ const MODULE_CATALOG: Record<string, ModuleCatalogEntry> = {
   cloud:        { name: 'Cloud',         desc: 'Enterprise cloud drive, file manager & secure storage.',          category: 'Productivity & Cloud', color: '#0369a1' },
   calendar:     { name: 'Calendar',      desc: 'Shared scheduling, video meetings & team calendars.',             category: 'Productivity & Cloud', color: '#db2777' },
   tasks:        { name: 'Tasks',         desc: 'Team task tracking, assignments & to-dos across apps.',           category: 'Productivity & Cloud', color: '#0f766e' },
-  // Standalone Projects app (migration 313) — real feature key
+  // Standalone Projects app (migration 313) â€” real feature key
   // (ALL_FEATURE_KEYS in packages/types) with real package_features grants,
   // but never had a catalog entry here, so it was invisible in Modules &
   // Extensions even though it's fully shipped and plan-gated like every
   // other app. See entitlements.ts's own comment on the same key.
-  projects:     { name: 'Projects',      desc: 'Enterprise project management — milestones, Gantt, contracts & timesheets.', category: 'Productivity & Cloud', color: '#a21caf' },
+  projects:     { name: 'Projects',      desc: 'Enterprise project management â€” milestones, Gantt, contracts & timesheets.', category: 'Productivity & Cloud', color: '#a21caf' },
   notes:        { name: 'Notes',         desc: 'Shared team notes, checklists, documents & sketches.',            category: 'Productivity & Cloud', color: '#fbbc04' },
   store:        { name: 'Store',         desc: 'B2B procurement, equipment marketplace & catalog.',              category: 'Productivity & Cloud', color: '#8b5cf6' },
   onsite:       { name: 'Onsite',        desc: 'Domains, DNS, hosting, deployments & cloud infra.',               category: 'Infrastructure & Admin', color: '#0f172a' },
@@ -1875,7 +1875,7 @@ const ModulesSection: React.FC = () => {
   const branding = useBranding();
   const canManageModules = !!user && ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(user.role);
   const entitlements = useEntitlements();
-  // Platform-wide "Beta" label (migration 395) — a SuperAdmin sets this once
+  // Platform-wide "Beta" label (migration 395) â€” a SuperAdmin sets this once
   // on app_status and every tenant's GET /v1/entitlements reports the same
   // list, replacing what used to be a hardcoded status field on
   // MODULE_CATALOG that no admin could actually change.
@@ -2010,7 +2010,7 @@ const ModulesSection: React.FC = () => {
   const statCards: MetricCardProps[] = [
     {
       title: 'TOTAL APPLICATIONS',
-      value: totalCount > 0 ? String(totalCount) : '—',
+      value: totalCount > 0 ? String(totalCount) : 'â€”',
       sub1Label: 'IN PLATFORM',
       sub1Value: `${totalCount} Available`,
       sub2Label: 'SUITE STATUS',
@@ -2042,10 +2042,10 @@ const ModulesSection: React.FC = () => {
 
   return (
     <div className="s-mods-root">
-      {/* ── Overview Metrics Row ── */}
+      {/* â”€â”€ Overview Metrics Row â”€â”€ */}
       <MetricsRow cards={statCards} />
 
-      {/* ── Single Responsive Row Toolbar ── */}
+      {/* â”€â”€ Single Responsive Row Toolbar â”€â”€ */}
       <div className="s-mods-toolbar">
         {/* Search Input */}
         <div className="s-mods-search-wrap">
@@ -2054,7 +2054,7 @@ const ModulesSection: React.FC = () => {
           </div>
           <input
             type="text"
-            placeholder="Search modules by name, category, or features…"
+            placeholder="Search modules by name, category, or featuresâ€¦"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="s-mods-search-input"
@@ -2146,11 +2146,11 @@ const ModulesSection: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Main Content Area: Grid or List ── */}
+      {/* â”€â”€ Main Content Area: Grid or List â”€â”€ */}
       {!entitlements || overrides === null ? (
         <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--ink3)' }}>
           <Icon name="refresh" size={24} className="animate-spin" />
-          <div style={{ fontSize: 13, marginTop: 10, fontWeight: 500 }}>Loading workspace modules & entitlements…</div>
+          <div style={{ fontSize: 13, marginTop: 10, fontWeight: 500 }}>Loading workspace modules & entitlementsâ€¦</div>
         </div>
       ) : filteredKeys.length === 0 ? (
             <div style={{ padding: '60px 20px', textAlign: 'center', background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px dashed var(--border)' }}>
@@ -2175,7 +2175,7 @@ const ModulesSection: React.FC = () => {
           )}
         </div>
       ) : viewMode === 'grid' ? (
-        /* ── Grid View ── */
+        /* â”€â”€ Grid View â”€â”€ */
         <div className="s-mods-grid">
           {filteredKeys.map(key => {
             const catalog = MODULE_CATALOG[key];
@@ -2254,7 +2254,7 @@ const ModulesSection: React.FC = () => {
           })}
         </div>
       ) : (
-        /* ── Table List View ── */
+        /* â”€â”€ Table List View â”€â”€ */
         <div className="s-mods-table-wrap">
           <table className="s-mods-table">
             <thead>
@@ -2334,7 +2334,7 @@ const ModulesSection: React.FC = () => {
         </div>
       )}
 
-      {/* ── Executive "Who Has Access" License Modal ── */}
+      {/* â”€â”€ Executive "Who Has Access" License Modal â”€â”€ */}
       {licenseAppId && (
         <AppLicensePanel
           appId={licenseAppId}
@@ -2454,7 +2454,7 @@ function AppLicensePanel({
               <LauncherAppSvg id={appId} color={appColor} logoUrl={branding.getAppLogo(appId)} size={38} />
             </div>
             <div>
-              <h3 className="s-lic-hdr-title">{appName} · Access Control</h3>
+              <h3 className="s-lic-hdr-title">{appName} Â· Access Control</h3>
               <p className="s-lic-hdr-desc">Manage workspace permissions and per-seat license assignments</p>
             </div>
           </div>
@@ -2468,7 +2468,7 @@ function AppLicensePanel({
           {loading ? (
             <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--ink3)' }}>
               <Icon name="refresh" size={20} className="animate-spin" />
-              <div style={{ fontSize: 13, marginTop: 8 }}>Loading access privileges…</div>
+              <div style={{ fontSize: 13, marginTop: 8 }}>Loading access privilegesâ€¦</div>
             </div>
           ) : (
             <>
@@ -2503,8 +2503,8 @@ function AppLicensePanel({
                         triggerClassName="flex-1"
                         value={addUserId}
                         onChange={setAddUserId}
-                        placeholder={unlicensedStaff.length === 0 ? 'All staff members granted' : 'Select a team member…'}
-                        searchPlaceholder="Search staff by name or email…"
+                        placeholder={unlicensedStaff.length === 0 ? 'All staff members granted' : 'Select a team memberâ€¦'}
+                        searchPlaceholder="Search staff by name or emailâ€¦"
                         emptyText="No matching staff."
                         disabled={unlicensedStaff.length === 0}
                         options={unlicensedStaff.map(s => ({ value: s.id, label: s.name, sublabel: s.email }))}
@@ -2529,7 +2529,7 @@ function AppLicensePanel({
                       {grants.length > 3 && (
                         <input
                           type="text"
-                          placeholder="Filter members…"
+                          placeholder="Filter membersâ€¦"
                           value={searchGrantQuery}
                           onChange={e => setSearchGrantQuery(e.target.value)}
                           style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', width: 140 }}
@@ -2539,7 +2539,7 @@ function AppLicensePanel({
 
                     {grants.length === 0 ? (
                       <div className="s-lic-empty-state">
-                        <div style={{ fontSize: 22, marginBottom: 4 }}>🔒</div>
+                        <div style={{ fontSize: 22, marginBottom: 4 }}>ðŸ”’</div>
                         <div style={{ fontWeight: 600, color: 'var(--ink)' }}>No members granted access yet</div>
                         <div style={{ fontSize: 11.5, marginTop: 2 }}>With restricted access active and no members added, this app will remain hidden for everyone. Select a member above to grant access.</div>
                       </div>
@@ -2623,8 +2623,8 @@ const NotificationsSection: React.FC = () => {
   return (
     <>
       <Card title="Channels" desc="Choose how your team and customers receive notifications">
-        <ToggleRow label="WhatsApp Notifications" hint="Send stage updates via WhatsApp Business API · configure credentials in Integrations → SMS / WhatsApp" value={whatsapp} onChange={setWhatsapp} />
-        <ToggleRow label="Email Notifications" hint="Send update emails · requires SMTP configured in General → Email" value={emailNotifs} onChange={setEmailNotifs} />
+        <ToggleRow label="WhatsApp Notifications" hint="Send stage updates via WhatsApp Business API Â· configure credentials in Integrations â†’ SMS / WhatsApp" value={whatsapp} onChange={setWhatsapp} />
+        <ToggleRow label="Email Notifications" hint="Send update emails Â· requires SMTP configured in General â†’ Email" value={emailNotifs} onChange={setEmailNotifs} />
       </Card>
       <Card title="Alert Thresholds" desc="When to trigger proactive alerts for time-sensitive events">
         <Field label="Demurrage Alert Lead Time" hint="Days before container free time ends to trigger demurrage alert">
@@ -2675,8 +2675,8 @@ const FreightSection: React.FC = () => {
       <Card title="Per-stage SLA" desc="Real, enforced SLA targets are set per clearance stage on each Workflow, not here.">
         <Link to="/studio/clearance" className="s-elsewhere-row">
           <div>
-            <div className="s-elsewhere-label">ClearOS ▸ Workflow Builder</div>
-            <div className="s-elsewhere-desc">Configure per-stage SLA hours on the workflow a shipment is actually assigned — this used to be a second, non-binding "reference" grid here that duplicated it.</div>
+            <div className="s-elsewhere-label">ClearOS â–¸ Workflow Builder</div>
+            <div className="s-elsewhere-desc">Configure per-stage SLA hours on the workflow a shipment is actually assigned â€” this used to be a second, non-binding "reference" grid here that duplicated it.</div>
           </div>
           <Icon name="chevronRight" size={16} color="var(--ink3)" />
         </Link>
@@ -2697,9 +2697,9 @@ interface ApiKeyRow {
 }
 
 // -- section: E-Sign (company stamp) -----------------------------------------
-// The 'other-esign' nav entry existed with no case in renderSection below —
+// The 'other-esign' nav entry existed with no case in renderSection below â€”
 // it fell through to a placeholder GenericSection. This is the tenant's one
-// company stamp (sign_stamps, owner_type='tenant' — migration 277), applied
+// company stamp (sign_stamps, owner_type='tenant' â€” migration 277), applied
 // to documents by whoever has stamp access (role gate: M5) or via the
 // generic cross-app stamp API (M6). A person's own personal signature is a
 // separate, self-managed thing under their own NexusHR profile, not here.
@@ -2734,12 +2734,12 @@ const EsignSection: React.FC = () => {
 
   return (
     <>
-      <Card title="Company Stamp" desc="The one official stamp your team applies to documents through Hudumika eSign — visible on any envelope or cross-app document a person with stamp access signs on the company's behalf.">
+      <Card title="Company Stamp" desc="The one official stamp your team applies to documents through Hudumika eSign â€” visible on any envelope or cross-app document a person with stamp access signs on the company's behalf.">
         {stamp === undefined ? (
           <SectionLoading />
         ) : stamp && !showPad ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            {/* Square, not the old 160×90 letterbox — a round or circular
+            {/* Square, not the old 160Ã—90 letterbox â€” a round or circular
                 stamp (the common case) needs equal width and height to show
                 at a legible size instead of being shrunk to fit a short box. */}
             <div style={{ width: 160, height: 160, border: '1px solid var(--border)', borderRadius: 'var(--r)', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
@@ -2757,11 +2757,11 @@ const EsignSection: React.FC = () => {
           </div>
         )}
       </Card>
-      {saving && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 8 }}>Saving…</div>}
+      {saving && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 8 }}>Savingâ€¦</div>}
       {saved && <div style={{ fontSize: 12.5, color: 'var(--green)', marginTop: 8 }}>Saved.</div>}
       <Card title="Who can apply the stamp">
         <div style={{ fontSize: 13, color: 'var(--ink2)' }}>
-          Managed from NexusHR ▸ <Link to="/nexushr/roles" style={{ color: 'var(--blue)' }}>Roles &amp; Permissions</Link> — the platform's real access-control page, not a second copy of it here.
+          Managed from NexusHR â–¸ <Link to="/nexushr/roles" style={{ color: 'var(--blue)' }}>Roles &amp; Permissions</Link> â€” the platform's real access-control page, not a second copy of it here.
         </div>
       </Card>
     </>
@@ -2834,7 +2834,7 @@ const ApiKeysSection: React.FC = () => {
                 {keys.map(k => (
                   <tr key={k.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '8px', fontWeight: 600, color: 'var(--ink)' }}>{k.name}</td>
-                    <td style={{ padding: '8px', fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{k.key_prefix}…</td>
+                    <td style={{ padding: '8px', fontFamily: 'var(--font)', color: 'var(--ink3)' }}>{k.key_prefix}â€¦</td>
                     <td style={{ padding: '8px', color: 'var(--ink2)' }}>{k.scopes.join(', ')}</td>
                     <td style={{ padding: '8px', color: 'var(--ink3)' }}>{k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : 'Never'}</td>
                     <td style={{ padding: '8px' }}>
@@ -2865,7 +2865,7 @@ const ApiKeysSection: React.FC = () => {
             <div className="s-fld--full">
               {usage.top_endpoints.map(e => (
                 <div key={e.endpoint} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, color: 'var(--ink2)', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ fontFamily: 'var(--mono)' }}>{e.endpoint}</span>
+                  <span style={{ fontFamily: 'var(--font)' }}>{e.endpoint}</span>
                   <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{e.count}</span>
                 </div>
               ))}
@@ -2880,8 +2880,8 @@ const ApiKeysSection: React.FC = () => {
             {mintedKey ? (
               <>
                 <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>Key created</div>
-                <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>Copy this now · it won't be shown again.</p>
-                <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', fontFamily: 'var(--mono)', fontSize: 12, wordBreak: 'break-all', marginBottom: 16 }}>{mintedKey}</div>
+                <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>Copy this now Â· it won't be shown again.</p>
+                <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 12, wordBreak: 'break-all', marginBottom: 16 }}>{mintedKey}</div>
                 <button type="button" className="btn btn-primary btn-sm" onClick={() => { setShowCreate(false); setMintedKey(null); }}>Done</button>
               </>
             ) : (
@@ -2905,7 +2905,7 @@ const ApiKeysSection: React.FC = () => {
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                   <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreate(false)}>Cancel</button>
                   <button type="button" className="btn btn-primary btn-sm" disabled={creating || !newName.trim() || newScopes.length === 0} onClick={createKey}>
-                    {creating ? 'Creating…' : 'Create Key'}
+                    {creating ? 'Creatingâ€¦' : 'Create Key'}
                   </button>
                 </div>
               </>
@@ -2937,7 +2937,7 @@ const GenericSection: React.FC<{ title: string }> = ({ title }) => (
  *
  * This screen used to carry its own Tax Rates, Currencies, Quotations and
  * Purchase Orders panels. All four saved to keys nothing in the platform ever
- * read, while the real implementations sat in FinOps the whole time — so an
+ * read, while the real implementations sat in FinOps the whole time â€” so an
  * admin could spend an afternoon configuring tax rates here and change nothing.
  * Four dead panels replaced by four working links.
  */
@@ -2964,14 +2964,14 @@ const ElsewhereSection: React.FC = () => (
 
 
 /**
- * Workspace branding — logo, name, colour, favicon — used to live in its own
+ * Workspace branding â€” logo, name, colour, favicon â€” used to live in its own
  * section here (key 'branding'), separate from "Document Branding" (Company
  * Information's own logo/favicon card, used on PDFs). Two upload flows for
  * what most tenants want to be one identity, easy to let drift. Merged into
- * CompanySection's now-renamed "Company Branding" card — one upload, one
+ * CompanySection's now-renamed "Company Branding" card â€” one upload, one
  * Save, writing both the document-branding store and pushTenantBranding()
  * (the in-app UI: sidebar, browser tab, per-app accent) together. See that
- * component. The pre-auth sign-in screen still isn't covered by either —
+ * component. The pre-auth sign-in screen still isn't covered by either â€”
  * it's shared by every workspace on the platform, so it's set by Hudumika,
  * not here.
  */
@@ -2993,7 +2993,7 @@ function splitTitle(title: string): { plain: string; em: string } {
  * Two facts about this workspace, both counted.
  *
  * Replaces a five-tile strip of hardcoded values. Only what can be derived
- * appears — a figure nobody can check is worse than no figure.
+ * appears â€” a figure nobody can check is worse than no figure.
  */
 const WorkspaceFacts: React.FC = () => {
   const entitlements = useEntitlements();
@@ -3016,7 +3016,7 @@ const WorkspaceFacts: React.FC = () => {
   // entitlements.features carries every plan-gated FeatureKey, which is
   // wider than "modules": tracking.cargo-loading/.warehouse/.analytics/
   // .reports and ondi.governance are sub-features of the tracking and ondi
-  // apps, not separate modules — counting them here inflated both the
+  // apps, not separate modules â€” counting them here inflated both the
   // enabled and total figures against what Modules & Extensions actually
   // lists. Restricting to keys MODULE_CATALOG recognizes as a real app
   // keeps this stat and that page's own count in agreement by construction.
@@ -3032,7 +3032,7 @@ const WorkspaceFacts: React.FC = () => {
           <Icon name="grid" size={14} color="var(--teal)" />
         </div>
         <div className="sett-strip-info">
-          <div className="sett-strip-val">{enabled === null ? '—' : `${enabled} / ${total}`}</div>
+          <div className="sett-strip-val">{enabled === null ? 'â€”' : `${enabled} / ${total}`}</div>
           <div className="sett-strip-label">Modules enabled</div>
         </div>
       </div>
@@ -3041,7 +3041,7 @@ const WorkspaceFacts: React.FC = () => {
           <Icon name="zap" size={14} color="var(--ink2)" />
         </div>
         <div className="sett-strip-info">
-          <div className="sett-strip-val">{integrations === null ? '—' : integrations}</div>
+          <div className="sett-strip-val">{integrations === null ? 'â€”' : integrations}</div>
           <div className="sett-strip-label">Integrations configured</div>
         </div>
       </div>
@@ -3090,7 +3090,7 @@ const CommunicationsSection: React.FC = () => {
     <div className="sett-section">
       <div className="sett-section-hdr">
         <h2>Communication Events</h2>
-        <p>Control which platform events send email notifications and route them to a custom template. Detailed event configuration and the event delivery log are in <a href="/email/templates" className="sett-link">Email › Templates › Communications</a>.</p>
+        <p>Control which platform events send email notifications and route them to a custom template. Detailed event configuration and the event delivery log are in <a href="/email/templates" className="sett-link">Email â€º Templates â€º Communications</a>.</p>
       </div>
       {loading ? <SectionLoading /> : (
         <div className="sett-comm-groups">
@@ -3145,17 +3145,17 @@ function renderSection(key: string): React.ReactNode {
     // Both superseded by real FinOps features (tax codes/rates now live at
     // /finance/tax-codes; currency display used a hardcoded, never-updated
     // exchange-rate table where fx_rates.service.ts's real synced rates now
-    // apply) — removed from NAV for that reason, but the switch case here
+    // apply) â€” removed from NAV for that reason, but the switch case here
     // still rendered the old editable form to anyone who kept the ?s= link
     // or typed it in, letting them "save" numbers nothing downstream reads.
     case 'tax-rates':           return <ElsewhereSection />;
     case 'payment-gateways':    return <PaymentGatewaysSection />;
-    // Moved to FinOps ▸ Expenses ▸ Manage Categories (/finance/expenses/
-    // categories) — same underlying tenant_settings key, real page now.
+    // Moved to FinOps â–¸ Expenses â–¸ Manage Categories (/finance/expenses/
+    // categories) â€” same underlying tenant_settings key, real page now.
     case 'expenses-categories': return <ElsewhereSection />;
     case 'int-google':          return <GoogleSection />;
     case 'int-microsoft':       return <MicrosoftSection />;
-    // No Pusher integration exists anywhere in the backend — never had a
+    // No Pusher integration exists anywhere in the backend â€” never had a
     // real reader, removed from NAV, but the switch case kept rendering the
     // editable App ID/Key/Secret form to anyone who reached it by URL.
     case 'int-shipsgo':         return <ShipsGoSection />;
@@ -3176,7 +3176,7 @@ function renderSection(key: string): React.ReactNode {
 
 function getSectionTitle(key: string): string {
   if (key === 'modules') return 'Modules & Extensions';
-  // No longer its own NAV entry — see renderSection's redirects.
+  // No longer its own NAV entry â€” see renderSection's redirects.
   if (key === 'branding') return 'Company Information';
   if (key === 'expenses-categories') return 'Finance setup';
   return NAV.flatMap(g => g.items).find(i => i.key === key)?.label ?? 'Settings';
@@ -3200,7 +3200,7 @@ export const Settings: React.FC = () => {
    *
    * The endpoint merges by default, so a section that sends only the fields it
    * owns no longer wipes the rest of its object. `replace` is for the sections
-   * whose payload genuinely is the complete set — payment gateways omits the
+   * whose payload genuinely is the complete set â€” payment gateways omits the
    * disabled ones rather than sending false, so merging would leave a
    * switched-off gateway on.
    */

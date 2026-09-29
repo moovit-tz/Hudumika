@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -17,7 +17,7 @@ import {
  * Migration 180 could only backfill rows whose rate made the treatment
  * unambiguous. Everything at 0% stayed unrecorded, because zero-rated, exempt,
  * reverse-charge and out-of-scope are indistinguishable once all you have is a
- * percentage — and guessing would have been worse than leaving the gap visible.
+ * percentage â€” and guessing would have been worse than leaving the gap visible.
  * This is where a human resolves them.
  *
  * The rate is never touched here. Classifying records what a document always
@@ -73,8 +73,8 @@ const td: React.CSSProperties = { padding: '9px 12px', color: 'var(--ink2)', whi
 export function FinanceTaxClassify() {
   const allCodes = useTaxCodes();
   const [target, setTarget] = useState<Target>('sales');
-  // Grouped is the default. The backlog collapses hard — a workspace with 223
-  // unclassified rows has around a dozen distinct (grouping, rate) pairs — and
+  // Grouped is the default. The backlog collapses hard â€” a workspace with 223
+  // unclassified rows has around a dozen distinct (grouping, rate) pairs â€” and
   // every row in a group carries the same signals, so it is the same decision
   // either way. Row-by-row stays available for the ones that need looking at.
   const [mode, setMode] = useState<'grouped' | 'rows'>('grouped');
@@ -90,7 +90,7 @@ export function FinanceTaxClassify() {
   const [notice, setNotice] = useState<{ kind: 'ok' | 'warn' | 'err'; text: string } | null>(null);
 
   // A purchase row takes a purchase treatment; a sales or catalogue row takes a
-  // sales one. The API refuses the wrong side anyway — this stops it being
+  // sales one. The API refuses the wrong side anyway â€” this stops it being
   // offered in the first place.
   const codes = useMemo(
     () => allCodes.filter(c => (target === 'purchase' ? c.appliesTo !== 'SALES' : c.appliesTo !== 'PURCHASE')),
@@ -139,8 +139,8 @@ export function FinanceTaxClassify() {
         body: JSON.stringify({ target, ids: selectedEligible, tax_code_id: chosen.id }),
       });
       const bits = [`${r.classified} row${r.classified === 1 ? '' : 's'} classified as ${chosen.code}`];
-      if (r.skipped_rate_mismatch > 0) bits.push(`${r.skipped_rate_mismatch} skipped — the rate did not match`);
-      if (r.skipped_closed_period > 0) bits.push(`${r.skipped_closed_period} skipped — inside a closed period`);
+      if (r.skipped_rate_mismatch > 0) bits.push(`${r.skipped_rate_mismatch} skipped â€” the rate did not match`);
+      if (r.skipped_closed_period > 0) bits.push(`${r.skipped_closed_period} skipped â€” inside a closed period`);
       setNotice({
         kind: r.classified === 0 ? 'warn' : (r.skipped_rate_mismatch + r.skipped_closed_period > 0 ? 'warn' : 'ok'),
         text: bits.join('. ') + '.',
@@ -168,8 +168,8 @@ export function FinanceTaxClassify() {
         body: JSON.stringify({ target, group: { key: g.key, rate: g.rate }, tax_code_id: code.id }),
       });
       const bits = [`${r.classified} row${r.classified === 1 ? '' : 's'} in "${g.key ?? 'uncategorised'}" classified as ${code.code}`];
-      if (r.skipped_rate_mismatch > 0) bits.push(`${r.skipped_rate_mismatch} skipped — the rate did not match`);
-      if (r.skipped_closed_period > 0) bits.push(`${r.skipped_closed_period} skipped — inside a closed period`);
+      if (r.skipped_rate_mismatch > 0) bits.push(`${r.skipped_rate_mismatch} skipped â€” the rate did not match`);
+      if (r.skipped_closed_period > 0) bits.push(`${r.skipped_closed_period} skipped â€” inside a closed period`);
       setNotice({ kind: r.classified === 0 ? 'warn' : 'ok', text: bits.join('. ') + '.' });
       load();
     } catch (e: any) {
@@ -257,34 +257,34 @@ export function FinanceTaxClassify() {
               {!loading && groups.map(g => {
                 const k = groupKey(g);
                 const picked = codes.find(c => c.id === groupCodes[k]);
-                // A code can only take a group whose rate it matches — the same
+                // A code can only take a group whose rate it matches â€” the same
                 // rule the API applies, shown before the click rather than after.
                 const fits = !picked || picked.rate === g.rate;
                 return (
                   <tr key={k} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ ...td, color: 'var(--ink)', fontWeight: 700 }}>{g.key ?? 'Uncategorised'}</td>
-                    <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)' }}>{g.rate}%</td>
+                    <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font)' }}>{g.rate}%</td>
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: 'var(--ink)' }}>{g.count}</td>
                     <td style={{ ...td, color: 'var(--ink3)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {g.sample || '—'}
+                      {g.sample || 'â€”'}
                     </td>
                     <td style={{ padding: '7px 12px' }}>
                       <Select value={groupCodes[k] ?? ''}
                         onValueChange={v => setGroupCodes(m => ({ ...m, [k]: v }))}>
                         <SelectTrigger style={{ minWidth: 240 }}>
-                          <SelectValue placeholder="Choose a treatment…" />
+                          <SelectValue placeholder="Choose a treatmentâ€¦" />
                         </SelectTrigger>
                         <SelectContent>
                           {codes.map(c => (
                             <SelectItem key={c.id} value={c.id}>
-                              {c.code} · {c.name} · {c.rate}%{c.inputTaxRecoverable ? '' : ' · blocked'}
+                              {c.code} Â· {c.name} Â· {c.rate}%{c.inputTaxRecoverable ? '' : ' Â· blocked'}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       {picked && !fits && (
                         <div style={{ fontSize: 11, color: 'var(--gold)', marginTop: 3 }}>
-                          {picked.code} is {picked.rate}% and these rows are {g.rate}% — classifying never changes a rate.
+                          {picked.code} is {picked.rate}% and these rows are {g.rate}% â€” classifying never changes a rate.
                         </div>
                       )}
                       {picked && fits && (
@@ -324,11 +324,11 @@ export function FinanceTaxClassify() {
             Treatment to apply
           </label>
           <Select value={codeId} onValueChange={setCodeId}>
-            <SelectTrigger><SelectValue placeholder="Choose a treatment…" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Choose a treatmentâ€¦" /></SelectTrigger>
             <SelectContent>
               {codes.map(c => (
                 <SelectItem key={c.id} value={c.id}>
-                  {c.code} · {c.name} · {c.rate}%{c.inputTaxRecoverable ? '' : ' · blocked'}
+                  {c.code} Â· {c.name} Â· {c.rate}%{c.inputTaxRecoverable ? '' : ' Â· blocked'}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -347,7 +347,7 @@ export function FinanceTaxClassify() {
               <>
                 <strong style={{ color: 'var(--ink)' }}>{eligible.size}</strong> of {rows.length} rows on this page
                 carry {chosen.rate}% and can take <strong>{chosen.code}</strong>.
-                {' '}The rest are on a different rate — classifying does not change a rate, so they need their own treatment.
+                {' '}The rest are on a different rate â€” classifying does not change a rate, so they need their own treatment.
               </>
             )}
         </div>
@@ -362,7 +362,7 @@ export function FinanceTaxClassify() {
             disabled={busy || !chosen || selectedEligible.length === 0}
             onClick={apply}>
             <Icon name="check" size={13} color="#fff" />
-            {busy ? 'Applying…' : `Classify ${selectedEligible.length || ''}`}
+            {busy ? 'Applyingâ€¦' : `Classify ${selectedEligible.length || ''}`}
           </button>
         </div>
         </div>
@@ -407,17 +407,17 @@ export function FinanceTaxClassify() {
                     <Checkbox className="mx-auto" checked={selected.has(r.id)} disabled={!canTake}
                       onCheckedChange={() => toggle(r.id)} onClick={e => e.stopPropagation()} />
                   </td>
-                  <td style={{ ...td, fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink)' }}>
+                  <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 11.5, color: 'var(--ink)' }}>
                     {target === 'product' ? r.code : r.document}
                   </td>
                   <td style={{ ...td, color: 'var(--ink)', fontWeight: 600, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {r.name}
                   </td>
-                  {target !== 'product' && <td style={td}>{r.party || '—'}</td>}
-                  <td style={td}>{r.category || '—'}</td>
-                  <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)' }}>{Number(r.tax_rate)}%</td>
+                  {target !== 'product' && <td style={td}>{r.party || 'â€”'}</td>}
+                  <td style={td}>{r.category || 'â€”'}</td>
+                  <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font)' }}>{Number(r.tax_rate)}%</td>
                   {target !== 'product' && (
-                    <td style={td}>{r.date ? String(r.date).slice(0, 10) : '—'}</td>
+                    <td style={td}>{r.date ? String(r.date).slice(0, 10) : 'â€”'}</td>
                   )}
                 </tr>
               );
@@ -429,7 +429,7 @@ export function FinanceTaxClassify() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '12px 2px', flexWrap: 'wrap' }}>
         <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
           <strong style={{ color: 'var(--ink)' }}>{total}</strong> unclassified {targetMeta.label.toLowerCase()} in total
-          {total > 0 && <> — showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)}</>}
+          {total > 0 && <> â€” showing {page * PAGE_SIZE + 1}â€“{Math.min((page + 1) * PAGE_SIZE, total)}</>}
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <button type="button" className="btn btn-secondary btn-sm" disabled={page === 0}
@@ -463,7 +463,7 @@ export function FinanceTaxClassify() {
           ))}
         </div>
         <div style={{ marginTop: 10, color: 'var(--ink3)' }}>
-          An unclassified purchase line is <strong>not</strong> being claimed — the return treats an unrecorded
+          An unclassified purchase line is <strong>not</strong> being claimed â€” the return treats an unrecorded
           treatment as no claim at all, which is the safe direction but costs you real money until it is set.
         </div>
         <div style={{
@@ -471,7 +471,7 @@ export function FinanceTaxClassify() {
         }}>
           <strong style={{ color: 'var(--ink)' }}>This screen cannot fix a wrong rate, only a missing treatment.</strong>{' '}
           If a line was charged at 0% and should have been standard-rated, classifying it as zero-rated or
-          exempt records that mistake rather than correcting it — the document itself needs amending, and if
+          exempt records that mistake rather than correcting it â€” the document itself needs amending, and if
           it has been issued that means a credit note. Worth a look before bulk-applying anything: a group of
           services sitting at 0% that you would expect to carry the standard rate is a billing question, not
           a classification one.

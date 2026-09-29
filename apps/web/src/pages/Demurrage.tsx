@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -109,7 +109,7 @@ export const Demurrage: React.FC = () => {
       const list = Array.isArray(res) ? res : (res.invoices ?? res.data ?? []);
       setInvoiceOptions(
         list.filter((inv: any) => inv.status !== 'Void')
-          .map((inv: any) => ({ value: inv.id, label: `${inv.invoice_number} — ${inv.client_name || 'No customer'}` }))
+          .map((inv: any) => ({ value: inv.id, label: `${inv.invoice_number} â€” ${inv.client_name || 'No customer'}` }))
       );
     } catch {
       setInvoiceOptions([]);
@@ -187,7 +187,7 @@ export const Demurrage: React.FC = () => {
     }
   };
 
-  // ── Container CRUD (inline form — no popups) ──
+  // â”€â”€ Container CRUD (inline form â€” no popups) â”€â”€
   const emptyCForm = { container_number: '', container_size: '40HC', carrier_name: '', discharge_date: '', free_days: 7, shipment_id: '' };
   const [showCForm, setShowCForm] = useState(false);
   const [editCId, setEditCId] = useState<string | null>(null);
@@ -282,7 +282,7 @@ export const Demurrage: React.FC = () => {
           <TabsTrigger value="calculator" className="flex items-center gap-1.5 shrink-0"><Icon name="calculator" size={14} /> Quick Calc</TabsTrigger>
         </TabsList>
 
-        {/* ── Dashboard Overview ── */}
+        {/* â”€â”€ Dashboard Overview â”€â”€ */}
         <TabsContent value="dashboard">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <MetricsRow cards={[
@@ -317,7 +317,7 @@ export const Demurrage: React.FC = () => {
                     <div key={carrier} style={{ padding: 14, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                       <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 4 }}>{carrier}</div>
                       <div style={{ fontSize: 12, color: 'var(--ink2)' }}>
-                        {data.count} containers · {formatCurrency(data.cost)}
+                        {data.count} containers Â· {formatCurrency(data.cost)}
                       </div>
                     </div>
                   ))}
@@ -331,7 +331,7 @@ export const Demurrage: React.FC = () => {
           </div>
         </TabsContent>
 
-        {/* ── Container Tracking ── */}
+        {/* â”€â”€ Container Tracking â”€â”€ */}
         <TabsContent value="containers">
           <SectionCard
             title="Container Demurrage Tracker"
@@ -344,7 +344,7 @@ export const Demurrage: React.FC = () => {
           >
             <div style={{ padding: '8px 18px', fontSize: 11.5, color: 'var(--ink3)' }}>{containers.length} container{containers.length === 1 ? '' : 's'}</div>
 
-            {/* Inline add/edit form — full-width section, not a popup */}
+            {/* Inline add/edit form â€” full-width section, not a popup */}
             {showCForm && (
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>
@@ -354,7 +354,7 @@ export const Demurrage: React.FC = () => {
                   <label style={label}>
                     Container Number *
                     <input value={cForm.container_number} onChange={e => setCForm(f => ({ ...f, container_number: e.target.value.toUpperCase() }))} placeholder="MSKU1234567"
-                      style={{ ...fieldInput, fontFamily: 'var(--mono)' }} />
+                      style={{ ...fieldInput, fontFamily: 'var(--font)' }} />
                   </label>
                   <label style={label}>
                     Size
@@ -374,9 +374,9 @@ export const Demurrage: React.FC = () => {
                     Shipment (BL) {editCId ? '' : '*'}
                     <div style={{ marginTop: 4 }}>
                       <Combobox
-                        options={shipments.slice(0, 100).map((s: any) => ({ value: s.id, label: `${s.ref_number}${s.bl_number ? ` — ${s.bl_number}` : ''}` }))}
+                        options={shipments.slice(0, 100).map((s: any) => ({ value: s.id, label: `${s.ref_number}${s.bl_number ? ` â€” ${s.bl_number}` : ''}` }))}
                         value={cForm.shipment_id} onChange={v => setCForm(f => ({ ...f, shipment_id: v }))}
-                        placeholder="Select shipment…"
+                        placeholder="Select shipmentâ€¦"
                       />
                     </div>
                   </label>
@@ -419,10 +419,10 @@ export const Demurrage: React.FC = () => {
                   <tbody>
                     {containers.map(c => (
                       <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '10px 14px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{c.container_number}</td>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>{c.container_number}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.container_size}</td>
-                        <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.carrier_name || '—'}</td>
-                        <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.discharge_date ? new Date(c.discharge_date).toLocaleDateString() : '—'}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.carrier_name || 'â€”'}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.discharge_date ? new Date(c.discharge_date).toLocaleDateString() : 'â€”'}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.free_days}</td>
                         <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>{c.total_days}</td>
                         <td style={{ padding: '10px 14px' }}>
@@ -487,7 +487,7 @@ export const Demurrage: React.FC = () => {
           </SectionCard>
         </TabsContent>
 
-        {/* ── Tariff Configuration ── */}
+        {/* â”€â”€ Tariff Configuration â”€â”€ */}
         <TabsContent value="tariffs">
           <SectionCard title="Demurrage Tariff Configuration" padded={false}>
             <div style={{ padding: '8px 18px', fontSize: 11.5, color: 'var(--ink3)' }}>Configure daily rates per shipping line and container size. Rates use progressive step-up tiers.</div>
@@ -535,7 +535,7 @@ export const Demurrage: React.FC = () => {
           </SectionCard>
         </TabsContent>
 
-        {/* ── Quick Calculator ── */}
+        {/* â”€â”€ Quick Calculator â”€â”€ */}
         <TabsContent value="calculator">
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
             <SectionCard title="Demurrage Calculator">
@@ -654,15 +654,15 @@ export const Demurrage: React.FC = () => {
           {rechargeContainer && (
             <div>
               <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 14 }}>
-                Adds <strong>{formatCurrency(rechargeContainer.demurrage_cost, rechargeContainer.demurrage_currency)}</strong> for container <strong style={{ fontFamily: 'var(--mono)' }}>{rechargeContainer.container_number}</strong> as a line on the selected invoice.
+                Adds <strong>{formatCurrency(rechargeContainer.demurrage_cost, rechargeContainer.demurrage_currency)}</strong> for container <strong style={{ fontFamily: 'var(--font)' }}>{rechargeContainer.container_number}</strong> as a line on the selected invoice.
               </div>
               <label style={{ display: 'block', ...label, marginBottom: 6 }}>Invoice</label>
               <Combobox
                 options={invoiceOptions}
                 value={rechargeInvoiceId}
                 onChange={setRechargeInvoiceId}
-                placeholder="Select an invoice…"
-                searchPlaceholder="Search invoices…"
+                placeholder="Select an invoiceâ€¦"
+                searchPlaceholder="Search invoicesâ€¦"
                 emptyText="No invoices found."
               />
             </div>
@@ -670,7 +670,7 @@ export const Demurrage: React.FC = () => {
           <DialogFooter>
             <button type="button" className="btn btn-secondary" onClick={() => setRechargeContainer(null)}>Cancel</button>
             <button type="button" className="btn btn-primary" disabled={!rechargeInvoiceId || rechargeSaving} onClick={submitRecharge}>
-              {rechargeSaving ? 'Recharging…' : 'Recharge'}
+              {rechargeSaving ? 'Rechargingâ€¦' : 'Recharge'}
             </button>
           </DialogFooter>
         </DialogContent>

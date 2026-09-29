@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
@@ -24,7 +24,7 @@ import {
 } from '../components/DocumentDetail.js';
 
 /**
- * Delivery Documents — the merge of ClearOS's Release/Delivery Orders
+ * Delivery Documents â€” the merge of ClearOS's Release/Delivery Orders
  * (customs gate-pass: container list, carrier, validity window) and
  * FinOps's Delivery Notes (proof-of-delivery: goods table, driver,
  * signatures). See migration 263 / delivery-document.service.ts for the
@@ -68,9 +68,9 @@ function parseContainers(c: ContainerLine[] | string): ContainerLine[] {
 }
 
 function fmtDate(d: string | null | undefined) {
-  if (!d) return '—';
+  if (!d) return 'â€”';
   const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '—';
+  if (isNaN(dt.getTime())) return 'â€”';
   return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
@@ -103,17 +103,17 @@ function DeliveryDocumentDetailView({ doc, loading, busy, shipmentLabel, onBack,
       { key: 'pdf', label: 'View / Print PDF', icon: 'printer', onClick: onOpenPdf },
     ],
     [
-      { key: 'issue', label: 'Issue', icon: 'send', loading: busy, loadingLabel: 'Issuing…', hidden: !(isRelease && doc.status === 'draft'), onClick: onIssue },
-      { key: 'markUsed', label: 'Mark Used', icon: 'checkCircle', loading: busy, loadingLabel: 'Updating…', hidden: !(isRelease && doc.status === 'issued'), onClick: onMarkUsed },
-      { key: 'dispatch', label: 'Dispatch', icon: 'send', loading: busy, loadingLabel: 'Updating…', hidden: !(!isRelease && doc.status === 'draft'), onClick: () => onSetStatus('dispatched') },
-      { key: 'delivered', label: 'Mark Delivered', icon: 'checkCircle', loading: busy, loadingLabel: 'Updating…', hidden: !(!isRelease && doc.status === 'dispatched'), onClick: () => onSetStatus('delivered') },
+      { key: 'issue', label: 'Issue', icon: 'send', loading: busy, loadingLabel: 'Issuingâ€¦', hidden: !(isRelease && doc.status === 'draft'), onClick: onIssue },
+      { key: 'markUsed', label: 'Mark Used', icon: 'checkCircle', loading: busy, loadingLabel: 'Updatingâ€¦', hidden: !(isRelease && doc.status === 'issued'), onClick: onMarkUsed },
+      { key: 'dispatch', label: 'Dispatch', icon: 'send', loading: busy, loadingLabel: 'Updatingâ€¦', hidden: !(!isRelease && doc.status === 'draft'), onClick: () => onSetStatus('dispatched') },
+      { key: 'delivered', label: 'Mark Delivered', icon: 'checkCircle', loading: busy, loadingLabel: 'Updatingâ€¦', hidden: !(!isRelease && doc.status === 'dispatched'), onClick: () => onSetStatus('delivered') },
     ],
   ];
 
   return (
     <DocumentDetailShell backLabel="Delivery Documents" onBack={onBack} docNumber={doc.doc_number ?? 'DRAFT'}>
       <DocumentDetailMain>
-        {loading && <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Refreshing…</div>}
+        {loading && <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Refreshingâ€¦</div>}
         <DocumentHeaderCard
           eyebrow={DOC_TYPE_LABEL[doc.doc_type]}
           number={doc.doc_number ?? 'DRAFT'}
@@ -133,10 +133,10 @@ function DeliveryDocumentDetailView({ doc, loading, busy, shipmentLabel, onBack,
             title="Containers"
             columns={[
               { key: 'n', header: '#', width: 36, render: (_c, i) => i + 1 },
-              { key: 'num', header: 'Container Number', render: c => <span style={{ fontWeight: 600, fontFamily: 'var(--mono)' }}>{c.number}</span> },
+              { key: 'num', header: 'Container Number', render: c => <span style={{ fontWeight: 600, fontFamily: 'var(--font)' }}>{c.number}</span> },
               { key: 'size', header: 'Size', render: c => c.size },
-              { key: 'seal', header: 'Seal Number', render: c => c.seal_number || '—' },
-              { key: 'wt', header: 'Weight (kg)', align: 'right', render: c => c.weight_kg ?? '—' },
+              { key: 'seal', header: 'Seal Number', render: c => c.seal_number || 'â€”' },
+              { key: 'wt', header: 'Weight (kg)', align: 'right', render: c => c.weight_kg ?? 'â€”' },
             ]}
             rows={containers}
             emptyLabel="No containers on this document."
@@ -146,11 +146,11 @@ function DeliveryDocumentDetailView({ doc, loading, busy, shipmentLabel, onBack,
             title="Goods"
             columns={[
               { key: 'n', header: '#', width: 36, render: (_l, i) => i + 1 },
-              { key: 'desc', header: 'Description', render: l => l.description || '—' },
-              { key: 'sent', header: 'Qty Sent', align: 'right', render: l => l.qty_ordered ?? '—' },
-              { key: 'recv', header: 'Qty Received', align: 'right', render: l => l.qty_delivered ?? '—' },
-              { key: 'cond', header: 'Condition', render: l => l.condition || '—' },
-              { key: 'rem', header: 'Remarks', render: l => l.remarks || '—' },
+              { key: 'desc', header: 'Description', render: l => l.description || 'â€”' },
+              { key: 'sent', header: 'Qty Sent', align: 'right', render: l => l.qty_ordered ?? 'â€”' },
+              { key: 'recv', header: 'Qty Received', align: 'right', render: l => l.qty_delivered ?? 'â€”' },
+              { key: 'cond', header: 'Condition', render: l => l.condition || 'â€”' },
+              { key: 'rem', header: 'Remarks', render: l => l.remarks || 'â€”' },
             ]}
             rows={lines}
             emptyLabel="No goods lines on this document."
@@ -170,17 +170,17 @@ function DeliveryDocumentDetailView({ doc, loading, busy, shipmentLabel, onBack,
         <DocumentActionsCard groups={actionGroups} />
         {isRelease ? (
           <DocumentMetaCard rows={[
-            ['Carrier', doc.carrier_name || '—'],
-            ['Vessel / Voyage', doc.vessel_voyage || '—'],
+            ['Carrier', doc.carrier_name || 'â€”'],
+            ['Vessel / Voyage', doc.vessel_voyage || 'â€”'],
             ['Valid From', fmtDate(doc.valid_from)],
             ['Valid Until', fmtDate(doc.valid_until)],
             ['Created', fmtDate(doc.created_at)],
           ]} />
         ) : (
           <DocumentMetaCard rows={[
-            ['Driver / Agent', doc.driver_name || '—'],
-            ['Vehicle No.', doc.vehicle_no || '—'],
-            ['Driver Contact', doc.driver_contact || '—'],
+            ['Driver / Agent', doc.driver_name || 'â€”'],
+            ['Vehicle No.', doc.vehicle_no || 'â€”'],
+            ['Driver Contact', doc.driver_contact || 'â€”'],
             ['Delivery Date', fmtDate(doc.delivery_date)],
             ['Created', fmtDate(doc.created_at)],
           ]} />
@@ -200,7 +200,7 @@ function DeliveryDocumentDetailView({ doc, loading, busy, shipmentLabel, onBack,
 }
 
 export function DeliveryDocumentsPage() {
-  usePageSEO('Delivery Documents', 'Release orders, delivery orders and delivery notes — one combined document, container list or goods table, real PDF, linked to the shipment they’re for.');
+  usePageSEO('Delivery Documents', 'Release orders, delivery orders and delivery notes â€” one combined document, container list or goods table, real PDF, linked to the shipment theyâ€™re for.');
   const [urlParams] = useSearchParams();
   const shipmentFilter = urlParams.get('shipment');
 
@@ -221,7 +221,7 @@ export function DeliveryDocumentsPage() {
   const shipmentLabel = (id: string | null) => {
     if (!id) return null;
     const job = jobs.find(j => j.id === id);
-    return job ? `${job.bl ? `${job.bl} — ` : ''}${job.customer}` : id;
+    return job ? `${job.bl ? `${job.bl} â€” ` : ''}${job.customer}` : id;
   };
 
   const load = useCallback(() => {
@@ -347,7 +347,7 @@ export function DeliveryDocumentsPage() {
         crumbs={['FINANCE', 'DELIVERY NOTES']}
         titlePlain="Delivery "
         titleEm="documents"
-        subtitle="Release orders, delivery orders and delivery notes — linked to shipments and logistics cases."
+        subtitle="Release orders, delivery orders and delivery notes â€” linked to shipments and logistics cases."
       />
 
       <MetricsRow cards={[
@@ -406,7 +406,7 @@ export function DeliveryDocumentsPage() {
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Shipment (optional)</label>
                 <Combobox
-                  options={jobs.map(j => ({ value: j.id, label: `${j.bl ? `BL: ${j.bl} — ` : ''}${j.customer} (${j.title})` }))}
+                  options={jobs.map(j => ({ value: j.id, label: `${j.bl ? `BL: ${j.bl} â€” ` : ''}${j.customer} (${j.title})` }))}
                   value={selectedJobId} onChange={pickJob} placeholder="Not linked to a shipment"
                 />
               </div>
@@ -525,13 +525,13 @@ export function DeliveryDocumentsPage() {
 
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Discrepancy notes</label>
-                  <Textarea value={form.discrepancyNotes} onChange={e => setForm(p => ({ ...p, discrepancyNotes: e.target.value }))} rows={2} placeholder="Describe any discrepancies, damages or missing items…" />
+                  <Textarea value={form.discrepancyNotes} onChange={e => setForm(p => ({ ...p, discrepancyNotes: e.target.value }))} rows={2} placeholder="Describe any discrepancies, damages or missing itemsâ€¦" />
                 </div>
               </>
             )}
 
             {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-            <Button disabled={saving} onClick={submit}>{saving ? 'Saving…' : 'Save document'}</Button>
+            <Button disabled={saving} onClick={submit}>{saving ? 'Savingâ€¦' : 'Save document'}</Button>
           </SectionCard>
         )}
 
@@ -561,16 +561,16 @@ export function DeliveryDocumentsPage() {
                         {DOC_TYPE_LABEL[row.doc_type]}
                         {row.doc_number && <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{row.doc_number}</div>}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{row.customer_name || '—'}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{row.customer_name || 'â€”'}</td>
                       <td style={{ padding: '12px 16px', fontSize: 12.5 }} onClick={e => e.stopPropagation()}>
                         {row.subject_type === 'shipment' && row.subject_id
                           ? <Link to={`/clearance/${row.subject_id}`} style={{ color: 'var(--teal)', fontWeight: 600 }}>{shipmentLabel(row.subject_id) ?? 'View shipment'}</Link>
-                          : <span style={{ color: 'var(--ink3)' }}>—</span>}
+                          : <span style={{ color: 'var(--ink3)' }}>â€”</span>}
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>
                         {isRelease
                           ? `${cs.length} container${cs.length === 1 ? '' : 's'}`
-                          : (row.driver_name || row.vehicle_no ? `${row.driver_name || ''}${row.vehicle_no ? ` · ${row.vehicle_no}` : ''}` : '—')}
+                          : (row.driver_name || row.vehicle_no ? `${row.driver_name || ''}${row.vehicle_no ? ` Â· ${row.vehicle_no}` : ''}` : 'â€”')}
                       </td>
                       <td style={{ padding: '12px 16px' }}><Badge variant={STATUS_VARIANT[row.status] ?? 'gray'}>{row.status}</Badge></td>
                       <td style={{ padding: '12px 16px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -21,7 +21,7 @@ function FL({ label, children }: { label: string; children: React.ReactNode }) {
   );
 }
 
-/** The Component list (§8 of the brief) — reusable named block arrays (a
+/** The Component list (Â§8 of the brief) â€” reusable named block arrays (a
  *  "CTA banner", a "Team grid") a tenant defines once and references from
  *  any 'blocks' field. Editing one here updates every place that
  *  references it, since a reference is a live id lookup, not a copy. */
@@ -62,7 +62,7 @@ export function CMSComponentsList() {
         crumbs={['CMS', 'Components']}
         titlePlain="Reusable"
         titleEm="components"
-        subtitle="A block group you define once — CTA banner, team grid, feature strip — and place inside any Content Model entry. Edit it here, every place it's used updates."
+        subtitle="A block group you define once â€” CTA banner, team grid, feature strip â€” and place inside any Content Model entry. Edit it here, every place it's used updates."
         actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)}><Icon name="plus" size={13} /> New component</button>}
       />
 
@@ -76,10 +76,10 @@ export function CMSComponentsList() {
                   onChange={e => setForm(f => ({ ...f, name: e.target.value, key: f.key || autoKey(e.target.value) }))} />
               </FL>
               <FL label="Key (used internally, can't change later)">
-                <input className="input-field" style={{ fontFamily: 'var(--mono)' }} value={form.key} placeholder="cta-banner" onChange={e => setForm(f => ({ ...f, key: autoKey(e.target.value) }))} />
+                <input className="input-field" style={{ fontFamily: 'var(--font)' }} value={form.key} placeholder="cta-banner" onChange={e => setForm(f => ({ ...f, key: autoKey(e.target.value) }))} />
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>{saving ? 'Creating…' : 'Create component'}</button>
+                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>{saving ? 'Creatingâ€¦' : 'Create component'}</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)}>Cancel</button>
               </div>
             </div>
@@ -88,17 +88,17 @@ export function CMSComponentsList() {
 
         {components === null ? <SectionLoading /> : components.length === 0 && !creating ? (
           <div style={{ textAlign: 'center', padding: 48, color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-            No components yet. Build a block group once — a hero, a CTA, a feature strip — and reuse it across every entry that needs it.
+            No components yet. Build a block group once â€” a hero, a CTA, a feature strip â€” and reuse it across every entry that needs it.
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
             {components.map(c => (
               <Link key={c.id} to={`/cms/components/${c.id}`} className="card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 10, textDecoration: 'none', color: 'inherit' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--mono)', fontWeight: 700 }}>◈</div>
+                  <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font)', fontWeight: 700 }}>â—ˆ</div>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{c.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{c.key}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{c.key}</div>
                   </div>
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 'auto' }}>{c.blocks.length} block{c.blocks.length === 1 ? '' : 's'}</div>
@@ -112,7 +112,7 @@ export function CMSComponentsList() {
 }
 
 /** One component's own block editor. `allowComponents={false}` on
- *  BlockEditor is the UI half of the no-nesting rule — the server-side half
+ *  BlockEditor is the UI half of the no-nesting rule â€” the server-side half
  *  (cms-content.service.ts's sanitizeBlock with context: 'component') is
  *  what actually enforces it. */
 export function CMSComponentDetail() {
@@ -184,7 +184,7 @@ export function CMSComponentDetail() {
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-secondary btn-sm" onClick={handleRename}>Rename</button>
-            <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave}>{saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>
+            <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave}>{saving ? 'Savingâ€¦' : dirty ? 'Save changes' : 'Saved'}</button>
           </div>
         }
       />
@@ -200,7 +200,7 @@ export function CMSComponentDetail() {
         </div>
         <div className="card" style={{ padding: '20px 22px' }}>
           {preview ? (
-            blocks.length ? <BlockPreview blocks={blocks} /> : <div className="block-preview-empty">Nothing to preview yet — add a block first.</div>
+            blocks.length ? <BlockPreview blocks={blocks} /> : <div className="block-preview-empty">Nothing to preview yet â€” add a block first.</div>
           ) : (
             <BlockEditor value={blocks} allowComponents={false} forms={forms} experiments={experiments} onChange={next => { setBlocks(next); setDirty(true); }} />
           )}

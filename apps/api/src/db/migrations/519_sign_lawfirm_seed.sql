@@ -78,7 +78,7 @@ BEGIN
   END IF;
 
   SELECT id INTO v_user_id FROM users
-    WHERE tenant_id = v_tenant_id AND is_active = TRUE
+    WHERE tenant_id = v_tenant_id AND active = TRUE
     ORDER BY created_at LIMIT 1;
   IF v_user_id IS NULL THEN
     RAISE NOTICE 'sign_lawfirm_seed: no user found for tenant — skipping.';

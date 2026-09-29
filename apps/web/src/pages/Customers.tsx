@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiDownload, apiFetchBlob } from '../lib/api.js';
@@ -36,10 +36,10 @@ import { ComposeEmailButton } from '../components/crm/ComposeEmailButton.js';
 import { StartCallButton } from '../components/crm/StartCallButton.js';
 import { CustomFieldsPanel } from '../components/crm/CustomFieldsPanel.js';
 
-/* ── Statement of Account — print/PDF ──
+/* â”€â”€ Statement of Account â€” print/PDF â”€â”€
    Same open-window/write-html/auto-print structure as Billing.tsx's
    openPrintWindow(), but shaped for a customer's whole transaction history
-   (many invoices + payments, oldest→newest, running balance) rather than
+   (many invoices + payments, oldestâ†’newest, running balance) rather than
    one invoice's line groups. */
 function openStatementPrintWindow(
   customer: { name: string },
@@ -51,7 +51,7 @@ function openStatementPrintWindow(
   const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
   const rows = transactions.map(tx => `<tr>
-    <td>${tx.date ? new Date(tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+    <td>${tx.date ? new Date(tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”'}</td>
     <td>${tx.ref}</td>
     <td style="text-transform:capitalize">${tx.type}</td>
     <td style="text-align:right;font-family:monospace;color:${tx.debit ? '#dc2626' : '#059669'}">${tx.debit ? '-' : '+'}${money(tx.amount)}</td>
@@ -59,7 +59,7 @@ function openStatementPrintWindow(
   </tr>`).join('');
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<title>Statement of Account — ${customer.name}</title><style>
+<title>Statement of Account â€” ${customer.name}</title><style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,sans-serif;color:#111;padding:24px 32px;font-size:11px}
 .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #0b1e3a}
@@ -85,7 +85,7 @@ td{padding:7px 8px;border-bottom:1px solid #f3f4f6;font-size:10.5px}
 <div class="top">
   <div class="from">
     ${co.logoUrl ? `<img src="${co.logoUrl}" style="max-height:36px;max-width:140px;object-fit:contain" alt="${co.name}">` : `<strong>${co.name}</strong>`}
-    <div>${co.address}<br>${co.city}, ${co.country} · VAT: ${co.taxId}</div>
+    <div>${co.address}<br>${co.city}, ${co.country} Â· VAT: ${co.taxId}</div>
   </div>
   <div class="title">
     <h1>Statement of Account</h1>
@@ -111,7 +111,7 @@ td{padding:7px 8px;border-bottom:1px solid #f3f4f6;font-size:10.5px}
   if (win) { win.document.write(html); win.document.close(); }
 }
 
-/* ── Types ── */
+/* â”€â”€ Types â”€â”€ */
 interface Customer {
   id: string;
   name: string;
@@ -137,20 +137,20 @@ interface Customer {
   currency?: string;
   tancis_number?: string;
   /** Links this tenant-private record to a platform-level Organization
-   *  (migration 230) — the same real-world company tracked across every
+   *  (migration 230) â€” the same real-world company tracked across every
    *  tenant that has linked a customer record to it. Staff-linked only. */
   organization_id?: string;
   organization_name?: string;
-  // Daily shipment-report automation (migration 258) — null = platform
+  // Daily shipment-report automation (migration 258) â€” null = platform
   // default (on); a shipment can further override this. See
   // shipment-report.service.ts's tri-state resolution.
   daily_report_enabled?: boolean | null;
 }
 
-/* ── Avatar helper ──
+/* â”€â”€ Avatar helper â”€â”€
    This page carried its own initials-and-colour scheme, with its own seven-colour
    palette keyed off the first character of the name. So did Leads, and HRM, and
-   the header — which is why one company appeared in a different colour in each
+   the header â€” which is why one company appeared in a different colour in each
    app. It delegates now; the only thing kept is this page's corner radius.
 
    `customerId` is optional because the same component also draws `contact_name`,
@@ -171,19 +171,19 @@ function Avatar({ name, size = 36, customerId }: { name: string; size?: number; 
   );
 }
 
-/* ── Helpers ── */
+/* â”€â”€ Helpers â”€â”€ */
 const PAGE_SIZE = 10;
 
 function fmtDate(d: string) {
   const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '—';
+  if (isNaN(dt.getTime())) return 'â€”';
   return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     + ', ' + dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
 }
 
 function fmtDateShort(d: string) {
   const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '—';
+  if (isNaN(dt.getTime())) return 'â€”';
   return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
@@ -193,7 +193,7 @@ function maskTin(tin?: string) {
   return `**** ${last4 || '????'}`;
 }
 
-/* ── File type → icon/colour, for the Documents tab's Drive-linked list ── */
+/* â”€â”€ File type â†’ icon/colour, for the Documents tab's Drive-linked list â”€â”€ */
 const FILE_TYPE_STYLE: Record<string, { icon: IconName; color: string; bg: string }> = {
   pdf:  { icon: 'file',     color: 'var(--red)',    bg: 'var(--red-l)'    },
   doc:  { icon: 'fileText', color: 'var(--blue)',   bg: 'var(--blue-l)'   },
@@ -211,17 +211,17 @@ function fileTypeStyle(type: string) {
   return FILE_TYPE_STYLE[(type || '').toLowerCase()] ?? { icon: 'file' as IconName, color: 'var(--ink3)', bg: 'var(--bg)' };
 }
 
-function getPageNums(cur: number, total: number): (number | '…')[] {
+function getPageNums(cur: number, total: number): (number | 'â€¦')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: (number | '…')[] = [1];
-  if (cur > 3) pages.push('…');
+  const pages: (number | 'â€¦')[] = [1];
+  if (cur > 3) pages.push('â€¦');
   for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p);
-  if (cur < total - 2) pages.push('…');
+  if (cur < total - 2) pages.push('â€¦');
   pages.push(total);
   return pages;
 }
 
-/* ── Status badge ── */
+/* â”€â”€ Status badge â”€â”€ */
 const STATUS_VARIANT: Record<string, 'success' | 'gray' | 'error'> = {
   Active: 'success', Inactive: 'gray', Suspended: 'error',
 };
@@ -229,11 +229,11 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant={STATUS_VARIANT[status] ?? 'success'} className="whitespace-nowrap">{status}</Badge>;
 }
 
-/* ── TIN chip ── */
+/* â”€â”€ TIN chip â”€â”€ */
 function TinChip({ tin }: { tin?: string }) {
   const [copied, setCopied] = useState(false);
   const masked = maskTin(tin);
-  if (!masked) return <span style={{ color: 'var(--ink3)', fontSize: 12 }}>—</span>;
+  if (!masked) return <span style={{ color: 'var(--ink3)', fontSize: 12 }}>â€”</span>;
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -244,7 +244,7 @@ function TinChip({ tin }: { tin?: string }) {
   };
 
   return (
-    <Tip label={copied ? 'Copied!' : `TIN: ${tin} — click to copy`} side="top">
+    <Tip label={copied ? 'Copied!' : `TIN: ${tin} â€” click to copy`} side="top">
       <div
         onClick={handleCopy}
         style={{
@@ -260,9 +260,9 @@ function TinChip({ tin }: { tin?: string }) {
         }}
       >
         <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--blue)', letterSpacing: '0.04em', background: 'var(--blue-l)', borderRadius: 'var(--r-sm)', padding: '1px 4px' }}>TIN</span>
-        <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink)' }}>{masked}</span>
+        <span style={{ fontFamily: 'var(--font)', fontSize: 12, color: 'var(--ink)' }}>{masked}</span>
         {copied ? (
-          <span style={{ fontSize: 10, color: 'var(--green)', fontWeight: 700 }}>✓</span>
+          <span style={{ fontSize: 10, color: 'var(--green)', fontWeight: 700 }}>âœ“</span>
         ) : (
           <Icon name="copy" size={11} style={{ color: 'var(--ink3)', opacity: 0.65 }} />
         )}
@@ -271,7 +271,7 @@ function TinChip({ tin }: { tin?: string }) {
   );
 }
 
-/* ── Table header cell ── */
+/* â”€â”€ Table header cell â”€â”€ */
 function Th({ children, align = 'left', width, className }: { children?: React.ReactNode; align?: 'left'|'right'|'center'; width?: number | string; className?: string }) {
   return (
     <th className={className} style={{ textAlign: align, width }}>
@@ -280,7 +280,7 @@ function Th({ children, align = 'left', width, className }: { children?: React.R
   );
 }
 
-/* ── Actions dropdown ── */
+/* â”€â”€ Actions dropdown â”€â”€ */
 function ActionsMenu({ onView, onEdit, onSuspend, onDelete }: { onView: () => void; onEdit: () => void; onSuspend: () => void; onDelete: () => void }) {
   return (
     <DropdownMenu>
@@ -299,24 +299,24 @@ function ActionsMenu({ onView, onEdit, onSuspend, onDelete }: { onView: () => vo
   );
 }
 
-/* ── View field — clean display of a label+value pair ── */
+/* â”€â”€ View field â€” clean display of a label+value pair â”€â”€ */
 function ViewField({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
   return (
     <div>
       <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 13.5, color: value ? 'var(--ink)' : 'var(--ink3)', fontFamily: mono ? 'var(--mono)' : 'var(--font)', fontStyle: value ? 'normal' : 'italic' }}>
-        {value || '—'}
+      <div style={{ fontSize: 13.5, color: value ? 'var(--ink)' : 'var(--ink3)', fontFamily: mono ? 'var(--font)' : 'var(--font)', fontStyle: value ? 'normal' : 'italic' }}>
+        {value || 'â€”'}
       </div>
     </div>
   );
 }
 
-/* ── Stat chip used in hero — an icon-square + value/label pair, matching
+/* â”€â”€ Stat chip used in hero â€” an icon-square + value/label pair, matching
    the KPI card language used on the Overview tab, so a profile fact reads
    as data rather than a bare label-over-number. A missing profile field
-   (Preferred Port, Freight Terms, TIN — all optional) shows a muted italic
-   "Not set" instead of a bare "—", which used to read like a rendering bug
-   rather than an honestly-empty optional field. ── */
+   (Preferred Port, Freight Terms, TIN â€” all optional) shows a muted italic
+   "Not set" instead of a bare "â€”", which used to read like a rendering bug
+   rather than an honestly-empty optional field. â”€â”€ */
 function HeroStat({ icon, label, value, color, bg, muted }: { icon: IconName; label: string; value: string | number; color: string; bg: string; muted?: boolean }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -331,9 +331,9 @@ function HeroStat({ icon, label, value, color, bg, muted }: { icon: IconName; la
   );
 }
 
-/* ══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Main component
-══════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 export const Customers: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -386,12 +386,12 @@ export const Customers: React.FC = () => {
   const [custSealLots, setCustSealLots] = useState<any[]>([]);
   const [sealLoading, setSealLoading] = useState(false);
 
-  /* Documents — files linked in from Drive (cloud_files, tagged
+  /* Documents â€” files linked in from Drive (cloud_files, tagged
      entity_type='customer'), not a separate upload silo. */
   const [linkedFiles, setLinkedFiles] = useState<any[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [defaultDriveId, setDefaultDriveId] = useState<string | null>(null);
-  // This customer's real "Customers ▸ <name>" folder in Drive — resolved
+  // This customer's real "Customers â–¸ <name>" folder in Drive â€” resolved
   // (and auto-created if missing) on demand, per customer, so uploads and
   // "Open Drive" land inside the actual folder rather than just tagging a
   // file flat at the drive root. Keyed to avoid re-resolving on every click.
@@ -404,7 +404,7 @@ export const Customers: React.FC = () => {
   const [fileSearching, setFileSearching] = useState(false);
   const [fileLinking, setFileLinking] = useState<string | null>(null);
 
-  /* Signatures — Hudumika Sign envelopes linked to this customer
+  /* Signatures â€” Hudumika Sign envelopes linked to this customer
      (sign_envelopes.client_id, migration 426). Sending one reuses whatever
      is already linked in the Documents tab above, the same "pick from
      Drive" pattern as "Link Existing File" rather than a new upload path. */
@@ -466,7 +466,7 @@ export const Customers: React.FC = () => {
 
   useEffect(() => { loadCustomers(); }, [loadCustomers]);
 
-  /* Auto-open customer when navigated from Support with ?id= — and, when
+  /* Auto-open customer when navigated from Support with ?id= â€” and, when
      the link also carries ?tab=/&financeTab=, land straight on that tab
      (e.g. Aged Receivables' "View Statement" opens finance/statement
      directly) rather than always resetting to Overview the way a plain
@@ -519,7 +519,7 @@ export const Customers: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Loaded as soon as a customer is selected — Overview's Invoices/Outstanding
+    // Loaded as soon as a customer is selected â€” Overview's Invoices/Outstanding
     // KPIs need real totals immediately, not only once the Finance tab is opened.
     if (selected) loadFinance(selected.id);
   }, [selected, loadFinance]);
@@ -548,7 +548,7 @@ export const Customers: React.FC = () => {
     if (selected && mainTab === 'seal') loadSealLots(selected.id);
   }, [selected, mainTab, loadSealLots]);
 
-  // The tenant's default drive to upload straight-from-this-page files into —
+  // The tenant's default drive to upload straight-from-this-page files into â€”
   // fetched once per profile visit, lazily, the first time it's actually
   // needed (Drive auto-creates "My Drive" on first GET if none exist yet).
   const ensureDefaultDrive = useCallback(async () => {
@@ -560,12 +560,12 @@ export const Customers: React.FC = () => {
   }, [defaultDriveId]);
 
   // This customer's real Drive folder. GET /v1/files/customer-folder/:id
-  // does more than just resolve an id — it creates the folder if missing
+  // does more than just resolve an id â€” it creates the folder if missing
   // and retroactively tags any of the customer's own or their shipments'
   // documents that were uploaded before entity-tagging existed, so this
   // doubles as a self-healing sync. Cached per customerId so repeat calls
   // (tab load, then Open Drive, then Upload) don't re-resolve it each time.
-  // `silent` skips the error alert for the automatic tab-load call below —
+  // `silent` skips the error alert for the automatic tab-load call below â€”
   // a background sync failing shouldn't interrupt someone just viewing the tab.
   const resolveCustomerFolder = useCallback(async (customerId: string, opts?: { silent?: boolean }) => {
     if (customerFolder?.customerId === customerId) return customerFolder;
@@ -587,7 +587,7 @@ export const Customers: React.FC = () => {
     setFilesLoading(true);
     try {
       // Self-heals this customer's Drive folder + shipment-folder tagging on
-      // every open — no manual "Resync" click needed for a customer/shipment
+      // every open â€” no manual "Resync" click needed for a customer/shipment
       // (or a file dropped straight into Drive) that predates entity-tagging.
       await resolveCustomerFolder(customerId, { silent: true });
       const res = await apiFetch(`/v1/files?entity_type=customer&entity_id=${customerId}`).catch(() => []);
@@ -609,7 +609,7 @@ export const Customers: React.FC = () => {
   }
 
   // Debounced search across the tenant's Drive files, for the "Link existing
-  // file" picker — mirrors EntityPicker's search(q) shape without pulling in
+  // file" picker â€” mirrors EntityPicker's search(q) shape without pulling in
   // its combobox chrome, since this needs a multi-select list, not a field.
   useEffect(() => {
     if (!showLinkFileModal) return;
@@ -656,8 +656,8 @@ export const Customers: React.FC = () => {
     if (!selected || !files.length) return;
     setFileUploading(true);
     try {
-      // Upload straight into the customer's real "Customers ▸ <name>"
-      // folder (parent_id), not just tagged flat at the drive root — the
+      // Upload straight into the customer's real "Customers â–¸ <name>"
+      // folder (parent_id), not just tagged flat at the drive root â€” the
       // entity_type/entity_id tag is still passed explicitly too, so the
       // file stays reliably queryable even if it's later moved elsewhere.
       const folder = await resolveCustomerFolder(selected.id);
@@ -708,15 +708,15 @@ export const Customers: React.FC = () => {
 
   async function sendFileForSignature(file: { id: string; name: string }) {
     if (!selected) return;
-    if (!selected.email) { showAlert('This customer has no email on file — add one before sending a document for signature.'); return; }
+    if (!selected.email) { showAlert('This customer has no email on file â€” add one before sending a document for signature.'); return; }
     setSendingForSignature(file.id);
     try {
       // A Drive-sourced envelope is normally created file_id-only
-      // (document_data left null — see SignEditor.tsx's own handleSave),
+      // (document_data left null â€” see SignEditor.tsx's own handleSave),
       // relying on the internal editor's authenticated /v1/files/:id/preview
       // fetch to render it. The public signing page (no auth, a token in an
       // email link) has no equivalent lazy fetch and only ever reads
-      // document_data — so file_id-only would leave an external signer
+      // document_data â€” so file_id-only would leave an external signer
       // looking at a blank document. Resolving the real bytes once here,
       // up front, sidesteps that gap entirely rather than depending on it.
       const blob = await apiFetchBlob(`/v1/files/${file.id}/download`);
@@ -729,7 +729,7 @@ export const Customers: React.FC = () => {
 
       // Two calls, matching SignEditor's own compose-then-send shape: POST
       // /envelopes only creates a draft (see that handler's own comment on
-      // why no status/notify happens there) — /send is what actually
+      // why no status/notify happens there) â€” /send is what actually
       // notifies the recipient and flips status to 'sent'.
       const envelope: any = await apiFetch('/v1/sign/envelopes', {
         method: 'POST',
@@ -819,8 +819,8 @@ export const Customers: React.FC = () => {
           title: 'Claim code sent',
           variant: 'success',
           items: [
-            sentTo.length ? `Sent to ${sentTo.join(' and ')}` : 'No email/WhatsApp on file — share the code above directly.',
-            'Valid for 7 days, single use — enter it under "Link an Agent" in the organization portal.',
+            sentTo.length ? `Sent to ${sentTo.join(' and ')}` : 'No email/WhatsApp on file â€” share the code above directly.',
+            'Valid for 7 days, single use â€” enter it under "Link an Agent" in the organization portal.',
           ],
         },
       );
@@ -947,9 +947,9 @@ export const Customers: React.FC = () => {
     } catch (err: any) { showAlert(err.message || 'Action failed'); }
   }
 
-  /* ══════════════════════════════
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      LIST VIEW
-  ══════════════════════════════ */
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   if (loading && view === 'list') {
     return <SkeletonPage variant="table" />;
   }
@@ -1023,7 +1023,7 @@ export const Customers: React.FC = () => {
                   {totalCount}
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>
-                  <span style={{ color: 'var(--green)', fontWeight: 600 }}>{activeCount} active</span> · {inactiveCount} inactive
+                  <span style={{ color: 'var(--green)', fontWeight: 600 }}>{activeCount} active</span> Â· {inactiveCount} inactive
                 </div>
               </div>
               <FeaturedIcon variant="brand" size="md" shape="square">
@@ -1130,7 +1130,7 @@ export const Customers: React.FC = () => {
               {selectedIds.length > 0 && (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--border))', borderRadius: 'var(--r-sm)', padding: '3px 8px', fontSize: 12, fontWeight: 600, color: 'var(--teal)' }}>
                   <span>{selectedIds.length} selected</span>
-                  <button type="button" onClick={() => setSelectedIds([])} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, lineHeight: 1, fontSize: 14 }}>×</button>
+                  <button type="button" onClick={() => setSelectedIds([])} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, lineHeight: 1, fontSize: 14 }}>Ã—</button>
                 </div>
               )}
 
@@ -1165,7 +1165,7 @@ export const Customers: React.FC = () => {
                 <input
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(1); }}
-                  placeholder="Search customer, contact, TIN, port…"
+                  placeholder="Search customer, contact, TIN, portâ€¦"
                   style={{
                     padding: '7px 28px 7px 32px',
                     border: '1px solid var(--border)',
@@ -1185,7 +1185,7 @@ export const Customers: React.FC = () => {
                     onClick={() => { setSearch(''); setPage(1); }}
                     style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 14, padding: 0 }}
                   >
-                    ×
+                    Ã—
                   </button>
                 )}
               </div>
@@ -1287,7 +1287,7 @@ export const Customers: React.FC = () => {
                     {(() => {
                       const colCount = 4 + Object.values(visibleCols).filter(Boolean).length;
                       if (loading) {
-                        return <tr><td colSpan={colCount} style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading customers…</td></tr>;
+                        return <tr><td colSpan={colCount} style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading customersâ€¦</td></tr>;
                       }
                       if (paginated.length === 0) {
                         return (
@@ -1344,13 +1344,13 @@ export const Customers: React.FC = () => {
                                     </span>
                                     {c.city && (
                                       <>
-                                        <span style={{ color: 'var(--border)' }}>·</span>
+                                        <span style={{ color: 'var(--border)' }}>Â·</span>
                                         <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{c.city}</span>
                                       </>
                                     )}
                                     {c.preferred_port && (
                                       <>
-                                        <span style={{ color: 'var(--border)' }}>·</span>
+                                        <span style={{ color: 'var(--border)' }}>Â·</span>
                                         <span style={{ fontSize: 10.5, color: 'var(--teal)', fontWeight: 600 }}>{c.preferred_port}</span>
                                       </>
                                     )}
@@ -1368,7 +1368,7 @@ export const Customers: React.FC = () => {
                                     <span style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}>{c.contact_name}</span>
                                   </div>
                                 ) : (
-                                  <span style={{ color: 'var(--ink3)', fontSize: 12.5 }}>—</span>
+                                  <span style={{ color: 'var(--ink3)', fontSize: 12.5 }}>â€”</span>
                                 )}
                               </td>
                             )}
@@ -1387,7 +1387,7 @@ export const Customers: React.FC = () => {
                                     {c.email}
                                   </a>
                                 ) : (
-                                  <span style={{ color: 'var(--ink3)', fontSize: 12.5 }}>—</span>
+                                  <span style={{ color: 'var(--ink3)', fontSize: 12.5 }}>â€”</span>
                                 )}
                               </td>
                             )}
@@ -1397,7 +1397,7 @@ export const Customers: React.FC = () => {
                               <td className="crm-col-phone">
                                 {c.phone_wa ? (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <Tip label={`Open WhatsApp — ${c.phone_wa}`} side="top">
+                                    <Tip label={`Open WhatsApp â€” ${c.phone_wa}`} side="top">
                                     <a
                                       href={`https://wa.me/${c.phone_wa.replace(/\D/g, '')}`}
                                       target="_blank"
@@ -1405,7 +1405,7 @@ export const Customers: React.FC = () => {
                                       onClick={e => e.stopPropagation()}
                                       style={{
                                         display: 'inline-flex', alignItems: 'center', gap: 5,
-                                        fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink)',
+                                        fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--ink)',
                                         textDecoration: 'none', background: 'var(--bg)', padding: '2px 7px',
                                         borderRadius: 'var(--r-sm)', border: '1px solid var(--border)',
                                       }}
@@ -1416,7 +1416,7 @@ export const Customers: React.FC = () => {
                                   </Tip>
                                   </div>
                                 ) : (
-                                  <span style={{ color: 'var(--ink3)', fontSize: 12.5 }}>—</span>
+                                  <span style={{ color: 'var(--ink3)', fontSize: 12.5 }}>â€”</span>
                                 )}
                               </td>
                             )}
@@ -1516,7 +1516,7 @@ export const Customers: React.FC = () => {
                               {c.name}
                             </div>
                             <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
-                              {c.client_type || 'Corporate'} {c.city ? `· ${c.city}` : ''}
+                              {c.client_type || 'Corporate'} {c.city ? `Â· ${c.city}` : ''}
                             </div>
                           </div>
                         </div>
@@ -1534,7 +1534,7 @@ export const Customers: React.FC = () => {
                         {c.tax_id && (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <span style={{ color: 'var(--ink3)' }}>TIN:</span>
-                            <span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{maskTin(c.tax_id)}</span>
+                            <span style={{ fontFamily: 'var(--font)', fontWeight: 600 }}>{maskTin(c.tax_id)}</span>
                           </div>
                         )}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1549,7 +1549,7 @@ export const Customers: React.FC = () => {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 }}>
                         <div style={{ display: 'flex', gap: 6 }}>
                           {c.email && (
-                            <Tip label={`Email — ${c.email}`} side="top">
+                            <Tip label={`Email â€” ${c.email}`} side="top">
                               <a
                                 href={`mailto:${c.email}`}
                                 onClick={e => e.stopPropagation()}
@@ -1560,7 +1560,7 @@ export const Customers: React.FC = () => {
                             </Tip>
                           )}
                           {c.phone_wa && (
-                            <Tip label={`WhatsApp — ${c.phone_wa}`} side="top">
+                            <Tip label={`WhatsApp â€” ${c.phone_wa}`} side="top">
                               <a
                                 href={`https://wa.me/${c.phone_wa.replace(/\D/g, '')}`}
                                 target="_blank"
@@ -1599,14 +1599,14 @@ export const Customers: React.FC = () => {
             {!loading && filtered.length > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', gap: 10 }}>
                 <div style={{ fontSize: 13, color: 'var(--ink3)' }}>
-                  Showing <strong style={{ color: 'var(--ink)' }}>{Math.min(filtered.length, (safePage - 1) * PAGE_SIZE + 1)}</strong>–<strong style={{ color: 'var(--ink)' }}>{Math.min(filtered.length, safePage * PAGE_SIZE)}</strong> of <strong style={{ color: 'var(--ink)' }}>{filtered.length}</strong> customers
+                  Showing <strong style={{ color: 'var(--ink)' }}>{Math.min(filtered.length, (safePage - 1) * PAGE_SIZE + 1)}</strong>â€“<strong style={{ color: 'var(--ink)' }}>{Math.min(filtered.length, safePage * PAGE_SIZE)}</strong> of <strong style={{ color: 'var(--ink)' }}>{filtered.length}</strong> customers
                 </div>
 
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                   <PagBtn label="Prev" disabled={safePage === 1} onClick={() => setPage(p => p - 1)} />
                   {getPageNums(safePage, totalPages).map((p, i) =>
-                    p === '…' ? (
-                      <span key={`e-${i}`} style={{ padding: '0 4px', color: 'var(--ink3)', fontSize: 13 }}>···</span>
+                    p === 'â€¦' ? (
+                      <span key={`e-${i}`} style={{ padding: '0 4px', color: 'var(--ink3)', fontSize: 13 }}>Â·Â·Â·</span>
                     ) : (
                       <PagBtn key={p} label={String(p)} active={p === safePage} onClick={() => setPage(p as number)} />
                     )
@@ -1806,7 +1806,7 @@ export const Customers: React.FC = () => {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={createSaving || !createForm.name.trim()}>
-                  {createSaving ? 'Creating Account…' : 'Create Customer'}
+                  {createSaving ? 'Creating Accountâ€¦' : 'Create Customer'}
                 </Button>
               </DialogFooter>
             </form>
@@ -1817,9 +1817,9 @@ export const Customers: React.FC = () => {
     );
   }
 
-  /* ══════════════════════════════
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      PROFILE VIEW
-  ══════════════════════════════ */
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   if (!selected) return null;
   const sel = selected; // capture narrowed type for use inside closures/nested functions
   const shipCount = sel.shipment_count ?? custShipments.length;
@@ -1842,7 +1842,7 @@ export const Customers: React.FC = () => {
   const btnS: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' };
 
   function renderTabContent() {
-    /* ── Overview ── */
+    /* â”€â”€ Overview â”€â”€ */
     if (mainTab === 'overview') {
       const activeShipmentsCount = custShipments.filter(s => s.stage !== 'CLOSED').length;
       const ovTotalInvoiced = custInvoices.reduce((s: number, i: any) => s + invoiceTotals(mapApiInvoice(i)).grandTotalTZS, 0);
@@ -1854,9 +1854,9 @@ export const Customers: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
             {[
               { label: 'Total Shipments', value: shipCount, icon: 'ship'      as IconName, color: 'var(--blue)', bg: 'var(--blue-l)' },
-              { label: 'Active Shipments',value: shipLoading ? '…' : activeShipmentsCount, icon: 'activity' as IconName, color: 'var(--teal)', bg: 'var(--teal-l)' },
-              { label: 'Invoices',         value: finLoading ? '…' : custInvoices.length, icon: 'fileText' as IconName, color: 'var(--purple)', bg: 'var(--purple-l)' },
-              { label: 'Outstanding (TZS)',value: finLoading ? '…' : ovOutstanding.toLocaleString('en'), icon: 'alertCircle' as IconName, color: 'var(--red)', bg: 'var(--red-l)' },
+              { label: 'Active Shipments',value: shipLoading ? 'â€¦' : activeShipmentsCount, icon: 'activity' as IconName, color: 'var(--teal)', bg: 'var(--teal-l)' },
+              { label: 'Invoices',         value: finLoading ? 'â€¦' : custInvoices.length, icon: 'fileText' as IconName, color: 'var(--purple)', bg: 'var(--purple-l)' },
+              { label: 'Outstanding (TZS)',value: finLoading ? 'â€¦' : ovOutstanding.toLocaleString('en'), icon: 'alertCircle' as IconName, color: 'var(--red)', bg: 'var(--red-l)' },
             ].map(kpi => (
               <div key={kpi.label} className="crm-card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: kpi.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1870,7 +1870,7 @@ export const Customers: React.FC = () => {
             ))}
           </div>
 
-          {/* Carbon footprint — summed live from this customer's own shipments
+          {/* Carbon footprint â€” summed live from this customer's own shipments
               (co2_emissions_kg / carbon_credits_saved, already returned by the
               shipments fetch above; not a registry-issued tradeable credit). */}
           {(() => {
@@ -1888,7 +1888,7 @@ export const Customers: React.FC = () => {
                 <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
                   <div>
                     <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>{totalCo2.toLocaleString('en')} kg</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Total CO₂ emissions</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Total COâ‚‚ emissions</div>
                   </div>
                   <div>
                     <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--green)' }}>{totalCredits.toFixed(2)}</div>
@@ -1903,7 +1903,7 @@ export const Customers: React.FC = () => {
             );
           })()}
 
-          {/* Daily shipment-report automation (migration 258) — the
+          {/* Daily shipment-report automation (migration 258) â€” the
               customer-level default; an individual shipment can still
               override it (ShipmentDetail's own Automation card). */}
           <div className="crm-card" style={{ marginBottom: 24, padding: '4px 18px' }}>
@@ -1924,7 +1924,7 @@ export const Customers: React.FC = () => {
             <div className="crm-card">
               <div className="crm-card-header">
                 <span className="crm-card-title">Recent Shipments</span>
-                <button type="button" onClick={() => setMainTab('shipments')} style={{ fontSize: 12, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: 600 }}>View all →</button>
+                <button type="button" onClick={() => setMainTab('shipments')} style={{ fontSize: 12, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: 600 }}>View all â†’</button>
               </div>
               {shipLoading ? (
                 <SectionLoading />
@@ -1967,7 +1967,7 @@ export const Customers: React.FC = () => {
                   ].map(({ label, value, mono }) => (
                     <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
                       <span style={{ fontSize: 12, color: 'var(--ink3)', flexShrink: 0 }}>{label}</span>
-                      <span style={{ fontSize: 12.5, color: value ? 'var(--ink)' : 'var(--ink3)', fontFamily: mono ? 'var(--mono)' : 'var(--font)', textAlign: 'right', fontStyle: value ? 'normal' : 'italic' }}>{value || '—'}</span>
+                      <span style={{ fontSize: 12.5, color: value ? 'var(--ink)' : 'var(--ink3)', fontFamily: mono ? 'var(--font)' : 'var(--font)', textAlign: 'right', fontStyle: value ? 'normal' : 'italic' }}>{value || 'â€”'}</span>
                     </div>
                   ))}
                 </div>
@@ -2024,10 +2024,10 @@ export const Customers: React.FC = () => {
       );
     }
 
-    /* ── Activity — real chronological history (calls, emails, meetings,
+    /* â”€â”€ Activity â€” real chronological history (calls, emails, meetings,
         stage changes), shared with Leads/Deals, backed by crm_activities
         (migration 449). Previously the only CRM subject type this wasn't
-        wired to, despite the backend already supporting 'customer'. ── */
+        wired to, despite the backend already supporting 'customer'. â”€â”€ */
     if (mainTab === 'activity') {
       return (
         <div style={{ padding: '24px 28px' }}>
@@ -2036,7 +2036,7 @@ export const Customers: React.FC = () => {
       );
     }
 
-    /* ── Profile ── */
+    /* â”€â”€ Profile â”€â”€ */
     if (mainTab === 'profile') {
       if (!editMode) {
         return (
@@ -2046,7 +2046,7 @@ export const Customers: React.FC = () => {
                 <button type="button" onClick={handleSendClaimCode} disabled={sendingClaimCode}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: sendingClaimCode ? 'default' : 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                   title="Send a one-time code this customer can enter in their own organization portal to self-link, instead of picking an Organization here yourself.">
-                  <Icon name="link" size={14} strokeWidth={1.75} /> {sendingClaimCode ? 'Sending…' : 'Send Claim Code'}
+                  <Icon name="link" size={14} strokeWidth={1.75} /> {sendingClaimCode ? 'Sendingâ€¦' : 'Send Claim Code'}
                 </button>
               )}
               <button type="button" onClick={() => setEditMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -2110,9 +2110,9 @@ export const Customers: React.FC = () => {
                 <div className="prof-field"><label className="prof-label">Website</label><input className="prof-input" value={form.website || ''} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} placeholder="https://" /></div>
                 <div className="prof-field"><label className="prof-label">Client Type</label>
                   <Select value={form.client_type || '__none__'} onValueChange={v => setForm(p => ({ ...p, client_type: v === '__none__' ? '' : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select type…" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select typeâ€¦" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">Select type…</SelectItem>
+                      <SelectItem value="__none__">Select typeâ€¦</SelectItem>
                       <SelectItem value="Importer">Importer</SelectItem>
                       <SelectItem value="Exporter">Exporter</SelectItem>
                       <SelectItem value="Importer & Exporter">Importer & Exporter</SelectItem>
@@ -2127,18 +2127,18 @@ export const Customers: React.FC = () => {
                   <Select value={form.currency || 'TZS'} onValueChange={v => setForm(p => ({ ...p, currency: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="TZS">TZS — Tanzanian Shilling</SelectItem>
-                      <SelectItem value="USD">USD — US Dollar</SelectItem>
-                      <SelectItem value="EUR">EUR — Euro</SelectItem>
-                      <SelectItem value="KES">KES — Kenyan Shilling</SelectItem>
+                      <SelectItem value="TZS">TZS â€” Tanzanian Shilling</SelectItem>
+                      <SelectItem value="USD">USD â€” US Dollar</SelectItem>
+                      <SelectItem value="EUR">EUR â€” Euro</SelectItem>
+                      <SelectItem value="KES">KES â€” Kenyan Shilling</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="prof-field"><label className="prof-label">Credit Terms</label>
                   <Select value={form.credit_days || '__none__'} onValueChange={v => setForm(p => ({ ...p, credit_days: v === '__none__' ? '' : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select terms…" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select termsâ€¦" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">Select terms…</SelectItem>
+                      <SelectItem value="__none__">Select termsâ€¦</SelectItem>
                       <SelectItem value="0">Cash on Delivery</SelectItem>
                       <SelectItem value="15">Net 15 days</SelectItem>
                       <SelectItem value="30">Net 30 days</SelectItem>
@@ -2160,8 +2160,8 @@ export const Customers: React.FC = () => {
                       const created = await apiFetch('/v1/organizations', { method: 'POST', body: JSON.stringify({ name }) });
                       return { id: created.id, label: created.name };
                     }}
-                    placeholder="Search or create an organization…"
-                    hint="Links this customer to one shared identity across every tenant serving them — for a company also served by another clearing agent on Hudumika."
+                    placeholder="Search or create an organizationâ€¦"
+                    hint="Links this customer to one shared identity across every tenant serving them â€” for a company also served by another clearing agent on Hudumika."
                   />
                 </div>
               </div>
@@ -2169,8 +2169,8 @@ export const Customers: React.FC = () => {
 
             <Section title="Tax & Compliance">
               <div className="prof-grid">
-                <div className="prof-field"><label className="prof-label">TIN Number</label><input className="prof-input" value={form.tax_id || ''} onChange={e => setForm(p => ({ ...p, tax_id: e.target.value }))} placeholder="xxx-xxx-xxx" style={{ fontFamily: 'var(--mono)' }} /></div>
-                <div className="prof-field"><label className="prof-label">VAT / VRN Number</label><input className="prof-input" value={form.vat_number || ''} onChange={e => setForm(p => ({ ...p, vat_number: e.target.value }))} placeholder="10-xxxxxxx-x" style={{ fontFamily: 'var(--mono)' }} /></div>
+                <div className="prof-field"><label className="prof-label">TIN Number</label><input className="prof-input" value={form.tax_id || ''} onChange={e => setForm(p => ({ ...p, tax_id: e.target.value }))} placeholder="xxx-xxx-xxx" style={{ fontFamily: 'var(--font)' }} /></div>
+                <div className="prof-field"><label className="prof-label">VAT / VRN Number</label><input className="prof-input" value={form.vat_number || ''} onChange={e => setForm(p => ({ ...p, vat_number: e.target.value }))} placeholder="10-xxxxxxx-x" style={{ fontFamily: 'var(--font)' }} /></div>
                 <div className="prof-field"><label className="prof-label">Import License No.</label><input className="prof-input" value={form.import_license || ''} onChange={e => setForm(p => ({ ...p, import_license: e.target.value }))} placeholder="TBS/IMP/..." /></div>
               </div>
             </Section>
@@ -2196,9 +2196,9 @@ export const Customers: React.FC = () => {
               <div className="prof-grid">
                 <div className="prof-field"><label className="prof-label">Preferred Port</label>
                   <Select value={form.preferred_port || '__none__'} onValueChange={v => setForm(p => ({ ...p, preferred_port: v === '__none__' ? '' : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select port…" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select portâ€¦" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">Select port…</SelectItem>
+                      <SelectItem value="__none__">Select portâ€¦</SelectItem>
                       <SelectItem value="DSM">Dar es Salaam (DSM)</SelectItem>
                       <SelectItem value="MOM">Mombasa (MOM)</SelectItem>
                       <SelectItem value="TNG">Tanga (TNG)</SelectItem>
@@ -2208,40 +2208,40 @@ export const Customers: React.FC = () => {
                 </div>
                 <div className="prof-field"><label className="prof-label">Default Freight Terms</label>
                   <Select value={form.freight_terms || '__none__'} onValueChange={v => setForm(p => ({ ...p, freight_terms: v === '__none__' ? '' : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select terms…" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select termsâ€¦" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">Select terms…</SelectItem>
-                      <SelectItem value="CIF">CIF — Cost, Insurance, Freight</SelectItem>
-                      <SelectItem value="FOB">FOB — Free on Board</SelectItem>
-                      <SelectItem value="EXW">EXW — Ex Works</SelectItem>
-                      <SelectItem value="DDP">DDP — Delivered Duty Paid</SelectItem>
+                      <SelectItem value="__none__">Select termsâ€¦</SelectItem>
+                      <SelectItem value="CIF">CIF â€” Cost, Insurance, Freight</SelectItem>
+                      <SelectItem value="FOB">FOB â€” Free on Board</SelectItem>
+                      <SelectItem value="EXW">EXW â€” Ex Works</SelectItem>
+                      <SelectItem value="DDP">DDP â€” Delivered Duty Paid</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="prof-field"><label className="prof-label">Primary Commodity</label>
                   <Select value={form.commodity_type || '__none__'} onValueChange={v => setForm(p => ({ ...p, commodity_type: v === '__none__' ? '' : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select category…" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select categoryâ€¦" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">Select category…</SelectItem>
+                      <SelectItem value="__none__">Select categoryâ€¦</SelectItem>
                       {['General Merchandise','Food & Agriculture','Electronics & ICT','Machinery & Equipment','Chemicals & Pharmaceuticals','Motor Vehicles & Parts','Construction Materials'].map(c => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="prof-field"><label className="prof-label">TANCIS Registration</label><input className="prof-input" value={form.tancis_number || ''} onChange={e => setForm(p => ({ ...p, tancis_number: e.target.value }))} placeholder="TANCIS importer code…" style={{ fontFamily: 'var(--mono)' }} /></div>
+                <div className="prof-field"><label className="prof-label">TANCIS Registration</label><input className="prof-input" value={form.tancis_number || ''} onChange={e => setForm(p => ({ ...p, tancis_number: e.target.value }))} placeholder="TANCIS importer codeâ€¦" style={{ fontFamily: 'var(--font)' }} /></div>
               </div>
             </Section>
           </div>
           <div style={{ padding: '12px 28px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--white)', flexShrink: 0 }}>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setForm({ ...selected }); setEditMode(false); }}>Discard Changes</button>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? 'Savingâ€¦' : 'Save Changes'}</button>
           </div>
         </form>
       );
     }
 
-    /* ── Contacts ── */
+    /* â”€â”€ Contacts â”€â”€ */
     if (mainTab === 'contacts') {
       return (
         <div style={{ padding: '24px 28px' }}>
@@ -2268,7 +2268,7 @@ export const Customers: React.FC = () => {
                     )}
                     {sel.phone_wa && (
                       <a href={`https://wa.me/${sel.phone_wa.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
-                        style={{ fontSize: 12.5, color: 'var(--ink2)', fontFamily: 'var(--mono)', textDecoration: 'none' }}
+                        style={{ fontSize: 12.5, color: 'var(--ink2)', fontFamily: 'var(--font)', textDecoration: 'none' }}
                         onMouseEnter={e => (e.currentTarget.style.color = 'var(--teal)')}
                         onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink2)')}>
                         {sel.phone_wa}
@@ -2297,7 +2297,7 @@ export const Customers: React.FC = () => {
               <div className="card" style={{ width: '90%', maxWidth: 440, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                   <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>{contactForm.name ? 'Edit Contact' : 'Add Contact Person'}</h2>
-                  <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAddContact(false); setContactForm({ name: '', email: '', phone: '', role: '' }); }}>×</button>
+                  <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAddContact(false); setContactForm({ name: '', email: '', phone: '', role: '' }); }}>Ã—</button>
                 </div>
                 <form onSubmit={handleAddContact} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {[
@@ -2315,7 +2315,7 @@ export const Customers: React.FC = () => {
                   ))}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setShowAddContact(false); setContactForm({ name: '', email: '', phone: '', role: '' }); }}>Cancel</button>
-                    <button type="submit" className="btn btn-primary btn-sm" disabled={contactSaving}>{contactSaving ? 'Saving…' : 'Save Contact'}</button>
+                    <button type="submit" className="btn btn-primary btn-sm" disabled={contactSaving}>{contactSaving ? 'Savingâ€¦' : 'Save Contact'}</button>
                   </div>
                 </form>
               </div>
@@ -2325,7 +2325,7 @@ export const Customers: React.FC = () => {
       );
     }
 
-    /* ── Notes ── */
+    /* â”€â”€ Notes â”€â”€ */
     if (mainTab === 'notes') {
       return (
         <div style={{ padding: '24px 28px' }}>
@@ -2333,18 +2333,18 @@ export const Customers: React.FC = () => {
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Internal Notes</span>
             <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Only visible to your team</span>
           </div>
-          <textarea className="prof-input" style={{ height: 220, resize: 'vertical', width: '100%', boxSizing: 'border-box', lineHeight: 1.7 }} placeholder={`Add internal notes about ${sel.name} — payment behavior, preferences, special instructions…`} value={notes} onChange={e => setNotes(e.target.value)} />
+          <textarea className="prof-input" style={{ height: 220, resize: 'vertical', width: '100%', boxSizing: 'border-box', lineHeight: 1.7 }} placeholder={`Add internal notes about ${sel.name} â€” payment behavior, preferences, special instructionsâ€¦`} value={notes} onChange={e => setNotes(e.target.value)} />
           <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{notes.length} characters</span>
             <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveNote} disabled={noteSaving}>
-              {noteSaving ? 'Saving…' : 'Save Notes'}
+              {noteSaving ? 'Savingâ€¦' : 'Save Notes'}
             </button>
           </div>
         </div>
       );
     }
 
-    /* ── Finance ── */
+    /* â”€â”€ Finance â”€â”€ */
     if (mainTab === 'finance') {
       const FIN_TABS = [
         { key: 'invoices',     label: 'Invoices'     },
@@ -2380,11 +2380,11 @@ export const Customers: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>
-                  {finLoading ? 'Loading…' : `${custInvoices.length} invoice${custInvoices.length !== 1 ? 's' : ''}`}
+                  {finLoading ? 'Loadingâ€¦' : `${custInvoices.length} invoice${custInvoices.length !== 1 ? 's' : ''}`}
                 </span>
                 <Link to={`/billing?customer_id=${sel.id}&new=1`} className="btn btn-primary btn-sm">+ Create Invoice</Link>
               </div>
-              {finLoading && <div style={{ padding: '32px 28px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading invoices…</div>}
+              {finLoading && <div style={{ padding: '32px 28px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading invoicesâ€¦</div>}
               {!finLoading && custInvoices.length === 0 && (
                 <div style={{ padding: '32px 28px' }}>
                   <EmptyState icon="fileText" title="No invoices yet" sub="Invoices issued to this customer will appear here" />
@@ -2409,12 +2409,12 @@ export const Customers: React.FC = () => {
                         return (
                           <tr key={inv.id}>
                             <td>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', fontFamily: 'var(--mono)' }}>{inv.invoice_number || inv.ref || `INV-${inv.id?.slice(-5)}`}</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', fontFamily: 'var(--font)' }}>{inv.invoice_number || inv.ref || `INV-${inv.id?.slice(-5)}`}</div>
                               {inv.description && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{inv.description}</div>}
                             </td>
-                            <td className="col-hide-sm">{inv.bill_date ? new Date(inv.bill_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
-                            <td className="col-hide-sm">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
-                            <td style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)', textAlign: 'right' }}>{invoiceTotals(mapApiInvoice(inv)).grandTotalTZS.toLocaleString()}</td>
+                            <td className="col-hide-sm">{inv.bill_date ? new Date(inv.bill_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”'}</td>
+                            <td className="col-hide-sm">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”'}</td>
+                            <td style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)', textAlign: 'right' }}>{invoiceTotals(mapApiInvoice(inv)).grandTotalTZS.toLocaleString()}</td>
                             <td style={{ textAlign: 'center' }}><span style={{ padding: '3px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color }}>{st.charAt(0).toUpperCase() + st.slice(1)}</span></td>
                           </tr>
                         );
@@ -2431,11 +2431,11 @@ export const Customers: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>
-                  {finLoading ? 'Loading…' : `${custPayments.length} payment${custPayments.length !== 1 ? 's' : ''}`}
+                  {finLoading ? 'Loadingâ€¦' : `${custPayments.length} payment${custPayments.length !== 1 ? 's' : ''}`}
                 </span>
                 <Link to={`/billing?customer_id=${sel.id}`} className="btn btn-primary btn-sm">+ Record Payment</Link>
               </div>
-              {finLoading && <div style={{ padding: '32px 28px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading payments…</div>}
+              {finLoading && <div style={{ padding: '32px 28px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading paymentsâ€¦</div>}
               {!finLoading && custPayments.length === 0 && (
                 <div style={{ padding: '32px 28px' }}>
                   <EmptyState icon="creditCard" title="No payments recorded" sub="Payments received from this customer will appear here" />
@@ -2455,10 +2455,10 @@ export const Customers: React.FC = () => {
                     <tbody>
                       {custPayments.map((p: any) => (
                         <tr key={p.id}>
-                          <td style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{p.invoice_number || `PAY-${p.id?.slice(-5)}`}</td>
-                          <td className="col-hide-sm">{p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
-                          <td className="col-hide-sm">{p.payment_method || p.method || '—'}</td>
-                          <td style={{ fontSize: 14, fontWeight: 700, color: 'var(--green)', fontFamily: 'var(--mono)', textAlign: 'right' }}>+{Number(p.amount ?? 0).toLocaleString()}</td>
+                          <td style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{p.invoice_number || `PAY-${p.id?.slice(-5)}`}</td>
+                          <td className="col-hide-sm">{p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”'}</td>
+                          <td className="col-hide-sm">{p.payment_method || p.method || 'â€”'}</td>
+                          <td style={{ fontSize: 14, fontWeight: 700, color: 'var(--green)', fontFamily: 'var(--font)', textAlign: 'right' }}>+{Number(p.amount ?? 0).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2472,7 +2472,7 @@ export const Customers: React.FC = () => {
           {financeTab === 'statement' && (() => {
             // Balance is computed chronologically (oldest first) regardless
             // of display order, so each row's figure is the true running
-            // balance at that point — then displayed newest-first, matching
+            // balance at that point â€” then displayed newest-first, matching
             // every other list on this tab, with the balance already baked
             // into each row rather than recomputed for the reversed order.
             const creditNoteTotal = (cn: any) => (cn.items ?? []).reduce((s: number, l: any) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0);
@@ -2509,7 +2509,7 @@ export const Customers: React.FC = () => {
                 ].map(s => (
                   <div key={s.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '18px 20px' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{s.label}</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: 'var(--mono)' }}>{s.value.toLocaleString()}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: 'var(--font)' }}>{s.value.toLocaleString()}</div>
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>TZS</div>
                   </div>
                 ))}
@@ -2524,12 +2524,12 @@ export const Customers: React.FC = () => {
                         <Icon name={tx.debit ? 'fileText' : 'creditCard'} size={14} color={tx.debit ? 'var(--red)' : 'var(--green)'} strokeWidth={1.75} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{tx.ref}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{tx.ref}</div>
                         <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1, textTransform: 'capitalize' }}>{tx.type}</div>
                       </div>
-                      <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{tx.date ? new Date(tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, fontFamily: 'var(--mono)', color: tx.debit ? 'var(--red)' : 'var(--green)', width: 130, textAlign: 'right' }}>{tx.debit ? '-' : '+'}{tx.amount.toLocaleString()}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--mono)', color: tx.balance >= 0 ? 'var(--ink)' : 'var(--red)', width: 130, textAlign: 'right' }}>{tx.balance.toLocaleString()}</span>
+                      <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{tx.date ? new Date(tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”'}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', color: tx.debit ? 'var(--red)' : 'var(--green)', width: 130, textAlign: 'right' }}>{tx.debit ? '-' : '+'}{tx.amount.toLocaleString()}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)', color: tx.balance >= 0 ? 'var(--ink)' : 'var(--red)', width: 130, textAlign: 'right' }}>{tx.balance.toLocaleString()}</span>
                     </div>
                   ))}
                 </SectionCard>
@@ -2555,7 +2555,7 @@ export const Customers: React.FC = () => {
                     </div>
                     <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{e.date.split('T')[0]}</div>
                     <div style={{ flex: 1 }}><span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)' }}>{e.category}</span></div>
-                    <div style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, color: e.is_revenue ? 'var(--green)' : 'var(--red)', textAlign: 'right' }}>{e.is_revenue ? '+' : '-'}{(e.amount || 0).toLocaleString()}</div>
+                    <div style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: e.is_revenue ? 'var(--green)' : 'var(--red)', textAlign: 'right' }}>{e.is_revenue ? '+' : '-'}{(e.amount || 0).toLocaleString()}</div>
                   </div>
                 ))}
               </div>
@@ -2564,14 +2564,14 @@ export const Customers: React.FC = () => {
             )
           )}
 
-          {/* Proposals — placeholder (no proposal-tracking feature exists yet) */}
+          {/* Proposals â€” placeholder (no proposal-tracking feature exists yet) */}
           {financeTab === 'proposals' && (
             <div style={{ padding: '32px 28px' }}>
               <EmptyState icon="clipboard" title="No proposals" sub="Quotations sent as proposals will appear here" />
             </div>
           )}
 
-          {/* Credit Notes — real data (credit-notes.routes.ts) */}
+          {/* Credit Notes â€” real data (credit-notes.routes.ts) */}
           {financeTab === 'credit-notes' && (
             custCreditNotes.length === 0 ? (
               <div style={{ padding: '32px 28px' }}>
@@ -2590,10 +2590,10 @@ export const Customers: React.FC = () => {
                   const total = (c.items ?? []).reduce((s: number, l: any) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0);
                   return (
                     <div key={c.id} style={{ display: 'flex', alignItems: 'center', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
-                      <div style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{c.credit_note_number}</div>
-                      <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{c.credit_date ? new Date(c.credit_date).toLocaleDateString('en-GB') : '—'}</div>
-                      <div style={{ flex: 2, fontSize: 12.5, color: 'var(--ink2)' }}>{c.reason || '—'}</div>
-                      <div style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, color: 'var(--red)', textAlign: 'right' }}>-{total.toLocaleString()}</div>
+                      <div style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{c.credit_note_number}</div>
+                      <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{c.credit_date ? new Date(c.credit_date).toLocaleDateString('en-GB') : 'â€”'}</div>
+                      <div style={{ flex: 2, fontSize: 12.5, color: 'var(--ink2)' }}>{c.reason || 'â€”'}</div>
+                      <div style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: 'var(--red)', textAlign: 'right' }}>-{total.toLocaleString()}</div>
                       <div style={{ flex: 1, textAlign: 'right' }}>
                         <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r)', background: c.status === 'VOID' ? 'var(--red-l)' : 'var(--green-l)', color: c.status === 'VOID' ? 'var(--red)' : 'var(--green)' }}>{c.status}</span>
                       </div>
@@ -2607,7 +2607,7 @@ export const Customers: React.FC = () => {
       );
     }
 
-    /* ── Shipments ── */
+    /* â”€â”€ Shipments â”€â”€ */
     if (mainTab === 'shipments') {
       const SHIP_TABS = [
         { key: 'shipments',    label: 'Shipments & B/L' },
@@ -2622,14 +2622,14 @@ export const Customers: React.FC = () => {
           <div>
             <SubTabBar tabs={SHIP_TABS} active={shipTab} onChange={setShipTab} />
             <div style={{ padding: '0 0 20px' }}>
-              {shipLoading && <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Loading shipments…</div>}
+              {shipLoading && <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Loading shipmentsâ€¦</div>}
               {!shipLoading && custShipments.length === 0 && <div style={{ padding: '24px 28px' }}><EmptyState icon="ship" title="No shipments recorded" sub="Shipments assigned to this customer will appear here" /></div>}
               {!shipLoading && custShipments.map(s => (
                 <div key={s.id} className="cust-ship-row">
                   <span className="csr-ref">{s.ref_number || 'CLR-???'}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="csr-desc">{s.goods_desc || 'No description'}</div>
-                    {s.bl_number && <div style={{ fontSize: 10.5, color: 'var(--ink3)', fontFamily: 'var(--mono)', marginTop: 1 }}>B/L: {s.bl_number}</div>}
+                    {s.bl_number && <div style={{ fontSize: 10.5, color: 'var(--ink3)', fontFamily: 'var(--font)', marginTop: 1 }}>B/L: {s.bl_number}</div>}
                   </div>
                   <Badge variant={s.stage === 'RELEASED' || s.stage === 'CLOSED' ? 'success' : s.stage === 'CUSTOMS' ? 'warning' : 'info'} className="text-[11px] font-semibold">
                     {s.stage || 'DRAFT'}
@@ -2653,15 +2653,15 @@ export const Customers: React.FC = () => {
               {!shipLoading && withDecl.map(s => (
                 <div key={s.id} className="decl-block">
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700 }}>{s.tansad_number}</span>
+                    <span style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700 }}>{s.tansad_number}</span>
                     <Badge variant={s.stage === 'RELEASED' || s.stage === 'CLOSED' ? 'success' : s.stage === 'CUSTOMS' ? 'warning' : 'info'} className="text-[11px] font-semibold">
                       {s.stage || 'DRAFT'}
                     </Badge>
                   </div>
                   <div className="decl-grid">
                     <div className="decl-kv"><span className="decl-k">Reference</span><span className="decl-v">{s.ref_number}</span></div>
-                    <div className="decl-kv"><span className="decl-k">Goods</span><span className="decl-v">{s.goods_desc || '—'}</span></div>
-                    <div className="decl-kv"><span className="decl-k">B/L Number</span><span className="decl-v mono">{s.bl_number || '—'}</span></div>
+                    <div className="decl-kv"><span className="decl-k">Goods</span><span className="decl-v">{s.goods_desc || 'â€”'}</span></div>
+                    <div className="decl-kv"><span className="decl-k">B/L Number</span><span className="decl-v mono">{s.bl_number || 'â€”'}</span></div>
                     <div className="decl-kv"><span className="decl-k">Date</span><span className="decl-v">{fmtDateShort(s.created_at)}</span></div>
                   </div>
                 </div>
@@ -2685,7 +2685,7 @@ export const Customers: React.FC = () => {
       );
     }
 
-    /* ── Supply Chain ── */
+    /* â”€â”€ Supply Chain â”€â”€ */
     if (mainTab === 'supply') {
       const SUPPLY_TABS = [
         { key: 'projects', label: 'Projects' },
@@ -2705,16 +2705,16 @@ export const Customers: React.FC = () => {
         <div>
           <SubTabBar tabs={SUPPLY_TABS} active={supplyTab} onChange={setSupplyTab} />
 
-          {/* Tickets — loaded from API */}
+          {/* Tickets â€” loaded from API */}
           {supplyTab === 'tickets' && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>
-                  {supplyLoading ? 'Loading…' : `${custTickets.length} ticket${custTickets.length !== 1 ? 's' : ''}`}
+                  {supplyLoading ? 'Loadingâ€¦' : `${custTickets.length} ticket${custTickets.length !== 1 ? 's' : ''}`}
                 </span>
                 <Link to="/support/tickets" className="btn btn-primary btn-sm">+ New Ticket</Link>
               </div>
-              {supplyLoading && <div style={{ padding: '32px 28px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading tickets…</div>}
+              {supplyLoading && <div style={{ padding: '32px 28px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading ticketsâ€¦</div>}
               {!supplyLoading && custTickets.length === 0 && (
                 <div style={{ padding: '32px 28px' }}>
                   <EmptyState icon="headphones" title="No support tickets" sub="Support tickets from this customer will appear here" />
@@ -2730,7 +2730,7 @@ export const Customers: React.FC = () => {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject || t.title || `Ticket #${t.id?.slice(-5)}`}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{t.category || 'General'} · {t.created_at ? new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{t.category || 'General'} Â· {t.created_at ? new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”'}</div>
                     </div>
                     <span style={{ padding: '3px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color, whiteSpace: 'nowrap' }}>
                       {(t.status || 'Open').replace('_', ' ')}
@@ -2741,7 +2741,7 @@ export const Customers: React.FC = () => {
             </div>
           )}
 
-          {/* Projects & Tasks — placeholder */}
+          {/* Projects & Tasks â€” placeholder */}
           {(supplyTab === 'projects' || supplyTab === 'tasks') && (
             <div style={{ padding: '32px 28px' }}>
               <EmptyState
@@ -2755,7 +2755,7 @@ export const Customers: React.FC = () => {
       );
     }
 
-    /* ── Bonded Storage (SEAL cross-app link) ── */
+    /* â”€â”€ Bonded Storage (SEAL cross-app link) â”€â”€ */
     if (mainTab === 'seal') {
       const SEAL_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
         FOREIGN_DUTY_SUSPENDED: { bg: 'var(--teal-l)', color: 'var(--teal)' },
@@ -2770,7 +2770,7 @@ export const Customers: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Bonded Warehouse Lots (SEAL)</span>
             <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
-              {sealLoading ? 'Loading…' : `${custSealLots.length} lot${custSealLots.length !== 1 ? 's' : ''} · ${totalAtRisk.toLocaleString()} at risk`}
+              {sealLoading ? 'Loadingâ€¦' : `${custSealLots.length} lot${custSealLots.length !== 1 ? 's' : ''} Â· ${totalAtRisk.toLocaleString()} at risk`}
             </span>
           </div>
           {sealLoading ? (
@@ -2786,8 +2786,8 @@ export const Customers: React.FC = () => {
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{l.description}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
-                        {l.qtyOnHand.toLocaleString()} {l.uom}{l.entryReference ? ` · ${l.entryReference}` : ''}
-                        {l.expiresOn ? ` · storage expires ${fmtDateShort(l.expiresOn)}` : ''}
+                        {l.qtyOnHand.toLocaleString()} {l.uom}{l.entryReference ? ` Â· ${l.entryReference}` : ''}
+                        {l.expiresOn ? ` Â· storage expires ${fmtDateShort(l.expiresOn)}` : ''}
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -2807,22 +2807,22 @@ export const Customers: React.FC = () => {
       );
     }
 
-    /* ── Documents — a filtered view into Drive, not a separate store.
+    /* â”€â”€ Documents â€” a filtered view into Drive, not a separate store.
        Files live in cloud_files (tagged entity_type='customer'), so
        "Upload" lands a new file straight in Drive, and "Link existing
-       file" tags a file the user already has sitting in Drive. ── */
+       file" tags a file the user already has sitting in Drive. â”€â”€ */
     if (mainTab === 'documents') {
       return (
         <div style={{ padding: '24px 28px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <div>
               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Documents</span>
-              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Files linked from Drive — the same storage as the Drive app, filtered to this customer.</div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Files linked from Drive â€” the same storage as the Drive app, filtered to this customer.</div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
               <button type="button" onClick={openCustomerDrive} disabled={resolvingFolder}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)', cursor: resolvingFolder ? 'default' : 'pointer', opacity: resolvingFolder ? 0.6 : 1 }}>
-                <Icon name="externalLink" size={13} /> {resolvingFolder ? 'Opening…' : 'Open Drive'}
+                <Icon name="externalLink" size={13} /> {resolvingFolder ? 'Openingâ€¦' : 'Open Drive'}
               </button>
               <button type="button" onClick={() => setShowLinkFileModal(true)}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
@@ -2830,7 +2830,7 @@ export const Customers: React.FC = () => {
               </button>
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 'var(--r)', background: fileUploading ? 'var(--ink3)' : 'hsl(var(--primary))', borderColor: fileUploading ? 'var(--ink3)' : 'var(--teal)', color: fileUploading ? '#fff' : 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: fileUploading ? 'default' : 'pointer', fontFamily: 'var(--font)' }}>
                 <Icon name="upload" size={13} strokeWidth={2} />
-                {fileUploading ? 'Uploading…' : 'Upload to Drive'}
+                {fileUploading ? 'Uploadingâ€¦' : 'Upload to Drive'}
                 <input type="file" multiple disabled={fileUploading} style={{ display: 'none' }}
                   onChange={async e => {
                     const files = Array.from(e.target.files || []);
@@ -2858,7 +2858,7 @@ export const Customers: React.FC = () => {
             <div style={{ fontSize: 11.5, marginTop: 3 }}>Linked to {sel.name} automatically</div>
           </div>
 
-          {filesLoading && <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading documents…</div>}
+          {filesLoading && <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading documentsâ€¦</div>}
           {!filesLoading && linkedFiles.length === 0 && (
             <EmptyState icon="folder" title="No documents linked yet" sub="Upload a new file or link one already sitting in Drive" />
           )}
@@ -2874,7 +2874,7 @@ export const Customers: React.FC = () => {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
-                        {f.size != null ? `${(f.size / 1024).toFixed(1)} KB · ` : ''}{new Date(f.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} · {f.owner_name}
+                        {f.size != null ? `${(f.size / 1024).toFixed(1)} KB Â· ` : ''}{new Date(f.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} Â· {f.owner_name}
                       </div>
                     </div>
                     <button type="button" onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name).catch((err: any) => showAlert(err.message || 'Download failed'))}
@@ -2898,16 +2898,16 @@ export const Customers: React.FC = () => {
               <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                   <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>Link a file from Drive</h2>
-                  <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowLinkFileModal(false); setFileSearch(''); setFileSearchResults([]); }}>×</button>
+                  <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowLinkFileModal(false); setFileSearch(''); setFileSearchResults([]); }}>Ã—</button>
                 </div>
                 <div style={{ position: 'relative', marginBottom: 12 }}>
                   <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
-                  <input type="text" className="input-field" placeholder="Search files by name…" autoFocus
+                  <input type="text" className="input-field" placeholder="Search files by nameâ€¦" autoFocus
                     style={{ paddingLeft: 32 }}
                     value={fileSearch} onChange={e => setFileSearch(e.target.value)} />
                 </div>
                 <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                  {fileSearching && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Searching…</div>}
+                  {fileSearching && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Searchingâ€¦</div>}
                   {!fileSearching && fileSearch.trim() && fileSearchResults.length === 0 && (
                     <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>No matching files in Drive</div>
                   )}
@@ -2933,7 +2933,7 @@ export const Customers: React.FC = () => {
                         {alreadyLinked
                           ? <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)' }}>Linked</span>
                           : fileLinking === f.id
-                            ? <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Linking…</span>
+                            ? <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Linkingâ€¦</span>
                             : <Icon name="link" size={13} color="var(--teal)" />}
                       </button>
                     );
@@ -2946,12 +2946,12 @@ export const Customers: React.FC = () => {
       );
     }
 
-    /* ── Signatures ── */
+    /* â”€â”€ Signatures â”€â”€ */
     if (mainTab === 'signatures') {
       const envelopeBadgeVariant = (status: string): 'brand' | 'gray' | 'success' | 'warning' | 'error' | 'info' => {
         // Same semantic mapping SignInbox.tsx's own envelopeBadgeVariant
         // uses (not exported from that file, so mirrored here rather than
-        // reached into) — keep the two in sync if the status set changes.
+        // reached into) â€” keep the two in sync if the status set changes.
         const map: Record<string, 'brand' | 'gray' | 'success' | 'warning' | 'error' | 'info'> = {
           draft: 'gray', sent: 'info', completed: 'success', voided: 'error', declined: 'error', expired: 'gray',
         };
@@ -2970,7 +2970,7 @@ export const Customers: React.FC = () => {
             </button>
           </div>
 
-          {signLoading && <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading signatures…</div>}
+          {signLoading && <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading signaturesâ€¦</div>}
           {!signLoading && custSignEnvelopes.length === 0 && (
             <EmptyState icon="stamp" title="No documents sent yet" sub="Send a file already linked in Documents for this customer to sign" />
           )}
@@ -2986,7 +2986,7 @@ export const Customers: React.FC = () => {
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
                         {new Date(e.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        {e.recipients?.[0]?.status === 'signed' && e.status === 'completed' ? ' · Signed' : ''}
+                        {e.recipients?.[0]?.status === 'signed' && e.status === 'completed' ? ' Â· Signed' : ''}
                       </div>
                     </div>
                     <Badge variant={envelopeBadgeVariant(e.status)}>{e.status}</Badge>
@@ -2996,7 +2996,7 @@ export const Customers: React.FC = () => {
             </SectionCard>
           )}
 
-          {/* Send for signature modal — same "pick from Drive" shape as
+          {/* Send for signature modal â€” same "pick from Drive" shape as
               "Link Existing File" on the Documents tab above, deliberately
               mirrored rather than reinvented. */}
           {showSendSignModal && (
@@ -3004,19 +3004,19 @@ export const Customers: React.FC = () => {
               <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                   <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>Send a file for signature</h2>
-                  <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowSendSignModal(false); setSignFileSearch(''); setSignFileSearchResults([]); }}>×</button>
+                  <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowSendSignModal(false); setSignFileSearch(''); setSignFileSearchResults([]); }}>Ã—</button>
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>
-                  {sel.email ? `Sent to ${sel.name} · ${sel.email}` : 'This customer has no email on file — add one before sending.'}
+                  {sel.email ? `Sent to ${sel.name} Â· ${sel.email}` : 'This customer has no email on file â€” add one before sending.'}
                 </div>
                 <div style={{ position: 'relative', marginBottom: 12 }}>
                   <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
-                  <input type="text" className="input-field" placeholder="Search files by name…" autoFocus
+                  <input type="text" className="input-field" placeholder="Search files by nameâ€¦" autoFocus
                     style={{ paddingLeft: 32 }}
                     value={signFileSearch} onChange={ev => setSignFileSearch(ev.target.value)} />
                 </div>
                 <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                  {signFileSearching && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Searching…</div>}
+                  {signFileSearching && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Searchingâ€¦</div>}
                   {!signFileSearching && signFileSearch.trim() && signFileSearchResults.length === 0 && (
                     <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>No matching files in Drive</div>
                   )}
@@ -3039,7 +3039,7 @@ export const Customers: React.FC = () => {
                           <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{f.size != null ? `${(f.size / 1024).toFixed(1)} KB` : ''}</div>
                         </div>
                         {sendingForSignature === f.id
-                          ? <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Sending…</span>
+                          ? <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Sendingâ€¦</span>
                           : <Icon name="stamp" size={13} color="var(--teal)" />}
                       </button>
                     );
@@ -3058,7 +3058,7 @@ export const Customers: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
 
-      {/* ── Hero header ── */}
+      {/* â”€â”€ Hero header â”€â”€ */}
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <div style={{ padding: '20px 28px 0' }}>
 
@@ -3083,8 +3083,8 @@ export const Customers: React.FC = () => {
               </div>
               <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 16 }}>
                 Member since {new Date(sel.created_at).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
-                {(sel.city || sel.country) && ` · ${[sel.city, sel.country].filter(Boolean).join(', ')}`}
-                {sel.email && ` · ${sel.email}`}
+                {(sel.city || sel.country) && ` Â· ${[sel.city, sel.country].filter(Boolean).join(', ')}`}
+                {sel.email && ` Â· ${sel.email}`}
               </div>
 
               {/* Stats row */}
@@ -3135,7 +3135,7 @@ export const Customers: React.FC = () => {
         </Tabs>
       </div>
 
-      {/* ── Tab content ── */}
+      {/* â”€â”€ Tab content â”€â”€ */}
       <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
         {renderTabContent()}
       </div>
@@ -3143,7 +3143,7 @@ export const Customers: React.FC = () => {
   );
 };
 
-/* ── Section card wrapper ── */
+/* â”€â”€ Section card wrapper â”€â”€ */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 16 }}>
@@ -3152,7 +3152,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-/* ── Sub-tab bar ── */
+/* â”€â”€ Sub-tab bar â”€â”€ */
 function SubTabBar({ tabs, active, onChange }: { tabs: { key: string; label: string }[]; active: string; onChange: (k: string) => void }) {
   return (
     <div style={{ display: 'flex', gap: 4, padding: '12px 28px', background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
@@ -3166,7 +3166,7 @@ function SubTabBar({ tabs, active, onChange }: { tabs: { key: string; label: str
   );
 }
 
-/* ── Empty state ── */
+/* â”€â”€ Empty state â”€â”€ */
 function EmptyState({ icon, title, sub }: { icon: IconName; title: string; sub: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '48px 20px', color: 'var(--ink3)' }}>
@@ -3179,7 +3179,7 @@ function EmptyState({ icon, title, sub }: { icon: IconName; title: string; sub: 
   );
 }
 
-/* ── Pagination button ── */
+/* â”€â”€ Pagination button â”€â”€ */
 function PagBtn({ label, active, disabled, onClick }: { label: string; active?: boolean; disabled?: boolean; onClick: () => void }) {
   return (
     <button type="button" disabled={disabled} onClick={onClick}

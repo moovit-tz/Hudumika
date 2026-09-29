@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
@@ -20,7 +20,7 @@ import './ProductsServices.css';
 
 // -- Types ---------------------------------------------------------------------
 // Field names/values below mirror the real `products` table (migration
-// 052_products.sql) and the /v1/products routes exactly — this catalog is the
+// 052_products.sql) and the /v1/products routes exactly â€” this catalog is the
 // same one Billing.tsx's line-item "add from catalog" picker already reads
 // from (ChargeSectionEditor.searchProducts), so a mismatch here would mean
 // services created here silently fail to price correctly on invoices.
@@ -37,7 +37,7 @@ export interface Product {
   purchase_price?: number;
   currency: string;
   tax_rate: number;
-  /** The tax treatment, when one was recorded — preserved through edits so a
+  /** The tax treatment, when one was recorded â€” preserved through edits so a
    *  code set elsewhere is never silently dropped. */
   tax_code_id?: string | null;
   status: 'active' | 'inactive';
@@ -55,7 +55,7 @@ interface ProductForm {
 
 type CatFilter = 'ALL' | string;
 
-/** A customer's agreed (contract) price for this service — overrides the
+/** A customer's agreed (contract) price for this service â€” overrides the
  *  catalog sale_price on that customer's invoices/quotes/POs. */
 interface CustomerPriceRow {
   customer_id: string;
@@ -88,78 +88,78 @@ const CURRENCIES = ['USD','TZS','EUR','GBP','KES','ZAR','AED'];
 
 // -- Starter catalog (supply-chain service templates spanning freight,
 // clearance, handling, transport, warehousing, fulfillment, packaging,
-// procurement, duty, insurance and labor — offered once when a tenant's real
+// procurement, duty, insurance and labor â€” offered once when a tenant's real
 // catalog is empty. Each item is POSTed to /v1/products like any other new
 // service, never written straight into local state.) -------------------------
 
 const STARTER_CATALOG: Omit<Product, 'id' | 'created_at' | 'updated_at'>[] = [
   // Freight
-  { name:'Sea Freight — 20ft FCL',        code:'SF-FCL-20',   category:'FREIGHT',     unit:'container',   sale_price:1200, currency:'USD', tax_rate:0,  status:'active', description:'Full container load sea freight — 20ft standard container' },
-  { name:'Sea Freight — 40ft FCL',        code:'SF-FCL-40',   category:'FREIGHT',     unit:'container',   sale_price:1800, currency:'USD', tax_rate:0,  status:'active', description:'Full container load sea freight — 40ft standard container' },
-  { name:'Sea Freight — 40ft HC',         code:'SF-FCL-40H',  category:'FREIGHT',     unit:'container',   sale_price:2000, currency:'USD', tax_rate:0,  status:'active', description:'Full container load sea freight — 40ft high cube container' },
-  { name:'Sea Freight — LCL',             code:'SF-LCL',      category:'FREIGHT',     unit:'CBM',         sale_price:85,   currency:'USD', tax_rate:0,  status:'active', description:'Less than container load sea freight (per CBM)' },
+  { name:'Sea Freight â€” 20ft FCL',        code:'SF-FCL-20',   category:'FREIGHT',     unit:'container',   sale_price:1200, currency:'USD', tax_rate:0,  status:'active', description:'Full container load sea freight â€” 20ft standard container' },
+  { name:'Sea Freight â€” 40ft FCL',        code:'SF-FCL-40',   category:'FREIGHT',     unit:'container',   sale_price:1800, currency:'USD', tax_rate:0,  status:'active', description:'Full container load sea freight â€” 40ft standard container' },
+  { name:'Sea Freight â€” 40ft HC',         code:'SF-FCL-40H',  category:'FREIGHT',     unit:'container',   sale_price:2000, currency:'USD', tax_rate:0,  status:'active', description:'Full container load sea freight â€” 40ft high cube container' },
+  { name:'Sea Freight â€” LCL',             code:'SF-LCL',      category:'FREIGHT',     unit:'CBM',         sale_price:85,   currency:'USD', tax_rate:0,  status:'active', description:'Less than container load sea freight (per CBM)' },
   { name:'Air Freight',                   code:'AF-KG',       category:'FREIGHT',     unit:'kg',          sale_price:4.5,  currency:'USD', tax_rate:0,  status:'active', description:'Air freight charge per kilogram (chargeable weight)' },
-  { name:'Air Freight — Minimum',         code:'AF-MIN',      category:'FREIGHT',     unit:'shipment',    sale_price:350,  currency:'USD', tax_rate:0,  status:'active', description:'Air freight minimum charge per shipment' },
-  { name:'Rail Freight — Container',      code:'SF-RAIL',     category:'FREIGHT',     unit:'container',   sale_price:900,  currency:'USD', tax_rate:0,  status:'active', description:'Rail freight, per container' },
+  { name:'Air Freight â€” Minimum',         code:'AF-MIN',      category:'FREIGHT',     unit:'shipment',    sale_price:350,  currency:'USD', tax_rate:0,  status:'active', description:'Air freight minimum charge per shipment' },
+  { name:'Rail Freight â€” Container',      code:'SF-RAIL',     category:'FREIGHT',     unit:'container',   sale_price:900,  currency:'USD', tax_rate:0,  status:'active', description:'Rail freight, per container' },
   { name:'Bulk / Break-Bulk Cargo',       code:'SF-BULK',     category:'FREIGHT',     unit:'ton',         sale_price:45,   currency:'USD', tax_rate:0,  status:'active', description:'Bulk or break-bulk ocean freight, per metric ton' },
-  // Clearance — statutory minimum clearing/forwarding agency fees per the
+  // Clearance â€” statutory minimum clearing/forwarding agency fees per the
   // Tanzania Shipping Agencies (Fees for Clearing and Forwarding Services)
   // Order, 2026 (GN. No. 83, published 20/3/2026, Schedule to order 5). A
   // registered clearing and forwarding agent may not charge below these
   // minimums; rates are USD-equivalent, payable in TZS at the prevailing rate.
-  { name:'Clearing Agency Fee — Import · Sea · 20ft Container',        code:'CL-IMP-SEA-20FT',      category:'CLEARANCE', unit:'container', sale_price:150, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, sea/inland waterways, 20-foot container' },
-  { name:'Clearing Agency Fee — Import · Sea · 40ft Container',        code:'CL-IMP-SEA-40FT',      category:'CLEARANCE', unit:'container', sale_price:200, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, sea/inland waterways, 40-foot container' },
-  { name:'Clearing Agency Fee — Import · Sea · Dry Bulk Cargo',        code:'CL-IMP-SEA-DRYBULK',   category:'CLEARANCE', unit:'MT',        sale_price:0.6, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, sea/inland waterways, dry bulk cargo, per metric ton' },
-  { name:'Clearing Agency Fee — Import · Sea · Bulk Liquid',           code:'CL-IMP-SEA-BULKLIQ',   category:'CLEARANCE', unit:'MT',        sale_price:0.6, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, sea/inland waterways, bulk liquid, per metric ton' },
-  { name:'Clearing Agency Fee — Import · Sea · Motor Vehicle',         code:'CL-IMP-SEA-VEHICLE',   category:'CLEARANCE', unit:'unit',      sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, sea/inland waterways, motor vehicle' },
-  { name:'Clearing Agency Fee — Import · Sea · Heavy Machines & Equipment', code:'CL-IMP-SEA-MACHINE', category:'CLEARANCE', unit:'unit',    sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, sea/inland waterways, heavy machines & equipment' },
-  { name:'Clearing Agency Fee — Import · Sea · Live Animal',           code:'CL-IMP-SEA-LIVEANIMAL',category:'CLEARANCE', unit:'BL',        sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, sea/inland waterways, live animal, per BL' },
-  { name:'Clearing Agency Fee — Import · Sea · Loose Cargo/LCL',       code:'CL-IMP-SEA-LCL',       category:'CLEARANCE', unit:'BL',        sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, sea/inland waterways, loose cargo / less than container load, per BL' },
-  { name:'Clearing Agency Fee — Import · Sea · Post Entry & Ex-Bond',  code:'CL-IMP-SEA-POSTENTRY', category:'CLEARANCE', unit:'BL',        sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, sea/inland waterways, post entry & ex-bond, per BL' },
-  { name:'Clearing Agency Fee — Import · Sea · Carriage Coastwise',    code:'CL-IMP-SEA-COASTWISE', category:'CLEARANCE', unit:'transire',  sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, sea/inland waterways, carriage coastwise, per transire' },
-  { name:'Clearing Agency Fee — Import · Road (Border) · 20ft Container', code:'CL-IMP-ROAD-20FT',  category:'CLEARANCE', unit:'container', sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, road transport (border), 20-foot container' },
-  { name:'Clearing Agency Fee — Import · Road (Border) · 40ft Container', code:'CL-IMP-ROAD-40FT',  category:'CLEARANCE', unit:'container', sale_price:190, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, road transport (border), 40-foot container' },
-  { name:'Clearing Agency Fee — Import · Road (Border) · Motor Vehicle', code:'CL-IMP-ROAD-VEHICLE',category:'CLEARANCE', unit:'unit',      sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, road transport (border), motor vehicle' },
-  { name:'Clearing Agency Fee — Import · Road (Border) · Heavy Machines & Equipment', code:'CL-IMP-ROAD-MACHINE', category:'CLEARANCE', unit:'unit', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, road transport (border), heavy machines & equipment' },
-  { name:'Clearing Agency Fee — Import · Road (Border) · Live Animal', code:'CL-IMP-ROAD-LIVEANIMAL',category:'CLEARANCE', unit:'BL',      sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, road transport (border), live animal, per BL' },
-  { name:'Clearing Agency Fee — Import · Road (Border) · Loose Cargo/LCL', code:'CL-IMP-ROAD-LCL',  category:'CLEARANCE', unit:'vehicle',   sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, road transport (border), loose cargo / less than container load, per vehicle' },
-  { name:'Clearing Agency Fee — Import · Air · Parcel/Courier',        code:'CL-IMP-AIR-PARCEL',    category:'CLEARANCE', unit:'AWB',       sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, air transport, parcel / courier, per AWB' },
-  { name:'Clearing Agency Fee — Import · Air · General Cargo',         code:'CL-IMP-AIR-GENERAL',   category:'CLEARANCE', unit:'AWB',       sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, air transport, general cargo, per AWB' },
-  { name:'Clearing Agency Fee — Import · Air · Live Animal',           code:'CL-IMP-AIR-LIVEANIMAL',category:'CLEARANCE', unit:'AWB',       sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, air transport, live animal, per AWB' },
-  { name:'Clearing Agency Fee — Export · Sea · 20ft Container',        code:'CL-EXP-SEA-20FT',      category:'CLEARANCE', unit:'container', sale_price:150, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, 20-foot container' },
-  { name:'Clearing Agency Fee — Export · Sea · 40ft Container',        code:'CL-EXP-SEA-40FT',      category:'CLEARANCE', unit:'container', sale_price:200, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, 40-foot container' },
-  { name:'Clearing Agency Fee — Export · Sea · Dry Bulk Cargo',        code:'CL-EXP-SEA-DRYBULK',   category:'CLEARANCE', unit:'MT',        sale_price:0.6, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, dry bulk cargo, per metric ton' },
-  { name:'Clearing Agency Fee — Export · Sea · Bulk Liquid',           code:'CL-EXP-SEA-BULKLIQ',   category:'CLEARANCE', unit:'MT',        sale_price:0.6, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, bulk liquid, per metric ton' },
-  { name:'Clearing Agency Fee — Export · Sea · Motor Vehicle',         code:'CL-EXP-SEA-VEHICLE',   category:'CLEARANCE', unit:'unit',      sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, motor vehicle' },
-  { name:'Clearing Agency Fee — Export · Sea · Heavy Machines & Equipment', code:'CL-EXP-SEA-MACHINE', category:'CLEARANCE', unit:'unit',    sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, heavy machines & equipment' },
-  { name:'Clearing Agency Fee — Export · Sea · Live Animal',           code:'CL-EXP-SEA-LIVEANIMAL',category:'CLEARANCE', unit:'BL',        sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, live animal, per BL' },
-  { name:'Clearing Agency Fee — Export · Sea · Loose Cargo/LCL',       code:'CL-EXP-SEA-LCL',       category:'CLEARANCE', unit:'BL',        sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, loose cargo / less than container load, per BL' },
-  { name:'Clearing Agency Fee — Export · Sea · Carriage Coastwise',    code:'CL-EXP-SEA-COASTWISE', category:'CLEARANCE', unit:'transire',  sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, carriage coastwise, per transire' },
-  { name:'Clearing Agency Fee — Export · Road (Border) · 20ft Container', code:'CL-EXP-ROAD-20FT',  category:'CLEARANCE', unit:'container', sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, road transport (border), 20-foot container' },
-  { name:'Clearing Agency Fee — Export · Road (Border) · 40ft Container', code:'CL-EXP-ROAD-40FT',  category:'CLEARANCE', unit:'container', sale_price:190, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, road transport (border), 40-foot container' },
-  { name:'Clearing Agency Fee — Export · Road (Border) · Motor Vehicle', code:'CL-EXP-ROAD-VEHICLE',category:'CLEARANCE', unit:'unit',      sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, road transport (border), motor vehicle' },
-  { name:'Clearing Agency Fee — Export · Road (Border) · Heavy Machines & Equipment', code:'CL-EXP-ROAD-MACHINE', category:'CLEARANCE', unit:'unit', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, road transport (border), heavy machines & equipment' },
-  { name:'Clearing Agency Fee — Export · Road (Border) · Live Animal', code:'CL-EXP-ROAD-LIVEANIMAL',category:'CLEARANCE', unit:'BL',      sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, road transport (border), live animal, per BL' },
-  { name:'Clearing Agency Fee — Export · Road (Border) · Loose Cargo/LCL', code:'CL-EXP-ROAD-LCL',  category:'CLEARANCE', unit:'vehicle',   sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, road transport (border), loose cargo / less than container load, per vehicle' },
-  { name:'Clearing Agency Fee — Export · Air · Parcel/Courier',        code:'CL-EXP-AIR-PARCEL',    category:'CLEARANCE', unit:'AWB',       sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, air transport, parcel / courier, per AWB' },
-  { name:'Clearing Agency Fee — Export · Air · General Cargo',         code:'CL-EXP-AIR-GENERAL',   category:'CLEARANCE', unit:'AWB',       sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, air transport, general cargo, per AWB' },
-  { name:'Clearing Agency Fee — Export · Air · Precious Metal/Minerals', code:'CL-EXP-AIR-PRECIOUS',category:'CLEARANCE', unit:'AWB',       sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, air transport, precious metal / minerals, per AWB' },
-  { name:'Clearing Agency Fee — Export · Air · Live Animal',           code:'CL-EXP-AIR-LIVEANIMAL',category:'CLEARANCE', unit:'AWB',       sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, air transport, live animal, per AWB' },
-  { name:'Clearing Agency Fee — Transit · Sea · 20ft Container',       code:'CL-TRN-SEA-20FT',      category:'CLEARANCE', unit:'container', sale_price:200, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, 20-foot container' },
-  { name:'Clearing Agency Fee — Transit · Sea · 40ft Container',       code:'CL-TRN-SEA-40FT',      category:'CLEARANCE', unit:'container', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, 40-foot container' },
-  { name:'Clearing Agency Fee — Transit · Sea · Dry Bulk Cargo',       code:'CL-TRN-SEA-DRYBULK',   category:'CLEARANCE', unit:'MT',        sale_price:0.5, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, dry bulk cargo, per metric ton' },
-  { name:'Clearing Agency Fee — Transit · Sea · Bulk Liquid',          code:'CL-TRN-SEA-BULKLIQ',   category:'CLEARANCE', unit:'MT',        sale_price:0.5, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, bulk liquid, per metric ton' },
-  { name:'Clearing Agency Fee — Transit · Sea · Motor Vehicle',        code:'CL-TRN-SEA-VEHICLE',   category:'CLEARANCE', unit:'unit',      sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, motor vehicle' },
-  { name:'Clearing Agency Fee — Transit · Sea · Heavy Machines & Equipment', code:'CL-TRN-SEA-MACHINE', category:'CLEARANCE', unit:'unit',   sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, heavy machines & equipment' },
-  { name:'Clearing Agency Fee — Transit · Sea · Live Animal',          code:'CL-TRN-SEA-LIVEANIMAL',category:'CLEARANCE', unit:'BL',        sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, live animal, per BL' },
-  { name:'Clearing Agency Fee — Transit · Sea · Loose Cargo/LCL',      code:'CL-TRN-SEA-LCL',       category:'CLEARANCE', unit:'BL',        sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, loose cargo / less than container load, per BL' },
-  { name:'Clearing Agency Fee — Transit · Road (Border) · 20ft Container', code:'CL-TRN-ROAD-20FT', category:'CLEARANCE', unit:'container', sale_price:210, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, road transport (border), 20-foot container' },
-  { name:'Clearing Agency Fee — Transit · Road (Border) · 40ft Container', code:'CL-TRN-ROAD-40FT', category:'CLEARANCE', unit:'container', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, road transport (border), 40-foot container' },
-  { name:'Clearing Agency Fee — Transit · Road (Border) · Motor Vehicle', code:'CL-TRN-ROAD-VEHICLE', category:'CLEARANCE', unit:'unit',    sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, road transport (border), motor vehicle' },
-  { name:'Clearing Agency Fee — Transit · Road (Border) · Heavy Machines & Equipment', code:'CL-TRN-ROAD-MACHINE', category:'CLEARANCE', unit:'unit', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, road transport (border), heavy machines & equipment' },
-  { name:'Clearing Agency Fee — Transit · Road (Border) · Live Animal', code:'CL-TRN-ROAD-LIVEANIMAL', category:'CLEARANCE', unit:'BL',    sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, road transport (border), live animal, per BL' },
-  { name:'Clearing Agency Fee — Transit · Road (Border) · Loose Cargo/LCL', code:'CL-TRN-ROAD-LCL', category:'CLEARANCE', unit:'vehicle',   sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, road transport (border), loose cargo / less than container load, per vehicle' },
-  { name:'Clearing Agency Fee — Transit · Air · General Cargo',        code:'CL-TRN-AIR-GENERAL',   category:'CLEARANCE', unit:'AWB',       sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, air transport, general cargo, per AWB' },
+  { name:'Clearing Agency Fee â€” Import Â· Sea Â· 20ft Container',        code:'CL-IMP-SEA-20FT',      category:'CLEARANCE', unit:'container', sale_price:150, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, sea/inland waterways, 20-foot container' },
+  { name:'Clearing Agency Fee â€” Import Â· Sea Â· 40ft Container',        code:'CL-IMP-SEA-40FT',      category:'CLEARANCE', unit:'container', sale_price:200, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, sea/inland waterways, 40-foot container' },
+  { name:'Clearing Agency Fee â€” Import Â· Sea Â· Dry Bulk Cargo',        code:'CL-IMP-SEA-DRYBULK',   category:'CLEARANCE', unit:'MT',        sale_price:0.6, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, sea/inland waterways, dry bulk cargo, per metric ton' },
+  { name:'Clearing Agency Fee â€” Import Â· Sea Â· Bulk Liquid',           code:'CL-IMP-SEA-BULKLIQ',   category:'CLEARANCE', unit:'MT',        sale_price:0.6, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, sea/inland waterways, bulk liquid, per metric ton' },
+  { name:'Clearing Agency Fee â€” Import Â· Sea Â· Motor Vehicle',         code:'CL-IMP-SEA-VEHICLE',   category:'CLEARANCE', unit:'unit',      sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, sea/inland waterways, motor vehicle' },
+  { name:'Clearing Agency Fee â€” Import Â· Sea Â· Heavy Machines & Equipment', code:'CL-IMP-SEA-MACHINE', category:'CLEARANCE', unit:'unit',    sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, sea/inland waterways, heavy machines & equipment' },
+  { name:'Clearing Agency Fee â€” Import Â· Sea Â· Live Animal',           code:'CL-IMP-SEA-LIVEANIMAL',category:'CLEARANCE', unit:'BL',        sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, sea/inland waterways, live animal, per BL' },
+  { name:'Clearing Agency Fee â€” Import Â· Sea Â· Loose Cargo/LCL',       code:'CL-IMP-SEA-LCL',       category:'CLEARANCE', unit:'BL',        sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, sea/inland waterways, loose cargo / less than container load, per BL' },
+  { name:'Clearing Agency Fee â€” Import Â· Sea Â· Post Entry & Ex-Bond',  code:'CL-IMP-SEA-POSTENTRY', category:'CLEARANCE', unit:'BL',        sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, sea/inland waterways, post entry & ex-bond, per BL' },
+  { name:'Clearing Agency Fee â€” Import Â· Sea Â· Carriage Coastwise',    code:'CL-IMP-SEA-COASTWISE', category:'CLEARANCE', unit:'transire',  sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, sea/inland waterways, carriage coastwise, per transire' },
+  { name:'Clearing Agency Fee â€” Import Â· Road (Border) Â· 20ft Container', code:'CL-IMP-ROAD-20FT',  category:'CLEARANCE', unit:'container', sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, road transport (border), 20-foot container' },
+  { name:'Clearing Agency Fee â€” Import Â· Road (Border) Â· 40ft Container', code:'CL-IMP-ROAD-40FT',  category:'CLEARANCE', unit:'container', sale_price:190, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, road transport (border), 40-foot container' },
+  { name:'Clearing Agency Fee â€” Import Â· Road (Border) Â· Motor Vehicle', code:'CL-IMP-ROAD-VEHICLE',category:'CLEARANCE', unit:'unit',      sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, road transport (border), motor vehicle' },
+  { name:'Clearing Agency Fee â€” Import Â· Road (Border) Â· Heavy Machines & Equipment', code:'CL-IMP-ROAD-MACHINE', category:'CLEARANCE', unit:'unit', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, road transport (border), heavy machines & equipment' },
+  { name:'Clearing Agency Fee â€” Import Â· Road (Border) Â· Live Animal', code:'CL-IMP-ROAD-LIVEANIMAL',category:'CLEARANCE', unit:'BL',      sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, road transport (border), live animal, per BL' },
+  { name:'Clearing Agency Fee â€” Import Â· Road (Border) Â· Loose Cargo/LCL', code:'CL-IMP-ROAD-LCL',  category:'CLEARANCE', unit:'vehicle',   sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, road transport (border), loose cargo / less than container load, per vehicle' },
+  { name:'Clearing Agency Fee â€” Import Â· Air Â· Parcel/Courier',        code:'CL-IMP-AIR-PARCEL',    category:'CLEARANCE', unit:'AWB',       sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, air transport, parcel / courier, per AWB' },
+  { name:'Clearing Agency Fee â€” Import Â· Air Â· General Cargo',         code:'CL-IMP-AIR-GENERAL',   category:'CLEARANCE', unit:'AWB',       sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, air transport, general cargo, per AWB' },
+  { name:'Clearing Agency Fee â€” Import Â· Air Â· Live Animal',           code:'CL-IMP-AIR-LIVEANIMAL',category:'CLEARANCE', unit:'AWB',       sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” import, air transport, live animal, per AWB' },
+  { name:'Clearing Agency Fee â€” Export Â· Sea Â· 20ft Container',        code:'CL-EXP-SEA-20FT',      category:'CLEARANCE', unit:'container', sale_price:150, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, sea/inland waterways, 20-foot container' },
+  { name:'Clearing Agency Fee â€” Export Â· Sea Â· 40ft Container',        code:'CL-EXP-SEA-40FT',      category:'CLEARANCE', unit:'container', sale_price:200, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, sea/inland waterways, 40-foot container' },
+  { name:'Clearing Agency Fee â€” Export Â· Sea Â· Dry Bulk Cargo',        code:'CL-EXP-SEA-DRYBULK',   category:'CLEARANCE', unit:'MT',        sale_price:0.6, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, sea/inland waterways, dry bulk cargo, per metric ton' },
+  { name:'Clearing Agency Fee â€” Export Â· Sea Â· Bulk Liquid',           code:'CL-EXP-SEA-BULKLIQ',   category:'CLEARANCE', unit:'MT',        sale_price:0.6, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, sea/inland waterways, bulk liquid, per metric ton' },
+  { name:'Clearing Agency Fee â€” Export Â· Sea Â· Motor Vehicle',         code:'CL-EXP-SEA-VEHICLE',   category:'CLEARANCE', unit:'unit',      sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, sea/inland waterways, motor vehicle' },
+  { name:'Clearing Agency Fee â€” Export Â· Sea Â· Heavy Machines & Equipment', code:'CL-EXP-SEA-MACHINE', category:'CLEARANCE', unit:'unit',    sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, sea/inland waterways, heavy machines & equipment' },
+  { name:'Clearing Agency Fee â€” Export Â· Sea Â· Live Animal',           code:'CL-EXP-SEA-LIVEANIMAL',category:'CLEARANCE', unit:'BL',        sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, sea/inland waterways, live animal, per BL' },
+  { name:'Clearing Agency Fee â€” Export Â· Sea Â· Loose Cargo/LCL',       code:'CL-EXP-SEA-LCL',       category:'CLEARANCE', unit:'BL',        sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, sea/inland waterways, loose cargo / less than container load, per BL' },
+  { name:'Clearing Agency Fee â€” Export Â· Sea Â· Carriage Coastwise',    code:'CL-EXP-SEA-COASTWISE', category:'CLEARANCE', unit:'transire',  sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, sea/inland waterways, carriage coastwise, per transire' },
+  { name:'Clearing Agency Fee â€” Export Â· Road (Border) Â· 20ft Container', code:'CL-EXP-ROAD-20FT',  category:'CLEARANCE', unit:'container', sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, road transport (border), 20-foot container' },
+  { name:'Clearing Agency Fee â€” Export Â· Road (Border) Â· 40ft Container', code:'CL-EXP-ROAD-40FT',  category:'CLEARANCE', unit:'container', sale_price:190, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, road transport (border), 40-foot container' },
+  { name:'Clearing Agency Fee â€” Export Â· Road (Border) Â· Motor Vehicle', code:'CL-EXP-ROAD-VEHICLE',category:'CLEARANCE', unit:'unit',      sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, road transport (border), motor vehicle' },
+  { name:'Clearing Agency Fee â€” Export Â· Road (Border) Â· Heavy Machines & Equipment', code:'CL-EXP-ROAD-MACHINE', category:'CLEARANCE', unit:'unit', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, road transport (border), heavy machines & equipment' },
+  { name:'Clearing Agency Fee â€” Export Â· Road (Border) Â· Live Animal', code:'CL-EXP-ROAD-LIVEANIMAL',category:'CLEARANCE', unit:'BL',      sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, road transport (border), live animal, per BL' },
+  { name:'Clearing Agency Fee â€” Export Â· Road (Border) Â· Loose Cargo/LCL', code:'CL-EXP-ROAD-LCL',  category:'CLEARANCE', unit:'vehicle',   sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, road transport (border), loose cargo / less than container load, per vehicle' },
+  { name:'Clearing Agency Fee â€” Export Â· Air Â· Parcel/Courier',        code:'CL-EXP-AIR-PARCEL',    category:'CLEARANCE', unit:'AWB',       sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, air transport, parcel / courier, per AWB' },
+  { name:'Clearing Agency Fee â€” Export Â· Air Â· General Cargo',         code:'CL-EXP-AIR-GENERAL',   category:'CLEARANCE', unit:'AWB',       sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, air transport, general cargo, per AWB' },
+  { name:'Clearing Agency Fee â€” Export Â· Air Â· Precious Metal/Minerals', code:'CL-EXP-AIR-PRECIOUS',category:'CLEARANCE', unit:'AWB',       sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, air transport, precious metal / minerals, per AWB' },
+  { name:'Clearing Agency Fee â€” Export Â· Air Â· Live Animal',           code:'CL-EXP-AIR-LIVEANIMAL',category:'CLEARANCE', unit:'AWB',       sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” export, air transport, live animal, per AWB' },
+  { name:'Clearing Agency Fee â€” Transit Â· Sea Â· 20ft Container',       code:'CL-TRN-SEA-20FT',      category:'CLEARANCE', unit:'container', sale_price:200, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, sea/inland waterways, 20-foot container' },
+  { name:'Clearing Agency Fee â€” Transit Â· Sea Â· 40ft Container',       code:'CL-TRN-SEA-40FT',      category:'CLEARANCE', unit:'container', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, sea/inland waterways, 40-foot container' },
+  { name:'Clearing Agency Fee â€” Transit Â· Sea Â· Dry Bulk Cargo',       code:'CL-TRN-SEA-DRYBULK',   category:'CLEARANCE', unit:'MT',        sale_price:0.5, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, sea/inland waterways, dry bulk cargo, per metric ton' },
+  { name:'Clearing Agency Fee â€” Transit Â· Sea Â· Bulk Liquid',          code:'CL-TRN-SEA-BULKLIQ',   category:'CLEARANCE', unit:'MT',        sale_price:0.5, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, sea/inland waterways, bulk liquid, per metric ton' },
+  { name:'Clearing Agency Fee â€” Transit Â· Sea Â· Motor Vehicle',        code:'CL-TRN-SEA-VEHICLE',   category:'CLEARANCE', unit:'unit',      sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, sea/inland waterways, motor vehicle' },
+  { name:'Clearing Agency Fee â€” Transit Â· Sea Â· Heavy Machines & Equipment', code:'CL-TRN-SEA-MACHINE', category:'CLEARANCE', unit:'unit',   sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, sea/inland waterways, heavy machines & equipment' },
+  { name:'Clearing Agency Fee â€” Transit Â· Sea Â· Live Animal',          code:'CL-TRN-SEA-LIVEANIMAL',category:'CLEARANCE', unit:'BL',        sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, sea/inland waterways, live animal, per BL' },
+  { name:'Clearing Agency Fee â€” Transit Â· Sea Â· Loose Cargo/LCL',      code:'CL-TRN-SEA-LCL',       category:'CLEARANCE', unit:'BL',        sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, sea/inland waterways, loose cargo / less than container load, per BL' },
+  { name:'Clearing Agency Fee â€” Transit Â· Road (Border) Â· 20ft Container', code:'CL-TRN-ROAD-20FT', category:'CLEARANCE', unit:'container', sale_price:210, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, road transport (border), 20-foot container' },
+  { name:'Clearing Agency Fee â€” Transit Â· Road (Border) Â· 40ft Container', code:'CL-TRN-ROAD-40FT', category:'CLEARANCE', unit:'container', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, road transport (border), 40-foot container' },
+  { name:'Clearing Agency Fee â€” Transit Â· Road (Border) Â· Motor Vehicle', code:'CL-TRN-ROAD-VEHICLE', category:'CLEARANCE', unit:'unit',    sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, road transport (border), motor vehicle' },
+  { name:'Clearing Agency Fee â€” Transit Â· Road (Border) Â· Heavy Machines & Equipment', code:'CL-TRN-ROAD-MACHINE', category:'CLEARANCE', unit:'unit', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, road transport (border), heavy machines & equipment' },
+  { name:'Clearing Agency Fee â€” Transit Â· Road (Border) Â· Live Animal', code:'CL-TRN-ROAD-LIVEANIMAL', category:'CLEARANCE', unit:'BL',    sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, road transport (border), live animal, per BL' },
+  { name:'Clearing Agency Fee â€” Transit Â· Road (Border) Â· Loose Cargo/LCL', code:'CL-TRN-ROAD-LCL', category:'CLEARANCE', unit:'vehicle',   sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, road transport (border), loose cargo / less than container load, per vehicle' },
+  { name:'Clearing Agency Fee â€” Transit Â· Air Â· General Cargo',        code:'CL-TRN-AIR-GENERAL',   category:'CLEARANCE', unit:'AWB',       sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee â€” transit, air transport, general cargo, per AWB' },
   { name:'Documentation Fee',             code:'CL-DOCS',     category:'CLEARANCE',   unit:'set',         sale_price:75,   currency:'USD', tax_rate:18, status:'active', description:'Preparation of shipping documentation and certificates' },
   { name:'Bill of Lading Processing',     code:'CL-BL',       category:'CLEARANCE',   unit:'set',         sale_price:60,   currency:'USD', tax_rate:18, status:'active', description:'Bill of lading processing and handling fee' },
   { name:'Pre-Shipment Inspection',       code:'CL-PSI',      category:'CLEARANCE',   unit:'shipment',    sale_price:200,  currency:'USD', tax_rate:18, status:'active', description:'Pre-shipment inspection (PVoC / CoC)' },
@@ -176,13 +176,13 @@ const STARTER_CATALOG: Omit<Product, 'id' | 'created_at' | 'updated_at'>[] = [
   { name:'Container Stuffing',            code:'PH-STUFF',    category:'HANDLING',    unit:'container',   sale_price:120,  currency:'USD', tax_rate:18, status:'active', description:'Loading / stuffing a container for export' },
   { name:'Crane / Forklift Handling',     code:'PH-CRANE',    category:'HANDLING',    unit:'hour',        sale_price:40,   currency:'USD', tax_rate:18, status:'active', description:'Crane or forklift operation, per hour' },
   // Transport
-  { name:'Road Transport — Local',        code:'RT-LOCAL',    category:'TRANSPORT',   unit:'trip',        sale_price:450,  currency:'USD', tax_rate:18, status:'active', description:'Local inland transport and delivery' },
-  { name:'Road Transport — Upcountry',    code:'RT-UPCTRY',   category:'TRANSPORT',   unit:'trip',        sale_price:850,  currency:'USD', tax_rate:18, status:'active', description:'Upcountry delivery to inland destination' },
+  { name:'Road Transport â€” Local',        code:'RT-LOCAL',    category:'TRANSPORT',   unit:'trip',        sale_price:450,  currency:'USD', tax_rate:18, status:'active', description:'Local inland transport and delivery' },
+  { name:'Road Transport â€” Upcountry',    code:'RT-UPCTRY',   category:'TRANSPORT',   unit:'trip',        sale_price:850,  currency:'USD', tax_rate:18, status:'active', description:'Upcountry delivery to inland destination' },
   { name:'Cross-Border Haulage',          code:'RT-XBORDER',  category:'TRANSPORT',   unit:'trip',        sale_price:1500, currency:'USD', tax_rate:0,  status:'active', description:'Cross-border road haulage to a neighboring country' },
   { name:'Last-Mile Delivery',            code:'RT-LASTMILE', category:'TRANSPORT',   unit:'delivery',    sale_price:25,   currency:'USD', tax_rate:18, status:'active', description:'Final-leg delivery to the consignee' },
-  { name:'Container Drayage (Port→CFS)',  code:'RT-DRAY',     category:'TRANSPORT',   unit:'container',   sale_price:180,  currency:'USD', tax_rate:18, status:'active', description:'Short-haul container move from port to CFS/warehouse' },
+  { name:'Container Drayage (Portâ†’CFS)',  code:'RT-DRAY',     category:'TRANSPORT',   unit:'container',   sale_price:180,  currency:'USD', tax_rate:18, status:'active', description:'Short-haul container move from port to CFS/warehouse' },
   // Warehousing
-  { name:'Warehouse Storage — General',   code:'WH-STOR',     category:'WAREHOUSING', unit:'day',         sale_price:15,   currency:'USD', tax_rate:18, status:'active', description:'General goods storage, per pallet per day' },
+  { name:'Warehouse Storage â€” General',   code:'WH-STOR',     category:'WAREHOUSING', unit:'day',         sale_price:15,   currency:'USD', tax_rate:18, status:'active', description:'General goods storage, per pallet per day' },
   { name:'Bonded Warehouse Storage',      code:'WH-BOND',     category:'WAREHOUSING', unit:'day',         sale_price:25,   currency:'USD', tax_rate:18, status:'active', description:'Bonded (duty-suspended) warehouse storage, per day' },
   { name:'Cold Chain / Reefer Storage',   code:'WH-COLD',     category:'WAREHOUSING', unit:'day',         sale_price:40,   currency:'USD', tax_rate:18, status:'active', description:'Temperature-controlled storage, per day' },
   { name:'Pallet Racking / Slot Fee',     code:'WH-SLOT',     category:'WAREHOUSING', unit:'unit',        sale_price:8,    currency:'USD', tax_rate:18, status:'active', description:'Racking slot allocation fee, per pallet position' },
@@ -205,15 +205,15 @@ const STARTER_CATALOG: Omit<Product, 'id' | 'created_at' | 'updated_at'>[] = [
   { name:'Supplier Quality Audit',        code:'PR-AUDIT',    category:'PROCUREMENT', unit:'audit',       sale_price:300,  currency:'USD', tax_rate:18, status:'active', description:'On-site supplier quality/compliance audit' },
   { name:'Supply Chain Consultancy',      code:'PR-CONSULT',  category:'PROCUREMENT', unit:'hour',        sale_price:60,   currency:'USD', tax_rate:18, status:'active', description:'Freight forwarding / supply chain advisory, per hour' },
   // Duty & Taxes (rate is typically set per shipment against the CIF/customs value)
-  { name:'Import Duty',                   code:'DT-IMP',      category:'DUTY',        unit:'%',           sale_price:0,    currency:'USD', tax_rate:0,  status:'active', description:'Customs import duty — percentage of CIF value, rate varies by HS code' },
+  { name:'Import Duty',                   code:'DT-IMP',      category:'DUTY',        unit:'%',           sale_price:0,    currency:'USD', tax_rate:0,  status:'active', description:'Customs import duty â€” percentage of CIF value, rate varies by HS code' },
   { name:'VAT on Import',                 code:'DT-VAT',      category:'DUTY',        unit:'%',           sale_price:0,    currency:'USD', tax_rate:0,  status:'active', description:'Value added tax assessed on imported goods' },
   { name:'Excise Duty',                   code:'DT-EXC',      category:'DUTY',        unit:'%',           sale_price:0,    currency:'USD', tax_rate:0,  status:'active', description:'Excise duty applicable on specific commodities' },
   { name:'Railway Development Levy',      code:'DT-RDL',      category:'DUTY',        unit:'%',           sale_price:0,    currency:'USD', tax_rate:0,  status:'active', description:'Railway Development Levy on imports' },
   // Insurance
-  { name:'Marine Cargo Insurance',        code:'INS-CARGO',   category:'INSURANCE',   unit:'%',           sale_price:0,    currency:'USD', tax_rate:18, status:'active', description:'Marine cargo insurance — percentage of insured cargo value, set per shipment' },
-  { name:'Goods-in-Storage Insurance',    code:'INS-WH',      category:'INSURANCE',   unit:'%',           sale_price:0,    currency:'USD', tax_rate:18, status:'active', description:'Insurance on goods held in warehouse — percentage of insured value' },
+  { name:'Marine Cargo Insurance',        code:'INS-CARGO',   category:'INSURANCE',   unit:'%',           sale_price:0,    currency:'USD', tax_rate:18, status:'active', description:'Marine cargo insurance â€” percentage of insured cargo value, set per shipment' },
+  { name:'Goods-in-Storage Insurance',    code:'INS-WH',      category:'INSURANCE',   unit:'%',           sale_price:0,    currency:'USD', tax_rate:18, status:'active', description:'Insurance on goods held in warehouse â€” percentage of insured value' },
   // Labor
-  { name:'Casual Labor — Loading',        code:'LB-CASUAL',   category:'LABOR',       unit:'hour',        sale_price:6,    currency:'USD', tax_rate:18, status:'active', description:'Casual loading/offloading labor, per hour' },
+  { name:'Casual Labor â€” Loading',        code:'LB-CASUAL',   category:'LABOR',       unit:'hour',        sale_price:6,    currency:'USD', tax_rate:18, status:'active', description:'Casual loading/offloading labor, per hour' },
   { name:'Skilled Technician / Operator', code:'LB-SKILLED',  category:'LABOR',       unit:'hour',        sale_price:15,   currency:'USD', tax_rate:18, status:'active', description:'Skilled equipment operator or technician, per hour' },
   { name:'Supervisor / Team Lead',        code:'LB-SUPER',    category:'LABOR',       unit:'hour',        sale_price:25,   currency:'USD', tax_rate:18, status:'active', description:'On-site supervisor or team lead, per hour' },
   // Other
@@ -235,14 +235,14 @@ function genCode(name: string, category: string): string {
 // -- Helpers -------------------------------------------------------------------
 
 function fmt(amount: number, currency = 'USD') {
-  if (amount === 0) return '—';
+  if (amount === 0) return 'â€”';
   try {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
   } catch { return `${currency} ${amount}`; }
 }
 
 function fmtDate(d: string | null | undefined) {
-  if (!d) return '—';
+  if (!d) return 'â€”';
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
@@ -374,13 +374,13 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
   return (
     <FormPage
       title={initial ? 'Edit Service' : 'New Service'}
-      subtitle={initial ? `Editing ${initial.code}` : 'Add a service to your catalog — its code, price, unit and tax.'}
+      subtitle={initial ? `Editing ${initial.code}` : 'Add a service to your catalog â€” its code, price, unit and tax.'}
       onCancel={onClose}
       actions={
         <>
           <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
           <button type="button" title="Save service" onClick={submit} disabled={saving} className="btn btn-primary">
-            <Icon name="save" size={13} /> {saving ? 'Saving…' : initial ? 'Update Service' : 'Add Service'}
+            <Icon name="save" size={13} /> {saving ? 'Savingâ€¦' : initial ? 'Update Service' : 'Add Service'}
           </button>
         </>
       }
@@ -388,7 +388,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
       <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={row}>
             <label style={lbl}>Service Name *</label>
-            <input type="text" title="Service name" placeholder="e.g. Sea Freight — 20ft FCL" value={f.name} onChange={e => set('name', e.target.value)} style={inp} />
+            <input type="text" title="Service name" placeholder="e.g. Sea Freight â€” 20ft FCL" value={f.name} onChange={e => set('name', e.target.value)} style={inp} />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
@@ -404,7 +404,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
             </div>
             <div>
               <label style={lbl}>Code / SKU</label>
-              <input type="text" title="Service code" placeholder="e.g. SF-FCL-20" value={f.code} onChange={e => set('code', e.target.value.toUpperCase())} style={{ ...inp, fontFamily: 'var(--mono)', fontSize: 12 }} />
+              <input type="text" title="Service code" placeholder="e.g. SF-FCL-20" value={f.code} onChange={e => set('code', e.target.value.toUpperCase())} style={{ ...inp, fontFamily: 'var(--font)', fontSize: 12 }} />
             </div>
             <div>
               <label style={lbl}>Category</label>
@@ -419,7 +419,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
 
           <div style={row}>
             <label style={lbl}>Description</label>
-            <textarea title="Description" placeholder="Brief description of the service…" value={f.description} onChange={e => set('description', e.target.value)} rows={3}
+            <textarea title="Description" placeholder="Brief description of the serviceâ€¦" value={f.description} onChange={e => set('description', e.target.value)} rows={3}
               style={{ ...inp, resize: 'vertical' }} />
           </div>
 
@@ -485,7 +485,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
 
           <div style={row}>
             <label style={lbl}>Internal Notes</label>
-            <textarea title="Notes" placeholder="Any internal notes about this service…" value={f.notes} onChange={e => set('notes', e.target.value)} rows={2}
+            <textarea title="Notes" placeholder="Any internal notes about this serviceâ€¦" value={f.notes} onChange={e => set('notes', e.target.value)} rows={2}
               style={{ ...inp, resize: 'vertical' }} />
           </div>
 
@@ -494,7 +494,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Customer-specific prices</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12, lineHeight: 1.5 }}>
               Agreed contract rates. When one of these customers is on an invoice, quotation or purchase order, their price for this service is triggered instead of the catalog price of{' '}
-              <strong style={{ color: 'var(--ink2)' }}>{f.sale_price > 0 ? fmt(f.sale_price, f.currency) : '—'}</strong>.
+              <strong style={{ color: 'var(--ink2)' }}>{f.sale_price > 0 ? fmt(f.sale_price, f.currency) : 'â€”'}</strong>.
             </div>
             {prices.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
@@ -515,7 +515,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
                 ))}
               </div>
             )}
-            <EntityPicker value={null} onChange={addCustomer} search={searchCustomers} placeholder="Add a customer with an agreed price…" />
+            <EntityPicker value={null} onChange={addCustomer} search={searchCustomers} placeholder="Add a customer with an agreed priceâ€¦" />
           </div>
 
           {/* Live preview */}
@@ -524,11 +524,11 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{f.name || 'Service Name'}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2, fontFamily: 'var(--mono)' }}>{f.code || '—'} · {CAT_CFG[f.category]?.label}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2, fontFamily: 'var(--font)' }}>{f.code || 'â€”'} Â· {CAT_CFG[f.category]?.label}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--teal)' }}>{f.sale_price > 0 ? fmt(f.sale_price, f.currency) : '—'}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)' }}>per {f.unit}{f.tax_rate > 0 ? ` · ${f.tax_rate}% tax` : ' · no tax'}</div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--teal)' }}>{f.sale_price > 0 ? fmt(f.sale_price, f.currency) : 'â€”'}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink3)' }}>per {f.unit}{f.tax_rate > 0 ? ` Â· ${f.tax_rate}% tax` : ' Â· no tax'}</div>
               </div>
             </div>
           </div>
@@ -551,7 +551,7 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
     <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
       <SheetContent className="w-95 sm:max-w-95 flex flex-col p-0 gap-0">
         <SheetHeader style={{ padding: '20px 22px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--teal)', fontWeight: 700 }}>{product.code}</div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 11, color: 'var(--teal)', fontWeight: 700 }}>{product.code}</div>
           <SheetTitle style={{ fontSize: 16, lineHeight: 1.3 }}>{product.name}</SheetTitle>
         </SheetHeader>
 
@@ -560,8 +560,8 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
           <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '18px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Unit Price</div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--teal)', letterSpacing: '-0.5px' }}>{product.sale_price > 0 ? fmt(product.sale_price, product.currency) : '—'}</div>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>per {product.unit}{product.tax_rate > 0 ? ` · +${product.tax_rate}% tax` : ''}</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--teal)', letterSpacing: '-0.5px' }}>{product.sale_price > 0 ? fmt(product.sale_price, product.currency) : 'â€”'}</div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>per {product.unit}{product.tax_rate > 0 ? ` Â· +${product.tax_rate}% tax` : ''}</div>
             </div>
             <StatusPill status={product.status} />
           </div>
@@ -658,7 +658,7 @@ export const ProductsServices: React.FC = () => {
 
   // -- CRUD -------------------------------------------------------------------
   // Every mutation round-trips through the real API and reconciles local state
-  // from the response it actually returns — no optimistic writes that could
+  // from the response it actually returns â€” no optimistic writes that could
   // drift from what's in the database, no swallowed failures.
 
   // Returns the saved product so the form can write its customer-specific
@@ -707,7 +707,7 @@ export const ProductsServices: React.FC = () => {
       const created = await Promise.all(STARTER_CATALOG.map(p => apiFetch('/v1/products', { method: 'POST', body: JSON.stringify(p) })));
       setProducts(prev => [...created, ...prev]);
     } catch (err: any) {
-      showAlert(err.message || 'Failed to add the starter catalog — some services may not have been added.');
+      showAlert(err.message || 'Failed to add the starter catalog â€” some services may not have been added.');
       loadProducts();
     } finally {
       setLoadingStarter(false);
@@ -754,7 +754,7 @@ export const ProductsServices: React.FC = () => {
           name: r.item_name,
           code: r.clause_ref ? `${r.authority}-${r.clause_ref}`.replace(/[^A-Za-z0-9.\-]/g, '') : undefined,
           category: TARIFF_CATEGORY[r.authority] ?? 'OTHER',
-          description: [r.source_document, r.category, r.subcategory].filter(Boolean).join(' — '),
+          description: [r.source_document, r.category, r.subcategory].filter(Boolean).join(' â€” '),
           unit: r.unit || 'unit',
           sale_price: Number(r.rate_amount) || 0,
           currency: r.rate_currency || 'USD',
@@ -766,7 +766,7 @@ export const ProductsServices: React.FC = () => {
       setTariffSelected(new Set());
       setTariffSheetOpen(false);
     } catch (err: any) {
-      showAlert(err.message || 'Failed to import the selected tariff items — some may not have been added.');
+      showAlert(err.message || 'Failed to import the selected tariff items â€” some may not have been added.');
       loadProducts();
     } finally {
       setTariffImporting(false);
@@ -818,7 +818,7 @@ export const ProductsServices: React.FC = () => {
 
   // -- Render -----------------------------------------------------------------
 
-  // The form replaces the list rather than layering over it — the same
+  // The form replaces the list rather than layering over it â€” the same
   // full-page pattern every other finance document create/edit now uses.
   if (editing !== null) {
     return (
@@ -864,16 +864,16 @@ export const ProductsServices: React.FC = () => {
               <SheetTitle>Import from TPA / TASAC Tariff</SheetTitle>
             </SheetHeader>
             <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '4px 0 12px', lineHeight: 1.5 }}>
-              Browse the TPA Sea Ports Tariff Book and TASAC agency-fee guide and pick only the specific charges your operation actually bills for — each becomes its own invoiceable service in your catalog, editable afterward like any other.
+              Browse the TPA Sea Ports Tariff Book and TASAC agency-fee guide and pick only the specific charges your operation actually bills for â€” each becomes its own invoiceable service in your catalog, editable afterward like any other.
             </p>
             <input
               value={tariffQuery}
               onChange={e => setTariffQuery(e.target.value)}
-              placeholder="Search clause, item, category…"
+              placeholder="Search clause, item, categoryâ€¦"
               style={{ width: '100%', boxSizing: 'border-box', height: 34, padding: '0 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, marginBottom: 10 }}
             />
             <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--r)'}}>
-              {tariffLoading && <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Searching…</div>}
+              {tariffLoading && <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Searchingâ€¦</div>}
               {!tariffLoading && tariffResults.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>No tariff items match.</div>}
               {!tariffLoading && tariffResults.map(r => (
                 <label key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
@@ -881,7 +881,7 @@ export const ProductsServices: React.FC = () => {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{r.item_name}</div>
                     <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                      {[r.clause_ref, r.category, r.subcategory].filter(Boolean).join(' · ')} — {r.rate_currency} {Number(r.rate_amount).toLocaleString('en-US')}{r.unit ? ` / ${r.unit}` : ''}
+                      {[r.clause_ref, r.category, r.subcategory].filter(Boolean).join(' Â· ')} â€” {r.rate_currency} {Number(r.rate_amount).toLocaleString('en-US')}{r.unit ? ` / ${r.unit}` : ''}
                     </div>
                   </div>
                 </label>
@@ -891,7 +891,7 @@ export const ProductsServices: React.FC = () => {
               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{tariffSelected.size} selected</span>
               <button type="button" disabled={tariffSelected.size === 0 || tariffImporting} onClick={handleImportSelectedTariff}
                 style={{ padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: tariffSelected.size === 0 ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, opacity: tariffSelected.size === 0 || tariffImporting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                {tariffImporting ? 'Adding…' : `Add ${tariffSelected.size || ''} Service${tariffSelected.size === 1 ? '' : 's'}`}
+                {tariffImporting ? 'Addingâ€¦' : `Add ${tariffSelected.size || ''} Service${tariffSelected.size === 1 ? '' : 's'}`}
               </button>
             </div>
           </SheetContent>
@@ -901,14 +901,14 @@ export const ProductsServices: React.FC = () => {
         <MetricsRow cards={[
           { title: 'Total Services', value: String(products.length), sub1Label: 'ACTIVE', sub1Value: String(active), sub2Label: 'INACTIVE', sub2Value: String(inactive), barHighlight: 'var(--blue)' },
           { title: 'Active Services', value: String(active), sub1Label: 'WITH PRICE', sub1Value: String(priced.length), sub2Label: 'FREE/DUTY', sub2Value: String(products.filter(p => Number(p.sale_price) === 0).length), barHighlight: 'var(--green)' },
-          { title: 'Avg Unit Price', value: avgPrice > 0 ? `$${Math.round(avgPrice)}` : '—', sub1Label: 'PRICED', sub1Value: String(priced.length), sub2Label: 'TOTAL', sub2Value: String(products.length), barHighlight: 'var(--gold)' },
-          { title: 'Categories', value: String(new Set(products.map(p => p.category)).size), sub1Label: 'TOP CATEGORY', sub1Value: products.length ? (CAT_CFG[topCat]?.label ?? '—') : '—', sub2Label: 'ITEMS', sub2Value: String(products.filter(p => p.category === topCat).length), barHighlight: 'var(--purple)' },
+          { title: 'Avg Unit Price', value: avgPrice > 0 ? `$${Math.round(avgPrice)}` : 'â€”', sub1Label: 'PRICED', sub1Value: String(priced.length), sub2Label: 'TOTAL', sub2Value: String(products.length), barHighlight: 'var(--gold)' },
+          { title: 'Categories', value: String(new Set(products.map(p => p.category)).size), sub1Label: 'TOP CATEGORY', sub1Value: products.length ? (CAT_CFG[topCat]?.label ?? 'â€”') : 'â€”', sub2Label: 'ITEMS', sub2Value: String(products.filter(p => p.category === topCat).length), barHighlight: 'var(--purple)' },
         ]} />
 
         <div className="products-action-bar">
           {!loading && products.length === 0 && (
             <button type="button" title="Add starter catalog" disabled={loadingStarter} onClick={handleLoadStarterCatalog} className="btn btn-secondary btn-sm">
-              <Icon name="refresh" size={13} /> {loadingStarter ? 'Adding…' : 'Load Starter Catalog'}
+              <Icon name="refresh" size={13} /> {loadingStarter ? 'Addingâ€¦' : 'Load Starter Catalog'}
             </button>
           )}
           <button type="button" title="Import from TPA/TASAC tariff reference" onClick={() => setTariffSheetOpen(true)} className="btn btn-secondary btn-sm">
@@ -964,7 +964,7 @@ export const ProductsServices: React.FC = () => {
           {/* Search Box */}
           <div className="products-search">
             <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-            <input type="text" title="Search services" placeholder="Search services…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+            <input type="text" title="Search services" placeholder="Search servicesâ€¦" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
               style={{
                 width: '100%', padding: '8px 12px 8px 32px', border: '1px solid var(--border)',
                 borderRadius: 'var(--r, 6px)', fontSize: 13, fontFamily: 'var(--font)',
@@ -978,7 +978,7 @@ export const ProductsServices: React.FC = () => {
         {/* Table */}
         <SectionCard padded={false}>
           {loading ? (
-            <div style={{ padding: '60px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading services…</div>
+            <div style={{ padding: '60px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading servicesâ€¦</div>
           ) : loadError ? (
             <div style={{ padding: '60px 20px', textAlign: 'center' }}>
               <div style={{ marginBottom: 12 }}><Icon name="alertCircle" size={44} color="var(--red)" /></div>
@@ -1027,18 +1027,18 @@ export const ProductsServices: React.FC = () => {
                       style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.1s', opacity: p.status === 'inactive' ? 0.6 : 1 }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                      <td style={{ padding: '11px 14px', fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--teal)', fontWeight: 700, whiteSpace: 'nowrap' }}>{p.code}</td>
+                      <td style={{ padding: '11px 14px', fontFamily: 'var(--font)', fontSize: 11.5, color: 'var(--teal)', fontWeight: 700, whiteSpace: 'nowrap' }}>{p.code}</td>
                       <td style={{ padding: '11px 14px' }}>
                         <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{p.name}</div>
                         {p.description && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</div>}
                       </td>
                       <td style={{ padding: '11px 14px' }}><CatBadge cat={p.category} /></td>
                       <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink2)' }}>{p.unit}</td>
-                      <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700 }}>{p.sale_price > 0 ? fmt(p.sale_price, p.currency) : <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>—</span>}</td>
-                      <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink3)' }}>{p.tax_rate > 0 ? `${p.tax_rate}%` : '—'}</td>
+                      <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700 }}>{p.sale_price > 0 ? fmt(p.sale_price, p.currency) : <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>â€”</span>}</td>
+                      <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink3)' }}>{p.tax_rate > 0 ? `${p.tax_rate}%` : 'â€”'}</td>
                       <td style={{ padding: '11px 14px' }}><StatusPill status={p.status} /></td>
                       <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(p.created_at)}</td>
-                      <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink3)' }}>{p.updated_at && p.updated_at !== p.created_at ? fmtDate(p.updated_at) : '—'}</td>
+                      <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink3)' }}>{p.updated_at && p.updated_at !== p.created_at ? fmtDate(p.updated_at) : 'â€”'}</td>
                       <td style={{ padding: '11px 10px' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 2 }}>
                           {[
@@ -1059,7 +1059,7 @@ export const ProductsServices: React.FC = () => {
                 </tbody>
               </table>
               <div style={{ padding: '6px 16px 0', fontSize: 12, color: 'var(--ink3)', textAlign: 'right' }}>
-                {active} active · {inactive} inactive
+                {active} active Â· {inactive} inactive
               </div>
               <PaginationBar
                 page={safePage}

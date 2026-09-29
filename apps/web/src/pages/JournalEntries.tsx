@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -68,7 +68,7 @@ export function JournalEntries() {
   useEffect(() => { load(); }, []);
 
   const accountOptions: ComboboxOption[] = useMemo(
-    () => accounts.map(a => ({ value: a.code, label: `${a.code} — ${a.name}`, sublabel: a.type })),
+    () => accounts.map(a => ({ value: a.code, label: `${a.code} â€” ${a.name}`, sublabel: a.type })),
     [accounts],
   );
 
@@ -128,7 +128,7 @@ export function JournalEntries() {
 
   const toggle = (id: string) => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading journal entries…</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading journal entriesâ€¦</div>;
 
   const jeStats = (() => {
     const now = new Date();
@@ -152,7 +152,7 @@ export function JournalEntries() {
         crumbs={['Finance', 'Accounts']}
         titlePlain="Journal"
         titleEm="entries"
-        subtitle="Every posting to the general ledger — automatic and manual."
+        subtitle="Every posting to the general ledger â€” automatic and manual."
       />
       <MetricsRow cards={[
         {
@@ -207,7 +207,7 @@ export function JournalEntries() {
           </div>
           {lines.map((l, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 130px 130px 1fr 32px', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-              <Combobox options={accountOptions} value={l.accountCode} onChange={v => updateLine(i, { accountCode: v })} placeholder="Select account…" searchPlaceholder="Search accounts…" />
+              <Combobox options={accountOptions} value={l.accountCode} onChange={v => updateLine(i, { accountCode: v })} placeholder="Select accountâ€¦" searchPlaceholder="Search accountsâ€¦" />
               <input className="input-field" type="number" min="0" step="0.01" value={l.debit} onChange={e => updateLine(i, { debit: e.target.value, credit: e.target.value ? '' : l.credit })} style={{ textAlign: 'right' }} placeholder="0.00" />
               <input className="input-field" type="number" min="0" step="0.01" value={l.credit} onChange={e => updateLine(i, { credit: e.target.value, debit: e.target.value ? '' : l.debit })} style={{ textAlign: 'right' }} placeholder="0.00" />
               <input className="input-field" value={l.description} onChange={e => updateLine(i, { description: e.target.value })} placeholder="Optional" />
@@ -221,15 +221,15 @@ export function JournalEntries() {
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 13, fontFamily: 'var(--mono)' }}>
+            <div style={{ fontSize: 13, fontFamily: 'var(--font)' }}>
               <span style={{ color: 'var(--ink3)' }}>DR </span><strong style={{ color: 'var(--ink)' }}>{fmt(totals.dr)}</strong>
-              <span style={{ margin: '0 10px', color: 'var(--ink3)' }}>·</span>
+              <span style={{ margin: '0 10px', color: 'var(--ink3)' }}>Â·</span>
               <span style={{ color: 'var(--ink3)' }}>CR </span><strong style={{ color: 'var(--ink)' }}>{fmt(totals.cr)}</strong>
               {!totals.balanced && totals.dr + totals.cr > 0 && <span style={{ marginLeft: 12, color: 'var(--red)', fontWeight: 700 }}>Out of balance</span>}
               {totals.balanced && <span style={{ marginLeft: 12, color: 'var(--green)', fontWeight: 700 }}>Balanced</span>}
             </div>
             <button type="button" className="btn btn-primary btn-sm" disabled={posting || !totals.balanced} onClick={postEntry}>
-              {posting ? 'Posting…' : 'Post entry'}
+              {posting ? 'Postingâ€¦' : 'Post entry'}
             </button>
           </div>
         </div>
@@ -258,8 +258,8 @@ export function JournalEntries() {
                 return (
                   <React.Fragment key={e.id}>
                     <tr style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => toggle(e.id)}>
-                      <td style={{ padding: '9px 12px', color: 'var(--ink3)' }}>{isOpen ? '−' : '+'}</td>
-                      <td style={{ padding: '9px 12px', fontFamily: 'var(--mono)', fontWeight: 600 }}>{e.entry_number}</td>
+                      <td style={{ padding: '9px 12px', color: 'var(--ink3)' }}>{isOpen ? 'âˆ’' : '+'}</td>
+                      <td style={{ padding: '9px 12px', fontFamily: 'var(--font)', fontWeight: 600 }}>{e.entry_number}</td>
                       <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>{fmtDate(e.entry_date)}</td>
                       <td style={{ padding: '9px 12px', color: isVoided ? 'var(--ink3)' : 'var(--ink)', textDecoration: isVoided ? 'line-through' : 'none' }}>{e.description}</td>
                       <td style={{ padding: '9px 12px', color: 'var(--ink3)' }}>{e.source_module}</td>
@@ -298,10 +298,10 @@ export function JournalEntries() {
                               <tbody>
                                 {e.lines.map(l => (
                                   <tr key={l.id}>
-                                    <td style={{ padding: '4px 8px', fontFamily: 'var(--mono)' }}>{l.account_code} — {l.account_name}</td>
-                                    <td style={{ padding: '4px 8px', color: 'var(--ink3)' }}>{l.description || '—'}</td>
-                                    <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'var(--mono)' }}>{Number(l.debit) > 0 ? fmt(Number(l.debit)) : ''}</td>
-                                    <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'var(--mono)' }}>{Number(l.credit) > 0 ? fmt(Number(l.credit)) : ''}</td>
+                                    <td style={{ padding: '4px 8px', fontFamily: 'var(--font)' }}>{l.account_code} â€” {l.account_name}</td>
+                                    <td style={{ padding: '4px 8px', color: 'var(--ink3)' }}>{l.description || 'â€”'}</td>
+                                    <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'var(--font)' }}>{Number(l.debit) > 0 ? fmt(Number(l.debit)) : ''}</td>
+                                    <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'var(--font)' }}>{Number(l.credit) > 0 ? fmt(Number(l.credit)) : ''}</td>
                                   </tr>
                                 ))}
                               </tbody>

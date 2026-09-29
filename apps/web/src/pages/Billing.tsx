@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { Icon } from '../components/Icon.js';
@@ -25,9 +25,9 @@ import { PageHeader } from '../components/PageHeader.js';
 import { FormPage } from '../components/FormPage.js';
 import { MetricsRow } from '../components/MetricCard.js';
 
-/* ── In-progress invoice draft, preserved across a trip to the full
+/* â”€â”€ In-progress invoice draft, preserved across a trip to the full
    customer-onboarding page and back (see InvoiceEditor's createCustomer/
-   restoreDraft below) — sessionStorage, not localStorage, since it should
+   restoreDraft below) â€” sessionStorage, not localStorage, since it should
    only survive this one tab's round trip, not linger indefinitely. */
 const INVOICE_DRAFT_KEY = 'hudumika_invoice_draft';
 
@@ -50,7 +50,7 @@ function takeInvoiceDraft(): InvoiceDraft | null {
   } catch { return null; }
 }
 
-/* ── Types ── */
+/* â”€â”€ Types â”€â”€ */
 export type Status = 'Draft' | 'Partial' | 'Paid' | 'Credited' | 'Unpaid' | 'Overdue';
 type PageMode = 'list' | 'view' | 'edit' | 'create';
 export type FilterStatus = 'all' | Status;
@@ -100,13 +100,13 @@ export interface Invoice {
   traQrUrl?: string;        // Real TRA verify-portal URL for the QR code
   traAckCode?: number;      // 0 = accepted by TRA
   traAckMsg?: string;
-  // Carbon segment — resolved live from the linked shipment (by shipment_ref
-  // → ref_number match), not stored on the invoice. Internal ESG estimate,
+  // Carbon segment â€” resolved live from the linked shipment (by shipment_ref
+  // â†’ ref_number match), not stored on the invoice. Internal ESG estimate,
   // not a registry-issued tradeable credit.
   shipmentCarbon?: { co2_emissions_kg: number; carbon_credits_saved: number; distance_km: number | null; mode: string | null } | null;
 }
 
-/* ── Helpers ── */
+/* â”€â”€ Helpers â”€â”€ */
 export const fmtTZS = (n: number) => `TZS ${Math.round(n).toLocaleString()}`;
 const fmtUSD = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -182,7 +182,7 @@ export function mapApiInvoice(d: any): Invoice {
   };
 }
 
-/* ── Print / PDF ── */
+/* â”€â”€ Print / PDF â”€â”€ */
 export function openPrintWindow(inv: Invoice) {
   const T = invoiceTotals(inv);
   const due = T.grandTotalTZS - inv.received;
@@ -220,11 +220,11 @@ export function openPrintWindow(inv: Invoice) {
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <title>${inv.id}</title><style>
 @font-face {
-  font-family: 'Google Sans Flex';
-  src: url('${window.location.origin}/fonts/GoogleSansFlex.ttf') format('truetype');
+  font-family: 'Atlassian Sans';
+  src: url('${window.location.origin}/fonts/AtlassianSans.ttf') format('truetype');
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Google Sans Flex',Arial,sans-serif;color:#111;padding:24px 32px;font-size:11px}
+body{font-family:'Atlassian Sans',Arial,sans-serif;color:#111;padding:24px 32px;font-size:11px}
 .top{display:flex;justify-content:space-between;margin-bottom:16px}
 .inv-no{font-size:18px;font-weight:900;color:#0b1e3a;margin-bottom:4px}
 .from{line-height:1.6;color:#555}.from strong{color:#111;font-size:12px}
@@ -258,7 +258,7 @@ td{padding:4px 6px;border-bottom:1px solid #f3f4f6;vertical-align:top;font-size:
   <div>
     <div class="from">
       ${co.logoUrl ? `<img src="${co.logoUrl}" style="max-height:38px;max-width:140px;object-fit:contain;margin-bottom:4px" alt="${co.name}">` : `<div style="font-size:16px;font-weight:800;color:#111;margin-bottom:4px">${co.name}</div>`}
-      <br>${co.address}<br>${co.city}, ${co.country} · VAT: ${co.taxId}
+      <br>${co.address}<br>${co.city}, ${co.country} Â· VAT: ${co.taxId}
     </div>
   </div>
 </div>
@@ -286,9 +286,9 @@ td{padding:4px 6px;border-bottom:1px solid #f3f4f6;vertical-align:top;font-size:
   <div><strong>MODE:</strong> ${inv.mode}</div>
   <div><strong>DESTINATION:</strong> ${inv.destination}</div>
 </div>
-${sectionHtml('Clearing Charges — Paid in TZS', 'TZS', T.cl, T.sub(T.cl), T.tax(T.cl), T.clearingTotal)}
-${sectionHtml('Shipping Line Charges — Paid in USD', 'USD', T.sh, T.sub(T.sh), T.tax(T.sh), T.shippingTotal)}
-${sectionHtml('Other Charges — Paid in TZS', 'TZS', T.ot, T.sub(T.ot), T.tax(T.ot), T.otherTotal)}
+${sectionHtml('Clearing Charges â€” Paid in TZS', 'TZS', T.cl, T.sub(T.cl), T.tax(T.cl), T.clearingTotal)}
+${sectionHtml('Shipping Line Charges â€” Paid in USD', 'USD', T.sh, T.sub(T.sh), T.tax(T.sh), T.shippingTotal)}
+${sectionHtml('Other Charges â€” Paid in TZS', 'TZS', T.ot, T.sub(T.ot), T.tax(T.ot), T.otherTotal)}
 <div class="grand"><span>GRAND TOTAL</span><span>${fmtTZS(T.grandTotalTZS)}</span></div>
 ${inv.exchangeRate > 0 && T.shippingTotal > 0 ? `<div style="text-align:right;font-size:11px;color:#555;margin-bottom:12px">USD shipping converted at 1 USD = TZS ${inv.exchangeRate.toLocaleString()}</div>` : ''}
 ${inv.received > 0 ? `<div class="due"><span>Less: Amount Received</span><span style="color:#059669">(${fmtTZS(inv.received)})</span></div>` : ''}
@@ -297,11 +297,11 @@ ${inv.shipmentCarbon ? `
 <div style="margin-top:12px;padding:12px;background:#dafbe1;border-radius:6px;font-size:10px;color:#111;border:1px solid #a7f3d0">
   <div style="font-weight:800;text-transform:uppercase;margin-bottom:6px;color:#111">Carbon Footprint (Estimate)</div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;line-height:1.6">
-    <div><strong>CO₂ Emissions:</strong> ${Number(inv.shipmentCarbon.co2_emissions_kg).toLocaleString()} kg</div>
+    <div><strong>COâ‚‚ Emissions:</strong> ${Number(inv.shipmentCarbon.co2_emissions_kg).toLocaleString()} kg</div>
     <div><strong style="color:#059669">Credits Saved:</strong> ${Number(inv.shipmentCarbon.carbon_credits_saved).toFixed(2)}</div>
     ${inv.shipmentCarbon.distance_km ? `<div><strong>Distance:</strong> ${inv.shipmentCarbon.distance_km} km</div>` : ''}
   </div>
-  <div style="font-size:8.5px;color:#9ca3af;margin-top:6px;font-style:italic">GLEC v3.2 / ISO 14083 methodology. Internal ESG estimate — not a registry-issued or tradeable carbon credit.</div>
+  <div style="font-size:8.5px;color:#9ca3af;margin-top:6px;font-style:italic">GLEC v3.2 / ISO 14083 methodology. Internal ESG estimate â€” not a registry-issued or tradeable carbon credit.</div>
 </div>` : ''}
 <div style="margin-top:20px;padding:12px;background:#f9fafb;border-radius:6px;font-size:10px;color:#111;border:1px solid #e5e7eb">
   <div style="font-weight:800;text-transform:uppercase;margin-bottom:6px;color:#111">Payment Information</div>
@@ -326,18 +326,18 @@ ${inv.terms ? `<div class="terms"><h4>TERMS &amp; CONDITIONS</h4><p>${inv.terms}
   if (win) { win.document.write(html); win.document.close(); }
 }
 
-/* ── Small helpers ── */
+/* â”€â”€ Small helpers â”€â”€ */
 function FormField({ label, value, onChange, placeholder, disabled, mono }: { label: string; value: string; onChange?: (v: string) => void; placeholder?: string; disabled?: boolean; mono?: boolean }) {
   return (
     <div>
       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>{label}</label>
       <input value={value} onChange={e => onChange?.(e.target.value)} placeholder={placeholder} disabled={disabled}
-        style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: disabled ? 'var(--bg)' : 'var(--white)', color: disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontFamily: mono ? 'var(--mono)' : 'var(--font)', outline: 'none', boxSizing: 'border-box' as const }} />
+        style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: disabled ? 'var(--bg)' : 'var(--white)', color: disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontFamily: mono ? 'var(--font)' : 'var(--font)', outline: 'none', boxSizing: 'border-box' as const }} />
     </div>
   );
 }
 
-/* ── Charge section table (view mode) ── */
+/* â”€â”€ Charge section table (view mode) â”€â”€ */
 function ChargeSectionView({ title, color, currency, items, subTotal, taxAmt, sectionTotal }: {
   title: string; color: string; currency: Currency;
   items: LineItem[]; subTotal: number; taxAmt: number; sectionTotal: number;
@@ -357,7 +357,7 @@ function ChargeSectionView({ title, color, currency, items, subTotal, taxAmt, se
         </thead>
         <tbody>
           {items.length === 0 ? (
-            <tr><td colSpan={7} style={{ padding: '10px 12px', color: 'var(--ink3)', fontStyle: 'italic', fontSize: 12 }}>No charges — 0</td></tr>
+            <tr><td colSpan={7} style={{ padding: '10px 12px', color: 'var(--ink3)', fontStyle: 'italic', fontSize: 12 }}>No charges â€” 0</td></tr>
           ) : items.map((item, i) => {
             const lineSub = item.qty * item.rate;
             const lineTax = lineSub * item.taxPct / 100;
@@ -365,11 +365,11 @@ function ChargeSectionView({ title, color, currency, items, subTotal, taxAmt, se
               <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td style={{ padding: '10px', fontSize: 13, fontWeight: 600, color: 'var(--ink)', verticalAlign: 'top' }}>{item.name}</td>
                 <td style={{ padding: '10px', fontSize: 11, color: 'var(--ink3)', whiteSpace: 'nowrap', verticalAlign: 'top' }}>{item.unit}</td>
-                <td style={{ padding: '10px', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, verticalAlign: 'top' }}>{fmt(item.rate)}</td>
+                <td style={{ padding: '10px', textAlign: 'right', fontFamily: 'var(--font)', fontSize: 12, verticalAlign: 'top' }}>{fmt(item.rate)}</td>
                 <td style={{ padding: '10px', textAlign: 'right', fontSize: 12, verticalAlign: 'top' }}>{item.qty}</td>
-                <td style={{ padding: '10px', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, verticalAlign: 'top' }}>{fmt(lineSub)}</td>
-                <td style={{ padding: '10px', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, color: lineTax > 0 ? 'var(--ink)' : 'var(--ink3)', verticalAlign: 'top' }}>{lineTax > 0 ? fmt(lineTax) : '0'}</td>
-                <td style={{ padding: '10px', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--ink)', verticalAlign: 'top' }}>{fmt(lineSub + lineTax)}</td>
+                <td style={{ padding: '10px', textAlign: 'right', fontFamily: 'var(--font)', fontSize: 12, verticalAlign: 'top' }}>{fmt(lineSub)}</td>
+                <td style={{ padding: '10px', textAlign: 'right', fontFamily: 'var(--font)', fontSize: 12, color: lineTax > 0 ? 'var(--ink)' : 'var(--ink3)', verticalAlign: 'top' }}>{lineTax > 0 ? fmt(lineTax) : '0'}</td>
+                <td style={{ padding: '10px', textAlign: 'right', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: 'var(--ink)', verticalAlign: 'top' }}>{fmt(lineSub + lineTax)}</td>
               </tr>
             );
           })}
@@ -377,9 +377,9 @@ function ChargeSectionView({ title, color, currency, items, subTotal, taxAmt, se
         <tfoot>
           <tr style={{ background: 'var(--bg)', borderTop: '2px solid var(--border)' }}>
             <td colSpan={4} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>SUB-TOTAL</td>
-            <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700 }}>{fmt(subTotal)}</td>
-            <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12 }}>{taxAmt > 0 ? fmt(taxAmt) : '—'}</td>
-            <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 800, color }}>{fmt(sectionTotal)}</td>
+            <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700 }}>{fmt(subTotal)}</td>
+            <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: 'var(--font)', fontSize: 12 }}>{taxAmt > 0 ? fmt(taxAmt) : 'â€”'}</td>
+            <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 800, color }}>{fmt(sectionTotal)}</td>
           </tr>
         </tfoot>
       </table>
@@ -388,8 +388,8 @@ function ChargeSectionView({ title, color, currency, items, subTotal, taxAmt, se
   );
 }
 
-/* ── Import Timesheets Modal ── */
-// A logged time entry that carries its own rate — snapshotted at log time from
+/* â”€â”€ Import Timesheets Modal â”€â”€ */
+// A logged time entry that carries its own rate â€” snapshotted at log time from
 // the Products & Services catalog (see migration 143), never a re-join, so it
 // still reads correctly a year later even if the catalog price changed since.
 interface RatedTimeEntry {
@@ -398,8 +398,8 @@ interface RatedTimeEntry {
   service_rate: number | null; service_currency: string | null; service_unit: string | null;
 }
 
-// hourly-unit services bill hours × rate; everything else (per-shipment,
-// per-container, per-set, ...) bills the flat rate once — the same rule
+// hourly-unit services bill hours Ã— rate; everything else (per-shipment,
+// per-container, per-set, ...) bills the flat rate once â€” the same rule
 // TimesheetsTab.entryAmount() uses, kept in sync with it.
 function timeEntryAmount(e: RatedTimeEntry): number {
   if (e.service_rate == null) return 0;
@@ -419,7 +419,7 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImp
 
   useEffect(() => {
     Promise.all([
-      // The real source: logged, rated shipment time entries — not the
+      // The real source: logged, rated shipment time entries â€” not the
       // shipment record itself, which never carries them.
       apiFetch(`/v1/shipments/${shipmentId}/time-entries`).catch(() => ({ data: [] })),
       apiFetch('/v1/products?status=active').catch(() => []),
@@ -463,15 +463,15 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImp
         </div>
         <div style={{ padding: 20, overflowY: 'auto' }}>
           <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 4 }}>
-            {loading ? 'Loading…' : `${entries.length} rated time entr${entries.length === 1 ? 'y' : 'ies'} for`} <strong style={{ color: 'var(--ink)' }}>{shipmentRef}</strong>, each at the rate it was logged against.
+            {loading ? 'Loadingâ€¦' : `${entries.length} rated time entr${entries.length === 1 ? 'y' : 'ies'} for`} <strong style={{ color: 'var(--ink)' }}>{shipmentRef}</strong>, each at the rate it was logged against.
           </div>
           {otherCurrencyCount > 0 && (
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>
-              {otherCurrencyCount} more {otherCurrencyCount === 1 ? 'entry is' : 'entries are'} rated in a different currency — add {otherCurrencyCount === 1 ? 'it' : 'them'} from the matching charges section instead.
+              {otherCurrencyCount} more {otherCurrencyCount === 1 ? 'entry is' : 'entries are'} rated in a different currency â€” add {otherCurrencyCount === 1 ? 'it' : 'them'} from the matching charges section instead.
             </div>
           )}
           {loading ? (
-            <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)' }}>Loading timesheets…</div>
+            <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)' }}>Loading timesheetsâ€¦</div>
           ) : entries.length === 0 ? (
             <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)' }}>No time entries with a billable rate found. Time logged with no service attached has nothing to bill and isn't listed.</div>
           ) : (
@@ -487,10 +487,10 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImp
                   }} />
                   <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>
                     <div style={{ fontWeight: 600 }}>{e.service_name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{e.member} · {new Date(e.log_date).toLocaleDateString()} · {fmtAmt(e.service_rate || 0, sectionCurrency)}/{e.service_unit || 'unit'}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{e.member} Â· {new Date(e.log_date).toLocaleDateString()} Â· {fmtAmt(e.service_rate || 0, sectionCurrency)}/{e.service_unit || 'unit'}</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 700, fontFamily: 'var(--mono)', fontSize: 13 }}>{fmtAmt(timeEntryAmount(e), sectionCurrency)}</div>
+                    <div style={{ fontWeight: 700, fontFamily: 'var(--font)', fontSize: 13 }}>{fmtAmt(timeEntryAmount(e), sectionCurrency)}</div>
                     {(e.service_unit === 'hour' || e.service_unit === 'hr') && <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{Number(e.hours).toFixed(1)} hrs</div>}
                   </div>
                 </label>
@@ -500,7 +500,7 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImp
         </div>
         <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'var(--bg)' }}>
           <div style={{ fontSize: 12.5, color: 'var(--ink2)' }}>
-            {selected.size > 0 && <>Total: <strong style={{ fontFamily: 'var(--mono)' }}>{fmtAmt(selectedTotal, sectionCurrency)}</strong></>}
+            {selected.size > 0 && <>Total: <strong style={{ fontFamily: 'var(--font)' }}>{fmtAmt(selectedTotal, sectionCurrency)}</strong></>}
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -512,13 +512,13 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImp
   );
 }
 
-/* ── Charge section editor ── */
+/* â”€â”€ Charge section editor â”€â”€ */
 export type EditItem = LineItem & { uid: string };
 
 function ChargeSectionEditor({ title, color, group, currency, items, onChange, customerId }: {
   title: string; color: string; group: ChargeGroup; currency: Currency;
   items: EditItem[]; onChange: (items: EditItem[]) => void;
-  /** When set, the catalog is priced for this customer — an agreed contract
+  /** When set, the catalog is priced for this customer â€” an agreed contract
    *  price replaces the list price on the item that is picked. */
   customerId?: string;
 }) {
@@ -534,7 +534,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
     const res: any = await apiFetch(`/v1/products${qs}`).catch(() => []);
     const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
     // This section's rate/tax math sums raw numbers under one shared currency
-    // (see sub()/tax()/tot() above) — a catalog item priced in a different
+    // (see sub()/tax()/tot() above) â€” a catalog item priced in a different
     // currency than the section would silently blend into that total as if
     // its number were already in `currency`, badly under- or over-stating the
     // charge (e.g. a $150 USD line read as 150 TZS). Only offer same-currency
@@ -544,7 +544,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
     sameCurrency.forEach((p) => productCacheRef.current.set(p.id, p));
     return sameCurrency.slice(0, 25).map((p) => ({
       id: p.id, label: p.name,
-      sublabel: [p.code, `${fmtAmt(Number(p.sale_price) || 0, (p.currency || 'TZS') as Currency)}/${p.unit}${p.has_agreed_price ? ' · agreed' : ''}`].filter(Boolean).join(' · '),
+      sublabel: [p.code, `${fmtAmt(Number(p.sale_price) || 0, (p.currency || 'TZS') as Currency)}/${p.unit}${p.has_agreed_price ? ' Â· agreed' : ''}`].filter(Boolean).join(' Â· '),
     }));
   }
   function addFromProduct(item: PickerItem | null) {
@@ -577,13 +577,13 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
         </thead>
         <tbody>
           {items.length === 0 ? (
-            <tr><td colSpan={10} style={{ padding: '12px 10px', color: 'var(--ink3)', fontStyle: 'italic', fontSize: 12, textAlign: 'center', borderBottom: '1px solid var(--border)' }}>No charges — click "Add Item" below</td></tr>
+            <tr><td colSpan={10} style={{ padding: '12px 10px', color: 'var(--ink3)', fontStyle: 'italic', fontSize: 12, textAlign: 'center', borderBottom: '1px solid var(--border)' }}>No charges â€” click "Add Item" below</td></tr>
           ) : items.map((item, i) => {
             const lineSub = item.qty * item.rate;
             const lineTax = lineSub * item.taxPct / 100;
             return (
               <tr key={item.uid} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={{ padding: '6px 4px', textAlign: 'center', color: 'var(--border)', cursor: 'grab', userSelect: 'none', verticalAlign: 'middle' }}>⋮⋮</td>
+                <td style={{ padding: '6px 4px', textAlign: 'center', color: 'var(--border)', cursor: 'grab', userSelect: 'none', verticalAlign: 'middle' }}>â‹®â‹®</td>
                 <td style={{ padding: '6px 8px', fontSize: 12, color: 'var(--ink3)', textAlign: 'center', verticalAlign: 'middle' }}>{i + 1}</td>
                 <td style={{ padding: '6px 4px' }}><input value={item.name} onChange={e => update(item.uid, 'name', e.target.value)} placeholder="Item name" style={{ ...inpS, fontWeight: 600 }} /></td>
                 <td style={{ padding: '6px 4px' }}>
@@ -595,7 +595,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
                     </SelectContent>
                   </Select>
                 </td>
-                <td style={{ padding: '6px 4px' }}><input type="number" min={0} value={item.rate || ''} onChange={e => update(item.uid, 'rate', parseFloat(e.target.value) || 0)} placeholder="0" style={{ ...inpS, textAlign: 'right', fontFamily: 'var(--mono)' }} /></td>
+                <td style={{ padding: '6px 4px' }}><input type="number" min={0} value={item.rate || ''} onChange={e => update(item.uid, 'rate', parseFloat(e.target.value) || 0)} placeholder="0" style={{ ...inpS, textAlign: 'right', fontFamily: 'var(--font)' }} /></td>
                 <td style={{ padding: '6px 4px' }}><input type="number" min={1} value={item.qty} onChange={e => update(item.uid, 'qty', Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inpS, textAlign: 'right' }} /></td>
                 <td style={{ padding: '6px 4px' }}>
                   <Select value={String(item.taxPct)} onValueChange={v => update(item.uid, 'taxPct', parseInt(v))}>
@@ -606,8 +606,8 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
                     </SelectContent>
                   </Select>
                 </td>
-                <td style={{ padding: '6px 10px 6px 4px', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                  {(lineSub + lineTax) > 0 ? fmt(lineSub + lineTax) : '—'}
+                <td style={{ padding: '6px 10px 6px 4px', textAlign: 'right', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                  {(lineSub + lineTax) > 0 ? fmt(lineSub + lineTax) : 'â€”'}
                 </td>
                 <td style={{ padding: '6px 4px', verticalAlign: 'middle' }}>
                   {items.length > 0 && (
@@ -634,11 +634,11 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
                   <Icon name="plus" size={12} color={color} /> Add Line Item
                 </button>
                 <div style={{ width: 220 }}>
-                  <EntityPicker value={null} onChange={addFromProduct} search={searchProducts} placeholder="Add from catalog…" />
+                  <EntityPicker value={null} onChange={addFromProduct} search={searchProducts} placeholder="Add from catalogâ€¦" />
                 </div>
               </div>
             </td>
-            <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 800, color }} colSpan={2}>
+            <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 800, color }} colSpan={2}>
               {fmt(items.reduce((s, i) => s + i.qty * i.rate * (1 + i.taxPct / 100), 0))}
             </td>
           </tr>
@@ -649,18 +649,18 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
   );
 }
 
-/* ── Invoice Editor (Create + Edit) ── */
+/* â”€â”€ Invoice Editor (Create + Edit) â”€â”€ */
 export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = false, presetCustomer = null, presetShipment = null }: {
   initial: Invoice | null; nextId: string;
   onSave: (inv: Invoice) => void; onCancel: () => void; isMobile?: boolean; presetCustomer?: PickerItem | null;
   /** The full shipment record when arriving back from "create a new
-   *  shipment" mid-invoice (see createShipment below) — already has
+   *  shipment" mid-invoice (see createShipment below) â€” already has
    *  everything handleShipmentChange needs, no second fetch required. */
   presetShipment?: any | null;
 }) {
   const navigate = useNavigate();
   const today = new Date().toLocaleDateString('en-GB').split('/').join('-');
-  // Only a fresh "create" editor (no `initial`) ever restores a draft — never
+  // Only a fresh "create" editor (no `initial`) ever restores a draft â€” never
   // let a leftover sessionStorage entry bleed into editing a real invoice.
   // Consumed once (takeInvoiceDraft clears the key) so a plain page refresh
   // afterwards doesn't keep re-applying a stale draft.
@@ -675,7 +675,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   const [dest, setDest]           = useState(draft?.dest ?? initial?.destination ?? '');
   const [mode, setMode]           = useState<Invoice['mode']>((draft?.mode as Invoice['mode']) ?? initial?.mode ?? 'SEA');
   const [exRate, setExRate]       = useState(draft?.exRate ?? String(initial?.exchangeRate ?? 2650));
-  // Never auto-applied — a fetched rate only fills the field when the user
+  // Never auto-applied â€” a fetched rate only fills the field when the user
   // clicks "Use this", same provenance rule editable duty/VAT/FX overrides
   // already follow elsewhere: a typed figure must never look system-sourced,
   // and a system-sourced one must stay visibly distinct until accepted.
@@ -695,8 +695,8 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   const customerCacheRef = useRef<Map<string, any>>(new Map());
   const shipmentCacheRef = useRef<Map<string, any>>(new Map());
 
-  /** The full company address a selected customer's own record carries —
-   *  name/address/city/country/VAT — not their contact details. Selecting a
+  /** The full company address a selected customer's own record carries â€”
+   *  name/address/city/country/VAT â€” not their contact details. Selecting a
    *  customer is supposed to mean never typing this by hand. */
   function applyAddressFromCustomer(full: any) {
     if (!full) return;
@@ -710,7 +710,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   }
 
   /** Same as applyAddressFromCustomer, but fetches the full record first
-   *  when only an id/name is known — e.g. a customer that arrived attached
+   *  when only an id/name is known â€” e.g. a customer that arrived attached
    *  to a linked shipment rather than picked directly from the customer field. */
   function ensureCustomerAddress(id: string) {
     if (!id) return;
@@ -721,7 +721,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
       .catch(() => {});
   }
 
-  // Arriving back from "create new customer" (createCustomer below) —
+  // Arriving back from "create new customer" (createCustomer below) â€”
   // presetCustomer only carries {id, label}, not the full record the address
   // block needs, so fetch it once instead of leaving the address blank.
   useEffect(() => {
@@ -730,7 +730,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Arriving back from "create new shipment" (createShipment below) — the
+  // Arriving back from "create new shipment" (createShipment below) â€” the
   // caller already has the full row, so just seed the cache and run the same
   // fill logic a manual pick would.
   useEffect(() => {
@@ -743,8 +743,8 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   async function searchCustomers(q: string): Promise<PickerItem[]> {
     const res = await apiFetch('/v1/customers').catch(() => ({ data: [] }));
     const raw: any[] = Array.isArray(res) ? res : (res.data ?? []);
-    // Excludes draft companies (active===false) — e.g. BRELA imports still
-    // sitting in Company Directory that haven't been marked complete yet —
+    // Excludes draft companies (active===false) â€” e.g. BRELA imports still
+    // sitting in Company Directory that haven't been marked complete yet â€”
     // from the invoice/bill customer picker.
     const list = raw.filter((c) => c.active !== false);
     const ql = q.trim().toLowerCase();
@@ -756,10 +756,10 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   }
 
   // A brand-new customer needs more than the bare `{ name }` this used to
-  // POST silently (no email/phone/tax id/address — every invoice customer
+  // POST silently (no email/phone/tax id/address â€” every invoice customer
   // created this way started with an empty CRM profile). Hands off to the
   // full onboarding page instead, preserving everything already typed into
-  // this invoice so there's actually something to "come back to" — without
+  // this invoice so there's actually something to "come back to" â€” without
   // this, "create new customer" mid-invoice would throw away the bill date,
   // line items, etc. the moment you navigated away.
   function createCustomer(name: string): Promise<PickerItem> {
@@ -768,8 +768,8 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
       clearing, shipping, other,
     });
     navigate(`/crm/customers/new?name=${encodeURIComponent(name)}&returnTo=${encodeURIComponent('/finance/invoices')}`);
-    // Never resolves — the page is navigating away, so EntityPicker's own
-    // "Creating…" state just stays until this component unmounts.
+    // Never resolves â€” the page is navigating away, so EntityPicker's own
+    // "Creatingâ€¦" state just stays until this component unmounts.
     return new Promise<PickerItem>(() => {});
   }
 
@@ -787,7 +787,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
     list.forEach((s) => shipmentCacheRef.current.set(s.ref_number, s));
     return list.slice(0, 25).map((s) => ({
       id: s.ref_number, label: s.ref_number,
-      sublabel: [s.bl_number || s.awb_number, s.customer_name, s.goods_desc].filter(Boolean).join(' · '),
+      sublabel: [s.bl_number || s.awb_number, s.customer_name, s.goods_desc].filter(Boolean).join(' Â· '),
     }));
   }
 
@@ -805,7 +805,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   }
 
   // A shipment that doesn't exist yet gets the same "hand off, come back"
-  // treatment as a brand-new customer above — CreateShipmentPage.tsx's
+  // treatment as a brand-new customer above â€” CreateShipmentPage.tsx's
   // `returnTo` support lands back here with the new shipment's id via
   // Billing()'s own preset-from-query-param effect.
   function createShipment(): Promise<PickerItem> {
@@ -882,7 +882,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
             label="Client / Company" value={customer ?? (client ? { id: '', label: client } : null)} onChange={handleCustomerChange}
             search={searchCustomers} onCreate={createCustomer}
             createLabel={(q) => `Create new customer "${q}"`}
-            placeholder="Search customers…"
+            placeholder="Search customersâ€¦"
           />
           <FormField label="Sale Agent" value={agent} onChange={setAgent} placeholder="Agent name" />
           <FormField label="Invoice Date" value={billDate} onChange={setBillDate} placeholder="DD-MM-YYYY" />
@@ -891,7 +891,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
             <FormField label="Exchange Rate (TZS/USD)" value={exRate} onChange={setExRate} placeholder="2650" mono />
             {todayFxRate && (
               <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                Today's rate: <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>{todayFxRate.rate.toLocaleString()}</span>
+                Today's rate: <span style={{ fontFamily: 'var(--font)', color: 'var(--ink2)' }}>{todayFxRate.rate.toLocaleString()}</span>
                 <button type="button" onClick={() => setExRate(String(todayFxRate.rate))}
                   style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', fontWeight: 700, fontSize: 11, padding: 0 }}>
                   Use this
@@ -903,7 +903,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
 
         {/* Bill To */}
         <div style={{ marginBottom: 18 }}>
-          <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Client Address — one line per entry</label>
+          <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Client Address â€” one line per entry</label>
           <textarea value={addr} onChange={e => setAddr(e.target.value)} rows={3} placeholder={'Company Name\nStreet / P.O. Box\nCity, Country\nVAT Number'}
             style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'var(--font)', resize: 'vertical', outline: 'none', lineHeight: 1.7, boxSizing: 'border-box' as const }} />
         </div>
@@ -915,8 +915,8 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
             <EntityPicker
               label="Linked Shipment (optional)" value={shipment} onChange={handleShipmentChange}
               search={searchShipments} onCreate={createShipment}
-              createLabel={() => 'Create a new shipment…'}
-              placeholder="Search by ref, BL number or goods description…"
+              createLabel={() => 'Create a new shipmentâ€¦'}
+              placeholder="Search by ref, BL number or goods descriptionâ€¦"
               hint={shipment ? undefined : 'Link a shipment to auto-fill BL/AWB, origin, destination and mode below.'}
             />
           </div>
@@ -957,37 +957,37 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
 
         {/* Three charge sections. The customer flows in so the catalog picker
             offers each service at this customer's agreed price when one exists. */}
-        <ChargeSectionEditor title="Clearing Charges — Paid in TZS" color="var(--teal)" group="clearing" currency="TZS" items={clearing} onChange={setClearing} customerId={customer?.id || undefined} />
-        <ChargeSectionEditor title="Shipping Line Charges — Paid in USD" color="var(--blue)" group="shipping" currency="USD" items={shipping} onChange={setShipping} customerId={customer?.id || undefined} />
+        <ChargeSectionEditor title="Clearing Charges â€” Paid in TZS" color="var(--teal)" group="clearing" currency="TZS" items={clearing} onChange={setClearing} customerId={customer?.id || undefined} />
+        <ChargeSectionEditor title="Shipping Line Charges â€” Paid in USD" color="var(--blue)" group="shipping" currency="USD" items={shipping} onChange={setShipping} customerId={customer?.id || undefined} />
         <div style={{ position: 'relative' }}>
           {shipment && activeShipmentFull && (
             <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', background: 'var(--purple-l)', color: 'var(--purple)', border: '1px solid var(--purple)', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name="clock" size={12} color="var(--purple)" /> Import Unbilled Time
             </button>
           )}
-          <ChargeSectionEditor title="Other Charges — Paid in TZS" color="var(--purple)" group="other" currency="TZS" items={other} onChange={setOther} customerId={customer?.id || undefined} />
+          <ChargeSectionEditor title="Other Charges â€” Paid in TZS" color="var(--purple)" group="other" currency="TZS" items={other} onChange={setOther} customerId={customer?.id || undefined} />
         </div>
 
         {/* Grand total */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, paddingRight: 8, marginBottom: 24 }}>
           <div style={{ display: 'flex', gap: 24, fontSize: 12, color: 'var(--ink2)' }}>
-            <span>Clearing:</span><span style={{ fontFamily: 'var(--mono)' }}>{fmtTZS(clTotal)}</span>
+            <span>Clearing:</span><span style={{ fontFamily: 'var(--font)' }}>{fmtTZS(clTotal)}</span>
           </div>
           <div style={{ display: 'flex', gap: 24, fontSize: 12, color: 'var(--ink2)' }}>
-            <span>Shipping (USD → TZS @ {exRateNum}):</span><span style={{ fontFamily: 'var(--mono)' }}>{fmtUSD(shTotal)} → {fmtTZS(shTotal * exRateNum)}</span>
+            <span>Shipping (USD â†’ TZS @ {exRateNum}):</span><span style={{ fontFamily: 'var(--font)' }}>{fmtUSD(shTotal)} â†’ {fmtTZS(shTotal * exRateNum)}</span>
           </div>
           <div style={{ display: 'flex', gap: 24, fontSize: 12, color: 'var(--ink2)' }}>
-            <span>Other:</span><span style={{ fontFamily: 'var(--mono)' }}>{fmtTZS(otTotal)}</span>
+            <span>Other:</span><span style={{ fontFamily: 'var(--font)' }}>{fmtTZS(otTotal)}</span>
           </div>
           <div style={{ display: 'flex', gap: 24, fontSize: 15, fontWeight: 800, color: 'var(--red)', borderTop: '2px solid var(--border)', paddingTop: 8, marginTop: 4, minWidth: 320 }}>
             <span style={{ flex: 1 }}>GRAND TOTAL</span>
-            <span style={{ fontFamily: 'var(--mono)' }}>{fmtTZS(grandTotal)}</span>
+            <span style={{ fontFamily: 'var(--font)' }}>{fmtTZS(grandTotal)}</span>
           </div>
         </div>
 
         {/* Version info */}
         <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 18 }}>
-          Invoice version will be: <strong>{version}</strong> · Ref: <span style={{ fontFamily: 'var(--mono)', color: 'var(--teal)' }}>{genRefCode(invId, version)}</span>
+          Invoice version will be: <strong>{version}</strong> Â· Ref: <span style={{ fontFamily: 'var(--font)', color: 'var(--teal)' }}>{genRefCode(invId, version)}</span>
         </div>
 
         {/* Terms */}
@@ -1000,7 +1000,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   );
 }
 
-/* ── Invoice detail panel ── */
+/* â”€â”€ Invoice detail panel â”€â”€ */
 type DetailTab = 'invoice' | 'tasks' | 'activity' | 'reminders' | 'notes';
 
 export interface DetailPanelProps {
@@ -1010,7 +1010,7 @@ export interface DetailPanelProps {
   onSubmitTRA?: () => Promise<void>;
 }
 
-/** Single-step "tag an approver + optional note" form — a Dialog, not a
+/** Single-step "tag an approver + optional note" form â€” a Dialog, not a
  *  dedicated page, matching the same precedent SignTemplates.tsx's own
  *  BulkSendModal already established: CLAUDE.md's no-popup-forms rule is
  *  about *multi-step* forms, and this collects exactly one flat request. */
@@ -1042,7 +1042,7 @@ function RequestStampDialog({ invoiceLabel, onClose }: { invoiceLabel: string; o
         <DialogHeader><DialogTitle>Request stamping</DialogTitle></DialogHeader>
         {sent ? (
           <>
-            <p style={{ fontSize: 13.5, color: 'var(--ink2)' }}>Your request has been sent — you'll get a notification once it's decided.</p>
+            <p style={{ fontSize: 13.5, color: 'var(--ink2)' }}>Your request has been sent â€” you'll get a notification once it's decided.</p>
             <Button variant="default" onClick={onClose}>Done</Button>
           </>
         ) : (
@@ -1051,7 +1051,7 @@ function RequestStampDialog({ invoiceLabel, onClose }: { invoiceLabel: string; o
               Your role doesn't have direct stamp access for <strong>{invoiceLabel}</strong>. Tag who should approve it.
             </p>
             <EntityPicker
-              label="Approver" placeholder="Search staff…"
+              label="Approver" placeholder="Search staffâ€¦"
               value={approver} onChange={setApprover}
               search={async q => {
                 const rows = await apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`).catch(() => []);
@@ -1066,7 +1066,7 @@ function RequestStampDialog({ invoiceLabel, onClose }: { invoiceLabel: string; o
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               <Button variant="outline" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
               <Button variant="default" onClick={submit} disabled={!approver || sending} style={{ flex: 2 }}>
-                {sending ? 'Sending…' : 'Send Request'}
+                {sending ? 'Sendingâ€¦' : 'Send Request'}
               </Button>
             </div>
           </>
@@ -1091,7 +1091,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   const [payDate, setPayDate]   = useState(today);
   const [payMethod, setPayMethod] = useState('Bank Transfer');
 
-  /* ── Notes/Tasks/Reminders/Activity — real, persisted per invoice ── */
+  /* â”€â”€ Notes/Tasks/Reminders/Activity â€” real, persisted per invoice â”€â”€ */
   const [notes, setNotes]         = useState<InvNote[]>([]);
   const [tasks, setTasks]         = useState<InvTask[]>([]);
   const [reminders, setReminders] = useState<InvReminder[]>([]);
@@ -1110,7 +1110,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   function loadReminders() { if (dbId) apiFetch(`/v1/invoices/${dbId}/reminders`).then((r: any) => setReminders(r?.data ?? [])).catch(() => {}); }
   function loadActivity()  { if (dbId) apiFetch(`/v1/invoices/${dbId}/activity`).then((r: any) => setActivity(r?.data ?? [])).catch(() => {}); }
 
-  /* ── Sign & Stamp (M6 cross-app stamp API) ── */
+  /* â”€â”€ Sign & Stamp (M6 cross-app stamp API) â”€â”€ */
   const [stampAllowed, setStampAllowed] = useState<boolean | null>(null);
   const [stampedFileUrl, setStampedFileUrl] = useState<string | null>(null);
   const [stamping, setStamping] = useState(false);
@@ -1142,16 +1142,16 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
     loadNotes(); loadTasks(); loadReminders(); loadActivity(); loadStampStatus();
   }, [dbId]); // eslint-disable-line
 
-  /* ── Notes state ── */
+  /* â”€â”€ Notes state â”€â”€ */
   const [newNote, setNewNote] = useState('');
 
-  /* ── Tasks state ── */
+  /* â”€â”€ Tasks state â”€â”€ */
   const [newTaskDesc, setNewTaskDesc]         = useState('');
   const [newTaskAssignee, setNewTaskAssignee] = useState('');
   const [newTaskDue, setNewTaskDue]           = useState('');
   const [showTaskForm, setShowTaskForm]       = useState(false);
 
-  /* ── Reminders state ── */
+  /* â”€â”€ Reminders state â”€â”€ */
   const [newRemDate, setNewRemDate] = useState('');
   const [newRemMsg, setNewRemMsg]   = useState('');
   const [showRemForm, setShowRemForm] = useState(false);
@@ -1211,7 +1211,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
     const body = encodeURIComponent(
       `Dear ${inv.client},\n\nPlease find attached Invoice ${inv.id} for ${fmtTZS(T.grandTotalTZS)}.\n\nBL/AWB: ${inv.blNumber}\nDue Date: ${inv.dueDate ?? 'Upon receipt'}\n\nKind regards,\n${co.name}`
     );
-    window.open(`mailto:?subject=Invoice ${inv.id} – ${inv.client}&body=${body}`, '_blank');
+    window.open(`mailto:?subject=Invoice ${inv.id} â€“ ${inv.client}&body=${body}`, '_blank');
   }
 
   const T = invoiceTotals(inv);
@@ -1258,7 +1258,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           </TabsList>
         </Tabs>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-          {/* Was three icons (mail / eye / maximize) — "Export PDF" opened the
+          {/* Was three icons (mail / eye / maximize) â€” "Export PDF" opened the
               exact same print window as "View / Print" (there's no separate
               PDF export, just the browser's own print-to-PDF), and the mail
               icon fired a bare `mailto:?subject=` with no body while the
@@ -1291,19 +1291,19 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
         ) : onSubmitTRA ? (
           <button type="button" onClick={submitToTRA} disabled={traSubmitting || inv.status === 'Draft' || !inv._dbId}
             title={
-              inv.status === 'Draft' ? 'Save & Send this invoice first — drafts cannot be fiscalized'
+              inv.status === 'Draft' ? 'Save & Send this invoice first â€” drafts cannot be fiscalized'
               : !inv._dbId ? 'This invoice only exists locally and was never saved to the server'
-              : inv.traStatus === 'failed' ? (inv.traAckMsg || 'Previous submission failed — retry')
+              : inv.traStatus === 'failed' ? (inv.traAckMsg || 'Previous submission failed â€” retry')
               : 'Submit this invoice to TRA EFDMS for fiscalization'
             }
             style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: (traSubmitting || inv.status === 'Draft' || !inv._dbId) ? 'default' : 'pointer', background: inv.status === 'Draft' || !inv._dbId ? 'var(--bg)' : inv.traStatus === 'failed' ? 'var(--red-l)' : 'var(--gold-l)', color: inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)', opacity: traSubmitting ? 0.7 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name={inv.traStatus === 'failed' ? 'refresh' : 'send'} size={12} color={inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)'} />
-            {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA Submission' : 'Submit to TRA'}
+            {traSubmitting ? 'Submittingâ€¦' : inv.traStatus === 'failed' ? 'Retry TRA Submission' : 'Submit to TRA'}
           </button>
         ) : null}
         {dbId && (
           stampedFileUrl ? (
-            <button type="button" onClick={() => apiDownload(`/v1/invoices/${dbId}/stamped-pdf`, `${inv.id} — stamped.pdf`)}
+            <button type="button" onClick={() => apiDownload(`/v1/invoices/${dbId}/stamped-pdf`, `${inv.id} â€” stamped.pdf`)}
               title="Download the company-stamped copy"
               style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer', background: 'var(--green-l)', color: 'var(--green)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
               <Icon name="checkCircle" size={12} color="var(--green)" /> Stamped
@@ -1312,11 +1312,11 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             <button type="button" onClick={handleSignAndStamp} disabled={stamping}
               title="Apply the company stamp to this invoice"
               style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: stamping ? 'default' : 'pointer', background: 'var(--blue-l)', color: 'var(--blue)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-              <Icon name="stamp" size={12} color="var(--blue)" /> {stamping ? 'Stamping…' : 'Sign & Stamp'}
+              <Icon name="stamp" size={12} color="var(--blue)" /> {stamping ? 'Stampingâ€¦' : 'Sign & Stamp'}
             </button>
           ) : stampAllowed === false ? (
             <button type="button" onClick={() => setShowRequestStamp(true)}
-              title="Your role doesn't have direct stamp access — tag someone who can approve it"
+              title="Your role doesn't have direct stamp access â€” tag someone who can approve it"
               style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: '1px solid var(--border)', fontSize: 11, fontWeight: 700, cursor: 'pointer', background: 'var(--bg)', color: 'var(--ink2)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
               <Icon name="stamp" size={12} color="var(--ink3)" /> Request Stamping
             </button>
@@ -1333,7 +1333,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             <DropdownMenuItem onClick={sendEmail}><Icon name="mail" size={14} color="var(--ink3)" /> Send by Email</DropdownMenuItem>
             <DropdownMenuItem onClick={() => openPrintWindow(inv)}><Icon name="eye" size={14} color="var(--ink3)" /> View / Print</DropdownMenuItem>
             <DropdownMenuSeparator />
-            {/* Add Note / Assign Task / Audit Log dropped — each just
+            {/* Add Note / Assign Task / Audit Log dropped â€” each just
                 switched to a tab that's already one click away in the tab
                 bar above, with no other effect. Add Reminder earns its
                 keep by also pre-opening the new-reminder form. */}
@@ -1359,14 +1359,14 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
       {/* Payment form */}
       {showPayment && (
         <div style={{ borderBottom: '1px solid var(--border)', padding: '12px 20px', background: 'var(--bg)', flexShrink: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Record Payment — {inv.id}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Record Payment â€” {inv.id}</div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 8 }}>
-            {[['Amount (TZS)', payAmt, (v: string) => setPayAmt(v), 'number', 'var(--mono)'],
+            {[['Amount (TZS)', payAmt, (v: string) => setPayAmt(v), 'number', 'var(--font)'],
               ['Payment Date', payDate, (v: string) => setPayDate(v), 'text', 'var(--font)']].map(([label, val, setter, type]) => (
               <div key={String(label)}>
                 <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{String(label)}</label>
                 <input type={String(type)} value={String(val)} onChange={e => (setter as (v: string) => void)(e.target.value)}
-                  style={{ width: '100%', padding: '7px 9px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--mono)', outline: 'none', boxSizing: 'border-box' as const }} />
+                  style={{ width: '100%', padding: '7px 9px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--font)', outline: 'none', boxSizing: 'border-box' as const }} />
               </div>
             ))}
             <div>
@@ -1379,7 +1379,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               </Select>
             </div>
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>Outstanding: <strong style={{ color: due > 0 ? 'var(--red)' : 'var(--green)', fontFamily: 'var(--mono)' }}>{fmt(due, 'TZS')}</strong></div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>Outstanding: <strong style={{ color: due > 0 ? 'var(--red)' : 'var(--green)', fontFamily: 'var(--font)' }}>{fmt(due, 'TZS')}</strong></div>
           <div style={{ display: 'flex', gap: 8 }}>
             <Button type="button" onClick={submitPayment} style={{ background: 'var(--green)', color: 'hsl(var(--green-foreground))' }}>Save Payment</Button>
             <Button type="button" variant="outline" onClick={() => setShowPayment(false)}>Cancel</Button>
@@ -1395,7 +1395,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
       {tab === 'invoice' ? (
         <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : '24px 28px', fontFamily: 'var(--font)' }}>
 
-          {/* Header: from company ← QR code → bill-to */}
+          {/* Header: from company â† QR code â†’ bill-to */}
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: 16, marginBottom: 20 }}>
             {/* From */}
             <div>
@@ -1409,7 +1409,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               </div>
             </div>
 
-            {/* QR Code — center. Once fiscalized, this must be the TRA verify-portal
+            {/* QR Code â€” center. Once fiscalized, this must be the TRA verify-portal
                 URL (what a real EFD receipt prints), not an internal reference code. */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: traFiscalized ? 'var(--green-l)' : 'var(--bg)', alignSelf: 'flex-start', minWidth: 116 }}>
               <QRCodeSVG value={traFiscalized ? inv.traQrUrl! : qrData} size={88} level="M" />
@@ -1422,7 +1422,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                 ) : (
                   <>
                     <div style={{ fontWeight: 700 }}>Ref: {inv.refCode}</div>
-                    <div>v{inv.version}{inv.status !== 'Draft' ? ' · not fiscalized' : ''}</div>
+                    <div>v{inv.version}{inv.status !== 'Draft' ? ' Â· not fiscalized' : ''}</div>
                   </>
                 )}
               </div>
@@ -1456,36 +1456,36 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           </div>
 
           {/* Three charge sections */}
-          <ChargeSectionView title="Clearing Charges — Paid in TZS" color="var(--teal)" currency="TZS" items={T.cl} subTotal={T.sub(T.cl)} taxAmt={T.tax(T.cl)} sectionTotal={T.clearingTotal} />
-          <ChargeSectionView title="Shipping Line Charges — Paid in USD" color="var(--navy)" currency="USD" items={T.sh} subTotal={T.sub(T.sh)} taxAmt={T.tax(T.sh)} sectionTotal={T.shippingTotal} />
-          <ChargeSectionView title="Other Charges — Paid in TZS" color="var(--ink2)" currency="TZS" items={T.ot} subTotal={T.sub(T.ot)} taxAmt={T.tax(T.ot)} sectionTotal={T.otherTotal} />
+          <ChargeSectionView title="Clearing Charges â€” Paid in TZS" color="var(--teal)" currency="TZS" items={T.cl} subTotal={T.sub(T.cl)} taxAmt={T.tax(T.cl)} sectionTotal={T.clearingTotal} />
+          <ChargeSectionView title="Shipping Line Charges â€” Paid in USD" color="var(--navy)" currency="USD" items={T.sh} subTotal={T.sub(T.sh)} taxAmt={T.tax(T.sh)} sectionTotal={T.shippingTotal} />
+          <ChargeSectionView title="Other Charges â€” Paid in TZS" color="var(--ink2)" currency="TZS" items={T.ot} subTotal={T.sub(T.ot)} taxAmt={T.tax(T.ot)} sectionTotal={T.otherTotal} />
 
           {/* Totals */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
             <div style={{ minWidth: 340 }}>
               {T.shippingTotal > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4, paddingBottom: 4, borderBottom: '1px dashed var(--border)' }}>
-                  <span>USD {fmtUSD(T.shippingTotal)} × {inv.exchangeRate.toLocaleString()}</span>
-                  <span style={{ fontFamily: 'var(--mono)' }}>{fmtTZS(T.shippingTotal * inv.exchangeRate)}</span>
+                  <span>USD {fmtUSD(T.shippingTotal)} Ã— {inv.exchangeRate.toLocaleString()}</span>
+                  <span style={{ fontFamily: 'var(--font)' }}>{fmtTZS(T.shippingTotal * inv.exchangeRate)}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 800 }}>TOTAL</span>
-                <span style={{ fontSize: 15, fontWeight: 900, fontFamily: 'var(--mono)' }}>{fmt(T.grandTotalTZS, 'TZS')}</span>
+                <span style={{ fontSize: 15, fontWeight: 900, fontFamily: 'var(--font)' }}>{fmt(T.grandTotalTZS, 'TZS')}</span>
               </div>
               {inv.received > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--green)', marginBottom: 4, paddingLeft: 4 }}>
-                  <span>Less: Received</span><span style={{ fontFamily: 'var(--mono)' }}>({fmt(inv.received, 'TZS')})</span>
+                  <span>Less: Received</span><span style={{ fontFamily: 'var(--font)' }}>({fmt(inv.received, 'TZS')})</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 800, color: due > 0 ? 'var(--red)' : 'var(--green)', borderTop: '2px solid var(--border)', paddingTop: 8 }}>
                 <span>Amount Due</span>
-                <span style={{ fontFamily: 'var(--mono)' }}>{fmt(Math.max(0, due), 'TZS')}</span>
+                <span style={{ fontFamily: 'var(--font)' }}>{fmt(Math.max(0, due), 'TZS')}</span>
               </div>
             </div>
           </div>
 
-          {/* Carbon segment — live from the linked shipment, not a tradeable credit */}
+          {/* Carbon segment â€” live from the linked shipment, not a tradeable credit */}
           {inv.shipmentCarbon && (
             <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', padding: '16px 20px', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -1495,7 +1495,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 16 }}>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{Number(inv.shipmentCarbon.co2_emissions_kg).toLocaleString('en')} kg</div>
-                  <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>CO₂ emissions</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>COâ‚‚ emissions</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--green)' }}>{Number(inv.shipmentCarbon.carbon_credits_saved).toFixed(2)}</div>
@@ -1509,7 +1509,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                 )}
               </div>
               <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 10, fontStyle: 'italic' }}>
-                GLEC v3.2 / ISO 14083 methodology. Internal ESG estimate — not a registry-issued or tradeable carbon credit.
+                GLEC v3.2 / ISO 14083 methodology. Internal ESG estimate â€” not a registry-issued or tradeable carbon credit.
               </div>
             </div>
           )}
@@ -1521,8 +1521,8 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               <div>
                 <div style={{ display: 'flex', gap: 8 }}><span style={{ minWidth: 100, fontWeight: 600 }}>Bank Name:</span><span>CRDB Bank Plc</span></div>
                 <div style={{ display: 'flex', gap: 8 }}><span style={{ minWidth: 100, fontWeight: 600 }}>Account Name:</span><span>Moovit ClearOS Ltd</span></div>
-                <div style={{ display: 'flex', gap: 8 }}><span style={{ minWidth: 100, fontWeight: 600 }}>Account No:</span><span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>0150244433200</span></div>
-                <div style={{ display: 'flex', gap: 8 }}><span style={{ minWidth: 100, fontWeight: 600 }}>Swift Code:</span><span style={{ fontFamily: 'var(--mono)' }}>CORUTZTZ</span></div>
+                <div style={{ display: 'flex', gap: 8 }}><span style={{ minWidth: 100, fontWeight: 600 }}>Account No:</span><span style={{ fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>0150244433200</span></div>
+                <div style={{ display: 'flex', gap: 8 }}><span style={{ minWidth: 100, fontWeight: 600 }}>Swift Code:</span><span style={{ fontFamily: 'var(--font)' }}>CORUTZTZ</span></div>
               </div>
               <div>
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>Pay Online</div>
@@ -1546,14 +1546,14 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           <div className="inv-tab-compose">
             <textarea
               className="inv-tab-textarea"
-              placeholder="Write a note…"
+              placeholder="Write a noteâ€¦"
               value={newNote}
               onChange={e => setNewNote(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addNote(); }}
               rows={3}
             />
             <div className="inv-tab-compose-foot">
-              <span className="inv-tab-hint">⌘↵ to save</span>
+              <span className="inv-tab-hint">âŒ˜â†µ to save</span>
               <button type="button" className="inv-tab-submit" onClick={addNote} disabled={!newNote.trim()}>Add Note</button>
             </div>
           </div>
@@ -1561,7 +1561,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             {notes.length === 0 && <div className="inv-tab-empty">No notes yet.</div>}
             {notes.map(n => (
               <div key={n.id} className="inv-note-item">
-                <div className="inv-note-meta">{n.author_name} · {new Date(n.created_at).toLocaleString('en-GB')}</div>
+                <div className="inv-note-meta">{n.author_name} Â· {new Date(n.created_at).toLocaleString('en-GB')}</div>
                 <div className="inv-note-text">{n.content}</div>
                 <button type="button" className="inv-note-del" title="Delete note" onClick={() => deleteNote(n.id)}>
                   <Icon name="x" size={12} color="var(--ink3)" />
@@ -1575,7 +1575,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
         <div className="inv-tab-panel">
           {showTaskForm ? (
             <div className="inv-task-form">
-              <input className="inv-tab-input" placeholder="Task description…" value={newTaskDesc} onChange={e => setNewTaskDesc(e.target.value)} />
+              <input className="inv-tab-input" placeholder="Task descriptionâ€¦" value={newTaskDesc} onChange={e => setNewTaskDesc(e.target.value)} />
               <div className="inv-task-form-row">
                 <input className="inv-tab-input" placeholder="Assignee" value={newTaskAssignee} onChange={e => setNewTaskAssignee(e.target.value)} />
                 <DatePicker date={parseDateOnly(newTaskDue)} onChange={d => setNewTaskDue(toDateOnlyString(d))} />
@@ -1599,7 +1599,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                 <Checkbox checked={t.done} onCheckedChange={() => toggleTask(t.id)} className="mt-0.5" title="Toggle task" />
                 <div className="inv-task-body">
                   <span className="inv-task-desc">{t.description}</span>
-                  {t.assignee && <span className="inv-task-assignee">→ {t.assignee}</span>}
+                  {t.assignee && <span className="inv-task-assignee">â†’ {t.assignee}</span>}
                   {t.due_date && <span className="inv-task-due">Due {t.due_date}</span>}
                 </div>
                 <button type="button" className="inv-note-del" title="Delete task" onClick={() => deleteTask(t.id)}>
@@ -1616,7 +1616,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             <div className="inv-task-form">
               <div className="inv-task-form-row">
                 <DatePicker date={parseDateOnly(newRemDate)} onChange={d => setNewRemDate(toDateOnlyString(d))} />
-                <input className="inv-tab-input" placeholder="Reminder message…" value={newRemMsg} onChange={e => setNewRemMsg(e.target.value)} />
+                <input className="inv-tab-input" placeholder="Reminder messageâ€¦" value={newRemMsg} onChange={e => setNewRemMsg(e.target.value)} />
               </div>
               <div className="inv-tab-compose-foot">
                 <button type="button" className="inv-tab-cancel" onClick={() => setShowRemForm(false)}>Cancel</button>
@@ -1656,7 +1656,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                 <Icon name="activity" size={13} color="var(--teal)" />
                 <div className="inv-audit-body">
                   <span className="inv-audit-action">{e.action.replace(/_/g, ' ')}{e.detail ? `: ${e.detail}` : ''}</span>
-                  <span className="inv-audit-ts">{e.actor_name ? `${e.actor_name} · ` : ''}{new Date(e.created_at).toLocaleString('en-GB')}</span>
+                  <span className="inv-audit-ts">{e.actor_name ? `${e.actor_name} Â· ` : ''}{new Date(e.created_at).toLocaleString('en-GB')}</span>
                 </div>
               </div>
             ))}
@@ -1667,7 +1667,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   );
 }
 
-/* ── Main Billing page ── */
+/* â”€â”€ Main Billing page â”€â”€ */
 export const Billing: React.FC = () => {
   const isMobile = useIsMobile();
   const { fmt } = useCurrency();
@@ -1692,7 +1692,7 @@ export const Billing: React.FC = () => {
   const [sortAsc, setSortAsc]           = useState(false);
 
   // Arriving from a customer's profile (Customers.tsx "+ Create Invoice" /
-  // "+ Record Payment") — previously this query param was silently ignored,
+  // "+ Record Payment") â€” previously this query param was silently ignored,
   // dropping the user on a generic, unscoped Billing page.
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -1713,7 +1713,7 @@ export const Billing: React.FC = () => {
   }, [location.search]);
 
   // Arriving back from "create a new shipment" mid-invoice (Billing's
-  // InvoiceEditor createShipment() → CreateShipmentPage.tsx's `returnTo`) —
+  // InvoiceEditor createShipment() â†’ CreateShipmentPage.tsx's `returnTo`) â€”
   // same round trip as the customer_id effect above.
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -1724,7 +1724,7 @@ export const Billing: React.FC = () => {
       .catch(() => {});
   }, [location.search]);
 
-  // Arriving from the Finance dashboard's "Recent Invoices" row — deep-link
+  // Arriving from the Finance dashboard's "Recent Invoices" row â€” deep-link
   // straight to that invoice's detail panel instead of the generic list.
   // Waits on `invoices` since the id only resolves once the list has loaded.
   useEffect(() => {
@@ -1733,7 +1733,7 @@ export const Billing: React.FC = () => {
     if (!invoiceId || !invoices.length) return;
     // A deep link may carry either the display id (invoice_number, what
     // this page's own rows are keyed by) or the real database UUID
-    // (_dbId) — a note's subject_id (NotesApp.tsx's "Related to" link)
+    // (_dbId) â€” a note's subject_id (NotesApp.tsx's "Related to" link)
     // always stores the real UUID, never the display number, so matching
     // on i.id alone silently failed for any invoice linked from a note.
     const match = invoices.find(i => i.id === invoiceId || i._dbId === invoiceId);
@@ -1743,14 +1743,14 @@ export const Billing: React.FC = () => {
     }
   }, [location.search, invoices]);
 
-  /* ── Filters popover ── */
+  /* â”€â”€ Filters popover â”€â”€ */
   const [showFilters, setShowFilters]     = useState(false);
   const [filterMode, setFilterMode]       = useState<'all' | Invoice['mode']>('all');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo]     = useState('');
   const activeFilterCount = (filterMode !== 'all' ? 1 : 0) + (filterDateFrom ? 1 : 0) + (filterDateTo ? 1 : 0);
 
-  /* ── Row selection → bulk export ── keyed by invoice id, not filtered
+  /* â”€â”€ Row selection â†’ bulk export â”€â”€ keyed by invoice id, not filtered
      index, so a selection survives the user narrowing/widening the table
      with the status tabs / filters / search afterward. */
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -1828,7 +1828,7 @@ export const Billing: React.FC = () => {
   async function downloadAllSelected() {
     if (downloadingAll) return;
     setDownloadingAll(true);
-    // Sequential, not Promise.all — back-to-back a.click() downloads
+    // Sequential, not Promise.all â€” back-to-back a.click() downloads
     // fired all at once are exactly what triggers a browser's
     // multiple-automatic-downloads block; pacing them by each fetch's own
     // network time avoids that.
@@ -1852,7 +1852,7 @@ export const Billing: React.FC = () => {
     const apiPayload = {
       invoice_number: inv.id,
       // Both accepted by the backend (see fastify.post/patch '/v1/invoices'
-      // in invoices.routes.ts) since before this page existed — the editor's
+      // in invoices.routes.ts) since before this page existed â€” the editor's
       // Client and Linked Shipment pickers set inv.customerId/inv.shipmentRef
       // correctly, but this payload never sent either, so the link only
       // ever lived in local state and was gone on the next page load.
@@ -1973,14 +1973,14 @@ export const Billing: React.FC = () => {
       </>
       )}
 
-      {/* While creating or editing, the form takes the whole body — the list
+      {/* While creating or editing, the form takes the whole body â€” the list
           panel is hidden rather than the form being squeezed into the right
           column beside it, matching how Quotations gives its form the page. */}
       <div className={`inv-body${isSplit ? ' inv-body--split' : ''}${selectedInvoice || mode === 'create' ? ' inv-body--has-selection' : ''}${mode === 'create' || mode === 'edit' || mode === 'view' ? ' inv-body--form' : ''}`}>
         {/* List panel */}
         <div className="inv-list-panel">
 
-          {/* Toolbar — tabs, actions and search all in one row. The tabs +
+          {/* Toolbar â€” tabs, actions and search all in one row. The tabs +
               actions + search live inside .inv-toolbar-scroll, which scrolls
               sideways on a viewport too narrow to fit them all (instead of
               wrapping into a second row); Create Invoice sits outside that
@@ -2005,7 +2005,7 @@ export const Billing: React.FC = () => {
             )}
             <div className="inv-topbar-spacer" />
             <div className="inv-toolbar-actions">
-              {/* Bulk export — only appears once at least one row is
+              {/* Bulk export â€” only appears once at least one row is
                   checked, rather than a permanently-visible "Export"
                   button that acted on the whole filtered list regardless
                   of what (if anything) the user had actually picked. */}
@@ -2016,7 +2016,7 @@ export const Billing: React.FC = () => {
                     <Icon name="download" size={13} /> Export CSV
                   </button>
                   <button type="button" className="btn btn-secondary btn-sm" onClick={downloadAllSelected} disabled={downloadingAll}>
-                    <Icon name="file" size={13} /> {downloadingAll ? 'Downloading…' : 'Download all'}
+                    <Icon name="file" size={13} /> {downloadingAll ? 'Downloadingâ€¦' : 'Download all'}
                   </button>
                   <button type="button" className="inv-bulk-clear" onClick={() => setSelectedIds(new Set())} title="Clear selection">
                     <Icon name="x" size={13} />
@@ -2024,7 +2024,7 @@ export const Billing: React.FC = () => {
                 </div>
               )}
               {/* A real Radix Popover, not a hand-rolled absolute-positioned
-                  div — that version rendered inside .inv-toolbar-scroll,
+                  div â€” that version rendered inside .inv-toolbar-scroll,
                   whose overflow-x:auto (needed for the horizontal-scroll
                   toolbar) computes overflow-y to auto too, clipping any
                   plain absolutely-positioned child that extended below the
@@ -2073,7 +2073,7 @@ export const Billing: React.FC = () => {
               </Link>
               <div className="inv-search-wrap">
                 <Icon name="search" size={13} color="var(--ink3)" className="inv-search-icon" />
-                <input className="inv-search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoice, client, BL…" />
+                <input className="inv-search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoice, client, BLâ€¦" />
               </div>
             </div>
           </div>
@@ -2091,7 +2091,7 @@ export const Billing: React.FC = () => {
                 <tr>
                   <th className="th--checkbox">
                     {/* .th--checkbox centers via text-align, which only
-                        centers inline-level children — Checkbox's root is
+                        centers inline-level children â€” Checkbox's root is
                         display:grid (block-level), so it needs mx-auto to
                         land centered instead of flush left in the column. */}
                     <Checkbox className="mx-auto" checked={allFilteredSelected} onCheckedChange={toggleSelectAllFiltered} title="Select all" />
@@ -2131,7 +2131,7 @@ export const Billing: React.FC = () => {
                         </td>
                       )}
                       <td className="inv-cell-client">
-                        {/* Customers.tsx only reads ?id=, not ?search= — a
+                        {/* Customers.tsx only reads ?id=, not ?search= â€” a
                             name-search param there was silently ignored, so
                             this deep-links straight to the record instead
                             (falls back to the plain list on legacy invoices
@@ -2144,13 +2144,13 @@ export const Billing: React.FC = () => {
                       {!isSplit && <td><span className="inv-mode-badge" data-mode={inv.mode}>{inv.mode}</span></td>}
                       <td className="inv-cell-total">{fmt(total, 'TZS')}</td>
                       <td className="inv-cell-date">{inv.billDate}</td>
-                      {!isSplit && <td className={`inv-cell-due${inv.status === 'Overdue' ? ' inv-cell-due--overdue' : ''}`}>{inv.dueDate ?? '—'}</td>}
+                      {!isSplit && <td className={`inv-cell-due${inv.status === 'Overdue' ? ' inv-cell-due--overdue' : ''}`}>{inv.dueDate ?? 'â€”'}</td>}
                       <td><span className="inv-status-badge" style={{ background: st.bg, color: st.color }}>{st.label}</span></td>
                     </tr>
                   );
                 })}
                 {apiLoading && (
-                  <tr><td colSpan={10} className="inv-table-msg">Loading invoices…</td></tr>
+                  <tr><td colSpan={10} className="inv-table-msg">Loading invoicesâ€¦</td></tr>
                 )}
                 {!apiLoading && filtered.length === 0 && invoices.length === 0 && (
                   <tr><td colSpan={10} className="inv-table-msg">
@@ -2172,9 +2172,9 @@ export const Billing: React.FC = () => {
           {!isSplit && filtered.length > 0 && (
             <div className="inv-list-footer">
               <span style={{ color: 'var(--ink3)' }}>{filtered.length} invoices</span>
-              <span style={{ color: 'var(--ink2)' }}>Total: <strong style={{ fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{fmt(filtered.reduce((s, i) => s + invoiceTotal(i), 0), 'TZS')}</strong></span>
-              <span style={{ color: 'var(--ink2)' }}>Received: <strong style={{ fontFamily: 'var(--mono)', color: 'var(--green)' }}>{fmt(filtered.reduce((s, i) => s + i.received, 0), 'TZS')}</strong></span>
-              <span style={{ color: 'var(--ink2)' }}>Outstanding: <strong style={{ fontFamily: 'var(--mono)', color: 'var(--red)' }}>{fmt(filtered.reduce((s, i) => s + Math.max(0, invoiceTotal(i) - i.received), 0), 'TZS')}</strong></span>
+              <span style={{ color: 'var(--ink2)' }}>Total: <strong style={{ fontFamily: 'var(--font)', color: 'var(--ink)' }}>{fmt(filtered.reduce((s, i) => s + invoiceTotal(i), 0), 'TZS')}</strong></span>
+              <span style={{ color: 'var(--ink2)' }}>Received: <strong style={{ fontFamily: 'var(--font)', color: 'var(--green)' }}>{fmt(filtered.reduce((s, i) => s + i.received, 0), 'TZS')}</strong></span>
+              <span style={{ color: 'var(--ink2)' }}>Outstanding: <strong style={{ fontFamily: 'var(--font)', color: 'var(--red)' }}>{fmt(filtered.reduce((s, i) => s + Math.max(0, invoiceTotal(i) - i.received), 0), 'TZS')}</strong></span>
             </div>
           )}
         </div>

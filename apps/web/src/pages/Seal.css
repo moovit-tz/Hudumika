@@ -87,7 +87,7 @@
    spec's own bond-green/seal-orange palette. */
 .seal-strip { display: inline-block; width: 4px; height: 30px; border-radius: 2px; margin-right: 10px; vertical-align: middle; }
 
-.seal-mono { font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace; font-size: 12.5px; }
+.seal-mono { font-family: var(--font); font-size: 12.5px; }
 
 /* Storage-clock runway bar on the lot detail's fiscal panel */
 .seal-runway { height: 8px; border-radius: 4px; background: var(--bg); border: 1px solid var(--border); overflow: hidden; }

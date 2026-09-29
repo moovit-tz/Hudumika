@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
@@ -162,7 +162,7 @@ export function BankReconciliation() {
       !(await showConfirm(
         `Delete this statement (${s.bank_name || 'Bank'}, ${new Date(
           s.statement_date_from
-        ).toLocaleDateString()}–${new Date(s.statement_date_to).toLocaleDateString()})? Matches are lost, not the underlying ledger entries.`,
+        ).toLocaleDateString()}â€“${new Date(s.statement_date_to).toLocaleDateString()})? Matches are lost, not the underlying ledger entries.`,
         { variant: 'danger', confirmLabel: 'Delete' }
       ))
     )
@@ -191,7 +191,7 @@ export function BankReconciliation() {
   const availableCandidates = detail ? detail.candidates.filter(c => !usedCandidateIds.has(c.id)) : [];
 
   if (loading)
-    return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading bank reconciliation…</div>;
+    return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading bank reconciliationâ€¦</div>;
 
   const brStats = (() => {
     const reconciledCount = statements.filter(s => s.matched === s.total && s.total > 0).length;
@@ -229,7 +229,7 @@ export function BankReconciliation() {
         }
       />
 
-      {/* ── Match Center Hero Banner ── */}
+      {/* â”€â”€ Match Center Hero Banner â”€â”€ */}
       <div
         style={{
           background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, color-mix(in srgb, var(--teal) 35%, var(--navy2)) 100%)',
@@ -287,7 +287,7 @@ export function BankReconciliation() {
         </div>
       </div>
 
-      {/* ── Main 2-Column Match Workspace ── */}
+      {/* â”€â”€ Main 2-Column Match Workspace â”€â”€ */}
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20 }}>
         {/* Left: Statement Feed Selector */}
         <SectionCard
@@ -328,7 +328,7 @@ export function BankReconciliation() {
                   </Badge>
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>
-                  {new Date(s.statement_date_from).toLocaleDateString('en-GB')} –{' '}
+                  {new Date(s.statement_date_from).toLocaleDateString('en-GB')} â€“{' '}
                   {new Date(s.statement_date_to).toLocaleDateString('en-GB')}
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)', marginTop: 6 }}>
@@ -396,13 +396,13 @@ export function BankReconciliation() {
                           {new Date(l.txn_date).toLocaleDateString('en-GB')}
                         </td>
                         <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--navy)' }}>
-                          {l.description || '—'}
+                          {l.description || 'â€”'}
                         </td>
                         <td
                           style={{
                             padding: '10px 12px',
                             textAlign: 'right',
-                            fontFamily: 'var(--mono)',
+                            fontFamily: 'var(--font)',
                             fontWeight: 700,
                             color: l.amount >= 0 ? 'var(--green)' : 'var(--red)',
                           }}
@@ -424,7 +424,7 @@ export function BankReconciliation() {
                             </Button>
                           ) : (
                             <Button variant="default" size="xs" onClick={() => setPendingLine(l)}>
-                              <Icon name="link" size={12} /> Match…
+                              <Icon name="link" size={12} /> Matchâ€¦
                             </Button>
                           )}
                         </td>
@@ -469,7 +469,7 @@ export function BankReconciliation() {
             accept=".csv"
             multiple={false}
             onUpload={handleUpload}
-            uploadingFiles={importing ? [{ id: '1', name: 'Uploading statement…', size: 0, progress: 60, status: 'uploading' }] : []}
+            uploadingFiles={importing ? [{ id: '1', name: 'Uploading statementâ€¦', size: 0, progress: 60, status: 'uploading' }] : []}
             onRemoveFile={() => {}}
           />
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
@@ -489,7 +489,7 @@ export function BankReconciliation() {
                 Match Statement Entry: "{pendingLine.description}"
               </DialogTitle>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 14 }}>
-                {new Date(pendingLine.txn_date).toLocaleDateString('en-GB')} · {fmt(pendingLine.amount)}
+                {new Date(pendingLine.txn_date).toLocaleDateString('en-GB')} Â· {fmt(pendingLine.amount)}
               </div>
               <div style={{ overflowY: 'auto', flex: 1 }}>
                 {availableCandidates.length === 0 ? (
@@ -525,11 +525,11 @@ export function BankReconciliation() {
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{c.description}</div>
                             <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                              Entry #{c.entryNumber} · {new Date(c.date).toLocaleDateString('en-GB')}
+                              Entry #{c.entryNumber} Â· {new Date(c.date).toLocaleDateString('en-GB')}
                               {isExact && <Badge variant="success" className="ml-2">Exact Match</Badge>}
                             </div>
                           </div>
-                          <div style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 13.5, color: 'var(--navy)' }}>
+                          <div style={{ fontFamily: 'var(--font)', fontWeight: 800, fontSize: 13.5, color: 'var(--navy)' }}>
                             {fmt(c.amount)}
                           </div>
                         </button>

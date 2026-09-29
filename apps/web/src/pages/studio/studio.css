@@ -210,7 +210,7 @@
 }
 .studio-run-row:hover { background: var(--teal-l); }
 .studio-run-row.is-active { border-color: var(--teal); background: var(--teal-l); }
-.studio-run-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--ink3); }
+.studio-run-mono { font-family: var(--font); font-size: 11px; color: var(--ink3); }
 
 .studio-step {
   display: grid;

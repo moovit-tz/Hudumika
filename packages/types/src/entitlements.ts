@@ -87,6 +87,19 @@ export const ALL_FEATURE_KEYS = [
   // which stays free on every tier. Bundled free into 'enterprise' via
   // package_features; purchasable as an add-on everywhere else.
   'ondi.governance',
+  'finance.core',
+  'finance.accounting.advanced',
+  'finance.budgets',
+  'finance.fixed_assets',
+  'finance.multi_currency',
+  'finance.inventory',
+  'finance.procurement',
+  'finance.pos',
+  'finance.warehouse',
+  'finance.manufacturing',
+  'finance.professional_services',
+  'finance.project_accounting',
+  'finance.consolidation',
 ] as const;
 
 /** Feature keys correspond 1:1 with the appId strings the API gates on. */
@@ -153,4 +166,8 @@ export interface TenantEntitlements {
    *  false, since a key typed in there would otherwise silently do
    *  nothing (resolveAiCredentials() ignores it for an ineligible tier). */
   byokAllowed: boolean;
+  /** Finance uses the same package grants as every other app, while keeping
+   * tenant activation separate. Exposing the resolved state here prevents
+   * navigation, upgrade UI and API access from interpreting it differently. */
+  finance: import('./finance-capabilities.js').FinanceCapabilitySummary;
 }

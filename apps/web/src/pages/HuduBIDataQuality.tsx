@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { SectionLoading } from '../components/ui/spinner.js';
@@ -59,8 +59,8 @@ export function HuduBIDataQuality() {
         crumbs={['HuduBI', 'Data Quality']}
         titlePlain="Data"
         titleEm="quality"
-        subtitle="Real checks over domain_events and the tables the Metric Registry reads from — timestamp ordering, un-deduplicated retries, volume anomalies."
-        actions={<Button variant="default" size="sm" onClick={runNow} disabled={running}>{running ? 'Running…' : 'Run checks now'}</Button>}
+        subtitle="Real checks over domain_events and the tables the Metric Registry reads from â€” timestamp ordering, un-deduplicated retries, volume anomalies."
+        actions={<Button variant="default" size="sm" onClick={runNow} disabled={running}>{running ? 'Runningâ€¦' : 'Run checks now'}</Button>}
       />
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -88,12 +88,12 @@ export function HuduBIDataQuality() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, color: 'var(--ink)' }}>{f.description}</div>
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                      <code style={{ fontFamily: 'var(--mono)' }}>{f.check_key}</code>
+                      <code style={{ fontFamily: 'var(--font)' }}>{f.check_key}</code>
                       <span>{f.table_name}</span>
                       {f.tenant_name && <span>{f.tenant_name}</span>}
                     </div>
                   </div>
-                  <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{f.finding_count}</div>
+                  <div style={{ fontFamily: 'var(--font)', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{f.finding_count}</div>
                 </div>
               ))}
             </div>

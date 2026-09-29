@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
@@ -110,7 +110,7 @@ export const FinanceExpensesReport: React.FC = () => {
     const byCat = new Map<string, number>();
     inPeriod.forEach(x => byCat.set(x.e.category, (byCat.get(x.e.category) || 0) + x.e.amount));
     const categoryBreakdown = Array.from(byCat.entries()).sort((a, b) => b[1] - a[1]);
-    const largestCategory = categoryBreakdown[0] ? catLabel(categoryBreakdown[0][0]) : '—';
+    const largestCategory = categoryBreakdown[0] ? catLabel(categoryBreakdown[0][0]) : 'â€”';
 
     return { expenses, monthLabels, monthlyTotals, totalExpenses, thisMonthTotal, categoryBreakdown, largestCategory };
   }, [rawExpenses, period, category]);
@@ -214,7 +214,7 @@ export const FinanceExpensesReport: React.FC = () => {
                   <div key={cat} style={{ padding: '9px 18px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <span style={{ fontSize: 11, color: 'var(--ink2)', fontWeight: 500 }}>{catLabel(cat)}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{pct}%</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{pct}%</span>
                     </div>
                     <div style={{ height: 4, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 'var(--r-sm)' }} />
@@ -251,7 +251,7 @@ export const FinanceExpensesReport: React.FC = () => {
                     <span style={{ fontSize: 10, fontWeight: 700, color: catColor(x.e.category), background: catColor(x.e.category) + '1a', borderRadius: 'var(--r-sm)', padding: '2px 7px' }}>{catLabel(x.e.category)}</span>
                   </td>
                   <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{x.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(x.e.amount)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(x.e.amount)}</td>
                 </tr>
               ))}
             </tbody>
@@ -261,7 +261,7 @@ export const FinanceExpensesReport: React.FC = () => {
           {expenses.length > PAGE_SIZE && (
             <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, background: 'var(--white)' }}>
               <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                Showing <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, expenses.length)}</strong> of <strong>{expenses.length}</strong> expenses
+                Showing <strong>{offset + 1}â€“{Math.min(offset + PAGE_SIZE, expenses.length)}</strong> of <strong>{expenses.length}</strong> expenses
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <button

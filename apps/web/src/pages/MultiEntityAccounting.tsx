@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -14,14 +14,14 @@ import { showAlert } from '../lib/alert.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 
 /**
- * Multi-entity accounting (ClearOS/FinOps M8) — a legal-entity/branch
+ * Multi-entity accounting (ClearOS/FinOps M8) â€” a legal-entity/branch
  * concept on top of the GL, additive only. A tenant that never creates an
  * entity here keeps every report exactly as before: entity_id stays NULL
  * on every posting, and the existing single-tenant reports already ARE the
  * consolidated view. See gl.service.ts's M8 section for the full design.
  *
  * Figures are shown in each entity's own currency, not FX-converted to one
- * consolidated currency — that conversion logic doesn't exist anywhere in
+ * consolidated currency â€” that conversion logic doesn't exist anywhere in
  * this platform's GL reports yet (flagged, not silently invented).
  */
 
@@ -116,7 +116,7 @@ export function MultiEntityAccounting() {
 
   // Transaction amounts are per-row currency (each intercompany transaction
   // picks its own), so this deliberately never sums them into one blended
-  // figure — that's the same currency-mixing mistake PurchaseOrders.tsx's
+  // figure â€” that's the same currency-mixing mistake PurchaseOrders.tsx's
   // metrics card made (summed USD-priced lines as if they were TZS). Counts
   // and status/currency breakdowns stay real without needing a conversion.
   const meStats = {
@@ -134,7 +134,7 @@ export function MultiEntityAccounting() {
         crumbs={['Finance', 'Accounts', 'Multi-Entity']}
         titlePlain="Multi-entity"
         titleEm="accounting"
-        subtitle="Branches share one chart of accounts, tagged per entity for reporting — additive, so a tenant with no entities keeps its books exactly as before."
+        subtitle="Branches share one chart of accounts, tagged per entity for reporting â€” additive, so a tenant with no entities keeps its books exactly as before."
       />
 
       <MetricsRow cards={[
@@ -192,7 +192,7 @@ export function MultiEntityAccounting() {
                 </div>
               </div>
               {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-              <Button disabled={saving} onClick={saveEntity}>{saving ? 'Saving…' : 'Save entity'}</Button>
+              <Button disabled={saving} onClick={saveEntity}>{saving ? 'Savingâ€¦' : 'Save entity'}</Button>
             </SectionCard>
           )}
 
@@ -200,7 +200,7 @@ export function MultiEntityAccounting() {
             {loading ? (
               <SectionLoading />
             ) : entities.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No branches/entities configured — this tenant's books are one consolidated set, as they always have been.</div>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No branches/entities configured â€” this tenant's books are one consolidated set, as they always have been.</div>
             ) : (
               <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead><tr>{['Code', 'Name', 'Country', 'Currency', 'Status'].map(h => (
@@ -209,9 +209,9 @@ export function MultiEntityAccounting() {
                 <tbody>
                   {entities.map(e => (
                     <tr key={e.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>{e.entity_code}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>{e.entity_code}</td>
                       <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>{e.name}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{e.country_code || '—'}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{e.country_code || 'â€”'}</td>
                       <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{e.currency}</td>
                       <td style={{ padding: '12px 16px' }}><Badge variant={e.active ? 'success' : 'gray'}>{e.active ? 'active' : 'inactive'}</Badge></td>
                     </tr>
@@ -235,14 +235,14 @@ export function MultiEntityAccounting() {
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>From entity (billing) *</label>
                   <Select value={txnForm.fromEntityId} onValueChange={v => setTxnForm(p => ({ ...p, fromEntityId: v }))}>
-                    <SelectTrigger className="input-field"><SelectValue placeholder="Choose…" /></SelectTrigger>
+                    <SelectTrigger className="input-field"><SelectValue placeholder="Chooseâ€¦" /></SelectTrigger>
                     <SelectContent>{entities.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>To entity (paying) *</label>
                   <Select value={txnForm.toEntityId} onValueChange={v => setTxnForm(p => ({ ...p, toEntityId: v }))}>
-                    <SelectTrigger className="input-field"><SelectValue placeholder="Choose…" /></SelectTrigger>
+                    <SelectTrigger className="input-field"><SelectValue placeholder="Chooseâ€¦" /></SelectTrigger>
                     <SelectContent>{entities.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
@@ -271,7 +271,7 @@ export function MultiEntityAccounting() {
                 Posts two balanced entries: the from-entity is debited to an Intercompany Receivable clearing account and credited on its own account code; the to-entity is debited on its own account code and credited to Intercompany Payable.
               </div>
               {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-              <Button disabled={saving} onClick={saveTxn}>{saving ? 'Posting…' : 'Post transaction'}</Button>
+              <Button disabled={saving} onClick={saveTxn}>{saving ? 'Postingâ€¦' : 'Post transaction'}</Button>
             </SectionCard>
           )}
 
@@ -291,7 +291,7 @@ export function MultiEntityAccounting() {
                       <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink)' }}>{t.from_entity_name}</td>
                       <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink)' }}>{t.to_entity_name}</td>
                       <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{t.description}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>{t.currency} {Number(t.amount).toFixed(2)}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>{t.currency} {Number(t.amount).toFixed(2)}</td>
                       <td style={{ padding: '12px 16px' }}><Badge variant={t.status === 'posted' ? 'success' : 'gray'}>{t.status}</Badge></td>
                       <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                     </tr>
@@ -315,7 +315,7 @@ export function MultiEntityAccounting() {
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>To</label>
                 <DatePicker date={parseDateOnly(plTo)} onChange={d => setPlTo(toDateOnlyString(d))} />
               </div>
-              <Button onClick={loadConsolidated} disabled={consolidatedLoading}>{consolidatedLoading ? 'Loading…' : 'Refresh'}</Button>
+              <Button onClick={loadConsolidated} disabled={consolidatedLoading}>{consolidatedLoading ? 'Loadingâ€¦' : 'Refresh'}</Button>
             </div>
           </SectionCard>
 
@@ -333,16 +333,16 @@ export function MultiEntityAccounting() {
                   {consolidated.entities.map(e => (
                     <tr key={e.entityId ?? 'unassigned'} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{e.entityName}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--green)' }}>{e.totals.revenue.toLocaleString()}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--red)' }}>{e.totals.expenses.toLocaleString()}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>{e.totals.net.toLocaleString()}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--green)' }}>{e.totals.revenue.toLocaleString()}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--red)' }}>{e.totals.expenses.toLocaleString()}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>{e.totals.net.toLocaleString()}</td>
                     </tr>
                   ))}
                   <tr style={{ background: 'var(--bg)' }}>
                     <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Total</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--green)' }}>{consolidated.total.revenue.toLocaleString()}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--red)' }}>{consolidated.total.expenses.toLocaleString()}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>{consolidated.total.net.toLocaleString()}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--green)' }}>{consolidated.total.revenue.toLocaleString()}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--red)' }}>{consolidated.total.expenses.toLocaleString()}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>{consolidated.total.net.toLocaleString()}</td>
                   </tr>
                 </tbody>
               </table></div>

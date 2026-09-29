@@ -3622,6 +3622,33 @@ export interface PackageAppQuotasTable {
   updated_at: Generated<Date>;
 }
 
+export interface TenantFinanceCapabilitiesTable {
+  tenant_id: string;
+  capability_key: string;
+  enabled: Generated<boolean>;
+  enabled_by: string | null;
+  enabled_at: Date | null;
+  updated_at: Generated<Date>;
+}
+
+export interface TenantFinanceProfilesTable {
+  tenant_id: string;
+  industries: Generated<unknown>;
+  updated_by: string | null;
+  updated_at: Generated<Date>;
+}
+
+export interface FinanceBusinessLinesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface TenantAppUsageCountersTable {
   tenant_id: string;
   app_id: string;
@@ -5022,6 +5049,9 @@ export interface PlatformSigningIdentitiesTable {
 }
 
 export interface Database {
+  tenant_finance_capabilities: TenantFinanceCapabilitiesTable;
+  tenant_finance_profiles: TenantFinanceProfilesTable;
+  finance_business_lines: FinanceBusinessLinesTable;
   inventory_warehouses: InventoryWarehousesTable;
   inventory_locations: InventoryLocationsTable;
   inventory_items: InventoryItemsTable;

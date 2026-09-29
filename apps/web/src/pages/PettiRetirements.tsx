@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
@@ -97,7 +97,7 @@ export function PettiRetirements() {
         crumbs={['Petti', 'Activities', 'Expense Retirements']}
         titlePlain="Expense"
         titleEm="retirements"
-        subtitle="Reconcile disbursed petty cash advances against verified receipts — synchronized directly with FinOps."
+        subtitle="Reconcile disbursed petty cash advances against verified receipts â€” synchronized directly with FinOps."
       />
 
       {/* Summary Metrics */}
@@ -168,7 +168,7 @@ export function PettiRetirements() {
                     <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{new Date(e.date).toLocaleDateString()}</td>
                     <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{e.name}</td>
                     <td style={{ fontSize: 12, color: 'var(--ink2)' }}>{e.category || 'General'}</td>
-                    <td style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: 'var(--teal)' }}>
+                    <td style={{ fontFamily: 'var(--font)', fontWeight: 800, color: 'var(--teal)' }}>
                       {Number(e.amount).toLocaleString()}
                     </td>
                     <td><Badge variant={STATUS_VARIANT[e.retirement_status] || 'gray'}>{STATUS_LABEL[e.retirement_status] || e.retirement_status}</Badge></td>
@@ -204,7 +204,7 @@ export function PettiRetirements() {
                   <tr key={e.id}>
                     <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{new Date(e.date).toLocaleDateString()}</td>
                     <td style={{ color: 'var(--ink)' }}>{e.name}</td>
-                    <td style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>{Number(e.amount).toLocaleString()}</td>
+                    <td style={{ fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>{Number(e.amount).toLocaleString()}</td>
                     <td><Badge variant={STATUS_VARIANT[e.retirement_status] || 'gray'}>{STATUS_LABEL[e.retirement_status] || e.retirement_status}</Badge></td>
                   </tr>
                 ))}
@@ -220,12 +220,12 @@ export function PettiRetirements() {
           {retiring && (
             <>
               <DialogHeader>
-                <DialogTitle>Reconcile Advance — {retiring.name}</DialogTitle>
+                <DialogTitle>Reconcile Advance â€” {retiring.name}</DialogTitle>
               </DialogHeader>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Cash Advance Amount</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, fontFamily: 'var(--mono)', color: 'var(--teal)', marginTop: 2 }}>
+                  <div style={{ fontSize: 20, fontWeight: 900, fontFamily: 'var(--font)', color: 'var(--teal)', marginTop: 2 }}>
                     {Number(retiring.amount).toLocaleString()}
                   </div>
                 </div>
@@ -247,13 +247,13 @@ export function PettiRetirements() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Reconciliation Note</label>
-                  <Textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="Optional — e.g. details on exact receipt total, change returned, or discrepancy" />
+                  <Textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="Optional â€” e.g. details on exact receipt total, change returned, or discrepancy" />
                 </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" size="sm" disabled={saving} onClick={() => submitRetirement('written_off')}>Write Off</Button>
                 <Button type="button" variant="outline" size="sm" disabled={saving} onClick={() => submitRetirement('short')}>Mark Short</Button>
-                <Button type="button" size="sm" disabled={saving} onClick={() => submitRetirement('retired')}>{saving ? 'Saving…' : 'Fully Retired'}</Button>
+                <Button type="button" size="sm" disabled={saving} onClick={() => submitRetirement('retired')}>{saving ? 'Savingâ€¦' : 'Fully Retired'}</Button>
               </DialogFooter>
             </>
           )}

@@ -25,8 +25,10 @@ CREATE TABLE data_subject_requests (
   result_file_key TEXT,
   rejection_reason TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  -- Statutory 30-day deadline, auto-computed.
-  due_at TIMESTAMPTZ GENERATED ALWAYS AS (created_at + INTERVAL '30 days') STORED,
+  -- PostgreSQL does not allow timestamptz arithmetic in a generated column
+  -- because timezone conversion is not immutable. Both defaults are evaluated
+  -- in the same insert, preserving the statutory 30-day deadline.
+  due_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 days'),
   processed_at TIMESTAMPTZ,
   processed_by UUID REFERENCES users(id) ON DELETE SET NULL,
   -- A completed request must have a result file OR a rejection reason.

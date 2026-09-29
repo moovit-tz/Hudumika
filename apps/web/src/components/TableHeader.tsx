@@ -39,7 +39,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({ sortBy, setSortBy }) =
             className={`${h.className} ${isSortable ? 'th' : ''}`}
             onClick={isSortable ? () => setSortBy(h.field!) : undefined}
             style={{
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font)',
               fontSize: '10.5px',
               fontWeight: 600,
               color: isSelected ? 'var(--teal)' : 'var(--ink3)',

@@ -85,7 +85,7 @@
 .r6-preset-ref {
   opacity: 0.8;
   font-size: 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font);
 }
 
 .r6-playback-actions {
@@ -197,7 +197,7 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--ink3);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font);
 }
 
 /* ── Canvas Body Split ── */
@@ -365,7 +365,7 @@
   font-size: 13.5px;
   font-weight: 700;
   color: var(--ink3);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font);
 }
 
 .r6-status-indicator {
@@ -460,7 +460,7 @@
   font-weight: 700;
   color: var(--ink3);
   margin-bottom: 4px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font);
 }
 
 .r6-plate-big {
@@ -649,7 +649,7 @@
 }
 
 .r6-amount {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font);
   font-weight: 700;
 }
 

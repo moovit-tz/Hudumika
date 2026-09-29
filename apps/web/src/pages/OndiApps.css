@@ -1,9 +1,9 @@
-/* ══════════════════════════════════════════════════════════
-   OndiApps.css — Ondi Personal · Authorized Apps Hub
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   OndiApps.css â€” Ondi Personal Â· Authorized Apps Hub
    OAuth consent registry, scopes inspection, and access
    revocation. Mobile-first, 2x2 compact KPIs, 0% transparency,
    zero AI gradients.
-   ══════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .oa-page {
   display: flex;
@@ -12,7 +12,7 @@
   width: 100%;
 }
 
-/* ── Top Posture KPI Grid ── */
+/* â”€â”€ Top Posture KPI Grid â”€â”€ */
 .oa-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -99,7 +99,7 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-family: var(--mono);
+  font-family: var(--font);
 }
 
 .oa-kpi-sub {
@@ -110,7 +110,7 @@
   gap: 5px;
 }
 
-/* ── Main Layout: Content Grid (2 Columns Desktop) ── */
+/* â”€â”€ Main Layout: Content Grid (2 Columns Desktop) â”€â”€ */
 .oa-layout-grid {
   display: grid;
   grid-template-columns: 1fr 320px;
@@ -132,7 +132,7 @@
   gap: 20px;
 }
 
-/* ── Enterprise Card System (0% Transparency) ── */
+/* â”€â”€ Enterprise Card System (0% Transparency) â”€â”€ */
 .oa-card {
   background: var(--white, #ffffff);
   border: 1px solid var(--border);
@@ -182,7 +182,7 @@
   gap: 16px;
 }
 
-/* ── Filter & Search Toolbar ── */
+/* â”€â”€ Filter & Search Toolbar â”€â”€ */
 .oa-toolbar {
   display: flex;
   align-items: center;
@@ -218,7 +218,7 @@
   color: var(--ink3);
 }
 
-/* ── App Cards & List ── */
+/* â”€â”€ App Cards & List â”€â”€ */
 .oa-app-list {
   display: flex;
   flex-direction: column;
@@ -302,7 +302,7 @@
   color: var(--ink2);
 }
 
-/* ── Mobile Viewports (<640px) ── */
+/* â”€â”€ Mobile Viewports (<640px) â”€â”€ */
 @media (max-width: 640px) {
   .oa-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -360,7 +360,7 @@
   }
 }
 
-/* ── Tablet/Mobile Collapse (<1024px) ── */
+/* â”€â”€ Tablet/Mobile Collapse (<1024px) â”€â”€ */
 @media (max-width: 1024px) {
   .oa-layout-grid {
     grid-template-columns: 1fr;

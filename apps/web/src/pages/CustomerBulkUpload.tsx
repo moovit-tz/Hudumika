@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Banner } from '../components/ui/alert.js';
@@ -69,7 +69,7 @@ export const CustomerBulkUpload: React.FC = () => {
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 32 }}>
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* Template download — row on desktop; the icon+copy and the
+          {/* Template download â€” row on desktop; the icon+copy and the
               button stack on mobile instead of squeezing into a sliver
               between a fixed-width icon and a fixed-width button, which used
               to wrap the description into an unreadably narrow column. */}
@@ -149,7 +149,7 @@ export const CustomerBulkUpload: React.FC = () => {
                   borderRight: (!isMobile && i % 2 === 0) ? '1px solid var(--border)' : 'none',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                    <code style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 'var(--r-sm)' }}>{col}</code>
+                    <code style={{ fontSize: 11, fontFamily: 'var(--font)', color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 'var(--r-sm)' }}>{col}</code>
                     {req && <span style={{ fontSize: 10, color: 'var(--red)', fontWeight: 700 }}>required</span>}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{desc}</div>
@@ -175,7 +175,7 @@ export const CustomerBulkUpload: React.FC = () => {
                 onClick={handleImport}
                 disabled={uploading}
               >
-                <Icon name="upload" size={14} /> {uploading ? 'Uploading…' : 'Upload & Import'}
+                <Icon name="upload" size={14} /> {uploading ? 'Uploadingâ€¦' : 'Upload & Import'}
               </Button>
             </div>
           )}

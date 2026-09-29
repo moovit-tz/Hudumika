@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { FormPage } from '../components/FormPage.js';
@@ -51,7 +51,7 @@ const BILL_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
   VOID:    { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
 };
 
-/* ── Detail Panel ───────────────────────────────────────────────────────────── */
+/* â”€â”€ Detail Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const PO_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
   DRAFT:     { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
   SENT:      { bg: 'var(--blue-l)', color: 'var(--blue)' },
@@ -106,7 +106,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
           ].map(c => (
             <div key={c.label} style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{c.label}</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: c.color, fontFamily: 'var(--mono)' }}>{c.value}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: c.color, fontFamily: 'var(--font)' }}>{c.value}</div>
             </div>
           ))}
         </div>
@@ -121,10 +121,10 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Contact Details</div>
           {[
-            { icon: 'user'    as const, label: 'Contact Person', value: vendor.contactPerson || '—' },
-            { icon: 'mail'    as const, label: 'Email',          value: vendor.email || '—' },
-            { icon: 'phone'   as const, label: 'Phone',          value: vendor.phone || '—' },
-            { icon: 'mapPin'  as const, label: 'Address',        value: [vendor.address, vendor.city, vendor.country].filter(Boolean).join(', ') || '—' },
+            { icon: 'user'    as const, label: 'Contact Person', value: vendor.contactPerson || 'â€”' },
+            { icon: 'mail'    as const, label: 'Email',          value: vendor.email || 'â€”' },
+            { icon: 'phone'   as const, label: 'Phone',          value: vendor.phone || 'â€”' },
+            { icon: 'mapPin'  as const, label: 'Address',        value: [vendor.address, vendor.city, vendor.country].filter(Boolean).join(', ') || 'â€”' },
           ].map(r => (
             <div key={r.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
               <Icon name={r.icon} size={14} color="var(--ink3)" style={{ marginTop: 1, flexShrink: 0 }} />
@@ -140,14 +140,14 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Tax & Banking</div>
           {[
-            { label: 'Tax ID / TIN', value: vendor.taxId || '—' },
-            { label: 'Bank', value: vendor.bankName || '—' },
-            { label: 'Account No.', value: vendor.bankAccount || '—' },
+            { label: 'Tax ID / TIN', value: vendor.taxId || 'â€”' },
+            { label: 'Bank', value: vendor.bankName || 'â€”' },
+            { label: 'Account No.', value: vendor.bankAccount || 'â€”' },
             { label: 'Currency', value: vendor.currency },
           ].map(r => (
             <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
               <span style={{ color: 'var(--ink3)' }}>{r.label}</span>
-              <span style={{ fontWeight: 600, color: 'var(--ink)', fontFamily: r.label === 'Account No.' ? 'var(--mono)' : undefined }}>{r.value}</span>
+              <span style={{ fontWeight: 600, color: 'var(--ink)', fontFamily: r.label === 'Account No.' ? 'var(--font)' : undefined }}>{r.value}</span>
             </div>
           ))}
         </div>
@@ -166,11 +166,11 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
                 return (
                   <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{b.bill_number}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{b.bill_date ? String(b.bill_date).slice(0, 10) : '—'}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{b.bill_number}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{b.bill_date ? String(b.bill_date).slice(0, 10) : 'â€”'}</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{fmt(Number(b.total) || 0, b.currency)}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{fmt(Number(b.total) || 0, b.currency)}</div>
                       <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 'var(--r-sm)', ...bc }}>{b.status}</span>
                     </div>
                   </div>
@@ -194,11 +194,11 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
                 return (
                   <div key={po.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{po.po_number}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{po.order_date ? String(po.order_date).slice(0, 10) : '—'}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{po.po_number}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{po.order_date ? String(po.order_date).slice(0, 10) : 'â€”'}</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{fmt(Number(po.total) || 0, po.currency)}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{fmt(Number(po.total) || 0, po.currency)}</div>
                       <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 'var(--r-sm)', ...pc }}>{po.status}</span>
                     </div>
                   </div>
@@ -223,7 +223,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{e.name}</div>
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{e.date.split('T')[0]}</div>
                   </div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: e.is_revenue ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--mono)', flexShrink: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: e.is_revenue ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--font)', flexShrink: 0 }}>
                     {e.is_revenue ? '+' : '-'}{fmt(e.amount, 'TZS')}
                   </div>
                 </div>
@@ -243,7 +243,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
   );
 }
 
-/* ── Add / Edit Modal ───────────────────────────────────────────────────────── */
+/* â”€â”€ Add / Edit Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function VendorForm({ vendor, onSave, onClose }: {
   vendor: Vendor | null; onSave: (v: Vendor) => void | Promise<void>; onClose: () => void;
 }) {
@@ -277,7 +277,7 @@ function VendorForm({ vendor, onSave, onClose }: {
         <>
           <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
           <button type="button" onClick={handleSave} disabled={saving || !form.name.trim()} className="btn btn-primary">
-            <Icon name="check" size={14} color="#fff" /> {saving ? 'Saving…' : vendor ? 'Save Changes' : 'Add Vendor'}
+            <Icon name="check" size={14} color="#fff" /> {saving ? 'Savingâ€¦' : vendor ? 'Save Changes' : 'Add Vendor'}
           </button>
         </>
       }
@@ -349,7 +349,7 @@ function VendorForm({ vendor, onSave, onClose }: {
           </F>
           <div style={{ gridColumn: '1 / -1' }}>
             <F label="Notes">
-              <textarea style={{ ...inp, minHeight: 72, resize: 'vertical' } as React.CSSProperties} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Additional notes…" />
+              <textarea style={{ ...inp, minHeight: 72, resize: 'vertical' } as React.CSSProperties} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Additional notesâ€¦" />
             </F>
           </div>
         </div>
@@ -358,7 +358,7 @@ function VendorForm({ vendor, onSave, onClose }: {
   );
 }
 
-/* ── Main Page ──────────────────────────────────────────────────────────────── */
+/* â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export function FinanceVendors() {
   const { fmt } = useCurrency();
   const isMobile = useIsMobile();
@@ -409,7 +409,7 @@ export function FinanceVendors() {
 
   useEffect(() => { loadVendors(); }, []);
 
-  // Deep-link straight to a vendor's detail panel — same ?id= pattern
+  // Deep-link straight to a vendor's detail panel â€” same ?id= pattern
   // Customers.tsx already supports, now used for the "Paid To Supplier"
   // link on FinOps Expenses (Expenses.tsx).
   useEffect(() => {
@@ -436,8 +436,8 @@ export function FinanceVendors() {
 
   const stats = useMemo(() => {
     const now = new Date();
-    // Overdue = actually past its due_date and still carrying a balance —
-    // same rule Bills.tsx's own isOverdue() uses — not a guessed share of
+    // Overdue = actually past its due_date and still carrying a balance â€”
+    // same rule Bills.tsx's own isOverdue() uses â€” not a guessed share of
     // the total. "Payable" is simply what's left of outstanding once the
     // real overdue portion is subtracted, so the two always sum to the
     // real total rather than two independently-guessed percentages.
@@ -448,7 +448,7 @@ export function FinanceVendors() {
     }, 0);
     const paidThisMonth = billPayments.reduce((s, p) => {
       // Raw API field is payment_date (Bills.tsx's mapApiPayment renames it
-      // to `date` for its own state — this reads the unmapped response).
+      // to `date` for its own state â€” this reads the unmapped response).
       const d = p.payment_date ? new Date(p.payment_date) : null;
       const inThisMonth = d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
       return s + (inThisMonth ? (Number(p.amount) || 0) : 0);
@@ -544,7 +544,7 @@ export function FinanceVendors() {
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
           <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search vendors…"
+            placeholder="Search vendorsâ€¦"
             style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
         </div>
         <Select value={filterCat || '__all__'} onValueChange={v => setFilterCat(v === '__all__' ? '' : v as VendorCategory)}>
@@ -600,9 +600,9 @@ export function FinanceVendors() {
                       <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{v.id}</div>
                     </td>
                     <td style={{ padding: '12px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{VENDOR_CATEGORY_LABEL[v.category]}</td>
-                    <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>{v.contactPerson || '—'}</td>
-                    <td style={{ padding: '12px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap', fontFamily: 'var(--mono)', fontSize: 12 }}>{v.phone || '—'}</td>
-                    <td style={{ padding: '12px 14px', fontWeight: 700, color: v.balance > 0 ? 'var(--red)' : 'var(--ink3)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmt(v.balance)}</td>
+                    <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>{v.contactPerson || 'â€”'}</td>
+                    <td style={{ padding: '12px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap', fontFamily: 'var(--font)', fontSize: 12 }}>{v.phone || 'â€”'}</td>
+                    <td style={{ padding: '12px 14px', fontWeight: 700, color: v.balance > 0 ? 'var(--red)' : 'var(--ink3)', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmt(v.balance)}</td>
                     <td style={{ padding: '12px 14px' }}>
                       <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, ...sc }}>{v.status.toUpperCase()}</span>
                     </td>

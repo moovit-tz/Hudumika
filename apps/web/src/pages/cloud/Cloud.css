@@ -1392,7 +1392,7 @@
 
 /* ── Mono class name display ────────────────────────────────── */
 .cc-mono {
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-family: var(--font);
   font-size: 0.85em;
   background: var(--bg);
   border: 1px solid var(--border);

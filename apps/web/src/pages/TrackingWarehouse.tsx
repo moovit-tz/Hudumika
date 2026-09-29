@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
@@ -11,7 +11,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
-/** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native
+/** Format a Date to "YYYY-MM-DDTHH:mm" in local time â€” same shape a native
  *  <input type="datetime-local"> value had, so the existing string form
  *  state (submitted as scheduled_at) keeps working unchanged. */
 const toLocalDateTimeString = (d: Date): string => {
@@ -85,7 +85,7 @@ function AddLocationModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
             <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {saving ? 'Saving…' : 'Add location'}
+              {saving ? 'Savingâ€¦' : 'Add location'}
             </button>
           </div>
         </form>
@@ -104,7 +104,7 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    // DateTimePicker has no native `required` attribute — HTML5 form
+    // DateTimePicker has no native `required` attribute â€” HTML5 form
     // validation no longer catches an empty scheduled_at the way it did
     // when this was a plain <input type="datetime-local" required>, so it
     // needs an explicit check here.
@@ -143,8 +143,8 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
           <div>
             <label style={labelStyle}>Vehicle</label>
             <Combobox
-              options={[{ value: '', label: '— None —' }, ...vehicles.map(v => ({ value: v.id, label: v.name }))]}
-              value={vehicleId} onChange={setVehicleId} placeholder="— None —"
+              options={[{ value: '', label: 'â€” None â€”' }, ...vehicles.map(v => ({ value: v.id, label: v.name }))]}
+              value={vehicleId} onChange={setVehicleId} placeholder="â€” None â€”"
             />
           </div>
           <div><label style={labelStyle}>Reference</label><input value={reference} onChange={e => setReference(e.target.value)} style={inputStyle} /></div>
@@ -152,7 +152,7 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
             <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {saving ? 'Saving…' : 'Schedule'}
+              {saving ? 'Savingâ€¦' : 'Schedule'}
             </button>
           </div>
         </form>
@@ -221,7 +221,7 @@ export const TrackingWarehouse: React.FC = () => {
     reload();
   }
 
-  if (loading) return <div style={{ padding: 24, color: 'var(--ink3)', fontSize: 13 }}>Loading warehouse…</div>;
+  if (loading) return <div style={{ padding: 24, color: 'var(--ink3)', fontSize: 13 }}>Loading warehouseâ€¦</div>;
   if (locked) return <UpgradeEmptyState feature="Warehouse" />;
 
   return (
@@ -268,8 +268,8 @@ export const TrackingWarehouse: React.FC = () => {
                   <tr key={l.id} style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--ink)', fontFamily: 'monospace' }}>{l.code}</td>
                     <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.name}</td>
-                    <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.zone || '—'}</td>
-                    <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.capacity_units ?? '—'}</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.zone || 'â€”'}</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.capacity_units ?? 'â€”'}</td>
                     <td style={{ padding: '10px 14px' }}>
                       <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: l.active ? 'var(--green-l)' : 'var(--bg)', color: l.active ? 'var(--green)' : 'var(--ink3)' }}>{l.active ? 'ACTIVE' : 'INACTIVE'}</span>
                     </td>
@@ -303,13 +303,13 @@ export const TrackingWarehouse: React.FC = () => {
               </thead>
               <tbody>
                 {appointments.map(a => {
-                  const vName = vehicles.find(v => v.id === a.vehicle_id)?.name ?? '—';
+                  const vName = vehicles.find(v => v.id === a.vehicle_id)?.name ?? 'â€”';
                   return (
                     <tr key={a.id} style={{ borderTop: '1px solid var(--border)' }}>
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--ink)' }}>{a.dock_number}</td>
                       <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{a.appointment_type}</td>
                       <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{vName}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{a.reference || '—'}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{a.reference || 'â€”'}</td>
                       <td style={{ padding: '10px 14px', color: 'var(--ink3)', fontSize: 12 }}>{new Date(a.scheduled_at).toLocaleString()}</td>
                       <td style={{ padding: '10px 14px' }}>
                         <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: '#f1f5f9', color: 'var(--ink2)' }}>{a.status.replace('_', ' ')}</span>
@@ -332,9 +332,9 @@ export const TrackingWarehouse: React.FC = () => {
       {tab === 'map' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 16, alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {occupancyLoading && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading occupancy…</div>}
+            {occupancyLoading && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading occupancyâ€¦</div>}
             {!occupancyLoading && occupancy?.length === 0 && (
-              <div style={{ ...cardStyle, padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No active storage locations yet — add one under the Locations tab.</div>
+              <div style={{ ...cardStyle, padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No active storage locations yet â€” add one under the Locations tab.</div>
             )}
             {!occupancyLoading && occupancy?.map(z => (
               <SectionCard key={z.zone} title={z.zone} action={
@@ -350,10 +350,10 @@ export const TrackingWarehouse: React.FC = () => {
                     const color = pct == null ? 'var(--ink3)' : pct > 85 ? 'var(--red)' : pct > 60 ? 'var(--gold)' : 'var(--green)';
                     const bg = pct == null ? 'var(--bg)' : pct > 85 ? 'rgba(220,38,38,0.1)' : pct > 60 ? 'rgba(202,138,4,0.1)' : 'rgba(22,163,74,0.1)';
                     return (
-                      <div key={loc.id} title={`${loc.name} — ${loc.occupied_units} occupied${loc.capacity_units != null ? ` / ${loc.capacity_units} capacity` : ''}`}
+                      <div key={loc.id} title={`${loc.name} â€” ${loc.occupied_units} occupied${loc.capacity_units != null ? ` / ${loc.capacity_units} capacity` : ''}`}
                         style={{ border: `1.5px solid ${color}`, background: bg, borderRadius: 'var(--r)', padding: '10px 8px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{loc.code}</div>
-                        <div style={{ fontSize: 15, fontWeight: 800, color, marginTop: 4 }}>{pct != null ? `${pct}%` : '—'}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{loc.code}</div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color, marginTop: 4 }}>{pct != null ? `${pct}%` : 'â€”'}</div>
                         <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>{pct == null ? 'No capacity set' : `${loc.occupied_units}/${loc.capacity_units}`}</div>
                       </div>
                     );
@@ -368,7 +368,7 @@ export const TrackingWarehouse: React.FC = () => {
             {!insight && !insightLoading && !insightError && (
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Generate a rearrangement suggestion based on real occupancy data.</div>
             )}
-            {insightLoading && <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Analyzing occupancy…</div>}
+            {insightLoading && <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Analyzing occupancyâ€¦</div>}
             {insight && <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, marginBottom: 12, whiteSpace: 'pre-line' }}>{insight}</div>}
             {insightError && (
               <div style={{ fontSize: 12, color: insightError.includes('not configured') ? 'var(--ink3)' : 'var(--red)', marginBottom: 12 }}>
@@ -379,7 +379,7 @@ export const TrackingWarehouse: React.FC = () => {
             )}
             <button type="button" onClick={generateInsight} disabled={insightLoading}
               style={{ width: '100%', padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: insightLoading ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {insightLoading ? 'Generating…' : insight ? 'Regenerate' : 'Generate Insight'}
+              {insightLoading ? 'Generatingâ€¦' : insight ? 'Regenerate' : 'Generate Insight'}
             </button>
           </SectionCard>
           </div>

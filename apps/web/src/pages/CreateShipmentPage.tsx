@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { Icon } from '../components/Icon.js';
@@ -20,12 +20,12 @@ import { readXlsxSheets } from '../lib/xlsx-read.js';
 import './CreateShipmentPage.css';
 
 /**
- * Dangerous goods aren't a separate creation process — same clearing flow as
+ * Dangerous goods aren't a separate creation process â€” same clearing flow as
  * any other shipment, with one extra tag ("Nature of Goods") that reveals
  * the extra layer of legally-required fields a DG shipment needs (UN
  * number, packaging, shipper/consignee for the declaration itself). The
  * linked draft declaration this creates is then viewed/issued/printed
- * inline on the shipment's own page (see DangerousGoodsPanel.tsx) — there
+ * inline on the shipment's own page (see DangerousGoodsPanel.tsx) â€” there
  * is no separate declarations screen anymore.
  */
 interface DgReferenceEntry {
@@ -85,13 +85,13 @@ function OfficerMentionInput({
             <>
               <PersonAvatar userId={value.id} name={value.name} size={22} />
               <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1, fontWeight: 600 }}>{value.name}</span>
-              <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>×</button>
+              <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>Ã—</button>
             </>
           ) : (
             <input
               ref={inputRef}
               type="text"
-              placeholder="Type @ to search staff…"
+              placeholder="Type @ to search staffâ€¦"
               value={query}
               onChange={e => { setQuery(e.target.value); setOpen(true); }}
               onFocus={() => setOpen(true)}
@@ -116,7 +116,7 @@ function OfficerMentionInput({
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{o.name}</div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                {(o.role || '').replace(/_/g, ' ')}{o.department ? ` · ${o.department}` : ''}
+                {(o.role || '').replace(/_/g, ' ')}{o.department ? ` Â· ${o.department}` : ''}
               </div>
             </div>
             <span style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 700, background: 'var(--teal-l)', padding: '1px 7px', borderRadius: 'var(--badge-radius)', flexShrink: 0 }}>
@@ -135,7 +135,7 @@ export function CreateShipmentPage() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   // Arriving mid-invoice (Billing.tsx's "create shipment" EntityPicker
-  // option) — land back there with the new shipment instead of this page's
+  // option) â€” land back there with the new shipment instead of this page's
   // own detail view, the same round-trip CustomerOnboarding.tsx already
   // does for a brand-new customer.
   const returnTo = searchParams.get('returnTo') || '';
@@ -157,7 +157,7 @@ export function CreateShipmentPage() {
   const [ocrDeclarationData, setOcrDeclarationData] = useState<any | null>(null);
 
   const [excelFile, setExcelFile] = useState<File | null>(null);
-  /** What the uploaded sheet actually yielded — never a claim of success on
+  /** What the uploaded sheet actually yielded â€” never a claim of success on
    *  its own. Null until a file has been read. */
   const [excelReport, setExcelReport] = useState<{ ok: boolean; text: string; filled: string[] } | null>(null);
   const [excelBusy, setExcelBusy] = useState(false);
@@ -178,8 +178,8 @@ export function CreateShipmentPage() {
     goods_desc: '',
     bl_number: '',
     vessel: '',
-    // Blank, not a plausible route — the same reason container_number is
-    // blank below. These defaulted to 'Port of Shanghai' → 'Port of Dar es
+    // Blank, not a plausible route â€” the same reason container_number is
+    // blank below. These defaulted to 'Port of Shanghai' â†’ 'Port of Dar es
     // Salaam', so a shipment saved without the fields being touched claimed a
     // journey it never made. That is not cosmetic: co2.service.ts computes
     // emissions from the great-circle distance between exactly these two
@@ -197,7 +197,7 @@ export function CreateShipmentPage() {
     workflow_id: '',
     // Blank, not a generated number. This used to default to
     // 'MSKU' + a random 7 digits, so a shipment saved without the field being
-    // touched carried an invented container number — onto the declaration and
+    // touched carried an invented container number â€” onto the declaration and
     // into demurrage tracking, where it identifies a box that does not exist.
     container_number: '',
     container_size: '40HC' as const,
@@ -209,7 +209,7 @@ export function CreateShipmentPage() {
   
   const [createLoading, setCreateLoading] = useState(false);
 
-  // Nature of Goods — the tag the user asked for. Dangerous goods are not a
+  // Nature of Goods â€” the tag the user asked for. Dangerous goods are not a
   // separate creation process; picking it here just reveals the extra layer
   // of legally-required fields (mirrors DangerousGoodsPage.tsx's own form,
   // trimmed to what's essential inline) and, on submit, creates a draft
@@ -226,7 +226,7 @@ export function CreateShipmentPage() {
   const searchDg = async (q: string): Promise<PickerItem[]> => {
     if (!q.trim()) return [];
     const res: DgReferenceEntry[] = await apiFetch(`/v1/dangerous-goods/reference?q=${encodeURIComponent(q)}`);
-    return res.map(e => ({ id: e.un_number, label: `${e.un_number} — ${e.proper_shipping_name}`, sublabel: `Class ${e.class_or_division}${e.packing_group ? ` · PG ${e.packing_group}` : ''}` }));
+    return res.map(e => ({ id: e.un_number, label: `${e.un_number} â€” ${e.proper_shipping_name}`, sublabel: `Class ${e.class_or_division}${e.packing_group ? ` Â· PG ${e.packing_group}` : ''}` }));
   };
 
   const onPickDg = async (item: PickerItem | null) => {
@@ -248,7 +248,7 @@ export function CreateShipmentPage() {
    * Feedback on the container number as it is typed.
    *
    * ISO 6346 numbers carry a check digit, so a transposed pair is detectable
-   * — which is the whole point of the standard. This *warns* rather than
+   * â€” which is the whole point of the standard. This *warns* rather than
    * blocks: the check digit catches typing mistakes, but refusing to save a
    * shipment because a number the operator read off the box does not
    * checksum would be the app overruling reality. Never auto-corrects.
@@ -258,7 +258,7 @@ export function CreateShipmentPage() {
     if (!raw) return null;
     const m = /^([A-Z]{4})(\d{6})(\d)$/.exec(raw);
     if (!m) return { ok: false, text: 'A container number is 4 letters then 7 digits, e.g. MSKU1234565. Check what is stencilled on the box.' };
-    // Letters run 10..38 but skip every multiple of 11 (11, 22, 33) — the
+    // Letters run 10..38 but skip every multiple of 11 (11, 22, 33) â€” the
     // ISO 6346 equivalence table.
     const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const letterValue = (ch: string) => {
@@ -275,12 +275,12 @@ export function CreateShipmentPage() {
     for (let i = 0; i < 10; i++) {
       const ch = body[i];
       const v = i < 4 ? letterValue(ch) : Number(ch);
-      sum += v * (1 << i);                        // weights 1,2,4,…,512
+      sum += v * (1 << i);                        // weights 1,2,4,â€¦,512
     }
     const expected = (sum % 11) % 10;
     return Number(m[3]) === expected
       ? { ok: true, text: 'Check digit valid (ISO 6346).' }
-      : { ok: false, text: `Check digit does not match — ISO 6346 expects ${expected} for ${body}. Re-read the number; it will still save if you are sure.` };
+      : { ok: false, text: `Check digit does not match â€” ISO 6346 expects ${expected} for ${body}. Re-read the number; it will still save if you are sure.` };
   }, [createForm.container_number]);
 
   useEffect(() => {
@@ -298,7 +298,7 @@ export function CreateShipmentPage() {
     }).catch(() => {
       apiFetch('/v1/analytics/officers').then(res => setOfficers(res.data || []));
     });
-    // Active workflows the case can be put on — names only; the full config
+    // Active workflows the case can be put on â€” names only; the full config
     // lives in the Workflows app.
     apiFetch('/v1/workflows').then(res => {
       const list = (res.data || res || []) as any[];
@@ -370,7 +370,7 @@ export function CreateShipmentPage() {
   /**
    * The columns the template ships with and the importer understands. One
    * list drives both, so the file you download is by construction the file
-   * this reads — they cannot drift apart.
+   * this reads â€” they cannot drift apart.
    */
   const TEMPLATE_COLUMNS: { header: string; field: keyof typeof createForm | null; example: string }[] = [
     { header: 'BL / Doc Number',  field: 'bl_number',        example: 'MEDU90123456' },
@@ -385,7 +385,7 @@ export function CreateShipmentPage() {
     { header: 'Seal Number',      field: 'seal_number',      example: 'SL7788213' },
   ];
 
-  /** Downloads the template as CSV — a real file, not an alert. CSV rather
+  /** Downloads the template as CSV â€” a real file, not an alert. CSV rather
    *  than .xlsx so it needs no writer library and opens in Excel either way. */
   const downloadTemplate = () => {
     const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
@@ -394,7 +394,7 @@ export function CreateShipmentPage() {
       TEMPLATE_COLUMNS.map(c => esc(c.example)).join(','),
     ].join('\r\n') + '\r\n';
     // BOM so Excel opens it as UTF-8 rather than the system codepage.
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob(['ï»¿' + csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -407,7 +407,7 @@ export function CreateShipmentPage() {
    * Reads an uploaded sheet and fills what it recognises.
    *
    * This used to store the File, wait a second, advance the step and announce
-   * "parsed successfully" — the file was never opened and nothing was filled.
+   * "parsed successfully" â€” the file was never opened and nothing was filled.
    * Now it reports exactly which fields came from the sheet, and says so
    * plainly when it recognised nothing.
    */
@@ -529,7 +529,7 @@ export function CreateShipmentPage() {
             user_id: createForm.assigned_to,
             type:    'assignment',
             title:   `You've been assigned ${refNumber}`,
-            message: `You have been assigned to handle: ${createForm.goods_desc}. From ${createForm.origin_port} → ${createForm.dest_port}.`,
+            message: `You have been assigned to handle: ${createForm.goods_desc}. From ${createForm.origin_port} â†’ ${createForm.dest_port}.`,
             link:    `/clearos/clearance/${shipmentId}`,
             metadata: { shipment_id: shipmentId, assigned_by: user?.name || 'Operations' },
           }),
@@ -558,7 +558,7 @@ export function CreateShipmentPage() {
             }),
           });
         } catch (err: any) {
-          // The shipment itself was created successfully — don't undo that or
+          // The shipment itself was created successfully â€” don't undo that or
           // block navigation over this second call failing. Stay honest about
           // it rather than silently dropping the declaration.
           showAlert(
@@ -671,14 +671,14 @@ export function CreateShipmentPage() {
                   >
                     <div style={{ marginBottom: 16 }}><Icon name="fileText" size={48} color="var(--ink3)" /></div>
                     <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 8 }}>Drop or click to upload a document</div>
-                    <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Bill of Lading · Commercial Invoice · Packing List · Air Waybill</div>
+                    <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Bill of Lading Â· Commercial Invoice Â· Packing List Â· Air Waybill</div>
                     <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8 }}>PNG, JPG, WEBP, PDF supported</div>
                   </div>
                 )}
                 {ocrScanning && (
                   <div style={{ textAlign: 'center', padding: '60px 0' }}>
                     <Spinner size={56} thickness={4} trackColor="var(--teal-l)" style={{ margin: '0 auto 16px' }} />
-                    <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>Scanning document…</div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>Scanning documentâ€¦</div>
                     <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 8 }}>Our AI is extracting shipment data and line items.</div>
                   </div>
                 )}
@@ -706,10 +706,10 @@ export function CreateShipmentPage() {
                     <Icon name="download" size={16} /> Download Template
                   </button>
                   <button className="btn btn-primary" disabled={excelBusy} onClick={() => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx,.csv'; inp.onchange = (ev: any) => { const f = ev.target.files?.[0]; if (f) void importSheet(f); }; inp.click(); }}>
-                    <Icon name="upload" size={16} /> {excelBusy ? 'Reading…' : 'Upload Filled Excel'}
+                    <Icon name="upload" size={16} /> {excelBusy ? 'Readingâ€¦' : 'Upload Filled Excel'}
                   </button>
                 </div>
-                {/* The result of actually reading the file — which fields it
+                {/* The result of actually reading the file â€” which fields it
                     yielded, or why it yielded none. Advancing is the user's
                     call, so a sheet that read nothing does not silently move
                     them on as though it had worked. */}
@@ -733,7 +733,7 @@ export function CreateShipmentPage() {
             {currentStep === 3 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {/* Names what was pre-filled and from where. The old copy said
-                    "Data applied — additional details will be pre-filled"
+                    "Data applied â€” additional details will be pre-filled"
                     whenever a file had merely been selected, including when
                     nothing had been read from it at all. */}
                 {(ocrResult || excelReport?.ok) && (
@@ -743,7 +743,7 @@ export function CreateShipmentPage() {
                       {excelReport?.ok
                         ? <>Pre-filled from <strong>{excelFile?.name}</strong>: {excelReport.filled.join(', ')}. </>
                         : <>Pre-filled from the scanned document. </>}
-                      Check every field before creating the shipment — nothing here has been verified against the carrier.
+                      Check every field before creating the shipment â€” nothing here has been verified against the carrier.
                     </span>
                   </div>
                 )}
@@ -755,7 +755,7 @@ export function CreateShipmentPage() {
                       options={customers.map(c => ({ value: c.id, label: c.name }))}
                       value={createForm.customer_id}
                       onChange={v => setCreateForm(p => ({ ...p, customer_id: v }))}
-                      placeholder="Choose customer…"
+                      placeholder="Choose customerâ€¦"
                     />
                   </div>
                   <div style={{ flex: 1 }}>
@@ -763,8 +763,8 @@ export function CreateShipmentPage() {
                     <Select value={createForm.type} onValueChange={v => setCreateForm(p => ({ ...p, type: v as ShipmentType }))}>
                       <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="SEA_FCL">Sea — FCL</SelectItem>
-                        <SelectItem value="SEA_LCL">Sea — LCL</SelectItem>
+                        <SelectItem value="SEA_FCL">Sea â€” FCL</SelectItem>
+                        <SelectItem value="SEA_LCL">Sea â€” LCL</SelectItem>
                         <SelectItem value="AIR">Air Cargo</SelectItem>
                         <SelectItem value="ROAD">Road Freight</SelectItem>
                         <SelectItem value="RAIL">Rail</SelectItem>
@@ -791,7 +791,7 @@ export function CreateShipmentPage() {
                 </div>
 
                 {/* Dangerous goods follow the same clearing flow as any other
-                    shipment — this just tags it and collects the extra layer
+                    shipment â€” this just tags it and collects the extra layer
                     of legally-required fields, right here, instead of a
                     separate creation process. A linked draft declaration is
                     created together with the shipment on submit. */}
@@ -799,7 +799,7 @@ export function CreateShipmentPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 18, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Icon name="alertTriangle" size={16} color="var(--gold)" />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Dangerous goods — extra requirements</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Dangerous goods â€” extra requirements</span>
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -8 }}>
                       Creates a linked draft declaration alongside this shipment. Issue and print it from the shipment's own page once confirmed.
@@ -819,7 +819,7 @@ export function CreateShipmentPage() {
                       </div>
                       <div style={{ flex: 2 }}>
                         <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>UN number / goods *</label>
-                        <EntityPicker value={selectedDg} onChange={onPickDg} search={searchDg} placeholder="Search UN number or name…" />
+                        <EntityPicker value={selectedDg} onChange={onPickDg} search={searchDg} placeholder="Search UN number or nameâ€¦" />
                       </div>
                     </div>
 
@@ -830,7 +830,7 @@ export function CreateShipmentPage() {
                         <span style={{ color: 'var(--ink3)' }}>
                           Class {selectedDgEntry.class_or_division}
                           {selectedDgEntry.subsidiary_risk ? ` (sub. ${selectedDgEntry.subsidiary_risk})` : ''}
-                          {selectedDgEntry.packing_group ? ` · PG ${selectedDgEntry.packing_group}` : ''}
+                          {selectedDgEntry.packing_group ? ` Â· PG ${selectedDgEntry.packing_group}` : ''}
                         </span>
                         {dgForm.transportMode === 'AIR' && selectedDgEntry.air_transport_restriction && (
                           <span style={{
@@ -931,27 +931,27 @@ export function CreateShipmentPage() {
             {currentStep === 4 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <div style={{ padding: 24, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginBottom: 6 }}>{createForm.goods_desc || '—'}</h3>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginBottom: 6 }}>{createForm.goods_desc || 'â€”'}</h3>
                   <div style={{ fontSize: 14, color: 'var(--ink2)', fontWeight: 600, marginBottom: 20 }}>
-                    {customers.find(c => c.id === createForm.customer_id)?.name || 'Unknown Customer'} · {createForm.type.replace('_', ' ')}
+                    {customers.find(c => c.id === createForm.customer_id)?.name || 'Unknown Customer'} Â· {createForm.type.replace('_', ' ')}
                   </div>
                   
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 24px' }}>
                     <div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Route</div>
-                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{createForm.origin_port || '—'} → {createForm.dest_port || '—'}</div>
+                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{createForm.origin_port || 'â€”'} â†’ {createForm.dest_port || 'â€”'}</div>
                     </div>
                     <div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Vessel</div>
-                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{createForm.vessel || '—'}</div>
+                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{createForm.vessel || 'â€”'}</div>
                     </div>
                     <div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>BL / Doc #</div>
-                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600, fontFamily: 'var(--mono)' }}>{createForm.bl_number || '—'}</div>
+                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600, fontFamily: 'var(--font)' }}>{createForm.bl_number || 'â€”'}</div>
                     </div>
                     <div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>ETA</div>
-                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{createForm.eta || '—'}</div>
+                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{createForm.eta || 'â€”'}</div>
                     </div>
                   </div>
                 </div>
@@ -1000,7 +1000,7 @@ export function CreateShipmentPage() {
                   {missingRequired.length > 0 && (
                     <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
                       Still needed: <strong style={{ color: 'var(--ink2)' }}>{missingRequired.join(', ')}</strong>
-                      {' · '}
+                      {' Â· '}
                       <button type="button" onClick={() => setCurrentStep(3)}
                         style={{ background: 'none', border: 'none', padding: 0, color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}>
                         Go back

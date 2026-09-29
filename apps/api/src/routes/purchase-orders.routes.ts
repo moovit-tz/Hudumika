@@ -1,4 +1,5 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireFinanceCapability } from '../middleware/finance-capability.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
@@ -103,6 +104,7 @@ async function buildPoLines(
 export async function purchaseOrderRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
+  fastify.addHook('preHandler', requireFinanceCapability('finance.procurement'));
 
   // GET /v1/purchase-orders
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,

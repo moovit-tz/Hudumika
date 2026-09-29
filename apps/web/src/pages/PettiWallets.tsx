@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+﻿import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -30,7 +30,7 @@ interface Wallet {
 }
 
 export function PettiWallets() {
-  usePageSEO('Petty Cash Wallets', 'Deposit funds, then request, approve and disburse petty cash — every disbursement lands in FinOps’s own Expenses view automatically.');
+  usePageSEO('Petty Cash Wallets', 'Deposit funds, then request, approve and disburse petty cash â€” every disbursement lands in FinOpsâ€™s own Expenses view automatically.');
   const { user } = useAuth();
   const navigate = useNavigate();
   const canManage = !!user && FINANCE_ROLES.has(user.role);
@@ -240,7 +240,7 @@ export function PettiWallets() {
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search wallets by name or description…"
+            placeholder="Search wallets by name or descriptionâ€¦"
           />
         </div>
       </div>
@@ -254,7 +254,7 @@ export function PettiWallets() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Currency Code</label>
-              <Input value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={5} placeholder="TZS, USD, KES…" />
+              <Input value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={5} placeholder="TZS, USD, KESâ€¦" />
             </div>
             <div style={{ gridColumn: 'span 3' }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Description & Purpose</label>
@@ -263,7 +263,7 @@ export function PettiWallets() {
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 8 }}>
-            <Button disabled={saving} onClick={saveNewWallet}>{saving ? 'Creating…' : 'Create Wallet'}</Button>
+            <Button disabled={saving} onClick={saveNewWallet}>{saving ? 'Creatingâ€¦' : 'Create Wallet'}</Button>
             <Button variant="outline" onClick={() => { setShowForm(false); setError(null); }}>Cancel</Button>
           </div>
         </SectionCard>
@@ -295,7 +295,7 @@ export function PettiWallets() {
                   </p>
 
                   <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Current Liquidity Balance</div>
-                  <div style={{ fontSize: 26, fontWeight: 900, fontFamily: 'var(--mono)', color: w.balance < 0 ? 'var(--red)' : 'var(--ink)', margin: '4px 0 0 0' }}>
+                  <div style={{ fontSize: 26, fontWeight: 900, fontFamily: 'var(--font)', color: w.balance < 0 ? 'var(--red)' : 'var(--ink)', margin: '4px 0 0 0' }}>
                     {Number(w.balance).toLocaleString()} <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink3)' }}>{w.currency}</span>
                   </div>
                 </div>
@@ -354,8 +354,8 @@ export function PettiWallets() {
                       <td style={{ fontWeight: 700, color: 'var(--ink)' }}>
                         <Link to={`/petti/wallets/${w.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{w.name}</Link>
                       </td>
-                      <td style={{ color: 'var(--ink2)' }}>{w.description || '—'}</td>
-                      <td style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: w.balance < 0 ? 'var(--red)' : 'var(--ink)' }}>
+                      <td style={{ color: 'var(--ink2)' }}>{w.description || 'â€”'}</td>
+                      <td style={{ fontFamily: 'var(--font)', fontWeight: 800, color: w.balance < 0 ? 'var(--red)' : 'var(--ink)' }}>
                         {Number(w.balance).toLocaleString()} {w.currency}
                       </td>
                       <td>
@@ -414,7 +414,7 @@ export function PettiWallets() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingWallet(null)}>Cancel</Button>
-            <Button disabled={updating} onClick={saveEditWallet}>{updating ? 'Saving…' : 'Save Changes'}</Button>
+            <Button disabled={updating} onClick={saveEditWallet}>{updating ? 'Savingâ€¦' : 'Save Changes'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

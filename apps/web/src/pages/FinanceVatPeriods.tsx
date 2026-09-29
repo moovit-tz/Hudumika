@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
@@ -17,7 +17,7 @@ import { SectionCard } from '../components/SectionCard.js';
  * Closing one is what turns the return from a live query into a filed figure:
  * the computed return is stored verbatim, the partial-exemption restriction is
  * posted as a real journal, and every document dated inside the period stops
- * being editable. Reopening keeps the original snapshot — what was filed was
+ * being editable. Reopening keeps the original snapshot â€” what was filed was
  * filed.
  */
 
@@ -212,10 +212,10 @@ export function FinanceVatPeriods() {
               <DatePicker date={parseDateOnly(to)} onChange={d => setTo(toDateOnlyString(d))} />
             </div>
             <button type="button" className="btn btn-primary btn-sm" disabled={busy === 'create'} onClick={create}>
-              <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> {busy === 'create' ? 'Creating…' : 'New period'}
+              <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> {busy === 'create' ? 'Creatingâ€¦' : 'New period'}
             </button>
             <div style={{ fontSize: 11.5, color: 'var(--ink3)', flex: '1 1 240px', minWidth: 200, lineHeight: 1.5 }}>
-              Periods cannot overlap within a jurisdiction — a document must belong to exactly one return.
+              Periods cannot overlap within a jurisdiction â€” a document must belong to exactly one return.
             </div>
           </div>
         </SectionCard>
@@ -240,8 +240,8 @@ export function FinanceVatPeriods() {
             )}
             {periods.map(p => (
               <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={{ ...td, color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--mono)', fontSize: 12 }}>
-                  {String(p.period_start).slice(0, 10)} → {String(p.period_end).slice(0, 10)}
+                <td style={{ ...td, color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--font)', fontSize: 12 }}>
+                  {String(p.period_start).slice(0, 10)} â†’ {String(p.period_end).slice(0, 10)}
                 </td>
                 <td style={td}>{p.jurisdiction}</td>
                 <td style={td}>
@@ -256,10 +256,10 @@ export function FinanceVatPeriods() {
                     </Tip>
                   )}
                 </td>
-                <td style={{ ...td, fontFamily: 'var(--mono)' }}>
-                  {Number(p.adjustment_amount) > 0 ? fmt(Number(p.adjustment_amount)) : '—'}
+                <td style={{ ...td, fontFamily: 'var(--font)' }}>
+                  {Number(p.adjustment_amount) > 0 ? fmt(Number(p.adjustment_amount)) : 'â€”'}
                 </td>
-                <td style={td}>{p.closed_at ? String(p.closed_at).slice(0, 10) : '—'}</td>
+                <td style={td}>{p.closed_at ? String(p.closed_at).slice(0, 10) : 'â€”'}</td>
                 <td style={{ ...td, textAlign: 'right' }}>
                   <button type="button" className="btn btn-secondary btn-sm" disabled={busy === p.id}
                     onClick={() => view(p)} style={{ marginRight: 6 }}>
@@ -285,7 +285,7 @@ export function FinanceVatPeriods() {
         <SectionCard
           padded={false}
           collapsible={false}
-          title={`${String(open.period.period_start).slice(0, 10)} → ${String(open.period.period_end).slice(0, 10)}${open.provisional ? ' · provisional, recomputed live' : ' · as filed'}`}
+          title={`${String(open.period.period_start).slice(0, 10)} â†’ ${String(open.period.period_end).slice(0, 10)}${open.provisional ? ' Â· provisional, recomputed live' : ' Â· as filed'}`}
           action={<button type="button" className="btn btn-secondary btn-sm" onClick={() => setOpen(null)}>
             <Icon name="x" size={13} /> Close
           </button>}
@@ -303,7 +303,7 @@ export function FinanceVatPeriods() {
               ].map((r, i) => (
                 <tr key={i} style={{ borderTop: r.rule ? '2px solid var(--border)' : '1px solid var(--border)' }}>
                   <td style={{ ...td, whiteSpace: 'normal', color: r.muted ? 'var(--ink3)' : 'var(--ink)', fontWeight: r.strong ? 700 : 500 }}>{r.l}</td>
-                  <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontWeight: r.strong ? 800 : 600, color: r.muted ? 'var(--ink3)' : 'var(--ink)' }}>{fmt(r.v)}</td>
+                  <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font)', fontWeight: r.strong ? 800 : 600, color: r.muted ? 'var(--ink3)' : 'var(--ink)' }}>{fmt(r.v)}</td>
                 </tr>
               ))}
             </tbody>

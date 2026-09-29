@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
@@ -11,7 +11,7 @@ import { SectionCard } from '../components/SectionCard.js';
 export const FinanceAgedReceivables: React.FC = () => {
   const co = useCompany();
   const cur = co.currency ?? 'TZS';
-  const fmtFull = (n: number) => n > 0 ? `${cur} ${n.toLocaleString()}` : '—';
+  const fmtFull = (n: number) => n > 0 ? `${cur} ${n.toLocaleString()}` : 'â€”';
 
   const [report, setReport] = useState<AgedReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,8 +30,8 @@ export const FinanceAgedReceivables: React.FC = () => {
   // Aged-receivables rows are grouped by the invoice's free-text client_name
   // (no customer_id on sales_invoices historically), so entity_id here is a
   // name, not a customer UUID. Resolve it against real customer records the
-  // same way the invoice→customer backfill did: case-insensitive, trimmed
-  // name match — so "View statement" only links when a profile truly exists.
+  // same way the invoiceâ†’customer backfill did: case-insensitive, trimmed
+  // name match â€” so "View statement" only links when a profile truly exists.
   useEffect(() => {
     let alive = true;
     apiFetch('/v1/customers')
@@ -80,7 +80,7 @@ export const FinanceAgedReceivables: React.FC = () => {
         crumbs={['Finance', 'Reports']}
         titlePlain="Aged"
         titleEm="receivables"
-        subtitle={`Outstanding customer balances by age${asOf ? ` — as of ${asOf}` : ''}`}
+        subtitle={`Outstanding customer balances by age${asOf ? ` â€” as of ${asOf}` : ''}`}
         actions={
           <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
             <Icon name="download" size={13} /> Export
@@ -89,7 +89,7 @@ export const FinanceAgedReceivables: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading aged receivables…</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading aged receivablesâ€¦</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
@@ -108,7 +108,7 @@ export const FinanceAgedReceivables: React.FC = () => {
           },
           {
             title: 'Total Overdue', value: fmtFull(overdue), icon: 'alertTriangle', invertTrend: true,
-            sub1Label: '1–90 DAYS', sub1Value: fmtFull(totals.days_1_30 + totals.days_31_60 + totals.days_61_90),
+            sub1Label: '1â€“90 DAYS', sub1Value: fmtFull(totals.days_1_30 + totals.days_31_60 + totals.days_61_90),
             sub2Label: '90+ DAYS', sub2Value: fmtFull(totals.days_90_plus), barHighlight: 'var(--red)',
           },
           {
@@ -123,9 +123,9 @@ export const FinanceAgedReceivables: React.FC = () => {
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {[
               { label: 'Current',   value: totals.current,      color: 'var(--green)'  },
-              { label: '1–30 Days', value: totals.days_1_30,    color: 'var(--gold)'       },
-              { label: '31–60 Days',value: totals.days_31_60,   color: 'var(--red)'    },
-              { label: '61–90 Days',value: totals.days_61_90,   color: 'var(--red)'    },
+              { label: '1â€“30 Days', value: totals.days_1_30,    color: 'var(--gold)'       },
+              { label: '31â€“60 Days',value: totals.days_31_60,   color: 'var(--red)'    },
+              { label: '61â€“90 Days',value: totals.days_61_90,   color: 'var(--red)'    },
               { label: '90+ Days',  value: totals.days_90_plus, color: 'var(--purple)'       },
             ].map(band => {
               const pct = totals.total > 0 ? Math.round((band.value / totals.total) * 100) : 0;
@@ -138,7 +138,7 @@ export const FinanceAgedReceivables: React.FC = () => {
                   <div style={{ height: 6, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${pct}%`, background: band.color, borderRadius: 'var(--r-sm)'}} />
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4, fontFamily: 'var(--mono)' }}>{fmtFull(band.value)}</div>
+                  <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4, fontFamily: 'var(--font)' }}>{fmtFull(band.value)}</div>
                 </div>
               );
             })}
@@ -154,7 +154,7 @@ export const FinanceAgedReceivables: React.FC = () => {
             <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%', minWidth: 800 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)' }}>
-                  {['Customer', 'Current', '1–30 Days', '31–60 Days', '61–90 Days', '90+ Days', 'Total', 'Status', ''].map(h => (
+                  {['Customer', 'Current', '1â€“30 Days', '31â€“60 Days', '61â€“90 Days', '90+ Days', 'Total', 'Status', ''].map(h => (
                     <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -166,12 +166,12 @@ export const FinanceAgedReceivables: React.FC = () => {
                   return (
                     <tr key={c.entity_id} style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none' }}>
                       <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.entity_name}</td>
-                      <td style={{ padding: '10px 16px', color: 'var(--green)',  fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(c.current)}</td>
-                      <td style={{ padding: '10px 16px', color: 'var(--gold)',       fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(c.days_1_30)}</td>
-                      <td style={{ padding: '10px 16px', color: 'var(--red)',    fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(c.days_31_60)}</td>
-                      <td style={{ padding: '10px 16px', color: 'var(--red)',    fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(c.days_61_90)}</td>
-                      <td style={{ padding: '10px 16px', color: 'var(--purple)',       fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(c.days_90_plus)}</td>
-                      <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 700, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(c.total)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--green)',  fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(c.current)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--gold)',       fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(c.days_1_30)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--red)',    fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(c.days_31_60)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--red)',    fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(c.days_61_90)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--purple)',       fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(c.days_90_plus)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 700, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(c.total)}</td>
                       <td style={{ padding: '10px 16px' }}>
                         <span style={{ fontSize: 10, fontWeight: 700, color: badge.color, background: badge.bg, borderRadius: 'var(--r-sm)', padding: '2px 7px' }}>{badge.label}</span>
                       </td>
@@ -190,12 +190,12 @@ export const FinanceAgedReceivables: React.FC = () => {
                 })}
                 <tr style={{ background: 'var(--bg)' }}>
                   <td style={{ padding: '10px 16px', fontWeight: 700, color: 'var(--ink)', borderTop: '2px solid var(--border)' }}>Total</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--green)',  fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.current)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--gold)',       fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_1_30)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--red)',    fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_31_60)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--red)',    fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_61_90)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--purple)',       fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_90_plus)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.total)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--green)',  fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.current)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--gold)',       fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_1_30)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--red)',    fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_31_60)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--red)',    fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_61_90)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--purple)',       fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_90_plus)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.total)}</td>
                   <td style={{ borderTop: '2px solid var(--border)' }} />
                   <td style={{ borderTop: '2px solid var(--border)' }} />
                 </tr>

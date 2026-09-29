@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
@@ -14,7 +14,7 @@ interface Booking {
   origin_port: string; destination_port: string; cargo_desc: string | null;
   status: 'REQUESTED' | 'RATE_QUOTED' | 'CONFIRMED' | 'CANCELLED';
   // Postgres numeric columns come back through pg/Kysely as strings, not JS
-  // numbers — .toFixed() on these without Number(...) first throws.
+  // numbers â€” .toFixed() on these without Number(...) first throws.
   quoted_cost: string | number | null; quoted_sell: string | number | null; currency: string;
   vessel_name: string | null; converted_shipment_id: string | null; created_at: string;
 }
@@ -129,7 +129,7 @@ export function FreightBookingsPage() {
 
       <SectionCard padded={false}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading bookings…</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading bookingsâ€¦</div>
         ) : bookings.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No freight bookings yet.</div>
         ) : (
@@ -142,20 +142,20 @@ export function FreightBookingsPage() {
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{b.booking_number}</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{b.booking_number}</span>
                       <Badge variant={STATUS_VARIANT[b.status]}>{STATUS_LABEL[b.status]}</Badge>
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
-                      {b.customer_name || 'Unknown customer'} · {b.origin_port} → {b.destination_port} · {b.mode}
-                      {b.carrier_name && ` · ${b.carrier_name}`}
+                      {b.customer_name || 'Unknown customer'} Â· {b.origin_port} â†’ {b.destination_port} Â· {b.mode}
+                      {b.carrier_name && ` Â· ${b.carrier_name}`}
                     </div>
                   </div>
                   {b.quoted_sell != null && (
-                    <div style={{ fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--teal)', fontWeight: 700 }}>{b.currency} {Number(b.quoted_sell).toFixed(2)}</div>
+                    <div style={{ fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--teal)', fontWeight: 700 }}>{b.currency} {Number(b.quoted_sell).toFixed(2)}</div>
                   )}
                   {b.converted_shipment_id && (
                     <Link to={`/clearos/clearance/${b.converted_shipment_id}`} onClick={e => e.stopPropagation()} style={{ fontSize: 12, color: 'var(--teal)', textDecoration: 'none', fontWeight: 600 }}>
-                      View shipment →
+                      View shipment â†’
                     </Link>
                   )}
                   {(b.status === 'REQUESTED') && (
@@ -174,15 +174,15 @@ export function FreightBookingsPage() {
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Rate card</label>
                         <Combobox
-                          options={rateCards.filter(r => r.origin_port === b.origin_port && r.destination_port === b.destination_port).map(r => ({ value: r.id, label: `${r.carrier_name} — ${r.currency} ${r.sell_rate}` }))}
+                          options={rateCards.filter(r => r.origin_port === b.origin_port && r.destination_port === b.destination_port).map(r => ({ value: r.id, label: `${r.carrier_name} â€” ${r.currency} ${r.sell_rate}` }))}
                           value={quoteForm.rate_card_id}
                           onChange={v => applyRateCard(b, v)}
-                          placeholder="Pick a matching rate card…"
+                          placeholder="Pick a matching rate cardâ€¦"
                         />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Carrier</label>
-                        <Combobox options={carriers.map(c => ({ value: c.id, label: c.name }))} value={quoteForm.carrier_id} onChange={v => setQuoteForm(p => ({ ...p, carrier_id: v }))} placeholder="Choose carrier…" />
+                        <Combobox options={carriers.map(c => ({ value: c.id, label: c.name }))} value={quoteForm.carrier_id} onChange={v => setQuoteForm(p => ({ ...p, carrier_id: v }))} placeholder="Choose carrierâ€¦" />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Cost rate *</label>
@@ -194,13 +194,13 @@ export function FreightBookingsPage() {
                       </div>
                     </div>
                     {error && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{error}</div>}
-                    <button type="button" className="btn btn-primary btn-sm" onClick={() => submitQuote(b)} disabled={busy}>{busy ? 'Saving…' : 'Save Quote'}</button>
+                    <button type="button" className="btn btn-primary btn-sm" onClick={() => submitQuote(b)} disabled={busy}>{busy ? 'Savingâ€¦' : 'Save Quote'}</button>
                   </div>
                 )}
 
                 {expanded === b.id && b.status === 'RATE_QUOTED' && (
                   <div style={{ padding: '0 20px 20px', background: 'var(--bg)' }}>
-                    <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Confirming creates a real clearance case — enter what the carrier gave you.</p>
+                    <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Confirming creates a real clearance case â€” enter what the carrier gave you.</p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 12 }}>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Vessel / Flight *</label>
@@ -228,7 +228,7 @@ export function FreightBookingsPage() {
                       </div>
                     </div>
                     {error && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{error}</div>}
-                    <button type="button" className="btn btn-primary btn-sm" onClick={() => submitConfirm(b)} disabled={busy}>{busy ? 'Confirming…' : 'Confirm Booking → Create Shipment'}</button>
+                    <button type="button" className="btn btn-primary btn-sm" onClick={() => submitConfirm(b)} disabled={busy}>{busy ? 'Confirmingâ€¦' : 'Confirm Booking â†’ Create Shipment'}</button>
                   </div>
                 )}
               </div>

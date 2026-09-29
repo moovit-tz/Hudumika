@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
@@ -74,7 +74,7 @@ export function PettiSend() {
       return;
     }
     if (sourceWallet && destWallet && sourceWallet.currency !== destWallet.currency) {
-      showAlert(`"${sourceWallet.name}" (${sourceWallet.currency}) and "${destWallet.name}" (${destWallet.currency}) are different currencies — wallet-to-wallet transfers only work between wallets in the same currency today.`);
+      showAlert(`"${sourceWallet.name}" (${sourceWallet.currency}) and "${destWallet.name}" (${destWallet.currency}) are different currencies â€” wallet-to-wallet transfers only work between wallets in the same currency today.`);
       return;
     }
     if (!amount || Number(amount) <= 0) {
@@ -135,7 +135,7 @@ export function PettiSend() {
             <Badge variant="gray">{sourceWallet?.currency || 'TZS'}</Badge>
           </div>
           <div className="petti-stat-value">
-            {sourceWallet ? `${Number(sourceWallet.balance).toLocaleString()}` : '—'}
+            {sourceWallet ? `${Number(sourceWallet.balance).toLocaleString()}` : 'â€”'}
           </div>
           <div className="petti-stat-sub">
             <span>{sourceWallet?.name || 'Select source'}</span>
@@ -165,7 +165,7 @@ export function PettiSend() {
                   options={wallets.map(w => ({ value: w.id, label: `${w.name} (${Number(w.balance).toLocaleString()} ${w.currency})` }))}
                   value={fromWalletId}
                   onChange={setFromWalletId}
-                  placeholder="Select wallet…"
+                  placeholder="Select walletâ€¦"
                 />
               </div>
 
@@ -175,7 +175,7 @@ export function PettiSend() {
                   options={wallets.map(w => ({ value: w.id, label: `${w.name} (${Number(w.balance).toLocaleString()} ${w.currency})` }))}
                   value={toWalletId}
                   onChange={setToWalletId}
-                  placeholder="Select wallet…"
+                  placeholder="Select walletâ€¦"
                 />
               </div>
             </div>
@@ -199,7 +199,7 @@ export function PettiSend() {
             </div>
 
             <Button type="submit" disabled={saving} style={{ padding: '12px', fontWeight: 700, fontSize: 14 }}>
-              <Icon name="send" size={16} /> {saving ? 'Transferring…' : 'Execute Instant Transfer'}
+              <Icon name="send" size={16} /> {saving ? 'Transferringâ€¦' : 'Execute Instant Transfer'}
             </Button>
           </form>
         </SectionCard>
@@ -227,7 +227,7 @@ export function PettiSend() {
               <div style={{ textAlign: 'center', padding: '4px 0', color: 'var(--teal)', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <div style={{ height: 1, flex: 1, background: 'var(--border)' }} />
                 <span style={{ fontSize: 12, background: 'var(--teal-l)', padding: '3px 10px', borderRadius: 12 }}>
-                  ↓ {Number(amount) > 0 ? `${Number(amount).toLocaleString()} ${sourceWallet?.currency || ''}` : 'Instant Transfer'} ↓
+                  â†“ {Number(amount) > 0 ? `${Number(amount).toLocaleString()} ${sourceWallet?.currency || ''}` : 'Instant Transfer'} â†“
                 </span>
                 <div style={{ height: 1, flex: 1, background: 'var(--border)' }} />
               </div>
@@ -269,14 +269,14 @@ export function PettiSend() {
                   const tw = wallets.find(w => w.id === t.to_wallet_id);
                   return (
                     <tr key={t.id}>
-                      <td style={{ fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{t.ref || '—'}</td>
+                      <td style={{ fontSize: 12, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink2)' }}>{t.ref || 'â€”'}</td>
                       <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{new Date(t.created_at).toLocaleString()}</td>
                       <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{fw?.name || 'Source'}</td>
                       <td style={{ fontWeight: 700, color: 'var(--teal)' }}>{tw?.name || 'Destination'}</td>
-                      <td style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: 'var(--navy)' }}>
+                      <td style={{ fontFamily: 'var(--font)', fontWeight: 800, color: 'var(--navy)' }}>
                         {Number(t.amount).toLocaleString()} {fw?.currency || ''}
                       </td>
-                      <td style={{ color: 'var(--ink3)' }}>{t.note || '—'}</td>
+                      <td style={{ color: 'var(--ink3)' }}>{t.note || 'â€”'}</td>
                     </tr>
                   );
                 })}

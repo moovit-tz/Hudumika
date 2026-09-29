@@ -1,7 +1,7 @@
-/* ══════════════════════════════════════════════════════════
-   OndiPersonal.css — Ondi Personal · My Identity Hub
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   OndiPersonal.css â€” Ondi Personal Â· My Identity Hub
    Enterprise-grade identity, security posture & trust metrics.
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .op-page {
   display: flex;
@@ -10,7 +10,7 @@
   width: 100%;
 }
 
-/* ── Top Hero Grid: Identity Profile & Trust Score ── */
+/* â”€â”€ Top Hero Grid: Identity Profile & Trust Score â”€â”€ */
 .op-hero-grid {
   display: grid;
   grid-template-columns: 1.35fr 1fr;
@@ -18,7 +18,7 @@
   align-items: stretch;
 }
 
-/* ── Onboarding checklist + Recent activity preview ── */
+/* â”€â”€ Onboarding checklist + Recent activity preview â”€â”€ */
 .op-onboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -140,7 +140,7 @@
   font-size: 12px;
   color: var(--ink3);
   flex-shrink: 0;
-  font-family: var(--mono);
+  font-family: var(--font);
 }
 
 .op-activity-empty {
@@ -154,7 +154,7 @@
   .op-onboard-grid { grid-template-columns: 1fr; }
 }
 
-/* ── Identity Profile Card ── */
+/* â”€â”€ Identity Profile Card â”€â”€ */
 .op-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -270,7 +270,7 @@
   padding: 2px 7px;
   border-radius: 6px;
   font-size: 11px;
-  font-family: var(--mono);
+  font-family: var(--font);
   color: var(--ink3);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -360,7 +360,7 @@
   flex-wrap: wrap;
 }
 
-/* ── Trust Score Hero Card ── */
+/* â”€â”€ Trust Score Hero Card â”€â”€ */
 .op-trust-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -395,7 +395,7 @@
   font-size: 40px;
   font-weight: 900;
   color: var(--ink);
-  font-family: var(--mono);
+  font-family: var(--font);
   letter-spacing: -1.5px;
   line-height: 1;
 }
@@ -476,7 +476,7 @@
   line-height: 1.4;
 }
 
-/* ── Security Posture Row (3 Cards) ── */
+/* â”€â”€ Security Posture Row (3 Cards) â”€â”€ */
 .op-posture-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -561,7 +561,7 @@
   gap: 6px;
 }
 
-/* ── Organizational Reliability Signals ── */
+/* â”€â”€ Organizational Reliability Signals â”€â”€ */
 .op-reliability-wrap {
   background: var(--white);
   border: 1px solid var(--border);
@@ -590,7 +590,7 @@
 .op-rel-score-num {
   font-size: 28px;
   font-weight: 900;
-  font-family: var(--mono);
+  font-family: var(--font);
   color: var(--ink);
   line-height: 1;
 }
@@ -664,7 +664,7 @@
   transition: width 0.3s ease;
 }
 
-/* ── Fast Navigation Ecosystem Hub ── */
+/* â”€â”€ Fast Navigation Ecosystem Hub â”€â”€ */
 .op-nav-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -710,9 +710,9 @@
   margin-top: 2px;
 }
 
-/* ══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Responsive Breakpoints
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @media (max-width: 1024px) {
   .op-hero-grid {
     grid-template-columns: 1fr;

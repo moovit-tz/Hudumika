@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { ExaminationsQueue } from '../components/ExaminationsQueue.js';
 import { DangerousGoodsPanel } from '../components/DangerousGoodsPanel.js';
@@ -45,7 +45,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from '../components/ui/
 import { SwitchRow } from '../components/ui/list-item-row.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 
-// ─── Clock-in gate ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Clock-in gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function clockGate(isStaff: boolean, isCheckedIn: boolean, triggerOpen: () => void): boolean {
   if (!isStaff) return true;
@@ -54,16 +54,16 @@ function clockGate(isStaff: boolean, isCheckedIn: boolean, triggerOpen: () => vo
 }
 
 // Shared by the Timesheets and Ledger tabs so both read the same number:
-// hourly-unit services bill hours × rate; everything else (per-shipment,
+// hourly-unit services bill hours Ã— rate; everything else (per-shipment,
 // per-container, per-set, ...) bills the flat rate once per logged entry.
-// Returns null when the entry was logged with no service attached — nothing
+// Returns null when the entry was logged with no service attached â€” nothing
 // to bill, not a rate of zero.
 function entryAmount(e: TimeEntry): number | null {
   if (e.serviceRate == null) return null;
   return e.serviceUnit === 'hour' || e.serviceUnit === 'hr' ? e.hours * e.serviceRate : e.serviceRate;
 }
 
-// ─── Store hook ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Store hook â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function useJob(id: string) {
   const [job, setJob] = useState(() => getJob(id));
@@ -77,7 +77,7 @@ function useJob(id: string) {
 
 // shipment_tasks.status (008_shipment_tasks_time_entries.sql) uses a
 // different vocabulary ('open'/'blocked') than the frontend's TaskStatus
-// ('not_started'/'awaiting_feedback') — map explicitly rather than passing
+// ('not_started'/'awaiting_feedback') â€” map explicitly rather than passing
 // the raw value through, which would silently fall out of every status
 // filter bucket (TASK_STATUS_CFG has no 'open'/'blocked' entry).
 function apiTaskToInternal(t: any): InternalTask {
@@ -106,8 +106,8 @@ function apiTaskToInternal(t: any): InternalTask {
   };
 }
 
-// shipment_time_entries has no separate id/name split for member or task —
-// just `member` and `task_ref` strings — so memberId/taskId reuse those
+// shipment_time_entries has no separate id/name split for member or task â€”
+// just `member` and `task_ref` strings â€” so memberId/taskId reuse those
 // same strings rather than fabricating separate identifiers.
 function apiTimeEntryToInternal(t: any): TimeEntry {
   const hours = Number(t.hours) || 0;
@@ -126,7 +126,7 @@ function apiTimeEntryToInternal(t: any): TimeEntry {
   };
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function fdate(d: Date) { return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
 function ftime(d: Date) { return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
@@ -144,7 +144,7 @@ function avatarBg(name: string) {
 function initials(name: string) { return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase(); }
 function isUUID(s: string) { return /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(s); }
 function friendlyAssignee(a: string) {
-  if (isUUID(a)) return `Agent …${a.slice(-4).toUpperCase()}`;
+  if (isUUID(a)) return `Agent â€¦${a.slice(-4).toUpperCase()}`;
   return a;
 }
 function docIcon(type: string): IconName {
@@ -157,14 +157,14 @@ function docIcon(type: string): IconName {
 }
 
 /**
- * Builds the Shipment Report HTML — same generator this app's own manual
+ * Builds the Shipment Report HTML â€” same generator this app's own manual
  * "Print shipment report" button uses (openShipmentReportWindow, just below)
  * AND the server-side scheduled/on-demand report job (see
  * shipment-report.service.ts on the API, which mirrors this markup exactly
- * so the emailed PDF and the in-app print preview never drift apart —
+ * so the emailed PDF and the in-app print preview never drift apart â€”
  * confirm both are updated together if this template changes again).
  *
- * "Days Since Declaration" is relative to the case's own initialization —
+ * "Days Since Declaration" is relative to the case's own initialization â€”
  * the earliest stage-timeline event's date, not the generation date itself.
  */
 export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?: Date; company?: Partial<ReturnType<typeof getCompany>>; stageLabel?: string }): string {
@@ -175,7 +175,7 @@ export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?
   const co = { ...getCompany(), ...opts?.company };
   // The public share page has no resolved `workflow` block to derive this
   // from (jobStageLabel needs workflowKind/workflowSteps, which the trimmed
-  // public payload doesn't carry) — it passes the server's own already-
+  // public payload doesn't carry) â€” it passes the server's own already-
   // correct stage label instead, resolved the same way for both legacy and
   // custom-workflow shipments (see shipment-report.service.ts).
   const stageLabel = opts?.stageLabel ?? jobStageLabel(job);
@@ -195,7 +195,7 @@ export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?
       <td>${dayFmt(new Date(t.ts))}</td>
       <td class="stage-tag">${t.label}</td>
       <td>${t.note || ''}</td>
-      <td class="num"><span class="day-count${n === 0 ? ' zero' : ''}">Day ${n ?? '—'}</span></td>
+      <td class="num"><span class="day-count${n === 0 ? ' zero' : ''}">Day ${n ?? 'â€”'}</span></td>
     </tr>`;
   }).join('');
 
@@ -217,18 +217,18 @@ export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?
   <div class="section-title">Carbon Footprint (Estimate)</div>
   <table class="kv">
     <tr>
-      <td class="k">CO₂ Emissions</td><td class="v">${Number(co2Kg).toLocaleString('en')} kg</td>
+      <td class="k">COâ‚‚ Emissions</td><td class="v">${Number(co2Kg).toLocaleString('en')} kg</td>
       <td class="k">Credits Saved (est.)</td><td class="v">${Number(credits ?? 0).toFixed(2)}</td>
     </tr>
     ${calc ? `<tr>
-      <td class="k">Distance</td><td class="v">${calc.distance_km ?? '—'} km</td>
+      <td class="k">Distance</td><td class="v">${calc.distance_km ?? 'â€”'} km</td>
       <td class="k">Mode</td><td class="v">${calc.mode ?? job.mode}</td>
     </tr>` : ''}
   </table>
-  <div class="note-line">GLEC v3.2 / ISO 14083 methodology, computed from route distance and cargo weight. Internal ESG estimate — not a registry-issued or tradeable carbon credit.</div>` : '';
+  <div class="note-line">GLEC v3.2 / ISO 14083 methodology, computed from route distance and cargo weight. Internal ESG estimate â€” not a registry-issued or tradeable carbon credit.</div>` : '';
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<title>${job.sysRef || job.id} — Shipment Report</title>
+<title>${job.sysRef || job.id} â€” Shipment Report</title>
 <style>
   @page { size: A4; margin: 14mm 14mm 12mm 14mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -306,11 +306,11 @@ export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?
     </div>
     <div class="metric-cell">
       <div class="metric-label">Declaration Date</div>
-      <div class="metric-value">${declaredAt ? dayFmt(declaredAt) : '—'}</div>
+      <div class="metric-value">${declaredAt ? dayFmt(declaredAt) : 'â€”'}</div>
     </div>
     <div class="metric-cell emph">
       <div class="metric-label">Days Since Declaration</div>
-      <div class="metric-value">${daysAsOf ?? '—'} Days</div>
+      <div class="metric-value">${daysAsOf ?? 'â€”'} Days</div>
     </div>
     <div class="metric-cell">
       <div class="metric-label">Mode</div>
@@ -329,16 +329,16 @@ export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?
       <td class="k">Destination</td><td class="v">${job.destination}</td>
     </tr>
     <tr>
-      <td class="k">Weight</td><td class="v">${job.weight || '—'}</td>
-      <td class="k">Declared Value</td><td class="v">${job.invoiceValue || '—'}</td>
+      <td class="k">Weight</td><td class="v">${job.weight || 'â€”'}</td>
+      <td class="k">Declared Value</td><td class="v">${job.invoiceValue || 'â€”'}</td>
     </tr>
     <tr>
-      <td class="k">B/L Number</td><td class="v mono">${job.bl || '—'}</td>
-      <td class="k">TANSAD</td><td class="v mono">${job.tansad || '—'}</td>
+      <td class="k">B/L Number</td><td class="v mono">${job.bl || 'â€”'}</td>
+      <td class="k">TANSAD</td><td class="v mono">${job.tansad || 'â€”'}</td>
     </tr>
     ${job.vessel || (job.containers && job.containers.length > 0) ? `<tr>
-      <td class="k">Vessel</td><td class="v">${job.vessel || '—'}</td>
-      <td class="k">Containers</td><td class="v">${job.containers && job.containers.length > 0 ? job.containers.join(', ') : '—'}</td>
+      <td class="k">Vessel</td><td class="v">${job.vessel || 'â€”'}</td>
+      <td class="k">Containers</td><td class="v">${job.containers && job.containers.length > 0 ? job.containers.join(', ') : 'â€”'}</td>
     </tr>` : ''}
   </table>
 
@@ -367,7 +367,7 @@ export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?
 </body></html>`;
 }
 
-/* ── Shipment report — printable summary window, mirrors Billing.tsx's openPrintWindow ── */
+/* â”€â”€ Shipment report â€” printable summary window, mirrors Billing.tsx's openPrintWindow â”€â”€ */
 function openShipmentReportWindow(job: ClearanceJob) {
   const html = buildShipmentReportHtml(job).replace('</body>', '<script>window.onload=function(){window.print()}</script></body>');
   const win = window.open('', '_blank', 'width=860,height=1000');
@@ -375,16 +375,16 @@ function openShipmentReportWindow(job: ClearanceJob) {
 }
 
 /** Gets or creates this shipment's public "check progress" link (the same
- *  one the daily WhatsApp automation sends) and copies it to the clipboard —
+ *  one the daily WhatsApp automation sends) and copies it to the clipboard â€”
  *  see shipment-report.service.ts / ShipmentReportShared.tsx. */
 async function shareShipmentReportLink(id: string) {
   try {
     const res = await apiFetch(`/v1/shipments/${id}/report-share`, { method: 'POST' });
     if (res?.url) {
       await navigator.clipboard.writeText(res.url);
-      showAlert('Progress link copied — share it via WhatsApp or email.', { variant: 'success' });
+      showAlert('Progress link copied â€” share it via WhatsApp or email.', { variant: 'success' });
     } else {
-      showAlert('Link created, but the public app URL isn’t configured yet — ask an admin to set it before sharing.', { variant: 'warning' });
+      showAlert('Link created, but the public app URL isnâ€™t configured yet â€” ask an admin to set it before sharing.', { variant: 'warning' });
     }
   } catch (e: any) {
     showAlert(e.message || 'Could not create a share link.', { variant: 'error' });
@@ -393,7 +393,7 @@ async function shareShipmentReportLink(id: string) {
 
 /**
  * A person's face. Drew initials and only initials, so somebody with a picture
- * still appeared as "SA" everywhere outside the header — which does use the
+ * still appeared as "SA" everywhere outside the header â€” which does use the
  * shared component.
  *
  * With a `userId` it delegates to PersonAvatar, which fetches the picture once
@@ -402,15 +402,15 @@ async function shareShipmentReportLink(id: string) {
  * an account rather than a gap to paper over.
  */
 function Av({ name, size = 32, userId }: { name: string; size?: number; userId?: string | null }) {
-  // PersonAvatar already draws exactly this fallback — deterministic colored
-  // initials — when userId is absent, so there is nothing left for this
+  // PersonAvatar already draws exactly this fallback â€” deterministic colored
+  // initials â€” when userId is absent, so there is nothing left for this
   // wrapper to hand-roll; isUUID still guards against the legacy paths
   // (see memberId/taskId comment above) where "userId" is really just the
   // name string again, not a real account id to fetch a photo for.
   return <PersonAvatar userId={userId && isUUID(userId) ? userId : undefined} name={name} size={size} />;
 }
 
-// ─── TANCIS Form helpers ──────────────────────────────────────────────────────
+// â”€â”€â”€ TANCIS Form helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface DeclGeneral {
   tansad_prefix: string; tansad_year: string; tansad_seq: string;
@@ -469,9 +469,9 @@ const emptyHsLine = (): HsLine => ({ hs: '', desc: '', origin: 'CN', qty: '', un
 // Maps this tab's local form state onto the real `declarations`/
 // `declaration_items` table columns (migration 004_declarations.sql).
 // Rate/percentage/total-tax fields (duty_rate, vat_rate, total_imp_duty_tzs,
-// etc.) have no column on either table — official assessment totals are
+// etc.) have no column on either table â€” official assessment totals are
 // recorded via the separate Notices flow once TRA responds, not by this
-// quick-entry tab — so they're intentionally left out of the payload rather
+// quick-entry tab â€” so they're intentionally left out of the payload rather
 // than written somewhere they'd silently never be read back.
 function buildDeclarationPayload(general: DeclGeneral, parties: DeclParties, financial: DeclFinancial, transport: DeclTransport, items: HsLine[]) {
   const tansad = `${general.tansad_prefix}-${general.tansad_year}-${general.tansad_seq}`;
@@ -548,7 +548,7 @@ function buildDeclarationPayload(general: DeclGeneral, parties: DeclParties, fin
   };
 }
 
-// Reverse of buildDeclarationPayload — hydrates local form state from a
+// Reverse of buildDeclarationPayload â€” hydrates local form state from a
 // previously-saved declaration so re-opening this tab doesn't show blank
 // fields for data that actually was persisted.
 function applyDeclarationResponse(decl: any, job: ClearanceJob): { general: DeclGeneral; parties: DeclParties; financial: DeclFinancial; transport: DeclTransport; items: HsLine[] } {
@@ -612,7 +612,7 @@ function DInput({ value, onChange, placeholder, mono, readOnly }: { value: strin
   return (
     <input className="input-field" title={placeholder} placeholder={placeholder} value={value} readOnly={readOnly}
       onChange={e => onChange?.(e.target.value)}
-      style={{ fontSize: 13, padding: '9px 10px', fontFamily: mono ? 'var(--mono)' : undefined }} />
+      style={{ fontSize: 13, padding: '9px 10px', fontFamily: mono ? 'var(--font)' : undefined }} />
   );
 }
 function DSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: [string, string][] }) {
@@ -627,7 +627,7 @@ function DSelect({ value, onChange, options }: { value: string; onChange: (v: st
 }
 
 /**
- * Real customs-value risk signal for one declaration line — the platform's
+ * Real customs-value risk signal for one declaration line â€” the platform's
  * own historical declared values for this HS code (+ origin), aggregated
  * across every tenant's finalized declarations. See customs.service.ts's
  * getValuationReference: anonymized stats only, gated behind a minimum
@@ -656,12 +656,12 @@ function ValuationSignalBadge({ hsCode, countryOfOrigin }: { hsCode: string; cou
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: -2, marginBottom: 8, marginLeft: 10, fontSize: 11.5, color: 'var(--ink3)' }}>
       <Icon name="trendingUp" size={11} color="var(--ink3)" />
       Typical declared value: TZS {Math.round(ref.medianUnitValueTzs).toLocaleString()} / unit
-      <span style={{ color: 'var(--ink3)' }}>(range {Math.round(ref.minUnitValueTzs).toLocaleString()}–{Math.round(ref.maxUnitValueTzs).toLocaleString()}, {ref.sampleCount} past declarations)</span>
+      <span style={{ color: 'var(--ink3)' }}>(range {Math.round(ref.minUnitValueTzs).toLocaleString()}â€“{Math.round(ref.maxUnitValueTzs).toLocaleString()}, {ref.sampleCount} past declarations)</span>
     </div>
   );
 }
 
-// ─── Stage Stepper ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Stage Stepper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StageStepper({ job }: { job: ClearanceJob }) {
   const steps = jobUiSteps(job);
@@ -690,7 +690,7 @@ function StageStepper({ job }: { job: ClearanceJob }) {
   );
 }
 
-// ─── Customer Milestone Timeline ───────────────────────────────────────────────
+// â”€â”€â”€ Customer Milestone Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // A simplified 6-milestone client-facing journey, shown to CUSTOMER-role
 // viewers instead of the internal 11/18-stage engineering stepper above.
 
@@ -702,7 +702,7 @@ function customerMilestone(stage: Stage): CustomerMilestone {
 function CustomerMilestoneTimeline({ job, compact }: { job: ClearanceJob; compact?: boolean }) {
   // Custom-workflow shipments: `job.stage` was already collapsed to a
   // generic local Stage by toStage() (a workflow_steps.id has no entry in
-  // the fixed 11-stage/6-milestone taxonomies — there's no principled way
+  // the fixed 11-stage/6-milestone taxonomies â€” there's no principled way
   // to guess where an arbitrary tenant-authored step belongs on that curated
   // scale). Render an honest 2-state view instead of a fabricated position.
   if (job.workflowId) {
@@ -783,9 +783,9 @@ function CustomerMilestoneTimeline({ job, compact }: { job: ClearanceJob; compac
   );
 }
 
-// ─── Customer "Needs Your Attention" panel ─────────────────────────────────────
+// â”€â”€â”€ Customer "Needs Your Attention" panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Surfaces the real blocker note (if any) an officer logged against the
-// current stage — the client-facing equivalent of a "bottleneck".
+// current stage â€” the client-facing equivalent of a "bottleneck".
 
 function CustomerAttentionPanel({ job }: { job: ClearanceJob }) {
   const currentEvent = [...job.timeline].reverse().find(e => e.stage === job.stage) ?? job.timeline[job.timeline.length - 1];
@@ -814,7 +814,7 @@ function CustomerAttentionPanel({ job }: { job: ClearanceJob }) {
   );
 }
 
-// ─── Customer clearing-agent contact card ──────────────────────────────────────
+// â”€â”€â”€ Customer clearing-agent contact card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function CustomerAgentCard({ job }: { job: ClearanceJob }) {
   // assignees[0] is the assigned user's id. Showing it rendered the customer's
@@ -850,7 +850,7 @@ function CustomerAgentCard({ job }: { job: ClearanceJob }) {
   );
 }
 
-// ─── Advance Stage Modal ──────────────────────────────────────────────────────
+// â”€â”€â”€ Advance Stage Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
   job: ClearanceJob; onClose: () => void;
@@ -861,7 +861,7 @@ function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
   const currentIdx = jobCurrentIdx(job);
   const current = currentIdx >= 0 ? steps[currentIdx] : undefined;
   // A custom workflow permits exactly the current step's declared next steps
-  // (forward) plus any earlier step (backward, for re-validation) — matching
+  // (forward) plus any earlier step (backward, for re-validation) â€” matching
   // what the backend engine enforces. The legacy ladder keeps its old, looser
   // behaviour of offering every later stage.
   const nextStages = job.workflowKind === 'CUSTOM'
@@ -875,13 +875,13 @@ function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
   const [blocker, setBlocker] = useState('');
   const [chans, setChans] = useState<Channel[]>(['whatsapp', 'email']);
   function toggle(ch: Channel) { setChans(p => p.includes(ch) ? p.filter(c => c !== ch) : [...p, ch]); }
-  // What must be true to enter the chosen step, evaluated for this shipment —
+  // What must be true to enter the chosen step, evaluated for this shipment â€”
   // shown so a blocked transition is explained up front, not after it fails.
   const targetReqs = job.workflowKind === 'CUSTOM'
     ? job.workflowSteps?.find(s => s.id === selected)?.requirements
     : undefined;
   const hasUnmet = !!targetReqs?.some(r => !r.passed);
-  // Inline panel, not a popup — pushed into normal document flow directly
+  // Inline panel, not a popup â€” pushed into normal document flow directly
   // under the header instead of a darkened full-screen overlay.
   return (
     <div style={embedded
@@ -916,7 +916,7 @@ function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
               </div>
               {hasUnmet && (
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 8, lineHeight: 1.45 }}>
-                  Resolve the unmet items — verify the documents in the <strong>Files</strong> tab — before this stage will accept the case.
+                  Resolve the unmet items â€” verify the documents in the <strong>Files</strong> tab â€” before this stage will accept the case.
                 </div>
               )}
             </div>
@@ -924,7 +924,7 @@ function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
 
           <div style={{ marginBottom: 14 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Transition Note <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(visible to listeners)</span></label>
-            <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="What was completed? Any key info to share…" style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const }} />
+            <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="What was completed? Any key info to shareâ€¦" style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const }} />
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Blocker / Pending <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(optional)</span></label>
@@ -946,7 +946,7 @@ function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
             <button type="button" disabled={!selected} onClick={() => selected && onAdvance(selected, note, blocker, chans)} style={{ padding: 'var(--ds-btn-py) 20px', background: selected ? 'hsl(var(--primary))' : 'var(--border)', color: selected ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selected ? 'pointer' : 'default', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              Update Stage →
+              Update Stage â†’
             </button>
           </div>
         </div>
@@ -955,7 +955,7 @@ function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
   );
 }
 
-// ─── Advance Stage — three-column view (previews | docs + verify | data cards) ─
+// â”€â”€â”€ Advance Stage â€” three-column view (previews | docs + verify | data cards) â”€
 
 function DocPreview({ shipmentId, doc }: { shipmentId: string; doc: ShipDoc }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -976,7 +976,7 @@ function DocPreview({ shipmentId, doc }: { shipmentId: string; doc: ShipDoc }) {
         {doc.status === 'VERIFIED' && <Icon name="checkCircle" size={13} color="var(--green)" />}
       </div>
       <div style={{ height: 380, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {state === 'loading' && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Loading preview…</span>}
+        {state === 'loading' && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Loading previewâ€¦</span>}
         {state === 'error' && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Preview unavailable</span>}
         {state === 'ready' && url && (isImg
           ? <img src={url} alt={doc.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
@@ -1015,7 +1015,7 @@ function DocVerifyList({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJ
             <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--badge-radius)', background: 'var(--green-l)', color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="checkCircle" size={11} color="var(--green)" /> Verified</span>
           ) : canVerify ? (
             <button type="button" onClick={() => verify(d.id)} disabled={verifying === d.id} style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--green)', background: 'var(--white)', color: 'var(--green)', cursor: verifying === d.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-              {verifying === d.id ? '…' : 'Verify'}
+              {verifying === d.id ? 'â€¦' : 'Verify'}
             </button>
           ) : <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{d.status === 'RECEIVED' ? 'Received' : ''}</span>}
         </div>
@@ -1031,7 +1031,7 @@ function AdvanceStageView({ job, shipmentId, isLive, isMobile, onClose, onAdvanc
   const docs = job.documents.filter(d => !d.pending);
   return (
     <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-      {/* Column 1 — document previews */}
+      {/* Column 1 â€” document previews */}
       {!isMobile && (
         <div style={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 'calc(100vh - 210px)', overflowY: 'auto' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Document previews</div>
@@ -1040,18 +1040,18 @@ function AdvanceStageView({ job, shipmentId, isLive, isMobile, onClose, onAdvanc
             : docs.map(d => <DocPreview key={d.id} shipmentId={shipmentId} doc={d} />)}
         </div>
       )}
-      {/* Column 2 — documents + verification + the advance form */}
+      {/* Column 2 â€” documents + verification + the advance form */}
       <div style={{ flex: '1 1 420px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <DocVerifyList job={job} shipmentId={shipmentId} isLive={isLive} onRefresh={onRefresh} />
         <AdvanceStageModal job={job} onClose={onClose} onAdvance={onAdvance} embedded />
       </div>
-      {/* Column 3 — the standard data cards */}
+      {/* Column 3 â€” the standard data cards */}
       {!isMobile && <ListenersSidebar job={job} shipmentId={shipmentId} isLive={isLive} onRefresh={onRefresh} />}
     </div>
   );
 }
 
-// ─── Entry-Point Clearing Steps & Charges ────────────────────────────────────
+// â”€â”€â”€ Entry-Point Clearing Steps & Charges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const ENTRY_POINT_STEPS: Record<string, { label: string; steps: string[]; charges: { label: string; est: string }[] }> = {
   TZDL: {
@@ -1067,12 +1067,12 @@ const ENTRY_POINT_STEPS: Record<string, { label: string; steps: string[]; charge
   TZDHL: {
     label: 'DHL Express Clearance',
     steps: ['DHL tracking confirmation','Informal entry (shipments <USD 1,000)','Formal TANCIS entry (>USD 1,000)','Duty & VAT payment to DHL','DHL release & delivery'],
-    charges: [{ label: 'DHL clearance fee', est: 'USD 35–120' }, { label: 'Duty & VAT (standard)', est: 'TRA assessed' }, { label: 'Disbursement fee', est: '5% of duties' }],
+    charges: [{ label: 'DHL clearance fee', est: 'USD 35â€“120' }, { label: 'Duty & VAT (standard)', est: 'TRA assessed' }, { label: 'Disbursement fee', est: '5% of duties' }],
   },
   TZFEX: {
     label: 'FedEx / UPS Express',
     steps: ['Shipment arrives FedEx/UPS hub','Broker notification','TANCIS informal/formal entry','Duty payment via FedEx portal','Customs release & last-mile'],
-    charges: [{ label: 'Express clearance', est: 'USD 50–150' }, { label: 'Duty & VAT', est: 'TRA assessed' }, { label: 'Remote area surcharge', est: 'If applicable' }],
+    charges: [{ label: 'Express clearance', est: 'USD 50â€“150' }, { label: 'Duty & VAT', est: 'TRA assessed' }, { label: 'Remote area surcharge', est: 'If applicable' }],
   },
   TZPOSTA: {
     label: 'Tanzania Posts (Posta / EMS)',
@@ -1080,9 +1080,9 @@ const ENTRY_POINT_STEPS: Record<string, { label: string; steps: string[]; charge
     charges: [{ label: 'Posta handling', est: 'TZS 15,000 flat' }, { label: 'Duty & VAT', est: 'TRA assessed' }, { label: 'Customs exam fee', est: 'TZS 30,000' }],
   },
   TZNAMANGA: {
-    label: 'Namanga Border (Kenya–Tanzania)',
+    label: 'Namanga Border (Kenyaâ€“Tanzania)',
     steps: ['Kenya customs exit clearance','Namanga TRA entry post','Transit C3 or Import IM4 declaration','Axle load check','Duty & levies payment','TANROADS road permit','Proceed to destination'],
-    charges: [{ label: 'Road crossing levy', est: 'TZS 50,000' }, { label: 'TANROADS permit', est: 'TZS 80,000–400,000' }, { label: 'Duty & VAT', est: 'TRA assessed' }, { label: 'Agency fee', est: 'TZS 200,000' }],
+    charges: [{ label: 'Road crossing levy', est: 'TZS 50,000' }, { label: 'TANROADS permit', est: 'TZS 80,000â€“400,000' }, { label: 'Duty & VAT', est: 'TRA assessed' }, { label: 'Agency fee', est: 'TZS 200,000' }],
   },
   TZHOLILI: {
     label: 'Holili / Taveta Border (Kenya)',
@@ -1102,7 +1102,7 @@ function EntryPointSteps({ entryOffice }: { entryOffice: string }) {
   return (
     <div style={{ marginTop: 14, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 18px' }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>
-        Clearing Process — {cfg.label}
+        Clearing Process â€” {cfg.label}
       </div>
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         <div style={{ flex: 2, minWidth: 200 }}>
@@ -1122,7 +1122,7 @@ function EntryPointSteps({ entryOffice }: { entryOffice: string }) {
             {cfg.charges.map((c, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, borderBottom: '1px solid var(--border)', paddingBottom: 4 }}>
                 <span style={{ color: 'var(--ink2)' }}>{c.label}</span>
-                <span style={{ fontWeight: 700, color: 'var(--teal)', fontFamily: 'var(--mono)', fontSize: 11 }}>{c.est}</span>
+                <span style={{ fontWeight: 700, color: 'var(--teal)', fontFamily: 'var(--font)', fontSize: 11 }}>{c.est}</span>
               </div>
             ))}
           </div>
@@ -1132,7 +1132,7 @@ function EntryPointSteps({ entryOffice }: { entryOffice: string }) {
   );
 }
 
-// ─── Declaration Tab (Full TANCIS form) ───────────────────────────────────────
+// â”€â”€â”€ Declaration Tab (Full TANCIS form) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 /** The calculator's card names, in the order the report presents them. */
@@ -1165,7 +1165,7 @@ const HEAD_LABEL: Record<string, string> = {
  * What the workflow automation did on this consignment.
  *
  * The Activity Feed records what people did. This records what the workflow
- * did — including the auto-comms that failed, which used to be returned by
+ * did â€” including the auto-comms that failed, which used to be returned by
  * sendOneComm and dropped, visible to nobody.
  *
  * It is also the only place a run belonging to a legacy fixed-stage shipment
@@ -1181,7 +1181,7 @@ function AutomationHistoryCard({ shipmentId }: { shipmentId: string }) {
     let cancelled = false;
     apiFetch(`/v1/shipments/${shipmentId}/workflow-runs?limit=25`)
       .then((r: any) => { if (!cancelled) setRuns(r?.data ?? []); })
-      .catch(() => { /* nothing recorded for this shipment — the card stays hidden */ })
+      .catch(() => { /* nothing recorded for this shipment â€” the card stays hidden */ })
       .finally(() => { if (!cancelled) setLoaded(true); });
     return () => { cancelled = true; };
   }, [shipmentId]);
@@ -1213,12 +1213,12 @@ function AutomationHistoryCard({ shipmentId }: { shipmentId: string }) {
                     {r.toStepName}
                   </div>
                   <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>
-                    {/* Named, not left blank — "which workflow?" has an answer
+                    {/* Named, not left blank â€” "which workflow?" has an answer
                         even when the answer is "the built-in stages". */}
                     {r.workflowName ?? 'Standard stages'}
-                    {r.actorName ? ` · ${r.actorName}` : ''} · {fdatetime(new Date(r.createdAt))}
+                    {r.actorName ? ` Â· ${r.actorName}` : ''} Â· {fdatetime(new Date(r.createdAt))}
                     {failed.length > 0 && (
-                      <span style={{ color: 'var(--red)' }}> · {failed.length} message{failed.length === 1 ? '' : 's'} not sent</span>
+                      <span style={{ color: 'var(--red)' }}> Â· {failed.length} message{failed.length === 1 ? '' : 's'} not sent</span>
                     )}
                   </div>
                 </div>
@@ -1238,7 +1238,7 @@ function AutomationHistoryCard({ shipmentId }: { shipmentId: string }) {
                     <div key={i} style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: 12, padding: '3px 0' }}>
                       <Badge variant={c.status === 'SENT' ? 'success' : c.status === 'FAILED' ? 'error' : 'gray'}>{c.status}</Badge>
                       <span style={{ color: 'var(--ink2)' }}>
-                        {c.channel} → {String(c.recipient ?? '').replace(/_/g, ' ')}
+                        {c.channel} â†’ {String(c.recipient ?? '').replace(/_/g, ' ')}
                         {c.error && <span style={{ display: 'block', color: 'var(--red)' }}>{c.error}</span>}
                       </span>
                     </div>
@@ -1261,7 +1261,7 @@ function EstimateVarianceCard({ shipmentId }: { shipmentId: string }) {
     let cancelled = false;
     apiFetch(`/v1/intel/variance/${shipmentId}`)
       .then(r => { if (!cancelled) setData(r); })
-      .catch(() => { /* no estimate linked yet — the card simply stays hidden */ })
+      .catch(() => { /* no estimate linked yet â€” the card simply stays hidden */ })
       .finally(() => { if (!cancelled) setLoaded(true); });
     return () => { cancelled = true; };
   }, [shipmentId]);
@@ -1270,7 +1270,7 @@ function EstimateVarianceCard({ shipmentId }: { shipmentId: string }) {
   if (!loaded || !data?.estimate) return null;
 
   const money = (n: number | null) =>
-    n == null ? '—' : 'TZS ' + Math.round(n).toLocaleString('en-US');
+    n == null ? 'â€”' : 'TZS ' + Math.round(n).toLocaleString('en-US');
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
@@ -1311,7 +1311,7 @@ function EstimateVarianceCard({ shipmentId }: { shipmentId: string }) {
                   <td style={{ padding: '9px 10px', borderBottom: '1px solid var(--border)', textAlign: 'right', fontVariantNumeric: 'tabular-nums',
                     fontWeight: 700, color: l.varianceTzs == null ? 'var(--ink3)' : over ? 'var(--red)' : 'var(--green)' }}>
                     {l.varianceTzs == null
-                      ? '—'
+                      ? 'â€”'
                       : `${over ? '+' : ''}${Math.round(l.varianceTzs).toLocaleString('en-US')}${l.variancePct != null ? ` (${over ? '+' : ''}${l.variancePct}%)` : ''}`}
                   </td>
                 </tr>
@@ -1322,7 +1322,7 @@ function EstimateVarianceCard({ shipmentId }: { shipmentId: string }) {
       </div>
 
       <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.55 }}>
-        A dash means one side has nothing recorded yet — not a saving. Duties and TPA charges are
+        A dash means one side has nothing recorded yet â€” not a saving. Duties and TPA charges are
         statutory: a difference there points at the classification or the valuation, never at a rate
         to adjust.
       </div>
@@ -1362,7 +1362,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
   /**
    * Copies the shipment-derived draft into the form.
    *
-   * Only fields the draft actually resolved are written — a blank in the draft
+   * Only fields the draft actually resolved are written â€” a blank in the draft
    * leaves the form's own default alone rather than clearing it. The HS code is
    * applied only if the filer ticked the box for it.
    */
@@ -1432,7 +1432,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
           setItems(mapped.items);
           return;
         }
-        // Nothing lodged yet — offer to start from what the shipment already
+        // Nothing lodged yet â€” offer to start from what the shipment already
         // holds. Offered, not applied: the same stance as the OCR banner, and
         // required for the HS code, which must never land in a declaration
         // without someone accepting it.
@@ -1536,7 +1536,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
   const dutyAmt = cifTzs * (Number(financial.duty_rate) / 100);
   // Excise (Management and Tariff) Act, Cap.147 R.E. 2019, s.141(1)(a): the
   // excisable value of an imported article is CIF plus the import duty
-  // payable — not CIF alone. VAT is then assessed on the duty-and-excise-
+  // payable â€” not CIF alone. VAT is then assessed on the duty-and-excise-
   // inclusive value, same as the Landed Cost Calculator (customs.service.ts).
   const excAmt  = (cifTzs + dutyAmt) * (Number(financial.excise_rate) / 100);
   const vatAmt  = (cifTzs + dutyAmt + excAmt) * (Number(financial.vat_rate) / 100);
@@ -1574,7 +1574,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
   return (
     <form onSubmit={handleSave} style={{ width: '100%' }}>
       {/* OCR pre-fill banner */}
-      {/* Nothing lodged yet — start from the shipment instead of an empty form. */}
+      {/* Nothing lodged yet â€” start from the shipment instead of an empty form. */}
       {prefill && (
         <div style={{ padding: '12px 14px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -1586,7 +1586,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
               <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 3, lineHeight: 1.55 }}>
                 {Object.keys(prefill.sources ?? {}).length} field
                 {Object.keys(prefill.sources ?? {}).length === 1 ? '' : 's'} can be filled from what this
-                consignment already records — importer, transport, countries and values.
+                consignment already records â€” importer, transport, countries and values.
               </div>
 
               {prefill.missing?.length > 0 && (
@@ -1595,7 +1595,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
                   <ul style={{ margin: '4px 0 0', paddingLeft: 17 }}>
                     {prefill.missing.map((m: any) => (
                       <li key={m.field} style={{ marginBottom: 1 }}>
-                        {m.label} <span style={{ color: 'var(--ink3)' }}>— {m.why}</span>
+                        {m.label} <span style={{ color: 'var(--ink3)' }}>â€” {m.why}</span>
                       </li>
                     ))}
                   </ul>
@@ -1633,7 +1633,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)' }}>OCR data ready to apply</div>
               <div style={{ fontSize: 11, color: 'var(--ink2)' }}>
-                Extracted from scanned document — parties, financials, HS codes &amp; transport details.
+                Extracted from scanned document â€” parties, financials, HS codes &amp; transport details.
               </div>
             </div>
           </div>
@@ -1650,7 +1650,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
         </div>
       )}
 
-      {/* Sub-tab strip — the shared segmented ds-tabs, same as the shipment
+      {/* Sub-tab strip â€” the shared segmented ds-tabs, same as the shipment
           tabs (was a hand-rolled pill row on a --bg track, which flattened to
           white inside .page-layout). */}
       <Tabs value={sub} onValueChange={v => setSub(v as typeof sub)} variant="segmented">
@@ -1663,14 +1663,14 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
         </TabsList>
       </Tabs>
 
-      {/* ── General ── */}
+      {/* â”€â”€ General â”€â”€ */}
       {sub === 'general' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="decl-block">
             <div className="decl-block-title">TANSAD Reference</div>
             <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
               <div style={{ flex: 2 }}><span className="decl-k">Prefix</span>
-                <DSelect value={general.tansad_prefix} onChange={v => setGeneral(g => ({ ...g, tansad_prefix: v }))} options={[['TZDA','TZDA — DSM Airport'],['TZDL','TZDL — DAR Land'],['TZNG','TZNG — Tanga'],['TZKA','TZKA — KIA'],['TZMW','TZMW — Mwanza'],['TZKM','TZKM — Kigoma']]} />
+                <DSelect value={general.tansad_prefix} onChange={v => setGeneral(g => ({ ...g, tansad_prefix: v }))} options={[['TZDA','TZDA â€” DSM Airport'],['TZDL','TZDL â€” DAR Land'],['TZNG','TZNG â€” Tanga'],['TZKA','TZKA â€” KIA'],['TZMW','TZMW â€” Mwanza'],['TZKM','TZKM â€” Kigoma']]} />
               </div>
               <div style={{ flex: 1 }}><span className="decl-k">Year</span>
                 <DInput value={general.tansad_year} onChange={v => setGeneral(g => ({ ...g, tansad_year: v }))} placeholder="26" mono />
@@ -1683,13 +1683,13 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
               <DField label="TANSAD Date"><DInput value={general.tansad_date} onChange={v => setGeneral(g => ({ ...g, tansad_date: v }))} placeholder="YYYY-MM-DD" /></DField>
               <DField label="Reference No."><DInput value={general.ref_number} onChange={v => setGeneral(g => ({ ...g, ref_number: v }))} placeholder="137644169-26-990015" mono /></DField>
               <DField label="Mode of Declaration">
-                <DSelect value={general.mode} onChange={v => setGeneral(g => ({ ...g, mode: v }))} options={[['IM4','IM4 — Home Use'],['IM8','IM8 — Bonded'],['EX1','EX1 — Export'],['EX3','EX3 — Re-export'],['T1','T1 — Transit']]} />
+                <DSelect value={general.mode} onChange={v => setGeneral(g => ({ ...g, mode: v }))} options={[['IM4','IM4 â€” Home Use'],['IM8','IM8 â€” Bonded'],['EX1','EX1 â€” Export'],['EX3','EX3 â€” Re-export'],['T1','T1 â€” Transit']]} />
               </DField>
               <DField label="Clearing Office">
-                <DSelect value={general.clearing_office} onChange={v => setGeneral(g => ({ ...g, clearing_office: v }))} options={[['TZDL','TZDL — DAR CSC'],['TZDA','TZDA — DSM Airport'],['TZNG','TZNG — Tanga'],['TZMW','TZMW — Mwanza']]} />
+                <DSelect value={general.clearing_office} onChange={v => setGeneral(g => ({ ...g, clearing_office: v }))} options={[['TZDL','TZDL â€” DAR CSC'],['TZDA','TZDA â€” DSM Airport'],['TZNG','TZNG â€” Tanga'],['TZMW','TZMW â€” Mwanza']]} />
               </DField>
               <DField label="CL Plan">
-                <DSelect value={general.cl_plan} onChange={v => setGeneral(g => ({ ...g, cl_plan: v }))} options={[['PAO','PAO — Pre-Arrival'],['POP','POP — Post-Arrival']]} />
+                <DSelect value={general.cl_plan} onChange={v => setGeneral(g => ({ ...g, cl_plan: v }))} options={[['PAO','PAO â€” Pre-Arrival'],['POP','POP â€” Post-Arrival']]} />
               </DField>
               <DField label="Form Type">
                 <DSelect value={general.form_type} onChange={v => setGeneral(g => ({ ...g, form_type: v }))} options={[['G','[G] General'],['S','[S] Simplified'],['C','[C] Combined']]} />
@@ -1702,9 +1702,9 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
               <DField label="No. of Items"><DInput value={general.items_count} onChange={v => setGeneral(g => ({ ...g, items_count: v }))} placeholder="1" /></DField>
               <DField label="Total Packages"><DInput value={general.packages_total} onChange={v => setGeneral(g => ({ ...g, packages_total: v }))} placeholder="650" /></DField>
               <DField label="Package Type">
-                <DSelect value={general.package_type} onChange={v => setGeneral(g => ({ ...g, package_type: v }))} options={[['PK','PK — Package'],['CT','CT — Carton'],['PL','PL — Pallet'],['BG','BG — Bag'],['DR','DR — Drum'],['BX','BX — Box']]} />
+                <DSelect value={general.package_type} onChange={v => setGeneral(g => ({ ...g, package_type: v }))} options={[['PK','PK â€” Package'],['CT','CT â€” Carton'],['PL','PL â€” Pallet'],['BG','BG â€” Bag'],['DR','DR â€” Drum'],['BX','BX â€” Box']]} />
               </DField>
-              <DField label="UCR No."><DInput value={general.ucr_no} onChange={v => setGeneral(g => ({ ...g, ucr_no: v }))} placeholder="26TZ137644169…" mono /></DField>
+              <DField label="UCR No."><DInput value={general.ucr_no} onChange={v => setGeneral(g => ({ ...g, ucr_no: v }))} placeholder="26TZ137644169â€¦" mono /></DField>
               <DField label="Gross Weight (KG)"><DInput value={general.gross_weight} onChange={v => setGeneral(g => ({ ...g, gross_weight: v }))} placeholder="4747" mono /></DField>
               <DField label="Net Weight (KG)"><DInput value={general.net_weight} onChange={v => setGeneral(g => ({ ...g, net_weight: v }))} placeholder="4740" mono /></DField>
             </div>
@@ -1712,7 +1712,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
         </div>
       )}
 
-      {/* ── Parties ── */}
+      {/* â”€â”€ Parties â”€â”€ */}
       {sub === 'parties' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="decl-block">
@@ -1742,7 +1742,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
         </div>
       )}
 
-      {/* ── Financial ── */}
+      {/* â”€â”€ Financial â”€â”€ */}
       {sub === 'financial' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="decl-block">
@@ -1779,7 +1779,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
           <div className="decl-block">
             <div className="decl-block-title">Tax Rates &amp; Live Assessment</div>
             <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 10 }}>
-              For your own quick estimate only — this doesn't get saved. The official assessment is recorded here once TRA responds via a Notice.
+              For your own quick estimate only â€” this doesn't get saved. The official assessment is recorded here once TRA responds via a Notice.
             </div>
             <div className="decl-grid">
               <DField label="Duty Rate (%)"><DInput value={financial.duty_rate} onChange={v => setFinancial(f => ({ ...f, duty_rate: v }))} placeholder="25" mono /></DField>
@@ -1795,12 +1795,12 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
                   ...(Number(financial.excise_rate) > 0 ? [[`Excise ${financial.excise_rate}%`, excAmt] as [string, number]] : []),
                 ].map(([l, v]) => (
                   <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--ink2)', marginBottom: 5 }}>
-                    <span>{l as string}</span><span style={{ fontFamily: 'var(--mono)', fontWeight: 500 }}>{(v as number).toLocaleString('en', { maximumFractionDigits: 0 })} TZS</span>
+                    <span>{l as string}</span><span style={{ fontFamily: 'var(--font)', fontWeight: 500 }}>{(v as number).toLocaleString('en', { maximumFractionDigits: 0 })} TZS</span>
                   </div>
                 ))}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: 'var(--teal)', fontSize: 14, borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4 }}>
                   <span>Total Tax Payable</span>
-                  <span style={{ fontFamily: 'var(--mono)' }}>{totalTax.toLocaleString('en', { maximumFractionDigits: 0 })} TZS</span>
+                  <span style={{ fontFamily: 'var(--font)' }}>{totalTax.toLocaleString('en', { maximumFractionDigits: 0 })} TZS</span>
                 </div>
               </div>
             )}
@@ -1808,7 +1808,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
         </div>
       )}
 
-      {/* ── Transport ── */}
+      {/* â”€â”€ Transport â”€â”€ */}
       {sub === 'transport' && (
         <div className="decl-block">
           <div className="decl-block-title">Transport &amp; Vessel</div>
@@ -1817,7 +1817,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
               <DSelect value={transport.transport_mode} onChange={v => setTransport(t => ({ ...t, transport_mode: v }))} options={[['S','Sea'],['A','Air'],['R','Road'],['T','Rail'],['M','Multimodal']]} />
             </DField>
             <DField label="Arrival Date"><DInput value={transport.arrival_date} onChange={v => setTransport(t => ({ ...t, arrival_date: v }))} placeholder="YYYY-MM-DD" /></DField>
-            <DField label="CRN"><DInput value={transport.crn} onChange={v => setTransport(t => ({ ...t, crn: v }))} placeholder="26GB000005…" mono /></DField>
+            <DField label="CRN"><DInput value={transport.crn} onChange={v => setTransport(t => ({ ...t, crn: v }))} placeholder="26GB000005â€¦" mono /></DField>
             <DField label="B/L No."><DInput value={transport.bl_no} onChange={v => setTransport(t => ({ ...t, bl_no: v }))} placeholder="TAOEVM1826006DAR" mono /></DField>
             <DField label="Vessel Name"><DInput value={transport.vessel_name} onChange={v => setTransport(t => ({ ...t, vessel_name: v }))} placeholder="EVER VIM" /></DField>
             <DField label="Partial B/L">
@@ -1825,8 +1825,8 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
                 <Checkbox checked={transport.partial_bl} onCheckedChange={c => setTransport(t => ({ ...t, partial_bl: c === true }))} /> Yes
               </label>
             </DField>
-            <DField label="Port of Loading"><DInput value={transport.shipment_place} onChange={v => setTransport(t => ({ ...t, shipment_place: v }))} placeholder="CNQIN — Qingdao" /></DField>
-            <DField label="Port of Discharge"><DInput value={transport.discharge_place} onChange={v => setTransport(t => ({ ...t, discharge_place: v }))} placeholder="TZDAR — Dar es Salaam" /></DField>
+            <DField label="Port of Loading"><DInput value={transport.shipment_place} onChange={v => setTransport(t => ({ ...t, shipment_place: v }))} placeholder="CNQIN â€” Qingdao" /></DField>
+            <DField label="Port of Discharge"><DInput value={transport.discharge_place} onChange={v => setTransport(t => ({ ...t, discharge_place: v }))} placeholder="TZDAR â€” Dar es Salaam" /></DField>
             <DField label="Discharge Date"><DInput value={transport.discharge_date} onChange={v => setTransport(t => ({ ...t, discharge_date: v }))} placeholder="YYYY-MM-DD" /></DField>
             <DField label="Entry Point / Office">
               <DSelect value={transport.entry_office} onChange={v => setTransport(t => ({ ...t, entry_office: v }))} options={[
@@ -1850,11 +1850,11 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
         </div>
       )}
 
-      {/* ── HS Items ── */}
+      {/* â”€â”€ HS Items â”€â”€ */}
       {sub === 'items' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>HS Code Lines — {items.length} item(s)</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>HS Code Lines â€” {items.length} item(s)</span>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => setItems(p => [...p, emptyHsLine()])} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <Icon name="plus" size={12} /> Add Line
             </button>
@@ -1871,7 +1871,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
                 <DField label="HS Code"><DInput value={line.hs} onChange={v => setItems(p => p.map((l, j) => j === i ? { ...l, hs: v } : l))} placeholder="8471.30.00" mono /></DField>
                 <DField label="Country of Origin"><DInput value={line.origin} onChange={v => setItems(p => p.map((l, j) => j === i ? { ...l, origin: v } : l))} placeholder="CN" /></DField>
               </div>
-              {/* The Duty Rate field below is typed by hand — this cross-checks
+              {/* The Duty Rate field below is typed by hand â€” this cross-checks
                   it against the EAC CET database in one click, in a new tab so
                   the declaration form here isn't disturbed mid-edit. */}
               {line.hs.trim() && (
@@ -1903,14 +1903,14 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
       <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !loadedDeclaration} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 20px', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="save" size={14} />
-          {!loadedDeclaration ? 'Loading…' : saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Declaration'}
+          {!loadedDeclaration ? 'Loadingâ€¦' : saving ? 'Savingâ€¦' : saved ? 'âœ“ Saved' : 'Save Declaration'}
         </button>
       </div>
     </form>
   );
 }
 
-// ─── Updates / Chat Tab ────────────────────────────────────────────────────────
+// â”€â”€â”€ Updates / Chat Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
   const [text, setText] = useState('');
@@ -1962,7 +1962,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
         onRefresh();
       } else {
         const event: TimelineEvent = { id: 'ev-' + Date.now(), stage: stage as Stage, label: stageLabel, userId: 'me', userName: 'You', ts: new Date(), note: 'Stage updated from Updates tab' };
-        const msg: ThreadMsg = { id: 'msg-' + Date.now(), userId: 'me', userName: 'You', content: `Stage updated → ${stageLabel}`, ts: new Date(), channels: isInternal ? ['internal'] : (chans.length ? chans : ['internal']), isInternal: false };
+        const msg: ThreadMsg = { id: 'msg-' + Date.now(), userId: 'me', userName: 'You', content: `Stage updated â†’ ${stageLabel}`, ts: new Date(), channels: isInternal ? ['internal'] : (chans.length ? chans : ['internal']), isInternal: false };
         updateJob(job.id, j => ({ ...j, stage: stage as Stage, timeline: [...j.timeline, event], thread: [...j.thread, msg] }));
       }
     } catch (err: any) { showAlert(err.message || 'Stage update failed'); }
@@ -2002,11 +2002,11 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
         <div ref={bottomRef} />
       </div>
 
-      {/* ── Quick Stage Update ── */}
+      {/* â”€â”€ Quick Stage Update â”€â”€ */}
       {showStageBar && (
         <div style={{ background: 'var(--white)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', overflow: 'hidden', marginBottom: 12 }}>
           <div style={{ padding: '10px 14px', background: 'var(--teal-l)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)' }}>Set Stage — click to update</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)' }}>Set Stage â€” click to update</span>
             <button type="button" onClick={() => setShowStageBar(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}><Icon name="x" size={13} color="var(--teal)" /></button>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '10px 14px' }}>
@@ -2016,7 +2016,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
               return (
                 <button key={s.id} type="button" onClick={() => handleSetStage(s.id)}
                   style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', cursor: 'pointer', border: `1.5px solid ${cur ? 'var(--teal)' : past ? 'var(--green)' : 'var(--border)'}`, background: cur ? 'var(--teal)' : past ? 'var(--green-l)' : 'var(--white)', color: cur ? '#fff' : past ? 'var(--green)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10, opacity: .7 }}>{i + 1}</span> {s.short}
+                  <span style={{ fontFamily: 'var(--font)', fontSize: 10, opacity: .7 }}>{i + 1}</span> {s.short}
                 </button>
               );
             }); })()}
@@ -2028,7 +2028,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>Post to:</span>
           <button type="button" onClick={() => setIsInternal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${isInternal ? 'var(--ink3)' : 'var(--border)'}`, background: isInternal ? 'var(--bg)' : 'var(--white)', color: isInternal ? 'var(--ink)' : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="lock" size={11} /> Internal Note</button>
-          <button type="button" onClick={() => { setIsInternal(false); if (!chans.length) setChans(['whatsapp']); }} style={{ padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${!isInternal ? CH_CFG.whatsapp.color : 'var(--border)'}`, background: !isInternal ? CH_CFG.whatsapp.bg : 'var(--white)', color: !isInternal ? CH_CFG.whatsapp.color : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>↗ Share Update</button>
+          <button type="button" onClick={() => { setIsInternal(false); if (!chans.length) setChans(['whatsapp']); }} style={{ padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${!isInternal ? CH_CFG.whatsapp.color : 'var(--border)'}`, background: !isInternal ? CH_CFG.whatsapp.bg : 'var(--white)', color: !isInternal ? CH_CFG.whatsapp.color : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>â†— Share Update</button>
           {!isInternal && (['whatsapp', 'email', 'teams', 'sms'] as Channel[]).map(ch => {
             const cfg = CH_CFG[ch]; const on = chans.includes(ch);
             return <button key={ch} type="button" onClick={() => toggleCh(ch)} style={{ padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>{cfg.label}</button>;
@@ -2036,7 +2036,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
         </div>
         <div style={{ padding: '12px 16px' }}>
           <textarea value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSend(); }} rows={3}
-            placeholder={isInternal ? 'Write an internal note — not visible to customer…' : 'Write a customer update — will be sent via selected channels…'}
+            placeholder={isInternal ? 'Write an internal note â€” not visible to customerâ€¦' : 'Write a customer update â€” will be sent via selected channelsâ€¦'}
             style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const, lineHeight: 1.5, outline: 'none' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2048,7 +2048,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
               </button>
             </div>
             <button type="button" onClick={handleSend} disabled={sending || !text.trim()} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', background: text.trim() && !sending ? 'var(--teal)' : 'var(--border)', color: text.trim() && !sending ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: text.trim() && !sending ? 'pointer' : 'default', transition: 'all 0.15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              <Icon name="send" size={14} /> {sending ? 'Sending…' : 'Send'}
+              <Icon name="send" size={14} /> {sending ? 'Sendingâ€¦' : 'Send'}
             </button>
           </div>
         </div>
@@ -2057,7 +2057,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
   );
 }
 
-// ─── Overview Tab ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Overview Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function CustomerOverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: boolean }) {
   return (
@@ -2072,17 +2072,17 @@ function CustomerOverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: b
         <SectionCard title="Shipment Details">
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 2 }}>
             {([
-              ['B/L Number',  job.bl || '—',                                   true ],
-              ['Vessel',      job.vessel || '—',                               false],
+              ['B/L Number',  job.bl || 'â€”',                                   true ],
+              ['Vessel',      job.vessel || 'â€”',                               false],
               ['Transport',   job.mode,                                        false],
-              ['Origin',      job.origin || '—',                               false],
-              ['Destination', job.destination || '—',                          false],
-              ['Gross Weight',job.weight || '—',                               false],
-              ['Containers',  (job.containers?.length ?? 0) > 0 ? (job.containers ?? []).join(', ') : '—', true],
+              ['Origin',      job.origin || 'â€”',                               false],
+              ['Destination', job.destination || 'â€”',                          false],
+              ['Gross Weight',job.weight || 'â€”',                               false],
+              ['Containers',  (job.containers?.length ?? 0) > 0 ? (job.containers ?? []).join(', ') : 'â€”', true],
             ] as [string,string,boolean][]).map(([k, v, mono], i) => (
               <div key={k} style={{ padding: '8px 10px', background: i % 2 === 0 ? 'var(--bg)' : 'var(--white)', borderRadius: 'var(--r-sm)'}}>
                 <div style={{ fontSize: 10, color: 'var(--ink3)', marginBottom: 1 }}>{k}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', fontFamily: mono ? 'var(--mono)' : undefined, wordBreak: 'break-all' }}>{v}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', fontFamily: mono ? 'var(--font)' : undefined, wordBreak: 'break-all' }}>{v}</div>
               </div>
             ))}
           </div>
@@ -2102,8 +2102,8 @@ function CustomerOverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: b
   );
 }
 
-// ── Card shell — one consistent card style used across the redesigned Overview ──
-// The shipment page's section card is the shared SectionCard — kept as a local
+// â”€â”€ Card shell â€” one consistent card style used across the redesigned Overview â”€â”€
+// The shipment page's section card is the shared SectionCard â€” kept as a local
 // `Card` alias so the ~30 call sites on this page read unchanged.
 const Card = SectionCard;
 
@@ -2111,7 +2111,7 @@ function SpecRow({ label, value, mono }: { label: string; value: React.ReactNode
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
       <span style={{ fontSize: 12.5, color: 'var(--ink3)', flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', fontFamily: mono ? 'var(--mono)' : undefined, textAlign: 'right', wordBreak: 'break-word' }}>{value}</span>
+      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', fontFamily: mono ? 'var(--font)' : undefined, textAlign: 'right', wordBreak: 'break-word' }}>{value}</span>
     </div>
   );
 }
@@ -2136,10 +2136,10 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: 12 }}>
         {[
           { label: 'Tasks',        value: `${doneTasks}/${totalTasks}`, sub: `${totalTasks - doneTasks} open`,         color: 'var(--ink)', icon: 'checkCircle' as IconName },
-          { label: 'Days Left',    value: daysLeft !== null ? (daysLeft >= 0 ? String(daysLeft) : 'Overdue') : '—', sub: job.dueDate ? fdate(job.dueDate) : 'No due date', color: daysLeft !== null && daysLeft < 0 ? 'var(--red)' : 'var(--ink)', icon: 'clock' as IconName },
+          { label: 'Days Left',    value: daysLeft !== null ? (daysLeft >= 0 ? String(daysLeft) : 'Overdue') : 'â€”', sub: job.dueDate ? fdate(job.dueDate) : 'No due date', color: daysLeft !== null && daysLeft < 0 ? 'var(--red)' : 'var(--ink)', icon: 'clock' as IconName },
           { label: 'Hours Logged', value: totalHours.toFixed(1),        sub: `${job.timeEntries.length} entries`,     color: 'var(--blue)', icon: 'activity' as IconName },
           { label: 'Documents',    value: String(job.documents.length),  sub: `${job.documents.filter(d => d.extracted?.status === 'done').length} AI extracted`, color: 'var(--purple)', icon: 'folder' as IconName },
-          { label: 'Total Charges',value: totalCharges > 0 ? `TZS ${(totalCharges/1_000_000).toFixed(1)}M` : '—', sub: `${job.ledger.filter(e => e.type==='charge').length} entries`, color: 'var(--red)', icon: 'receipt' as IconName },
+          { label: 'Total Charges',value: totalCharges > 0 ? `TZS ${(totalCharges/1_000_000).toFixed(1)}M` : 'â€”', sub: `${job.ledger.filter(e => e.type==='charge').length} entries`, color: 'var(--red)', icon: 'receipt' as IconName },
         ].map(c => (
           <div key={c.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
@@ -2152,7 +2152,7 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
         ))}
       </div>
 
-      {/* Financial summary bar — Paid / Due / Overdue, like a payment ledger snapshot */}
+      {/* Financial summary bar â€” Paid / Due / Overdue, like a payment ledger snapshot */}
       {(totalCharges > 0 || totalPaid > 0) && (
         <Card title="Financial Summary">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
@@ -2180,10 +2180,10 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
       )}
 
       {/* 2-col body */}
-      {/* minmax(0, …), not a bare 3fr/2fr: a grid item's default min-width is
+      {/* minmax(0, â€¦), not a bare 3fr/2fr: a grid item's default min-width is
           min-content, so long values (filenames, addresses) let each column
-          refuse to shrink and the whole grid overflows its flex parent —
-          sliding under the 248px listeners rail beside it. minmax(0,…) lets the
+          refuse to shrink and the whole grid overflows its flex parent â€”
+          sliding under the 248px listeners rail beside it. minmax(0,â€¦) lets the
           columns shrink and the rail sits cleanly alongside at every width. */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 3fr) minmax(0, 2fr)', gap: 16 }}>
 
@@ -2192,23 +2192,23 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
           <Card title="Shipment Details">
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)', gap: '0 32px' }}>
               <div>
-                <SpecRow label="B/L Number" value={job.bl || '—'} mono />
-                <SpecRow label="TANSAD" value={job.tansad || '—'} mono />
+                <SpecRow label="B/L Number" value={job.bl || 'â€”'} mono />
+                <SpecRow label="TANSAD" value={job.tansad || 'â€”'} mono />
                 <SpecRow label="Vessel" value={<VesselLiveStatus vesselName={job.vessel} mode={job.mode} />} />
                 <SpecRow label="Transport" value={job.mode} />
-                <SpecRow label="Containers" value={(job.containers?.length ?? 0) > 0 ? job.containers!.join(', ') : '—'} mono />
+                <SpecRow label="Containers" value={(job.containers?.length ?? 0) > 0 ? job.containers!.join(', ') : 'â€”'} mono />
               </div>
               <div>
-                <SpecRow label="Origin" value={job.origin || '—'} />
-                <SpecRow label="Destination" value={job.destination || '—'} />
-                <SpecRow label="Gross Weight" value={job.weight || '—'} />
-                <SpecRow label="CIF Value" value={job.invoiceValue || '—'} />
+                <SpecRow label="Origin" value={job.origin || 'â€”'} />
+                <SpecRow label="Destination" value={job.destination || 'â€”'} />
+                <SpecRow label="Gross Weight" value={job.weight || 'â€”'} />
+                <SpecRow label="CIF Value" value={job.invoiceValue || 'â€”'} />
                 <SpecRow label="Customer" value={job.customerId ? <Link to={`/crm/customers?id=${job.customerId}`} style={{ color: 'var(--teal)' }}>{job.customer}</Link> : job.customer} />
               </div>
             </div>
           </Card>
 
-          {/* Dangerous goods — captured on the Cargo Details edit step
+          {/* Dangerous goods â€” captured on the Cargo Details edit step
               (ShipmentEdit.tsx), alongside the Normal/Dangerous goods
               choice; this card is the read/issue/print surface for
               whatever was saved there. Only ever rendered when the
@@ -2220,7 +2220,7 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
             </Card>
           )}
 
-          {/* Contact Details — Ship From (our company) / Ship To (customer) */}
+          {/* Contact Details â€” Ship From (our company) / Ship To (customer) */}
           <Card title="Contact Details">
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)', gap: 20 }}>
               <div>
@@ -2262,13 +2262,13 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* The "Assigned Officer" card that used to open this column was a
               plain, read-only duplicate of the sidebar's "Assigned To" card
-              (ListenersSidebar, below) — same avatar and name, minus the
+              (ListenersSidebar, below) â€” same avatar and name, minus the
               Change/+Assign action that card already has. One is enough. */}
 
           {/* What the workflow did, next to what people did. */}
           <AutomationHistoryCard shipmentId={job.id} />
 
-          {/* Activity feed — timeline style */}
+          {/* Activity feed â€” timeline style */}
           <Card title="Activity Feed" padded={false} collapsible defaultOpen={false}>
             <div style={{ maxHeight: 520, overflowY: 'auto', padding: job.activity.length ? '16px 18px' : 0 }}>
               {job.activity.length === 0 ? (
@@ -2283,7 +2283,7 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.4 }}>
                         <span style={{ fontWeight: 700 }}>{ev.userName}</span>{' '}{ev.subject}
-                        {ev.detail && <span style={{ color: 'var(--ink3)' }}> — {ev.detail}</span>}
+                        {ev.detail && <span style={{ color: 'var(--ink3)' }}> â€” {ev.detail}</span>}
                       </div>
                       <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>{fdatetime(ev.ts)}</div>
                     </div>
@@ -2298,7 +2298,7 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
   );
 }
 
-// ─── Tasks Tab ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Tasks Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const TASK_STATUS_CFG: Record<TaskStatus, { label: string; color: string; bg: string }> = {
   not_started:       { label: 'Not Started',       color: 'var(--ink3)', bg: 'var(--bg)' },
@@ -2332,7 +2332,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
   const { isCheckedIn, triggerOpen: triggerOpenRaw } = useClockIn();
   const triggerOpen = () => triggerOpenRaw({ shipmentId: job.id, shipmentRef: job.sysRef || job.id });
   const isStaff = !!(user && user.role !== 'CUSTOMER');
-  // A task's status is changed by whoever owns it — the assignee — or by a team
+  // A task's status is changed by whoever owns it â€” the assignee â€” or by a team
   // lead: a senior/manager who oversees them.
   const TEAM_LEAD_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR'];
   const isLead = !!(user && TEAM_LEAD_ROLES.includes(user.role));
@@ -2354,8 +2354,8 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
     finally { setSavingStatus(null); }
   }
 
-  // Formal sign-off: close (or reopen) a task. Same permission as status —
-  // assignee or team lead — enforced again on the server.
+  // Formal sign-off: close (or reopen) a task. Same permission as status â€”
+  // assignee or team lead â€” enforced again on the server.
   async function closeTask(task: InternalTask, action: 'close' | 'reopen') {
     if (!canEditStatus(task) || savingStatus) return;
     if (!clockGate(isStaff, isCheckedIn, triggerOpen)) return;
@@ -2379,7 +2379,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
       const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
       setStaff(list.filter(u => u.status !== 'INACTIVE').map(u => ({ id: u.id, name: u.name })));
     }).catch(() => {});
-    // Products & Services catalog (ClearOS → Tools → Products & Services) —
+    // Products & Services catalog (ClearOS â†’ Tools â†’ Products & Services) â€”
     // lets a task be tagged with which billable clearing/freight service it's
     // for, so the rate carries through to Timesheets and can be recalled when
     // writing the invoice in FinOps.
@@ -2476,7 +2476,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
 
       {/* Toolbar */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'center' }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…" className="input-field" style={{ flex: 1, fontSize: 13 }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasksâ€¦" className="input-field" style={{ flex: 1, fontSize: 13 }} />
         <button type="button" onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="plus" size={14} /> Add Task
         </button>
@@ -2492,7 +2492,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Task Title</label>
               {newTitleCustom ? (
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <input value={newTitle} onChange={e => setNewTitle(e.target.value)} className="input-field" placeholder="New task name…" required autoFocus style={{ flex: 1 }} />
+                  <input value={newTitle} onChange={e => setNewTitle(e.target.value)} className="input-field" placeholder="New task nameâ€¦" required autoFocus style={{ flex: 1 }} />
                   <button type="button" onClick={() => { setNewTitleCustom(false); setNewTitle(''); }} title="Choose from list instead" className="btn btn-secondary btn-sm">
                     <Icon name="x" size={13} />
                   </button>
@@ -2502,10 +2502,10 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                   value={newTitle}
                   onValueChange={v => { if (v === '__new__') { setNewTitleCustom(true); setNewTitle(''); } else { setNewTitle(v); } }}
                 >
-                  <SelectTrigger><SelectValue placeholder="Select a task…" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select a taskâ€¦" /></SelectTrigger>
                   <SelectContent>
                     {taskTypes.map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}
-                    <SelectItem value="__new__">+ Add new task…</SelectItem>
+                    <SelectItem value="__new__">+ Add new taskâ€¦</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -2539,7 +2539,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
             />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={addSaving}>{addSaving ? 'Saving…' : 'Add Task'}</button>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={addSaving}>{addSaving ? 'Savingâ€¦' : 'Add Task'}</button>
             <button type="button" onClick={() => setShowAdd(false)} className="btn btn-secondary btn-sm">Cancel</button>
           </div>
         </form>
@@ -2564,7 +2564,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
               const overdue = task.dueDate && new Date() > task.dueDate && task.status !== 'complete';
               return (
                 <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--white)' : 'var(--bg)' }}>
-                  <td style={{ padding: '10px 14px', fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--mono)', width: 36 }}>{i + 1}</td>
+                  <td style={{ padding: '10px 14px', fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)', width: 36 }}>{i + 1}</td>
                   <td style={{ padding: '10px 14px', maxWidth: 240 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</div>
                     {task.description && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.description}</div>}
@@ -2575,7 +2575,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.serviceName}</div>
                         <div style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 600 }}>{fmtServiceRate(task.serviceRate || 0, task.serviceCurrency || 'USD')}/{task.serviceUnit}</div>
                       </>
-                    ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
+                    ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>â€”</span>}
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: sCfg.bg, color: sCfg.color, whiteSpace: 'nowrap' }}>{sCfg.label}</span>
@@ -2603,7 +2603,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span title={`Closed ${fdate(task.closedAt)}${task.closedById ? ` by ${nameFor(task.closedById)}` : ''}`}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: 'var(--green)' }}>
-                          <Icon name="lock" size={12} /> Closed{task.closedById ? ` · ${nameFor(task.closedById)}` : ''}
+                          <Icon name="lock" size={12} /> Closed{task.closedById ? ` Â· ${nameFor(task.closedById)}` : ''}
                         </span>
                         {canEditStatus(task) && (
                           <button type="button" onClick={() => closeTask(task, 'reopen')} disabled={savingStatus === task.id} title="Reopen this task"
@@ -2635,7 +2635,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                           <Icon name="lock" size={11} /> Close
                         </button>
                       </div>
-                    ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
+                    ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>â€”</span>}
                   </td>
                 </tr>
               );
@@ -2648,7 +2648,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
   );
 }
 
-// ─── Timesheets Tab ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Timesheets Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: ClearanceJob; isMobile: boolean; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
   const [showLog,   setShowLog]   = useState(false);
@@ -2723,7 +2723,7 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
         <div style={{ fontSize: 13, color: 'var(--ink3)' }}>
           Total: <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{totalHours.toFixed(1)} hrs</span> across {job.timeEntries.length} entries
           {Object.entries(billableByCurrency).length > 0 && (
-            <span> · Billable: <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{Object.entries(billableByCurrency).map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ')}</span></span>
+            <span> Â· Billable: <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{Object.entries(billableByCurrency).map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ')}</span></span>
           )}
         </div>
         <button type="button" onClick={() => setShowLog(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -2741,7 +2741,7 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Member</label>
               <Combobox
                 options={staff.map(s => ({ value: s.id, label: s.name }))}
-                value={logMember} onChange={setLogMember} placeholder="Select staff…"
+                value={logMember} onChange={setLogMember} placeholder="Select staffâ€¦"
               />
             </div>
             <div>
@@ -2760,7 +2760,7 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
             </div>
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Hours</label>
-              <input type="number" step="0.25" min="0.25" value={logHours} onChange={e => setLogHours(e.target.value)} className="input-field" placeholder="1.5" required style={{ width: '100%', fontFamily: 'var(--mono)' }} />
+              <input type="number" step="0.25" min="0.25" value={logHours} onChange={e => setLogHours(e.target.value)} className="input-field" placeholder="1.5" required style={{ width: '100%', fontFamily: 'var(--font)' }} />
             </div>
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Date</label>
@@ -2776,10 +2776,10 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
           </div>
           <div style={{ marginBottom: 10 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Note (optional)</label>
-            <input value={logNote} onChange={e => setLogNote(e.target.value)} className="input-field" placeholder="What was worked on…" style={{ width: '100%' }} />
+            <input value={logNote} onChange={e => setLogNote(e.target.value)} className="input-field" placeholder="What was worked onâ€¦" style={{ width: '100%' }} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={logSaving}>{logSaving ? 'Saving…' : 'Save Entry'}</button>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={logSaving}>{logSaving ? 'Savingâ€¦' : 'Save Entry'}</button>
             <button type="button" onClick={() => setShowLog(false)} className="btn btn-secondary btn-sm">Cancel</button>
           </div>
         </form>
@@ -2812,14 +2812,14 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{entry.taskTitle}</span>
                 </td>
                 <td style={{ padding: '10px 16px', fontSize: 12, color: 'var(--ink3)', maxWidth: 160 }}>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{entry.serviceName || '—'}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{entry.serviceName || 'â€”'}</span>
                 </td>
                 <td style={{ padding: '10px 16px', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fdate(entry.date)}</td>
-                <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{entry.duration}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{entry.duration}</td>
                 <td style={{ padding: '10px 16px', fontSize: 14, fontWeight: 700, color: 'var(--blue)' }}>{entry.hours.toFixed(2)}</td>
-                <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', whiteSpace: 'nowrap' }}>{amt != null ? fmtServiceRate(amt, entry.serviceCurrency || 'USD') : '—'}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', whiteSpace: 'nowrap' }}>{amt != null ? fmtServiceRate(amt, entry.serviceCurrency || 'USD') : 'â€”'}</td>
                 <td style={{ padding: '10px 16px', fontSize: 12, color: 'var(--ink3)', maxWidth: 180 }}>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{entry.note || '—'}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{entry.note || 'â€”'}</span>
                 </td>
               </tr>
               );
@@ -2831,7 +2831,7 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
                 <td colSpan={4} style={{ padding: '10px 16px', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>TOTAL</td>
                 <td style={{ padding: '10px 16px', fontSize: 15, fontWeight: 800, color: 'var(--blue)' }}>{totalHours.toFixed(2)}</td>
                 <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 800, color: 'var(--teal)', whiteSpace: 'nowrap' }}>
-                  {Object.entries(billableByCurrency).map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ') || '—'}
+                  {Object.entries(billableByCurrency).map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ') || 'â€”'}
                 </td>
                 <td />
               </tr>
@@ -2844,14 +2844,14 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
   );
 }
 
-// ─── Documents Tab ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Documents Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ExtractedView({ doc }: { doc: ShipDoc }) {
   const ex = doc.extracted;
   if (!ex) return null;
   if (ex.status === 'processing') return (
     <div style={{ padding: '16px 0' }}>
-      <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 8 }}>Extracting with AI…</div>
+      <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 8 }}>Extracting with AIâ€¦</div>
       <div style={{ height: 4, background: 'var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: '65%', background: 'var(--teal)', borderRadius: 'var(--r-sm)'}} />
       </div>
@@ -2923,7 +2923,7 @@ const DOC_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'OTHER', label: 'Other' },
 ];
 
-// The full document manifest for a shipment — the whole clearance checklist in
+// The full document manifest for a shipment â€” the whole clearance checklist in
 // ONE place, not two overlapping panels. `required` gates the move to payment;
 // the rest are the shipping/clearance and optional docs, including the ones
 // uploaded in later steps. Any uploaded document whose type isn't listed here
@@ -2943,7 +2943,7 @@ const DOC_MANIFEST: { title: string; required?: boolean; optional?: boolean; doc
     { type: 'PAYMENT_NOTE', label: 'Payment note' },
     { type: 'TISS_PAYMENT_INVOICE', label: 'TISS payment invoice' },
   ] },
-  { title: 'Optional — depends on the flow', optional: true, docs: [
+  { title: 'Optional â€” depends on the flow', optional: true, docs: [
     { type: 'TBS_CHARGES', label: 'TBS charges' },
     { type: 'COC', label: 'Certificate of Conformity' },
     { type: 'WHARFAGE', label: 'Wharfage' },
@@ -2992,10 +2992,10 @@ function DocumentsPanel({ job, shipmentId, isLive, onRefresh }: { job: Clearance
       if (nav.canShare?.({ files: [file] })) {
         await nav.share({ files: [file], title: doc.name });   // real OS share sheet with the actual file
       } else {
-        // Most desktop browsers can't share files — hand the file over so it can
+        // Most desktop browsers can't share files â€” hand the file over so it can
         // be attached to whatever the user shares it through. No fake link.
         await apiDownload(`/v1/shipments/${shipmentId}/documents/${doc.id}/download`, doc.name);
-        showAlert('This browser can’t open a share sheet, so the file was downloaded — attach it to share.', { variant: 'info', title: 'Downloaded to share' });
+        showAlert('This browser canâ€™t open a share sheet, so the file was downloaded â€” attach it to share.', { variant: 'info', title: 'Downloaded to share' });
       }
     } catch (err: any) {
       if (err?.name === 'AbortError') return;   // user dismissed the share sheet
@@ -3017,7 +3017,7 @@ function DocumentsPanel({ job, shipmentId, isLive, onRefresh }: { job: Clearance
   }
   async function deleteDoc(doc: ShipDoc) {
     if (!isLive) { showAlert('Deleting is only available for live shipments, not demo data.'); return; }
-    const ok = await showConfirm(`Delete "${DOC_TYPE_LABEL[doc.type] ?? doc.type}"? The file is removed and this can’t be undone.`, { title: 'Delete document', variant: 'danger', confirmLabel: 'Delete' });
+    const ok = await showConfirm(`Delete "${DOC_TYPE_LABEL[doc.type] ?? doc.type}"? The file is removed and this canâ€™t be undone.`, { title: 'Delete document', variant: 'danger', confirmLabel: 'Delete' });
     if (!ok) return;
     setDeleting(doc.id);
     try {
@@ -3029,7 +3029,7 @@ function DocumentsPanel({ job, shipmentId, isLive, onRefresh }: { job: Clearance
 
   // Workflow-driven required list: the document entry-conditions of THIS
   // shipment's workflow (each step's `document:<TYPE>` requirement). This is
-  // what makes the checklist change with the workflow — a Sea-import flow asks
+  // what makes the checklist change with the workflow â€” a Sea-import flow asks
   // for different docs than Air or Transit. When the workflow declares none
   // (e.g. a legacy shipment), fall back to the default required set.
   const wfDocTypes: { type: string; label: string }[] = [];
@@ -3067,13 +3067,13 @@ function DocumentsPanel({ job, shipmentId, isLive, onRefresh }: { job: Clearance
   const others = job.documents.filter(d => !d.pending && !listedTypes.has((d.apiType || '').toUpperCase()));
   const uploadedAny = job.documents.some(d => !d.pending);
 
-  // One row — a manifest slot (with or without its file) or an extra upload.
+  // One row â€” a manifest slot (with or without its file) or an extra upload.
   const row = (key: string, type: string, label: string, doc: ShipDoc | undefined, required: boolean, pendingLabel: string) => (
     <div key={key} style={{
       display: 'flex', alignItems: 'center', gap: 12, minWidth: 0,
-      // A lighter wash of the app accent for an uploaded row — the canonical
+      // A lighter wash of the app accent for an uploaded row â€” the canonical
       // --teal-l tint blended most of the way to white, so it still reads as
-      // "this app's colour" (orange in ClearOS, pink in NexusHR…) but softly.
+      // "this app's colour" (orange in ClearOS, pink in NexusHRâ€¦) but softly.
       border: `1px solid ${doc ? 'color-mix(in srgb, var(--teal-m), var(--white) 40%)' : 'var(--border)'}`,
       borderRadius: 'var(--r, 10px)', padding: '10px 12px',
       background: doc ? 'color-mix(in srgb, var(--teal-l), var(--white) 55%)' : 'var(--white)',
@@ -3089,7 +3089,7 @@ function DocumentsPanel({ job, shipmentId, isLive, onRefresh }: { job: Clearance
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{label}</div>
         <div title={doc ? doc.name : undefined} style={{ fontSize: 11.5, color: doc ? 'var(--ink2)' : required ? 'var(--gold)' : 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
-          {doc ? `${doc.name} · ${fdate(doc.uploadedAt)}` : pendingLabel}
+          {doc ? `${doc.name} Â· ${fdate(doc.uploadedAt)}` : pendingLabel}
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
@@ -3125,7 +3125,7 @@ function DocumentsPanel({ job, shipmentId, isLive, onRefresh }: { job: Clearance
     ) : undefined}>
       <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={onFile} />
       <div style={{ fontSize: 12, fontWeight: 600, color: ready ? 'var(--teal)' : 'var(--ink3)', marginBottom: 14 }}>
-        {haveCount} of {requiredDocs.length} required uploaded{ready ? ' — ready to move to payment.' : ' — all required before the payment step.'}
+        {haveCount} of {requiredDocs.length} required uploaded{ready ? ' â€” ready to move to payment.' : ' â€” all required before the payment step.'}
       </div>
       {groups.map(group => (
         <div key={group.title} style={{ marginBottom: 16 }}>
@@ -3271,7 +3271,7 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
             confidence,
             sections,
             summary: res.simulated
-              ? 'Simulated extraction (no OCR key configured for this platform) — verify the fields below against the original document.'
+              ? 'Simulated extraction (no OCR key configured for this platform) â€” verify the fields below against the original document.'
               : `Extracted as ${r.doc_type || 'a document'} by AI. Review and verify the fields below.`,
           },
         } : d),
@@ -3356,7 +3356,7 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
             </button>
             <button type="button" onClick={saveStagedFiles} disabled={savingStaged}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {savingStaged ? 'Saving…' : `Save ${stagedFiles.length} file${stagedFiles.length !== 1 ? 's' : ''}`}
+              {savingStaged ? 'Savingâ€¦' : `Save ${stagedFiles.length} file${stagedFiles.length !== 1 ? 's' : ''}`}
             </button>
           </div>
         </div>
@@ -3380,12 +3380,12 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{DOC_TYPE_LABEL[doc.type] ?? doc.type}</div>
-                  <div title={doc.name} style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name} · Uploaded by {doc.uploadedBy} · {fdate(doc.uploadedAt)}</div>
+                  <div title={doc.name} style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name} Â· Uploaded by {doc.uploadedBy} Â· {fdate(doc.uploadedAt)}</div>
                   {ex?.status === 'done' && ex.summary && <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.summary}</div>}
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                  {ex?.status === 'done'       && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--green-l)', color: 'var(--green)', fontWeight: 700, border: '1px solid var(--green)' }}>✓ AI Extracted · {ex.confidence}%</span>}
-                  {ex?.status === 'processing' && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--gold-l)', color: 'var(--gold)', fontWeight: 700 }}>Processing…</span>}
+                  {ex?.status === 'done'       && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--green-l)', color: 'var(--green)', fontWeight: 700, border: '1px solid var(--green)' }}>âœ“ AI Extracted Â· {ex.confidence}%</span>}
+                  {ex?.status === 'processing' && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--gold-l)', color: 'var(--gold)', fontWeight: 700 }}>Processingâ€¦</span>}
                   {(!ex || ex.status === 'pending') && (
                     <button type="button" onClick={e => { e.stopPropagation(); handleExtract(doc.id); }} style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--teal)', color: 'var(--teal)', background: 'var(--white)', cursor: 'pointer', fontWeight: 700, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
                       Extract with AI
@@ -3395,7 +3395,7 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                     <span title="Verified" style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--green-l)', color: 'var(--green)', border: '1px solid var(--green)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="checkCircle" size={12} color="var(--green)" /> Verified</span>
                   ) : canVerify ? (
                     <button type="button" onClick={e => { e.stopPropagation(); verifyDoc(doc.id); }} disabled={verifying === doc.id} title="Mark this document as verified" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--green)', color: 'var(--green)', background: 'var(--white)', cursor: verifying === doc.id ? 'default' : 'pointer', fontWeight: 700, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-                      {verifying === doc.id ? '…' : 'Verify'}
+                      {verifying === doc.id ? 'â€¦' : 'Verify'}
                     </button>
                   ) : null}
                   <button type="button" onClick={e => { e.stopPropagation(); handleView(doc); }} title="View" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="eye" size={16} /></button>
@@ -3416,7 +3416,7 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
   );
 }
 
-// ─── CO2 / Sustainability Tab ──────────────────────────────────────────────────
+// â”€â”€â”€ CO2 / Sustainability Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
   const isMobile = useIsMobile();
@@ -3427,11 +3427,11 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
   const triggerOpen = () => triggerOpenRaw({ shipmentId: job.id, shipmentRef: job.sysRef || job.id });
   const isStaff = !!(user && user.role !== 'CUSTOMER');
 
-  const hasOriginDest = !!(job.origin && job.origin !== '—' && job.destination && job.destination !== '—');
+  const hasOriginDest = !!(job.origin && job.origin !== 'â€”' && job.destination && job.destination !== 'â€”');
   const hasWeight = !!job.weight;
   const canCalculate = hasOriginDest && hasWeight;
 
-  // Pulled straight from the shipment — nothing to type. The backend
+  // Pulled straight from the shipment â€” nothing to type. The backend
   // resolves these free-text names to port/airport codes itself.
   async function handleCalculate() {
     if (!canCalculate) return;
@@ -3465,9 +3465,9 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
           <div style={{ flex: 1, minWidth: 220, background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: 'var(--green)' }}>
               <Icon name="activity" size={16} />
-              <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total CO₂ Emissions</span>
+              <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total COâ‚‚ Emissions</span>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--green)', fontFamily: 'var(--mono)' }}>
+            <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--green)', fontFamily: 'var(--font)' }}>
               {job.co2EmissionsKg.toLocaleString()} <span style={{ fontSize: 16, fontWeight: 600 }}>kg</span>
             </div>
           </div>
@@ -3476,21 +3476,21 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
               <Icon name="sun" size={16} />
               <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Carbon Credits Saved</span>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--gold)', fontFamily: 'var(--mono)' }}>
+            <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--gold)', fontFamily: 'var(--font)' }}>
               {job.carbonCreditsSaved?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: 16, fontWeight: 600 }}>credits</span>
             </div>
           </div>
         </div>
       )}
 
-      <Card title="CO₂ Emissions">
+      <Card title="COâ‚‚ Emissions">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <span style={{ fontSize: 12, color: 'var(--ink3)' }}>GLEC Framework v3.2 / ISO 14083 — computed directly from this shipment's route and weight.</span>
+          <span style={{ fontSize: 12, color: 'var(--ink3)' }}>GLEC Framework v3.2 / ISO 14083 â€” computed directly from this shipment's route and weight.</span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '0 24px', margin: '16px 0' }}>
-          <SpecRow label="Origin" value={job.origin && job.origin !== '—' ? job.origin : 'Not set'} />
-          <SpecRow label="Destination" value={job.destination && job.destination !== '—' ? job.destination : 'Not set'} />
+          <SpecRow label="Origin" value={job.origin && job.origin !== 'â€”' ? job.origin : 'Not set'} />
+          <SpecRow label="Destination" value={job.destination && job.destination !== 'â€”' ? job.destination : 'Not set'} />
           <SpecRow label="Gross Weight" value={job.weight || 'Not set'} />
         </div>
 
@@ -3507,12 +3507,12 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
 
         <button type="button" onClick={handleCalculate} disabled={!canCalculate || calcSaving}
           style={{ padding: 'var(--ds-btn-py) 22px', background: canCalculate ? 'var(--green)' : 'var(--border)', color: canCalculate ? 'hsl(var(--green-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 14, fontWeight: 700, cursor: canCalculate && !calcSaving ? 'pointer' : 'default', opacity: calcSaving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-          {calcSaving ? 'Calculating…' : job.co2EmissionsKg !== undefined ? 'Recalculate CO₂' : 'Calculate CO₂'}
+          {calcSaving ? 'Calculatingâ€¦' : job.co2EmissionsKg !== undefined ? 'Recalculate COâ‚‚' : 'Calculate COâ‚‚'}
         </button>
 
         {job.co2CalcDetails && (
           <div style={{ marginTop: 18, padding: '14px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', fontSize: 12, color: 'var(--ink3)' }}>
-            <strong>Calculation details:</strong> Distance {job.co2CalcDetails.distance_km}km · Mode {job.co2CalcDetails.mode}{job.co2CalcDetails.factor ? ` · GLEC Factor ${job.co2CalcDetails.factor}` : ''}
+            <strong>Calculation details:</strong> Distance {job.co2CalcDetails.distance_km}km Â· Mode {job.co2CalcDetails.mode}{job.co2CalcDetails.factor ? ` Â· GLEC Factor ${job.co2CalcDetails.factor}` : ''}
           </div>
         )}
       </Card>
@@ -3520,7 +3520,7 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
   );
 }
 
-// ─── Ledger Tab ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Ledger Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
   const isMobile = useIsMobile();
@@ -3540,7 +3540,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
   const charges  = job.ledger.filter(e => e.type === 'charge');
   const payments = job.ledger.filter(e => e.type === 'payment');
   // 'refund' is a real value of LedgerEntry['type'] that neither table below
-  // nor any total here used to account for — a refunded entry used to
+  // nor any total here used to account for â€” a refunded entry used to
   // vanish from this tab entirely: not in Charges, not in Payments, not in
   // Balance, with nothing to show it had ever been recorded.
   const refunds  = job.ledger.filter(e => e.type === 'refund');
@@ -3581,20 +3581,20 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
     try {
       await apiFetch(`/v1/shipments/${shipmentId}/invoice/finalise`, { method: 'POST' });
       onRefresh();
-      showAlert('Invoice finalised — now visible in FinOps Billing.');
+      showAlert('Invoice finalised â€” now visible in FinOps Billing.');
     } catch (err: any) { showAlert(err.message || 'Failed to finalize invoice'); } finally { setFinalizing(false); }
   }
 
   return (
     <div>
       <EstimateVarianceCard shipmentId={shipmentId} />
-      {/* ── Economics of this Shipment ── */}
+      {/* â”€â”€ Economics of this Shipment â”€â”€ */}
       {(() => {
         const revenue       = totalPaid;
         const expenses      = totalCharges;
         const grossMargin   = revenue - expenses;
         const marginPct     = revenue > 0 ? Math.round((grossMargin / revenue) * 100) : 0;
-        // Real logged-time value, using each entry's own snapshotted rate —
+        // Real logged-time value, using each entry's own snapshotted rate â€”
         // the same rule the Timesheets tab uses. There is no "ops budget"
         // anywhere in the data model, so this reports what was actually
         // logged rather than measuring it against an invented reservation.
@@ -3617,16 +3617,16 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
                 { label: 'Revenue',        value: fmtTZS(revenue),     color: 'var(--green)', icon: 'arrowUp' },
                 { label: 'Expenses',       value: fmtTZS(expenses),    color: 'var(--red)', icon: 'arrowDown' },
                 { label: 'Gross Margin',   value: fmtTZS(Math.abs(grossMargin)), color: grossMargin >= 0 ? 'var(--green)' : 'var(--red)', icon: grossMargin >= 0 ? 'checkCircle' : 'alertTriangle' },
-                { label: 'Time Logged, Billable', value: billableSummary.length ? billableSummary.map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ') : '—', color: 'var(--blue)', icon: 'clock' },
+                { label: 'Time Logged, Billable', value: billableSummary.length ? billableSummary.map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ') : 'â€”', color: 'var(--blue)', icon: 'clock' },
               ] as { label: string; value: string; color: string; icon: IconName }[]).map(c => (
                 <div key={c.label} style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}><Icon name={c.icon} size={10} /> {c.label}</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: c.color, fontFamily: 'var(--mono)' }}>{c.value}</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: c.color, fontFamily: 'var(--font)' }}>{c.value}</div>
                 </div>
               ))}
             </div>
             {billableSummary.length > 0 && (
-              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>From rated time entries on the Timesheets tab — not yet reflected in Revenue above until invoiced.</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>From rated time entries on the Timesheets tab â€” not yet reflected in Revenue above until invoiced.</div>
             )}
           </Card>
           </div>
@@ -3658,7 +3658,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
         {isStaff && isLive && payments.length > 0 && job.customerId && (
           <button type="button" onClick={handleFinalize} disabled={finalizing} title="Publish this shipment's billed revenue as a real invoice in FinOps Billing"
             style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--white)', color: 'var(--teal)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: finalizing ? 'wait' : 'pointer', opacity: finalizing ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="fileText" size={14} /> {finalizing ? 'Finalizing…' : 'Finalize Invoice'}
+            <Icon name="fileText" size={14} /> {finalizing ? 'Finalizingâ€¦' : 'Finalize Invoice'}
           </button>
         )}
         {showForm && (
@@ -3685,7 +3685,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Amount (TZS)</label>
-                <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="input-field" placeholder="0" required style={{ width: '100%', fontFamily: 'var(--mono)' }} />
+                <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="input-field" placeholder="0" required style={{ width: '100%', fontFamily: 'var(--font)' }} />
               </div>
             </div>
             <div style={{ marginBottom: 10 }}>
@@ -3694,10 +3694,10 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Reference (optional)</label>
-              <input type="text" value={ref} onChange={e => setRef(e.target.value)} className="input-field" placeholder="Invoice / receipt number" style={{ width: '100%', fontFamily: 'var(--mono)' }} />
+              <input type="text" value={ref} onChange={e => setRef(e.target.value)} className="input-field" placeholder="Invoice / receipt number" style={{ width: '100%', fontFamily: 'var(--font)' }} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="submit" className="btn btn-primary btn-sm" style={{ flex: 1 }} disabled={ledgSaving}>{ledgSaving ? 'Saving…' : 'Add Entry'}</button>
+              <button type="submit" className="btn btn-primary btn-sm" style={{ flex: 1 }} disabled={ledgSaving}>{ledgSaving ? 'Savingâ€¦' : 'Add Entry'}</button>
               <button type="button" onClick={() => setShowForm(false)} className="btn btn-secondary btn-sm">Cancel</button>
             </div>
           </form>
@@ -3706,14 +3706,14 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
         )}
       </div>
 
-      {/* Ledger — charges, payments and refunds in one chronological table
-          instead of two separate ones (charges, payments — refunds weren't
+      {/* Ledger â€” charges, payments and refunds in one chronological table
+          instead of two separate ones (charges, payments â€” refunds weren't
           shown anywhere at all), with a running balance so the shipment's
           financial story reads top to bottom like a real statement rather
           than requiring a mental merge of two disconnected lists. */}
       <Card
         title="Ledger"
-        action={<span style={{ fontFamily: 'var(--mono)', color: balance >= 0 ? 'var(--green)' : 'var(--red)' }}>{balance >= 0 ? '+' : '−'}{fmtTZS(Math.abs(balance))}</span>}
+        action={<span style={{ fontFamily: 'var(--font)', color: balance >= 0 ? 'var(--green)' : 'var(--red)' }}>{balance >= 0 ? '+' : 'âˆ’'}{fmtTZS(Math.abs(balance))}</span>}
         padded={false}
       >
         {job.ledger.length === 0 ? (
@@ -3745,12 +3745,12 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
                         <span style={{ fontSize: 11, fontWeight: 700, color: typeColor, background: typeColor + '18', padding: '2px 8px', borderRadius: 'var(--r-sm)', whiteSpace: 'nowrap' }}>{typeLabel}</span>
                       </td>
                       <td style={{ padding: '11px 20px', fontSize: 13, fontWeight: 500 }}>{e.description}</td>
-                      <td style={{ padding: '11px 20px', fontSize: 12, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{e.reference || '—'}</td>
+                      <td style={{ padding: '11px 20px', fontSize: 12, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{e.reference || 'â€”'}</td>
                       <td style={{ padding: '11px 20px' }}><span style={{ fontSize: 11, fontWeight: 700, color: sColor(e.status), background: sColor(e.status) + '18', padding: '2px 8px', borderRadius: 'var(--r-sm)'}}>{e.status.toUpperCase()}</span></td>
-                      <td style={{ padding: '11px 20px', fontSize: 13, fontWeight: 700, textAlign: 'right', color: signed >= 0 ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>
-                        {signed >= 0 ? '+' : '−'}{fmtTZS(Math.abs(signed))}
+                      <td style={{ padding: '11px 20px', fontSize: 13, fontWeight: 700, textAlign: 'right', color: signed >= 0 ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+                        {signed >= 0 ? '+' : 'âˆ’'}{fmtTZS(Math.abs(signed))}
                       </td>
-                      <td style={{ padding: '11px 20px', fontSize: 13, fontWeight: 700, textAlign: 'right', color: running >= 0 ? 'var(--ink)' : 'var(--red)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '11px 20px', fontSize: 13, fontWeight: 700, textAlign: 'right', color: running >= 0 ? 'var(--ink)' : 'var(--red)', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
                         {fmtTZS(running)}
                       </td>
                     </tr>
@@ -3765,7 +3765,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
   );
 }
 
-// ─── Staff Picker Modal ───────────────────────────────────────────────────────
+// â”€â”€â”€ Staff Picker Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onClose, mode = 'tag', listenerType = 'internal', onAssign, declaredCustomer }: {
   jobId: string;
@@ -3787,7 +3787,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
   const [staff, setStaff]           = useState<Employee[]>([]);
   const [staffLoading, setStaffLoading] = useState(true);
   const [staffError, setStaffError] = useState(false);
-  // Slide-in drawer — Sheet (Radix) now owns mount/animate-in and
+  // Slide-in drawer â€” Sheet (Radix) now owns mount/animate-in and
   // animate-out-then-close itself; requestClose is kept as a name since a
   // couple of call sites below delay it after a "Saved!" confirmation.
   function requestClose() { onClose(); }
@@ -3825,7 +3825,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
               },
               {
                 id: `${matchingCustomer.id}_ops`,
-                name: `${cName} — Operations Contact`,
+                name: `${cName} â€” Operations Contact`,
                 email: matchingCustomer.email ? `ops@${matchingCustomer.email.split('@')[1] || 'customer.com'}` : '',
                 phone: matchingCustomer.phone || '',
                 dept: cName,
@@ -3836,7 +3836,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
               },
               {
                 id: `${matchingCustomer.id}_finance`,
-                name: `${cName} — Accounts & Billing`,
+                name: `${cName} â€” Accounts & Billing`,
                 email: matchingCustomer.email ? `finance@${matchingCustomer.email.split('@')[1] || 'customer.com'}` : '',
                 phone: matchingCustomer.phone || '',
                 dept: cName,
@@ -3861,7 +3861,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
               },
               {
                 id: `cust_${cName.replace(/\s+/g, '_').toLowerCase()}_ops`,
-                name: `${cName} — Operations Representative`,
+                name: `${cName} â€” Operations Representative`,
                 email: '',
                 phone: '',
                 dept: cName,
@@ -3872,7 +3872,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
               },
               {
                 id: `cust_${cName.replace(/\s+/g, '_').toLowerCase()}_billing`,
-                name: `${cName} — Finance & Billing Contact`,
+                name: `${cName} â€” Finance & Billing Contact`,
                 email: '',
                 phone: '',
                 dept: cName,
@@ -3917,7 +3917,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
             },
             {
               id: `cust-fallback-2`,
-              name: `${custName} — Operations Representative`,
+              name: `${custName} â€” Operations Representative`,
               email: '',
               phone: '',
               dept: custName,
@@ -4018,7 +4018,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
     }
   }
 
-  // Slide-in drawer anchored to the right edge — wider than the 248px sidebar
+  // Slide-in drawer anchored to the right edge â€” wider than the 248px sidebar
   // column it's triggered from, and "light": no dark backdrop dimming the rest
   // of the page, just a transparent click-outside-to-close catcher (via
   // Sheet's overlayClassName escape hatch, see ui/sheet.tsx).
@@ -4043,7 +4043,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
           <div style={{ position: 'relative' }}>
             <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search by name, department, or role…"
+              placeholder="Search by name, department, or roleâ€¦"
               style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
           </div>
         </div>
@@ -4053,7 +4053,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
           {staffLoading && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '32px 0', color: 'var(--ink3)', fontSize: 13 }}>
               <Spinner size={18} trackColor="var(--teal-l)" />
-              Loading staff…
+              Loading staffâ€¦
             </div>
           )}
           {!staffLoading && staffError && (
@@ -4076,7 +4076,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: on ? 'var(--teal)' : 'var(--ink)' }}>{e.name}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{e.designation} · {e.dept}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{e.designation} Â· {e.dept}</div>
                 </div>
                 <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--r-sm)', background: STATUS_COLOR[e.status] ? `${STATUS_COLOR[e.status]}20` : 'var(--bg)', color: STATUS_COLOR[e.status] ?? 'var(--ink3)', flexShrink: 0 }}>{e.status === 'ON_LEAVE' ? 'On Leave' : 'Active'}</span>
                 <div style={{ width: 20, height: 20, borderRadius: 'var(--r-sm)', border: `2px solid ${on ? 'var(--teal)' : 'var(--border)'}`, background: on ? 'var(--teal)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -4113,7 +4113,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
             <button type="button" onClick={requestClose} style={{ padding: 'var(--ds-btn-py) 16px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
             <button type="button" disabled={staffLoading || staffError || selected.length === 0 || saved || confirming} onClick={handleConfirm}
               style={{ padding: 'var(--ds-btn-py) 18px', background: saved ? 'var(--green)' : selected.length > 0 ? 'var(--teal)' : 'var(--border)', color: selected.length > 0 || saved ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selected.length > 0 && !confirming ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7, transition: 'background .15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {saved ? <><Icon name="check" size={13} color="#fff" /> Done!</> : confirming ? 'Saving…' : <><Icon name="userPlus" size={13} color={selected.length > 0 ? '#fff' : 'var(--ink3)'} /> {mode === 'assign' ? 'Assign' : 'Tag & Notify'}</>}
+              {saved ? <><Icon name="check" size={13} color="#fff" /> Done!</> : confirming ? 'Savingâ€¦' : <><Icon name="userPlus" size={13} color={selected.length > 0 ? '#fff' : 'var(--ink3)'} /> {mode === 'assign' ? 'Assign' : 'Tag & Notify'}</>}
             </button>
           </div>
         </div>
@@ -4122,9 +4122,9 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
   );
 }
 
-// ─── Listeners Sidebar ────────────────────────────────────────────────────────
+// â”€â”€â”€ Listeners Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// Only channels with a real send integration behind them (WhatsApp/Email) — SMS
+// Only channels with a real send integration behind them (WhatsApp/Email) â€” SMS
 // and Teams have no working integration anywhere in this codebase today, so
 // they're not offered here rather than being fake toggles that silently no-op.
 const ALL_CHANNELS: Channel[] = ['whatsapp', 'email'];
@@ -4143,22 +4143,22 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
   const [channelToggling, setChannelToggling] = useState<string | null>(null);
   const [staffPickerType, setStaffPickerType] = useState<'internal' | 'customer' | null>(null);
   const [showAssignPicker, setShowAssignPicker] = useState(false);
-  // Read-only status indicator only now — WhatsApp on/off is a tenant-wide
-  // decision (Workspace ▸ Settings ▸ Notifications), not a per-shipment
+  // Read-only status indicator only now â€” WhatsApp on/off is a tenant-wide
+  // decision (Workspace â–¸ Settings â–¸ Notifications), not a per-shipment
   // control; the toggle card that used to live on this page never actually
   // gated message-sending anyway (nothing in the backend checked it).
   const waActive = job.whatsappBotActive !== false;
   const { user } = useAuth();
   // Re-assigning ownership and re-tagging who gets notified is a management
-  // decision — junior/officer roles can see who's assigned/tagged but not change it.
+  // decision â€” junior/officer roles can see who's assigned/tagged but not change it.
   const canManage = !!(user && MGMT_ROLES.includes(user.role));
 
   const [editingDate, setEditingDate] = useState<'created' | 'due' | null>(null);
   const [savingDate, setSavingDate] = useState(false);
   const [savingReportToggle, setSavingReportToggle] = useState(false);
 
-  // null (inherit the customer's own setting) displays as "on" — the
-  // platform default — since there's no per-shipment override yet to show.
+  // null (inherit the customer's own setting) displays as "on" â€” the
+  // platform default â€” since there's no per-shipment override yet to show.
   async function handleDailyReportToggle(enabled: boolean) {
     setSavingReportToggle(true);
     try {
@@ -4181,7 +4181,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
     try {
       if (isLive) {
         // The backend fires a real KEY_DATE_CHANGED notification to this
-        // shipment's listeners on a genuine change — nothing more to do here
+        // shipment's listeners on a genuine change â€” nothing more to do here
         // beyond refreshing so the new value shows up.
         await apiFetch(`/v1/shipments/${shipmentId}`, {
           method: 'PATCH',
@@ -4252,7 +4252,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
             canManage ? (
               <button type="button" onClick={() => setShowAssignPicker(true)}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)', background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', cursor: 'pointer', width: '100%', textAlign: 'left', fontFamily: 'var(--font)' }}>
-                <Icon name="userPlus" size={14} color="var(--ink3)" /> Assign an agent…
+                <Icon name="userPlus" size={14} color="var(--ink3)" /> Assign an agentâ€¦
               </button>
             ) : (
               <div style={{ fontSize: 12, color: 'var(--ink3)' }}>No agent assigned yet.</div>
@@ -4327,7 +4327,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
         <span style={{ display: 'flex', gap: 5 }}>
           <span style={{ padding: '1px 7px', background: 'var(--bg)', borderRadius: 'var(--r)', fontSize: 10, fontWeight: 700, color: 'var(--ink3)' }}>{job.listeners.length}</span>
           {customers.length > 0 && (
-            <span style={{ padding: '1px 7px', background: waActive ? 'var(--green-l)' : 'var(--bg)', color: waActive ? 'var(--green)' : 'var(--ink3)', borderRadius: 'var(--r)', fontSize: 10, fontWeight: 700 }}>WA {waActive ? '✓' : '✕'}</span>
+            <span style={{ padding: '1px 7px', background: waActive ? 'var(--green-l)' : 'var(--bg)', color: waActive ? 'var(--green)' : 'var(--ink3)', borderRadius: 'var(--r)', fontSize: 10, fontWeight: 700 }}>WA {waActive ? 'âœ“' : 'âœ•'}</span>
           )}
         </span>
       )}>
@@ -4674,7 +4674,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
         />
       )}
 
-      {/* Key Dates — editable; saving notifies this shipment's listeners
+      {/* Key Dates â€” editable; saving notifies this shipment's listeners
           (same WhatsApp/Email/in-app channels as above) via the backend's
           KEY_DATE_CHANGED trigger, so a date change is never silent. */}
       <Card title="Key Dates" padded={false}>
@@ -4703,7 +4703,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
                   color: item.warn ? 'var(--red)' : 'var(--ink)',
                 }}
               >
-                {item.date ? fdate(item.date) : '—'}
+                {item.date ? fdate(item.date) : 'â€”'}
                 {canManage && <Icon name="edit" size={11} color="var(--ink3)" />}
               </button>
             )}
@@ -4711,7 +4711,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
         ))}
       </Card>
 
-      {/* Daily shipment-report automation (migration 258) — email (PDF) +
+      {/* Daily shipment-report automation (migration 258) â€” email (PDF) +
           WhatsApp (link) around 21:00 EAT. A shipment-level override; the
           customer-level default lives on the customer record itself. */}
       <Card title="Automation" padded={false}>
@@ -4726,19 +4726,19 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
         </div>
       </Card>
 
-      {/* Tags & Flags — pulled off this sidebar for now, tracked as
+      {/* Tags & Flags â€” pulled off this sidebar for now, tracked as
           LENS-xxxx (area: clearos) for a proper pass later rather than left
           silently unused: job.flags/FlagChip are untouched, so restoring
           this is a one-block re-add, not a rebuild. */}
 
-      {/* Workflow — which track governs this case, and (while it is still in
+      {/* Workflow â€” which track governs this case, and (while it is still in
           flight) the ability to move it onto another one. */}
       <WorkflowCard job={job} shipmentId={shipmentId} isLive={isLive} onRefresh={onRefresh} canManage={canManage} />
     </div>
   );
 }
 
-// ─── Workflow card (re-route a shipment onto another workflow) ────────────────
+// â”€â”€â”€ Workflow card (re-route a shipment onto another workflow) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
   job: ClearanceJob; shipmentId: string; isLive: boolean; onRefresh: () => void; canManage: boolean;
@@ -4805,7 +4805,7 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{job.workflowName || (job.workflowKind === 'CUSTOM' ? 'Workflow' : 'Standard stages')}</div>
       {curStep && (
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
-          {curStep.label}{total > 0 && curIdx >= 0 ? ` · step ${curIdx + 1} of ${total}` : ''}
+          {curStep.label}{total > 0 && curIdx >= 0 ? ` Â· step ${curIdx + 1} of ${total}` : ''}
         </div>
       )}
 
@@ -4818,7 +4818,7 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
               <Icon name={verifyMsg.valid ? 'checkCircle' : 'alertCircle'} size={12} />{' '}
               {verifyMsg.total === 0 ? 'No checks on this step' : `${verifyMsg.met} of ${verifyMsg.total} checks met`}
             </span>
-            <button type="button" onClick={() => setVerifyMsg(null)} style={{ border: 'none', background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }} aria-label="Dismiss">×</button>
+            <button type="button" onClick={() => setVerifyMsg(null)} style={{ border: 'none', background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }} aria-label="Dismiss">Ã—</button>
           </div>
           {!verifyMsg.valid && verifyMsg.failures.length > 0 && (
             <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
@@ -4826,7 +4826,7 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
             </ul>
           )}
           {verifyMsg.valid && verifyMsg.total > 0 && (
-            <div style={{ marginTop: 3, color: 'var(--ink3)' }}>This step's requirements are already satisfied — you can Advance from here.</div>
+            <div style={{ marginTop: 3, color: 'var(--ink3)' }}>This step's requirements are already satisfied â€” you can Advance from here.</div>
           )}
         </div>
       )}
@@ -4840,9 +4840,9 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
       {!locked && canManage && open && (
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Select value={target || '__none__'} onValueChange={v => setTarget(v === '__none__' ? '' : v)}>
-            <SelectTrigger><SelectValue placeholder="Choose a workflow…" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Choose a workflowâ€¦" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__none__">Choose a workflow…</SelectItem>
+              <SelectItem value="__none__">Choose a workflowâ€¦</SelectItem>
               {workflows.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
               <SelectItem value="legacy">Standard stages</SelectItem>
             </SelectContent>
@@ -4850,7 +4850,7 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
 
           {target && landingIdx >= 0 && (
             <div style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '9px 11px' }}>
-              <div><strong style={{ color: 'var(--ink)' }}>Now:</strong> {curStep?.label ?? '—'}{curIdx >= 0 ? ` (step ${curIdx + 1} of ${total})` : ''}</div>
+              <div><strong style={{ color: 'var(--ink)' }}>Now:</strong> {curStep?.label ?? 'â€”'}{curIdx >= 0 ? ` (step ${curIdx + 1} of ${total})` : ''}</div>
               <div style={{ marginTop: 3 }}><strong style={{ color: 'var(--ink)' }}>After:</strong> {targetSteps[landingIdx]?.name} (step {landingIdx + 1} of {targetSteps.length}) in {targetName}</div>
               <div style={{ marginTop: 5, color: 'var(--ink3)' }}>Progress is kept at the same position where the new workflow has one, otherwise its nearest step. You can refine the stage afterward from Advance Stage.</div>
             </div>
@@ -4858,7 +4858,7 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" onClick={() => { setOpen(false); setTarget(''); }} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>Cancel</button>
-            <button type="button" disabled={!target || saving} onClick={apply} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: 'none', borderRadius: 'var(--r)', background: target && !saving ? 'hsl(var(--primary))' : 'var(--border)', color: target && !saving ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: target && !saving ? 'pointer' : 'default', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>{saving ? 'Applying…' : 'Apply'}</button>
+            <button type="button" disabled={!target || saving} onClick={apply} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: 'none', borderRadius: 'var(--r)', background: target && !saving ? 'hsl(var(--primary))' : 'var(--border)', color: target && !saving ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: target && !saving ? 'pointer' : 'default', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>{saving ? 'Applyingâ€¦' : 'Apply'}</button>
           </div>
         </div>
       )}
@@ -4866,10 +4866,10 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
   );
 }
 
-// ─── Linked operational documents ──────────────────────────────────────────
-// Delivery Documents (release/delivery orders + delivery notes, merged —
+// â”€â”€â”€ Linked operational documents â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Delivery Documents (release/delivery orders + delivery notes, merged â€”
 // migration 263, lives in FinOps) soft-link to a shipment via a real
-// shipment id — surfaced here so they resolve to this one shipment instead
+// shipment id â€” surfaced here so they resolve to this one shipment instead
 // of living in a disconnected app tab with no visible relationship to it.
 interface LinkedDoc { id: string; doc_type: string; doc_number: string | null; status: string; }
 interface LinkedCoO { id: string; agreement_code: string; eligibility_status: string; certificate_number: string | null; status: string; }
@@ -4911,14 +4911,14 @@ function LinkedOperationalDocs({ shipmentId }: { shipmentId: string }) {
         {docs.map(d => (
           <Link key={d.id} to={`/finance/delivery-documents?shipment=${shipmentId}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <Icon name={LINKED_DOC_TYPE_ICON[d.doc_type] ?? 'fileText'} size={14} color="var(--ink3)" />
-            <span style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 600 }}>{LINKED_DOC_TYPE_LABEL[d.doc_type] ?? d.doc_type}{d.doc_number ? ` · ${d.doc_number}` : ''}</span>
+            <span style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 600 }}>{LINKED_DOC_TYPE_LABEL[d.doc_type] ?? d.doc_type}{d.doc_number ? ` Â· ${d.doc_number}` : ''}</span>
             <Badge variant={docVariant[d.status] ?? 'gray'}>{d.status}</Badge>
           </Link>
         ))}
         {coos.map(co => (
           <Link key={co.id} to={`/clearos/compliance/origin?shipment=${shipmentId}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <Icon name="award" size={14} color="var(--ink3)" />
-            <span style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 600 }}>Certificate of Origin ({co.agreement_code}){co.certificate_number ? ` · ${co.certificate_number}` : ''}</span>
+            <span style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 600 }}>Certificate of Origin ({co.agreement_code}){co.certificate_number ? ` Â· ${co.certificate_number}` : ''}</span>
             <Badge variant={coVariant[co.eligibility_status] ?? 'gray'}>{co.status === 'issued' ? 'issued' : co.eligibility_status.replace('_', ' ').toLowerCase()}</Badge>
           </Link>
         ))}
@@ -4928,7 +4928,7 @@ function LinkedOperationalDocs({ shipmentId }: { shipmentId: string }) {
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type Tab = 'overview' | 'tasks' | 'timesheets' | 'declaration' | 'updates' | 'files' | 'ledger' | 'co2';
 
@@ -4936,7 +4936,7 @@ type Tab = 'overview' | 'tasks' | 'timesheets' | 'declaration' | 'updates' | 'fi
  * What a customer is shown on their own shipment.
  *
  * The tab strip was not filtered by role, so a customer opening their job saw
- * Tasks, Timesheets and Ledger — the internal work breakdown, the hours booked
+ * Tasks, Timesheets and Ledger â€” the internal work breakdown, the hours booked
  * against them, and Shipment Economics, which states revenue, expenses and
  * gross margin. That is our commercial position on their job, and LedgerTab has
  * no role check of its own.
@@ -5002,7 +5002,7 @@ export function ShipmentDetail() {
 
   /**
    * Always fetch the detail record. It used to be skipped whenever the store
-   * already held this shipment — but the store is loaded from GET /v1/shipments,
+   * already held this shipment â€” but the store is loaded from GET /v1/shipments,
    * the *list*, and the list payload is a strict subset: no `documents`, no
    * `listeners`, no `assigned_officer_name`, no `expenses`, no `stage_history`,
    * no `messages`.
@@ -5010,16 +5010,16 @@ export function ShipmentDetail() {
    * Worse than skipping, it actively discarded the fetch. The store loads
    * asynchronously, so on mount `mockJob` was undefined and the detail request
    * did fire; moments later the list arrived, `mockJob` became defined, this
-   * effect re-ran on that dependency and took the `else` branch —
-   * `setApiJob(null)` — throwing away the record that had just been fetched.
+   * effect re-ran on that dependency and took the `else` branch â€”
+   * `setApiJob(null)` â€” throwing away the record that had just been fetched.
    *
    * The visible result was a detail page rendering list data: 4 documents shown
    * as "No documents yet", 2 listeners shown as "None added", "Super Admin"
-   * shown as "Agent …34D7", and an empty ledger, updates tab and activity feed.
+   * shown as "Agent â€¦34D7", and an empty ledger, updates tab and activity feed.
    * Only the flags looked right, because `active_risk_types` happens to be one
    * of the few rich fields the list does carry.
    *
-   * `mockJob` is no longer a mock either — it is the list-derived record, and it
+   * `mockJob` is no longer a mock either â€” it is the list-derived record, and it
    * stays useful as the thing to show while the detail is in flight.
    */
   useEffect(() => {
@@ -5036,7 +5036,7 @@ export function ShipmentDetail() {
     loadTimeEntries();
     return () => { alive = false; };
     // Deliberately not keyed on mockJob: the list arriving must not re-trigger
-    // — or undo — the detail fetch.
+    // â€” or undo â€” the detail fetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -5050,7 +5050,7 @@ export function ShipmentDetail() {
   }
 
   // apiToJob always sets tasks/timeEntries to [] (they live on their own
-  // endpoints, not embedded in GET /v1/shipments/:id) — layer the
+  // endpoints, not embedded in GET /v1/shipments/:id) â€” layer the
   // separately-fetched real data on top here rather than inside apiToJob,
   // which stays a pure mapper of the raw shipment record.
   // The API record wins. This read `mockJob || apiJob`, so the in-memory demo
@@ -5064,12 +5064,12 @@ export function ShipmentDetail() {
   const job = liveJob || mockJob || null;
   const isMock = !liveJob && !!mockJob;
 
-  if (apiLoading) return <PageLoading label="Loading shipment…" size={32} />;
+  if (apiLoading) return <PageLoading label="Loading shipmentâ€¦" size={32} />;
 
   if (!job) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12 }}>
       <div style={{ fontSize: 16, color: 'var(--ink3)' }}>Shipment not found.</div>
-      <Link to="/" style={{ padding: '8px 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer', fontSize: 13, textDecoration: 'none' }}>← Back</Link>
+      <Link to="/" style={{ padding: '8px 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer', fontSize: 13, textDecoration: 'none' }}>â† Back</Link>
     </div>
   );
 
@@ -5079,7 +5079,7 @@ export function ShipmentDetail() {
     if (isMock) {
       const label = STAGES.find(s => s.id === stage)?.label || stage;
       const event: TimelineEvent = { id: 'ev-' + Date.now(), stage: stage as Stage, label, userId: 'me', userName: 'You', ts: new Date(), note: note || undefined, blocker: blocker || undefined };
-      const threadMsg: ThreadMsg | null = note ? { id: 'msg-' + Date.now(), userId: 'me', userName: 'You', content: `Stage advanced to ${label}. ${note}${blocker ? ` — Blocker: ${blocker}` : ''}`, ts: new Date(), channels, isInternal: !channels.some(c => c !== 'internal') } : null;
+      const threadMsg: ThreadMsg | null = note ? { id: 'msg-' + Date.now(), userId: 'me', userName: 'You', content: `Stage advanced to ${label}. ${note}${blocker ? ` â€” Blocker: ${blocker}` : ''}`, ts: new Date(), channels, isInternal: !channels.some(c => c !== 'internal') } : null;
       updateJob(job.id, j => ({ ...j, stage: stage as Stage, timeline: [...j.timeline, event], thread: threadMsg ? [...j.thread, threadMsg] : j.thread }));
     } else {
       try {
@@ -5098,10 +5098,10 @@ export function ShipmentDetail() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}>
 
-      {/* ── Header ── */}
+      {/* â”€â”€ Header â”€â”€ */}
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
 
-        {/* Job identity — hero band (also carries wayfinding + primary actions); collapsible */}
+        {/* Job identity â€” hero band (also carries wayfinding + primary actions); collapsible */}
         {/* The band's fill lives in .shipdetail-hero-band (index.css), not
             here: it has to change between light and dark, and an inline
             background beats every theme rule that would try to. */}
@@ -5109,7 +5109,7 @@ export function ShipmentDetail() {
           padding: isMobile ? '12px 14px 20px' : '14px 20px 24px',
           position: 'relative', overflow: 'hidden', transition: 'padding 0.15s ease',
         }}>
-          {/* Utility row — back button + status badges + primary actions; always visible */}
+          {/* Utility row â€” back button + status badges + primary actions; always visible */}
           {/* Top Single Row: Utility + Title + Actions */}
           <div style={{ position: 'relative', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 0, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1 }}>
@@ -5117,7 +5117,7 @@ export function ShipmentDetail() {
                 <Icon name="chevronLeft" size={13} color="var(--ink2)" /> {isMobile ? '' : (isStaff ? 'Ops Command' : 'My shipments')}
               </Link>
               {job.sysRef && (
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.06em' }}>{job.sysRef}</span>
+                <span style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.06em' }}>{job.sysRef}</span>
               )}
               {bookingRef && (
                 <Link to="/cargotracker/bookings" title="View freight booking" style={{ fontSize: 10.5, padding: '2px 8px', background: 'var(--white)', border: '1px solid var(--border)', color: 'var(--ink2)', borderRadius: 'var(--r-sm)', fontWeight: 700, textDecoration: 'none' }}>
@@ -5127,7 +5127,7 @@ export function ShipmentDetail() {
               {!isMock && <span style={{ fontSize: 10.5, padding: '2px 7px', background: 'var(--green-l)', color: 'var(--green)', borderRadius: 'var(--r-sm)', fontWeight: 700 }}>LIVE</span>}
               {isOverdue && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: 'var(--red)' }}><Icon name="alertTriangle" size={11} /> Overdue</span>}
               {job.hasDangerousGoods && (
-                <button type="button" onClick={() => setTab('overview')} title="Carries a dangerous-goods declaration — see the Overview tab"
+                <button type="button" onClick={() => setTab('overview')} title="Carries a dangerous-goods declaration â€” see the Overview tab"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, padding: '2px 7px', background: 'var(--gold-l)', color: 'var(--gold)', borderRadius: 'var(--r-sm)', fontWeight: 700, border: 'none', cursor: 'pointer' }}>
                   <Icon name="alertTriangle" size={11} color="var(--gold)" /> DG
                 </button>
@@ -5140,10 +5140,10 @@ export function ShipmentDetail() {
               {job.customerId ? (
                 <Link to={`/crm/customers?id=${job.customerId}`} onClick={e => e.stopPropagation()} style={{ fontSize: isMobile ? 13 : 14, fontWeight: 600, color: 'var(--teal)', textDecoration: 'none' }}
                   onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')} onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}>
-                  · {job.customer}
+                  Â· {job.customer}
                 </Link>
               ) : (
-                <span style={{ fontSize: isMobile ? 13 : 14, fontWeight: 600, color: 'var(--ink3)' }}>· {job.customer}</span>
+                <span style={{ fontSize: isMobile ? 13 : 14, fontWeight: 600, color: 'var(--ink3)' }}>Â· {job.customer}</span>
               )}
             </div>
 
@@ -5155,7 +5155,7 @@ export function ShipmentDetail() {
                 </Link>
               )}
               {isStaff && (
-                // The one saturated-colour element in this row, deliberately —
+                // The one saturated-colour element in this row, deliberately â€”
                 // it's the actual primary action, same as accent-colour links
                 // and CTAs are the only colour in the Hostinger reference this
                 // page's palette is being brought closer to.
@@ -5175,20 +5175,20 @@ export function ShipmentDetail() {
           </div>
         </div>
 
-        {/* Stage stepper — floats up over the hero band */}
+        {/* Stage stepper â€” floats up over the hero band */}
         <div style={{ margin: isMobile ? '-10px 10px 0' : '-12px 14px 0', position: 'relative', background: 'var(--white)', borderRadius: 'var(--r)', padding: '10px 0 8px', border: '1px solid var(--border)' }}>
           {isStaff ? <StageStepper job={job} /> : (
             <div style={{ padding: '0 24px' }}><CustomerMilestoneTimeline job={job} compact /></div>
           )}
           {/* Examination is a step within this shipment's own clearance, not a
-              separate process — rendered right here rather than as a global
+              separate process â€” rendered right here rather than as a global
               worklist elsewhere (see ExaminationsQueue.tsx). Renders nothing
               when this shipment has no examinations. */}
           {isStaff && <ExaminationsQueue shipmentId={job.id} />}
         </div>
         <div style={{ height: isMobile ? 8 : 10 }} />
 
-        {/* Tabs — the shared segmented ds-tabs (same control as Ops Command /
+        {/* Tabs â€” the shared segmented ds-tabs (same control as Ops Command /
             NexusHR), scrolling horizontally when the row overflows its width. */}
         <div style={{ padding: isMobile ? '6px 10px' : '8px 14px', borderTop: '1px solid var(--border)', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
           <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented">
@@ -5213,15 +5213,15 @@ export function ShipmentDetail() {
         </div>
       </div>
 
-      {/* ── Body ── */}
+      {/* â”€â”€ Body â”€â”€ */}
       <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0 0 14px' : '0 0 24px', background: 'var(--white)' }}>
         <div style={{
           padding: isMobile ? '14px 10px' : '20px 14px',
         }}>
           {showAdv ? (
             // Advancing a stage takes over the body as a three-column workspace:
-            // document previews · documents & verification + the move-to-stage
-            // form · the standard data cards.
+            // document previews Â· documents & verification + the move-to-stage
+            // form Â· the standard data cards.
             <AdvanceStageView job={job} shipmentId={id || job.id} isLive={!isMock} isMobile={isMobile}
               onClose={() => setShowAdv(false)} onAdvance={handleAdvance} onRefresh={refreshJob} />
           ) : (

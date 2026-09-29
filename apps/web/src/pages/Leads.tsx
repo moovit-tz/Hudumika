@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
@@ -28,7 +28,7 @@ import { ComposeEmailButton } from '../components/crm/ComposeEmailButton.js';
 import { StartCallButton } from '../components/crm/StartCallButton.js';
 import { CustomFieldsPanel } from '../components/crm/CustomFieldsPanel.js';
 
-/* ── Types ── */
+/* â”€â”€ Types â”€â”€ */
 export interface Lead {
   id: string;
   company: string;
@@ -51,7 +51,7 @@ export interface Lead {
   website?: string;
 }
 
-/* ── Config ── */
+/* â”€â”€ Config â”€â”€ */
 export const STAGES = ['NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'];
 
 export const STAGE_CFG: Record<string, { color: string; bg: string; label: string }> = {
@@ -81,7 +81,7 @@ const SOURCE_CFG: Record<string, { color: string; bg: string }> = {
 
 const SOURCES   = Object.keys(SOURCE_CFG);
 
-/* ── Helpers ── */
+/* â”€â”€ Helpers â”€â”€ */
 function fmtDate(d: string) { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
 function fmtShort(d: string) { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); }
 export function fmtValue(v: number) {
@@ -92,23 +92,23 @@ export function fmtValue(v: number) {
 function daysInPipeline(created_at: string) {
   return Math.floor((Date.now() - new Date(created_at).getTime()) / 86_400_000);
 }
-function getPageNums(cur: number, total: number): (number | '…')[] {
+function getPageNums(cur: number, total: number): (number | 'â€¦')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const p: (number | '…')[] = [1];
-  if (cur > 3) p.push('…');
+  const p: (number | 'â€¦')[] = [1];
+  if (cur > 3) p.push('â€¦');
   for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) p.push(i);
-  if (cur < total - 2) p.push('…');
+  if (cur < total - 2) p.push('â€¦');
   p.push(total);
   return p;
 }
 const PAGE_SIZE = 10;
 
-/* ── Sub-components ── */
+/* â”€â”€ Sub-components â”€â”€ */
 /**
  * A lead's mark.
  *
  * This had its own eight-colour palette keyed off the first character of the
- * name, as did Customers with a different seven — the reason one company came
+ * name, as did Customers with a different seven â€” the reason one company came
  * out a different colour in each app. It delegates to the shared avatar now,
  * keeping only this page's corner radius.
  *
@@ -128,7 +128,7 @@ export function LeadAv({ name, size = 32, leadId }: { name: string; size?: numbe
 export function StageBadge({ stage }: { stage: string }) {
   const c = STAGE_CFG[stage] || STAGE_CFG.NEW;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, whiteSpace: 'nowrap', fontFamily: 'var(--mono)', letterSpacing: '0.03em' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, whiteSpace: 'nowrap', fontFamily: 'var(--font)', letterSpacing: '0.03em' }}>
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
       {c.label}
     </span>
@@ -146,7 +146,7 @@ function PriBadge({ priority }: { priority: string }) {
 }
 
 /** Rule-based lead score (migration 454). Only rendered when scoring rules
- *  exist — an undefined score means the tenant hasn't set any up. */
+ *  exist â€” an undefined score means the tenant hasn't set any up. */
 export function ScoreBadge({ score }: { score?: number }) {
   if (score === undefined) return null;
   const color = score >= 70 ? 'var(--green)' : score >= 40 ? 'var(--gold)' : 'var(--ink3)';
@@ -186,7 +186,7 @@ function ActMenu({ onView, onEdit, onDelete }: { onView: () => void; onEdit: () 
   );
 }
 
-/* ── Form shape ── */
+/* â”€â”€ Form shape â”€â”€ */
 type FormState = Omit<Lead, 'id' | 'created_at'>;
 /** "Use an existing company / contact" pickers for a new lead. Choosing one fills the lead's own
  *  text fields (a snapshot, still editable) and records which canonical party it refers to. */
@@ -197,12 +197,12 @@ function LeadPartyLinks({ linkedOrg, setLinkedOrg, linkedPerson, setLinkedPerson
 }) {
   return (<>
     <div>
-      <OrganizationPicker label="Existing company (optional)" hint="Pick a company you already have — its name fills in below."
+      <OrganizationPicker label="Existing company (optional)" hint="Pick a company you already have â€” its name fills in below."
         value={linkedOrg}
         onChange={item => { setLinkedOrg(item); if (item) setForm(p => ({ ...p, company: item.label })); }} />
     </div>
     <div>
-      <PersonPicker label="Existing contact (optional)" hint="Pick someone you already know — their details fill in below."
+      <PersonPicker label="Existing contact (optional)" hint="Pick someone you already know â€” their details fill in below."
         value={linkedPerson}
         onChange={async item => {
           setLinkedPerson(item);
@@ -225,7 +225,7 @@ const EMPTY_FORM: FormState = {
   assigned_to: '', expected_close: '', notes: '', industry: '', location: '', website: '',
 };
 
-/* ── CSV export ── */
+/* â”€â”€ CSV export â”€â”€ */
 function exportLeadsCSV(rows: Lead[]) {
   const hdr = ['Company', 'Contact Name', 'Email', 'Phone', 'Source', 'Stage', 'Value (TZS)', 'Priority', 'Assigned To', 'Expected Close', 'Created'].join(',');
   const body = rows.map(l => [
@@ -249,10 +249,10 @@ function exportLeadsCSV(rows: Lead[]) {
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-/* ── Stage pipeline bar ──
+/* â”€â”€ Stage pipeline bar â”€â”€
    One row, not two: each pill IS the "move to this stage" control (past
    stages jump back, future stages jump forward), so the pipeline no longer
-   repeats every stage name a second time as a separate row of "→ Stage"
+   repeats every stage name a second time as a separate row of "â†’ Stage"
    buttons underneath. Completed stages carry a check so progress reads at a
    glance without comparing colour saturation. */
 function StagePipeline({ current, onSelect, interactive }: { current: string; onSelect: (stage: string) => void; interactive: boolean }) {
@@ -322,9 +322,9 @@ function StagePipeline({ current, onSelect, interactive }: { current: string; on
   );
 }
 
-/* ══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Main component
-══════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 export const Leads: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -340,7 +340,7 @@ export const Leads: React.FC = () => {
   const [notes, setNotes]             = useState('');
   const [noteSaving, setNoteSaving]   = useState(false);
 
-  /* Real staff list for "Assigned To" — replaces the old hardcoded OFFICERS
+  /* Real staff list for "Assigned To" â€” replaces the old hardcoded OFFICERS
      names with an actual account, same /v1/hr/staff endpoint Contacts' own
      owner picker uses. */
   const [staff, setStaff] = useState<{ value: string; label: string }[]>([]);
@@ -368,14 +368,14 @@ export const Leads: React.FC = () => {
   const [addSaving, setAddSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  /* Documents — the "Upload File" control used to POST to
+  /* Documents â€” the "Upload File" control used to POST to
      /v1/leads/:id/documents, a route that has never existed anywhere in the
-     backend (grep apps/api/src/routes confirms it) — every upload attempt
+     backend (grep apps/api/src/routes confirms it) â€” every upload attempt
      404'd, silently, since the catch just showed a generic "Upload failed"
      alert with no indication the endpoint itself was the problem. Rewired
      to the same real Drive-backed files API Customers.tsx's own Documents
      tab already uses (entity_type/entity_id tagging on cloud_files), just
-     without that page's extra "customer folder" auto-resolution — files
+     without that page's extra "customer folder" auto-resolution â€” files
      here are tagged to the lead and dropped in the tenant's default drive. */
   const [linkedFiles, setLinkedFiles] = useState<any[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
@@ -492,7 +492,7 @@ export const Leads: React.FC = () => {
   }
 
   // Creates a real Deal from this lead (deals.routes.ts, migration 447) and
-  // takes the rep straight to it on the new Pipeline board — the lead
+  // takes the rep straight to it on the new Pipeline board â€” the lead
   // itself is untouched, so its own stage still records how it was
   // qualified in the first place.
   async function convertToDeal() {
@@ -515,7 +515,7 @@ export const Leads: React.FC = () => {
     if (selected && profileTab === 'documents') loadLinkedFiles(selected.id);
   }, [selected, profileTab, loadLinkedFiles]);
 
-  // The tenant's default drive to upload into, fetched once and cached —
+  // The tenant's default drive to upload into, fetched once and cached â€”
   // same "resolve lazily, first time it's actually needed" pattern
   // Customers.tsx uses for the same purpose.
   const ensureDefaultDrive = useCallback(async () => {
@@ -577,9 +577,9 @@ export const Leads: React.FC = () => {
 
   const btnS: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' };
 
-  /* ══════════════════════
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      PROFILE VIEW
-  ══════════════════════ */
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   if (view === 'profile' && selected) {
     const sel = selected;
     const stageCfg = STAGE_CFG[sel.stage] || STAGE_CFG.NEW;
@@ -597,7 +597,7 @@ export const Leads: React.FC = () => {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
 
-        {/* ── Hero ── */}
+        {/* â”€â”€ Hero â”€â”€ */}
         <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div style={{ padding: '20px 28px 0' }}>
 
@@ -624,8 +624,8 @@ export const Leads: React.FC = () => {
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 16 }}>
                   {sel.contact_name}
-                  {sel.location && ` · ${sel.location}`}
-                  {` · Added ${fmtDate(sel.created_at)}`}
+                  {sel.location && ` Â· ${sel.location}`}
+                  {` Â· Added ${fmtDate(sel.created_at)}`}
                 </div>
 
                 {/* Stats row */}
@@ -634,8 +634,8 @@ export const Leads: React.FC = () => {
                     { label: 'Pipeline Value', value: fmtValue(sel.value) },
                     { label: 'Days in Pipeline', value: `${days}d` },
                     { label: 'Source', value: sel.source },
-                    { label: 'Assigned To', value: sel.assigned_to_name || sel.assigned_to || '—' },
-                    { label: 'Expected Close', value: sel.expected_close ? fmtShort(sel.expected_close) : '—' },
+                    { label: 'Assigned To', value: sel.assigned_to_name || sel.assigned_to || 'â€”' },
+                    { label: 'Expected Close', value: sel.expected_close ? fmtShort(sel.expected_close) : 'â€”' },
                   ].map((s, i, arr) => (
                     <React.Fragment key={s.label}>
                       <div style={{ textAlign: 'center' }}>
@@ -685,7 +685,7 @@ export const Leads: React.FC = () => {
           </Tabs>
         </div>
 
-        {/* ── Tab content ── */}
+        {/* â”€â”€ Tab content â”€â”€ */}
         <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
 
           {/* Overview */}
@@ -760,7 +760,7 @@ export const Leads: React.FC = () => {
                       ].map(({ label, value }) => (
                         <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
                           <span style={{ fontSize: 12, color: 'var(--ink3)', flexShrink: 0 }}>{label}</span>
-                          <span style={{ fontSize: 12.5, color: value ? 'var(--ink)' : 'var(--ink3)', textAlign: 'right', fontStyle: value ? 'normal' : 'italic' }}>{value || '—'}</span>
+                          <span style={{ fontSize: 12.5, color: value ? 'var(--ink)' : 'var(--ink3)', textAlign: 'right', fontStyle: value ? 'normal' : 'italic' }}>{value || 'â€”'}</span>
                         </div>
                       ))}
                     </div>
@@ -838,7 +838,7 @@ export const Leads: React.FC = () => {
                       ].map(({ label, value }) => (
                         <div key={label}>
                           <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 4 }}>{label}</div>
-                          <div style={{ fontSize: 13.5, color: value ? 'var(--ink)' : 'var(--ink3)', fontStyle: value ? 'normal' : 'italic' }}>{value || '—'}</div>
+                          <div style={{ fontSize: 13.5, color: value ? 'var(--ink)' : 'var(--ink3)', fontStyle: value ? 'normal' : 'italic' }}>{value || 'â€”'}</div>
                         </div>
                       ))}
                     </div>
@@ -871,8 +871,8 @@ export const Leads: React.FC = () => {
                           options={staff}
                           value={profileForm.assigned_to_id || ''}
                           onChange={v => setProfileForm(p => ({ ...p, assigned_to_id: v, assigned_to_name: staff.find(s => s.value === v)?.label }))}
-                          placeholder={staff.length ? 'Unassigned' : 'Loading people…'}
-                          searchPlaceholder="Search people…"
+                          placeholder={staff.length ? 'Unassigned' : 'Loading peopleâ€¦'}
+                          searchPlaceholder="Search peopleâ€¦"
                         />
                       </div>
                     </div>
@@ -880,14 +880,14 @@ export const Leads: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setProfileForm({ ...sel }); setEditMode(false); }}>Discard</button>
-                    <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
+                    <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? 'Savingâ€¦' : 'Save Changes'}</button>
                   </div>
                 </form>
               )}
             </div>
           )}
 
-          {/* Activity — real chronological history (calls, emails, meetings,
+          {/* Activity â€” real chronological history (calls, emails, meetings,
               stage changes), not a static notes field. Shared component,
               backed by crm_activities (migration 449). */}
           {profileTab === 'activity' && (
@@ -904,16 +904,16 @@ export const Leads: React.FC = () => {
                 <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Only visible to your team</span>
               </div>
               <textarea className="prof-input" style={{ height: 220, resize: 'vertical', width: '100%', boxSizing: 'border-box', lineHeight: 1.7 }}
-                placeholder={`Notes about ${sel.company} — follow-ups, preferences, concerns…`}
+                placeholder={`Notes about ${sel.company} â€” follow-ups, preferences, concernsâ€¦`}
                 value={notes} onChange={e => setNotes(e.target.value)} />
               <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{notes.length} characters</span>
-                <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveNote} disabled={noteSaving}>{noteSaving ? 'Saving…' : 'Save Notes'}</button>
+                <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveNote} disabled={noteSaving}>{noteSaving ? 'Savingâ€¦' : 'Save Notes'}</button>
               </div>
             </div>
           )}
 
-          {/* Documents — real Drive-linked files (entity_type='lead'), not a
+          {/* Documents â€” real Drive-linked files (entity_type='lead'), not a
               decorative drop zone. See the upload/loadLinkedFiles/unlinkFile
               comment above: the upload control used to post to a route that
               was never implemented on the backend, so every upload here
@@ -924,7 +924,7 @@ export const Leads: React.FC = () => {
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Documents</span>
                 <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: fileUploading ? 'default' : 'pointer', fontFamily: 'var(--font)', opacity: fileUploading ? 0.7 : 1 }}>
                   <Icon name="upload" size={13} strokeWidth={2} />
-                  {fileUploading ? 'Uploading…' : 'Upload File'}
+                  {fileUploading ? 'Uploadingâ€¦' : 'Upload File'}
                   <input type="file" multiple disabled={fileUploading} style={{ display: 'none' }}
                     onChange={async e => {
                       const files = Array.from(e.target.files || []);
@@ -946,7 +946,7 @@ export const Leads: React.FC = () => {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
                         <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
-                          {f.size != null ? `${(f.size / 1024).toFixed(1)} KB · ` : ''}{new Date(f.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {f.size != null ? `${(f.size / 1024).toFixed(1)} KB Â· ` : ''}{new Date(f.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </div>
                       </div>
                       <button type="button" onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name).catch((err: any) => showAlert(err.message || 'Download failed'))}
@@ -979,7 +979,7 @@ export const Leads: React.FC = () => {
             <div className="card" style={{ width: '90%', maxWidth: 580, padding: 28, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', maxHeight: '92vh', overflowY: 'auto' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
                 <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>{editingId ? 'Edit Lead' : 'Add New Lead'}</h2>
-                <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>×</button>
+                <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>Ã—</button>
               </div>
               <form onSubmit={handleAdd}>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px 16px' }}>
@@ -992,7 +992,7 @@ export const Leads: React.FC = () => {
                     { label: 'Contact Person *', key: 'contact_name',  req: true,  ph: 'John Doe'            },
                     { label: 'Phone / WhatsApp', key: 'contact_phone', req: false, ph: '+255 712 345 678'    },
                     { label: 'Email Address',    key: 'contact_email', req: false, ph: 'john@company.com'    },
-                    { label: 'Industry',         key: 'industry',      req: false, ph: 'Trading, Logistics…' },
+                    { label: 'Industry',         key: 'industry',      req: false, ph: 'Trading, Logisticsâ€¦' },
                     { label: 'Location / City',  key: 'location',      req: false, ph: 'Dar es Salaam'       },
                     { label: 'Website',          key: 'website',       req: false, ph: 'company.co.tz'       },
                     { label: 'Est. Value (TZS)', key: 'value',         req: false, ph: '5000000'             },
@@ -1043,19 +1043,19 @@ export const Leads: React.FC = () => {
                       options={staff}
                       value={addForm.assigned_to_id || ''}
                       onChange={v => { setF('assigned_to_id', v); setF('assigned_to_name', staff.find(s => s.value === v)?.label || ''); }}
-                      placeholder={staff.length ? 'Unassigned' : 'Loading people…'}
-                      searchPlaceholder="Search people…"
+                      placeholder={staff.length ? 'Unassigned' : 'Loading peopleâ€¦'}
+                      searchPlaceholder="Search peopleâ€¦"
                     />
                   </div>
                   <div style={{ gridColumn: '1/-1' }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Notes</label>
-                    <textarea className="input-field" placeholder="Brief description of the opportunity…" rows={3}
+                    <textarea className="input-field" placeholder="Brief description of the opportunityâ€¦" rows={3}
                       value={addForm.notes || ''} onChange={e => setF('notes', e.target.value)} style={{ resize: 'vertical', minHeight: 70 }} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
                   <button type="button" className="btn btn-secondary btn-md" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>Cancel</button>
-                  <button type="submit" className="btn btn-primary btn-md" disabled={addSaving}>{addSaving ? 'Saving…' : editingId ? 'Save Changes' : 'Add Lead'}</button>
+                  <button type="submit" className="btn btn-primary btn-md" disabled={addSaving}>{addSaving ? 'Savingâ€¦' : editingId ? 'Save Changes' : 'Add Lead'}</button>
                 </div>
               </form>
             </div>
@@ -1065,16 +1065,16 @@ export const Leads: React.FC = () => {
     );
   }
 
-  /* ══════════════════════
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      LIST VIEW
-  ══════════════════════ */
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
       <PageHeader
         crumbs={['CRM', 'Leads']}
         titlePlain="Lead"
         titleEm="pipeline"
-        subtitle={`${leads.length} leads · ${active.length} active · ${fmtValue(pipeline)} pipeline value · ${winRate}% win rate`}
+        subtitle={`${leads.length} leads Â· ${active.length} active Â· ${fmtValue(pipeline)} pipeline value Â· ${winRate}% win rate`}
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Button type="button" variant="outline" size="sm" onClick={() => exportLeadsCSV(filtered)}>
@@ -1087,14 +1087,14 @@ export const Leads: React.FC = () => {
         }
       />
 
-      {/* No horizontal padding here — Customers.tsx (this app's reference
+      {/* No horizontal padding here â€” Customers.tsx (this app's reference
           toolbar/margin implementation) puts its own table card flush
           against PageHeader's own zero horizontal padding, sharing
           .page-layout's single page gutter. This div used to add an extra
           28px on both sides on top of that, indenting the table card
           relative to the title/breadcrumb above it. */}
       <div style={{ padding: '0 0 28px' }}>
-        {/* ── Table card ── */}
+        {/* â”€â”€ Table card â”€â”€ */}
         <SectionCard collapsible={false} padded={false}>
 
           {/* Toolbar */}
@@ -1126,7 +1126,7 @@ export const Leads: React.FC = () => {
             <span style={{ fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{filtered.length} leads</span>
             <div style={{ position: 'relative', minWidth: 180, maxWidth: 280 }}>
               <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' } as React.CSSProperties} />
-              <input type="text" placeholder="Search leads…" value={search}
+              <input type="text" placeholder="Search leadsâ€¦" value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                 style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--bg)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
             </div>
@@ -1164,7 +1164,7 @@ export const Leads: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan={10} style={{ padding: '40px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading leads…</td></tr>}
+                {loading && <tr><td colSpan={10} style={{ padding: '40px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading leadsâ€¦</td></tr>}
                 {!loading && rows.length === 0 && (
                   <tr>
                     <td colSpan={10} style={{ padding: '56px', textAlign: 'center', color: 'var(--ink3)' }}>
@@ -1195,7 +1195,7 @@ export const Leads: React.FC = () => {
                     </td>
                     <td style={{ padding: '12px 14px' }}><SourceBadge source={lead.source} /></td>
                     <td style={{ padding: '12px 14px' }}><StageBadge stage={lead.stage} /></td>
-                    <td style={{ padding: '12px 14px', textAlign: 'right', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 12.5, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{fmtValue(lead.value)}</td>
+                    <td style={{ padding: '12px 14px', textAlign: 'right', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 12.5, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{fmtValue(lead.value)}</td>
                     <td style={{ padding: '12px 14px' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                         <PriBadge priority={lead.priority} />
@@ -1210,9 +1210,9 @@ export const Leads: React.FC = () => {
                             : <LeadAv name={lead.assigned_to!} size={22} />}
                           <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{lead.assigned_to_name || lead.assigned_to}</span>
                         </div>
-                      ) : <span style={{ color: 'var(--ink3)', fontSize: 12 }}>—</span>}
+                      ) : <span style={{ color: 'var(--ink3)', fontSize: 12 }}>â€”</span>}
                     </td>
-                    <td style={{ padding: '12px 14px', fontSize: 12.5, color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{lead.expected_close ? fmtShort(lead.expected_close) : '—'}</td>
+                    <td style={{ padding: '12px 14px', fontSize: 12.5, color: 'var(--ink2)', fontFamily: 'var(--font)' }}>{lead.expected_close ? fmtShort(lead.expected_close) : 'â€”'}</td>
                     <td style={{ padding: '12px 14px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(lead.created_at)}</td>
                     <td style={{ padding: '12px 8px' }} onClick={e => e.stopPropagation()}>
                       <ActMenu
@@ -1231,7 +1231,7 @@ export const Leads: React.FC = () => {
           {!loading && totalPages > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
               <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
-                Showing {(pg - 1) * PAGE_SIZE + 1}–{Math.min(pg * PAGE_SIZE, filtered.length)} of {filtered.length}
+                Showing {(pg - 1) * PAGE_SIZE + 1}â€“{Math.min(pg * PAGE_SIZE, filtered.length)} of {filtered.length}
               </span>
               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 <button type="button" aria-label="Previous page" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={pg === 1}
@@ -1239,7 +1239,7 @@ export const Leads: React.FC = () => {
                   <Icon name="chevronLeft" size={14} />
                 </button>
                 {getPageNums(pg, totalPages).map((p, i) =>
-                  p === '…' ? <span key={i} style={{ padding: '0 6px', color: 'var(--ink3)', fontSize: 13 }}>…</span> :
+                  p === 'â€¦' ? <span key={i} style={{ padding: '0 6px', color: 'var(--ink3)', fontSize: 13 }}>â€¦</span> :
                   <button key={p} type="button" onClick={() => setPage(Number(p))}
                     style={{ border: `1px solid ${pg === p ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', background: pg === p ? 'hsl(var(--primary))' : 'var(--white)', cursor: 'pointer', fontSize: 13, color: pg === p ? 'hsl(var(--primary-foreground))' : 'var(--ink)', minWidth: 32, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     {p}
@@ -1264,7 +1264,7 @@ export const Leads: React.FC = () => {
                 <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>{editingId ? 'Edit Lead' : 'Add New Lead'}</h2>
                 <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '4px 0 0' }}>Fill in the prospect details below</p>
               </div>
-              <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>×</button>
+              <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>Ã—</button>
             </div>
             <form onSubmit={handleAdd}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px 16px' }}>
@@ -1277,7 +1277,7 @@ export const Leads: React.FC = () => {
                   { label: 'Contact Person *', key: 'contact_name',  req: true,  ph: 'John Doe'            },
                   { label: 'Phone / WhatsApp', key: 'contact_phone', req: false, ph: '+255 712 345 678'    },
                   { label: 'Email Address',    key: 'contact_email', req: false, ph: 'john@company.com'    },
-                  { label: 'Industry',         key: 'industry',      req: false, ph: 'Trading, Logistics…' },
+                  { label: 'Industry',         key: 'industry',      req: false, ph: 'Trading, Logisticsâ€¦' },
                   { label: 'Location / City',  key: 'location',      req: false, ph: 'Dar es Salaam'       },
                   { label: 'Website',          key: 'website',       req: false, ph: 'company.co.tz'       },
                   { label: 'Est. Value (TZS)', key: 'value',         req: false, ph: '5000000'             },
@@ -1328,19 +1328,19 @@ export const Leads: React.FC = () => {
                     options={staff}
                     value={addForm.assigned_to_id || ''}
                     onChange={v => { setF('assigned_to_id', v); setF('assigned_to_name', staff.find(s => s.value === v)?.label || ''); }}
-                    placeholder={staff.length ? 'Unassigned' : 'Loading people…'}
-                    searchPlaceholder="Search people…"
+                    placeholder={staff.length ? 'Unassigned' : 'Loading peopleâ€¦'}
+                    searchPlaceholder="Search peopleâ€¦"
                   />
                 </div>
                 <div style={{ gridColumn: '1/-1' }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Notes</label>
-                  <textarea className="input-field" placeholder="Brief description of the opportunity…" rows={3}
+                  <textarea className="input-field" placeholder="Brief description of the opportunityâ€¦" rows={3}
                     value={addForm.notes || ''} onChange={e => setF('notes', e.target.value)} style={{ resize: 'vertical', minHeight: 70 }} />
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
                 <button type="button" className="btn btn-secondary btn-md" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>Cancel</button>
-                <button type="submit" className="btn btn-primary btn-md" disabled={addSaving}>{addSaving ? 'Saving…' : editingId ? 'Save Changes' : 'Add Lead'}</button>
+                <button type="submit" className="btn btn-primary btn-md" disabled={addSaving}>{addSaving ? 'Savingâ€¦' : editingId ? 'Save Changes' : 'Add Lead'}</button>
               </div>
             </form>
           </div>

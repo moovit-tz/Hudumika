@@ -1,7 +1,7 @@
-// ─── SignEditor.tsx — Envelope Builder with drag-drop field placement ─────────
+﻿// â”€â”€â”€ SignEditor.tsx â€” Envelope Builder with drag-drop field placement â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Layout: [Left: field palette + recipients] [Center: A4 page canvas] [Right: field properties]
 // Fields are placed on the page by clicking the field type then clicking on the page.
-// Coordinates stored as fractions (0–1) so they survive font/page-size changes.
+// Coordinates stored as fractions (0â€“1) so they survive font/page-size changes.
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -25,7 +25,7 @@ import { Tip } from '../../components/ui/tooltip.js';
 // Reused as-is from Cloud's Lightbox, built earlier this session for the
 // exact same underlying problem: an <iframe> showing a PDF via the
 // browser's native viewer is a separate browsing context, and native
-// HTML5 drag events don't reliably cross into/out of one — dragging a
+// HTML5 drag events don't reliably cross into/out of one â€” dragging a
 // field from the palette onto the document silently failed everywhere
 // except a sliver of margin outside the iframe, which for a full-bleed
 // preview is nowhere at all. A real <canvas> render lives in the same DOM
@@ -34,7 +34,7 @@ import { Tip } from '../../components/ui/tooltip.js';
 import { usePdfDocument } from '../cloud/lib/usePdfDocument.js';
 import { PdfPageCanvas } from '../cloud/components/PdfPageCanvas.js';
 // Stirling-PDF (github.com/Stirling-Tools/Stirling-PDF, self-hosted, MIT) is
-// this platform's PDF tool — Nutrient's Web SDK (nutrient.io) was tried
+// this platform's PDF tool â€” Nutrient's Web SDK (nutrient.io) was tried
 // first and removed: it needed a paid per-account license key just to load
 // at all, where Stirling-PDF needs only a self-hosted container URL, and
 // its own discrete-operation shape (rotate/watermark/redact/OCR/compress,
@@ -47,7 +47,7 @@ import { PageHeader } from '../../components/PageHeader.js';
 import './Sign.css';
 
 const FIELD_TYPES: { type: SignFieldType; label: string; icon: IconName; defaultW: number; defaultH: number }[] = [
-  // Signature and stamp bumped up from 0.28x0.06 / 0.16x0.11 — both were
+  // Signature and stamp bumped up from 0.28x0.06 / 0.16x0.11 â€” both were
   // rendering small on the actual signed PDF (sign-pdf.service.ts scales
   // the drawn image to exactly fill field.width x field.height, so this is
   // the only lever there is; a placed field has no resize handle, only
@@ -59,7 +59,7 @@ const FIELD_TYPES: { type: SignFieldType; label: string; icon: IconName; default
   { type: 'checkbox',  label: 'Checkbox',    icon: 'check',     defaultW: 0.04, defaultH: 0.04 },
   { type: 'stamp',     label: 'Verification Stamp', icon: 'stamp', defaultW: 0.20, defaultH: 0.14 },
   // Only meaningful assigned to a recipient flagged "Certifying Advocate"
-  // below — draws real text (name, roll number, firm, date), not an image,
+  // below â€” draws real text (name, roll number, firm, date), not an image,
   // since the legal weight is in those facts about a specific licensed
   // person, not a picture.
   { type: 'certification_stamp', label: 'Certified True Copy Stamp', icon: 'shield', defaultW: 0.30, defaultH: 0.16 },
@@ -80,19 +80,19 @@ interface PlacedField {
 interface RecipientInput {
   name: string; email: string; phone: string; role_label: string; sign_order: number;
   // Set when tagged to a real internal platform user via EntityPicker
-  // rather than typed in freeform — see migration 276_sign_recipient_user_tag.
+  // rather than typed in freeform â€” see migration 276_sign_recipient_user_tag.
   user_id?: string | null;
-  // Certified True Copy (migration 342) — this recipient is a licensed
+  // Certified True Copy (migration 342) â€” this recipient is a licensed
   // advocate/notary/commissioner certifying the document, not an ordinary
-  // signer. Optional, collapsed by default — most documents never need it.
+  // signer. Optional, collapsed by default â€” most documents never need it.
   is_certifier?: boolean;
   certifier_title?: string;
   certifier_roll_number?: string;
   certifier_firm?: string;
   // Which certifier-directory entry (migration 417) these fields were
-  // filled from, if any — freeform typing leaves this unset.
+  // filled from, if any â€” freeform typing leaves this unset.
   certifier_id?: string;
-  // Execution role (migration 416) — 'SIGNER' unless this recipient
+  // Execution role (migration 416) â€” 'SIGNER' unless this recipient
   // witnesses another signer or certifies (kept in sync with is_certifier
   // above; the backend derives one from the other if only one is sent).
   execution_role?: 'SIGNER' | 'WITNESS' | 'AFFIANT' | 'CERTIFIER';
@@ -105,48 +105,48 @@ export function SignEditor() {
   const { id: envelopeId } = useParams<{ id?: string }>();
   const [searchParams] = useSearchParams();
 
-  // ── State ────────────────────────────────────────────────────────────────
+  // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
-  // Phase S7 — a free-text case/engagement reference (migration 428), not a
+  // Phase S7 â€” a free-text case/engagement reference (migration 428), not a
   // structured entity. Optional; most tenants leave it blank.
   const [matterReference, setMatterReference] = useState('');
-  // Phase S5 — jurisdiction engine. Fetched once; the advisory shown below
+  // Phase S5 â€” jurisdiction engine. Fetched once; the advisory shown below
   // is picked from these rows by whichever execution type the current
   // recipients resolve to (mirrors sign.routes.ts's own inferExecutionType,
   // client-side, so the advisory updates live as roles are toggled instead
   // of waiting on a round trip).
   const [jurisdiction, setJurisdiction] = useState<{ jurisdiction_code: string | null; rules: Array<{ execution_type: string; status: string; legal_basis: string | null; conditions: string | null; notes: string | null }> }>({ jurisdiction_code: null, rules: [] });
-  // Phase S4 — remote session. Reuses the exact same component Calendar/
-  // Tasks/Notes already share (MeetingLinkPanel.tsx) — real Bliss meeting
+  // Phase S4 â€” remote session. Reuses the exact same component Calendar/
+  // Tasks/Notes already share (MeetingLinkPanel.tsx) â€” real Bliss meeting
   // when entitled, a real Jitsi fallback otherwise. Shown only for a
   // NOTARIAL_CERTIFICATION envelope, matching the plan's own framing.
   const [meetingLink, setMeetingLink] = useState<MeetingLinkValue>({ meetingUrl: null, blissMeetingId: null });
-  // Phase S8 — AI assistance. Suggestions only, never shown as a validity
+  // Phase S8 â€” AI assistance. Suggestions only, never shown as a validity
   // verdict (see sign-ai-assist.service.ts's own header).
   const [aiAssist, setAiAssist] = useState<{ available: boolean; missingFields: Array<{ description: string; page: number | null }>; blocks: Array<{ type: string; description: string; page: number | null }>; reason?: string } | null>(null);
   const [aiAssistLoading, setAiAssistLoading] = useState(false);
   const [orderMode, setOrderMode] = useState<'sequential' | 'parallel'>('sequential');
   const [requireOtp, setRequireOtp] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [documentData, setDocumentData] = useState<string | null>(null); // base64 of a freshly uploaded PDF/image — sent to the server as-is
+  const [documentData, setDocumentData] = useState<string | null>(null); // base64 of a freshly uploaded PDF/image â€” sent to the server as-is
   // A real existing Cloud file (cloud_files.id), e.g. arriving via
-  // ?fileId=&fileName= from Cloud's own "Sign & Stamp" button — sign_envelopes.
+  // ?fileId=&fileName= from Cloud's own "Sign & Stamp" button â€” sign_envelopes.
   // file_id already has a real FK to cloud_files (migration 267), so this
   // envelope references the file in place rather than duplicating it as a
-  // second base64 copy. previewSrc is only ever for rendering the canvas —
+  // second base64 copy. previewSrc is only ever for rendering the canvas â€”
   // never sent to the server.
   const [sourceFileId, setSourceFileId] = useState<string | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [showPdfTools, setShowPdfTools] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
-  // What actually changed the document since it was last saved — set by
+  // What actually changed the document since it was last saved â€” set by
   // handleFile/handleEditedDocument, sent along on the next Save/Send so
   // the version history's change_summary/change_details are genuine
   // (SignEditor knows which tool just ran; the backend never has to guess
   // from a diff of opaque bytes), then cleared once that save lands.
   const [pendingChangeSummary, setPendingChangeSummary] = useState<{ summary: string; details?: unknown } | null>(null);
-  // Local-only autosave (draftStore.ts, IndexedDB) — a reload before a real
+  // Local-only autosave (draftStore.ts, IndexedDB) â€” a reload before a real
   // Save/Send would otherwise lose everything typed so far. draftReadyRef
   // gates the autosave effect below until whichever restore path applies
   // (existing envelope loaded from the server, or a brand-new one's own
@@ -157,7 +157,7 @@ export function SignEditor() {
   const isPdf = !!fileName?.toLowerCase().endsWith('.pdf');
   const { doc: pdfDoc, numPages: pdfNumPages, loading: pdfLoading, error: pdfError } = usePdfDocument(isPdf ? previewSrc : null);
   const [currentPdfPage, setCurrentPdfPage] = useState(1);
-  // The real page's own proportions, not a fixed A4 guess — sign-pdf.service.ts
+  // The real page's own proportions, not a fixed A4 guess â€” sign-pdf.service.ts
   // bakes fields onto the real PDF using its own real page.getSize(), so the
   // editor's own "page box" has to be shaped like the actual page or a field
   // placed correctly here would land in the wrong spot once signed. Reset
@@ -182,9 +182,9 @@ export function SignEditor() {
   const [placingType, setPlacingType] = useState<SignFieldType | null>(null);
   const isMobile = useIsMobile();
 
-  // Certifier directory (migration 417) — fetched once; picking an entry
+  // Certifier directory (migration 417) â€” fetched once; picking an entry
   // here fills the freeform fields below from a real, reusable credential
-  // instead of retyping a roll number every time. Loaded lazily/silently —
+  // instead of retyping a roll number every time. Loaded lazily/silently â€”
   // most envelopes never touch the certifier panel at all.
   const [certifiers, setCertifiers] = useState<Array<{ id: string; name: string; title: string; roll_number: string | null; firm: string | null; expiry_date: string | null; verification_status: string }>>([]);
   useEffect(() => {
@@ -202,11 +202,11 @@ export function SignEditor() {
   // (user clicked "start without a document"). Persists for this session only.
   const [skipUploadStep, setSkipUploadStep] = useState(false);
 
-  // The recipient picker below searches CRM customers first, then staff —
+  // The recipient picker below searches CRM customers first, then staff â€”
   // whoever this document is actually for is usually a customer, and staff
   // are the secondary case (an internal reviewer/counter-signer). Only a
   // staff pick can carry a real `user_id` (sign_recipients.user_id is a real
-  // FK into `users`, migration 276 — a customer's id would violate it), so
+  // FK into `users`, migration 276 â€” a customer's id would violate it), so
   // each cached entry remembers which source it came from. EntityPicker's
   // own PickerItem only carries {id, label, sublabel}, not email/phone/
   // source, so the full record is cached here (by the prefixed id) to pull
@@ -224,18 +224,18 @@ export function SignEditor() {
       const name = c.contact_name?.trim() || c.name;
       const key = `customer:${c.id}`;
       recipientCacheRef.current.set(key, { source: 'customer', name, email: c.email ?? '', phone: c.phone || c.phone_wa || null });
-      return { id: key, label: name, sublabel: `Customer${c.contact_name?.trim() ? ` · ${c.name}` : ''}` };
+      return { id: key, label: name, sublabel: `Customer${c.contact_name?.trim() ? ` Â· ${c.name}` : ''}` };
     });
     const staffItems: PickerItem[] = staff.slice(0, 15).map((u: { id: string; name: string; email: string; phone: string | null }) => {
       const key = `staff:${u.id}`;
       recipientCacheRef.current.set(key, { source: 'staff', name: u.name, email: u.email, phone: u.phone ?? null });
-      return { id: key, label: u.name, sublabel: `Staff · ${u.email}` };
+      return { id: key, label: u.name, sublabel: `Staff Â· ${u.email}` };
     });
-    // CRM first, staff after — matches "query CRM first, then staff".
+    // CRM first, staff after â€” matches "query CRM first, then staff".
     return [...customerItems, ...staffItems];
   }, []);
 
-  // No match in either CRM or staff — accept the typed name as a one-off
+  // No match in either CRM or staff â€” accept the typed name as a one-off
   // external signer instead. Nothing is created in the CRM or staff
   // directory for this; the "creation" is just accepting the free-text
   // name so the recipient fields below fill in immediately rather than
@@ -260,7 +260,7 @@ export function SignEditor() {
     }
   }
 
-  // Same priority order as sign.routes.ts's own inferExecutionType — kept
+  // Same priority order as sign.routes.ts's own inferExecutionType â€” kept
   // in sync deliberately, not imported, since that function lives
   // server-side and this only needs to preview what the server will infer.
   const inferredExecutionType = recipients.some(r => r.execution_role === 'CERTIFIER' || r.is_certifier) ? 'NOTARIAL_CERTIFICATION'
@@ -269,7 +269,7 @@ export function SignEditor() {
     : 'NORMAL_SIGN';
   const jurisdictionRule = jurisdiction.rules.find(r => r.execution_type === inferredExecutionType);
 
-  // ── Load existing envelope ────────────────────────────────────────────────
+  // â”€â”€ Load existing envelope â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!envelopeId) return;
     apiFetch(`/v1/sign/envelopes/${envelopeId}`).then(async env => {
@@ -305,7 +305,7 @@ export function SignEditor() {
       // A local draft under this same envelope's id only survives past a
       // successful save (see clearDraft calls in handleSave/handleSend), so
       // if one is still here it's genuinely unsaved work from an interrupted
-      // session — always more recent than whatever the server just returned.
+      // session â€” always more recent than whatever the server just returned.
       const draft = await loadDraft(draftKey(envelopeId));
       if (draft && isMeaningfulDraft(draft)) {
         setTitle(draft.title);
@@ -328,8 +328,8 @@ export function SignEditor() {
     }).catch(console.error);
   }, [envelopeId]);
 
-  // ── Start from an existing Cloud file (e.g. Cloud's own "Sign & Stamp"
-  // button — GET /sign/editor?fileId=&fileName=) ─────────────────────────────
+  // â”€â”€ Start from an existing Cloud file (e.g. Cloud's own "Sign & Stamp"
+  // button â€” GET /sign/editor?fileId=&fileName=) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Only for a brand-new envelope; an existing one's own file_id (above)
   // takes priority once envelopeId is set.
   useEffect(() => {
@@ -338,13 +338,13 @@ export function SignEditor() {
     const name = searchParams.get('fileName');
     if (!fileId) return;
     setSourceFileId(fileId);
-    if (name) { setFileName(name); setTitle(prev => prev || `Sign — ${name}`); }
+    if (name) { setFileName(name); setTitle(prev => prev || `Sign â€” ${name}`); }
     apiFetchBlob(`/v1/files/${fileId}/preview`).then(blob => setPreviewSrc(URL.createObjectURL(blob))).catch(console.error);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [envelopeId]);
 
-  // ── Start from a saved template (SignTemplates.tsx's "Use Template" button
-  // — GET /sign/editor?template=<id>) ─────────────────────────────────────────
+  // â”€â”€ Start from a saved template (SignTemplates.tsx's "Use Template" button
+  // â€” GET /sign/editor?template=<id>) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Only for a brand-new envelope, same reasoning as the Cloud-file effect above.
   useEffect(() => {
     if (envelopeId) return;
@@ -372,8 +372,8 @@ export function SignEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [envelopeId]);
 
-  // ── Restore a not-yet-created envelope's local draft ────────────────────
-  // Skipped when ?fileId= or ?template= is present — arriving here from
+  // â”€â”€ Restore a not-yet-created envelope's local draft â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Skipped when ?fileId= or ?template= is present â€” arriving here from
   // Cloud's "Sign & Stamp" or "Use Template" is a deliberate fresh start,
   // which should win over an old, possibly unrelated abandoned draft.
   useEffect(() => {
@@ -402,7 +402,7 @@ export function SignEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [envelopeId]);
 
-  // ── Autosave the in-progress envelope locally (IndexedDB) ────────────────
+  // â”€â”€ Autosave the in-progress envelope locally (IndexedDB) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!draftReadyRef.current) return;
     const handle = setTimeout(() => {
@@ -415,9 +415,9 @@ export function SignEditor() {
     return () => clearTimeout(handle);
   }, [envelopeId, title, message, orderMode, requireOtp, fileName, documentData, sourceFileId, recipients, fields, pendingChangeSummary]);
 
-  // ── File upload ───────────────────────────────────────────────────────────
+  // â”€â”€ File upload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Suggests a title from the file's own name (strip extension, turn
-  // separators into spaces) rather than leaving "Envelope title…" empty —
+  // separators into spaces) rather than leaving "Envelope titleâ€¦" empty â€”
   // purely a starting point: setTitle below only fills an empty field, and
   // the title input stays a normal controlled input, so typing over it or
   // editing it after the fact works exactly as it always did.
@@ -443,7 +443,7 @@ export function SignEditor() {
 
   // The processed PDF coming back from a Stirling-PDF tool run (or a
   // reverted version from Version History) replaces the working document
-  // exactly the same way a fresh local upload does above — it's a new
+  // exactly the same way a fresh local upload does above â€” it's a new
   // binary now, no longer in sync with whichever Cloud file (if any) it
   // started from. summary/details, when given, become this change's
   // version-history entry on the next save.
@@ -459,7 +459,7 @@ export function SignEditor() {
     reader.readAsDataURL(blob);
   }
 
-  // ── Drag and Drop handlers ────────────────────────────────────────────────
+  // â”€â”€ Drag and Drop handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     if (!pageRef.current) return;
@@ -505,7 +505,7 @@ export function SignEditor() {
     setSelectedField(newField.id);
   }
 
-  // ── Place field on page click ─────────────────────────────────────────────
+  // â”€â”€ Place field on page click â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function handlePageClick(e: React.MouseEvent<HTMLDivElement>) {
     if (!placingType || !pageRef.current) return;
     const rect = pageRef.current.getBoundingClientRect();
@@ -528,7 +528,7 @@ export function SignEditor() {
     setSelectedField(newField.id);
   }
 
-  // ── Save as draft ─────────────────────────────────────────────────────────
+  // â”€â”€ Save as draft â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function handleSave() {
     if (!title.trim()) { showAlert('Please enter an envelope title'); return; }
     if (recipients.some(r => !r.name.trim() || !r.email.trim())) {
@@ -537,7 +537,7 @@ export function SignEditor() {
     setSaving(true);
     try {
       // `fields` is already recipient_index-shaped (an index into
-      // `recipients`, not a recipient_id) — POST /envelopes and PUT
+      // `recipients`, not a recipient_id) â€” POST /envelopes and PUT
       // /envelopes/:id both resolve that index into the real recipient row
       // server-side, the same way, so the same body works unmodified for
       // both a brand-new envelope and an edit of an existing draft. PUT
@@ -567,7 +567,7 @@ export function SignEditor() {
     }
   }
 
-  // ── Send directly ─────────────────────────────────────────────────────────
+  // â”€â”€ Send directly â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function handleSend() {
     if (!title.trim() || recipients.some(r => !r.name.trim() || !r.email.trim())) {
       showAlert('Please fill in all required fields before sending'); return;
@@ -590,7 +590,7 @@ export function SignEditor() {
         envId = env.id;
       } else {
         // An existing draft's current title/recipients/fields must actually
-        // be persisted before sending — this used to build `body` and then
+        // be persisted before sending â€” this used to build `body` and then
         // never send it on this path, jumping straight to /send, so any
         // edit made since the last "Save Draft" click was silently lost.
         await apiFetch(`/v1/sign/envelopes/${envId}`, { method: 'PUT', body: JSON.stringify(body) });
@@ -606,7 +606,7 @@ export function SignEditor() {
     }
   }
 
-  // ── Save current layout as a reusable template ────────────────────────────
+  // â”€â”€ Save current layout as a reusable template â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function handleSaveAsTemplate() {
     if (!title.trim()) { showAlert('Please enter an envelope title first'); return; }
     const name = await showPrompt('', { title: 'Template name', defaultValue: title, required: true, confirmLabel: 'Save Template' });
@@ -622,21 +622,21 @@ export function SignEditor() {
           file_name: fileName,
         }),
       });
-      showAlert('Template saved — find it under Templates.', { variant: 'success' });
+      showAlert('Template saved â€” find it under Templates.', { variant: 'success' });
     } catch (e: unknown) {
       showAlert(e instanceof Error ? e.message : 'Failed to save template');
     }
   }
 
-  // ── Computed page size ────────────────────────────────────────────────────
+  // â”€â”€ Computed page size â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [pageW, setPageW] = useState(600);
   // The real PDF page's own aspect ratio once known (see naturalPageSize
-  // above) — a plain A4 guess for anything else (an image, or before the
+  // above) â€” a plain A4 guess for anything else (an image, or before the
   // PDF has loaded), same as before.
   const pageH = Math.round(pageW * (naturalPageSize ? naturalPageSize.height / naturalPageSize.width : A4_ASPECT));
   // pdf.js scale that renders the real page at exactly pageW wide, so
   // "the box the editor places fields in" and "the canvas actually shown"
-  // are the same size — required for the drop-position math below to land
+  // are the same size â€” required for the drop-position math below to land
   // fields where the cursor actually is.
   const pdfRenderScale = naturalPageSize ? pageW / naturalPageSize.width : 1;
 
@@ -659,7 +659,7 @@ export function SignEditor() {
   const removeField = (id: string) => { setFields(prev => prev.filter(f => f.id !== id)); setSelectedField(null); };
   const selectedFieldData = fields.find(f => f.id === selectedField);
 
-  // ── Upload-first screen — new envelope, no document yet ───────────────────
+  // â”€â”€ Upload-first screen â€” new envelope, no document yet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Shown instead of the full 3-panel editor until a file is chosen. Once
   // previewSrc is set (by handleFile, a restored draft, or ?fileId=), this
   // branch is skipped and the full editor renders automatically.
@@ -687,7 +687,7 @@ export function SignEditor() {
               id="envelope-title"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="Optional — filled from the filename"
+              placeholder="Optional â€” filled from the filename"
             />
           </div>
 
@@ -744,7 +744,7 @@ export function SignEditor() {
           <Button variant="outline" size="sm" onClick={() => navigate('/sign')} style={{ fontWeight: 600, gap: 6, flexShrink: 0 }}>
             <Icon name="arrowLeft" size={14} /> Back
           </Button>
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Envelope title…"
+          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Envelope titleâ€¦"
             style={{ flex: 1, minWidth: 120, fontSize: 14.5, fontWeight: 700, border: 'none', background: 'transparent', color: 'var(--ink)', outline: 'none', letterSpacing: '-0.01em', textOverflow: 'ellipsis' }} />
         </div>
 
@@ -757,7 +757,7 @@ export function SignEditor() {
             </SelectContent>
           </Select>
 
-          <Tip label="Each recipient must have a phone number on file — they'll choose SMS or WhatsApp to receive their code">
+          <Tip label="Each recipient must have a phone number on file â€” they'll choose SMS or WhatsApp to receive their code">
             <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}>
               <Checkbox checked={requireOtp} onCheckedChange={c => setRequireOtp(c === true)} />
               OTP / WhatsApp
@@ -775,9 +775,9 @@ export function SignEditor() {
           )}
 
           {isPdf && previewSrc && (sourceFileId || documentData) && (
-            <Tip label="Suggestions only — scans for blank fields and witness/notary blocks, never a validity check">
+            <Tip label="Suggestions only â€” scans for blank fields and witness/notary blocks, never a validity check">
               <Button variant="outline" size="sm" onClick={runAiAssist} disabled={aiAssistLoading} style={{ height: 32, fontSize: 12, padding: '0 10px' }}>
-                <Icon name="sparkle" size={13} /> {aiAssistLoading ? 'Scanning…' : 'AI Scan'}
+                <Icon name="sparkle" size={13} /> {aiAssistLoading ? 'Scanningâ€¦' : 'AI Scan'}
               </Button>
             </Tip>
           )}
@@ -794,7 +794,7 @@ export function SignEditor() {
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" style={{ height: 32, fontSize: 12, padding: '0 12px', gap: 5, fontWeight: 600 }}>
-                <Icon name="save" size={13} /> {saving ? 'Saving…' : 'Save'} <Icon name="chevronDown" size={11} style={{ opacity: 0.6 }} />
+                <Icon name="save" size={13} /> {saving ? 'Savingâ€¦' : 'Save'} <Icon name="chevronDown" size={11} style={{ opacity: 0.6 }} />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" style={{ width: 185, padding: 4 }}>
@@ -810,7 +810,7 @@ export function SignEditor() {
           </Popover>
 
           <Button variant="default" size="sm" onClick={handleSend} disabled={sending} style={{ height: 32, fontSize: 12, fontWeight: 700, padding: '0 14px' }}>
-            {sending ? 'Sending…' : 'Send'} <Icon name="send" size={13} style={{ marginLeft: 4 }} />
+            {sending ? 'Sendingâ€¦' : 'Send'} <Icon name="send" size={13} style={{ marginLeft: 4 }} />
           </Button>
         </div>
       </div>
@@ -856,9 +856,9 @@ export function SignEditor() {
 
         {/* LEFT: Field palette + Recipients */}
         <div className="sign-editor-left" style={{ display: isMobile && mobileTab !== 'left' ? 'none' : undefined }}>
-          {/* Recipients — signatories and any legal certifier(s) render as
+          {/* Recipients â€” signatories and any legal certifier(s) render as
               two visibly distinct groups, not one flat list. A certifier
-              (Certified True Copy — an advocate/notary attesting the copy,
+              (Certified True Copy â€” an advocate/notary attesting the copy,
               not just another person signing it) is a different kind of
               party on the document, so it gets its own labeled section
               rather than being buried among ordinary signers with only a
@@ -901,7 +901,7 @@ export function SignEditor() {
                         {r.name || `Recipient ${i + 1}`}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--blue)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {r.certifier_title || 'Advocate'} — Certifying Copy
+                        {r.certifier_title || 'Advocate'} â€” Certifying Copy
                       </div>
                     </div>
                     {recipients.length > 1 && (
@@ -926,7 +926,7 @@ export function SignEditor() {
           <div style={{ padding: '0 12px 16px' }}>
             <EntityPicker
               label="Recipient"
-              placeholder="Search customers or staff…"
+              placeholder="Search customers or staffâ€¦"
               value={recipients[activeRecipient]?.name
                 ? { id: recipients[activeRecipient].user_id ?? '', label: recipients[activeRecipient].name, sublabel: recipients[activeRecipient].email }
                 : null}
@@ -938,7 +938,7 @@ export function SignEditor() {
                 const full = recipientCacheRef.current.get(item.id);
                 setRecipients(prev => prev.map((r, i) => i === activeRecipient ? {
                   ...r,
-                  // Only a real staff pick gets user_id — sign_recipients.user_id
+                  // Only a real staff pick gets user_id â€” sign_recipients.user_id
                   // is a FK into `users`, and a customer's id isn't one.
                   user_id: full?.source === 'staff' ? item.id.replace(/^staff:/, '') : null,
                   name: full?.name ?? item.label,
@@ -955,12 +955,12 @@ export function SignEditor() {
               <Input key={key}
                 value={(recipients[activeRecipient] as any)?.[key] ?? ''}
                 onChange={e => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, [key]: e.target.value } : r))}
-                placeholder={key === 'role_label' ? 'Role (e.g. Customer)' : key === 'phone' ? 'Phone (optional — WhatsApp delivery)' : key.charAt(0).toUpperCase() + key.slice(1)}
+                placeholder={key === 'role_label' ? 'Role (e.g. Customer)' : key === 'phone' ? 'Phone (optional â€” WhatsApp delivery)' : key.charAt(0).toUpperCase() + key.slice(1)}
                 style={{ marginTop: 6 }}
               />
             ))}
 
-            {/* Witness — the plainest advanced execution role: this
+            {/* Witness â€” the plainest advanced execution role: this
                 recipient's own signature is real (they still sign), but
                 their completion also records a distinct "witnessed" audit
                 event rather than being indistinguishable from an ordinary
@@ -973,11 +973,11 @@ export function SignEditor() {
             </label>
             {recipients[activeRecipient]?.execution_role === 'WITNESS' && (
               <p style={{ fontSize: 11, color: 'var(--ink3)', margin: '4px 0 0', lineHeight: 1.4 }}>
-                Place them after the signer(s) they're witnessing in the signing order — a witness should see the document already signed.
+                Place them after the signer(s) they're witnessing in the signing order â€” a witness should see the document already signed.
               </p>
             )}
 
-            {/* Certified True Copy — collapsed behind its own checkbox since
+            {/* Certified True Copy â€” collapsed behind its own checkbox since
                 most documents never need it; a real legal attestation by a
                 named licensed advocate/notary, not the tenant's own stamp. */}
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', marginTop: 10 }}>
@@ -1005,7 +1005,7 @@ export function SignEditor() {
                         const expired = c.expiry_date && new Date(c.expiry_date) < new Date();
                         return (
                           <SelectItem key={c.id} value={c.id} disabled={expired || c.verification_status === 'revoked'}>
-                            {c.name} — {c.title}{c.roll_number ? ` (${c.roll_number})` : ''}{expired ? ' — EXPIRED' : c.verification_status === 'revoked' ? ' — REVOKED' : ''}
+                            {c.name} â€” {c.title}{c.roll_number ? ` (${c.roll_number})` : ''}{expired ? ' â€” EXPIRED' : c.verification_status === 'revoked' ? ' â€” REVOKED' : ''}
                           </SelectItem>
                         );
                       })}
@@ -1017,7 +1017,7 @@ export function SignEditor() {
                   const expired = c?.expiry_date && new Date(c.expiry_date) < new Date();
                   return expired ? (
                     <p style={{ fontSize: 11, color: 'var(--red)', margin: 0, fontWeight: 600 }}>
-                      This credential expired on {c!.expiry_date} — signing will be rejected until it's renewed in the directory.
+                      This credential expired on {c!.expiry_date} â€” signing will be rejected until it's renewed in the directory.
                     </p>
                   ) : null;
                 })()}
@@ -1031,14 +1031,14 @@ export function SignEditor() {
                   onChange={e => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, certifier_firm: e.target.value } : r))}
                   placeholder="Law firm (optional)" />
                 <p style={{ fontSize: 11, color: 'var(--ink3)', margin: 0, lineHeight: 1.4 }}>
-                  Place a “Certified True Copy Stamp” field (below) and assign it to this recipient — the roll number above is baked into the signed PDF as real text, next to their signature.
+                  Place a â€œCertified True Copy Stampâ€ field (below) and assign it to this recipient â€” the roll number above is baked into the signed PDF as real text, next to their signature.
                 </p>
               </div>
             )}
           </div>
 
           {/* Field type palette */}
-          <div className="sign-panel-title">Fields — drag or click to place</div>
+          <div className="sign-panel-title">Fields â€” drag or click to place</div>
           <div className="sign-field-palette">
             {FIELD_TYPES.map(ft => (
               <button key={ft.type} className="sign-field-type-btn"
@@ -1050,7 +1050,7 @@ export function SignEditor() {
                 onClick={() => setPlacingType(prev => prev === ft.type ? null : ft.type)}>
                 <Icon name={ft.icon} size={15} style={{ marginRight: 8 }} />
                 <span>{ft.label}</span>
-                {placingType === ft.type && <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700 }}>CLICK PAGE ↑</span>}
+                {placingType === ft.type && <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700 }}>CLICK PAGE â†‘</span>}
               </button>
             ))}
           </div>
@@ -1059,11 +1059,11 @@ export function SignEditor() {
           <div className="sign-panel-title">Message (optional)</div>
           <div style={{ padding: '0 12px 16px' }}>
             <Textarea value={message} onChange={e => setMessage(e.target.value)}
-              placeholder="Add a personal message to signers…"
+              placeholder="Add a personal message to signersâ€¦"
               rows={3} />
           </div>
 
-          {/* Matter / Reference — Phase S7, a free-text case tag, not a
+          {/* Matter / Reference â€” Phase S7, a free-text case tag, not a
               structured entity (see migration 428's own header). Groups
               onto /sign/matters once set; most tenants leave it blank. */}
           <div className="sign-panel-title">Matter / Reference (optional)</div>
@@ -1072,9 +1072,9 @@ export function SignEditor() {
               placeholder="e.g. CASE-2026-014" />
           </div>
 
-          {/* Remote session — Phase S4. Reuses Bliss's own meeting system
+          {/* Remote session â€” Phase S4. Reuses Bliss's own meeting system
               (the same MeetingLinkPanel Calendar/Tasks/Notes already share)
-              rather than a second video system — see migration 432's own
+              rather than a second video system â€” see migration 432's own
               header. Shown for a notarial execution, where the certifier
               and affiant may need to meet live. */}
           {inferredExecutionType === 'NOTARIAL_CERTIFICATION' && (
@@ -1086,11 +1086,11 @@ export function SignEditor() {
             </>
           )}
 
-          {/* Jurisdiction advisory — Phase S5. Informational only, never a
+          {/* Jurisdiction advisory â€” Phase S5. Informational only, never a
               hard block: a real, reviewed legal-status note (migration
               430's own header cites the actual source sections), shown
               for whatever execution type the current recipients resolve
-              to. Never renders "legally valid" — only what the seeded row
+              to. Never renders "legally valid" â€” only what the seeded row
               actually says. */}
           {jurisdiction.jurisdiction_code && jurisdictionRule && (
             <>
@@ -1101,7 +1101,7 @@ export function SignEditor() {
                 { background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)' }
               ) }}>
                 <div style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em', fontSize: 10 }}>
-                  {jurisdiction.jurisdiction_code} · {jurisdictionRule.status.replace(/_/g, ' ')}
+                  {jurisdiction.jurisdiction_code} Â· {jurisdictionRule.status.replace(/_/g, ' ')}
                 </div>
                 {jurisdictionRule.conditions && <div style={{ marginTop: 4, color: 'var(--ink2)' }}>{jurisdictionRule.conditions}</div>}
                 {jurisdictionRule.legal_basis && <div style={{ marginTop: 4, color: 'var(--ink3)', fontStyle: 'italic' }}>{jurisdictionRule.legal_basis}</div>}
@@ -1109,7 +1109,7 @@ export function SignEditor() {
             </>
           )}
 
-          {/* AI Scan results — Phase S8. Suggestions the preparer can act on
+          {/* AI Scan results â€” Phase S8. Suggestions the preparer can act on
               or ignore; never phrased as a completeness/validity verdict. */}
           {aiAssist && (
             <>
@@ -1124,18 +1124,18 @@ export function SignEditor() {
                   </div>
                 ) : aiAssist.missingFields.length === 0 && aiAssist.blocks.length === 0 ? (
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r-sm)' }}>
-                    Nothing flagged — no blank fields or witness/notary blocks detected. This isn't a completeness check; review the document yourself before sending.
+                    Nothing flagged â€” no blank fields or witness/notary blocks detected. This isn't a completeness check; review the document yourself before sending.
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {aiAssist.missingFields.map((f, i) => (
                       <div key={`f${i}`} style={{ fontSize: 11.5, padding: '7px 10px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r-sm)', color: 'var(--ink2)' }}>
-                        <strong style={{ color: 'var(--gold)' }}>{f.page ? `Page ${f.page} — ` : ''}Blank field:</strong> {f.description}
+                        <strong style={{ color: 'var(--gold)' }}>{f.page ? `Page ${f.page} â€” ` : ''}Blank field:</strong> {f.description}
                       </div>
                     ))}
                     {aiAssist.blocks.map((b, i) => (
                       <div key={`b${i}`} style={{ fontSize: 11.5, padding: '7px 10px', background: 'var(--blue-l)', border: '1px solid var(--blue)', borderRadius: 'var(--r-sm)', color: 'var(--ink2)' }}>
-                        <strong style={{ color: 'var(--blue)' }}>{b.page ? `Page ${b.page} — ` : ''}{b.type === 'witness' ? 'Witness block:' : 'Notary/oath block:'}</strong> {b.description}
+                        <strong style={{ color: 'var(--blue)' }}>{b.page ? `Page ${b.page} â€” ` : ''}{b.type === 'witness' ? 'Witness block:' : 'Notary/oath block:'}</strong> {b.description}
                       </div>
                     ))}
                   </div>
@@ -1149,16 +1149,16 @@ export function SignEditor() {
         <div className="sign-editor-center" style={{ display: isMobile && mobileTab !== 'center' ? 'none' : undefined }}>
           {/* Toolbar + canvas share a wrapper with no gap between them, so
               the dark bar and the white page below it read as one card, not
-              two elements floating apart — .sign-editor-center's own 16px
+              two elements floating apart â€” .sign-editor-center's own 16px
               flex gap would otherwise land right between them, same as it
               correctly does around this whole group's other siblings. */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: fileName ? 0 : 16, width: '100%' }}>
-          {/* Dark document toolbar — filename + type badge + page nav, one
+          {/* Dark document toolbar â€” filename + type badge + page nav, one
               bar, same "Studio Control Bar" design as the sender's own
               envelope detail view (SignInbox.tsx), the public signing page
               (SignPublicPage.tsx) and the Cloud Lightbox. Used to be a light
               filename banner with a separate dark pagination pill floating
-              below it with a gap between them — merged into the one
+              below it with a gap between them â€” merged into the one
               consistent bar every other document surface in the app uses. */}
           {fileName && (
             <div style={{
@@ -1174,7 +1174,7 @@ export function SignEditor() {
                 </span>
               </div>
 
-              {/* Page navigation — real multi-page PDFs (a delivery order, a
+              {/* Page navigation â€” real multi-page PDFs (a delivery order, a
                   multi-page contract) can now actually be paged through;
                   fields already carried a `page` property, it just had
                   nowhere to go before since page 1 was the only page ever
@@ -1185,7 +1185,7 @@ export function SignEditor() {
                     style={{ height: 26, width: 26, minHeight: 0, opacity: currentPdfPage <= 1 ? 0.3 : 1, color: '#f8fafc' }}>
                     <Icon name="chevronLeft" size={14} />
                   </Button>
-                  <span style={{ fontSize: 12, color: '#f8fafc', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--mono)', padding: '0 4px' }}>
+                  <span style={{ fontSize: 12, color: '#f8fafc', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--font)', padding: '0 4px' }}>
                     {currentPdfPage} / {pdfNumPages}
                   </span>
                   <Button variant="ghost" size="icon" onClick={() => setCurrentPdfPage(p => Math.min(pdfNumPages, p + 1))} disabled={currentPdfPage >= pdfNumPages}
@@ -1202,13 +1202,13 @@ export function SignEditor() {
             </div>
           )}
 
-          {/* File upload area — two actions: Upload File and Scan Document */}
+          {/* File upload area â€” two actions: Upload File and Scan Document */}
           {!previewSrc && (
             <div style={{ width: pageW, border: '2px dashed var(--border)', borderRadius: 'var(--r)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '32px 24px', background: 'var(--card-bg)', color: 'var(--ink3)', boxSizing: 'border-box' }}>
               <Icon name="fileText" size={40} style={{ opacity: 0.3 }} />
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Add a document to get started</div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>PDF, DOCX, PNG, JPG — every page will be loaded</div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>PDF, DOCX, PNG, JPG â€” every page will be loaded</div>
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
@@ -1220,20 +1220,20 @@ export function SignEditor() {
               </div>
             </div>
           )}
-          {/* Document page-count confirmation — shown once a PDF is loaded so
+          {/* Document page-count confirmation â€” shown once a PDF is loaded so
               the user knows all pages came through before placing fields */}
           {isPdf && pdfDoc && pdfNumPages > 1 && !pdfLoading && (
             <div style={{ width: pageW, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r-sm)', boxSizing: 'border-box', fontSize: 12.5, color: 'var(--ink2)' }}>
               <Icon name="checkCircle" size={14} style={{ color: 'var(--teal)', flexShrink: 0 }} />
-              <span><strong style={{ color: 'var(--ink)' }}>{pdfNumPages} pages</strong> loaded — use the page controls above to navigate</span>
+              <span><strong style={{ color: 'var(--ink)' }}>{pdfNumPages} pages</strong> loaded â€” use the page controls above to navigate</span>
             </div>
           )}
           <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.docx" style={{ display: 'none' }} onChange={handleFile} />
-          {/* Camera/scan input — capture="environment" opens the back camera on mobile;
+          {/* Camera/scan input â€” capture="environment" opens the back camera on mobile;
               on desktop it falls back to a regular image file picker */}
           <input ref={scanInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleFile} />
 
-          {/* Page canvas — sized to the real document page's own
+          {/* Page canvas â€” sized to the real document page's own
               proportions (see naturalPageSize above), not a fixed A4 guess */}
           <div ref={pageRef} className="sign-page-canvas-wrap"
             style={{ width: pageW, height: pageH, cursor: placingType ? 'crosshair' : 'default' }}
@@ -1242,14 +1242,14 @@ export function SignEditor() {
             onDrop={handleDrop}>
 
             {/* Document background. A real <canvas> render for a PDF (not
-                an <iframe> — a separate browsing context that silently
+                an <iframe> â€” a separate browsing context that silently
                 swallowed every drag-and-drop attempt over the one file
                 type most real documents on this platform actually are),
                 a plain <img> for an image upload, a placeholder otherwise. */}
             {isPdf ? (
               pdfLoading || !pdfDoc ? (
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 13 }}>
-                  {pdfError ? "Couldn't load this PDF" : 'Loading document…'}
+                  {pdfError ? "Couldn't load this PDF" : 'Loading documentâ€¦'}
                 </div>
               ) : (
                 <PdfPageCanvas doc={pdfDoc} pageNumber={currentPdfPage} scale={pdfRenderScale} style={{ display: 'block' }} />
@@ -1269,7 +1269,7 @@ export function SignEditor() {
               </div>
             )}
 
-            {/* Placed fields — only this page's; a field is stored with a
+            {/* Placed fields â€” only this page's; a field is stored with a
                 real page number now, not a permanent page: 1. */}
             {fields.filter(f => (f.page || 1) === currentPdfPage).map(field => (
               <div key={field.id}
@@ -1313,7 +1313,7 @@ export function SignEditor() {
           )}
         </div>
 
-        {/* RIGHT: Selected field properties — swapped out for PDF Tools
+        {/* RIGHT: Selected field properties â€” swapped out for PDF Tools
             while a tool is active, rather than PDF Tools covering the whole
             screen. Same panel, same mobile "Field Options" tab, so it stays
             reachable exactly the same way on a phone as on desktop. */}

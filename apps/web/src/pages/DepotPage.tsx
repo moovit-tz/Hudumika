@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -14,14 +14,14 @@ import { showAlert } from '../lib/alert.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 
 /**
- * Container/equipment depot management — lives in HuduFreight (moved from
+ * Container/equipment depot management â€” lives in HuduFreight (moved from
  * ClearOS: collecting cargo against a release document is a fleet act).
  * Deliberately not merged with the three existing per-shipment container
  * tables (shipment_cases.containers, container_tracking, seal_containers).
  * See depot.service.ts's header for why. Equipment Interchange Receipts
  * replace SEAL's unpersisted print-only EIR popup with a real record, and
  * can link to the release/delivery order (now in FinOps's Delivery
- * Documents) that authorized the pickup — see release_document_id.
+ * Documents) that authorized the pickup â€” see release_document_id.
  */
 
 interface Equipment {
@@ -38,9 +38,9 @@ interface ReleaseDoc {
 }
 
 const EQUIPMENT_TYPES = [
-  { value: 'CONTAINER_20FT', label: 'Container — 20FT' },
-  { value: 'CONTAINER_40FT', label: 'Container — 40FT' },
-  { value: 'CONTAINER_40HC', label: 'Container — 40HC' },
+  { value: 'CONTAINER_20FT', label: 'Container â€” 20FT' },
+  { value: 'CONTAINER_40FT', label: 'Container â€” 40FT' },
+  { value: 'CONTAINER_40HC', label: 'Container â€” 40HC' },
   { value: 'CHASSIS', label: 'Chassis' },
   { value: 'GENSET', label: 'Genset' },
   { value: 'OTHER', label: 'Other' },
@@ -51,7 +51,7 @@ const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'gray' | 'error'> =
 const CONDITION_VARIANT: Record<string, 'success' | 'error' | 'warning'> = { GOOD: 'success', DAMAGED: 'error', UNDER_REPAIR: 'warning' };
 
 export function DepotPage() {
-  usePageSEO('Container Depot', 'Equipment sitting at a depot, and a real Equipment Interchange Receipt for every gate movement — not a print-and-forget popup.');
+  usePageSEO('Container Depot', 'Equipment sitting at a depot, and a real Equipment Interchange Receipt for every gate movement â€” not a print-and-forget popup.');
   const [tab, setTab] = useState<'equipment' | 'receipts'>('equipment');
 
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -71,7 +71,7 @@ export function DepotPage() {
     Promise.all([
       apiFetch('/v1/depot/equipment').catch(() => []),
       apiFetch('/v1/depot/interchange-receipts').catch(() => []),
-      // Issued release/delivery orders — the ones a truck could actually be
+      // Issued release/delivery orders â€” the ones a truck could actually be
       // collecting against right now. Lives in FinOps now (migration 263).
       apiFetch('/v1/delivery-documents?status=issued').catch(() => []),
     ]).then(([eq, rc, docs]) => {
@@ -107,7 +107,7 @@ export function DepotPage() {
       // Match against the depot's own equipment registry (already loaded in
       // state) so the receipt links to the real depot_equipment row instead
       // of just carrying a plain-text equipment number. A number that isn't
-      // registered yet is a legitimate case too — recordInterchange() still
+      // registered yet is a legitimate case too â€” recordInterchange() still
       // accepts it as 'adhoc', it just can't be linked to nothing that exists.
       const matched = equipment.find(e => e.equipment_number === rcForm.equipmentNumber.trim().toUpperCase());
       await apiFetch('/v1/depot/interchange-receipts', {
@@ -151,7 +151,7 @@ export function DepotPage() {
         crumbs={['HuduFreight', 'Equipment & Depot']}
         titlePlain="Container"
         titleEm="depot"
-        subtitle="Equipment sitting at a depot, and a real Equipment Interchange Receipt for every gate movement — not a print-and-forget popup."
+        subtitle="Equipment sitting at a depot, and a real Equipment Interchange Receipt for every gate movement â€” not a print-and-forget popup."
         actions={
           tab === 'equipment'
             ? <Button onClick={() => setShowEqForm(s => !s)}><Icon name="plus" size={14} /> {showEqForm ? 'Cancel' : 'Add equipment'}</Button>
@@ -190,7 +190,7 @@ export function DepotPage() {
                 </div>
               </div>
               {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-              <Button disabled={saving} onClick={submitEquipment}>{saving ? 'Saving…' : 'Add equipment'}</Button>
+              <Button disabled={saving} onClick={submitEquipment}>{saving ? 'Savingâ€¦' : 'Add equipment'}</Button>
             </SectionCard>
           )}
 
@@ -211,11 +211,11 @@ export function DepotPage() {
                 <tbody>
                   {equipment.map(e => (
                     <tr key={e.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>{e.equipment_number}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>{e.equipment_number}</td>
                       <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{EQUIPMENT_TYPES.find(t => t.value === e.equipment_type)?.label ?? e.equipment_type}</td>
                       <td style={{ padding: '12px 16px' }}><Badge variant={CONDITION_VARIANT[e.condition] ?? 'gray' as any}>{e.condition}</Badge></td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{e.location || '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{e.owner_carrier || '—'}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{e.location || 'â€”'}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{e.owner_carrier || 'â€”'}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <Select value={e.status} onValueChange={v => updateStatus(e.id, v)} disabled={statusSavingId === e.id}>
                           <SelectTrigger className="input-field" style={{ width: 140, minHeight: 'var(--ctl-h-xs)' }}>
@@ -250,7 +250,7 @@ export function DepotPage() {
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Release / delivery order</label>
                   <Combobox
-                    options={releaseDocs.map(d => ({ value: d.id, label: `${d.doc_number || d.doc_type} — ${d.customer_name || 'No customer'}` }))}
+                    options={releaseDocs.map(d => ({ value: d.id, label: `${d.doc_number || d.doc_type} â€” ${d.customer_name || 'No customer'}` }))}
                     value={rcForm.releaseDocumentId} onChange={v => setRcForm(p => ({ ...p, releaseDocumentId: v }))} placeholder="Not linked to an order"
                   />
                 </div>
@@ -294,7 +294,7 @@ export function DepotPage() {
                 )}
               </div>
               {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-              <Button disabled={saving} onClick={submitReceipt}>{saving ? 'Saving…' : 'Record interchange'}</Button>
+              <Button disabled={saving} onClick={submitReceipt}>{saving ? 'Savingâ€¦' : 'Record interchange'}</Button>
             </SectionCard>
           )}
 
@@ -315,8 +315,8 @@ export function DepotPage() {
                 <tbody>
                   {receipts.map(r => (
                     <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '12px 16px', fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{r.reference_number}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>
+                      <td style={{ padding: '12px 16px', fontSize: 12, fontFamily: 'var(--font)', color: 'var(--ink3)' }}>{r.reference_number}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>
                         {r.equipment_number}
                         {r.release_document_id && (
                           <div>

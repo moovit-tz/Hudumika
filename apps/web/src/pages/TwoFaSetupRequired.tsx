@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { Icon } from '../components/Icon.js';
@@ -10,15 +10,15 @@ import { showAlert } from '../lib/alert.js';
 interface SetupData { secret: string; uri: string }
 
 /**
- * SuperAdmin ▸ Settings ▸ Security & Sessions' "Two-Factor Authentication
- * Policy: Required" lands here — auth.routes.ts's POST /login withholds a
+ * SuperAdmin â–¸ Settings â–¸ Security & Sessions' "Two-Factor Authentication
+ * Policy: Required" lands here â€” auth.routes.ts's POST /login withholds a
  * real session for an account that authenticated correctly but has no
  * authenticator enrolled yet, issuing only a narrow, 15-minute setup token
  * instead (see middleware/auth.ts's TWOFA_SETUP_ALLOWED_ROUTES). This page
  * is the only place that token is ever used, calling /v1/security/2fa/setup
  * and /verify directly with it as a Bearer header rather than the normal
  * session cookie. Once verify succeeds, the server has already set real
- * session cookies (security.routes.ts's own twofa_setup branch) — resumeSession()
+ * session cookies (security.routes.ts's own twofa_setup branch) â€” resumeSession()
  * just needs to read them back.
  */
 export const TwoFaSetupRequired: React.FC = () => {
@@ -75,7 +75,7 @@ export const TwoFaSetupRequired: React.FC = () => {
 
         {!setupData && (
           <Button variant="default" onClick={startSetup} disabled={busy}>
-            {busy ? 'Starting…' : 'Set up authenticator'}
+            {busy ? 'Startingâ€¦' : 'Set up authenticator'}
           </Button>
         )}
 
@@ -87,7 +87,7 @@ export const TwoFaSetupRequired: React.FC = () => {
               </div>
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>1. Scan with your authenticator app</div>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink3)', wordBreak: 'break-all', marginBottom: 14 }}>{setupData.secret}</div>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 11.5, color: 'var(--ink3)', wordBreak: 'break-all', marginBottom: 14 }}>{setupData.secret}</div>
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>2. Enter the 6-digit code</div>
                 <input
                   type="text"
@@ -95,12 +95,12 @@ export const TwoFaSetupRequired: React.FC = () => {
                   onChange={e => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="000000"
                   className="input-field"
-                  style={{ fontFamily: 'var(--mono)', fontSize: 16, letterSpacing: '0.2em', textAlign: 'center', width: 150 }}
+                  style={{ fontFamily: 'var(--font)', fontSize: 16, letterSpacing: '0.2em', textAlign: 'center', width: 150 }}
                 />
               </div>
             </div>
             <Button variant="default" onClick={verifyAndFinish} disabled={busy || verifyCode.length < 6}>
-              {busy ? 'Verifying…' : 'Verify & continue'}
+              {busy ? 'Verifyingâ€¦' : 'Verify & continue'}
             </Button>
           </div>
         )}

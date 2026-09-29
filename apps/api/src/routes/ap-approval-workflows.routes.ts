@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireFinanceCapability } from '../middleware/finance-capability.js';
 
 const FINANCE_TIER = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE'] as const;
 
@@ -19,6 +20,7 @@ const workflowSchema = z.object({
 export async function apApprovalWorkflowRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
+  fastify.addHook('preHandler', requireFinanceCapability('finance.accounting.advanced'));
 
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,
   // fleet ops, HR, identity/access admin, or tenant configuration) with only

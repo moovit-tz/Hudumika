@@ -1,7 +1,7 @@
-/* ══════════════════════════════════════════════════════════
-   OndiTrust.css — Ondi Personal · Trust & Risk Intelligence
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   OndiTrust.css â€” Ondi Personal Â· Trust & Risk Intelligence
    Enterprise-grade identity trust score & reliability suite.
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .ot-page {
   display: flex;
@@ -10,7 +10,7 @@
   width: 100%;
 }
 
-/* ── Top Hero Grid: Trust Score & Factor Attribution ── */
+/* â”€â”€ Top Hero Grid: Trust Score & Factor Attribution â”€â”€ */
 .ot-hero-grid {
   display: grid;
   grid-template-columns: 1.15fr 1.35fr;
@@ -18,7 +18,7 @@
   align-items: stretch;
 }
 
-/* ── Base Card ── */
+/* â”€â”€ Base Card â”€â”€ */
 .ot-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -75,7 +75,7 @@
   margin: 0;
 }
 
-/* ── Score Dial Hero Card ── */
+/* â”€â”€ Score Dial Hero Card â”€â”€ */
 .ot-score-hero-wrap {
   display: flex;
   flex-direction: column;
@@ -113,7 +113,7 @@
 .ot-dial-num {
   font-size: 38px;
   font-weight: 900;
-  font-family: var(--mono);
+  font-family: var(--font);
   letter-spacing: -1.5px;
   color: var(--ink);
 }
@@ -156,7 +156,7 @@
   color: var(--ink3);
 }
 
-/* ── Factor Attribution Card ── */
+/* â”€â”€ Factor Attribution Card â”€â”€ */
 .ot-factors-list {
   display: flex;
   flex-direction: column;
@@ -213,10 +213,10 @@
 .ot-factor-points {
   font-size: 12px;
   font-weight: 700;
-  font-family: var(--mono);
+  font-family: var(--font);
 }
 
-/* ── Historical Trend & Sparkline Card ── */
+/* â”€â”€ Historical Trend & Sparkline Card â”€â”€ */
 .ot-trend-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -251,7 +251,7 @@
   font-size: 18px;
   font-weight: 800;
   color: var(--ink);
-  font-family: var(--mono);
+  font-family: var(--font);
 }
 
 .ot-trend-stat-score-row {
@@ -321,7 +321,7 @@
 .ot-chart-tooltip-score {
   font-size: 15px;
   font-weight: 800;
-  font-family: var(--mono);
+  font-family: var(--font);
   color: var(--ink);
 }
 
@@ -344,7 +344,7 @@
   padding: 0 4px;
 }
 
-/* ── Snapshot Ledger Table ── */
+/* â”€â”€ Snapshot Ledger Table â”€â”€ */
 .ot-ledger-wrap {
   margin-top: 14px;
   padding-top: 14px;
@@ -406,7 +406,7 @@
   background: var(--teal-l, rgba(13, 148, 136, 0.06));
 }
 
-/* ── Organizational Reliability Suite ── */
+/* â”€â”€ Organizational Reliability Suite â”€â”€ */
 .ot-reliability-wrap {
   background: var(--white);
   border: 1px solid var(--border);
@@ -435,7 +435,7 @@
 .ot-rel-score-num {
   font-size: 28px;
   font-weight: 900;
-  font-family: var(--mono);
+  font-family: var(--font);
   color: var(--ink);
   line-height: 1;
 }
@@ -509,7 +509,7 @@
   transition: width 0.3s ease;
 }
 
-/* ── Proactive Recommendations ── */
+/* â”€â”€ Proactive Recommendations â”€â”€ */
 .ot-recs-wrap {
   background: var(--white);
   border: 1px solid var(--border);
@@ -571,9 +571,9 @@
   gap: 4px;
 }
 
-/* ══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Responsive Breakpoints
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @media (max-width: 1024px) {
   .ot-hero-grid {
     grid-template-columns: 1fr;

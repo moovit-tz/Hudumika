@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useCompany } from '../data/companyStore.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -33,7 +33,7 @@ function monthRange(offsetFromNow: number) {
 const PERIODS = Array.from({ length: 12 }, (_, i) => monthRange(11 - i));
 
 function fmt(n: number, cur: string) {
-  if (n === 0) return '—';
+  if (n === 0) return 'â€”';
   return `${cur} ${n.toLocaleString('en-US', { minimumFractionDigits: 0 })}`;
 }
 
@@ -80,7 +80,7 @@ export const FinanceTrialBalance: React.FC = () => {
   const totals = report?.totals ?? { debit: 0, credit: 0 };
   const balanced = Math.abs(totals.debit - totals.credit) < 1;
 
-  /** Paged first, grouped second — grouping first would make a page mean
+  /** Paged first, grouped second â€” grouping first would make a page mean
    *  "one account type", which the type tabs above already do. */
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -121,7 +121,7 @@ export const FinanceTrialBalance: React.FC = () => {
     document.body.removeChild(a); URL.revokeObjectURL(url);
   }
 
-  if (loading) return <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading trial balance…</div>;
+  if (loading) return <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading trial balanceâ€¦</div>;
   if (error) return <div style={{ textAlign: 'center', color: 'var(--red)' }}>{error}</div>;
 
   return (
@@ -131,7 +131,7 @@ export const FinanceTrialBalance: React.FC = () => {
         crumbs={['Finance', 'Reports']}
         titlePlain="Trial"
         titleEm="balance"
-        subtitle={`${co.name} — verifying debits equal credits.`}
+        subtitle={`${co.name} â€” verifying debits equal credits.`}
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
             <Select value={String(periodIdx)} onValueChange={v => setPeriodIdx(Number(v))}>
@@ -157,16 +157,16 @@ export const FinanceTrialBalance: React.FC = () => {
         </div>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: balanced ? 'var(--green)' : 'var(--red)' }}>
-            {balanced ? 'Trial Balance is Balanced ✓' : 'Trial Balance Out of Balance ✗'}
+            {balanced ? 'Trial Balance is Balanced âœ“' : 'Trial Balance Out of Balance âœ—'}
           </div>
           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
-            Total Debits: <strong>{cur} {totals.debit.toLocaleString()}</strong> &nbsp;·&nbsp; Total Credits: <strong>{cur} {totals.credit.toLocaleString()}</strong>
-            {balanced ? ' — Difference: Nil' : ` — Difference: ${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`}
+            Total Debits: <strong>{cur} {totals.debit.toLocaleString()}</strong> &nbsp;Â·&nbsp; Total Credits: <strong>{cur} {totals.credit.toLocaleString()}</strong>
+            {balanced ? ' â€” Difference: Nil' : ` â€” Difference: ${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`}
           </div>
         </div>
       </div>
 
-      {/* Summary — the Tabs below already provide click-to-filter by type,
+      {/* Summary â€” the Tabs below already provide click-to-filter by type,
           so these are a plain read-only summary rather than a second,
           duplicate filter control. */}
       <MetricsRow cards={[
@@ -214,7 +214,7 @@ export const FinanceTrialBalance: React.FC = () => {
             title="Search accounts"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search account…"
+            placeholder="Search accountâ€¦"
             style={{
               width: '100%',
               padding: '8px 12px 8px 32px',
@@ -233,7 +233,7 @@ export const FinanceTrialBalance: React.FC = () => {
       </SectionCard>
       </div>
 
-      {/* Table — .rtbl/.rtbl-wrap is the shared responsive-table convention (index.css):
+      {/* Table â€” .rtbl/.rtbl-wrap is the shared responsive-table convention (index.css):
           horizontal scroll + col-hide-md/col-hide-sm on narrow viewports, instead of a
           fixed-pixel CSS grid that would overflow on mobile. */}
       <SectionCard padded={false}>
@@ -262,22 +262,22 @@ export const FinanceTrialBalance: React.FC = () => {
                   {/* Group header */}
                   <tr style={{ background: cfg.bg }}>
                     <td colSpan={3} style={{ fontSize:10, fontWeight:800, color:cfg.color, textTransform:'uppercase', letterSpacing:'0.08em' }}>{cfg.label}</td>
-                    <td style={{ textAlign:'right', fontSize:11, fontWeight:700, color:'var(--blue)', fontFamily:'var(--mono)' }}>{gt.debit > 0 ? `${cur} ${gt.debit.toLocaleString()}` : ''}</td>
-                    <td style={{ textAlign:'right', fontSize:11, fontWeight:700, color:'var(--purple)', fontFamily:'var(--mono)' }}>{gt.credit > 0 ? `${cur} ${gt.credit.toLocaleString()}` : ''}</td>
+                    <td style={{ textAlign:'right', fontSize:11, fontWeight:700, color:'var(--blue)', fontFamily:'var(--font)' }}>{gt.debit > 0 ? `${cur} ${gt.debit.toLocaleString()}` : ''}</td>
+                    <td style={{ textAlign:'right', fontSize:11, fontWeight:700, color:'var(--purple)', fontFamily:'var(--font)' }}>{gt.credit > 0 ? `${cur} ${gt.credit.toLocaleString()}` : ''}</td>
                   </tr>
 
                   {/* Account rows */}
                   {grpFiltered.map(acc => (
                     <tr key={acc.account_code}>
-                      <td style={{ fontFamily:'var(--mono)', color:'var(--ink3)', fontWeight:600 }}>{acc.account_code}</td>
+                      <td style={{ fontFamily:'var(--font)', color:'var(--ink3)', fontWeight:600 }}>{acc.account_code}</td>
                       <td style={{ color:'var(--ink)', fontWeight:500 }}>{acc.account_name}</td>
                       <td className="col-hide-sm">
                         <span style={{ fontSize:10, fontWeight:700, color:cfg.color, background:cfg.bg, padding:'2px 7px', borderRadius: 'var(--r)' }}>{cfg.label.slice(0,-1)}</span>
                       </td>
-                      <td style={{ textAlign:'right', fontFamily:'var(--mono)', color: acc.closing_debit > 0 ? 'var(--blue)' : 'var(--ink3)', fontWeight: acc.closing_debit > 0 ? 600 : 400 }}>
+                      <td style={{ textAlign:'right', fontFamily:'var(--font)', color: acc.closing_debit > 0 ? 'var(--blue)' : 'var(--ink3)', fontWeight: acc.closing_debit > 0 ? 600 : 400 }}>
                         {fmt(acc.closing_debit, cur)}
                       </td>
-                      <td style={{ textAlign:'right', fontFamily:'var(--mono)', color: acc.closing_credit > 0 ? 'var(--purple)' : 'var(--ink3)', fontWeight: acc.closing_credit > 0 ? 600 : 400 }}>
+                      <td style={{ textAlign:'right', fontFamily:'var(--font)', color: acc.closing_credit > 0 ? 'var(--purple)' : 'var(--ink3)', fontWeight: acc.closing_credit > 0 ? 600 : 400 }}>
                         {fmt(acc.closing_credit, cur)}
                       </td>
                     </tr>
@@ -296,18 +296,18 @@ export const FinanceTrialBalance: React.FC = () => {
                   </span>
                 )}
               </td>
-              <td style={{ textAlign:'right', fontSize:14, fontFamily:'var(--mono)', color:'var(--blue)', fontWeight:800 }}>{cur} {totals.debit.toLocaleString()}</td>
-              <td style={{ textAlign:'right', fontSize:14, fontFamily:'var(--mono)', color:'var(--purple)', fontWeight:800 }}>{cur} {totals.credit.toLocaleString()}</td>
+              <td style={{ textAlign:'right', fontSize:14, fontFamily:'var(--font)', color:'var(--blue)', fontWeight:800 }}>{cur} {totals.debit.toLocaleString()}</td>
+              <td style={{ textAlign:'right', fontSize:14, fontFamily:'var(--font)', color:'var(--purple)', fontWeight:800 }}>{cur} {totals.credit.toLocaleString()}</td>
             </tr>
 
             {/* Balance check row */}
             <tr style={{ background: balanced ? 'var(--green-l)' : 'var(--red-l)' }}>
               <td colSpan={3} style={{ fontSize:12, fontWeight:700, color: balanced ? 'var(--green)' : 'var(--red)' }}>
                 <Icon name={balanced ? 'check' : 'alertTriangle'} size={12} color={balanced?'var(--green)':'var(--red)'} style={{ marginRight:5, verticalAlign:'middle' }} />
-                {balanced ? 'Balanced — Nil Difference' : 'Out of Balance'}
+                {balanced ? 'Balanced â€” Nil Difference' : 'Out of Balance'}
               </td>
-              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--mono)', color: balanced ? 'var(--green)' : 'var(--red)', fontWeight:700 }}>{balanced ? '—' : `${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`}</td>
-              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--mono)', color: balanced ? 'var(--green)' : 'var(--red)', fontWeight:700 }}>{balanced ? '—' : ''}</td>
+              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--font)', color: balanced ? 'var(--green)' : 'var(--red)', fontWeight:700 }}>{balanced ? 'â€”' : `${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`}</td>
+              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--font)', color: balanced ? 'var(--green)' : 'var(--red)', fontWeight:700 }}>{balanced ? 'â€”' : ''}</td>
             </tr>
           </tbody>
         </table>
@@ -321,7 +321,7 @@ export const FinanceTrialBalance: React.FC = () => {
           background:'var(--white)', marginTop:14, fontSize:12.5, color:'var(--ink3)',
         }}>
           <span>
-            {offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length} account{filtered.length === 1 ? '' : 's'}
+            {offset + 1}â€“{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length} account{filtered.length === 1 ? '' : 's'}
           </span>
           <div style={{ display:'flex', gap:8, alignItems:'center' }}>
             <button type="button" className="btn btn-secondary btn-sm"
@@ -338,7 +338,7 @@ export const FinanceTrialBalance: React.FC = () => {
       )}
 
       <p style={{ fontSize:11, color:'var(--ink3)', marginTop:14, textAlign:'right' }}>
-        Period: {period.label} &nbsp;·&nbsp; Prepared: {new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})} &nbsp;·&nbsp; {co.name}
+        Period: {period.label} &nbsp;Â·&nbsp; Prepared: {new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})} &nbsp;Â·&nbsp; {co.name}
       </p>
     </div>
   );

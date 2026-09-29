@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import type { UserRole } from '@hudumika/types';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 import { Tip } from '../components/ui/tooltip.js';
 import './Sales.css';
 
-// ─── constants ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const STAGES = [
   { key: 'DRAFT',     label: 'Draft',          color: 'var(--ink3)' },
@@ -47,12 +47,12 @@ const STATUS_FG: Record<string, string> = {
 const SHIPMENT_TYPES = ['AIR', 'SEA', 'ROAD', 'RAIL'];
 const CURRENCIES     = ['USD', 'TZS', 'EUR', 'GBP'];
 const CATEGORIES     = ['Freight', 'Handling', 'Customs', 'Insurance', 'Other'];
-// Tax used to be a third hardcoded rate list — [0, 10, 18] here, [0, 18] in
-// productData — and 10% is not a rate any of this platform's jurisdictions
+// Tax used to be a third hardcoded rate list â€” [0, 10, 18] here, [0, 18] in
+// productData â€” and 10% is not a rate any of this platform's jurisdictions
 // charge. It now comes from the workspace's own tax codes, which carry the
 // treatment as well as the rate. See data/taxCodeData.ts.
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function fmt(n: number, c = 'USD') {
   return new Intl.NumberFormat('en-US', {
@@ -61,7 +61,7 @@ function fmt(n: number, c = 'USD') {
 }
 
 function fmtDate(d: string | null | undefined) {
-  if (!d) return '—';
+  if (!d) return 'â€”';
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
@@ -70,13 +70,13 @@ function toDateInput(d: string | null | undefined) {
   return new Date(d).toISOString().slice(0, 10);
 }
 
-// ─── blank line ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ blank line â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function blankLine() {
   return { description: '', category: 'Freight', quantity: 1, unit_price: 0, tax_rate: 0, tax_code_id: null as string | null };
 }
 
-// ─── StatusBadge ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ StatusBadge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const STATUS_VARIANT: Record<string, 'gray' | 'warning' | 'success' | 'brand' | 'error'> = {
   DRAFT: 'gray', PENDING: 'warning', APPROVED: 'success', CONVERTED: 'brand', REJECTED: 'error',
@@ -85,7 +85,7 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant={STATUS_VARIANT[status] ?? 'gray'} className="tracking-wide">{status}</Badge>;
 }
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function Toast({ msg, kind, onClose }: { msg: string; kind: 'success' | 'error'; onClose: () => void }) {
   useEffect(() => {
@@ -106,7 +106,7 @@ function Toast({ msg, kind, onClose }: { msg: string; kind: 'success' | 'error';
   );
 }
 
-// ─── Confirm Dialog ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Confirm Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ConfirmDialog({ msg, onConfirm, onCancel }: { msg: string; onConfirm: () => void; onCancel: () => void }) {
   return (
@@ -123,7 +123,7 @@ function ConfirmDialog({ msg, onConfirm, onCancel }: { msg: string; onConfirm: (
   );
 }
 
-// ─── Status Change Modal ──────────────────────────────────────────────────────
+// â”€â”€â”€ Status Change Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StatusModal({
   quote, onClose, onDone,
@@ -167,20 +167,20 @@ function StatusModal({
         {status === 'REJECTED' && (
           <div style={{ marginBottom: 14 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Rejection Reason</label>
-            <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder="Enter rejection reason…" style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+            <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder="Enter rejection reasonâ€¦" style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
         )}
         {err && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{err}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Update'}</button>
+          <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Savingâ€¦' : 'Update'}</button>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-// ─── Detail Panel ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Detail Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function DetailPanel({
   quoteId, onClose, onEdit, onDelete, canDelete, onStatusChange, onConvert,
@@ -229,7 +229,7 @@ function DetailPanel({
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--white)', position: 'sticky', top: 0, zIndex: 2 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: stageColor, flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--teal)' }}>{quote.quote_number}</div>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 11, color: 'var(--teal)' }}>{quote.quote_number}</div>
             <SheetTitle style={{ fontWeight: 700, fontSize: 15 }}>{quote.title}</SheetTitle>
           </div>
         </div>
@@ -268,15 +268,15 @@ function DetailPanel({
           {/* Info grid */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px 20px', marginBottom: 20 }}>
             {[
-              ['Customer', quote.customer_name || '—'],
-              ['Shipment Type', quote.shipment_type || '—'],
+              ['Customer', quote.customer_name || 'â€”'],
+              ['Shipment Type', quote.shipment_type || 'â€”'],
               ['Currency', quote.currency],
               ['Valid From', fmtDate(quote.valid_from)],
               ['Valid Until', fmtDate(quote.valid_until)],
-              ['Origin Port', quote.origin_port || '—'],
-              ['Origin City', quote.origin_city || '—'],
-              ['Destination Port', quote.destination_port || '—'],
-              ['Destination City', quote.destination_city || '—'],
+              ['Origin Port', quote.origin_port || 'â€”'],
+              ['Origin City', quote.origin_city || 'â€”'],
+              ['Destination Port', quote.destination_port || 'â€”'],
+              ['Destination City', quote.destination_city || 'â€”'],
             ].map(([label, val]) => (
               <div key={label}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>{label}</div>
@@ -326,9 +326,9 @@ function DetailPanel({
                         <td style={{ padding: '6px 8px' }}>{l.description}</td>
                         <td style={{ padding: '6px 8px', color: 'var(--ink3)' }}>{l.category}</td>
                         <td style={{ padding: '6px 8px' }}>{l.quantity}</td>
-                        <td style={{ padding: '6px 8px', fontFamily: 'var(--mono)' }}>{fmt(l.unit_price, quote.currency)}</td>
+                        <td style={{ padding: '6px 8px', fontFamily: 'var(--font)' }}>{fmt(l.unit_price, quote.currency)}</td>
                         <td style={{ padding: '6px 8px' }}>{l.tax_rate}%</td>
-                        <td style={{ padding: '6px 8px', fontFamily: 'var(--mono)', fontWeight: 600 }}>{fmt(l.line_total, quote.currency)}</td>
+                        <td style={{ padding: '6px 8px', fontFamily: 'var(--font)', fontWeight: 600 }}>{fmt(l.line_total, quote.currency)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -341,21 +341,21 @@ function DetailPanel({
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
             <div style={{ display: 'flex', gap: 24 }}>
               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Subtotal</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{fmt(quote.subtotal, quote.currency)}</span>
+              <span style={{ fontFamily: 'var(--font)', fontSize: 12 }}>{fmt(quote.subtotal, quote.currency)}</span>
             </div>
             <div style={{ display: 'flex', gap: 24 }}>
               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Tax</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{fmt(quote.tax_amount, quote.currency)}</span>
+              <span style={{ fontFamily: 'var(--font)', fontSize: 12 }}>{fmt(quote.tax_amount, quote.currency)}</span>
             </div>
             <div style={{ display: 'flex', gap: 24, borderTop: '2px solid var(--border)', paddingTop: 8, marginTop: 4 }}>
               <span style={{ fontSize: 14, fontWeight: 700 }}>Total</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>{fmt(quote.total_amount, quote.currency)}</span>
+              <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>{fmt(quote.total_amount, quote.currency)}</span>
             </div>
           </div>
 
           {quote.converted_shipment_id && (
             <div style={{ marginTop: 16, background: 'var(--teal-l)', borderRadius: 'var(--r-sm)', padding: '8px 12px', fontSize: 12, color: 'var(--teal)' }}>
-              Converted to Shipment ID: <span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{quote.converted_shipment_id}</span>
+              Converted to Shipment ID: <span style={{ fontFamily: 'var(--font)', fontWeight: 600 }}>{quote.converted_shipment_id}</span>
             </div>
           )}
         </div>
@@ -364,7 +364,7 @@ function DetailPanel({
   );
 }
 
-// ─── Quote Modal (Create / Edit) ──────────────────────────────────────────────
+// â”€â”€â”€ Quote Modal (Create / Edit) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function QuoteModal({
   editQuote, customers, onClose, onSaved,
@@ -417,8 +417,8 @@ function QuoteModal({
 
   async function searchCustomersLocal(q: string): Promise<PickerItem[]> {
     const ql = q.trim().toLowerCase();
-    // Excludes draft companies (active===false) — e.g. BRELA imports still
-    // sitting in Company Directory that haven't been marked complete yet —
+    // Excludes draft companies (active===false) â€” e.g. BRELA imports still
+    // sitting in Company Directory that haven't been marked complete yet â€”
     // from every quote/sale customer picker.
     const usable = customers.filter((c: any) => c.active !== false);
     const filtered = ql
@@ -520,7 +520,7 @@ function QuoteModal({
           {/* Row 1: Title */}
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Title *</label>
-            <input value={form.title} onChange={e => setField('title', e.target.value)} style={inputStyle} placeholder="e.g. Sea Freight Quote – Mombasa to Dar" />
+            <input value={form.title} onChange={e => setField('title', e.target.value)} style={inputStyle} placeholder="e.g. Sea Freight Quote â€“ Mombasa to Dar" />
           </div>
 
           {/* Row 2: Customer + Shipment Type */}
@@ -532,7 +532,7 @@ function QuoteModal({
                 onChange={(item) => { setCustomerItem(item); setField('customer_id', item?.id ?? ''); }}
                 search={searchCustomersLocal} onCreate={createCustomerInline}
                 createLabel={(q) => `Create new customer "${q}"`}
-                placeholder="Search customers…"
+                placeholder="Search customersâ€¦"
               />
             </div>
             <div>
@@ -590,13 +590,13 @@ function QuoteModal({
           {/* Row 5: Goods Description */}
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Goods Description</label>
-            <textarea value={form.goods_description} onChange={e => setField('goods_description', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Brief description of goods…" />
+            <textarea value={form.goods_description} onChange={e => setField('goods_description', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Brief description of goodsâ€¦" />
           </div>
 
           {/* Row 6: Notes */}
           <div style={{ marginBottom: 20 }}>
             <label style={labelStyle}>Notes</label>
-            <textarea value={form.notes} onChange={e => setField('notes', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Internal notes or client instructions…" />
+            <textarea value={form.notes} onChange={e => setField('notes', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Internal notes or client instructionsâ€¦" />
           </div>
 
           {/* Line items */}
@@ -648,12 +648,12 @@ function QuoteModal({
                             </SelectTrigger>
                             <SelectContent>
                               {taxCodes.map(tc => (
-                                <SelectItem key={tc.id} value={tc.id}>{tc.code} · {tc.rate}%</SelectItem>
+                                <SelectItem key={tc.id} value={tc.id}>{tc.code} Â· {tc.rate}%</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </td>
-                        <td style={{ padding: '4px 8px', fontFamily: 'var(--mono)', fontWeight: 600, whiteSpace: 'nowrap', minWidth: 90 }}>
+                        <td style={{ padding: '4px 8px', fontFamily: 'var(--font)', fontWeight: 600, whiteSpace: 'nowrap', minWidth: 90 }}>
                           {fmt(c.lineTotal, form.currency)}
                         </td>
                         <td style={{ padding: '4px 4px' }}>
@@ -674,10 +674,10 @@ function QuoteModal({
 
             {/* Totals summary */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, marginTop: 12, paddingRight: 4 }}>
-              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Subtotal: <span style={{ fontFamily: 'var(--mono)', fontWeight: 600, color: 'var(--ink)' }}>{fmt(subtotal, form.currency)}</span></div>
-              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Tax: <span style={{ fontFamily: 'var(--mono)', fontWeight: 600, color: 'var(--ink)' }}>{fmt(totalTax, form.currency)}</span></div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Subtotal: <span style={{ fontFamily: 'var(--font)', fontWeight: 600, color: 'var(--ink)' }}>{fmt(subtotal, form.currency)}</span></div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Tax: <span style={{ fontFamily: 'var(--font)', fontWeight: 600, color: 'var(--ink)' }}>{fmt(totalTax, form.currency)}</span></div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', borderTop: '2px solid var(--border)', paddingTop: 6, marginTop: 4 }}>
-                Total: <span style={{ fontFamily: 'var(--mono)' }}>{fmt(grandTotal, form.currency)}</span>
+                Total: <span style={{ fontFamily: 'var(--font)' }}>{fmt(grandTotal, form.currency)}</span>
               </div>
             </div>
           </div>
@@ -687,7 +687,7 @@ function QuoteModal({
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingBottom: 22 }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
             <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>
-              {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Quotation'}
+              {saving ? 'Savingâ€¦' : isEdit ? 'Save Changes' : 'Create Quotation'}
             </button>
           </div>
         </div>
@@ -696,7 +696,7 @@ function QuoteModal({
   );
 }
 
-// ─── Main Sales Page ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Sales Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const Sales: React.FC = () => {
   const isMobile = useIsMobile();
@@ -806,21 +806,21 @@ export const Sales: React.FC = () => {
         <MetricsRow cards={[
           {
             title: 'Total Quotes',
-            value: loading ? '—' : String(quotes.length),
-            sub1Label: 'APPROVED', sub1Value: loading ? '—' : String(byStage('APPROVED').length),
-            sub2Label: 'WIN RATE', sub2Value: loading ? '—' : `${winRate}%`, barHighlight: 'var(--blue)',
+            value: loading ? 'â€”' : String(quotes.length),
+            sub1Label: 'APPROVED', sub1Value: loading ? 'â€”' : String(byStage('APPROVED').length),
+            sub2Label: 'WIN RATE', sub2Value: loading ? 'â€”' : `${winRate}%`, barHighlight: 'var(--blue)',
           },
           {
             title: 'Converted',
-            value: loading ? '—' : String(byStage('CONVERTED').length),
-            sub1Label: 'THIS MONTH', sub1Value: loading ? '—' : String(Math.floor(byStage('CONVERTED').length * 0.4)),
-            sub2Label: 'THIS WEEK',  sub2Value: loading ? '—' : String(Math.floor(byStage('CONVERTED').length * 0.1)), barHighlight: 'var(--green)',
+            value: loading ? 'â€”' : String(byStage('CONVERTED').length),
+            sub1Label: 'THIS MONTH', sub1Value: loading ? 'â€”' : String(Math.floor(byStage('CONVERTED').length * 0.4)),
+            sub2Label: 'THIS WEEK',  sub2Value: loading ? 'â€”' : String(Math.floor(byStage('CONVERTED').length * 0.1)), barHighlight: 'var(--green)',
           },
           {
             title: 'Pipeline Value',
-            value: loading ? '—' : fmt(total),
-            sub1Label: 'WON REVENUE', sub1Value: loading ? '—' : fmt(won),
-            sub2Label: 'AVG DEAL',    sub2Value: loading || !quotes.length ? '—' : fmt(Math.round(total / quotes.length)), barHighlight: 'var(--gold)',
+            value: loading ? 'â€”' : fmt(total),
+            sub1Label: 'WON REVENUE', sub1Value: loading ? 'â€”' : fmt(won),
+            sub2Label: 'AVG DEAL',    sub2Value: loading || !quotes.length ? 'â€”' : fmt(Math.round(total / quotes.length)), barHighlight: 'var(--gold)',
           },
         ]} />
       </div>
@@ -840,7 +840,7 @@ export const Sales: React.FC = () => {
 
               {/* Cards */}
               <div className="sales-stage-list">
-                {loading && <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 12, padding: 16 }}>…</div>}
+                {loading && <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 12, padding: 16 }}>â€¦</div>}
                 {!loading && cards.length === 0 && (
                   <div className="sales-empty-stage">
                     <Icon name="fileText" size={18} />

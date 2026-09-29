@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
@@ -112,7 +112,7 @@ export function Budgets() {
     () =>
       accounts
         .filter(a => !rows.some(r => r.account_code === a.code))
-        .map(a => ({ value: a.code, label: `${a.code} — ${a.name}`, sublabel: a.type })),
+        .map(a => ({ value: a.code, label: `${a.code} â€” ${a.name}`, sublabel: a.type })),
     [accounts, rows]
   );
 
@@ -199,7 +199,7 @@ export function Budgets() {
         }
       />
 
-      {/* ── Top Hero: Budget Intelligence Banner ── */}
+      {/* â”€â”€ Top Hero: Budget Intelligence Banner â”€â”€ */}
       <div className="budgets-hero">
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
           <div
@@ -243,7 +243,7 @@ export function Budgets() {
         </div>
       </div>
 
-      {/* ── Budget Planning Toolbar ── */}
+      {/* â”€â”€ Budget Planning Toolbar â”€â”€ */}
       <div className="budgets-toolbar">
         <div className="budgets-toolbar-tabs">
           <Tabs value={selectedId ?? ''} onValueChange={setSelectedId}>
@@ -254,7 +254,7 @@ export function Budgets() {
                 </TabsTrigger>
               ))}
               {budgets.length === 0 && (
-                <span style={{ fontSize: 13, color: 'var(--ink3)' }}>No budgets yet — create one to begin.</span>
+                <span style={{ fontSize: 13, color: 'var(--ink3)' }}>No budgets yet â€” create one to begin.</span>
               )}
             </TabsList>
           </Tabs>
@@ -273,10 +273,10 @@ export function Budgets() {
             {mode === 'edit' && (
               <>
                 <div className="budgets-account-picker">
-                  <Combobox options={accountOptions} value="" onChange={addRow} placeholder="+ Add account…" searchPlaceholder="Search accounts…" />
+                  <Combobox options={accountOptions} value="" onChange={addRow} placeholder="+ Add accountâ€¦" searchPlaceholder="Search accountsâ€¦" />
                 </div>
                 <Button size="sm" disabled={saving} onClick={saveGrid}>
-                  <Icon name="check" size={13} /> {saving ? 'Saving…' : 'Save budget'}
+                  <Icon name="check" size={13} /> {saving ? 'Savingâ€¦' : 'Save budget'}
                 </Button>
               </>
             )}
@@ -312,7 +312,7 @@ export function Budgets() {
                     rows.map(r => (
                       <tr key={r.account_code} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>
-                          {r.account_code} — {r.account_name}
+                          {r.account_code} â€” {r.account_name}
                         </td>
                         {r.amounts.map((v, i) => (
                           <td key={i} style={{ padding: 3 }}>
@@ -336,7 +336,7 @@ export function Budgets() {
                             />
                           </td>
                         ))}
-                        <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>
+                        <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>
                           {fmt(r.amounts.reduce((a, b) => a + b, 0))}
                         </td>
                         <td style={{ padding: '8px 6px' }}>
@@ -358,11 +358,11 @@ export function Budgets() {
                     <tr style={{ background: 'var(--card-sunken, var(--bg))', fontWeight: 800 }}>
                       <td style={{ padding: '10px 12px', color: 'var(--ink)' }}>Total Planned</td>
                       {Array.from({ length: 12 }, (_, i) => (
-                        <td key={i} style={{ padding: '10px 6px', textAlign: 'right', fontFamily: 'var(--mono)', color: 'var(--ink)' }}>
+                        <td key={i} style={{ padding: '10px 6px', textAlign: 'right', fontFamily: 'var(--font)', color: 'var(--ink)' }}>
                           {fmt(rows.reduce((s, r) => s + r.amounts[i], 0))}
                         </td>
                       ))}
-                      <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--mono)', color: 'var(--teal)' }}>
+                      <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--font)', color: 'var(--teal)' }}>
                         {fmt(grandTotal)}
                       </td>
                       <td />
@@ -374,7 +374,7 @@ export function Budgets() {
           ) : (
             <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)' }}>
               {actualsLoading ? (
-                <div style={{ padding: 28, textAlign: 'center', color: 'var(--ink3)' }}>Loading actuals comparison…</div>
+                <div style={{ padding: 28, textAlign: 'center', color: 'var(--ink3)' }}>Loading actuals comparisonâ€¦</div>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, textAlign: 'left' }}>
                   <thead>
@@ -398,19 +398,19 @@ export function Budgets() {
                         return (
                           <tr key={r.account_code} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--ink)' }}>
-                              {r.account_code} — {r.account_name}
+                              {r.account_code} â€” {r.account_name}
                             </td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--mono)' }}>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--font)' }}>
                               {fmt(r.total_budgeted)}
                             </td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--mono)' }}>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--font)' }}>
                               {fmt(r.total_actual)}
                             </td>
                             <td
                               style={{
                                 padding: '10px 12px',
                                 textAlign: 'right',
-                                fontFamily: 'var(--mono)',
+                                fontFamily: 'var(--font)',
                                 fontWeight: 700,
                                 color: variance > 0 ? 'var(--red)' : variance < 0 ? 'var(--green)' : 'var(--ink3)',
                               }}

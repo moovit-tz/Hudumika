@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '../components/Icon.js';
 import { Banner } from '../components/ui/alert.js';
 import { apiFetch } from '../lib/api.js';
@@ -47,7 +47,7 @@ export const AIInsights: React.FC = () => {
       </div>
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Generating digest…</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Generating digestâ€¦</div>
       ) : error ? (
         <Banner variant="error">{error}</Banner>
       ) : data ? (
@@ -84,7 +84,7 @@ export const AIInsights: React.FC = () => {
                   <tbody>
                     {data.signals.at_risk_shipments.map(s => (
                       <tr key={s.ref_number}>
-                        <td style={{ fontFamily: 'var(--mono)' }}>{s.ref_number}</td>
+                        <td style={{ fontFamily: 'var(--font)' }}>{s.ref_number}</td>
                         <td>{s.customer}</td>
                         <td className="col-hide-sm">{s.stage}</td>
                         <td>
@@ -109,8 +109,8 @@ export const AIInsights: React.FC = () => {
                     {data.signals.aged_receivables.top_debtors.map(d => (
                       <tr key={d.customer}>
                         <td>{d.customer}</td>
-                        <td style={{ textAlign: 'right', fontFamily: 'var(--mono)' }}>{d.total_owed.toLocaleString()}</td>
-                        <td className="col-hide-sm" style={{ textAlign: 'right', fontFamily: 'var(--mono)', color: d.days_90_plus > 0 ? 'var(--red)' : 'var(--ink3)' }}>{d.days_90_plus.toLocaleString()}</td>
+                        <td style={{ textAlign: 'right', fontFamily: 'var(--font)' }}>{d.total_owed.toLocaleString()}</td>
+                        <td className="col-hide-sm" style={{ textAlign: 'right', fontFamily: 'var(--font)', color: d.days_90_plus > 0 ? 'var(--red)' : 'var(--ink3)' }}>{d.days_90_plus.toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>

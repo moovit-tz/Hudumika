@@ -1,8 +1,8 @@
-/* ═══════════════════════════════════════════════════════════════════
-   Design System Studio — Ultra-Modern SaaS Token & Theming Workbench
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   Design System Studio â€” Ultra-Modern SaaS Token & Theming Workbench
    Uses platform CSS custom properties (--teal, --ink, --bg, --white,
    --border, --elev-sm, --elev, --r, etc.) with responsive layouts.
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .ds-root {
   flex: 1 1 0;
@@ -13,7 +13,7 @@
   font-family: var(--font);
 }
 
-/* ── Header Actions ── */
+/* â”€â”€ Header Actions â”€â”€ */
 .ds-header-actions {
   display: flex;
   align-items: center;
@@ -53,8 +53,8 @@
   box-shadow: 0 0 0 2px var(--teal-l);
 }
 
-/* ── Global System Bar (v1/v2, theme preset, icon library) ──
-   Not navigation — the studio's own cross-cutting switches, kept separate
+/* â”€â”€ Global System Bar (v1/v2, theme preset, icon library) â”€â”€
+   Not navigation â€” the studio's own cross-cutting switches, kept separate
    from the sidebar so the sidebar can stay pure "where am I / where do I
    go". */
 .ds-system-bar {
@@ -102,7 +102,7 @@
   cursor: pointer;
 }
 
-/* ── Studio Shell: permanent sidebar + content ── */
+/* â”€â”€ Studio Shell: permanent sidebar + content â”€â”€ */
 .ds-studio-shell {
   display: flex;
   align-items: flex-start;
@@ -330,7 +330,7 @@
   min-width: 0;
 }
 
-/* ── Full-Bleed Layout Grid ── */
+/* â”€â”€ Full-Bleed Layout Grid â”€â”€ */
 .ds-layout-fullbleed {
   display: grid;
   grid-template-columns: minmax(500px, 1fr) minmax(360px, 440px);
@@ -343,7 +343,7 @@
   grid-template-columns: 1fr;
 }
 
-/* ── Panel & Hero ── */
+/* â”€â”€ Panel & Hero â”€â”€ */
 .ds-panel {
   display: flex;
   flex-direction: column;
@@ -403,7 +403,7 @@
   color: var(--teal);
 }
 
-/* A quiet identity marker for the studio, not a functional control — same
+/* A quiet identity marker for the studio, not a functional control â€” same
    "accent bar" idiom as a card's left border elsewhere in the platform,
    just wide enough to read at a glance which section family you're in. */
 .ds-section-hero::before {
@@ -472,7 +472,7 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Section Cards ── */
+/* â”€â”€ Section Cards â”€â”€ */
 .ds-card-section {
   display: flex;
   flex-direction: column;
@@ -484,7 +484,7 @@
   /* Layered depth (ambient + contact shadow) reads as noticeably more
      premium than a single flat elev-sm at this card's scale, and still
      tracks the design system's own shadow variable rather than a hardcoded
-     value — the second layer is just a tighter, darker contact shadow
+     value â€” the second layer is just a tighter, darker contact shadow
      stacked under it. */
   box-shadow: var(--elev-sm), 0 1px 2px rgba(0, 0, 0, 0.03);
 }
@@ -527,7 +527,7 @@
   margin: 6px 0 -6px;
 }
 
-/* ── Engine / Version Card ── */
+/* â”€â”€ Engine / Version Card â”€â”€ */
 .ds-engine-card {
   display: flex;
   flex-direction: column;
@@ -637,7 +637,7 @@
   color: var(--ink2);
 }
 
-/* ── Theme Presets Grid ── */
+/* â”€â”€ Theme Presets Grid â”€â”€ */
 .ds-theme-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
@@ -753,7 +753,7 @@
   flex-shrink: 0;
 }
 
-/* ── Material 3 Generator Hero ── */
+/* â”€â”€ Material 3 Generator Hero â”€â”€ */
 .ds-generator-hero {
   background: linear-gradient(135deg, var(--teal-l) 0%, var(--bg) 100%);
   border: 1px solid var(--teal-m);
@@ -802,7 +802,7 @@
   cursor: pointer;
 }
 
-/* ── Field Cards & Color Controls ── */
+/* â”€â”€ Field Cards & Color Controls â”€â”€ */
 .ds-tokens-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -919,14 +919,14 @@
 .ds-color-hash {
   font-size: 11.5px;
   color: var(--ink3);
-  font-family: var(--mono);
+  font-family: var(--font);
 }
 
 .ds-color-text-input {
   width: 60px;
   border: none;
   background: transparent;
-  font-family: var(--mono);
+  font-family: var(--font);
   font-size: 11.5px;
   font-weight: 600;
   color: var(--ink);
@@ -953,7 +953,7 @@
   background: var(--teal-l);
 }
 
-/* ── Light / Dark Mode Tabs ── */
+/* â”€â”€ Light / Dark Mode Tabs â”€â”€ */
 .ds-palette-tabs-header {
   display: flex;
   align-items: center;
@@ -998,7 +998,7 @@
   box-shadow: var(--elev-sm);
 }
 
-/* ── Number Field Cards ── */
+/* â”€â”€ Number Field Cards â”€â”€ */
 .ds-numbers-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -1065,7 +1065,7 @@
   width: 50px;
   border: none;
   background: transparent;
-  font-family: var(--mono);
+  font-family: var(--font);
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink);
@@ -1079,7 +1079,7 @@
   color: var(--ink3);
 }
 
-/* ── Form Group Card & Font Select ── */
+/* â”€â”€ Form Group Card & Font Select â”€â”€ */
 .ds-form-group-card {
   display: flex;
   flex-direction: column;
@@ -1101,7 +1101,7 @@
   font-weight: 600;
 }
 
-/* ── Shape Demo Box ── */
+/* â”€â”€ Shape Demo Box â”€â”€ */
 .ds-shape-demo-box {
   display: flex;
   flex-direction: column;
@@ -1147,7 +1147,7 @@
   padding: 0;
 }
 
-/* ── Variant & Shadow Cards ── */
+/* â”€â”€ Variant & Shadow Cards â”€â”€ */
 .ds-variant-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -1198,7 +1198,7 @@
   line-height: 1.45;
 }
 
-/* ── Shadows Grid ── */
+/* â”€â”€ Shadows Grid â”€â”€ */
 .ds-shadow-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -1261,9 +1261,9 @@
   color: hsl(var(--primary-foreground));
 }
 
-/* ── Motion Sandbox ── */
+/* â”€â”€ Motion Sandbox â”€â”€ */
 .ds-easing-input {
-  font-family: var(--mono);
+  font-family: var(--font);
   font-size: 12.5px;
   background: var(--white);
 }
@@ -1308,7 +1308,7 @@
   box-shadow: 0 2px 8px var(--teal-m);
 }
 
-/* ── Layout Options Grid ── */
+/* â”€â”€ Layout Options Grid â”€â”€ */
 .ds-layout-options-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -1376,7 +1376,7 @@
   color: var(--ink2);
 }
 
-/* ── Live Preview Canvas (Studio Inspector) ── */
+/* â”€â”€ Live Preview Canvas (Studio Inspector) â”€â”€ */
 .ds-preview {
   position: sticky;
   top: 12px;
@@ -1466,7 +1466,7 @@
   align-items: center;
 }
 
-/* ── Live Specimen Dashboard Card ── */
+/* â”€â”€ Live Specimen Dashboard Card â”€â”€ */
 .ds-preview-card {
   display: flex;
   flex-direction: column;
@@ -1538,7 +1538,7 @@
   color: var(--ink3);
 }
 
-/* ── Type Scale Specimen ── */
+/* â”€â”€ Type Scale Specimen â”€â”€ */
 .ds-preview-type-scale {
   display: flex;
   flex-direction: column;
@@ -1550,7 +1550,7 @@
   color: var(--ink);
 }
 
-/* ── Alert Messages ── */
+/* â”€â”€ Alert Messages â”€â”€ */
 .ds-alert-error {
   font-size: 12px;
   font-weight: 600;
@@ -1562,14 +1562,14 @@
   border: 1px solid var(--red);
 }
 
-/* ── Responsive Adaptations ──
-   Both breakpoints below used to target a bare `.ds-layout` — a leftover
+/* â”€â”€ Responsive Adaptations â”€â”€
+   Both breakpoints below used to target a bare `.ds-layout` â€” a leftover
    selector from the sidebar-rail-era layout (a 210px rail + content grid)
    that no longer exists; the real grid class today is
    `.ds-layout-fullbleed` (main + sticky preview). Because `.ds-layout` was
    still present as a co-applied class on the same element, its media-query
    rule (later in source order, equal specificity) was silently winning
-   over `.ds-layout-fullbleed`'s own column definition below 1280px wide —
+   over `.ds-layout-fullbleed`'s own column definition below 1280px wide â€”
    squeezing the *main content panel itself* into a dead 210px column on
    every tablet, small laptop, and phone. Fixed to target the real class,
    and consolidated into one breakpoint since the two-column split needs
@@ -1594,8 +1594,8 @@
   }
 }
 
-/* Sidebar → drawer. Below this width the permanent sidebar would eat too
-   much of the content area to be worth keeping on screen — the same nav
+/* Sidebar â†’ drawer. Below this width the permanent sidebar would eat too
+   much of the content area to be worth keeping on screen â€” the same nav
    is still one tap away via the trigger button, in a Dialog. */
 @media (max-width: 960px) {
   .ds-sidebar:not(.ds-sidebar--in-dialog) {
@@ -1650,13 +1650,13 @@
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   Oscar Catalog — Component Styles
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   Oscar Catalog â€” Component Styles
    Translated from DaisyUI/Tailwind to Hudumika's CSS var system.
-   No DaisyUI classes used — all hand-authored equivalents.
-═══════════════════════════════════════════════════════════════════ */
+   No DaisyUI classes used â€” all hand-authored equivalents.
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* ── Catalog Section Shell ── */
+/* â”€â”€ Catalog Section Shell â”€â”€ */
 .oscar-catalog-section {
   background: var(--white);
   border: 1px solid var(--border);
@@ -1718,7 +1718,7 @@
   flex-shrink: 0;
 }
 
-/* ── Oscar Alerts ── */
+/* â”€â”€ Oscar Alerts â”€â”€ */
 .oscar-alert {
   display: flex;
   align-items: flex-start;
@@ -1775,7 +1775,7 @@
   background: rgba(0, 0, 0, 0.08);
 }
 
-/* ── Oscar Buttons ── */
+/* â”€â”€ Oscar Buttons â”€â”€ */
 .oscar-btn {
   display: inline-flex;
   align-items: center;
@@ -1814,7 +1814,7 @@
 .oscar-btn-ghost     { background: transparent;   color: var(--ink2); border-color: var(--border); }
 .oscar-btn-ghost:hover { background: var(--bg); color: var(--ink); }
 
-/* Soft (Oscar's "btn-soft" — semi-transparent tint) */
+/* Soft (Oscar's "btn-soft" â€” semi-transparent tint) */
 .oscar-btn-soft-primary { background: var(--teal-l);   color: var(--teal);  border-color: var(--teal-m);  }
 .oscar-btn-soft-primary:hover  { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 .oscar-btn-soft-success { background: var(--green-l);  color: var(--green); border-color: var(--green);  }
@@ -1828,7 +1828,7 @@
 .oscar-btn-outline-primary { background: transparent; color: var(--teal); border-color: var(--teal); }
 .oscar-btn-outline-primary:hover { background: var(--teal-l); }
 
-/* ── Oscar Badges ── */
+/* â”€â”€ Oscar Badges â”€â”€ */
 .oscar-badge {
   display: inline-flex;
   align-items: center;
@@ -1865,7 +1865,7 @@
 .oscar-badge-soft-danger  { background: var(--red-l);   color: var(--red);   border-color: var(--red);    }
 .oscar-badge-soft-info    { background: var(--blue-l);  color: var(--blue);  border-color: var(--blue);   }
 
-/* ── Oscar Cards ── */
+/* â”€â”€ Oscar Cards â”€â”€ */
 .oscar-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -1901,7 +1901,7 @@
   line-height: 1.55;
 }
 
-/* ── Oscar Stat Card ── */
+/* â”€â”€ Oscar Stat Card â”€â”€ */
 .oscar-stat-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -1954,7 +1954,7 @@
 .oscar-stat-up   { color: var(--green); }
 .oscar-stat-down { color: var(--red);   }
 
-/* ── Oscar Progress ── */
+/* â”€â”€ Oscar Progress â”€â”€ */
 .oscar-progress {
   height: 8px;
   border-radius: var(--r-sm);
@@ -1990,7 +1990,7 @@
   to   { background-position: 32px 0; }
 }
 
-/* ── Oscar Skeleton ── */
+/* â”€â”€ Oscar Skeleton â”€â”€ */
 .oscar-skeleton-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -2014,7 +2014,7 @@
   to   { background-position: -200% 0; }
 }
 
-/* ── Oscar Spinners ── */
+/* â”€â”€ Oscar Spinners â”€â”€ */
 .oscar-spinner {
   width: 26px;
   height: 26px;
@@ -2096,7 +2096,7 @@
   50%      { transform: scale(1); opacity: 1; }
 }
 
-/* ── Oscar Lists ── */
+/* â”€â”€ Oscar Lists â”€â”€ */
 .oscar-list {
   background: var(--white);
   border: 1px solid var(--border);
@@ -2142,7 +2142,7 @@
   flex-shrink: 0;
 }
 
-/* ── Oscar Accordion ── */
+/* â”€â”€ Oscar Accordion â”€â”€ */
 .oscar-accordion {
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
@@ -2180,7 +2180,7 @@
   background: var(--white);
 }
 
-/* ── Oscar Tabs ── */
+/* â”€â”€ Oscar Tabs â”€â”€ */
 .oscar-tabs-underline {
   display: flex;
   gap: 0;
@@ -2266,7 +2266,7 @@
   font-weight: 600;
 }
 
-/* ── Oscar Toast ── */
+/* â”€â”€ Oscar Toast â”€â”€ */
 .oscar-toast {
   display: flex;
   align-items: center;
@@ -2288,7 +2288,7 @@
   to   { opacity: 1; transform: translateX(0); }
 }
 
-/* ── Oscar Pagination ── */
+/* â”€â”€ Oscar Pagination â”€â”€ */
 .oscar-pagination {
   display: flex;
   align-items: center;
@@ -2317,7 +2317,7 @@
 .oscar-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .oscar-page-btn--active { background: hsl(var(--primary)); border-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 700; }
 
-/* ── Oscar FAB ── */
+/* â”€â”€ Oscar FAB â”€â”€ */
 .oscar-fab {
   display: inline-flex;
   align-items: center;
@@ -2363,7 +2363,7 @@
   white-space: nowrap;
 }
 
-/* ── Oscar Forms ── */
+/* â”€â”€ Oscar Forms â”€â”€ */
 .oscar-input-group {
   display: flex;
   flex-direction: column;
@@ -2435,7 +2435,7 @@
   flex: 1;
 }
 
-/* ── Checks & Radios ── */
+/* â”€â”€ Checks & Radios â”€â”€ */
 .oscar-check-row {
   display: flex;
   align-items: center;
@@ -2509,7 +2509,7 @@
   background: var(--teal);
 }
 
-/* ── Range ── */
+/* â”€â”€ Range â”€â”€ */
 .oscar-range {
   -webkit-appearance: none;
   width: 100%;
@@ -2535,7 +2535,7 @@
 
 .oscar-range::-webkit-slider-thumb:hover { transform: scale(1.15); }
 
-/* ── File Dropzone ── */
+/* â”€â”€ File Dropzone â”€â”€ */
 .oscar-dropzone {
   display: flex;
   flex-direction: column;
@@ -2555,7 +2555,7 @@
   background: var(--teal-l);
 }
 
-/* ── Star Rating ── */
+/* â”€â”€ Star Rating â”€â”€ */
 .oscar-star {
   background: transparent;
   border: none;
@@ -2567,15 +2567,15 @@
 
 .oscar-star:hover { transform: scale(1.15); }
 
-/* ── Micro anim helper ── */
+/* â”€â”€ Micro anim helper â”€â”€ */
 @keyframes oscarFadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   Animations Showcase — Keyframes & Utility Classes
-═══════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   Animations Showcase â€” Keyframes & Utility Classes
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* Keyframe definitions */
 @keyframes animFadeIn      { from { opacity: 0; }                                        to { opacity: 1; } }
@@ -2758,9 +2758,9 @@
 
 .anim-micro-card { display: inline-block; }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Top Control Bar, Search Filter & Mobile Responsiveness
-   ═══════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .ds-top-switcher-pills {
   display: flex;
@@ -2802,7 +2802,7 @@
   background: var(--border);
 }
 
-/* ── Floating Action Button for Mobile Live Playground ── */
+/* â”€â”€ Floating Action Button for Mobile Live Playground â”€â”€ */
 .ds-mobile-preview-fab {
   display: none;
   position: fixed;
@@ -2828,7 +2828,7 @@
   box-shadow: 0 6px 20px rgba(13, 148, 136, 0.5);
 }
 
-/* The FAB's own Dialog — referenced by the JSX but never actually given a
+/* The FAB's own Dialog â€” referenced by the JSX but never actually given a
    size, so it fell back to ui/dialog.tsx's generic max-w-lg/p-6 defaults;
    that's fine on a tablet but eats too much of a real phone's width. */
 .ds-mobile-preview-dialog {
@@ -2838,7 +2838,7 @@
   padding: 16px;
 }
 
-/* ── Responsive Breakpoints ──
+/* â”€â”€ Responsive Breakpoints â”€â”€
    The two `.ds-layout { grid-template-columns: 220px 1fr[...] }` rules that
    used to live here were leftovers from an even older 3-column
    rail+content+preview layout, predating both the current toolbar nav and
@@ -2846,7 +2846,7 @@
    place, they'd silently re-break the fix just above (same bug: a stale
    selector for a layout that no longer exists, still co-applied to the
    live element, still winning the cascade at these exact widths). The
-   .ds-preview / FAB swap below is real and unrelated — kept as-is. */
+   .ds-preview / FAB swap below is real and unrelated â€” kept as-is. */
 
 @media (max-width: 1024px) {
   .ds-preview {

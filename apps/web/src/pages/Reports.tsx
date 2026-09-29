@@ -6,7 +6,7 @@ import { MetricsRow } from '../components/MetricCard.js';
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 24 }}>
-      <div style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>{title}</div>
+      <div style={{ fontFamily: 'var(--font)', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>{title}</div>
       {children}
     </div>
   );
@@ -16,7 +16,7 @@ function KVRow({ label, value, note }: { label: string; value: string | number; 
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
       <span style={{ fontSize: 13, color: 'var(--ink2)' }}>{label}</span>
-      <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+      <span style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
         {value}
         {note && <span style={{ fontSize: 11, color: 'var(--ink3)', marginLeft: 6, fontWeight: 400 }}>{note}</span>}
       </span>
@@ -149,10 +149,10 @@ export const Reports: React.FC = () => {
                   return (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
                       <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{b.stage_label ?? b.stage}</div>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: avgDays > 5 ? 'var(--red)' : avgDays > 3 ? 'var(--gold)' : 'var(--teal)' }}>
+                      <div style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, color: avgDays > 5 ? 'var(--red)' : avgDays > 3 ? 'var(--gold)' : 'var(--teal)' }}>
                         {avgDays.toFixed(1)}d avg
                       </div>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink3)' }}>{b.case_count ?? 0} cases</div>
+                      <div style={{ fontFamily: 'var(--font)', fontSize: 11, color: 'var(--ink3)' }}>{b.case_count ?? 0} cases</div>
                     </div>
                   );
                 })}
@@ -179,15 +179,15 @@ export const Reports: React.FC = () => {
                       <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>{o.name}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink3)', marginBottom: 3 }}>
                         <span>Active cases</span>
-                        <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)', fontWeight: 600 }}>{o.active_cases ?? '—'}</span>
+                        <span style={{ fontFamily: 'var(--font)', color: 'var(--ink)', fontWeight: 600 }}>{o.active_cases ?? '—'}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink3)', marginBottom: 3 }}>
                         <span>Completed</span>
-                        <span style={{ fontFamily: 'var(--mono)', color: 'var(--green)', fontWeight: 600 }}>{o.cases_closed ?? '—'}</span>
+                        <span style={{ fontFamily: 'var(--font)', color: 'var(--green)', fontWeight: 600 }}>{o.cases_closed ?? '—'}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink3)' }}>
                         <span>Avg days</span>
-                        <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)', fontWeight: 600 }}>{o.avg_days?.toFixed(1) ?? '—'}d</span>
+                        <span style={{ fontFamily: 'var(--font)', color: 'var(--ink)', fontWeight: 600 }}>{o.avg_days?.toFixed(1) ?? '—'}d</span>
                       </div>
                       {o.active_cases !== undefined && o.cases_closed !== undefined && (
                         <div style={{ marginTop: 8, height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>

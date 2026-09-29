@@ -119,7 +119,7 @@ export function SignaturePad({ onCapture, kind = 'signature' }: { onCapture: (da
     // like var(--font) — it needs a concrete family, same literal stack the
     // platform's own --font token resolves to (index.css).
     const font = kind === 'stamp' ? 'bold' : 'italic';
-    const family = kind === 'stamp' ? "'Google Sans Flex', 'DM Sans', system-ui, sans-serif" : 'Georgia, serif';
+    const family = kind === 'stamp' ? "'Atlassian Sans', system-ui, sans-serif" : 'Georgia, serif';
     ctx.font = `${font} ${size}px ${family}`;
     while (size > 12 && ctx.measureText(typedName).width > maxWidth) {
       size -= 2;

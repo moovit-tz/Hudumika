@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
@@ -23,7 +23,7 @@ const CATS: Record<string, { label: string; color: string }> = {
 };
 
 const SOURCE_LABEL: Record<string, string> = {
-  fleet_vehicle: 'Fleet', fleet_fuel: 'Fleet · Fuel', fleet_maintenance: 'Fleet · Maintenance',
+  fleet_vehicle: 'Fleet', fleet_fuel: 'Fleet Â· Fuel', fleet_maintenance: 'Fleet Â· Maintenance',
 };
 
 export type ExpenseSource = 'finance' | 'fleet_vehicle' | 'fleet_fuel' | 'fleet_maintenance';
@@ -71,7 +71,7 @@ export interface ExpenseDetail {
 const RETIREMENT_LABEL: Record<string, { label: string; color: string }> = {
   pending: { label: 'Retirement pending', color: 'var(--gold)' },
   retired: { label: 'Retired', color: 'var(--green)' },
-  short: { label: 'Retired — short', color: 'var(--red)' },
+  short: { label: 'Retired â€” short', color: 'var(--red)' },
   written_off: { label: 'Written off', color: 'var(--ink3)' },
 };
 
@@ -79,7 +79,7 @@ function fmt(n: number) {
   return 'TZS ' + n.toLocaleString();
 }
 
-// ── Detail Panel (Aside) — only ever shown for editable ('finance') rows ──────
+// â”€â”€ Detail Panel (Aside) â€” only ever shown for editable ('finance') rows â”€â”€â”€â”€â”€â”€
 function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers, suppliers, isMobile }: {
   expense: ExpenseDetail; onClose: () => void; onChanged: () => void;
   shipments: any[]; customers: any[]; suppliers: any[]; isMobile?: boolean;
@@ -200,11 +200,11 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 24 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Payment Mode</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{expense.payment_mode || '—'}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{expense.payment_mode || 'â€”'}</div>
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Reference / Receipt #</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>{expense.reference || '—'}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>{expense.reference || 'â€”'}</div>
             {expense.reference && (
               expense.efd_verified ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -215,7 +215,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
                 <div>
                   <button type="button" onClick={verifyEfdReceipt} disabled={efdChecking}
                     style={{ padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                    {efdChecking ? 'Checking with TRA…' : 'Verify with TRA'}
+                    {efdChecking ? 'Checking with TRAâ€¦' : 'Verify with TRA'}
                   </button>
                   {expense.efd_error && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>{expense.efd_error}</div>}
                 </div>
@@ -228,7 +228,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
               <Link to={`/clearos/clearance/${job.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--navy)', background: 'hsl(var(--muted))', padding: '4px 8px', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}>
                 <Icon name="package" size={12} /> {job.bl_number || job.ref_number}
               </Link>
-            ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
+            ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>â€”</div>}
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Client</div>
@@ -236,7 +236,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
               <Link to={`/crm/customers?id=${client.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--green)', background: 'var(--green-l)', padding: '4px 8px', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}>
                 <Icon name="building" size={12} /> {client.name}
               </Link>
-            ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
+            ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>â€”</div>}
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Paid To Supplier</div>
@@ -244,7 +244,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
               <Link to={`/finance/vendors?id=${supplier.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--gold)', background: 'var(--gold-l)', padding: '4px 8px', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}>
                 <Icon name="warehouse" size={12} /> {supplier.name}
               </Link>
-            ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
+            ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>â€”</div>}
           </div>
         </div>
 
@@ -266,14 +266,14 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
             {expense.retirement_status === 'pending' ? (
               <>
                 <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 10 }}>
-                  Cash was disbursed for this advance — attach the receipt and record how it was retired.
+                  Cash was disbursed for this advance â€” attach the receipt and record how it was retired.
                 </div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, border: '1.5px dashed var(--border)', borderRadius: 'var(--r)', cursor: uploadingReceipt ? 'wait' : 'pointer', background: 'var(--white)', marginBottom: 10 }}>
                   {expense.attachment_data
                     ? <img src={expense.attachment_data} alt="Receipt" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 'var(--r-sm)', flexShrink: 0 }} />
                     : <Icon name="paperclip" size={16} color="var(--ink3)" />}
                   <span style={{ fontSize: 12, fontWeight: 600, color: expense.attachment_data ? 'var(--teal)' : 'var(--ink3)' }}>
-                    {uploadingReceipt ? 'Uploading…' : expense.attachment_data ? 'Receipt attached — click to replace' : 'Attach receipt image'}
+                    {uploadingReceipt ? 'Uploadingâ€¦' : expense.attachment_data ? 'Receipt attached â€” click to replace' : 'Attach receipt image'}
                   </span>
                   <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleReceiptFile} disabled={uploadingReceipt} />
                 </label>
@@ -301,7 +301,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
               </>
             ) : (
               <div style={{ fontSize: 12, color: 'var(--ink2)' }}>
-                {expense.retired_at ? `${expense.retired_at.split('T')[0]} — ` : ''}{expense.retirement_note || 'No note.'}
+                {expense.retired_at ? `${expense.retired_at.split('T')[0]} â€” ` : ''}{expense.retirement_note || 'No note.'}
               </div>
             )}
           </div>
@@ -326,7 +326,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
   );
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────────
+// â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const Expenses: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -391,7 +391,7 @@ export const Expenses: React.FC = () => {
   const totalExp = filtered.filter(e => !e.is_revenue).reduce((s, e) => s + e.amount, 0);
   const totalRev = filtered.filter(e => e.is_revenue).reduce((s, e) => s + e.amount, 0);
   // Real date-scoped sums, not a guessed share of the lifetime total (that
-  // used to be `totalRev * 0.38` / `* 0.09` — see FinanceVendors.tsx's fix
+  // used to be `totalRev * 0.38` / `* 0.09` â€” see FinanceVendors.tsx's fix
   // for the same anti-pattern and why it's wrong).
   const revThisMonth = (() => {
     const now = new Date();
@@ -492,7 +492,7 @@ export const Expenses: React.FC = () => {
         crumbs={['FINANCE', 'EXPENSES']}
         titlePlain="Expense "
         titleEm="tracking"
-        subtitle="Costs and revenue across all shipments and operations — including fleet fuel, maintenance, and vehicle costs."
+        subtitle="Costs and revenue across all shipments and operations â€” including fleet fuel, maintenance, and vehicle costs."
         actions={
           <Link to="/finance/expenses/categories" className="btn btn-secondary btn-sm" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <Icon name="tag" size={13} /> Manage Categories
@@ -520,7 +520,7 @@ export const Expenses: React.FC = () => {
             title: 'NET MARGIN',
             value: fmt(totalRev - totalExp, 'TZS'),
             trend: !totalRev ? 0 : parseFloat(((totalRev - totalExp) / totalRev * 100).toFixed(1)),
-            sub1Label: 'MARGIN %', sub1Value: !totalRev ? '—' : `${Math.round(((totalRev - totalExp) / totalRev) * 100)}%`,
+            sub1Label: 'MARGIN %', sub1Value: !totalRev ? 'â€”' : `${Math.round(((totalRev - totalExp) / totalRev) * 100)}%`,
             sub2Label: 'ALL ITEMS', sub2Value: String(items.length), barHighlight: 'var(--blue)',
           },
           {
@@ -540,7 +540,7 @@ export const Expenses: React.FC = () => {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search expenses, descriptions or tags…"
+            placeholder="Search expenses, descriptions or tagsâ€¦"
             style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
           />
         </div>
@@ -583,7 +583,7 @@ export const Expenses: React.FC = () => {
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
 
-      {/* ── Left: List Panel ── */}
+      {/* â”€â”€ Left: List Panel â”€â”€ */}
       <div style={{ width: '100%', flexShrink: 0, display: isSplit ? 'none' : 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Table Header */}
@@ -645,7 +645,7 @@ export const Expenses: React.FC = () => {
                 )}
 
                 {/* Amount */}
-                <div style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, color: e.is_revenue ? 'var(--green)' : 'var(--red)', textAlign: 'right' }}>
+                <div style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: e.is_revenue ? 'var(--green)' : 'var(--red)', textAlign: 'right' }}>
                   {e.is_revenue ? '+' : '-'}{(e.amount || 0).toLocaleString()}
                 </div>
 
@@ -662,7 +662,7 @@ export const Expenses: React.FC = () => {
             fontSize: 12.5, color: 'var(--ink3)', background: 'var(--white)', flexShrink: 0
           }}>
             <span>
-              Showing {offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length.toLocaleString()} record{filtered.length === 1 ? '' : 's'}
+              Showing {offset + 1}â€“{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length.toLocaleString()} record{filtered.length === 1 ? '' : 's'}
             </span>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button
@@ -701,7 +701,7 @@ export const Expenses: React.FC = () => {
         )}
       </div>
 
-      {/* ── Right: Aside Detail Panel ── */}
+      {/* â”€â”€ Right: Aside Detail Panel â”€â”€ */}
       {isSplit && selectedDetail && !detailLoading && (
         <ExpenseDetailPanel
           expense={selectedDetail}
@@ -714,13 +714,13 @@ export const Expenses: React.FC = () => {
         />
       )}
 
-      {/* ── Bulk Upload Modal — bulk CSV paste stays a dialog, unlike single Add Expense ── */}
+      {/* â”€â”€ Bulk Upload Modal â€” bulk CSV paste stays a dialog, unlike single Add Expense â”€â”€ */}
       {showBulkUpload && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowBulkUpload(false)}>
           <div className="card" style={{ width: '90%', maxWidth: 540, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Bulk Upload Expenses</h2>
-              <button type="button" className="dp-close" onClick={() => setShowBulkUpload(false)}>×</button>
+              <button type="button" className="dp-close" onClick={() => setShowBulkUpload(false)}>Ã—</button>
             </div>
 
             <form onSubmit={handleBulkUpload} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -740,7 +740,7 @@ export const Expenses: React.FC = () => {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowBulkUpload(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={bulkSaving}>{bulkSaving ? 'Importing…' : 'Import Data'}</button>
+                <button type="submit" className="btn btn-primary" disabled={bulkSaving}>{bulkSaving ? 'Importingâ€¦' : 'Import Data'}</button>
               </div>
             </form>
           </div>

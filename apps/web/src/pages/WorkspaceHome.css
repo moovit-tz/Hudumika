@@ -112,7 +112,10 @@
 
 .wh-horizontal-card:hover {
   background:
-    linear-gradient(var(--white), var(--white)) padding-box,
+    linear-gradient(
+      color-mix(in srgb, var(--white) 94%, var(--card-color, var(--teal))),
+      color-mix(in srgb, var(--white) 94%, var(--card-color, var(--teal)))
+    ) padding-box,
     conic-gradient(
       from var(--wh-border-angle),
       transparent  0deg,  transparent  78deg,
@@ -120,7 +123,7 @@
       transparent 114deg, transparent 360deg
     ) border-box;
   animation: wh-border-draw 2s linear infinite;
-  box-shadow: var(--elev-lg);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.05);
   transform: translateY(-2px);
 }
 
@@ -627,7 +630,10 @@
 
 .wh-grid-card:hover {
   background:
-    linear-gradient(var(--white), var(--white)) padding-box,
+    linear-gradient(
+      color-mix(in srgb, var(--white) 94%, var(--card-color, var(--teal))),
+      color-mix(in srgb, var(--white) 94%, var(--card-color, var(--teal)))
+    ) padding-box,
     conic-gradient(
       from var(--wh-border-angle),
       transparent  0deg,  transparent  78deg,
@@ -635,7 +641,7 @@
       transparent 114deg, transparent 360deg
     ) border-box;
   animation: wh-border-draw 2s linear infinite;
-  box-shadow: var(--elev-lg);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.05);
   transform: translateY(-2px);
 }
 
@@ -882,7 +888,7 @@
   flex-shrink: 0;
 }
 .wh-star-btn:hover {
-  background-color: var(--bg);
+  background-color: rgba(0,0,0,0.06);
   color: #e0a800;
   transform: scale(1.1);
 }

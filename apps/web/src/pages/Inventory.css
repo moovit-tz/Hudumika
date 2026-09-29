@@ -72,7 +72,7 @@
 .inv-table tbody tr:hover { background: var(--bg); }
 .inv-table tbody tr:last-child td { border-bottom: none; }
 
-.inv-mono { font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace; font-size: 12.5px; }
+.inv-mono { font-family: var(--font); font-size: 12.5px; }
 .inv-empty { text-align: center; padding: 48px 24px; color: var(--ink3); font-size: 13.5px; }
 .inv-field-row { display: flex; flex-direction: column; gap: 4px; }
 .inv-field-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink3); }

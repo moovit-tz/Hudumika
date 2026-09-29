@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
@@ -8,7 +8,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 
-/* ── SVG brand marks (vector, no 3D) ─────────────────────────────── */
+/* â”€â”€ SVG brand marks (vector, no 3D) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const XeroLogo = () => (
   <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
     <rect width="40" height="40" rx="9" fill="#13b5ea"/>
@@ -84,7 +84,7 @@ export function AccountingIntegrations() {
   useEffect(() => { loadData(); }, []);
 
   // The OAuth callback redirects the browser straight back here with
-  // ?oauth=success|error&provider=...&msg=... — surface it once, then
+  // ?oauth=success|error&provider=...&msg=... â€” surface it once, then
   // clean the query string so a refresh doesn't re-show it.
   useEffect(() => {
     const qs = new URLSearchParams(window.location.search);
@@ -172,7 +172,7 @@ export function AccountingIntegrations() {
   const displayed = activeCat === 'All' ? filteredMarketplace : filteredMarketplace.filter(m => m.category === activeCat);
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading integrations…</div>;
+    return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading integrationsâ€¦</div>;
   }
 
   return (
@@ -201,7 +201,7 @@ export function AccountingIntegrations() {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 0' }}>
 
-        {/* ── Connected tab ── */}
+        {/* â”€â”€ Connected tab â”€â”€ */}
         {activeTab === 'connected' && (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
@@ -233,7 +233,7 @@ export function AccountingIntegrations() {
                         )}
                         {!p.configured && !isConnected && (
                           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 8, fontStyle: 'italic' }}>
-                            Not yet configured on this platform — no {brand.name} app credentials are set.
+                            Not yet configured on this platform â€” no {brand.name} app credentials are set.
                           </div>
                         )}
                       </div>
@@ -242,10 +242,10 @@ export function AccountingIntegrations() {
                       {isConnected ? (
                         <>
                           <Button type="button" variant="outline" size="sm" disabled={testingProvider === p.provider} onClick={() => handleTestConnection(p.provider)}>
-                            {testingProvider === p.provider ? 'Testing…' : 'Test'}
+                            {testingProvider === p.provider ? 'Testingâ€¦' : 'Test'}
                           </Button>
                           <Button type="button" variant="outline" size="sm" disabled={syncingProvider === p.provider} onClick={() => handleSyncNow(p.provider)}>
-                            {syncingProvider === p.provider ? 'Syncing…' : 'Pull Chart of Accounts'}
+                            {syncingProvider === p.provider ? 'Syncingâ€¦' : 'Pull Chart of Accounts'}
                           </Button>
                           <Button type="button" variant="ghost" size="sm" style={{ color: 'var(--red)' }} onClick={() => handleDisconnect(p.provider)}>
                             Disconnect
@@ -253,7 +253,7 @@ export function AccountingIntegrations() {
                         </>
                       ) : (
                         <Button type="button" size="sm" disabled={!p.configured || connectingProvider === p.provider} onClick={() => handleConnect(p.provider)}>
-                          {connectingProvider === p.provider ? 'Connecting…' : `Connect ${brand.name}`}
+                          {connectingProvider === p.provider ? 'Connectingâ€¦' : `Connect ${brand.name}`}
                         </Button>
                       )}
                     </div>
@@ -292,7 +292,7 @@ export function AccountingIntegrations() {
                           <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>{new Date(l.synced_at).toLocaleString()}</td>
                           <td style={{ padding: '9px 12px', fontWeight: 600 }}>{PROVIDER_BRANDS[l.provider]?.name || l.provider}</td>
                           <td style={{ padding: '9px 12px' }}>{l.entity_type}</td>
-                          <td style={{ padding: '9px 12px', fontFamily: 'var(--mono)', fontSize: 11.5 }}>{l.external_id || '—'}</td>
+                          <td style={{ padding: '9px 12px', fontFamily: 'var(--font)', fontSize: 11.5 }}>{l.external_id || 'â€”'}</td>
                           <td style={{ padding: '9px 12px', textAlign: 'center' }}>
                             <Badge variant={l.status === 'SUCCESS' ? 'success' : 'error'}>{l.status}</Badge>
                           </td>
@@ -309,7 +309,7 @@ export function AccountingIntegrations() {
           </>
         )}
 
-        {/* ── Marketplace tab ── */}
+        {/* â”€â”€ Marketplace tab â”€â”€ */}
         {activeTab === 'marketplace' && (
           <>
             {/* Search + category filter */}
@@ -319,7 +319,7 @@ export function AccountingIntegrations() {
                 <input
                   value={marketplaceSearch}
                   onChange={e => setMarketplaceSearch(e.target.value)}
-                  placeholder="Search integrations…"
+                  placeholder="Search integrationsâ€¦"
                   style={{ width: '100%', paddingLeft: 34, paddingRight: 10, paddingTop: 10, paddingBottom: 10, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'var(--font)', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
@@ -360,7 +360,7 @@ export function AccountingIntegrations() {
                   </div>
                   <div style={{ padding: '10px 18px', borderTop: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', justifyContent: 'flex-end' }}>
                     <Button type="button" size="sm" disabled={installingId === item.id} onClick={() => handleInstall(item)}>
-                      {installingId === item.id ? 'Adding…' : '+ Add Integration'}
+                      {installingId === item.id ? 'Addingâ€¦' : '+ Add Integration'}
                     </Button>
                   </div>
                 </div>

@@ -643,7 +643,7 @@
 
 /* Code & Mono */
 .onsite-mono {
-  font-family: var(--mono);
+  font-family: var(--font);
   font-size: 0.8125rem;
 }
 

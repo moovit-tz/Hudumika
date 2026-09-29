@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -143,7 +143,7 @@ export const TrackingDriverDetail: React.FC = () => {
         <Icon name="user" size={32} color="var(--ink3)" />
         <div style={{ fontSize: 16, fontWeight: 700, marginTop: 10 }}>Driver profile not found</div>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4 }}>The requested driver record could not be loaded.</div>
-        <Link to="/tracking/drivers" className="dd-back-link" style={{ marginTop: 16 }}>← Back to Drivers Directory</Link>
+        <Link to="/tracking/drivers" className="dd-back-link" style={{ marginTop: 16 }}>â† Back to Drivers Directory</Link>
       </div>
     );
   }
@@ -184,7 +184,7 @@ export const TrackingDriverDetail: React.FC = () => {
         crumbs={['HuduFreight', 'Drivers', driver.name]}
         titlePlain="Driver profile &"
         titleEm="lifecycle"
-        subtitle={`Full record for ${driver.name} — dispatch history, vehicle assignment, compliance & messaging.`}
+        subtitle={`Full record for ${driver.name} â€” dispatch history, vehicle assignment, compliance & messaging.`}
         actions={
           <div className="dd-header-actions">
             <button type="button" className="dd-action-btn" onClick={() => setActiveTab('Dispatch Messaging')}>
@@ -327,7 +327,7 @@ export const TrackingDriverDetail: React.FC = () => {
                 <div className="dd-vh-icon"><Icon name="truck" size={24} /></div>
                 <div>
                   <div className="dd-vh-title">{vehicle.name}</div>
-                  <div className="dd-vh-sub">Plate Number: <strong>{vehicle.plate_number || 'N/A'}</strong> · Code: <strong>{vehicle.custom_code}</strong></div>
+                  <div className="dd-vh-sub">Plate Number: <strong>{vehicle.plate_number || 'N/A'}</strong> Â· Code: <strong>{vehicle.custom_code}</strong></div>
                 </div>
                 <div style={{ marginLeft: 'auto' }}>
                   <span className="dd-condition-pill">{vehicle.condition || 'Good Condition'}</span>
@@ -341,7 +341,7 @@ export const TrackingDriverDetail: React.FC = () => {
                 </div>
                 <div className="dd-info-item">
                   <span className="dd-info-label">Registration Plate</span>
-                  <span className="dd-info-value" style={{ fontFamily: 'var(--mono)' }}>{vehicle.plate_number || '—'}</span>
+                  <span className="dd-info-value" style={{ fontFamily: 'var(--font)' }}>{vehicle.plate_number || 'â€”'}</span>
                 </div>
                 <div className="dd-info-item">
                   <span className="dd-info-label">Vehicle Condition</span>
@@ -352,7 +352,7 @@ export const TrackingDriverDetail: React.FC = () => {
                 </div>
                 <div className="dd-info-item">
                   <span className="dd-info-label">Compliance Check</span>
-                  <span className="dd-info-value" style={{ color: 'var(--green)' }}>✓ Inspection Verified</span>
+                  <span className="dd-info-value" style={{ color: 'var(--green)' }}>âœ“ Inspection Verified</span>
                 </div>
               </div>
             </>
@@ -418,7 +418,7 @@ export const TrackingDriverDetail: React.FC = () => {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <span className={`dd-route-status ${t.status === 'COMPLETED' ? 'completed' : 'transit'}`}>
-                        {t.status === 'COMPLETED' ? '✓ Complete' : `Transit (${t.origin || 'En Route'})`}
+                        {t.status === 'COMPLETED' ? 'âœ“ Complete' : `Transit (${t.origin || 'En Route'})`}
                       </span>
                       <Icon name={expandedTrips[t.id] ? 'chevronUp' : 'chevronDown'} size={18} color="var(--ink3)" />
                     </div>
@@ -433,7 +433,7 @@ export const TrackingDriverDetail: React.FC = () => {
                         </div>
                         <div className="dd-metric">
                           <span className="dd-metric-label">Distance Logged</span>
-                          <span className="dd-metric-val">{t.distance_km != null ? `${t.distance_km} km` : '—'}</span>
+                          <span className="dd-metric-val">{t.distance_km != null ? `${t.distance_km} km` : 'â€”'}</span>
                         </div>
                         <div className="dd-metric">
                           <span className="dd-metric-label">Cargo Type</span>
@@ -441,11 +441,11 @@ export const TrackingDriverDetail: React.FC = () => {
                         </div>
                         <div className="dd-metric">
                           <span className="dd-metric-label">Cargo Weight</span>
-                          <span className="dd-metric-val">{t.cargo_weight_kg != null ? `${t.cargo_weight_kg} kg` : '—'}</span>
+                          <span className="dd-metric-val">{t.cargo_weight_kg != null ? `${t.cargo_weight_kg} kg` : 'â€”'}</span>
                         </div>
                         <div className="dd-metric">
                           <span className="dd-metric-label">Capacity Utilization</span>
-                          <span className="dd-metric-val">{t.load_capacity_pct != null ? `${t.load_capacity_pct}%` : '—'}</span>
+                          <span className="dd-metric-val">{t.load_capacity_pct != null ? `${t.load_capacity_pct}%` : 'â€”'}</span>
                         </div>
                       </div>
 
@@ -455,19 +455,19 @@ export const TrackingDriverDetail: React.FC = () => {
                           <div className="dd-ncard-grid">
                             <div className="dd-ncard-item">
                               <span className="dd-ncard-label">Scheduled Departure</span>
-                              <span className="dd-ncard-val">{t.scheduled_start ? new Date(t.scheduled_start).toLocaleString() : '—'}</span>
+                              <span className="dd-ncard-val">{t.scheduled_start ? new Date(t.scheduled_start).toLocaleString() : 'â€”'}</span>
                             </div>
                             <div className="dd-ncard-item">
                               <span className="dd-ncard-label">Scheduled Arrival</span>
-                              <span className="dd-ncard-val">{t.scheduled_end ? new Date(t.scheduled_end).toLocaleString() : '—'}</span>
+                              <span className="dd-ncard-val">{t.scheduled_end ? new Date(t.scheduled_end).toLocaleString() : 'â€”'}</span>
                             </div>
                             <div className="dd-ncard-item">
                               <span className="dd-ncard-label">Actual Departure</span>
-                              <span className="dd-ncard-val">{t.actual_start ? new Date(t.actual_start).toLocaleString() : '—'}</span>
+                              <span className="dd-ncard-val">{t.actual_start ? new Date(t.actual_start).toLocaleString() : 'â€”'}</span>
                             </div>
                             <div className="dd-ncard-item">
                               <span className="dd-ncard-label">Actual Arrival</span>
-                              <span className="dd-ncard-val">{t.actual_end ? new Date(t.actual_end).toLocaleString() : '—'}</span>
+                              <span className="dd-ncard-val">{t.actual_end ? new Date(t.actual_end).toLocaleString() : 'â€”'}</span>
                             </div>
                           </div>
                         </div>
@@ -511,7 +511,7 @@ export const TrackingDriverDetail: React.FC = () => {
                 <div className="dd-doc-title">Driving License (Class A/B/C/E)</div>
                 <div className="dd-doc-sub">License Number: <strong>{driver.license_number || 'Not provided'}</strong></div>
               </div>
-              <span className="dd-doc-status verified">✓ Verified</span>
+              <span className="dd-doc-status verified">âœ“ Verified</span>
             </div>
 
             <div className="dd-doc-card">
@@ -520,7 +520,7 @@ export const TrackingDriverDetail: React.FC = () => {
                 <div className="dd-doc-title">Heavy Commercial Vehicle Endorsement</div>
                 <div className="dd-doc-sub">TRA & SUMATRA Fleet Endorsement</div>
               </div>
-              <span className="dd-doc-status verified">✓ Verified</span>
+              <span className="dd-doc-status verified">âœ“ Verified</span>
             </div>
 
             <div className="dd-doc-card">
@@ -529,7 +529,7 @@ export const TrackingDriverDetail: React.FC = () => {
                 <div className="dd-doc-title">Medical Fitness & Drug Screen</div>
                 <div className="dd-doc-sub">Annual Occupational Medical Clearance</div>
               </div>
-              <span className="dd-doc-status verified">✓ Verified</span>
+              <span className="dd-doc-status verified">âœ“ Verified</span>
             </div>
           </div>
         )}
@@ -621,7 +621,7 @@ export const TrackingDriverDetail: React.FC = () => {
             <div className="dd-modal-footer">
               <button type="button" className="dd-action-btn" onClick={() => setEditingDriver(false)}>Cancel</button>
               <button type="button" className="dd-action-btn dark" onClick={saveDriver} disabled={savingDriver}>
-                {savingDriver ? 'Saving Details…' : 'Save Driver Changes'}
+                {savingDriver ? 'Saving Detailsâ€¦' : 'Save Driver Changes'}
               </button>
             </div>
           </div>
@@ -642,7 +642,7 @@ export const TrackingDriverDetail: React.FC = () => {
                 <label className="dd-form-label">Select Truck or Vehicle</label>
                 <Combobox
                   options={[
-                    { value: '', label: '— Unassign Vehicle —' },
+                    { value: '', label: 'â€” Unassign Vehicle â€”' },
                     ...vehicles.map(v => ({ value: v.id, label: v.name, sublabel: v.plate_number || undefined }))
                   ]}
                   value={selectedVehicleId}

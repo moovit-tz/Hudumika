@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -81,9 +81,9 @@ export const SupportTeam: React.FC = () => {
     const totalAssigned = agentStats.reduce((sum, a) => sum + a.assigned, 0);
     const totalResolved = agentStats.reduce((sum, a) => sum + a.resolved, 0);
     const validCsats = agentStats.map(a => a.csat).filter((c): c is number => c != null);
-    const avgCsat = validCsats.length > 0 ? (validCsats.reduce((a, b) => a + b, 0) / validCsats.length).toFixed(2) : '—';
+    const avgCsat = validCsats.length > 0 ? (validCsats.reduce((a, b) => a + b, 0) / validCsats.length).toFixed(2) : 'â€”';
     const validHours = agentStats.map(a => a.avgResolutionHours).filter((h): h is number => h != null);
-    const avgHours = validHours.length > 0 ? (validHours.reduce((a, b) => a + b, 0) / validHours.length).toFixed(1) : '—';
+    const avgHours = validHours.length > 0 ? (validHours.reduce((a, b) => a + b, 0) / validHours.length).toFixed(1) : 'â€”';
     const avgSla = agentStats.length > 0 ? Math.round(agentStats.reduce((sum, a) => sum + (a.slaRate || 95), 0) / agentStats.length) : 98;
 
     return { totalAgents, onlineCount, totalAssigned, totalResolved, avgCsat, avgHours, avgSla };
@@ -125,7 +125,7 @@ export const SupportTeam: React.FC = () => {
     return (
       <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 14 }}>
         <Icon name="refresh" size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: 12 }} />
-        <div>Loading team performance dashboard…</div>
+        <div>Loading team performance dashboardâ€¦</div>
       </div>
     );
   }
@@ -159,7 +159,7 @@ export const SupportTeam: React.FC = () => {
             <div>
               <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{summaryMetrics.totalAgents} Agents</div>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
-                <strong style={{ color: 'var(--green)' }}>{summaryMetrics.onlineCount} Online</strong> • {summaryMetrics.totalAgents - summaryMetrics.onlineCount} Offline
+                <strong style={{ color: 'var(--green)' }}>{summaryMetrics.onlineCount} Online</strong> â€¢ {summaryMetrics.totalAgents - summaryMetrics.onlineCount} Offline
               </div>
             </div>
           </div>
@@ -218,11 +218,11 @@ export const SupportTeam: React.FC = () => {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{topChampion.name}</span>
-                  <Badge variant="brand">🏆 Top Support Champion</Badge>
+                  <Badge variant="brand">ðŸ† Top Support Champion</Badge>
                   {topChampion.isOnline && <Badge variant="success">Online Now</Badge>}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
-                  {topChampion.role} • <strong>{topChampion.resolved} Resolved</strong> • CSAT: <strong style={{ color: 'var(--gold)' }}>{topChampion.csat} ★</strong> • Resolution Rate: <strong>{topChampion.resolutionRate}%</strong>
+                  {topChampion.role} â€¢ <strong>{topChampion.resolved} Resolved</strong> â€¢ CSAT: <strong style={{ color: 'var(--gold)' }}>{topChampion.csat} â˜…</strong> â€¢ Resolution Rate: <strong>{topChampion.resolutionRate}%</strong>
                 </div>
               </div>
             </div>
@@ -259,9 +259,9 @@ export const SupportTeam: React.FC = () => {
                   <SelectTrigger className="input-field"><SelectValue placeholder="Filter By" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Agents ({agentStats.length})</SelectItem>
-                    <SelectItem value="online">🟢 Online Only ({summaryMetrics.onlineCount})</SelectItem>
-                    <SelectItem value="highLoad">🔴 High Load (&gt;3 Open)</SelectItem>
-                    <SelectItem value="topCsat">⭐ Top CSAT (≥4.5)</SelectItem>
+                    <SelectItem value="online">ðŸŸ¢ Online Only ({summaryMetrics.onlineCount})</SelectItem>
+                    <SelectItem value="highLoad">ðŸ”´ High Load (&gt;3 Open)</SelectItem>
+                    <SelectItem value="topCsat">â­ Top CSAT (â‰¥4.5)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -371,8 +371,8 @@ export const SupportTeam: React.FC = () => {
                           </Badge>
                         </td>
 
-                        <td style={{ padding: '12px 14px', fontFamily: 'var(--mono)', fontSize: 12.5, fontWeight: 600 }}>
-                          {a.avgResolutionHours != null ? `${a.avgResolutionHours}h` : '—'}
+                        <td style={{ padding: '12px 14px', fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 600 }}>
+                          {a.avgResolutionHours != null ? `${a.avgResolutionHours}h` : 'â€”'}
                         </td>
 
                         <td style={{ padding: '12px 14px' }}>
@@ -381,7 +381,7 @@ export const SupportTeam: React.FC = () => {
                               <Icon name="star" size={13} /> {a.csat}
                             </div>
                           ) : (
-                            <span style={{ color: 'var(--ink3)' }}>—</span>
+                            <span style={{ color: 'var(--ink3)' }}>â€”</span>
                           )}
                         </td>
 
@@ -466,7 +466,7 @@ export const SupportTeam: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: '1px solid var(--border)', fontSize: 12 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Icon name="star" size={13} color="var(--gold)" />
-                        <strong style={{ color: 'var(--ink)' }}>{a.csat != null ? a.csat : '—'}</strong>
+                        <strong style={{ color: 'var(--ink)' }}>{a.csat != null ? a.csat : 'â€”'}</strong>
                         <span style={{ color: 'var(--ink3)', fontSize: 11 }}>CSAT</span>
                       </div>
                       <div style={{ display: 'flex', gap: 6 }}>
@@ -492,7 +492,7 @@ export const SupportTeam: React.FC = () => {
                 <PersonAvatar name={selectedAgent.name} userId={selectedAgent.id} size={44} />
                 <div>
                   <DialogTitle style={{ fontSize: 16 }}>{selectedAgent.name}</DialogTitle>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{selectedAgent.role} • {selectedAgent.department}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{selectedAgent.role} â€¢ {selectedAgent.department}</div>
                 </div>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setSelectedAgent(null)} style={{ padding: 4 }}>
@@ -505,11 +505,11 @@ export const SupportTeam: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                 <div style={{ background: 'var(--bg)', padding: 12, borderRadius: 'var(--r)', textAlign: 'center' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>CSAT Score</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--gold)', marginTop: 4 }}>{selectedAgent.csat != null ? `${selectedAgent.csat} / 5.0` : '—'}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--gold)', marginTop: 4 }}>{selectedAgent.csat != null ? `${selectedAgent.csat} / 5.0` : 'â€”'}</div>
                 </div>
                 <div style={{ background: 'var(--bg)', padding: 12, borderRadius: 'var(--r)', textAlign: 'center' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Avg Resolution</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{selectedAgent.avgResolutionHours != null ? `${selectedAgent.avgResolutionHours}h` : '—'}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{selectedAgent.avgResolutionHours != null ? `${selectedAgent.avgResolutionHours}h` : 'â€”'}</div>
                 </div>
                 <div style={{ background: 'var(--bg)', padding: 12, borderRadius: 'var(--r)', textAlign: 'center' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>SLA Target</div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
 import { apiFetch } from '../../lib/api.js';
@@ -18,7 +18,7 @@ interface Metrics {
     meetingSeconds: number;
   };
   // Only present for management roles (SUPER_ADMIN/ADMIN/TENANT_ADMIN/
-  // MANAGER/HR) — GET /v1/calls/metrics omits it entirely for everyone
+  // MANAGER/HR) â€” GET /v1/calls/metrics omits it entirely for everyone
   // else, so its absence here is a real permissions signal, not empty data.
   tenant?: {
     calls: number;
@@ -57,7 +57,7 @@ function StatCard({ label, value, icon, color = 'var(--teal)', sub }: { label: s
   );
 }
 
-/** Real /v1/calls/metrics data only — no fabricated call logs, no CSAT/MOS
+/** Real /v1/calls/metrics data only â€” no fabricated call logs, no CSAT/MOS
  *  scores (nothing in this codebase measures either), no random-number
  *  fallback when a fresh tenant genuinely has zero calls yet. A tenant with
  *  no activity in the period sees real zeros, not an invented "48 calls,
@@ -114,11 +114,11 @@ export function CallsMetrics() {
       )}
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading metrics…</div>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading metricsâ€¦</div>
       ) : !tenant ? (
         <>
           {/* Non-management roles only get their own numbers back from the
-              API — shown honestly as "your activity", not padded out with
+              API â€” shown honestly as "your activity", not padded out with
               tenant-wide figures the endpoint never actually returned. */}
           <SectionCard title="Your Call & Meeting Activity">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
@@ -135,16 +135,16 @@ export function CallsMetrics() {
         </>
       ) : (
         <>
-          {/* Top Executive KPI Metrics — all real, from GET /v1/calls/metrics */}
+          {/* Top Executive KPI Metrics â€” all real, from GET /v1/calls/metrics */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
             <StatCard label="Support Voice Calls" value={String(tenant.calls)} icon="phone" color="var(--green)" sub={answeredPct != null ? `${answeredPct}% Answered` : undefined} />
             <StatCard label="Video Meetings" value={String(tenant.meetings)} icon="camera" color={purpleColor} />
-            <StatCard label="Avg Call Duration" value={tenant.calls > 0 ? fmtHrs(tenant.avgCallSeconds) : '—'} icon="clock" color="var(--blue)" />
+            <StatCard label="Avg Call Duration" value={tenant.calls > 0 ? fmtHrs(tenant.avgCallSeconds) : 'â€”'} icon="clock" color="var(--blue)" />
             <StatCard label="Missed / Declined" value={String(tenant.callsMissed)} icon="alertCircle" color="var(--red)" sub={tenant.calls > 0 ? `${Math.round((tenant.callsMissed / tenant.calls) * 100)}% of calls` : undefined} />
           </div>
 
           {/* Daily Volume Trend Chart */}
-          <SectionCard title={`Daily Volume Trends — Voice Calls vs Video Meetings (${days} Days)`}>
+          <SectionCard title={`Daily Volume Trends â€” Voice Calls vs Video Meetings (${days} Days)`}>
             {tenant.dailyTrend.length === 0 ? (
               <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No calls or meetings recorded in this period yet.</div>
             ) : (
@@ -181,7 +181,7 @@ export function CallsMetrics() {
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{p.meetings} video meeting{p.meetings === 1 ? '' : 's'}</div>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: purpleColor, fontFamily: 'var(--mono)' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: purpleColor, fontFamily: 'var(--font)' }}>
                       {fmtHrs(p.totalSeconds)}
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Banner } from '../components/ui/alert.js';
@@ -134,7 +134,7 @@ export function AdminCMSPages() {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>
-              {saving ? 'Creating…' : 'Create & Edit'}
+              {saving ? 'Creatingâ€¦' : 'Create & Edit'}
             </button>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCreating(false)}>Cancel</button>
           </div>
@@ -156,7 +156,7 @@ export function AdminCMSPages() {
                 </SelectContent>
               </Select>
               <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={() => handleSave(editing)}>
-                {saving ? 'Saving…' : 'Save Changes'}
+                {saving ? 'Savingâ€¦' : 'Save Changes'}
               </button>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(null)}>Close</button>
             </div>
@@ -179,7 +179,7 @@ export function AdminCMSPages() {
               type="text"
               value={editing.seo_description ?? ''}
               onChange={e => setEditing({ ...editing, seo_description: e.target.value })}
-              placeholder="Short summary for search engines…"
+              placeholder="Short summary for search enginesâ€¦"
               className="input-field"
               style={{ width: '100%' }}
             />
@@ -187,7 +187,7 @@ export function AdminCMSPages() {
 
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: 'var(--ink2)' }}>Page Content</label>
-            <RichTextEditor value={editing.content} onChange={html => setEditing({ ...editing, content: html })} placeholder="Write page content here…" />
+            <RichTextEditor value={editing.content} onChange={html => setEditing({ ...editing, content: html })} placeholder="Write page content hereâ€¦" />
           </div>
         </SectionCard>
       ) : (
@@ -203,14 +203,14 @@ export function AdminCMSPages() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4} style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading pages…</td></tr>
+                <tr><td colSpan={4} style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading pagesâ€¦</td></tr>
               ) : pages.length === 0 ? (
                 <tr><td colSpan={4} style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>No CMS pages found.</td></tr>
               ) : (
                 pages.map(page => (
                   <tr key={page.slug} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '12px 16px', fontWeight: 600 }}>{page.title}</td>
-                    <td style={{ padding: '12px 16px', fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink3)' }}>
+                    <td style={{ padding: '12px 16px', fontFamily: 'var(--font)', fontSize: 12, color: 'var(--ink3)' }}>
                       /{page.slug} {PUBLIC_ROUTES.has(page.slug) && <span style={{ color: 'var(--teal)', fontWeight: 700 }}>(public)</span>}
                     </td>
                     <td style={{ padding: '12px 16px' }}>

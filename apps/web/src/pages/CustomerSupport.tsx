@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/s
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
 
-/* ── Types ── */
+/* â”€â”€ Types â”€â”€ */
 interface Message {
   id: string;
   from: 'customer' | 'agent';
@@ -32,7 +32,7 @@ interface Ticket {
 }
 
 /** Maps a GET /v1/support/tickets (list) or /tickets/:id row to the shape
- *  this page renders. The list endpoint has no `messages` — a ticket opened
+ *  this page renders. The list endpoint has no `messages` â€” a ticket opened
  *  from the list starts with an empty thread until loadThread() below fills
  *  it in from the detail endpoint. */
 function mapTicket(row: any): Ticket {
@@ -74,11 +74,11 @@ const PRIORITY_CFG: Record<string, { label: string; color: string }> = {
   URGENT: { label: 'Urgent', color: 'var(--red)' },
 };
 
-/* ── Helpers ── */
+/* â”€â”€ Helpers â”€â”€ */
 function fmtDate(iso: string) {
-  if (!iso) return '—';
+  if (!iso) return 'â€”';
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return '—';
+  if (isNaN(d.getTime())) return 'â€”';
   const now = new Date();
   const diffH = (now.getTime() - d.getTime()) / 3600000;
   if (diffH < 0)    return 'Just now';
@@ -89,13 +89,13 @@ function fmtDate(iso: string) {
 }
 
 function fmtTime(iso: string) {
-  if (!iso) return '—';
+  if (!iso) return 'â€”';
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return '—';
+  if (isNaN(d.getTime())) return 'â€”';
   return d.toLocaleTimeString('en-TZ', { hour: '2-digit', minute: '2-digit' });
 }
 
-/* ── Ticket card ── */
+/* â”€â”€ Ticket card â”€â”€ */
 function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }) {
   const st = STATUS_CFG[ticket.status] || STATUS_CFG.OPEN;
   const pr = PRIORITY_CFG[ticket.priority] || PRIORITY_CFG.NORMAL;
@@ -119,7 +119,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }
     >
       {/* Row 1: ref + status */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', fontFamily: 'var(--mono)', letterSpacing: '0.03em' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', fontFamily: 'var(--font)', letterSpacing: '0.03em' }}>
           {ticket.ref}
         </span>
         <span style={{
@@ -165,7 +165,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }
   );
 }
 
-/* ── Thread view ── */
+/* â”€â”€ Thread view â”€â”€ */
 function TicketThread({ ticket, threadLoading, onBack, onReply }: {
   ticket: Ticket;
   threadLoading: boolean;
@@ -185,7 +185,7 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
       await onReply(t);
       setReply('');
     } catch (err: any) {
-      showAlert(err.message || 'Could not send your message — please try again.');
+      showAlert(err.message || 'Could not send your message â€” please try again.');
     } finally {
       setSending(false);
     }
@@ -209,7 +209,7 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
             <Icon name="chevronLeft" size={18} color="var(--teal)" />
             Back
           </button>
-          <span style={{ fontSize: 12, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{ticket.ref}</span>
+          <span style={{ fontSize: 12, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{ticket.ref}</span>
           <span style={{
             fontSize: 11, fontWeight: 600, color: st.color, background: st.bg,
             borderRadius: 'var(--badge-radius)', padding: '2px 9px', marginLeft: 'auto',
@@ -231,7 +231,7 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {threadLoading ? (
-          <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13, margin: 'auto' }}>Loading conversation…</div>
+          <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13, margin: 'auto' }}>Loading conversationâ€¦</div>
         ) : ticket.messages.length === 0 ? (
           <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13, margin: 'auto' }}>No replies yet</div>
         ) : ticket.messages.map((msg) => {
@@ -255,7 +255,7 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
                 {msg.body}
               </div>
               <span style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4, paddingLeft: isMe ? 0 : 4, paddingRight: isMe ? 4 : 0 }}>
-                {isMe ? (user?.name?.split(' ')[0] ?? 'You') : 'Support Agent'} · {fmtTime(msg.ts)}
+                {isMe ? (user?.name?.split(' ')[0] ?? 'You') : 'Support Agent'} Â· {fmtTime(msg.ts)}
               </span>
             </div>
           );
@@ -270,7 +270,7 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
         }}>
           <textarea
             title="Your reply"
-            placeholder="Type your message…"
+            placeholder="Type your messageâ€¦"
             value={reply}
             disabled={sending}
             onChange={e => setReply(e.target.value)}
@@ -292,7 +292,7 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
   );
 }
 
-/* ── New ticket modal ── */
+/* â”€â”€ New ticket modal â”€â”€ */
 function NewTicketModal({ onClose, onCreate, creating }: {
   onClose: () => void;
   onCreate: (subject: string, category: string, body: string) => Promise<void>;
@@ -307,7 +307,7 @@ function NewTicketModal({ onClose, onCreate, creating }: {
     try {
       await onCreate(subject.trim(), category, body.trim());
     } catch (err: any) {
-      showAlert(err.message || 'Could not submit your ticket — please try again.');
+      showAlert(err.message || 'Could not submit your ticket â€” please try again.');
     }
   }
 
@@ -366,7 +366,7 @@ function NewTicketModal({ onClose, onCreate, creating }: {
             </label>
             <textarea
               title="Describe your issue"
-              placeholder="Provide as much detail as possible…"
+              placeholder="Provide as much detail as possibleâ€¦"
               value={body}
               onChange={e => setBody(e.target.value)}
               rows={4}
@@ -386,7 +386,7 @@ function NewTicketModal({ onClose, onCreate, creating }: {
             disabled={!subject.trim() || !body.trim() || creating}
             className="w-full"
           >
-            {creating ? 'Submitting…' : 'Submit Ticket'}
+            {creating ? 'Submittingâ€¦' : 'Submit Ticket'}
           </Button>
           </div>
         </div>
@@ -395,7 +395,7 @@ function NewTicketModal({ onClose, onCreate, creating }: {
   );
 }
 
-/* ── Main page ── */
+/* â”€â”€ Main page â”€â”€ */
 export const CustomerSupport: React.FC = () => {
   const [tickets, setTickets]           = useState<Ticket[]>([]);
   const [loading, setLoading]           = useState(true);
@@ -424,7 +424,7 @@ export const CustomerSupport: React.FC = () => {
       setSelected(full);
       setTickets(prev => prev.map(t => t.id === full.id ? full : t));
     } catch {
-      showAlert("Couldn't load this conversation — please try again.");
+      showAlert("Couldn't load this conversation â€” please try again.");
       setSelected(null);
     } finally {
       setThreadLoading(false);
@@ -465,7 +465,7 @@ export const CustomerSupport: React.FC = () => {
     }
   }
 
-  /* ── Thread view ── */
+  /* â”€â”€ Thread view â”€â”€ */
   if (selected) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 130px)', background: 'var(--bg)' }}>
@@ -480,7 +480,7 @@ export const CustomerSupport: React.FC = () => {
     );
   }
 
-  /* ── List view ── */
+  /* â”€â”€ List view â”€â”€ */
   return (
     <div style={{ padding: '0 0 20px', fontFamily: 'var(--font)' }}>
       {/* Page header */}
@@ -492,7 +492,7 @@ export const CustomerSupport: React.FC = () => {
         <div>
           <PageHeader crumbs={['Workspace', 'Support']} titlePlain="Customer" titleEm="support" />
           <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink3)' }}>
-            {loading ? 'Loading…' : `${tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length} open ticket(s)`}
+            {loading ? 'Loadingâ€¦' : `${tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length} open ticket(s)`}
           </p>
         </div>
         <Button type="button" title="Create new ticket" onClick={() => setShowNew(true)}>

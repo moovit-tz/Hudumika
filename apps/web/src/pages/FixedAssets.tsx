@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
@@ -89,7 +89,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
                 style={inp}
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="e.g. Toyota Hilux — KDX 123A or Server Rack Switch"
+                placeholder="e.g. Toyota Hilux â€” KDX 123A or Server Rack Switch"
                 autoFocus
               />
             </div>
@@ -106,7 +106,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
               <div>
                 <label style={lbl}>Asset GL Account Code</label>
                 <div style={{ ...inp, background: 'var(--bg)', color: 'var(--ink2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>{category === 'MOTOR_VEHICLE' ? '1502 · Motor Vehicles' : '1501 · Office Equipment & Fixtures'}</span>
+                  <span>{category === 'MOTOR_VEHICLE' ? '1502 Â· Motor Vehicles' : '1501 Â· Office Equipment & Fixtures'}</span>
                   <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 4 }}>Auto</span>
                 </div>
               </div>
@@ -174,7 +174,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Monthly Depreciation
                 </div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--teal)', marginTop: 4, fontFamily: 'var(--mono)' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--teal)', marginTop: 4, fontFamily: 'var(--font)' }}>
                   {fmt(monthlyDepreciation)}
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 3 }}>
@@ -184,27 +184,27 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ color: 'var(--ink3)' }}>Acquisition Cost</span>
-                <span style={{ fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{fmt(cost)}</span>
+                <span style={{ fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>{fmt(cost)}</span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ color: 'var(--ink3)' }}>Salvage Value</span>
-                <span style={{ fontWeight: 600, fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>{fmt(salvageValue)}</span>
+                <span style={{ fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink2)' }}>{fmt(salvageValue)}</span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ color: 'var(--ink3)' }}>Depreciable Base</span>
-                <span style={{ fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{fmt(depreciableBase)}</span>
+                <span style={{ fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>{fmt(depreciableBase)}</span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ color: 'var(--ink3)' }}>Annual Depr.</span>
-                <span style={{ fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{fmt(annualDepreciation)}</span>
+                <span style={{ fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>{fmt(annualDepreciation)}</span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '4px 0' }}>
                 <span style={{ color: 'var(--ink3)' }}>Net Book Value at Start</span>
-                <span style={{ fontWeight: 800, fontFamily: 'var(--mono)', color: 'var(--green)' }}>{fmt(cost)}</span>
+                <span style={{ fontWeight: 800, fontFamily: 'var(--font)', color: 'var(--green)' }}>{fmt(cost)}</span>
               </div>
             </div>
 
@@ -216,7 +216,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
                 disabled={saving}
                 onClick={submit}
               >
-                <Icon name="save" size={14} /> {saving ? 'Saving…' : 'Add Fixed Asset'}
+                <Icon name="save" size={14} /> {saving ? 'Savingâ€¦' : 'Add Fixed Asset'}
               </button>
             </div>
           </div>
@@ -284,7 +284,7 @@ export function FixedAssets() {
     return <NewAssetForm onSave={handleSave} onClose={() => setShowForm(false)} fmt={fmt} />;
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading fixed assets…</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading fixed assetsâ€¦</div>;
 
   const totalCost = assets.reduce((s, a) => s + Number(a.cost), 0);
   const totalNBV = assets.filter(a => a.status === 'ACTIVE').reduce((s, a) => s + Number(a.net_book_value), 0);
@@ -358,9 +358,9 @@ export function FixedAssets() {
                   <td style={{ padding: '9px 12px', fontWeight: 600 }}>{a.name}</td>
                   <td style={{ padding: '9px 12px', color: 'var(--ink3)' }}>{CATEGORY_LABEL[a.category] || a.category}</td>
                   <td style={{ padding: '9px 12px' }}>{new Date(a.acquisition_date).toLocaleDateString('en-GB')}</td>
-                  <td style={{ padding: '9px 12px', textAlign: 'right', fontFamily: 'var(--mono)' }}>{fmt(a.cost)}</td>
-                  <td style={{ padding: '9px 12px', textAlign: 'right', fontFamily: 'var(--mono)', color: 'var(--gold)' }}>{fmt(a.accumulated_depreciation)}</td>
-                  <td style={{ padding: '9px 12px', textAlign: 'right', fontFamily: 'var(--mono)', fontWeight: 700 }}>{fmt(a.net_book_value)}</td>
+                  <td style={{ padding: '9px 12px', textAlign: 'right', fontFamily: 'var(--font)' }}>{fmt(a.cost)}</td>
+                  <td style={{ padding: '9px 12px', textAlign: 'right', fontFamily: 'var(--font)', color: 'var(--gold)' }}>{fmt(a.accumulated_depreciation)}</td>
+                  <td style={{ padding: '9px 12px', textAlign: 'right', fontFamily: 'var(--font)', fontWeight: 700 }}>{fmt(a.net_book_value)}</td>
                   <td style={{ padding: '9px 12px', textAlign: 'center' }}>
                     <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 700, background: a.status === 'ACTIVE' ? 'var(--green-l)' : 'var(--bg)', color: a.status === 'ACTIVE' ? 'var(--green)' : 'var(--ink3)' }}>{a.status}</span>
                   </td>
@@ -389,8 +389,8 @@ export function FixedAssets() {
                 {schedule.map((s, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 22px', borderBottom: '1px solid var(--border)', fontSize: 12.5 }}>
                     <span style={{ color: 'var(--ink2)' }}>{s.period}</span>
-                    <span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{fmt(s.amount)}</span>
-                    <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{fmt(s.net_book_value)} NBV</span>
+                    <span style={{ fontFamily: 'var(--font)', fontWeight: 600 }}>{fmt(s.amount)}</span>
+                    <span style={{ fontFamily: 'var(--font)', color: 'var(--ink3)' }}>{fmt(s.net_book_value)} NBV</span>
                   </div>
                 ))}
               </div>

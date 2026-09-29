@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth.js';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip,
@@ -24,7 +24,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 function fmtTZS(n: number) { return 'TZS ' + Math.round(n).toLocaleString('en'); }
 
 function StageCycleAreaChart({ rows, onSelect }: { rows: StageBottleneck[]; onSelect: (row: StageBottleneck) => void }) {
-  const data = rows.map(row => ({ ...row, label: row.stage_label.length > 14 ? `${row.stage_label.slice(0, 13)}…` : row.stage_label }));
+  const data = rows.map(row => ({ ...row, label: row.stage_label.length > 14 ? `${row.stage_label.slice(0, 13)}â€¦` : row.stage_label }));
   return <div className="clearos-chart"><ResponsiveContainer width="100%" height="100%">
     <AreaChart data={data} margin={{ top: 10, right: 12, left: -16, bottom: 42 }} onClick={(state: any) => {
       if (state?.activeTooltipIndex != null && data[state.activeTooltipIndex]) onSelect(data[state.activeTooltipIndex]);
@@ -54,8 +54,8 @@ function OfficerOutputDonut({ rows, onSelect }: { rows: OfficerPerformance[]; on
   </div>;
 }
 
-/* ── Collapsible section wrapper: stat tiles + clickable chart up top,
-     full sortable/paginated table revealed on demand or via a bar click ── */
+/* â”€â”€ Collapsible section wrapper: stat tiles + clickable chart up top,
+     full sortable/paginated table revealed on demand or via a bar click â”€â”€ */
 function MetricSection({ title, icon, variant, onExport, statTiles, chart, table, expanded, onToggle }: {
   title: string;
   icon: IconName;
@@ -120,7 +120,7 @@ function LedgerIntegritySection() {
     return (
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 'var(--r)', background: 'var(--green-l)', border: '1px solid var(--green)', fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>
         <Icon name="shield" size={13} strokeWidth={2} />
-        Audit trail anchored — records are independently verifiable
+        Audit trail anchored â€” records are independently verifiable
       </div>
     );
   }
@@ -193,7 +193,7 @@ function LedgerIntegrityAdminPanel() {
             {detailsOpen ? 'Hide details' : 'View details'}
           </Button>
           <Button size="sm" onClick={anchorNow} disabled={anchoring}>
-            <Icon name="lock" size={13} /> {anchoring ? 'Anchoring…' : 'Anchor Now'}
+            <Icon name="lock" size={13} /> {anchoring ? 'Anchoringâ€¦' : 'Anchor Now'}
           </Button>
         </div>
       </div>
@@ -203,30 +203,30 @@ function LedgerIntegrityAdminPanel() {
       <div className="clearos-ledger-metrics">
         <div className="clearos-ledger-metric">
           <span className="clearos-ledger-metric__label">Anchor records</span>
-          <strong>{loading ? '—' : anchors.length.toLocaleString('en')}</strong>
+          <strong>{loading ? 'â€”' : anchors.length.toLocaleString('en')}</strong>
           <span>Total checkpoints</span>
         </div>
         <div className="clearos-ledger-metric" data-tone="success">
           <span className="clearos-ledger-metric__label">Confirmed</span>
-          <strong>{loading ? '—' : confirmedCount.toLocaleString('en')}</strong>
+          <strong>{loading ? 'â€”' : confirmedCount.toLocaleString('en')}</strong>
           <span>Secured on Bitcoin</span>
         </div>
         <div className="clearos-ledger-metric" data-tone="warning">
           <span className="clearos-ledger-metric__label">Pending</span>
-          <strong>{loading ? '—' : pendingCount.toLocaleString('en')}</strong>
+          <strong>{loading ? 'â€”' : pendingCount.toLocaleString('en')}</strong>
           <span>Awaiting confirmation</span>
         </div>
         <div className="clearos-ledger-metric">
           <span className="clearos-ledger-metric__label">Declarations anchored</span>
-          <strong>{loading ? '—' : declarationCount.toLocaleString('en')}</strong>
+          <strong>{loading ? 'â€”' : declarationCount.toLocaleString('en')}</strong>
           <span>{latestBlock ? `Latest block ${latestBlock.toLocaleString('en')}` : 'No confirmed block yet'}</span>
         </div>
       </div>
 
       {detailsOpen && (loading ? (
-        <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading anchor history…</div>
+        <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading anchor historyâ€¦</div>
       ) : anchors.length === 0 ? (
-        <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No anchors yet — click "Anchor Now" to create the first one.</div>
+        <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No anchors yet â€” click "Anchor Now" to create the first one.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {anchors.map(a => (
@@ -236,8 +236,8 @@ function LedgerIntegrityAdminPanel() {
                   <Badge variant={a.status === 'confirmed' ? 'success' : a.status === 'failed' ? 'error' : 'warning'}>
                     {a.status === 'confirmed' ? 'Confirmed' : a.status === 'failed' ? 'Failed' : 'Pending'}
                   </Badge>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={a.checkpointHash}>
-                    {a.checkpointHash.slice(0, 20)}…
+                  <span style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={a.checkpointHash}>
+                    {a.checkpointHash.slice(0, 20)}â€¦
                   </span>
                 </div>
                 {a.status === 'confirmed' && a.bitcoinBlockHeight && (
@@ -247,15 +247,15 @@ function LedgerIntegrityAdminPanel() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink3)' }}>
                   <span>{a.declarationCount} declaration{a.declarationCount !== 1 ? 's' : ''}</span>
-                  <span aria-hidden="true">·</span>
+                  <span aria-hidden="true">Â·</span>
                   <span>{a.trigger === 'manual' ? 'Manual' : 'Scheduled'}</span>
-                  <span aria-hidden="true">·</span>
+                  <span aria-hidden="true">Â·</span>
                   <span>{new Date(a.createdAt).toLocaleString()}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {a.status === 'pending' && (
                     <Button size="sm" variant="outline" onClick={() => checkConfirmation(a.id)} disabled={checkingId === a.id}>
-                      {checkingId === a.id ? 'Checking…' : 'Check Confirmation'}
+                      {checkingId === a.id ? 'Checkingâ€¦' : 'Check Confirmation'}
                     </Button>
                   )}
                   <Button size="sm" variant="ghost" onClick={() => downloadProof(a.id, a.checkpointHash)}>
@@ -272,7 +272,7 @@ function LedgerIntegrityAdminPanel() {
 }
 
 /**
- * ClearOS management dashboard — the single, focused source of ops metrics.
+ * ClearOS management dashboard â€” the single, focused source of ops metrics.
  * Headline figures + a clickable chart lead each section; the full
  * sortable/paginated table is one click away (or jumped-to directly by
  * clicking a bar) rather than always-open with a duplicate totals row.
@@ -340,7 +340,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
   const totalPenalties = officers.reduce((s, o) => s + o.penalties_caused, 0);
   const avgClosed = officers.length > 0 ? Math.round(totalClosed / officers.length) : 0;
 
-  // Bar chart data — sorted worst-first so the bottleneck / most-penalised are visually obvious
+  // Bar chart data â€” sorted worst-first so the bottleneck / most-penalised are visually obvious
   const officersSortedForChart = [...officers].sort((a, b) => b.cases_closed - a.cases_closed);
 
   const bottleneckColumns: ColumnDef<StageBottleneck>[] = [
@@ -348,9 +348,9 @@ export const ClearOSMetricsDashboard: React.FC = () => {
     { key: 'cases', label: 'Cases', align: 'right', sortValue: b => b.case_count, render: b => `${b.case_count}` },
     {
       key: 'avg', label: 'Avg Duration', align: 'right', sortValue: b => b.avg_hours,
-      render: b => <span style={{ color: b.avg_hours > 24 ? 'var(--red)' : 'var(--ink)', fontFamily: 'var(--mono)' }}>{b.avg_hours}h</span>,
+      render: b => <span style={{ color: b.avg_hours > 24 ? 'var(--red)' : 'var(--ink)', fontFamily: 'var(--font)' }}>{b.avg_hours}h</span>,
     },
-    { key: 'p90', label: 'P90 Duration', align: 'right', sortValue: b => b.p90_hours, render: b => <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>{b.p90_hours}h</span> },
+    { key: 'p90', label: 'P90 Duration', align: 'right', sortValue: b => b.p90_hours, render: b => <span style={{ fontFamily: 'var(--font)', color: 'var(--ink2)' }}>{b.p90_hours}h</span> },
     {
       key: 'breaches', label: 'SLA Breaches', align: 'right', sortValue: b => b.sla_breaches,
       render: b => <span className={b.sla_breaches > 0 ? 'badge badge-red' : 'badge badge-green'}>{b.sla_breaches}</span>,
@@ -363,7 +363,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
     { key: 'closed', label: 'Closed Cases', align: 'right', sortValue: o => o.cases_closed, render: o => `${o.cases_closed}` },
     {
       key: 'avg_days', label: 'Avg Cycle', align: 'right', sortValue: o => o.avg_days,
-      render: o => <span style={{ fontFamily: 'var(--mono)' }}>{o.avg_days > 0 ? `${o.avg_days}d` : '—'}</span>,
+      render: o => <span style={{ fontFamily: 'var(--font)' }}>{o.avg_days > 0 ? `${o.avg_days}d` : 'â€”'}</span>,
     },
     {
       key: 'penalties', label: 'Demurrage Penalties', align: 'right', sortValue: o => o.penalties_caused,
@@ -388,7 +388,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
             Operations metrics
           </div>
           <div className="clearos-dashboard__toolbar-meta">
-            {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Loading…'}
+            {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Loadingâ€¦'}
           </div>
         </div>
         <div className="clearos-dashboard__toolbar-spacer" />
@@ -402,7 +402,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
         <div className="clearos-dashboard__content">
         {error && <Banner variant="error" className="mb-5">{error}</Banner>}
 
-        {/* Tenant-wide command KPIs — deliberately distinct from the section stat tiles below
+        {/* Tenant-wide command KPIs â€” deliberately distinct from the section stat tiles below
             (those cover stage-cycle-time and per-officer detail; this row covers volume,
             live risk exposure, and sustainability, none of which appear anywhere else). */}
         <MetricsRow cards={[
@@ -410,17 +410,17 @@ export const ClearOSMetricsDashboard: React.FC = () => {
             title: 'Monthly Volume',
             value: String(kpis?.cases_this_month ?? 0),
             sub1Label: 'DELIVERED TODAY', sub1Value: String(kpis?.delivered_today ?? 0),
-            sub2Label: 'AVG / DAY',       sub2Value: kpis ? String(Math.round((kpis.cases_this_month || 0) / new Date().getDate())) : '—',
+            sub2Label: 'AVG / DAY',       sub2Value: kpis ? String(Math.round((kpis.cases_this_month || 0) / new Date().getDate())) : 'â€”',
             icon: 'package',
             barColor: 'var(--teal-l)', barHighlight: 'var(--teal)',
             onMenuClick: load, menuTitle: 'Refresh volume data',
           },
           {
             title: 'On-Time Performance',
-            // The API returns null until at least one case has closed. "—" is
+            // The API returns null until at least one case has closed. "â€”" is
             // the honest reading of no data; "100%" or "0%" would both be
             // claims the figures do not support.
-            value: kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`,
+            value: kpis?.on_time_rate_pct == null ? 'â€”' : `${kpis.on_time_rate_pct}%`,
             sub1Label: 'AT RISK (48H)',      sub1Value: String(kpis?.demurrage_risk ?? 0),
             sub2Label: 'PENALTY EXPOSURE',   sub2Value: fmtTZS(kpis?.penalty_exposure_tzs ?? 0),
             icon: 'checkCircle',
@@ -439,7 +439,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
 
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center', fontSize: 14, color: 'var(--ink3)' }}>
-            Loading operational metrics…
+            Loading operational metricsâ€¦
           </div>
         ) : (
           <>
@@ -454,9 +454,9 @@ export const ClearOSMetricsDashboard: React.FC = () => {
               onToggle={() => setBottlenecksOpen(o => !o)}
               statTiles={<>
                 <StatTile label="Total Cases" value={String(totalCases)} />
-                <StatTile label="Avg Duration" value={totalCases > 0 ? `${weightedAvgHours.toFixed(1)}h` : '—'} />
+                <StatTile label="Avg Duration" value={totalCases > 0 ? `${weightedAvgHours.toFixed(1)}h` : 'â€”'} />
                 <StatTile label="SLA Breaches" value={String(totalBreaches)} tone={totalBreaches > 0 ? 'red' : 'green'} />
-                <StatTile label="Slowest Stage" value={slowest ? slowest.stage_label : '—'} />
+                <StatTile label="Slowest Stage" value={slowest ? slowest.stage_label : 'â€”'} />
               </>}
               chart={bottlenecks.length > 0 ? (
                 <StageCycleAreaChart rows={bottlenecks} onSelect={(row) => { setFocusStage(row.stage); setBottlenecksOpen(true); }} />
@@ -484,7 +484,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
               statTiles={<>
                 <StatTile label="Active Cases" value={String(totalActive)} />
                 <StatTile label="Closed Cases" value={String(totalClosed)} />
-                <StatTile label="Top Officer" value={topOfficer ? topOfficer.name.split(' ')[0] : '—'} />
+                <StatTile label="Top Officer" value={topOfficer ? topOfficer.name.split(' ')[0] : 'â€”'} />
                 <StatTile label="Total Penalties" value={String(totalPenalties)} tone={totalPenalties > 0 ? 'red' : 'green'} />
               </>}
               chart={officersSortedForChart.some(o => o.cases_closed > 0) ? (

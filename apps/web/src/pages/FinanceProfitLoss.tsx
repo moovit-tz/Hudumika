@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
@@ -50,7 +50,7 @@ function buildCostsProfitRows(revenueTotal: number, expenses: ProfitLossLine[]) 
   const cogs = expenses.filter(e => e.subtype === 'COST_OF_SERVICES');
   const opex = expenses.filter(e => e.subtype === 'OPERATING_EXPENSE' || e.subtype === 'ADMIN_EXPENSE');
   const finance = expenses.filter(e => e.subtype === 'FINANCE_COST');
-  // Income tax (5950) and deferred tax (5951) — kept out of the "Other
+  // Income tax (5950) and deferred tax (5951) â€” kept out of the "Other
   // Expenses" catch-all (M5 of the corporate-tax build-out) so the final
   // line can honestly say "after tax" only for a period where a real tax
   // figure was actually subtracted, not unconditionally as it did before
@@ -106,8 +106,8 @@ function buildCostsProfitRows(revenueTotal: number, expenses: ProfitLossLine[]) 
     rows.push({ label: '', amount: 0, separator: true });
     rows.push({ label: 'NET PROFIT AFTER TAX', amount: netProfitAfterTax, bold: true });
   } else {
-    // No tax posted for this period (e.g. a monthly period — deferred tax
-    // only posts at year-end close) — the plain "Net Profit" label is the
+    // No tax posted for this period (e.g. a monthly period â€” deferred tax
+    // only posts at year-end close) â€” the plain "Net Profit" label is the
     // honest one; claiming "after tax" here would assert a deduction that
     // never happened.
     rows.push({ label: 'NET PROFIT', amount: netProfitAfterTax, bold: true });
@@ -151,7 +151,7 @@ function PLSection({ rows, highlightColor, cur }: { rows: PLRow[]; highlightColo
                 fontSize: row.bold ? 13 : 12,
                 fontWeight: row.bold ? 700 : 400,
                 color: isTotal ? highlightColor : row.sub ? 'var(--ink2)' : 'var(--ink)',
-                fontFamily: 'var(--mono)',
+                fontFamily: 'var(--font)',
                 // Digits line up column-wise, and the figure is never broken
                 // across lines or shrunk away.
                 fontVariantNumeric: 'tabular-nums',
@@ -196,7 +196,7 @@ export const FinanceProfitLoss: React.FC = () => {
     [report, revenueTotal]
   );
 
-  // Was `${cur} ${(n/1e6).toFixed(1)}M` — one tier, so it stopped being short
+  // Was `${cur} ${(n/1e6).toFixed(1)}M` â€” one tier, so it stopped being short
   // exactly when it mattered: a trillion USD in shillings came out as
   // "TZS 2646444401.0M", 17 characters in a card measured at 117px on a phone.
   // fmtCompact carries the full M/B/T/Q ladder and the tenant's own currency.
@@ -225,7 +225,7 @@ export const FinanceProfitLoss: React.FC = () => {
         crumbs={['Finance', 'Reports']}
         titlePlain="Profit and"
         titleEm="loss"
-        subtitle="Income statement — freight & customs clearing operations."
+        subtitle="Income statement â€” freight & customs clearing operations."
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Select value={period} onValueChange={setPeriod}>
@@ -242,7 +242,7 @@ export const FinanceProfitLoss: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading profit &amp; loss…</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading profit &amp; lossâ€¦</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (

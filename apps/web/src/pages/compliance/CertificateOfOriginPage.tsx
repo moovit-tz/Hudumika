@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
@@ -17,8 +17,8 @@ import { getJobs } from '../clearanceData.js';
  * Preferential-origin eligibility check + Certificate of Origin issuance
  * (ClearOS M5). The eligibility engine only ever auto-decides what real
  * declared data supports (a value-added % against a real threshold); every
- * other case — wholly-obtained, specific-process criteria, AfCFTA's general
- * framework — comes back needing a human to confirm the actual production
+ * other case â€” wholly-obtained, specific-process criteria, AfCFTA's general
+ * framework â€” comes back needing a human to confirm the actual production
  * facts. See origin-rules.service.ts for exactly what's sourced, real data.
  */
 
@@ -65,7 +65,7 @@ export function CertificateOfOriginPage() {
   const shipmentLabel = (id: string | null) => {
     if (!id) return null;
     const job = jobs.find(j => j.id === id);
-    return job ? `${job.bl ? `${job.bl} — ` : ''}${job.customer}` : id;
+    return job ? `${job.bl ? `${job.bl} â€” ` : ''}${job.customer}` : id;
   };
 
   const load = useCallback(() => {
@@ -152,7 +152,7 @@ export function CertificateOfOriginPage() {
         crumbs={['ClearOS', 'Compliance', 'Certificate of Origin']}
         titlePlain="Certificate of"
         titleEm="origin"
-        subtitle="Real EAC/AfCFTA rules-of-origin criteria — eligibility is only auto-decided when the declared data genuinely supports it; everything else needs a human confirmation before issuing."
+        subtitle="Real EAC/AfCFTA rules-of-origin criteria â€” eligibility is only auto-decided when the declared data genuinely supports it; everything else needs a human confirmation before issuing."
         actions={
           <Button onClick={() => setShowForm(s => !s)}>
             <Icon name="plus" size={14} /> {showForm ? 'Cancel' : 'New certificate'}
@@ -174,7 +174,7 @@ export function CertificateOfOriginPage() {
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Shipment (optional)</label>
               <Combobox
-                options={jobs.map(j => ({ value: j.id, label: `${j.bl ? `BL: ${j.bl} — ` : ''}${j.customer} (${j.title})` }))}
+                options={jobs.map(j => ({ value: j.id, label: `${j.bl ? `BL: ${j.bl} â€” ` : ''}${j.customer} (${j.title})` }))}
                 value={selectedJobId} onChange={pickJob} placeholder="Not linked to a shipment"
               />
             </div>
@@ -251,7 +251,7 @@ export function CertificateOfOriginPage() {
             </div>
 
             {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-            <Button disabled={saving} onClick={submit}>{saving ? 'Saving…' : 'Save certificate'}</Button>
+            <Button disabled={saving} onClick={submit}>{saving ? 'Savingâ€¦' : 'Save certificate'}</Button>
           </SectionCard>
         )}
 
@@ -264,7 +264,7 @@ export function CertificateOfOriginPage() {
             <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  {['Agreement', 'HS Code', 'Origin', 'Exporter → Consignee', 'Eligibility', 'Status', ''].map(h => (
+                  {['Agreement', 'HS Code', 'Origin', 'Exporter â†’ Consignee', 'Eligibility', 'Status', ''].map(h => (
                     <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                   ))}
                 </tr>
@@ -273,10 +273,10 @@ export function CertificateOfOriginPage() {
                 {rows.map(row => (
                   <tr key={row.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '12px 16px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{row.agreement_code}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>{row.hs_code}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--ink2)' }}>{row.hs_code}</td>
                     <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{row.country_of_origin}</td>
                     <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>
-                      {row.exporter_name || '—'} → {row.consignee_name || '—'}
+                      {row.exporter_name || 'â€”'} â†’ {row.consignee_name || 'â€”'}
                       {row.subject_type === 'shipment' && row.subject_id && (
                         <div><Link to={`/clearance/${row.subject_id}`} style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 600 }}>{shipmentLabel(row.subject_id) ?? 'View shipment'}</Link></div>
                       )}

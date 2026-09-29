@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Button } from '../components/ui/button.js';
@@ -161,7 +161,7 @@ export default function BuildingBlocksShowcase() {
                       </div>
                     </td>
                     <td style={{ padding: '12px 16px', color: 'var(--ink2)' }}>{r.action}</td>
-                    <td style={{ padding: '12px 16px', color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{r.target}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{r.target}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <Badge variant={r.status === 'ACTIVE' || r.status === 'VERIFIED' ? 'success' : 'warning'}>{r.status}</Badge>
                     </td>
@@ -323,7 +323,7 @@ export default function BuildingBlocksShowcase() {
             </p>
           </div>
           <Input
-            placeholder="Search blocks…"
+            placeholder="Search blocksâ€¦"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={{ width: 240 }}

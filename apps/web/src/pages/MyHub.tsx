@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -150,7 +150,7 @@ export function MyHubPage() {
     },
   ];
 
-  if (loading) return <div style={{ padding: 40, color: 'var(--ink3)', textAlign: 'center' }}>Loading your employee hub…</div>;
+  if (loading) return <div style={{ padding: 40, color: 'var(--ink3)', textAlign: 'center' }}>Loading your employee hubâ€¦</div>;
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 50 }}>
@@ -160,10 +160,10 @@ export function MyHubPage() {
         titleEm="hub"
         subtitle="Your attendance, leave, payslips, documents, and workplace updates in one place."
       />
-      {/* 📊 KPI Row */}
+      {/* ðŸ“Š KPI Row */}
       <MetricsRow cards={metrics} />
 
-      {/* 🚀 Main Split Dashboard Section */}
+      {/* ðŸš€ Main Split Dashboard Section */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, marginTop: 24 }}>
         {/* Left Primary Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -176,11 +176,11 @@ export function MyHubPage() {
                 </div>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Today's Shift Timeline</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Standard Shift: 08:00 AM – 05:00 PM (1h Break)</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Standard Shift: 08:00 AM â€“ 05:00 PM (1h Break)</div>
                 </div>
               </div>
               <Link to="/nexushr/clock-in" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
-                Full Roster ➔
+                Full Roster âž”
               </Link>
             </div>
 
@@ -193,7 +193,7 @@ export function MyHubPage() {
               ].map((s, idx) => (
                 <div key={idx} style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: 14, border: '1px solid var(--border)' }}>
                   <div style={labelStyle}>{s.title}</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: s.color, marginTop: 4, fontFamily: 'var(--mono)' }}>{s.time}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: s.color, marginTop: 4, fontFamily: 'var(--font)' }}>{s.time}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{s.status}</div>
                 </div>
               ))}
@@ -259,7 +259,7 @@ export function MyHubPage() {
                 </div>
               </div>
               <Link to="/nexushr/my-payslips" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
-                All Slips ({slipCount}) ➔
+                All Slips ({slipCount}) âž”
               </Link>
             </div>
 
@@ -268,7 +268,7 @@ export function MyHubPage() {
                 <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: 18, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div>
                     <div style={labelStyle}>Net Take-Home Pay</div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--green)', fontFamily: 'var(--mono)', marginTop: 2 }}>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--green)', fontFamily: 'var(--font)', marginTop: 2 }}>
                       {money(latestSlip.net_pay)}
                     </div>
                   </div>
@@ -392,7 +392,7 @@ export function MyHubPage() {
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.4 }}>
               <strong>Nane Nane Day (Farmers' Day)</strong><br />
-              August 8, 2026 • Official National Holiday
+              August 8, 2026 â€¢ Official National Holiday
             </div>
           </div>
         </div>

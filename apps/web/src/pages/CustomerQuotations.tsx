@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/s
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
 
-/* ── Types ── */
+/* â”€â”€ Types â”€â”€ */
 type QuoteStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CONVERTED' | 'EXPIRED';
 
 interface QuoteLine {
@@ -43,7 +43,7 @@ interface Quote {
   lines?: QuoteLine[];
 }
 
-/* ── Status config ── */
+/* â”€â”€ Status config â”€â”€ */
 const STATUS_CFG: Record<QuoteStatus, { label: string; color: string; bg: string }> = {
   DRAFT:     { label: 'Draft',     color: 'var(--ink2)', bg: 'var(--bg)' },
   PENDING:   { label: 'Pending',   color: 'var(--gold)', bg: 'var(--gold-l)' },
@@ -53,13 +53,13 @@ const STATUS_CFG: Record<QuoteStatus, { label: string; color: string; bg: string
   EXPIRED:   { label: 'Expired',   color: 'var(--ink3)', bg: 'var(--bg)' },
 };
 
-/* ── helpers ── */
+/* â”€â”€ helpers â”€â”€ */
 function fmtAmt(n: number, currency = 'TZS') {
   if (currency === 'USD') return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return `TZS ${Math.round(n).toLocaleString()}`;
 }
 function fmtDate(iso?: string | null) {
-  if (!iso) return '—';
+  if (!iso) return 'â€”';
   return new Date(iso).toLocaleDateString('en-TZ', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 function isExpiringSoon(dateStr: string | null) {
@@ -68,7 +68,7 @@ function isExpiringSoon(dateStr: string | null) {
   return diff > 0 && diff < 5 * 86400000; // within 5 days
 }
 
-/* ── Reject modal ── */
+/* â”€â”€ Reject modal â”€â”€ */
 function RejectModal({ quote, onClose, onReject }: {
   quote: Quote;
   onClose: () => void;
@@ -90,7 +90,7 @@ function RejectModal({ quote, onClose, onReject }: {
           </label>
           <textarea
             title="Rejection reason"
-            placeholder="Let us know why you're rejecting this quote…"
+            placeholder="Let us know why you're rejecting this quoteâ€¦"
             value={reason}
             onChange={e => setReason(e.target.value)}
             rows={3}
@@ -105,7 +105,7 @@ function RejectModal({ quote, onClose, onReject }: {
   );
 }
 
-/* ── Accept confirmation ── */
+/* â”€â”€ Accept confirmation â”€â”€ */
 function AcceptModal({ quote, onClose, onAccept }: {
   quote: Quote;
   onClose: () => void;
@@ -141,7 +141,7 @@ function AcceptModal({ quote, onClose, onAccept }: {
   );
 }
 
-/* ── Quote detail ── */
+/* â”€â”€ Quote detail â”€â”€ */
 function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => void }) {
   const [quote, setQuote]       = useState(initial);
   const [accepting, setAccepting] = useState(false);
@@ -163,7 +163,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
       setQuote(q => ({ ...q, status: 'APPROVED' }));
       showToast('Quote accepted! Our team will be in touch shortly.');
     } catch {
-      showToast('Could not accept quote — please try again or contact support.');
+      showToast('Could not accept quote â€” please try again or contact support.');
     } finally {
       setSaving(false);
     }
@@ -177,7 +177,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
       setQuote(q => ({ ...q, status: 'REJECTED', rejection_reason: reason }));
       showToast('Quote rejected.');
     } catch {
-      showToast('Could not reject quote — please try again.');
+      showToast('Could not reject quote â€” please try again.');
     } finally {
       setSaving(false);
     }
@@ -192,7 +192,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
           <Icon name="chevronLeft" size={18} color="var(--teal)" />
           Back
         </button>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)', flex: 1 }}>{quote.quote_number}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)', flex: 1 }}>{quote.quote_number}</span>
         <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>{st.label}</span>
       </div>
 
@@ -202,7 +202,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
           <div style={{ background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="alertTriangle" size={16} color="var(--gold)" />
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gold)' }}>
-              Expires {fmtDate(quote.valid_until)} — accept before it lapses
+              Expires {fmtDate(quote.valid_until)} â€” accept before it lapses
             </span>
           </div>
         )}
@@ -215,7 +215,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
           </div>
           <div style={{ fontSize: 13, color: 'hsl(var(--primary-foreground) / 0.8)', lineHeight: 1.5 }}>{quote.title}</div>
           <div style={{ marginTop: 12, display: 'flex', gap: 16, fontSize: 12, color: 'hsl(var(--primary-foreground) / 0.7)' }}>
-            <span>{quote.origin_port} → {quote.destination_port}</span>
+            <span>{quote.origin_port} â†’ {quote.destination_port}</span>
             {quote.valid_until && <span>Valid until {fmtDate(quote.valid_until)}</span>}
           </div>
         </div>
@@ -252,7 +252,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
               <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, paddingBottom: 10, borderBottom: i < (quote.lines!.length - 1) ? '1px solid var(--bg)' : 'none' }}>
                 <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{line.description}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{line.category} · Qty {line.quantity}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{line.category} Â· Qty {line.quantity}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{fmtAmt(line.line_total, quote.currency)}</div>
@@ -307,7 +307,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
               </Button>
               <Button type="button" size="lg" title="Accept this quote" onClick={() => setAccepting(true)} disabled={saving} style={{ flex: 2 }}>
                 <Icon name="checkCircle" size={15} />
-                {saving ? 'Saving…' : 'Accept Quote'}
+                {saving ? 'Savingâ€¦' : 'Accept Quote'}
               </Button>
             </div>
             <Link to="/support/tickets" title="Request changes via support"
@@ -346,7 +346,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
   );
 }
 
-/* ── Quote list card ── */
+/* â”€â”€ Quote list card â”€â”€ */
 function QuoteCard({ quote, onClick }: { quote: Quote; onClick: () => void }) {
   const st     = STATUS_CFG[quote.status];
   const canAct = quote.status === 'PENDING' || quote.status === 'DRAFT';
@@ -360,11 +360,11 @@ function QuoteCard({ quote, onClick }: { quote: Quote; onClick: () => void }) {
       borderRadius: 'var(--r)', padding: '16px', fontFamily: 'var(--font)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', fontFamily: 'var(--mono)', flex: 1 }}>{quote.quote_number}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', fontFamily: 'var(--font)', flex: 1 }}>{quote.quote_number}</span>
         <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '2px 10px', flexShrink: 0 }}>{st.label}</span>
       </div>
       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, lineHeight: 1.3 }}>{quote.title}</div>
-      <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>{quote.origin_port} → {quote.destination_port}</div>
+      <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>{quote.origin_port} â†’ {quote.destination_port}</div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: expiring && canAct ? 'var(--gold)' : 'var(--ink3)', fontWeight: expiring && canAct ? 600 : 400 }}>
           {expiring && canAct ? <><Icon name="alertTriangle" size={11} /> Expires {fmtDate(quote.valid_until)}</> : quote.valid_until ? `Valid until ${fmtDate(quote.valid_until)}` : fmtDate(quote.created_at)}
@@ -380,11 +380,11 @@ function QuoteCard({ quote, onClick }: { quote: Quote; onClick: () => void }) {
   );
 }
 
-/* ── Main page ── */
+/* â”€â”€ Main page â”€â”€ */
 export const CustomerQuotations: React.FC = () => {
   const [quotes, setQuotes]     = useState<Quote[]>([]);
   const [loading, setLoading]   = useState(true);
-  // A failed fetch used to silently substitute mock quotes — a customer
+  // A failed fetch used to silently substitute mock quotes â€” a customer
   // would see fabricated amounts and a fake client name in place of their
   // real quotations. Same fix as CustomerInvoices.tsx: say the load failed
   // and offer to retry, rather than showing invented data as if it were real.
@@ -431,7 +431,7 @@ export const CustomerQuotations: React.FC = () => {
       <div style={{ padding: '20px 16px 0' }}>
         <PageHeader crumbs={['Workspace', 'Quotations']} titlePlain="Your" titleEm="quotations" />
         <p style={{ margin: '0 0 16px', fontSize: 13, color: pendingCount > 0 ? 'var(--gold)' : 'var(--ink3)' }}>
-          {loading ? 'Loading…' : pendingCount > 0 ? `${pendingCount} pending your action` : `${quotes.length} quote${quotes.length !== 1 ? 's' : ''}`}
+          {loading ? 'Loadingâ€¦' : pendingCount > 0 ? `${pendingCount} pending your action` : `${quotes.length} quote${quotes.length !== 1 ? 's' : ''}`}
         </p>
       </div>
 

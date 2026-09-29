@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -24,7 +24,7 @@ import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import './CMS.css';
 
-/* ── Types ── */
+/* â”€â”€ Types â”€â”€ */
 interface Post {
   id: string; title: string; slug: string; content: string;
   status: 'published' | 'draft' | 'scheduled' | 'trash' | 'in_review' | 'approved' | 'archived';
@@ -57,7 +57,7 @@ function ago(iso: string) {
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`; return `${Math.floor(s / 86400)}d ago`;
 }
 function fmtDate(iso: string) { return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
-/** For a <input type="datetime-local"> value — local time, no timezone suffix. */
+/** For a <input type="datetime-local"> value â€” local time, no timezone suffix. */
 function toLocalInput(iso: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
@@ -66,14 +66,14 @@ function toLocalInput(iso: string | null): string {
 }
 
 const SUPPORTED_LOCALES = [
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'sw', name: 'Swahili (Kiswahili)', flag: '🇹🇿' },
-  { code: 'fr', name: 'French', flag: '🇫🇷' },
-  { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-  { code: 'ar', name: 'Arabic', flag: '🇦🇪' },
+  { code: 'en', name: 'English', flag: 'ðŸ‡¬ðŸ‡§' },
+  { code: 'sw', name: 'Swahili (Kiswahili)', flag: 'ðŸ‡¹ðŸ‡¿' },
+  { code: 'fr', name: 'French', flag: 'ðŸ‡«ðŸ‡·' },
+  { code: 'pt', name: 'Portuguese', flag: 'ðŸ‡µðŸ‡¹' },
+  { code: 'ar', name: 'Arabic', flag: 'ðŸ‡¦ðŸ‡ª' },
 ];
 
-/* ── API ↔ local shape mappers ── */
+/* â”€â”€ API â†” local shape mappers â”€â”€ */
 function cmsPageToLocal(cp: CmsPage): Page {
   return {
     id: cp.id, title: cp.title, slug: cp.slug, content: cp.content,
@@ -104,7 +104,7 @@ function cmsCommentToLocal(cc: CmsComment): Comment {
   return { id: cc.id, author: cc.author, email: cc.email || '', content: cc.content, status: cc.status, created_at: cc.created_at };
 }
 
-/* ── Avatar ── */
+/* â”€â”€ Avatar â”€â”€ */
 function Av({ initials, color, size = 36 }: { initials: string; color: string; size?: number }) {
   return (
     <div style={{ width: size, height: size, borderRadius: '50%', background: color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: size * 0.35, flexShrink: 0, fontFamily: 'var(--font)' }}>
@@ -113,7 +113,7 @@ function Av({ initials, color, size = 36 }: { initials: string; color: string; s
   );
 }
 
-/* ── Status badge ── */
+/* â”€â”€ Status badge â”€â”€ */
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'error' | 'info' | 'gray'> = {
   published: 'success', draft: 'warning', trash: 'error', scheduled: 'info',
   in_review: 'warning', approved: 'success', archived: 'gray',
@@ -123,7 +123,7 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant={STATUS_VARIANT[status] ?? 'gray'}>{status.replace('_', ' ')}</Badge>;
 }
 
-/* ── Field label ── */
+/* â”€â”€ Field label â”€â”€ */
 function FL({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -133,7 +133,7 @@ function FL({ label, children }: { label: string; children: React.ReactNode }) {
   );
 }
 
-/* ── Selection checkbox (bulk-select) ── */
+/* â”€â”€ Selection checkbox (bulk-select) â”€â”€ */
 function SelectBox({ checked, onToggle }: { checked: boolean; onToggle: (evt: React.MouseEvent) => void }) {
   return (
     <div onClick={onToggle} role="checkbox" aria-checked={checked} tabIndex={0}
@@ -144,7 +144,7 @@ function SelectBox({ checked, onToggle }: { checked: boolean; onToggle: (evt: Re
   );
 }
 
-/* ── Bulk action bar ── */
+/* â”€â”€ Bulk action bar â”€â”€ */
 function BulkBar({ count, onClear, actions }: { count: number; onClear: () => void; actions: { label: string; onClick: () => void; danger?: boolean }[] }) {
   if (count === 0) return null;
   return (
@@ -160,7 +160,7 @@ function BulkBar({ count, onClear, actions }: { count: number; onClear: () => vo
   );
 }
 
-/* ── Media picker ── */
+/* â”€â”€ Media picker â”€â”€ */
 function MediaPicker({ open, onClose, onSelect }: { open: boolean; onClose: () => void; onSelect: (url: string) => void }) {
   const [items, setItems] = useState<CmsMedia[]>([]);
   const [loading, setLoading] = useState(true);
@@ -208,14 +208,14 @@ function MediaPicker({ open, onClose, onSelect }: { open: boolean; onClose: () =
         </div>
         <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)' }}>
           <button type="button" className="btn btn-primary btn-sm" disabled={uploading} onClick={() => fileRef.current?.click()}>
-            {uploading ? 'Uploading…' : 'Upload image'}
+            {uploading ? 'Uploadingâ€¦' : 'Upload image'}
           </button>
           <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
             onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ''; }} />
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: 18 }}>
           {loading ? <SectionLoading /> : items.length === 0 ? (
-            <div style={{ textAlign: 'center', color: 'var(--ink3)', padding: 32, fontSize: 13 }}>No images yet — upload one above.</div>
+            <div style={{ textAlign: 'center', color: 'var(--ink3)', padding: 32, fontSize: 13 }}>No images yet â€” upload one above.</div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 10 }}>
               {items.map(m => (
@@ -251,7 +251,7 @@ function useMediaPicker() {
   return { pick, picker };
 }
 
-/* ── Post Editor ── */
+/* â”€â”€ Post Editor â”€â”€ */
 const POST_FIELD_LABELS = { slug: 'Slug', title: 'Title', content: 'Content', status: 'Status', category: 'Category', tags: 'Tags', publish_at: 'Scheduled for' };
 const PAGE_FIELD_LABELS = { slug: 'Slug', title: 'Title', content: 'Content', status: 'Status', seo_description: 'SEO description', publish_at: 'Scheduled for' };
 
@@ -373,7 +373,7 @@ function PostEditor({
             <Icon name="arrowLeft" size={14} /> Back to Posts
           </button>
           {form.id && autosaveState !== 'idle' && (
-            <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{autosaveState === 'saving' ? 'Saving…' : 'Saved'}</span>
+            <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{autosaveState === 'saving' ? 'Savingâ€¦' : 'Saved'}</span>
           )}
           {form.locale && form.locale !== 'en' && (
             <Badge variant="info">{form.locale.toUpperCase()}</Badge>
@@ -415,7 +415,7 @@ function PostEditor({
           <button onClick={() => handleSave('draft')} className="btn btn-secondary btn-sm">Save Draft</button>
           {form.publish_at !== undefined && form.status === 'scheduled'
             ? <button onClick={() => handleSave('scheduled')} className="btn btn-primary btn-sm">Schedule</button>
-            : <button onClick={() => set('status', 'scheduled')} className="btn btn-secondary btn-sm">Schedule…</button>}
+            : <button onClick={() => set('status', 'scheduled')} className="btn btn-secondary btn-sm">Scheduleâ€¦</button>}
           <button onClick={() => handleSave('published')} className="btn btn-primary btn-sm">Publish</button>
         </div>
       </div>
@@ -473,7 +473,7 @@ function PostEditor({
         <div style={{ padding: '24px 28px', overflowY: isMobile ? 'visible' : 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <input value={form.title || ''} onChange={e => set('title', e.target.value)} placeholder="Add title"
             style={{ fontSize: 26, fontWeight: 700, border: 'none', borderBottom: '2px solid var(--border)', padding: '6px 0', outline: 'none', background: 'transparent', fontFamily: 'var(--font)', color: 'var(--ink)', width: '100%' }} />
-          <FL label="Slug (leave blank to auto-generate)"><input value={form.slug || ''} onChange={e => set('slug', e.target.value)} placeholder="auto" className="input-field" style={{ fontFamily: 'var(--mono)', fontSize: 12.5 }} /></FL>
+          <FL label="Slug (leave blank to auto-generate)"><input value={form.slug || ''} onChange={e => set('slug', e.target.value)} placeholder="auto" className="input-field" style={{ fontFamily: 'var(--font)', fontSize: 12.5 }} /></FL>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Tabs value={contentView} onValueChange={v => setContentView(v as 'edit' | 'preview')} variant="segmented">
               <TabsList>
@@ -485,7 +485,7 @@ function PostEditor({
           {contentView === 'preview' ? (
             <div className="cms-preview-body" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', minHeight: 200 }} dangerouslySetInnerHTML={{ __html: form.content || '' }} />
           ) : (
-            <RichTextEditor value={form.content || ''} onChange={html => set('content', html)} placeholder="Start writing…" onInsertImage={pick} />
+            <RichTextEditor value={form.content || ''} onChange={html => set('content', html)} placeholder="Start writingâ€¦" onInsertImage={pick} />
           )}
         </div>
 
@@ -545,7 +545,7 @@ function PostEditor({
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <input value={form.tags || ''} onChange={e => set('tags', e.target.value)} placeholder="comma, separated" className="input-field" style={{ fontSize: 12, flex: 1 }} />
               <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiTagsLoading} title="Suggest tags with AI" onClick={handleAiTags} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <Icon name="sparkle" size={12} /> {aiTagsLoading ? 'Thinking…' : 'Suggest'}
+                <Icon name="sparkle" size={12} /> {aiTagsLoading ? 'Thinkingâ€¦' : 'Suggest'}
               </button>
             </div>
           </FL>
@@ -553,15 +553,15 @@ function PostEditor({
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.04em' }}>SEO &amp; sharing</div>
             <FL label="SEO description">
-              <textarea value={form.seo_description || ''} onChange={e => set('seo_description', e.target.value)} placeholder="Shown in search results and social previews…" rows={2} maxLength={500}
+              <textarea value={form.seo_description || ''} onChange={e => set('seo_description', e.target.value)} placeholder="Shown in search results and social previewsâ€¦" rows={2} maxLength={500}
                 className="input-field" style={{ fontSize: 12, lineHeight: 1.5, resize: 'vertical', width: '100%', boxSizing: 'border-box' }} />
               <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiSeoLoading} title="Generate an SEO description with AI" onClick={handleAiSeo} style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <Icon name="sparkle" size={12} /> {aiSeoLoading ? 'Generating…' : 'Generate with AI'}
+                <Icon name="sparkle" size={12} /> {aiSeoLoading ? 'Generatingâ€¦' : 'Generate with AI'}
               </button>
             </FL>
-            <FL label="Canonical URL (optional)"><input value={form.canonical_url || ''} onChange={e => set('canonical_url', e.target.value)} placeholder="https://…" className="input-field" style={{ fontSize: 12 }} /></FL>
-            <FL label="Social share image (optional)"><input value={form.og_image || ''} onChange={e => set('og_image', e.target.value)} placeholder="https://…" className="input-field" style={{ fontSize: 12 }} /></FL>
-            <CheckboxRow title="Hide from search engines" description="Adds a noindex tag — the post stays live but won't appear in search results."
+            <FL label="Canonical URL (optional)"><input value={form.canonical_url || ''} onChange={e => set('canonical_url', e.target.value)} placeholder="https://â€¦" className="input-field" style={{ fontSize: 12 }} /></FL>
+            <FL label="Social share image (optional)"><input value={form.og_image || ''} onChange={e => set('og_image', e.target.value)} placeholder="https://â€¦" className="input-field" style={{ fontSize: 12 }} /></FL>
+            <CheckboxRow title="Hide from search engines" description="Adds a noindex tag â€” the post stays live but won't appear in search results."
               checked={!!form.noindex} onCheckedChange={setNoindex} />
           </div>
         </div>
@@ -570,7 +570,7 @@ function PostEditor({
   );
 }
 
-/* ── Page Editor ── */
+/* â”€â”€ Page Editor â”€â”€ */
 function PageEditor({
   page,
   sites,
@@ -675,7 +675,7 @@ function PageEditor({
             <Icon name="arrowLeft" size={14} /> Back to Pages
           </button>
           {form.id && autosaveState !== 'idle' && (
-            <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{autosaveState === 'saving' ? 'Saving…' : 'Saved'}</span>
+            <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{autosaveState === 'saving' ? 'Savingâ€¦' : 'Saved'}</span>
           )}
           {form.locale && form.locale !== 'en' && (
             <Badge variant="info">{form.locale.toUpperCase()}</Badge>
@@ -717,7 +717,7 @@ function PageEditor({
           <button onClick={() => handleSave('draft')} className="btn btn-secondary btn-sm">Save Draft</button>
           {form.status === 'scheduled'
             ? <button onClick={() => handleSave('scheduled')} className="btn btn-primary btn-sm">Schedule</button>
-            : <button onClick={() => set('status', 'scheduled')} className="btn btn-secondary btn-sm">Schedule…</button>}
+            : <button onClick={() => set('status', 'scheduled')} className="btn btn-secondary btn-sm">Scheduleâ€¦</button>}
           <button onClick={() => handleSave('published')} className="btn btn-primary btn-sm">Publish</button>
         </div>
       </div>
@@ -775,29 +775,29 @@ function PageEditor({
         <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: isMobile ? 'visible' : 'auto' }}>
           <input value={form.title || ''} onChange={e => set('title', e.target.value)} placeholder="Page Title"
             style={{ fontSize: 24, fontWeight: 700, border: 'none', borderBottom: '2px solid var(--border)', padding: '6px 0', outline: 'none', background: 'transparent', fontFamily: 'var(--font)', color: 'var(--ink)', width: '100%' }} />
-          <FL label="Slug"><input value={form.slug || ''} onChange={e => set('slug', e.target.value)} placeholder="/page-slug" className="input-field" style={{ fontFamily: 'var(--mono)', fontSize: 13 }} /></FL>
+          <FL label="Slug"><input value={form.slug || ''} onChange={e => set('slug', e.target.value)} placeholder="/page-slug" className="input-field" style={{ fontFamily: 'var(--font)', fontSize: 13 }} /></FL>
           <FL label="Template">
             <Select value={form.template || 'standard'} onValueChange={v => set('template', v)}>
               <SelectTrigger className="input-field" style={{ fontSize: 13 }}><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="standard">Standard — header &amp; nav, normal width</SelectItem>
-                <SelectItem value="full-width">Full width — header &amp; nav, edge-to-edge content</SelectItem>
-                <SelectItem value="landing">Landing — no header or nav, edge-to-edge canvas</SelectItem>
+                <SelectItem value="standard">Standard â€” header &amp; nav, normal width</SelectItem>
+                <SelectItem value="full-width">Full width â€” header &amp; nav, edge-to-edge content</SelectItem>
+                <SelectItem value="landing">Landing â€” no header or nav, edge-to-edge canvas</SelectItem>
               </SelectContent>
             </Select>
           </FL>
           <FL label="SEO description">
-            <textarea value={form.seo_description || ''} onChange={e => set('seo_description', e.target.value)} placeholder="Shown in search results and social previews for this page…" rows={2} maxLength={500}
+            <textarea value={form.seo_description || ''} onChange={e => set('seo_description', e.target.value)} placeholder="Shown in search results and social previews for this pageâ€¦" rows={2} maxLength={500}
               style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 11px', fontSize: 13, lineHeight: 1.5, resize: 'vertical', fontFamily: 'var(--font)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', background: 'var(--white)' }} />
             <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiSeoLoading} title="Generate an SEO description with AI" onClick={handleAiSeo} style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <Icon name="sparkle" size={12} /> {aiSeoLoading ? 'Generating…' : 'Generate with AI'}
+              <Icon name="sparkle" size={12} /> {aiSeoLoading ? 'Generatingâ€¦' : 'Generate with AI'}
             </button>
           </FL>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
-            <FL label="Canonical URL (optional)"><input value={form.canonical_url || ''} onChange={e => set('canonical_url', e.target.value)} placeholder="https://…" className="input-field" style={{ fontSize: 13 }} /></FL>
-            <FL label="Social share image (optional)"><input value={form.og_image || ''} onChange={e => set('og_image', e.target.value)} placeholder="https://…" className="input-field" style={{ fontSize: 13 }} /></FL>
+            <FL label="Canonical URL (optional)"><input value={form.canonical_url || ''} onChange={e => set('canonical_url', e.target.value)} placeholder="https://â€¦" className="input-field" style={{ fontSize: 13 }} /></FL>
+            <FL label="Social share image (optional)"><input value={form.og_image || ''} onChange={e => set('og_image', e.target.value)} placeholder="https://â€¦" className="input-field" style={{ fontSize: 13 }} /></FL>
           </div>
-          <CheckboxRow title="Hide from search engines" description="Adds a noindex tag — the page stays live but won't appear in search results."
+          <CheckboxRow title="Hide from search engines" description="Adds a noindex tag â€” the page stays live but won't appear in search results."
             checked={!!form.noindex} onCheckedChange={setNoindex} />
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Tabs value={contentView} onValueChange={v => setContentView(v as 'edit' | 'preview')} variant="segmented">
@@ -810,7 +810,7 @@ function PageEditor({
           {contentView === 'preview' ? (
             <div className="cms-preview-body" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', minHeight: 200 }} dangerouslySetInnerHTML={{ __html: form.content || '' }} />
           ) : (
-            <RichTextEditor value={form.content || ''} onChange={html => set('content', html)} placeholder="Page content…" onInsertImage={pick} />
+            <RichTextEditor value={form.content || ''} onChange={html => set('content', html)} placeholder="Page contentâ€¦" onInsertImage={pick} />
           )}
         </div>
 
@@ -869,7 +869,7 @@ function PageEditor({
   );
 }
 
-/* ══ Main CMS component ══ */
+/* â•â• Main CMS component â•â• */
 export const CMS: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -880,7 +880,7 @@ export const CMS: React.FC = () => {
 
   const [sites, setSites] = useState<CmsSite[]>([]);
   const [workflowStates, setWorkflowStates] = useState<CmsWorkflowState[]>([]);
-  // §45-46 — starter templates, offered only while the site is genuinely
+  // Â§45-46 â€” starter templates, offered only while the site is genuinely
   // empty (installTemplate itself also refuses server-side once a page exists).
   const [templates, setTemplates] = useState<{ key: string; name: string; description: string; seeds: string[] }[]>([]);
   const [installingTemplate, setInstallingTemplate] = useState<string | null>(null);
@@ -890,7 +890,7 @@ export const CMS: React.FC = () => {
   const [posts,    setPosts]    = useState<Post[]>([]);
   const [pages,    setPages]    = useState<Page[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
-  // §33 — bulk view-count totals for the list tables below, one query per
+  // Â§33 â€” bulk view-count totals for the list tables below, one query per
   // resource type rather than N+1 per row.
   const [postViews, setPostViews] = useState<Record<string, number>>({});
   const [pageViews, setPageViews] = useState<Record<string, number>>({});
@@ -990,7 +990,7 @@ export const CMS: React.FC = () => {
     setInstallingTemplate(key);
     try {
       const { data } = await apiFetch<{ data: { pagesCreated: number; postsCreated: number; navItemsCreated: number } }>(`/v1/cms/templates/${key}/install`, { method: 'POST' });
-      showAlert(`Template installed — ${data.pagesCreated} page(s), ${data.postsCreated} post(s) and ${data.navItemsCreated} nav link(s) created.`);
+      showAlert(`Template installed â€” ${data.pagesCreated} page(s), ${data.postsCreated} post(s) and ${data.navItemsCreated} nav link(s) created.`);
       loadPages();
       loadPosts({ search: '', site_id: selectedSiteFilter, locale: selectedLocaleFilter });
       goTo('pages');
@@ -1078,7 +1078,7 @@ export const CMS: React.FC = () => {
     } catch (e: any) { showAlert(`Bulk delete failed: ${e.message}`); }
   }
 
-  // §56-57 — real CSV export for Posts/Pages, reusing the same
+  // Â§56-57 â€” real CSV export for Posts/Pages, reusing the same
   // cookie-authenticated blob-download helper contacts.routes.ts's own
   // export button already uses (apiDownload).
   async function handleExportPosts() {
@@ -1090,7 +1090,7 @@ export const CMS: React.FC = () => {
     catch (e: any) { showAlert(`Export failed: ${e.message}`); }
   }
 
-  // §56-57 — a real WordPress WXR importer, scoped to posts (wp:post_type
+  // Â§56-57 â€” a real WordPress WXR importer, scoped to posts (wp:post_type
   // === 'post'), matching the brief's own recommended starting point.
   const wpImportInputRef = useRef<HTMLInputElement>(null);
   const [importingWp, setImportingWp] = useState(false);
@@ -1301,7 +1301,7 @@ export const CMS: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div>
             <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', fontFamily: 'var(--font)' }}>{PAGE_TITLES[view] || 'CMS'}</div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{pubCount} published · {pages.length} pages · {pending > 0 ? `${pending} pending comments` : 'no pending comments'}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{pubCount} published Â· {pages.length} pages Â· {pending > 0 ? `${pending} pending comments` : 'no pending comments'}</div>
           </div>
 
           {/* Enterprise Site & Locale Filter Pills in Header */}
@@ -1313,7 +1313,7 @@ export const CMS: React.FC = () => {
                     <SelectValue placeholder="All Sites" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">🌐 All Sites</SelectItem>
+                    <SelectItem value="all">ðŸŒ All Sites</SelectItem>
                     {sites.map(s => (
                       <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
@@ -1326,7 +1326,7 @@ export const CMS: React.FC = () => {
                   <SelectValue placeholder="All Languages" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">🌍 All Locales</SelectItem>
+                  <SelectItem value="all">ðŸŒ All Locales</SelectItem>
                   {SUPPORTED_LOCALES.map(l => (
                     <SelectItem key={l.code} value={l.code}>{l.flag} {l.name}</SelectItem>
                   ))}
@@ -1342,7 +1342,7 @@ export const CMS: React.FC = () => {
               <input ref={wpImportInputRef} type="file" accept=".xml,text/xml,application/xml" style={{ display: 'none' }}
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleWordPressFile(f); e.target.value = ''; }} />
               <button onClick={() => wpImportInputRef.current?.click()} disabled={importingWp} className="btn btn-secondary btn-sm" title="Import posts from a WordPress export (.xml)">
-                <Icon name="upload" size={13} /> {importingWp ? 'Importing…' : 'Import from WordPress'}
+                <Icon name="upload" size={13} /> {importingWp ? 'Importingâ€¦' : 'Import from WordPress'}
               </button>
               <button onClick={handleExportPosts} className="btn btn-secondary btn-sm" title="Export all posts as CSV">
                 <Icon name="download" size={13} /> Export CSV
@@ -1417,31 +1417,31 @@ export const CMS: React.FC = () => {
       {/* Body */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
 
-        {/* ══ DASHBOARD ══ */}
+        {/* â•â• DASHBOARD â•â• */}
         {view === 'dashboard' && (
           <div>
-            {/* §45-46 — a brand-new, empty site can start from a real starter
+            {/* Â§45-46 â€” a brand-new, empty site can start from a real starter
                 kit instead of a blank Customize form. Disappears the moment
-                the tenant has a single page — installTemplate itself also
+                the tenant has a single page â€” installTemplate itself also
                 refuses server-side past that point, this is just the UI's
                 own mirror of that same rule. */}
             {pages.length === 0 && templates.length > 0 && (
               <div style={{ background: 'var(--teal-l)', borderBottom: '1px solid var(--border)', padding: '22px 28px' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginBottom: 4 }}>Start from a template</div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16, lineHeight: 1.5 }}>Get a few real pages and a nav menu in one click, then edit them to fit your business — or skip this and build from scratch.</div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16, lineHeight: 1.5 }}>Get a few real pages and a nav menu in one click, then edit them to fit your business â€” or skip this and build from scratch.</div>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${templates.length}, 1fr)`, gap: 14 }}>
                   {templates.map(t => (
                     <div key={t.key} className="card" style={{ padding: '16px 18px', background: 'var(--white)' }}>
                       <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy)', marginBottom: 5 }}>{t.name}</div>
                       <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10, lineHeight: 1.5 }}>{t.description}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 12 }}>{t.seeds.join(' · ')}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 12 }}>{t.seeds.join(' Â· ')}</div>
                       <button
                         onClick={() => installTemplate(t.key)}
                         disabled={installingTemplate !== null}
                         className="btn btn-primary btn-sm"
                         style={{ opacity: installingTemplate && installingTemplate !== t.key ? 0.5 : 1 }}
                       >
-                        {installingTemplate === t.key ? 'Installing…' : 'Use this template'}
+                        {installingTemplate === t.key ? 'Installingâ€¦' : 'Use this template'}
                       </button>
                     </div>
                   ))}
@@ -1539,7 +1539,7 @@ export const CMS: React.FC = () => {
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 7, marginBottom: 16 }}>
                   <Icon name="file" size={14} /> Recent Pages
                 </div>
-                {recentPages.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No pages yet — create one from the Pages tab.</div>}
+                {recentPages.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No pages yet â€” create one from the Pages tab.</div>}
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <tbody>
                     {recentPages.map(p => (
@@ -1556,7 +1556,7 @@ export const CMS: React.FC = () => {
               {/* Recent Activities */}
               <div className="card" style={{ padding: '20px 22px', overflowY: 'auto' }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="clock" size={14} /> Recent Activity</div>
-                {recentActivity.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Nothing yet — activity shows up here as you create posts and pages.</div>}
+                {recentActivity.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Nothing yet â€” activity shows up here as you create posts and pages.</div>}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {recentActivity.map((act, i) => (
                     <div key={act.key} style={{ display: 'flex', gap: 11, paddingBottom: 14, borderBottom: i < recentActivity.length - 1 ? '1px solid var(--border)' : 'none', marginBottom: i < recentActivity.length - 1 ? 14 : 0 }}>
@@ -1575,7 +1575,7 @@ export const CMS: React.FC = () => {
           </div>
         )}
 
-        {/* ══ POSTS ══ */}
+        {/* â•â• POSTS â•â• */}
         {view === 'posts' && (
           <div style={{ padding: '18px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', rowGap: 10 }}>
@@ -1593,7 +1593,7 @@ export const CMS: React.FC = () => {
               </Tabs>
               <div style={{ position: 'relative' }}>
                 <Icon name="search" size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-                <input value={pSearch} onChange={e => setPSearch(e.target.value)} placeholder="Search…" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 12px 7px 30px', fontSize: 13, outline: 'none', fontFamily: 'var(--font)', width: 200, background: 'var(--white)' }} />
+                <input value={pSearch} onChange={e => setPSearch(e.target.value)} placeholder="Searchâ€¦" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 12px 7px 30px', fontSize: 13, outline: 'none', fontFamily: 'var(--font)', width: 200, background: 'var(--white)' }} />
               </div>
             </div>
 
@@ -1639,9 +1639,9 @@ export const CMS: React.FC = () => {
                         </div>
                       </td>
                       <td style={{ padding: '11px 16px', color: 'var(--ink3)' }}>{post.author}</td>
-                      <td style={{ padding: '11px 16px', color: 'var(--ink3)' }}>{post.category || '—'}</td>
+                      <td style={{ padding: '11px 16px', color: 'var(--ink3)' }}>{post.category || 'â€”'}</td>
                       <td style={{ padding: '11px 16px', color: 'var(--ink3)' }}>
-                        <span style={{ fontSize: 11.5, fontFamily: 'var(--mono)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>
+                        <span style={{ fontSize: 11.5, fontFamily: 'var(--font)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>
                           {post.locale?.toUpperCase() || 'EN'}
                         </span>
                       </td>
@@ -1709,7 +1709,7 @@ export const CMS: React.FC = () => {
           </div>
         )}
 
-        {/* ══ PAGES ══ */}
+        {/* â•â• PAGES â•â• */}
         {view === 'pages' && (
           <div style={{ padding: '18px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', rowGap: 10 }}>
@@ -1727,7 +1727,7 @@ export const CMS: React.FC = () => {
               </Tabs>
               <div style={{ position: 'relative' }}>
                 <Icon name="search" size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-                <input value={pagesSearch} onChange={e => setPagesSearch(e.target.value)} placeholder="Search…" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 12px 7px 30px', fontSize: 13, outline: 'none', fontFamily: 'var(--font)', width: 200, background: 'var(--white)' }} />
+                <input value={pagesSearch} onChange={e => setPagesSearch(e.target.value)} placeholder="Searchâ€¦" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 12px 7px 30px', fontSize: 13, outline: 'none', fontFamily: 'var(--font)', width: 200, background: 'var(--white)' }} />
               </div>
             </div>
             <BulkBar count={selectedPages.size} onClear={() => setSelectedPages(new Set())} actions={[
@@ -1769,9 +1769,9 @@ export const CMS: React.FC = () => {
                             : <button onClick={() => trashPage(pg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)', fontFamily: 'var(--font)', padding: 0 }}>Trash</button>}
                         </div>
                       </td>
-                      <td style={{ padding: '11px 16px', fontFamily: 'var(--mono)', color: 'var(--ink3)', fontSize: 12 }}>{pg.slug}</td>
+                      <td style={{ padding: '11px 16px', fontFamily: 'var(--font)', color: 'var(--ink3)', fontSize: 12 }}>{pg.slug}</td>
                       <td style={{ padding: '11px 16px', color: 'var(--ink3)' }}>
-                        <span style={{ fontSize: 11.5, fontFamily: 'var(--mono)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>
+                        <span style={{ fontSize: 11.5, fontFamily: 'var(--font)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>
                           {pg.locale?.toUpperCase() || 'EN'}
                         </span>
                       </td>
@@ -1840,7 +1840,7 @@ export const CMS: React.FC = () => {
           </div>
         )}
 
-        {/* ══ COMMENTS ══ */}
+        {/* â•â• COMMENTS â•â• */}
         {view === 'comments' && (
           <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <BulkBar count={selectedComments.size} onClear={() => setSelectedComments(new Set())} actions={[
@@ -1850,7 +1850,7 @@ export const CMS: React.FC = () => {
             ]} />
             {comments.length === 0 && (
               <div style={{ textAlign: 'center', padding: 48, color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-                No comments yet — visitor comments will appear here.
+                No comments yet â€” visitor comments will appear here.
               </div>
             )}
             {comments.map(c => (
@@ -1880,7 +1880,7 @@ export const CMS: React.FC = () => {
           </div>
         )}
 
-        {/* ══ CUSTOMIZE ══ */}
+        {/* â•â• CUSTOMIZE â•â• */}
         {view === 'customize' && (
           <CustomizeView settings={siteSettings} onSave={saveSiteSettings} />
         )}
@@ -1890,7 +1890,7 @@ export const CMS: React.FC = () => {
   );
 };
 
-/* ── Customize: Site Identity + Appearance ── */
+/* â”€â”€ Customize: Site Identity + Appearance â”€â”€ */
 function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings | null; onSave: (patch: Partial<CmsSiteSettings>) => Promise<boolean> }) {
   const [form, setForm] = useState<CmsSiteSettings | null>(settings);
   const [saving, setSaving] = useState<'identity' | 'appearance' | null>(null);
@@ -1901,7 +1901,7 @@ function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings | null;
 
   if (!form) return <SectionLoading />;
   const set = (k: keyof CmsSiteSettings, v: string) => setForm(f => f ? { ...f, [k]: v } : f);
-  // §10 — typed separately from the generic string setter above, since
+  // Â§10 â€” typed separately from the generic string setter above, since
   // headingFont/bodyFont/radius are real bounded unions, not plain strings.
   const setToken = (k: 'headingFont' | 'bodyFont', v: CmsFontId) => setForm(f => f ? { ...f, [k]: v } : f);
   const setRadius = (v: CmsRadiusPreset) => setForm(f => f ? { ...f, radius: v } : f);
@@ -1928,7 +1928,7 @@ function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings | null;
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>Site Identity</div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Shown on your public site at /site/{form.tenantSlug || '…'}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Shown on your public site at /site/{form.tenantSlug || 'â€¦'}</div>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1936,13 +1936,13 @@ function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings | null;
           <FL label="Tagline"><input value={form.tagline} onChange={e => set('tagline', e.target.value)} className="input-field" placeholder="A short description" /></FL>
           <FL label="Logo">
             <div style={{ display: 'flex', gap: 8 }}>
-              <input value={form.logoUrl} onChange={e => set('logoUrl', e.target.value)} className="input-field" placeholder="https://…" style={{ flex: 1 }} />
+              <input value={form.logoUrl} onChange={e => set('logoUrl', e.target.value)} className="input-field" placeholder="https://â€¦" style={{ flex: 1 }} />
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => pickInto('logoUrl')}>Choose from library</button>
             </div>
           </FL>
           <FL label="Favicon">
             <div style={{ display: 'flex', gap: 8 }}>
-              <input value={form.faviconUrl} onChange={e => set('faviconUrl', e.target.value)} className="input-field" placeholder="https://…" style={{ flex: 1 }} />
+              <input value={form.faviconUrl} onChange={e => set('faviconUrl', e.target.value)} className="input-field" placeholder="https://â€¦" style={{ flex: 1 }} />
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => pickInto('faviconUrl')}>Choose from library</button>
             </div>
           </FL>
@@ -1952,7 +1952,7 @@ function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings | null;
               disabled={saving === 'identity'}
               className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }}
             >
-              {saving === 'identity' ? 'Saving…' : 'Save'}
+              {saving === 'identity' ? 'Savingâ€¦' : 'Save'}
             </button>
             {savedFlash === 'identity' && <span style={{ fontSize: 12, color: 'var(--green)' }}>Saved</span>}
           </div>
@@ -1973,10 +1973,10 @@ function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings | null;
           <FL label="Accent Colour">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <input type="color" value={form.accentColor} onChange={e => set('accentColor', e.target.value)} style={{ width: 44, height: 34, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: 2, cursor: 'pointer' }} />
-              <input value={form.accentColor} onChange={e => set('accentColor', e.target.value)} className="input-field" style={{ fontFamily: 'var(--mono)', fontSize: 12, maxWidth: 120 }} />
+              <input value={form.accentColor} onChange={e => set('accentColor', e.target.value)} className="input-field" style={{ fontFamily: 'var(--font)', fontSize: 12, maxWidth: 120 }} />
             </div>
           </FL>
-          {/* §10 — design tokens: a bounded, real font/radius picker, not a
+          {/* Â§10 â€” design tokens: a bounded, real font/radius picker, not a
               free-text font URL or raw CSS value a tenant could type in. */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <FL label="Heading Font">
@@ -2010,7 +2010,7 @@ function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings | null;
               disabled={saving === 'appearance'}
               className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }}
             >
-              {saving === 'appearance' ? 'Saving…' : 'Save'}
+              {saving === 'appearance' ? 'Savingâ€¦' : 'Save'}
             </button>
             {savedFlash === 'appearance' && <span style={{ fontSize: 12, color: 'var(--green)' }}>Saved</span>}
           </div>

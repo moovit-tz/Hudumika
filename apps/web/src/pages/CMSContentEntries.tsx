@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -41,11 +41,11 @@ function toLocalInput(iso: string | null): string {
 }
 
 const SUPPORTED_LOCALES = [
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'sw', name: 'Swahili (Kiswahili)', flag: '🇹🇿' },
-  { code: 'fr', name: 'French', flag: '🇫🇷' },
-  { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-  { code: 'ar', name: 'Arabic', flag: '🇦🇪' },
+  { code: 'en', name: 'English', flag: 'ðŸ‡¬ðŸ‡§' },
+  { code: 'sw', name: 'Swahili (Kiswahili)', flag: 'ðŸ‡¹ðŸ‡¿' },
+  { code: 'fr', name: 'French', flag: 'ðŸ‡«ðŸ‡·' },
+  { code: 'pt', name: 'Portuguese', flag: 'ðŸ‡µðŸ‡¹' },
+  { code: 'ar', name: 'Arabic', flag: 'ðŸ‡¦ðŸ‡ª' },
 ];
 
 function SelectBox({ checked, onToggle }: { checked: boolean; onToggle: (evt: React.MouseEvent) => void }) {
@@ -83,12 +83,12 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
     case 'email':
       return <input {...common} type="email" value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} />;
     case 'url':
-      return <input {...common} type="url" placeholder="https://…" value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} />;
+      return <input {...common} type="url" placeholder="https://â€¦" value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} />;
     case 'select': {
       const options = Array.isArray((field.config as any)?.options) ? (field.config as any).options as string[] : [];
       return (
         <Select value={(value as string) || undefined} onValueChange={onChange}>
-          <SelectTrigger className="input-field"><SelectValue placeholder="Choose…" /></SelectTrigger>
+          <SelectTrigger className="input-field"><SelectValue placeholder="Chooseâ€¦" /></SelectTrigger>
           <SelectContent>{options.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       );
@@ -101,7 +101,7 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
       const opts = relationOptions?.[field.id] ?? [];
       return (
         <Select value={(value as string) || undefined} onValueChange={onChange}>
-          <SelectTrigger className="input-field"><SelectValue placeholder={opts.length ? 'Choose…' : 'No entries yet in the related model'} /></SelectTrigger>
+          <SelectTrigger className="input-field"><SelectValue placeholder={opts.length ? 'Chooseâ€¦' : 'No entries yet in the related model'} /></SelectTrigger>
           <SelectContent>{opts.map(o => <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>)}</SelectContent>
         </Select>
       );
@@ -122,7 +122,7 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input type="color" value={/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test((value as string) || '') ? (value as string) : '#000000'}
             onChange={e => onChange(e.target.value)} style={{ width: 40, height: 34, padding: 2, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer' }} />
-          <input {...common} placeholder="#4F46E5" value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} style={{ ...common.style, flex: 1, fontFamily: 'var(--mono)' }} />
+          <input {...common} placeholder="#4F46E5" value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} style={{ ...common.style, flex: 1, fontFamily: 'var(--font)' }} />
         </div>
       );
     case 'phone':
@@ -134,7 +134,7 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
       return (
         <div style={{ display: 'flex', gap: 8 }}>
           <input {...common} type="number" step="any" placeholder="Amount" style={{ ...common.style, flex: 2 }} value={v.amount === undefined || v.amount === null ? '' : String(v.amount)} onChange={e => setAmount(e.target.value)} />
-          <input {...common} placeholder="USD" maxLength={3} style={{ ...common.style, flex: 1, fontFamily: 'var(--mono)', textTransform: 'uppercase' }} value={(v.currency as string) ?? ''} onChange={e => setCurrency(e.target.value)} />
+          <input {...common} placeholder="USD" maxLength={3} style={{ ...common.style, flex: 1, fontFamily: 'var(--font)', textTransform: 'uppercase' }} value={(v.currency as string) ?? ''} onChange={e => setCurrency(e.target.value)} />
         </div>
       );
     }
@@ -147,7 +147,7 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
           {items.map((item, idx) => (
             <div key={idx} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <input {...common} type={inputType} style={{ ...common.style, flex: 1 }}
-                placeholder={itemType === 'url' ? 'https://…' : itemType}
+                placeholder={itemType === 'url' ? 'https://â€¦' : itemType}
                 value={item === undefined || item === null ? '' : String(item)}
                 onChange={e => { const next = [...items]; next[idx] = e.target.value; onChange(next); }} />
               <button type="button" onClick={() => onChange(items.filter((_, i2) => i2 !== idx))}
@@ -190,7 +190,7 @@ export function CMSContentEntries() {
   const [tenantSlug, setTenantSlug] = useState<string | null>(null);
   const [view, setView] = useState<'table' | 'card'>('table');
   const [savedFilters, setSavedFilters] = useState<CmsSavedFilter[]>([]);
-  // §33 — bulk view-count totals, one query rather than N+1 per row.
+  // Â§33 â€” bulk view-count totals, one query rather than N+1 per row.
   const [entryViews, setEntryViews] = useState<Record<string, number>>({});
   const entryIds = entries.map(e => e.id).filter(Boolean).join(',');
   useEffect(() => {
@@ -222,7 +222,7 @@ export function CMSContentEntries() {
   useEffect(loadSavedFilters, [modelId]);
 
   async function handleSaveFilter() {
-    const name = await showPrompt('Name this filter — anyone with access to this model will see it in the list.', { title: 'Save filter', placeholder: 'e.g. My drafts' });
+    const name = await showPrompt('Name this filter â€” anyone with access to this model will see it in the list.', { title: 'Save filter', placeholder: 'e.g. My drafts' });
     if (!name) return;
     try {
       await apiFetch(`/v1/cms/content-models/${modelId}/saved-filters`, {
@@ -234,7 +234,7 @@ export function CMSContentEntries() {
       showAlert(`Failed to save filter: ${e.message}`);
     }
   }
-  // §56-57 — real CSV export of this model's own entries, every field
+  // Â§56-57 â€” real CSV export of this model's own entries, every field
   // flattened into its own column.
   async function handleExportEntries() {
     if (!modelId) return;
@@ -311,7 +311,7 @@ export function CMSContentEntries() {
         crumbs={['CMS', 'Content Models', model.name_plural]}
         titlePlain={model.name_plural}
         titleEm="entries"
-        subtitle={<>Managed by the fields defined on this model. <Link to={`/cms/models/${model.id}`}>Edit fields →</Link></>}
+        subtitle={<>Managed by the fields defined on this model. <Link to={`/cms/models/${model.id}`}>Edit fields â†’</Link></>}
         actions={<button className="btn btn-primary btn-sm" onClick={() => setEditingId('new')}><Icon name="plus" size={13} /> New {model.name.toLowerCase()}</button>}
       />
 
@@ -334,7 +334,7 @@ export function CMSContentEntries() {
                   <SelectValue placeholder="All Sites" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">🌐 All Sites</SelectItem>
+                  <SelectItem value="all">ðŸŒ All Sites</SelectItem>
                   {sites.map(s => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
@@ -347,7 +347,7 @@ export function CMSContentEntries() {
                 <SelectValue placeholder="All Locales" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">🌍 All Locales</SelectItem>
+                <SelectItem value="all">ðŸŒ All Locales</SelectItem>
                 {SUPPORTED_LOCALES.map(l => (
                   <SelectItem key={l.code} value={l.code}>{l.flag} {l.name}</SelectItem>
                 ))}
@@ -356,7 +356,7 @@ export function CMSContentEntries() {
 
             <div style={{ position: 'relative' }}>
               <Icon name="search" size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 12px 7px 30px', fontSize: 13, outline: 'none', width: 170, background: 'var(--white)' }} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Searchâ€¦" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 12px 7px 30px', fontSize: 13, outline: 'none', width: 170, background: 'var(--white)' }} />
             </div>
             <button className="btn btn-secondary btn-sm" title="Save this status + search as a named filter" onClick={handleSaveFilter} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <Icon name="bookmark" size={13} /> Save filter
@@ -380,7 +380,7 @@ export function CMSContentEntries() {
         {savedFilters.length > 0 && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
             {savedFilters.map(f => (
-              <button key={f.id} onClick={() => applySavedFilter(f)} title={`Status: ${f.status || 'all'}${f.search ? ` · Search: ${f.search}` : ''}`}
+              <button key={f.id} onClick={() => applySavedFilter(f)} title={`Status: ${f.status || 'all'}${f.search ? ` Â· Search: ${f.search}` : ''}`}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '5px 6px 5px 12px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer' }}>
                 {f.name}
                 <span onClick={ev => handleDeleteSavedFilter(f, ev)} style={{ display: 'flex', color: 'var(--ink3)', padding: 2 }}><Icon name="x" size={10} /></span>
@@ -465,7 +465,7 @@ export function CMSContentEntries() {
                       <td style={{ padding: '11px 16px', width: 34 }}><SelectBox checked={selected.has(e.id)} onToggle={ev => toggleSelect(e.id, ev)} /></td>
                       <td style={{ padding: '11px 16px', fontWeight: 600 }}>{e.title}</td>
                       <td style={{ padding: '11px 16px', color: 'var(--ink3)' }}>
-                        <span style={{ fontSize: 11.5, fontFamily: 'var(--mono)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>
+                        <span style={{ fontSize: 11.5, fontFamily: 'var(--font)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>
                           {((e as any).locale || 'EN').toUpperCase()}
                         </span>
                       </td>
@@ -714,7 +714,7 @@ function EntryEditor({
             <Icon name="arrowLeft" size={14} /> Back to {model.name_plural}
           </button>
           {entryId && autosaveState !== 'idle' && (
-            <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{autosaveState === 'saving' ? 'Saving…' : 'Saved'}</span>
+            <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{autosaveState === 'saving' ? 'Savingâ€¦' : 'Saved'}</span>
           )}
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -751,7 +751,7 @@ function EntryEditor({
           <button className="btn btn-secondary btn-sm" disabled={saving} onClick={() => save('draft')}>Save draft</button>
           {entry.status === 'scheduled'
             ? <button className="btn btn-primary btn-sm" disabled={saving} onClick={() => save('scheduled')}>Schedule</button>
-            : <button className="btn btn-secondary btn-sm" onClick={() => setEntry(f => f && ({ ...f, status: 'scheduled' }))}>Schedule…</button>}
+            : <button className="btn btn-secondary btn-sm" onClick={() => setEntry(f => f && ({ ...f, status: 'scheduled' }))}>Scheduleâ€¦</button>}
           <button className="btn btn-primary btn-sm" disabled={saving} onClick={() => save('published')}>Publish</button>
         </div>
       </div>
@@ -815,7 +815,7 @@ function EntryEditor({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>Slug</label>
-            <input className="input-field" style={{ fontFamily: 'var(--mono)', fontSize: 12.5 }} value={entry.slug} placeholder="auto" onChange={e => setEntry(f => f && ({ ...f, slug: e.target.value }))} />
+            <input className="input-field" style={{ fontFamily: 'var(--font)', fontSize: 12.5 }} value={entry.slug} placeholder="auto" onChange={e => setEntry(f => f && ({ ...f, slug: e.target.value }))} />
           </div>
 
           <div>
@@ -868,7 +868,7 @@ function EntryEditor({
               {inPreview ? (
                 blockValue.length
                   ? <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px' }}><BlockPreview blocks={blockValue} components={componentBlocksMap} tenantSlug={tenantSlug ?? undefined} /></div>
-                  : <div className="block-preview-empty">Nothing to preview yet — add a block first.</div>
+                  : <div className="block-preview-empty">Nothing to preview yet â€” add a block first.</div>
               ) : (
                 <FieldInput field={field} value={entry.data[field.key]} components={componentOptions} componentBlocks={componentBlocksMap} relationOptions={relationOptions} forms={forms} experiments={experiments} onChange={v => setEntry(f => f && ({ ...f, data: { ...f.data, [field.key]: v } }))} />
               )}
@@ -877,7 +877,7 @@ function EntryEditor({
           );
         })}
         {fields.length === 0 && (
-          <div style={{ fontSize: 13, color: 'var(--ink3)' }}>This model has no fields yet — <Link to={`/cms/models/${model.id}`}>add some</Link> to capture more than a title.</div>
+          <div style={{ fontSize: 13, color: 'var(--ink3)' }}>This model has no fields yet â€” <Link to={`/cms/models/${model.id}`}>add some</Link> to capture more than a title.</div>
         )}
 
         <div>

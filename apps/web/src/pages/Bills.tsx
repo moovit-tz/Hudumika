@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { FormPage } from '../components/FormPage.js';
@@ -22,7 +22,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/s
 import { showAlert } from '../lib/alert.js';
 import { useTaxCodes } from '../data/taxCodeData.js';
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type BillStatus = 'DRAFT'|'PENDING_APPROVAL'|'POSTED'|'PARTIAL'|'PAID'|'OVERDUE'|'VOID';
 type RecurFreq  = 'WEEKLY'|'MONTHLY'|'QUARTERLY'|'ANNUAL';
@@ -72,7 +72,7 @@ interface RecurForm {
   payment_terms: string; next_due: string; end_date: string;
 }
 
-// ── Config ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const STATUS_CFG: Record<BillStatus, { label: string; color: string; bg: string }> = {
   DRAFT:   { label: 'Draft',    color: 'var(--ink3)',  bg: 'var(--bg)'       },
@@ -121,7 +121,7 @@ function buildSupplierMap(suppliers: any[]): SupplierMap {
   ]));
 }
 
-// ── API Mapping ────────────────────────────────────────────────────────────────
+// â”€â”€ API Mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function mapApiBill(d: any): Bill {
   return {
@@ -173,13 +173,13 @@ function mapApiPayment(d: any): Payment {
   };
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function fmt(n: number, cur = 'USD') {
   try { return new Intl.NumberFormat('en-US', { style:'currency', currency: cur, maximumFractionDigits: cur === 'TZS' ? 0 : 2, minimumFractionDigits: 0 }).format(n); }
   catch { return `${cur} ${n.toFixed(2)}`; }
 }
-function fmtDate(d?: string | null) { if (!d) return '—'; return new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
+function fmtDate(d?: string | null) { if (!d) return 'â€”'; return new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
 function genId()  { return 'bill-' + Math.random().toString(36).slice(2, 9); }
 function genNum(bills: Bill[]) { return `BILL-${new Date().getFullYear()}-${String(bills.length + 1).padStart(3, '0')}`; }
 function lineTotal(l: BillLine) { return l.qty * l.unit_price * (1 + l.tax_rate / 100); }
@@ -192,7 +192,7 @@ function isOverdue(b: Bill) { return (b.status === 'POSTED' || b.status === 'PAR
 function daysOverdue(due: string) { return Math.floor((Date.now() - new Date(due).getTime()) / 86400000); }
 function newKey() { return Math.random().toString(36).slice(2, 9); }
 
-// ── StatusBadge ────────────────────────────────────────────────────────────────
+// â”€â”€ StatusBadge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const STATUS_VARIANT: Record<BillStatus, 'gray' | 'info' | 'warning' | 'success' | 'error'> = {
   DRAFT: 'gray', PENDING_APPROVAL: 'warning', POSTED: 'info', PARTIAL: 'warning', PAID: 'success', OVERDUE: 'error', VOID: 'gray',
@@ -211,7 +211,7 @@ function FreqBadge({ freq }: { freq: RecurFreq }) {
   return <span style={{ padding:'2px 9px', borderRadius: 'var(--r)', fontSize:11, fontWeight:700, background:c.bg, color:c.color }}>{c.label}</span>;
 }
 
-// ── Pay Modal ──────────────────────────────────────────────────────────────────
+// â”€â”€ Pay Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function PayModal({ bill, onPay, onClose }: {
   bill: Bill;
@@ -231,7 +231,7 @@ function PayModal({ bill, onPay, onClose }: {
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
       <DialogContent className="max-w-110 gap-0" style={{ padding:28 }}>
         <DialogTitle style={{ fontSize:16, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Record Payment</DialogTitle>
-        <div style={{ fontSize:13, color:'var(--ink3)', marginBottom:20 }}>{bill.bill_number} · Balance: <strong>{fmt(balance, bill.currency)}</strong></div>
+        <div style={{ fontSize:13, color:'var(--ink3)', marginBottom:20 }}>{bill.bill_number} Â· Balance: <strong>{fmt(balance, bill.currency)}</strong></div>
         <div style={{ marginBottom:14 }}>
           <label style={lbl}>Payment Amount *</label>
           <div style={{ position:'relative' }}>
@@ -246,11 +246,11 @@ function PayModal({ bill, onPay, onClose }: {
           <div><label style={lbl}>Payment Date *</label><DatePicker date={parseDateOnly(date)} onChange={d => setDate(toDateOnlyString(d))} /></div>
           <div><label style={lbl}>Method</label><Select value={method} onValueChange={setMethod}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></div>
         </div>
-        <div style={{ marginBottom:14 }}><label style={lbl}>Reference / Transaction ID</label><input type="text" title="Reference" placeholder="e.g. TRX-CRDB-20260625-001" value={ref} onChange={e => setRef(e.target.value)} style={{ ...inp, fontFamily:'var(--mono)', fontSize:12 }} /></div>
-        <div style={{ marginBottom:20 }}><label style={lbl}>Note (optional)</label><input type="text" title="Note" placeholder="Payment note…" value={note} onChange={e => setNote(e.target.value)} style={inp} /></div>
+        <div style={{ marginBottom:14 }}><label style={lbl}>Reference / Transaction ID</label><input type="text" title="Reference" placeholder="e.g. TRX-CRDB-20260625-001" value={ref} onChange={e => setRef(e.target.value)} style={{ ...inp, fontFamily:'var(--font)', fontSize:12 }} /></div>
+        <div style={{ marginBottom:20 }}><label style={lbl}>Note (optional)</label><input type="text" title="Note" placeholder="Payment noteâ€¦" value={note} onChange={e => setNote(e.target.value)} style={inp} /></div>
         <div style={{ background:'var(--teal-l)', borderRadius: 'var(--r)', padding:'11px 14px', marginBottom:20, display:'flex', justifyContent:'space-between', fontSize:13 }}>
           <span style={{ color:'var(--ink2)' }}>After this payment</span>
-          <span style={{ fontWeight:800, color: amount >= balance ? 'var(--green)' : 'var(--gold)' }}>{amount >= balance ? '✓ Fully Paid' : `${fmt(balance - amount, bill.currency)} remaining`}</span>
+          <span style={{ fontWeight:800, color: amount >= balance ? 'var(--green)' : 'var(--gold)' }}>{amount >= balance ? 'âœ“ Fully Paid' : `${fmt(balance - amount, bill.currency)} remaining`}</span>
         </div>
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
           <button type="button" title="Cancel" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
@@ -264,7 +264,7 @@ function PayModal({ bill, onPay, onClose }: {
   );
 }
 
-// ── Bill Form (create / edit) ──────────────────────────────────────────────────
+// â”€â”€ Bill Form (create / edit) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave, onClose }: {
   initial?: Bill; allBills: Bill[]; suppliers: any[]; onSupplierCreated: (s: any) => void;
@@ -327,7 +327,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
     const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
     return list.slice(0, 25).map((s) => ({
       id: s.ref_number, label: s.ref_number,
-      sublabel: [s.customer_name, s.goods_desc].filter(Boolean).join(' · '),
+      sublabel: [s.customer_name, s.goods_desc].filter(Boolean).join(' Â· '),
     }));
   }
 
@@ -377,7 +377,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
               label="Supplier *" value={supplierItem} onChange={handleSupplierChange}
               search={searchSuppliersLocal} onCreate={createSupplierInline}
               createLabel={(q) => `Create new supplier "${q}"`}
-              placeholder="Search suppliers…"
+              placeholder="Search suppliersâ€¦"
             />
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
@@ -386,14 +386,14 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginBottom:16 }}>
             <div>
-                <label style={lbl}>Currency {f.currency === getCompany().currency && <span style={{ fontWeight:400, color:'var(--teal)', fontSize:10.5 }}>· company default</span>}</label>
+                <label style={lbl}>Currency {f.currency === getCompany().currency && <span style={{ fontWeight:400, color:'var(--teal)', fontSize:10.5 }}>Â· company default</span>}</label>
                 <Select value={f.currency} onValueChange={v => setField('currency', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
               </div>
-            <div><label style={lbl}>PO Reference</label><input type="text" title="PO number" placeholder="PO-2026-..." value={f.po_number} onChange={e => setField('po_number', e.target.value)} style={{ ...inp, fontFamily:'var(--mono)', fontSize:12 }} /></div>
+            <div><label style={lbl}>PO Reference</label><input type="text" title="PO number" placeholder="PO-2026-..." value={f.po_number} onChange={e => setField('po_number', e.target.value)} style={{ ...inp, fontFamily:'var(--font)', fontSize:12 }} /></div>
             <div>
               <EntityPicker
                 label="Shipment Ref" value={shipmentItem} onChange={handleShipmentChange}
-                search={searchShipmentsLocal} placeholder="Search shipments…"
+                search={searchShipmentsLocal} placeholder="Search shipmentsâ€¦"
               />
             </div>
           </div>
@@ -412,7 +412,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
                 {f.lines.map((ln, i) => (
                   <tr key={ln._key} style={{ borderBottom: i < f.lines.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td style={{ padding:'7px 10px', minWidth:200 }}>
-                      <input type="text" title="Description" placeholder="Service description…" value={ln.description} onChange={e => updateLine(ln._key, 'description', e.target.value)}
+                      <input type="text" title="Description" placeholder="Service descriptionâ€¦" value={ln.description} onChange={e => updateLine(ln._key, 'description', e.target.value)}
                         style={{ width:'100%', padding:'6px 8px', border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize:12, outline:'none', boxSizing:'border-box' as const }} />
                     </td>
                     <td style={{ padding:'7px 8px' }}>
@@ -432,7 +432,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
                         style={{ width:90, padding:'6px 8px', border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize:12, outline:'none', textAlign:'right' }} />
                     </td>
                     {/* A treatment, not a bare rate. On a purchase the treatment is
-                        what decides whether the tax is claimable at all — a blocked
+                        what decides whether the tax is claimable at all â€” a blocked
                         purchase is charged 18% you never get back, and a rate box
                         cannot say so. */}
                     <td style={{ padding:'7px 6px' }}>
@@ -443,7 +443,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
                         <SelectContent>
                           {purchaseTaxCodes.map(tc => (
                             <SelectItem key={tc.id} value={tc.id}>
-                              {tc.code} · {tc.rate}%{tc.inputTaxRecoverable ? '' : ' · blocked'}
+                              {tc.code} Â· {tc.rate}%{tc.inputTaxRecoverable ? '' : ' Â· blocked'}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -473,13 +473,13 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
             </div>
           </div>
 
-          <div><label style={lbl}>Notes</label><textarea title="Notes" placeholder="Payment terms, references, or other notes…" value={f.notes} onChange={e => setField('notes', e.target.value)} rows={3} style={{ ...inp, resize:'vertical' }} /></div>
+          <div><label style={lbl}>Notes</label><textarea title="Notes" placeholder="Payment terms, references, or other notesâ€¦" value={f.notes} onChange={e => setField('notes', e.target.value)} rows={3} style={{ ...inp, resize:'vertical' }} /></div>
         </div>
     </FormPage>
   );
 }
 
-// ── Recurring Bill Form ────────────────────────────────────────────────────────
+// â”€â”€ Recurring Bill Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose }: {
   initial?: RecurringBill; suppliers: any[]; onSupplierCreated: (s: any) => void;
@@ -544,7 +544,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
               label="Supplier *" value={supplierItem} onChange={handleSupplierChange}
               search={searchSuppliersLocal} onCreate={createSupplierInline}
               createLabel={(q) => `Create new supplier "${q}"`}
-              placeholder="Search suppliers…"
+              placeholder="Search suppliersâ€¦"
             />
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
@@ -554,7 +554,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
           <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:12, marginBottom:14 }}>
             <div><label style={lbl}>Amount</label><input type="number" title="Amount" value={f.amount} min={0} step={0.01} onChange={e => set('amount', parseFloat(e.target.value)||0)} style={inp} /></div>
             <div>
-                <label style={lbl}>Currency {f.currency === getCompany().currency && <span style={{ fontWeight:400, color:'var(--teal)', fontSize:10.5 }}>· company default</span>}</label>
+                <label style={lbl}>Currency {f.currency === getCompany().currency && <span style={{ fontWeight:400, color:'var(--teal)', fontSize:10.5 }}>Â· company default</span>}</label>
                 <Select value={f.currency} onValueChange={v => set('currency', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
               </div>
             <div>
@@ -567,14 +567,14 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
                 <SelectContent>
                   {recurTaxCodes.map(tc => (
                     <SelectItem key={tc.id} value={tc.id}>
-                      {tc.code} · {tc.rate}%{tc.inputTaxRecoverable ? '' : ' · blocked'}
+                      {tc.code} Â· {tc.rate}%{tc.inputTaxRecoverable ? '' : ' Â· blocked'}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <div style={{ marginBottom:14 }}><label style={lbl}>Description</label><textarea title="Description" placeholder="Description of the recurring charge…" value={f.description} onChange={e => set('description', e.target.value)} rows={2} style={{ ...inp, resize:'vertical' }} /></div>
+          <div style={{ marginBottom:14 }}><label style={lbl}>Description</label><textarea title="Description" placeholder="Description of the recurring chargeâ€¦" value={f.description} onChange={e => set('description', e.target.value)} rows={2} style={{ ...inp, resize:'vertical' }} /></div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
             <div><label style={lbl}>First / Next Due Date</label><DatePicker date={parseDateOnly(f.next_due)} onChange={d => set('next_due', toDateOnlyString(d))} /></div>
             <div><label style={lbl}>End Date (optional)</label><DatePicker date={parseDateOnly(f.end_date)} onChange={d => set('end_date', toDateOnlyString(d))} /></div>
@@ -583,7 +583,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
           <div style={{ background:'var(--teal-l)', borderRadius: 'var(--r)', padding:'14px 16px' }}>
             <div style={{ fontSize:11, fontWeight:700, color:'var(--teal)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>Preview</div>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <div><div style={{ fontWeight:700, color:'var(--ink)', fontSize:13 }}>{f.name || 'Template Name'}</div><div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{supplierItem?.label ?? '—'} · {FREQ_CFG[f.frequency].label}</div></div>
+              <div><div style={{ fontWeight:700, color:'var(--ink)', fontSize:13 }}>{f.name || 'Template Name'}</div><div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{supplierItem?.label ?? 'â€”'} Â· {FREQ_CFG[f.frequency].label}</div></div>
               <div style={{ textAlign:'right' }}><div style={{ fontWeight:800, fontSize:16, color:'var(--teal)' }}>{fmt(total, f.currency)}</div><div style={{ fontSize:11, color:'var(--ink3)' }}>per period</div></div>
             </div>
           </div>
@@ -600,7 +600,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
   );
 }
 
-// ── Detail View ────────────────────────────────────────────────────────────────
+// â”€â”€ Detail View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost, onVoid, onVerifyEfd, isMobile = false }: {
   bill: Bill; payments: Payment[]; supplierMap: SupplierMap;
@@ -646,12 +646,12 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
           <div>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
-              <span style={{ fontFamily:'var(--mono)', fontSize:18, fontWeight:800, color:'var(--teal)' }}>{bill.bill_number}</span>
+              <span style={{ fontFamily:'var(--font)', fontSize:18, fontWeight:800, color:'var(--teal)' }}>{bill.bill_number}</span>
               <StatusBadge status={bill.status} />
               {bill.recurring_id && <span style={{ fontSize:11, fontWeight:700, color:'var(--purple)', background:'var(--purple-l)', padding:'2px 8px', borderRadius: 'var(--r)' }}>Recurring</span>}
             </div>
             <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:2 }}>{bill.supplier_name}</div>
-            <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Billed {fmtDate(bill.bill_date)} · Due {fmtDate(bill.due_date)}{over ? ` — ${daysOverdue(bill.due_date)} days overdue` : ''}</div>
+            <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Billed {fmtDate(bill.bill_date)} Â· Due {fmtDate(bill.due_date)}{over ? ` â€” ${daysOverdue(bill.due_date)} days overdue` : ''}</div>
           </div>
           <div style={{ display:'flex', gap:8 }}>
             {(bill.status === 'DRAFT' || bill.status === 'PENDING_APPROVAL') && <button type="button" title={bill.status === 'DRAFT' ? 'Submit bill' : 'Approve bill'} onClick={onPost} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--blue)', borderRadius: 'var(--r)', background:'var(--blue-l)', color:'var(--blue)', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="send" size={13} /> {bill.status === 'DRAFT' ? 'Submit' : 'Approve'}</button>}
@@ -683,7 +683,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
                     <td style={{ padding:'10px 12px' }}><span style={{ fontSize:11, fontWeight:700, color:CAT_CFG[l.category].color }}>{CAT_CFG[l.category].label}</span></td>
                     <td style={{ padding:'10px 12px', textAlign:'center', color:'var(--ink2)' }}>{l.qty}</td>
                     <td style={{ padding:'10px 12px', textAlign:'right', color:'var(--ink2)' }}>{fmt(l.unit_price, bill.currency)}</td>
-                    <td style={{ padding:'10px 12px', textAlign:'center', color:'var(--ink3)', fontSize:12 }}>{l.tax_rate > 0 ? `${l.tax_rate}%` : '—'}</td>
+                    <td style={{ padding:'10px 12px', textAlign:'center', color:'var(--ink3)', fontSize:12 }}>{l.tax_rate > 0 ? `${l.tax_rate}%` : 'â€”'}</td>
                     <td style={{ padding:'10px 12px', textAlign:'right', fontWeight:700 }}>{fmt(lineTotal(l), bill.currency)}</td>
                   </tr>
                 ))}
@@ -717,7 +717,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
                         <span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(p.date)}</span>
                       </div>
                       <div style={{ fontSize:12.5, color:'var(--ink2)' }}>{p.method}</div>
-                      <div style={{ fontFamily:'var(--mono)', fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{p.reference}</div>
+                      <div style={{ fontFamily:'var(--font)', fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{p.reference}</div>
                       {p.note && <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2, fontStyle:'italic' }}>{p.note}</div>}
                     </div>
                   </div>
@@ -737,7 +737,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
                   <Icon name="activity" size={13} color="var(--teal)" />
                   <div className="inv-audit-body">
                     <span className="inv-audit-action">{e.action.replace(/_/g, ' ')}{e.detail ? `: ${e.detail}` : ''}</span>
-                    <span className="inv-audit-ts">{e.actor_name ? `${e.actor_name} · ` : ''}{new Date(e.created_at).toLocaleString('en-GB')}</span>
+                    <span className="inv-audit-ts">{e.actor_name ? `${e.actor_name} Â· ` : ''}{new Date(e.created_at).toLocaleString('en-GB')}</span>
                   </div>
                 </div>
               ))}
@@ -754,8 +754,8 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
               { l:'Bill Date',  v: fmtDate(bill.bill_date) },
               { l:'Due Date',   v: <span style={{ color: over ? 'var(--red)' : 'inherit' }}>{fmtDate(bill.due_date)}</span> },
               { l:'Currency',   v: bill.currency },
-              { l:'PO Ref',     v: bill.po_number ? <span style={{ fontFamily:'var(--mono)', fontSize:12 }}>{bill.po_number}</span> : '—' },
-              { l:'Shipment',   v: bill.shipment_ref ? <span style={{ fontFamily:'var(--mono)', fontSize:12, color:'var(--blue)' }}>{bill.shipment_ref}</span> : '—' },
+              { l:'PO Ref',     v: bill.po_number ? <span style={{ fontFamily:'var(--font)', fontSize:12 }}>{bill.po_number}</span> : 'â€”' },
+              { l:'Shipment',   v: bill.shipment_ref ? <span style={{ fontFamily:'var(--font)', fontSize:12, color:'var(--blue)' }}>{bill.shipment_ref}</span> : 'â€”' },
             ].map(r => (
               <div key={r.l} style={{ display:'flex', justifyContent:'space-between', fontSize:12.5, marginBottom:8 }}>
                 <span style={{ color:'var(--ink3)' }}>{r.l}</span>
@@ -792,16 +792,16 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
               </div>
             ) : null}
             {bill.efd_receipt_number && (
-              <div style={{ fontFamily:'var(--mono)', fontSize:11.5, color:'var(--ink3)', marginBottom:8, wordBreak:'break-all' }}>{bill.efd_receipt_number}</div>
+              <div style={{ fontFamily:'var(--font)', fontSize:11.5, color:'var(--ink3)', marginBottom:8, wordBreak:'break-all' }}>{bill.efd_receipt_number}</div>
             )}
             <input
               type="text" placeholder="RCTVNUM from supplier's receipt" value={efdInput}
               onChange={e => setEfdInput(e.target.value)}
-              style={{ width:'100%', padding:'7px 9px', borderRadius: 'var(--r-sm)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink)', fontSize:12.5, fontFamily:'var(--mono)', outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}
+              style={{ width:'100%', padding:'7px 9px', borderRadius: 'var(--r-sm)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink)', fontSize:12.5, fontFamily:'var(--font)', outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}
             />
             <button type="button" onClick={runVerify} disabled={!efdInput.trim() || efdChecking}
               style={{ width:'100%', padding:'var(--ds-btn-py) 0', borderRadius:'var(--r)', border:'none', background: efdChecking ? 'var(--ink3)' : 'hsl(var(--primary))', color: efdChecking ? 'var(--white)' : 'hsl(var(--primary-foreground))', fontSize:13, fontWeight:700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {efdChecking ? 'Checking with TRA…' : 'Verify against TRA'}
+              {efdChecking ? 'Checking with TRAâ€¦' : 'Verify against TRA'}
             </button>
             {efdError && <div style={{ marginTop:8, fontSize:11.5, color:'var(--red)' }}>{efdError}</div>}
             {bill.efd_verified_at && <div style={{ marginTop:8, fontSize:11, color:'var(--ink3)' }}>Last checked {fmtDate(bill.efd_verified_at)}</div>}
@@ -812,7 +812,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
   );
 }
 
-// ── Recurring Tab ──────────────────────────────────────────────────────────────
+// â”€â”€ Recurring Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function RecurringTab({ recurring, onEdit, onToggle, onGenerate, onDelete, isMobile = false }: {
   recurring: RecurringBill[];
@@ -862,7 +862,7 @@ function RecurringTab({ recurring, onEdit, onToggle, onGenerate, onDelete, isMob
                 const dueSoon = dueD.getTime() - Date.now() < 14 * 86400000;
                 return (
                   <tr key={r.id} style={{ borderBottom:'1px solid var(--border)', opacity: r.state === 'PAUSED' ? 0.55 : 1 }}>
-                    <td style={{ padding:'12px 14px' }}><div style={{ fontWeight:700, color:'var(--ink)' }}>{r.name}</div><div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{r.description.length > 50 ? r.description.slice(0,50)+'…' : r.description}</div></td>
+                    <td style={{ padding:'12px 14px' }}><div style={{ fontWeight:700, color:'var(--ink)' }}>{r.name}</div><div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{r.description.length > 50 ? r.description.slice(0,50)+'â€¦' : r.description}</div></td>
                     <td style={{ padding:'12px 14px', fontSize:13, color:'var(--ink2)' }}>{r.supplier_name}</td>
                     <td style={{ padding:'12px 14px' }}><FreqBadge freq={r.frequency} /></td>
                     <td style={{ padding:'12px 14px', fontWeight:700 }}>{fmt(total, r.currency)}</td>
@@ -892,7 +892,7 @@ function RecurringTab({ recurring, onEdit, onToggle, onGenerate, onDelete, isMob
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
+// â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type MainTab  = 'bills'|'recurring';
 type AppView  = 'list'|'detail'|'form';
@@ -977,7 +977,7 @@ export const Bills: React.FC = () => {
     return <Icon name={sortDir==='asc'?'arrowUp':'arrowDown'} size={10} color="var(--teal)" />;
   }
 
-  // ── CRUD ────────────────────────────────────────────────────────────────────
+  // â”€â”€ CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function handleSaveBill(f: BillForm) {
     const isEdit = !!formBill;
@@ -1078,7 +1078,7 @@ export const Bills: React.FC = () => {
   }
 
   function handleGenerate(r: RecurringBill) {
-    // Real, server-side generation (recurring-documents.service.ts) — the
+    // Real, server-side generation (recurring-documents.service.ts) â€” the
     // same function the daily cron job calls, just targeted at one
     // template. Previously this button built the bill and PATCHed the
     // template's counters entirely client-side.
@@ -1091,7 +1091,7 @@ export const Bills: React.FC = () => {
       .catch((err: any) => showAlert(err.message || 'Failed to generate bill'));
   }
 
-  // ── Metrics ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const totalBills   = bills.length;
   const unpaidBills  = effectiveBills.filter(b => b.status === 'POSTED' || b.status === 'PARTIAL' || b.status === 'OVERDUE');
@@ -1105,7 +1105,7 @@ export const Bills: React.FC = () => {
 
   const uniqueSups = Array.from(new Set(bills.map(b => b.supplier_id)));
 
-  // Full page rather than a 620px drawer — a bill carries a supplier picker,
+  // Full page rather than a 620px drawer â€” a bill carries a supplier picker,
   // dates, a line-item table and totals.
   if (showBillForm) {
     return (
@@ -1176,7 +1176,7 @@ export const Bills: React.FC = () => {
             { title:'OVERDUE BILLS', value:String(overdueBills.length), sub1Label:'OVERDUE AMOUNT', sub1Value:`TZS ${overdueAmt.toLocaleString()}`, sub2Label:'AVG DAYS OVERDUE', sub2Value:overdueBills.length ? String(Math.round(overdueBills.reduce((a,b)=>a+daysOverdue(b.due_date),0)/overdueBills.length)) : '0', barHighlight:'var(--red)' },
           ]} />
 
-          {/* Toolbar — tabs + filters on the left, search + New Bill on the right,
+          {/* Toolbar â€” tabs + filters on the left, search + New Bill on the right,
               one row per CLAUDE.md's toolbar convention (was 3 stacked rows). */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', marginBottom: 18 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
@@ -1208,7 +1208,7 @@ export const Bills: React.FC = () => {
                 <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
                 <input
                   type="search"
-                  placeholder="Search bill # or supplier…"
+                  placeholder="Search bill # or supplierâ€¦"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
@@ -1289,12 +1289,12 @@ export const Bills: React.FC = () => {
                               onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                               onMouseLeave={e => (e.currentTarget.style.background = over && bal>0 ? 'rgba(239,68,68,0.02)' : '')}>
                               <td style={{ padding:'11px 14px' }}>
-                                <div style={{ fontFamily:'var(--mono)', fontSize:12, fontWeight:700, color:'var(--teal)' }}>{b.bill_number}</div>
-                                {b.recurring_id && <div style={{ fontSize:10, color:'var(--purple)', fontWeight:600, marginTop:2 }}>↻ Recurring</div>}
+                                <div style={{ fontFamily:'var(--font)', fontSize:12, fontWeight:700, color:'var(--teal)' }}>{b.bill_number}</div>
+                                {b.recurring_id && <div style={{ fontSize:10, color:'var(--purple)', fontWeight:600, marginTop:2 }}>â†» Recurring</div>}
                               </td>
                               <td style={{ padding:'11px 14px' }}>
                                 <div style={{ fontWeight:600, color:'var(--ink)' }}>{b.supplier_name}</div>
-                                {b.po_number && <div style={{ fontSize:11, fontFamily:'var(--mono)', color:'var(--ink3)', marginTop:1 }}>{b.po_number}</div>}
+                                {b.po_number && <div style={{ fontSize:11, fontFamily:'var(--font)', color:'var(--ink3)', marginTop:1 }}>{b.po_number}</div>}
                               </td>
                               <td style={{ padding:'11px 14px', color:'var(--ink2)', fontSize:12.5 }}>{fmtDate(b.bill_date)}</td>
                               <td style={{ padding:'11px 14px', color: over ? 'var(--red)' : 'var(--ink2)', fontWeight: over ? 700 : 400, fontSize:12.5 }}>
@@ -1302,9 +1302,9 @@ export const Bills: React.FC = () => {
                                 {over && <div style={{ fontSize:10, color:'var(--red)', fontWeight:600 }}>{daysOverdue(b.due_date)}d late</div>}
                               </td>
                               <td style={{ padding:'11px 14px', textAlign:'right', fontWeight:700 }}>{fmt(b.total, b.currency)}</td>
-                              <td style={{ padding:'11px 14px', textAlign:'right', color:'var(--green)', fontWeight: b.paid_amount>0 ? 700 : 400 }}>{b.paid_amount > 0 ? fmt(b.paid_amount, b.currency) : '—'}</td>
-                              <td style={{ padding:'11px 14px', textAlign:'right', fontWeight: bal>0 ? 700 : 400, color: bal>0 ? (over ? 'var(--red)' : 'var(--ink)') : 'var(--ink3)' }}>{bal > 0 ? fmt(bal, b.currency) : '—'}</td>
-                              <td style={{ padding:'11px 14px', fontFamily:'var(--mono)', fontSize:11.5, color:'var(--blue)' }}>{b.shipment_ref || '—'}</td>
+                              <td style={{ padding:'11px 14px', textAlign:'right', color:'var(--green)', fontWeight: b.paid_amount>0 ? 700 : 400 }}>{b.paid_amount > 0 ? fmt(b.paid_amount, b.currency) : 'â€”'}</td>
+                              <td style={{ padding:'11px 14px', textAlign:'right', fontWeight: bal>0 ? 700 : 400, color: bal>0 ? (over ? 'var(--red)' : 'var(--ink)') : 'var(--ink3)' }}>{bal > 0 ? fmt(bal, b.currency) : 'â€”'}</td>
+                              <td style={{ padding:'11px 14px', fontFamily:'var(--font)', fontSize:11.5, color:'var(--blue)' }}>{b.shipment_ref || 'â€”'}</td>
                               <td style={{ padding:'11px 14px' }}><StatusBadge status={b.status} /></td>
                               <td style={{ padding:'11px 10px' }} onClick={e => e.stopPropagation()}>
                                 <div style={{ display:'flex', gap:2 }}>
@@ -1322,7 +1322,7 @@ export const Bills: React.FC = () => {
                   </div>
                   <div style={{ padding:'10px 16px', borderTop:'1px solid var(--border)', fontSize:12, color:'var(--ink3)', display:'flex', justifyContent:'space-between' }}>
                     <span>Showing {displayed.length} of {bills.length} bills</span>
-                    <span>{overdueBills.length} overdue · {unpaidBills.length} outstanding</span>
+                    <span>{overdueBills.length} overdue Â· {unpaidBills.length} outstanding</span>
                   </div>
                   </>
                 )}

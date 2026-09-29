@@ -1,4 +1,4 @@
-// ─── OndiSecuritySettings.tsx — Ondi Personal · Security Hub ───
+﻿// â”€â”€â”€ OndiSecuritySettings.tsx â€” Ondi Personal Â· Security Hub â”€â”€â”€
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
@@ -46,7 +46,7 @@ interface PasskeyItem {
 }
 
 function relTime(dateStr: string | null | undefined): string {
-  if (!dateStr) return '—';
+  if (!dateStr) return 'â€”';
   const ms = Date.now() - new Date(dateStr).getTime();
   const sec = Math.floor(ms / 1000);
   if (sec < 60) return `${Math.max(sec, 0)} sec ago`;
@@ -72,7 +72,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
   const { user, updateUser } = useAuth();
   const [activeSection, setActiveSection] = useState<'all' | 'password' | 'mfa' | 'passkeys' | 'phone' | 'kyc' | 'recovery' | 'sessions'>('all');
 
-  // ── Password Management ──
+  // â”€â”€ Password Management â”€â”€
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
@@ -103,7 +103,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
     }
   }
 
-  // ── Email Management ──
+  // â”€â”€ Email Management â”€â”€
   const [currentPwForEmail, setCurrentPwForEmail] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [emailSaving, setEmailSaving] = useState(false);
@@ -128,7 +128,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
     }
   }
 
-  // ── Two-Factor Authentication (2FA) ──
+  // â”€â”€ Two-Factor Authentication (2FA) â”€â”€
   const [twoFA, setTwoFA] = useState<{ enabled: boolean; enabled_at: string | null } | null>(null);
   const [setupData, setSetupData] = useState<{ secret: string; uri: string } | null>(null);
   const [verifyCode, setVerifyCode] = useState('');
@@ -185,7 +185,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
     }
   }
 
-  // ── Hardware Passkeys ──
+  // â”€â”€ Hardware Passkeys â”€â”€
   const [passkeys, setPasskeys] = useState<PasskeyItem[] | null>(null);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
 
@@ -221,7 +221,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
     }
   }
 
-  // ── Phone Number Verification (SMS one-time code) ──
+  // â”€â”€ Phone Number Verification (SMS one-time code) â”€â”€
   const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
   const [phoneCodeSent, setPhoneCodeSent] = useState(false);
   const [phoneVerifyCode, setPhoneVerifyCode] = useState('');
@@ -259,7 +259,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
     }
   }
 
-  // ── Government Identity Verification (KYC) ──
+  // â”€â”€ Government Identity Verification (KYC) â”€â”€
   const [kycStatus, setKycStatus] = useState<{ kyc_status: string; verification_level: string; latest_submission: any } | null>(null);
   const [kycDocType, setKycDocType] = useState<'national_id' | 'passport' | 'drivers_license'>('national_id');
   const [kycBusy, setKycBusy] = useState(false);
@@ -293,7 +293,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
     }
   }
 
-  // ── Recovery Contacts & Requests ──
+  // â”€â”€ Recovery Contacts & Requests â”€â”€
   const [myContacts, setMyContacts] = useState<RecoveryContact[] | null>(null);
   const [vouchingFor, setVouchingFor] = useState<RecoveryContact[] | null>(null);
   const [requests, setRequests] = useState<RecoveryRequest[] | null>(null);
@@ -343,7 +343,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
   }
 
   async function approveRecoveryRequest(id: string) {
-    if (!(await showConfirm("Vouch for this person? They'll regain access after a 24-hour cooldown — if this wasn't really them, they can cancel it just by logging in normally.", { confirmLabel: 'Approve' }))) return;
+    if (!(await showConfirm("Vouch for this person? They'll regain access after a 24-hour cooldown â€” if this wasn't really them, they can cancel it just by logging in normally.", { confirmLabel: 'Approve' }))) return;
     try { await apiFetch(`/v1/security/recovery-requests/${id}/approve`, { method: 'POST' }); await reloadRecovery(); }
     catch (err: any) { showAlert(err.message); }
   }
@@ -354,16 +354,16 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
   }
 
   // HUD-0112: the requester has, by definition, lost both password and email
-  // access — the platform has no channel of its own to reach them, so the
+  // access â€” the platform has no channel of its own to reach them, so the
   // contact is the one who has to relay this link back out of band (a call,
   // a chat message, in person).
   function copyRecoveryLink(token: string) {
     const url = `${window.location.origin}/recovery?token=${token}`;
     navigator.clipboard.writeText(url);
-    showAlert("Recovery link copied — send it to them however you'd normally reach them (call, chat, in person).", { variant: 'success' });
+    showAlert("Recovery link copied â€” send it to them however you'd normally reach them (call, chat, in person).", { variant: 'success' });
   }
 
-  // ── Active Sessions ──
+  // â”€â”€ Active Sessions â”€â”€
   const [sessions, setSessions] = useState<any[] | null>(null);
   const reloadSessions = useCallback(async () => {
     try { setSessions(await apiFetch('/v1/security/sessions')); } catch { setSessions([]); }
@@ -381,7 +381,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
     }
   }
 
-  // ── Identity Trust Score ──
+  // â”€â”€ Identity Trust Score â”€â”€
   const [trust, setTrust] = useState<{ score: number; tier: 'LOW' | 'MEDIUM' | 'HIGH' } | null>(null);
   useEffect(() => {
     apiFetch('/v1/security/trust-score').then(setTrust).catch(() => setTrust(null));
@@ -423,7 +423,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
         />
       )}
 
-      {/* ── Top Executive Posture KPI Grid (Compact 2x2 on Mobile) ── */}
+      {/* â”€â”€ Top Executive Posture KPI Grid (Compact 2x2 on Mobile) â”€â”€ */}
       <div className="oss-kpi-grid">
         <div className="oss-kpi-card">
           <div className="oss-kpi-header">
@@ -451,7 +451,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
           </div>
           <div className="oss-kpi-body">
             <div className="oss-kpi-val">
-              {passkeys ? passkeys.length : '—'}
+              {passkeys ? passkeys.length : 'â€”'}
             </div>
             <div className="oss-kpi-sub">
               <span>FIDO2 biometric keys</span>
@@ -494,7 +494,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
         </div>
       </div>
 
-      {/* ── Section Filter / Quick Jump Pills — the shared segmented ds-tabs ── */}
+      {/* â”€â”€ Section Filter / Quick Jump Pills â€” the shared segmented ds-tabs â”€â”€ */}
       <Tabs value={activeSection} onValueChange={v => setActiveSection(v as typeof activeSection)} variant="segmented">
         <TabsList>
           {([
@@ -518,7 +518,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
         </TabsList>
       </Tabs>
 
-      {/* ── Main Layout: Content & Sidebar ── */}
+      {/* â”€â”€ Main Layout: Content & Sidebar â”€â”€ */}
       <div className="oss-layout-grid">
         <div className="oss-main-col">
 
@@ -538,7 +538,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
               <Icon name="alertTriangle" size={18} color={pwStatus.expired ? 'var(--red)' : 'var(--gold)'} />
               <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.4 }}>
                 {pwStatus.expired
-                  ? "Your account password is past this workspace's rotation policy — please update it below."
+                  ? "Your account password is past this workspace's rotation policy â€” please update it below."
                   : `Your password will be due for rotation in ${pwStatus.days_remaining} day${pwStatus.days_remaining === 1 ? '' : 's'}.`}
               </div>
             </div>
@@ -606,7 +606,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                     disabled={pwSaving || !currentPw || newPw.length < 8}
                   >
                     <Icon name="save" size={13} style={{ marginRight: 5 }} />
-                    {pwSaving ? 'Updating Password…' : 'Update Password'}
+                    {pwSaving ? 'Updating Passwordâ€¦' : 'Update Password'}
                   </Button>
                 </div>
               </div>
@@ -633,7 +633,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                 <div className="oss-form-row">
                   <label className="oss-form-label">Current Email</label>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                    {user?.email || '—'}
+                    {user?.email || 'â€”'}
                   </div>
                 </div>
 
@@ -667,7 +667,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                     disabled={emailSaving || !newEmail.trim() || !currentPwForEmail}
                   >
                     <Icon name="save" size={13} style={{ marginRight: 5 }} />
-                    {emailSaving ? 'Updating Email…' : 'Update Email Address'}
+                    {emailSaving ? 'Updating Emailâ€¦' : 'Update Email Address'}
                   </Button>
                 </div>
               </div>
@@ -694,7 +694,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
 
               <div className="oss-card-body">
                 {twoFA === null && (
-                  <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading 2FA telemetry…</div>
+                  <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading 2FA telemetryâ€¦</div>
                 )}
 
                 {/* Not enabled & not setting up */}
@@ -743,7 +743,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                         onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="000000"
                         className="oss-input"
-                        style={{ fontFamily: 'var(--mono)', fontSize: 16, letterSpacing: '0.2em', textAlign: 'center', width: 180 }}
+                        style={{ fontFamily: 'var(--font)', fontSize: 16, letterSpacing: '0.2em', textAlign: 'center', width: 180 }}
                       />
 
                       <div className="oss-btn-row">
@@ -807,7 +807,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                           onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                           placeholder="Enter 6-digit code"
                           className="oss-input"
-                          style={{ width: 160, fontFamily: 'var(--mono)', letterSpacing: '0.1em' }}
+                          style={{ width: 160, fontFamily: 'var(--font)', letterSpacing: '0.1em' }}
                         />
                         <Button variant="outline" size="sm" onClick={disable2FA} disabled={twoFABusy || disableCode.length < 6} style={{ color: 'var(--red)', borderColor: 'var(--red)' }}>
                           Confirm Disable
@@ -838,12 +838,12 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                 </div>
                 <Button variant="default" size="sm" onClick={addPasskey} disabled={passkeyBusy}>
                   <Icon name="plus" size={13} style={{ marginRight: 4 }} />
-                  {passkeyBusy ? 'Registering…' : 'Add Passkey'}
+                  {passkeyBusy ? 'Registeringâ€¦' : 'Add Passkey'}
                 </Button>
               </div>
 
               <div className="oss-card-body">
-                {passkeys === null && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading registered passkeys…</div>}
+                {passkeys === null && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading registered passkeysâ€¦</div>}
                 {passkeys?.length === 0 && (
                   <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
                     No hardware passkeys registered. Add a biometric key for instant passwordless authorization.
@@ -895,7 +895,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
 
               <div className="oss-card-body">
                 {kycStatus === null && (
-                  <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading phone verification status…</div>
+                  <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading phone verification statusâ€¦</div>
                 )}
 
                 {kycStatus && kycStatus.verification_level !== 'unverified' && !phoneCodeSent && (
@@ -927,7 +927,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                         style={{ width: 220 }}
                       />
                       <Button variant="default" size="sm" onClick={sendPhoneCode} disabled={phoneBusy || !phoneNumber.trim()}>
-                        {phoneBusy ? 'Sending…' : 'Send Verification Code'}
+                        {phoneBusy ? 'Sendingâ€¦' : 'Send Verification Code'}
                       </Button>
                     </div>
                   </div>
@@ -945,7 +945,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                         onChange={(e) => setPhoneVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="000000"
                         className="oss-input"
-                        style={{ fontFamily: 'var(--mono)', fontSize: 16, letterSpacing: '0.2em', textAlign: 'center', width: 160 }}
+                        style={{ fontFamily: 'var(--font)', fontSize: 16, letterSpacing: '0.2em', textAlign: 'center', width: 160 }}
                       />
                       <Button variant="default" size="sm" onClick={verifyPhoneOtp} disabled={phoneBusy || phoneVerifyCode.length < 6}>
                         Verify Code
@@ -987,7 +987,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
               </div>
 
               <div className="oss-card-body">
-                {kycStatus === null && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading verification status…</div>}
+                {kycStatus === null && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading verification statusâ€¦</div>}
 
                 {kycStatus?.kyc_status === 'approved' && kycStatus.latest_submission && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', color: 'var(--green)', fontSize: 13, fontWeight: 600 }}>
@@ -1037,7 +1037,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                         }}
                       >
                         <Icon name="upload" size={13} />
-                        <span>{kycBusy ? 'Processing Photo…' : 'Upload Document Photo'}</span>
+                        <span>{kycBusy ? 'Processing Photoâ€¦' : 'Upload Document Photo'}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -1086,7 +1086,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                           <Icon name="alertTriangle" size={16} color="var(--gold)" />
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-                              {r.requester_name} <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>· {r.requester_email}</span>
+                              {r.requester_name} <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>Â· {r.requester_email}</span>
                             </div>
                             <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
                               Requested on {fmtDateTime(r.requested_at)}
@@ -1129,7 +1129,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                             </button>
                           )}
                           <Badge variant={r.status === 'approved' ? 'success' : r.status === 'completed' ? 'success' : r.status === 'declined' ? 'error' : 'gray'}>
-                            {r.status}{r.status === 'approved' && r.cooldown_ends_at ? ` · cooldown until ${fmtDateTime(r.cooldown_ends_at)}` : ''}
+                            {r.status}{r.status === 'approved' && r.cooldown_ends_at ? ` Â· cooldown until ${fmtDateTime(r.cooldown_ends_at)}` : ''}
                           </Badge>
                         </div>
                       </div>
@@ -1150,7 +1150,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                   {myContacts?.map((c) => (
                     <div key={c.id} className="oss-contact-row">
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                        {c.contact_name} <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>· {c.contact_email}</span>
+                        {c.contact_name} <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>Â· {c.contact_email}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Badge variant={c.status === 'accepted' ? 'success' : c.status === 'declined' ? 'error' : 'gray'}>
@@ -1169,10 +1169,10 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
 
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 200 }}>
-                      <EntityPicker value={picked} onChange={setPicked} search={searchStaff} placeholder="Search a colleague to add…" />
+                      <EntityPicker value={picked} onChange={setPicked} search={searchStaff} placeholder="Search a colleague to addâ€¦" />
                     </div>
                     <Button variant="default" size="sm" disabled={addingContact} onClick={addRecoveryContact}>
-                      {addingContact ? 'Adding…' : 'Add Recovery Contact'}
+                      {addingContact ? 'Addingâ€¦' : 'Add Recovery Contact'}
                     </Button>
                   </div>
                 </div>
@@ -1186,7 +1186,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                     {vouchingFor.map((v) => (
                       <div key={v.id} className="oss-contact-row">
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                          {v.owner_name} <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>· {v.owner_email}</span>
+                          {v.owner_name} <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>Â· {v.owner_email}</span>
                         </div>
                         {v.status === 'pending' ? (
                           <div style={{ display: 'flex', gap: 6 }}>
@@ -1253,7 +1253,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
 
         </div>
 
-        {/* ── Right Column: Trust Index & Best Practice Safeguards ── */}
+        {/* â”€â”€ Right Column: Trust Index & Best Practice Safeguards â”€â”€ */}
         <div className="oss-side-col">
           {/* Identity Trust Dial Card */}
           {trust && (
@@ -1364,7 +1364,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>Audit Activity Trail</span>
               </div>
               <Link to="/ondi/personal/activity" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
-                View Logs →
+                View Logs â†’
               </Link>
             </div>
           </div>

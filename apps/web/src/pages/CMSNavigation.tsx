@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionLoading } from '../components/ui/spinner.js';
@@ -11,12 +11,12 @@ import type { CmsNavItem } from '@hudumika/types';
 const NONE = '__none__';
 
 /**
- * §14 of the CMS master brief — the public site's header used to be
+ * Â§14 of the CMS master brief â€” the public site's header used to be
  * entirely hardcoded (brand, tagline, the raw page list, a Blog link if
  * posts existed). A real, admin-configurable menu: a top-level item can
  * hold child items for a simple one-level dropdown, and reordering is
  * up/down buttons (same reliability reasoning as the Block Editor's own
- * reordering — no drag-and-drop).
+ * reordering â€” no drag-and-drop).
  */
 export function CMSNavigation() {
   const [items, setItems] = useState<CmsNavItem[] | null>(null);
@@ -76,7 +76,7 @@ export function CMSNavigation() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', paddingLeft: isChild ? 40 : 14, borderBottom: '1px solid var(--border)' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{item.label}</div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{item.target}</div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{item.target}</div>
         </div>
         <button onClick={() => handleMove(item.id, 'up')} disabled={siblingIdx === 0} title="Move up"
           style={{ background: 'none', border: 'none', cursor: siblingIdx === 0 ? 'default' : 'pointer', color: siblingIdx === 0 ? 'var(--border)' : 'var(--ink3)', display: 'flex' }}>
@@ -99,15 +99,15 @@ export function CMSNavigation() {
         crumbs={['CMS', 'Navigation']}
         titlePlain="Site"
         titleEm="navigation"
-        subtitle="What visitors see in your public site's header menu — add a top-level item, or nest one under another for a simple dropdown."
+        subtitle="What visitors see in your public site's header menu â€” add a top-level item, or nest one under another for a simple dropdown."
       />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px', maxWidth: 640 }}>
         <div className="card" style={{ padding: '18px 20px', marginBottom: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>Add a menu item</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
-            <input className="input-field" placeholder="Label — e.g. About" value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} />
-            <input className="input-field" placeholder="Target — e.g. /about, https://…" value={form.target} onChange={e => setForm(f => ({ ...f, target: e.target.value }))} />
+            <input className="input-field" placeholder="Label â€” e.g. About" value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} />
+            <input className="input-field" placeholder="Target â€” e.g. /about, https://â€¦" value={form.target} onChange={e => setForm(f => ({ ...f, target: e.target.value }))} />
           </div>
           <Select value={form.parent_id} onValueChange={v => setForm(f => ({ ...f, parent_id: v }))}>
             <SelectTrigger className="input-field"><SelectValue placeholder="Top-level item" /></SelectTrigger>
@@ -117,13 +117,13 @@ export function CMSNavigation() {
             </SelectContent>
           </Select>
           <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} style={{ alignSelf: 'flex-start' }}>
-            {saving ? 'Adding…' : 'Add item'}
+            {saving ? 'Addingâ€¦' : 'Add item'}
           </button>
         </div>
 
         {items === null ? <SectionLoading /> : items.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13 }}>
-            No menu items yet — the public header falls back to your page list until you add some.
+            No menu items yet â€” the public header falls back to your page list until you add some.
           </div>
         ) : (
           <div className="card" style={{ padding: 0 }}>

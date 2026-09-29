@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
-import type { TenantEntitlements, TenantUsage } from '@hudumika/types';
+import { FINANCE_CAPABILITIES, type TenantEntitlements, type TenantUsage } from '@hudumika/types';
 
 /** Re-exported under its long-established local name — every call site
  *  already imports `Entitlements` from here. Now just an alias for the
@@ -11,6 +11,10 @@ export type Entitlements = TenantEntitlements;
 
 const EMPTY_USAGE: TenantUsage = { used: 0, limit: null, period: '', history: [] };
 const EMPTY_AI_CREDITS = { used: 0, limit: 0, remaining: 0 };
+const EMPTY_FINANCE = {
+  edition: 'basic' as const,
+  capabilities: FINANCE_CAPABILITIES.map(definition => ({ ...definition, entitled: false, enabled: false, state: 'not_entitled' as const })),
+};
 
 let cache: Entitlements | null = null;
 let inflight: Promise<Entitlements> | null = null;
@@ -20,10 +24,10 @@ async function fetchEntitlements(): Promise<Entitlements> {
   if (!inflight) {
     inflight = apiFetch('/v1/entitlements')
       .then((r: any) => {
-        cache = { features: r?.features || {}, appStatus: r?.appStatus || {}, betaApps: r?.betaApps || [], usage: r?.usage || EMPTY_USAGE, aiCredits: r?.aiCredits || EMPTY_AI_CREDITS, byokAllowed: !!r?.byokAllowed };
+        cache = { features: r?.features || {}, appStatus: r?.appStatus || {}, betaApps: r?.betaApps || [], usage: r?.usage || EMPTY_USAGE, aiCredits: r?.aiCredits || EMPTY_AI_CREDITS, byokAllowed: !!r?.byokAllowed, finance: r?.finance || EMPTY_FINANCE };
         return cache!;
       })
-      .catch(() => ({ features: {}, appStatus: {}, betaApps: [], usage: EMPTY_USAGE, aiCredits: EMPTY_AI_CREDITS, byokAllowed: false }))
+      .catch(() => ({ features: {}, appStatus: {}, betaApps: [], usage: EMPTY_USAGE, aiCredits: EMPTY_AI_CREDITS, byokAllowed: false, finance: EMPTY_FINANCE }))
       .finally(() => { inflight = null; });
   }
   return inflight;

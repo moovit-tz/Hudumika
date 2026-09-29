@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -144,7 +144,7 @@ export function PettiDeposit() {
             {selectedWallet ? (
               <span>{Number(selectedWallet.balance).toLocaleString()} <span style={{ fontSize: 13, color: 'var(--ink3)' }}>{selectedWallet.currency}</span></span>
             ) : (
-              '—'
+              'â€”'
             )}
           </div>
           <div className="petti-stat-sub">
@@ -162,10 +162,10 @@ export function PettiDeposit() {
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Select Target Wallet *</label>
                 <Combobox
-                  options={wallets.map(w => ({ value: w.id, label: `${w.name} — Balance: ${Number(w.balance).toLocaleString()} ${w.currency}` }))}
+                  options={wallets.map(w => ({ value: w.id, label: `${w.name} â€” Balance: ${Number(w.balance).toLocaleString()} ${w.currency}` }))}
                   value={walletId}
                   onChange={setWalletId}
-                  placeholder="Select wallet…"
+                  placeholder="Select walletâ€¦"
                 />
               </div>
 
@@ -175,17 +175,17 @@ export function PettiDeposit() {
                   <Select value={method} onValueChange={v => setMethod(v as 'manual' | 'gateway')}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="manual">Manual — Bank wire, cash drop, or EFT</SelectItem>
+                      <SelectItem value="manual">Manual â€” Bank wire, cash drop, or EFT</SelectItem>
                       {gatewayStatus.configured && (
                         <SelectItem value="gateway" disabled={!gatewayStatus.chargeSupported}>
-                          {gatewayStatus.label} {gatewayStatus.chargeSupported ? '— Push live charge' : '(Integration pending)'}
+                          {gatewayStatus.label} {gatewayStatus.chargeSupported ? 'â€” Push live charge' : '(Integration pending)'}
                         </SelectItem>
                       )}
                     </SelectContent>
                   </Select>
                   {!gatewayStatus.configured && (
                     <p style={{ margin: '5px 0 0 0', fontSize: 11, color: 'var(--ink3)' }}>
-                      No payment gateway connected — <Link to="/workspace/settings?s=payment-gateways" style={{ color: 'var(--teal)' }}>connect one</Link> for push STK requests.
+                      No payment gateway connected â€” <Link to="/workspace/settings?s=payment-gateways" style={{ color: 'var(--teal)' }}>connect one</Link> for push STK requests.
                     </p>
                   )}
                 </div>
@@ -232,7 +232,7 @@ export function PettiDeposit() {
             </div>
 
             <Button type="submit" disabled={saving} style={{ padding: '12px', fontWeight: 700, fontSize: 14, marginTop: 12 }}>
-              <Icon name="plus" size={16} /> {saving ? 'Processing Deposit…' : `Confirm Deposit ${amount ? `(${Number(amount).toLocaleString()} ${selectedWallet?.currency || ''})` : ''}`}
+              <Icon name="plus" size={16} /> {saving ? 'Processing Depositâ€¦' : `Confirm Deposit ${amount ? `(${Number(amount).toLocaleString()} ${selectedWallet?.currency || ''})` : ''}`}
             </Button>
           </form>
         </SectionCard>
@@ -259,7 +259,7 @@ export function PettiDeposit() {
 
                 <div style={{ margin: '18px 0 14px 0' }}>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', fontWeight: 600 }}>Current Balance</div>
-                  <div style={{ fontSize: 28, fontWeight: 900, fontFamily: 'var(--mono)', color: '#fff', marginTop: 2 }}>
+                  <div style={{ fontSize: 28, fontWeight: 900, fontFamily: 'var(--font)', color: '#fff', marginTop: 2 }}>
                     {Number(selectedWallet.balance).toLocaleString()} <span style={{ fontSize: 15, fontWeight: 700 }}>{selectedWallet.currency}</span>
                   </div>
                 </div>
@@ -268,18 +268,18 @@ export function PettiDeposit() {
                   <div style={{ background: 'rgba(255,255,255,0.12)', padding: '12px 14px', borderRadius: 'var(--r-sm)', border: '1px solid rgba(255,255,255,0.18)', marginBottom: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', fontWeight: 700 }}>Deposit Amount</span>
-                      <span style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--mono)', color: '#10b981' }}>+{Number(amount).toLocaleString()} {selectedWallet.currency}</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--font)', color: '#10b981' }}>+{Number(amount).toLocaleString()} {selectedWallet.currency}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: 4 }}>
                       <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', fontWeight: 800 }}>Projected New Balance</span>
-                      <span style={{ fontSize: 18, fontWeight: 900, fontFamily: 'var(--mono)', color: '#34d399' }}>{projectedBalance.toLocaleString()} {selectedWallet.currency}</span>
+                      <span style={{ fontSize: 18, fontWeight: 900, fontFamily: 'var(--font)', color: '#34d399' }}>{projectedBalance.toLocaleString()} {selectedWallet.currency}</span>
                     </div>
                   </div>
                 )}
               </div>
 
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5, color: 'rgba(255,255,255,0.7)' }}>
-                <span>Vault ID: {selectedWallet.id.slice(0, 8)}…</span>
+                <span>Vault ID: {selectedWallet.id.slice(0, 8)}â€¦</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <Icon name="checkCircle" size={12} color="#34d399" /> Instant Posting
                 </span>
@@ -337,15 +337,15 @@ export function PettiDeposit() {
                   const w = wallets.find(wall => wall.id === d.wallet_id);
                   return (
                     <tr key={d.id}>
-                      <td style={{ fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{d.ref || '—'}</td>
+                      <td style={{ fontSize: 12, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink2)' }}>{d.ref || 'â€”'}</td>
                       <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{new Date(d.created_at).toLocaleString()}</td>
                       <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{w?.name || 'Wallet'}</td>
-                      <td style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: 'var(--green)' }}>
+                      <td style={{ fontFamily: 'var(--font)', fontWeight: 800, color: 'var(--green)' }}>
                         +{Number(d.amount).toLocaleString()} {w?.currency || ''}
                       </td>
                       <td><Badge variant="success">{d.method || 'manual'}</Badge></td>
-                      <td style={{ fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>{d.reference || '—'}</td>
-                      <td style={{ color: 'var(--ink3)' }}>{d.note || '—'}</td>
+                      <td style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--ink2)' }}>{d.reference || 'â€”'}</td>
+                      <td style={{ color: 'var(--ink3)' }}>{d.note || 'â€”'}</td>
                     </tr>
                   );
                 })}

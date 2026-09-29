@@ -1,4 +1,4 @@
-/* TrackingDrivers.css — HuduFreight Driver Directory Design System */
+﻿/* TrackingDrivers.css â€” HuduFreight Driver Directory Design System */
 
 .drv-page-root {
   display: flex;
@@ -233,7 +233,7 @@
 
 .drv-id-badge {
   display: inline-block;
-  font-family: var(--mono);
+  font-family: var(--font);
   font-size: 11px;
   font-weight: 600;
   color: var(--ink2);
@@ -355,7 +355,7 @@
 
 .drv-vehicle-plate {
   font-size: 11px;
-  font-family: var(--mono);
+  font-family: var(--font);
   color: var(--ink3);
 }
 

@@ -1,11 +1,11 @@
-/* ── ComplyOS shared tokens & layout ── */
+﻿/* â”€â”€ ComplyOS shared tokens & layout â”€â”€ */
 
-/* ComplyOS's own brand accent (--comply) tracks the app's configured color —
+/* ComplyOS's own brand accent (--comply) tracks the app's configured color â€”
    WorkspaceApp.tsx already resolves branding.getAppColor('complyos') and
    scopes --teal/--teal-l/--teal-m onto .app-color-scope (an ancestor of
    ComplyOSShell's [data-complyos] root) to whatever a SuperAdmin sets at
    /admin/branding. CSS custom-property var() indirection is resolved where
-   the *referencing* declaration lives, not lazily per descendant — so this
+   the *referencing* declaration lives, not lazily per descendant â€” so this
    block must be scoped to [data-complyos="true"] (inside .app-color-scope),
    not :root (an ancestor of it), or --comply would freeze to the platform's
    global default --teal instead of ComplyOS's own color.
@@ -32,7 +32,7 @@
   --ai-edge:     color-mix(in srgb, var(--purple) 25%, transparent);
 }
 
-/* ── Shell layout ── */
+/* â”€â”€ Shell layout â”€â”€ */
 .complyos-shell {
   display: flex;
   height: 100%;
@@ -66,11 +66,11 @@
   backdrop-filter: blur(2px);
 }
 
-/* ── Page chrome ── */
+/* â”€â”€ Page chrome â”€â”€ */
 /* width:100% is required, not decorative: [data-complyos] .page-layout is a
    flex column (see the bottom of this file, for pinning the shared footer to
    the bottom), and a flex item's horizontal auto margins take priority over
-   align-items:stretch — without an explicit width this shrinks to whatever
+   align-items:stretch â€” without an explicit width this shrinks to whatever
    its content's preferred (max-content) size happens to be instead of
    filling the page, which is exactly wrong for a page-width container. */
 .comply-page {
@@ -108,7 +108,7 @@
   font-weight: 400;
 }
 
-/* ── KPI cards ── */
+/* â”€â”€ KPI cards â”€â”€ */
 .comply-kpis {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -157,7 +157,7 @@
 .comply-kpi-delta--warn { color: var(--legal); }
 .comply-kpi-delta--danger { color: var(--red); }
 
-/* ── Card ── */
+/* â”€â”€ Card â”€â”€ */
 .comply-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -184,11 +184,11 @@
 .comply-card-body {
   padding: 0;
   /* Tables inside scroll horizontally on narrow screens rather than
-     overflowing the page — same convention as .rtbl-wrap elsewhere. */
+     overflowing the page â€” same convention as .rtbl-wrap elsewhere. */
   overflow-x: auto;
 }
 
-/* ── Wizard shell (ComplyWizardPage.tsx) — fills .comply-page's own width
+/* â”€â”€ Wizard shell (ComplyWizardPage.tsx) â€” fills .comply-page's own width
    budget (max 1400px, same as every other ComplyOS page) instead of the
    fixed 640px it used to be capped at. */
 .comply-wizard-card {
@@ -237,7 +237,7 @@
   gap: 10px;
 }
 
-/* ── Grid 2/3 col ── */
+/* â”€â”€ Grid 2/3 col â”€â”€ */
 .comply-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -258,7 +258,7 @@
 }
 
 @media (max-width: 560px) {
-  /* Step circles + connectors stay, labels drop — six-step wizards (New
+  /* Step circles + connectors stay, labels drop â€” six-step wizards (New
      Application, Add Certificate) would otherwise wrap into an unreadable
      multi-row mess on a phone-width screen. */
   .comply-wizard-step-label { display: none; }
@@ -282,7 +282,7 @@
   }
 }
 
-/* ── Status badges ── */
+/* â”€â”€ Status badges â”€â”€ */
 .comply-badge {
   display: inline-flex;
   align-items: center;
@@ -304,8 +304,8 @@
   flex-shrink: 0;
 }
 
-/* --active/--issued mean "approved"/"issued" — a real success outcome, not
-   a brand mark — so these read var(--green), the same semantic token every
+/* --active/--issued mean "approved"/"issued" â€” a real success outcome, not
+   a brand mark â€” so these read var(--green), the same semantic token every
    other app in the platform uses for "Approved" (Quotations.tsx, Sales.tsx).
    They used to read var(--comply) (= var(--teal), the app's own tenant-
    configurable accent), which meant "Approved" changed color by tenant
@@ -320,7 +320,7 @@
 .comply-badge--legal   { color: var(--legal); background: var(--legal-l); }
 .comply-badge--ai      { color: var(--ai-purple); background: var(--ai-l); }
 
-/* ── Table ── */
+/* â”€â”€ Table â”€â”€ */
 .comply-table {
   width: 100%;
   border-collapse: collapse;
@@ -379,7 +379,7 @@
   text-overflow: ellipsis;
 }
 
-/* ── Agency chip ── */
+/* â”€â”€ Agency chip â”€â”€ */
 .comply-agency {
   display: inline-flex;
   align-items: center;
@@ -397,7 +397,7 @@
 .comply-agency--reg   { background: var(--purple-l); color: var(--purple); }
 .comply-agency--fin   { background: var(--ai-l);     color: var(--ai-purple); }
 
-/* ── Pipeline steps ── */
+/* â”€â”€ Pipeline steps â”€â”€ */
 .comply-pipeline {
   display: flex;
   flex-wrap: wrap;
@@ -452,7 +452,7 @@
 .comply-pipeline-step--active .comply-pipeline-num   { color: var(--comply); }
 .comply-pipeline-step--active .comply-pipeline-label { color: var(--comply); }
 
-/* ── Cert card ── */
+/* â”€â”€ Cert card â”€â”€ */
 .comply-cert-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -529,7 +529,7 @@
   justify-content: center;
 }
 
-/* ── Vault grid/list view toggle ── */
+/* â”€â”€ Vault grid/list view toggle â”€â”€ */
 .comply-view-toggle {
   display: flex;
   align-items: center;
@@ -560,7 +560,7 @@
   color: var(--comply);
 }
 
-/* ── Calendar ── */
+/* â”€â”€ Calendar â”€â”€ */
 .comply-cal-grid {
   display: grid;
   grid-template-columns: 1fr 340px;
@@ -637,7 +637,7 @@
 .comply-cal-event--amber  { background: var(--legal-l);     color: var(--legal);      }
 .comply-cal-event--red    { background: var(--red-l);       color: var(--red);        }
 
-/* ── Legal firm card ── */
+/* â”€â”€ Legal firm card â”€â”€ */
 .comply-firm-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -712,7 +712,7 @@
   align-items: center;
 }
 
-/* ── Utility ── */
+/* â”€â”€ Utility â”€â”€ */
 .comply-btn-primary {
   display: inline-flex;
   align-items: center;
@@ -768,7 +768,7 @@
   margin-bottom: 20px;
 }
 
-/* .comply-filter-btn removed — these filter rows now render via the shared
+/* .comply-filter-btn removed â€” these filter rows now render via the shared
    ds-tabs-list/ds-tabs-trigger (data-variant="segmented"), see ds-tabs.css. */
 
 .comply-empty {
@@ -778,8 +778,8 @@
   font-size: 13.5px;
 }
 
-/* ── Upload dropzone (License Automation import, and any future
-   click-to-upload flow) — dashed border, centered icon + label. ── */
+/* â”€â”€ Upload dropzone (License Automation import, and any future
+   click-to-upload flow) â€” dashed border, centered icon + label. â”€â”€ */
 .comply-upload-zone {
   display: flex;
   flex-direction: column;
@@ -798,7 +798,7 @@
   background: var(--comply-l);
 }
 
-/* ── Deadline list ── */
+/* â”€â”€ Deadline list â”€â”€ */
 .comply-deadline-list {
   display: flex;
   flex-direction: column;
@@ -863,7 +863,7 @@
 .comply-deadline-days--soon   { color: var(--legal); }
 .comply-deadline-days--ok     { color: var(--comply); }
 
-/* ── Health gauge ── */
+/* â”€â”€ Health gauge â”€â”€ */
 .comply-health-wrap {
   display: flex;
   align-items: center;
@@ -921,7 +921,7 @@
   margin-bottom: 10px;
 }
 
-/* ── Obligation row ── */
+/* â”€â”€ Obligation row â”€â”€ */
 .comply-oblig-row {
   display: flex;
   align-items: center;
@@ -959,7 +959,7 @@
   margin-top: 2px;
 }
 
-/* ── Overlay / Drawer / Modal ── */
+/* â”€â”€ Overlay / Drawer / Modal â”€â”€ */
 .comply-overlay {
   position: fixed;
   inset: 0;
@@ -1056,7 +1056,7 @@
 }
 .comply-close-btn:hover { color: var(--ink); background: var(--bg); }
 
-/* ── Meta grid ── */
+/* â”€â”€ Meta grid â”€â”€ */
 .comply-meta-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1077,11 +1077,11 @@
   color: var(--ink);
 }
 .comply-meta-val--mono {
-  font-family: var(--mono);
+  font-family: var(--font);
   font-size: 11px;
 }
 
-/* ── Section title ── */
+/* â”€â”€ Section title â”€â”€ */
 .comply-section-title {
   font-size: 12.5px;
   font-weight: 700;
@@ -1089,7 +1089,7 @@
   margin-bottom: 12px;
 }
 
-/* ── Timeline ── */
+/* â”€â”€ Timeline â”€â”€ */
 .comply-timeline {
   display: flex;
   flex-direction: column;
@@ -1121,7 +1121,7 @@
 .comply-tl-text--done { color: var(--ink); font-weight: 600; }
 .comply-tl-date  { font-size: 11px; color: var(--ink3); }
 
-/* ── Note box ── */
+/* â”€â”€ Note box â”€â”€ */
 .comply-note {
   background: var(--bg);
   border: 1px solid var(--border);
@@ -1131,16 +1131,16 @@
   color: var(--ink2);
 }
 
-/* ── Action row ── */
+/* â”€â”€ Action row â”€â”€ */
 .comply-action-row { display: flex; gap: 10px; flex-wrap: wrap; }
 
-/* ── Table cell helpers ── */
-.comply-td-mono   { font-family: var(--mono); font-size: 11.5px; color: var(--ink3); }
+/* â”€â”€ Table cell helpers â”€â”€ */
+.comply-td-mono   { font-family: var(--font); font-size: 11.5px; color: var(--ink3); }
 .comply-td-muted  { font-size: 12px; color: var(--ink3); }
 .comply-td-actions{ display: flex; gap: 6px; }
 .comply-tr-click  { cursor: pointer; }
 
-/* ── Dashboard helpers ── */
+/* â”€â”€ Dashboard helpers â”€â”€ */
 .comply-gauge-arc   { transition: stroke-dasharray 0.6s ease; }
 .comply-note--error { color: var(--red); margin-bottom: 16px; }
 .comply-note--warning { background: var(--gold-l); border-color: rgba(154,103,0,0.25); color: var(--gold); margin-bottom: 16px; }
@@ -1153,14 +1153,14 @@
 .comply-badge-ml    { margin-left: 6px; }
 .comply-section-title--mt { margin-top: 20px; }
 
-/* ── Label-above-field form row (BRELA Search + similar hand-built forms).
-   Always stacked — label above content — rather than a label-left/field-
+/* â”€â”€ Label-above-field form row (BRELA Search + similar hand-built forms).
+   Always stacked â€” label above content â€” rather than a label-left/field-
    right grid: that pattern only holds together for a single short input,
    and once the "field" is a rich tile picker or tab bar (as in BRELA
    Search) it forces a fixed label column width that both wastes space on
    wide screens and forces a breakpoint-dependent collapse to stacked on
    narrow ones. Stacking unconditionally means one layout works at every
-   width with no collapse point to get out of sync. ── */
+   width with no collapse point to get out of sync. â”€â”€ */
 .comply-field-row {
   display: flex;
   flex-direction: column;
@@ -1181,13 +1181,13 @@
   cursor: pointer;
 }
 
-/* ── BRELA Search Form — numbered step rows (object type → search-by →
-   detail → search). Each row is its own bordered card split into an
+/* â”€â”€ BRELA Search Form â€” numbered step rows (object type â†’ search-by â†’
+   detail â†’ search). Each row is its own bordered card split into an
    eyebrow+question block on the left and a control (Select or text field)
    on the right; a row whose prerequisite isn't answered yet shows a dimmed
    "Pending" placeholder instead of a live control. Uses the app's own
    brand tint (--comply, derived from --teal) throughout rather than a new
-   accent color. ── */
+   accent color. â”€â”€ */
 .comply-step-rows {
   display: flex;
   flex-direction: column;
@@ -1255,9 +1255,9 @@
   .comply-step-row-pending { width: 100%; }
 }
 
-/* ── Compact "results page" search bar (BRELA Search) — replaces the full
+/* â”€â”€ Compact "results page" search bar (BRELA Search) â€” replaces the full
    form once a search has run, Google-results-style: pinned near the top,
-   with the current criteria as an editable chip + live-search input. ── */
+   with the current criteria as an editable chip + live-search input. â”€â”€ */
 .comply-search-compact {
   display: flex;
   align-items: center;
@@ -1270,7 +1270,7 @@
   box-shadow: var(--elev);
   position: sticky;
   /* .comply-topbar (64px, sticky top:0) already lives outside the scrolling
-     .complyos-body, so it never contributes scroll offset in here — this bar
+     .complyos-body, so it never contributes scroll offset in here â€” this bar
      should stick flush to the top of its own scroll container, not leave a
      gap as if accounting for a topbar that isn't part of this viewport. */
   top: 0;
@@ -1373,7 +1373,7 @@
   .comply-choice-tile-row { grid-template-columns: 1fr; }
 }
 
-/* ── BRELA Search — hero-style form card header + compact hint ── */
+/* â”€â”€ BRELA Search â€” hero-style form card header + compact hint â”€â”€ */
 .comply-form-hero {
   display: flex;
   align-items: center;
@@ -1393,7 +1393,7 @@
 .comply-form-hint svg { flex-shrink: 0; margin-top: 2px; }
 .comply-form-body { padding: 4px 24px 24px; }
 
-/* ── Result cards (BRELA Search — replaces the old plain data table) ── */
+/* â”€â”€ Result cards (BRELA Search â€” replaces the old plain data table) â”€â”€ */
 .comply-result-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -1416,7 +1416,7 @@
   box-shadow: var(--elev-lg);
   transform: translateY(-2px);
 }
-/* Sponsored slot — same card shape and layout as an organic result, just a
+/* Sponsored slot â€” same card shape and layout as an organic result, just a
    warm tint + "Sponsored" badge so it reads as clearly distinct, never
    mistaken for a real BRELA record. */
 .comply-result-card--sponsored { background: var(--gold-l); }
@@ -1431,7 +1431,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--mono);
+  font-family: var(--font);
   font-size: 11.5px;
   color: var(--ink3);
   margin-top: 3px;
@@ -1477,7 +1477,7 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Post-import success toast (BRELA Search) ── */
+/* â”€â”€ Post-import success toast (BRELA Search) â”€â”€ */
 .comply-import-toast {
   display: flex;
   align-items: center;
@@ -1502,7 +1502,7 @@
 .comply-import-toast-title { font-size: 13.5px; font-weight: 700; color: var(--ink); }
 .comply-import-toast-sub { font-size: 12px; color: var(--ink3); margin-top: 2px; }
 
-/* ── BRELA Search mobile ── */
+/* â”€â”€ BRELA Search mobile â”€â”€ */
 @media (max-width: 640px) {
   .comply-form-hero { padding: 18px 16px 2px; gap: 12px; }
   .comply-form-hero-title { font-size: 14.5px; }
@@ -1519,7 +1519,7 @@
   .comply-result-grid { grid-template-columns: 1fr; }
 }
 
-/* ── Obligations helpers ── */
+/* â”€â”€ Obligations helpers â”€â”€ */
 .comply-kpis--4col         { grid-template-columns: repeat(4, 1fr); margin-bottom: 24px; }
 @media (max-width: 900px) { .comply-kpis--4col { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .comply-kpis--4col { grid-template-columns: 1fr; } }
@@ -1540,20 +1540,20 @@
   border: 1px solid var(--border);
 }
 
-/* ── Cert card extras ── */
+/* â”€â”€ Cert card extras â”€â”€ */
 .comply-cert-card-hdr-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 12px;
 }
-.comply-cert-ref { font-family: var(--mono); font-size: 11px; }
+.comply-cert-ref { font-family: var(--font); font-size: 11px; }
 .comply-cert-val--warn   { color: var(--gold); }
 .comply-cert-val--danger { color: var(--red); }
 .comply-cert-val--sm     { font-size: 12px; }
 .comply-cert-renew       { margin-left: auto; }
 
-/* ── Escrow note ── */
+/* â”€â”€ Escrow note â”€â”€ */
 .comply-escrow-note {
   background: rgba(5,150,105,0.06);
   border: 1px solid var(--comply-edge);
@@ -1564,18 +1564,18 @@
 }
 .comply-escrow-note strong { color: var(--comply); }
 
-/* ── Modal title row ── */
+/* â”€â”€ Modal title row â”€â”€ */
 .comply-modal-title { font-size: 15.5px; font-weight: 900; color: var(--ink); }
 .comply-modal-sub   { font-size: 12px; color: var(--ink3); margin-top: 2px; }
 
 .comply-btn-secondary--comply { color: var(--comply); border-color: var(--comply-edge); }
 .comply-form-label { display: block; font-size: 11.5px; font-weight: 700; color: var(--ink2); margin-bottom: 5px; }
 
-/* ══════════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    WORKFLOWS PAGE
-══════════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* ── Page header title/sub (used by Workflows + other pages) ── */
+/* â”€â”€ Page header title/sub (used by Workflows + other pages) â”€â”€ */
 .comply-page-hdr-title {
   font-size: clamp(18px, 2.5vw, 24px);
   font-weight: 800;
@@ -1590,7 +1590,7 @@
   margin: 0;
 }
 
-/* ── KPI icon badge ── */
+/* â”€â”€ KPI icon badge â”€â”€ */
 .wf-kpi-icon {
   width: 28px;
   height: 28px;
@@ -1606,7 +1606,7 @@
 .wf-kpi-icon--ai      { background: var(--ai-l);    color: var(--ai-purple);}
 .wf-kpi-icon--success { background: var(--comply-l); color: var(--comply);  }
 
-/* ── Filter bar (pill tabs) ── */
+/* â”€â”€ Filter bar (pill tabs) â”€â”€ */
 .wf-filter-bar {
   display: flex;
   align-items: center;
@@ -1652,7 +1652,7 @@
   line-height: 16px;
 }
 
-/* ── Column headers ── */
+/* â”€â”€ Column headers â”€â”€ */
 .wf-thead {
   display: grid;
   grid-template-columns: 140px 1fr 200px 130px 80px;
@@ -1667,7 +1667,7 @@
   color: var(--ink3);
 }
 
-/* ── Workflow rows ── */
+/* â”€â”€ Workflow rows â”€â”€ */
 .wf-rows { display: flex; flex-direction: column; }
 
 .wf-row {
@@ -1723,7 +1723,7 @@
   gap: 5px;
 }
 
-/* ── Dot stepper ── */
+/* â”€â”€ Dot stepper â”€â”€ */
 .wf-stepper {
   display: flex;
   align-items: center;
@@ -1759,7 +1759,7 @@
 }
 .wf-conn--done { background: var(--comply); }
 
-/* ── Loading state ── */
+/* â”€â”€ Loading state â”€â”€ */
 .wf-loading {
   display: flex;
   align-items: center;
@@ -1780,7 +1780,7 @@
 }
 @keyframes wf-spin { to { rotate: 1turn; } }
 
-/* ── Empty state ── */
+/* â”€â”€ Empty state â”€â”€ */
 .wf-empty-state {
   display: flex;
   flex-direction: column;
@@ -1814,7 +1814,7 @@
   margin-top: 2px;
 }
 
-/* ── Detail drawer header ── */
+/* â”€â”€ Detail drawer header â”€â”€ */
 .wf-drawer-hdr {
   flex-shrink: 0;
   border-bottom: 1px solid var(--border);
@@ -1855,7 +1855,7 @@
   gap: 6px;
 }
 
-/* ── Meta section ── */
+/* â”€â”€ Meta section â”€â”€ */
 .wf-meta-section { }
 .wf-meta-title {
   font-size: 11.5px;
@@ -1905,7 +1905,7 @@
   margin-top: 10px;
 }
 
-/* ── Drawer timeline ── */
+/* â”€â”€ Drawer timeline â”€â”€ */
 .wf-tl {
   display: flex;
   flex-direction: column;
@@ -1979,7 +1979,7 @@
 }
 .wf-tl-row--active .wf-tl-sub { color: var(--comply); opacity: 0.75; }
 
-/* ── Responsive ── */
+/* â”€â”€ Responsive â”€â”€ */
 @media (max-width: 900px) {
   .wf-row {
     grid-template-columns: 110px 1fr 160px 110px 70px;
@@ -2007,12 +2007,12 @@
   .wf-thead      { display: none; }
 }
 
-/* ComplyOS brand color — set dynamically by WorkspaceApp via useBranding() */
+/* ComplyOS brand color â€” set dynamically by WorkspaceApp via useBranding() */
 .app-shell[data-complyos] {}
 [data-complyos] .btn-primary {
   font-weight: 700;
 }
-/* ── In-App Tausi Browser Panel in ComplyOS ── */
+/* â”€â”€ In-App Tausi Browser Panel in ComplyOS â”€â”€ */
 .comply-inapp-browser {
   background: #0f172a;
   border: 1px solid #1e293b;

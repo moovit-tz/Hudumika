@@ -1,9 +1,9 @@
-/* ══════════════════════════════════════════════════════════
-   Settings.css — layout + primitive classes for Settings.tsx
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   Settings.css â€” layout + primitive classes for Settings.tsx
    Follows platform design system inside .page-layout.
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* ── Page Root ── */
+/* â”€â”€ Page Root â”€â”€ */
 .sett-page {
   display: flex;
   flex-direction: column;
@@ -11,7 +11,7 @@
   width: 100%;
 }
 
-/* ── System strip ── */
+/* â”€â”€ System strip â”€â”€ */
 .sett-strip             { display: flex; margin-bottom: 22px; background: var(--white); border-radius: var(--r, 8px); border: 1px solid var(--border); overflow: hidden; box-shadow: var(--elev-sm); }
 .sett-strip-item        { flex: 1; display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-right: 1px solid var(--border); }
 .sett-strip-item:last-child { border-right: none; }
@@ -23,11 +23,11 @@
 .sett-strip-val         { font-size: 15px; font-weight: 800; color: var(--ink); line-height: 1; white-space: nowrap; }
 .sett-strip-label       { font-size: 11px; color: var(--ink3); margin-top: 3px; font-weight: 500; }
 
-/* ══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Primitives
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* Toggle — matches the platform's labeled Switch (ui/switch.tsx), 56×22px (70% of original 80×32) */
+/* Toggle â€” matches the platform's labeled Switch (ui/switch.tsx), 56Ã—22px (70% of original 80Ã—32) */
 .s-tog {
   position: relative;
   display: inline-flex;
@@ -59,7 +59,7 @@
   z-index: 1;
   flex-shrink: 0;
 }
-.s-tog--on .s-tog-thumb { transform: translateX(32px); /* 52 inner − 17 thumb − 3 gap */ }
+.s-tog--on .s-tog-thumb { transform: translateX(32px); /* 52 inner âˆ’ 17 thumb âˆ’ 3 gap */ }
 
 /* Embedded label */
 .s-tog-label {
@@ -107,9 +107,9 @@
 .s-save-row     { display: flex; gap: 10px; justify-content: flex-end; align-items: center; margin-bottom: 8px; }
 .s-save-ok      { font-size: 12px; color: var(--green); font-weight: 600; display: flex; align-items: center; gap: 5px; }
 
-/* ══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Upload areas (CompanySection)
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .s-upload           { display: flex; align-items: center; gap: 14px; padding: 18px 16px; border: 2px dashed var(--border); border-radius: var(--r); background: var(--bg); cursor: pointer; transition: border-color .15s, background .15s; }
 .s-upload:hover     { border-color: var(--teal-m); }
 .s-upload--on       { border-color: var(--teal); background: var(--teal-l); }
@@ -120,8 +120,8 @@
 .s-upload-preview   { height: 40px; max-width: 120px; object-fit: contain; border-radius: 4px; }
 .s-upload-preview--sq { width: 32px; height: 32px; object-fit: contain; border-radius: 4px; }
 /* Dark swatch behind the dark-mode logo preview so it previews the way it'll
-   actually render — against a dark surface, not this settings page's own
-   light card background — without the swatch itself reacting to the app's
+   actually render â€” against a dark surface, not this settings page's own
+   light card background â€” without the swatch itself reacting to the app's
    own light/dark theme (it always represents "dark"). */
 .s-upload-preview-dark-wrap { background: #111218; border-radius: 6px; padding: 6px 10px; display: inline-flex; align-items: center; flex-shrink: 0; }
 .s-upload-info      { flex: 1; }
@@ -136,9 +136,9 @@
 .s-logo-thumb--on   { border-color: var(--teal); background: var(--teal-l); }
 .s-logo-thumb-img   { height: 32px; max-width: 100px; object-fit: contain; }
 
-/* ══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Modules section & Extensions suite
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .s-mods-root {
   display: flex;
   flex-direction: column;
@@ -148,11 +148,11 @@
 
 /* The metrics ribbon at the top of Modules & Extensions renders through the
    shared MetricsRow/MetricCard components (.mc-row/.mc-card in index.css),
-   not page-local markup — a .s-mods-hero/.s-mods-stat-* rule set used to live
+   not page-local markup â€” a .s-mods-hero/.s-mods-stat-* rule set used to live
    here from before that migration, matched no element ModulesSection ever
    rendered, and had gone dead. Removed; style stat cards via .mc-* instead. */
 
-/* ── Toolbar: Search, Filters & Actions ── */
+/* â”€â”€ Toolbar: Search, Filters & Actions â”€â”€ */
 .s-mods-toolbar {
   background: var(--white);
   border: 1px solid var(--border);
@@ -247,7 +247,7 @@
 }
 
 /* Status filter's SelectTrigger used to carry this width as an inline style,
-   which no media query can override (inline always wins over a class) — that
+   which no media query can override (inline always wins over a class) â€” that
    pinned it at 135px even once the toolbar had stacked to one column on a
    phone, of a viewport with only ~280px to give it. Moved to a class so the
    mobile tier below can let it flex instead. */
@@ -285,9 +285,9 @@
 }
 
 /* Category filter chips now render via the shared ds-tabs-list/trigger
-   (data-variant="segmented") — see ds-tabs.css — not a page-local style. */
+   (data-variant="segmented") â€” see ds-tabs.css â€” not a page-local style. */
 
-/* ── Grid View Cards ── */
+/* â”€â”€ Grid View Cards â”€â”€ */
 .s-mods-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
@@ -457,7 +457,7 @@
   background: var(--teal-l);
 }
 
-/* ── High-density List Table View ── */
+/* â”€â”€ High-density List Table View â”€â”€ */
 .s-mods-table-wrap {
   background: var(--white);
   border: 1px solid var(--border);
@@ -530,7 +530,7 @@
   color: var(--ink3, #64748b);
 }
 
-/* ── App Access Management Modal ── */
+/* â”€â”€ App Access Management Modal â”€â”€ */
 .s-lic-backdrop {
   position: fixed;
   inset: 0;
@@ -538,7 +538,7 @@
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   /* Below the z-3000 tier every Radix popper (Combobox/Select/Popover) portals
-     at — a higher value hides the license modal's own Combobox dropdown. */
+     at â€” a higher value hides the license modal's own Combobox dropdown. */
   z-index: 2000;
   display: flex;
   align-items: center;
@@ -757,18 +757,18 @@
 }
 
 
-/* ══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Generic / placeholder section
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .s-gen-body         { text-align: center; padding: 40px 0; }
 .s-gen-icon-wrap    { display: flex; justify-content: center; margin-bottom: 14px; }
 .s-gen-icon         { width: 56px; height: 56px; border-radius: var(--r); background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
 .s-gen-title        { font-size: 14px; font-weight: 600; color: var(--ink2); margin-bottom: 6px; }
 .s-gen-sub          { font-size: 12.5px; color: var(--ink3); }
 
-/* ══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Tables (TaxRates, Currencies, etc.)
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .s-tbl-hdr      { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
 .rtbl           { border-collapse: collapse; font-size: 13px; width: 100%; }
 .rtbl thead tr  { background: var(--bg); border-bottom: 2px solid var(--border); }
@@ -777,7 +777,7 @@
 .rtbl tbody tr  { border-bottom: 1px solid var(--border); }
 .rtbl-r         { text-align: right; }
 .rtbl-c         { text-align: center; }
-.rtbl-mono      { font-family: var(--mono); font-weight: 600; }
+.rtbl-mono      { font-family: var(--font); font-weight: 600; }
 .rtbl-rm        { background: none; border: none; cursor: pointer; color: var(--red); font-size: 12px; padding: 4px 8px; }
 .rtbl-add       { background: var(--bg); }
 .rtbl-in-r      { font-size: 13px; text-align: right; max-width: 120px; }
@@ -786,18 +786,18 @@
 .rtbl-mr        { margin-right: 6px; }
 .s-base-badge   { font-size: var(--badge-fs); padding: var(--badge-py) var(--badge-px); border-radius: 20px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 
-/* ══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Freight / SLA
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .s-sla-row      { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .s-sla-stage    { font-size: var(--badge-fs); font-weight: 500; color: var(--ink2); }
 .s-sla-right    { display: flex; align-items: center; gap: 8px; }
 .s-sla-unit     { font-size: 12px; color: var(--ink3); }
 .s-sla-in       { width: 64px; }
 
-/* ══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Payment Gateways
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .s-gw-hdr       { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
 .s-gw-count     { font-size: 13px; color: var(--ink3); margin-top: 3px; }
 .s-gw-region    { margin-bottom: 28px; }
@@ -809,7 +809,7 @@
 .s-gw-chdr--sep { border-bottom: 1px solid var(--border); }
 .s-gw-chdr--on  { background: var(--gw-bg, var(--bg)); }
 .s-gw-badge     { width: 40px; height: 40px; border-radius: var(--r); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.s-gw-babbr     { color: #fff; font-weight: 900; font-size: 13px; font-family: var(--mono); letter-spacing: -.03em; }
+.s-gw-babbr     { color: #fff; font-weight: 900; font-size: 13px; font-family: var(--font); letter-spacing: -.03em; }
 .s-gw-babbr--sm { font-size: 10px; }
 .s-gw-info      { flex: 1; min-width: 0; }
 .s-gw-name      { font-size: 13.5px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 7px; }
@@ -836,19 +836,19 @@
 .s-gw-fhint     { font-size: 11px; color: var(--ink3); margin-top: 3px; }
 .s-gw-foot      { display: flex; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
 
-/* ══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Misc utilities
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .s-num-sm       { width: 80px; }
 .s-resize-v     { resize: vertical; }
 .s-resize-n     { resize: none; }
-.s-font-mono    { font-family: var(--mono); font-size: 12px; }
+.s-font-mono    { font-family: var(--font); font-size: 12px; }
 .s-fw           { width: 100%; box-sizing: border-box; }
 .s-fs-sm        { font-size: 12.5px; }
 .s-muted        { color: var(--ink3); font-size: 12px; }
 .rtbl-wrap      { overflow-x: auto; }
 
-/* ── Finance setup: pointers to where the real configuration lives ──
+/* â”€â”€ Finance setup: pointers to where the real configuration lives â”€â”€
    Replaces four panels that saved to keys nothing read. */
 .s-elsewhere { display: flex; flex-direction: column; gap: 8px; }
 
@@ -871,14 +871,14 @@
 .s-elsewhere-label { font-size: 13.5px; font-weight: 600; color: var(--ink); }
 .s-elsewhere-desc  { font-size: 12px; color: var(--ink3); margin-top: 2px; }
 
-/* ── Workspace branding ── */
+/* â”€â”€ Workspace branding â”€â”€ */
 .s-brand-colour { display: flex; align-items: center; gap: 10px; }
 .s-brand-colour input[type="color"] {
   width: 40px; height: 34px; padding: 0;
   border: 1px solid var(--border); border-radius: var(--r-sm);
   background: none; cursor: pointer;
 }
-.s-brand-colour .input-field { max-width: 140px; font-family: var(--mono); }
+.s-brand-colour .input-field { max-width: 140px; font-family: var(--font); }
 
 .s-brand-clear {
   background: none; border: none; padding: 0; cursor: pointer;
@@ -888,19 +888,19 @@
 
 .s-muted { font-size: 13px; color: var(--ink3); margin: 0; line-height: 1.6; }
 
-/* ══════════════════════════════════════════════════════════
-   Mobile — Modules & Extensions + App Access modal
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   Mobile â€” Modules & Extensions + App Access modal
    This file had no breakpoints at all; the module cards/table were built
    at fixed desktop sizes (330px grid cards, a 5-column table, a 260px-min
    search box) with nothing compacting them below that. Everything here is
    scoped to the .s-mods-, .s-mod- and .s-lic- prefixes only.
-══════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @media (max-width: 640px) {
   .s-mods-root {
     gap: 14px;
   }
 
-  /* Toolbar — search 100% width on top, horizontal category scroll track, responsive actions row */
+  /* Toolbar â€” search 100% width on top, horizontal category scroll track, responsive actions row */
   .s-mods-toolbar {
     flex-direction: column;
     align-items: stretch;
@@ -941,7 +941,7 @@
     flex-shrink: 0;
   }
 
-  /* The status filter is the one control here allowed to actually shrink —
+  /* The status filter is the one control here allowed to actually shrink â€”
      everything else (view toggle, Enable All / Reset Defaults) is already
      content-sized. */
   .s-mods-status-trigger {
@@ -950,20 +950,20 @@
     min-width: 110px;
   }
 
-  /* Grid cards — force one column and compact card */
+  /* Grid cards â€” force one column and compact card */
   .s-mods-grid      { grid-template-columns: 1fr; gap: 12px; }
   .s-mod-card       { padding: 14px 16px; gap: 12px; border-radius: 12px; }
   .s-mod-icon-box   { width: 40px; height: 40px; border-radius: 10px; }
   .s-mod-title      { font-size: 14px; }
   .s-mod-card-desc  { font-size: 12.5px; min-height: 0; -webkit-line-clamp: 2; }
   /* Footer used to hold "Restricted (N users)" and "Manage Access" on one
-     space-between row with no wrap — fine on a 330px desktop card, but a
+     space-between row with no wrap â€” fine on a 330px desktop card, but a
      single-column mobile card can still be narrower than both labels
      combined (e.g. "Restricted (12 users)" alongside "Manage Access"), which
      clipped one of them. Wrapping stacks the tag above the button instead. */
   .s-mod-card-footer { padding-top: 10px; flex-wrap: wrap; row-gap: 8px; }
 
-  /* Table view — smooth horizontal scrolling fallback */
+  /* Table view â€” smooth horizontal scrolling fallback */
   .s-mods-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .s-mods-table th:nth-child(2), .s-mods-table td:nth-child(2),
   .s-mods-table th:nth-child(3), .s-mods-table td:nth-child(3) {
@@ -973,7 +973,7 @@
   .s-mods-table-icon { width: 32px; height: 32px; }
   .s-mods-table-name { font-size: 13px; }
 
-  /* App Access modal — compact chrome and touch friendly button rows */
+  /* App Access modal â€” compact chrome and touch friendly button rows */
   .s-lic-backdrop { padding: 10px; }
   .s-lic-modal    { max-width: calc(100vw - 20px); border-radius: 14px; }
   .s-lic-header   { padding: 14px 16px; }
@@ -985,7 +985,7 @@
   .s-lic-restrict-card { padding: 12px 14px; }
 }
 
-/* Narrow-phone tier (iPhone SE / small Android, ≤400px). At 640px a single
+/* Narrow-phone tier (iPhone SE / small Android, â‰¤400px). At 640px a single
    card column and a wrapped toolbar are already in place; below 400px the
    toolbar's own row still crowds four controls (status filter, grid/list
    toggle, Enable All, Reset Defaults) and the table view has too little room
@@ -1008,7 +1008,7 @@
   .s-mods-table th, .s-mods-table td { padding: 9px 10px; }
 }
 
-/* ── Toggle switch (shared pattern, also used in EmailTemplates) ───────────── */
+/* â”€â”€ Toggle switch (shared pattern, also used in EmailTemplates) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .etab-toggle {
   position: relative;
   display: inline-flex;
@@ -1036,7 +1036,7 @@
 }
 .etab-toggle--on .etab-toggle-thumb { transform: translateX(16px); }
 
-/* ── CommunicationsSection ─────────────────────────────────────────────────── */
+/* â”€â”€ CommunicationsSection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sett-comm-groups { display: flex; flex-direction: column; gap: 16px; }
 .sett-comm-groups .section-card { padding: 0 !important; }
 .sett-comm-row {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { apiFetch } from '../lib/api.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -52,7 +52,7 @@ export function HuduBIAnalytics() {
         crumbs={['HuduBI', 'Analytics']}
         titlePlain="Analytics &"
         titleEm="reports"
-        subtitle="Where your consignment value and volume concentrate — computed from your shipment and customer records."
+        subtitle="Where your consignment value and volume concentrate â€” computed from your shipment and customer records."
       />
 
       {loading && <SectionCard><SectionLoading /></SectionCard>}
@@ -71,7 +71,7 @@ export function HuduBIAnalytics() {
                     <span style={{ width: 20, fontSize: 12, fontWeight: 700, color: 'var(--ink3)' }}>{i + 1}</span>
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{c.name}</span>
                     <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{c.cases} case{c.cases === 1 ? '' : 's'}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', minWidth: 80, textAlign: 'right', fontFamily: 'var(--mono)' }}>{usd(c.cifUsd)}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', minWidth: 80, textAlign: 'right', fontFamily: 'var(--font)' }}>{usd(c.cifUsd)}</span>
                   </div>
                 ))}
               </div>
@@ -82,7 +82,7 @@ export function HuduBIAnalytics() {
           <div className="hbi-panel-grid hbi-panel-grid--two">
             <div className="hbi-equal-card"><SectionCard title="Consignment value by mode" collapsible={false}>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Total CIF (USD) carried by each transport mode</div>
-              <BarList rows={data.cifByMode.map(m => ({ label: `${MODE_LABELS[m.mode] || m.mode} · ${m.cases} cases`, value: m.cifUsd, display: usd(m.cifUsd) }))} />
+              <BarList rows={data.cifByMode.map(m => ({ label: `${MODE_LABELS[m.mode] || m.mode} Â· ${m.cases} cases`, value: m.cifUsd, display: usd(m.cifUsd) }))} />
             </SectionCard></div>
             <div className="hbi-equal-card"><SectionCard title="Top origin ports" collapsible={false}>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Where your shipments come from</div>

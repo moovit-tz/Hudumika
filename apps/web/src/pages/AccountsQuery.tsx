@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -27,7 +27,7 @@ const REPORT_TYPES: { value: ReportType; label: string }[] = [
 const STATUS_OPTIONS = ['All', 'Unpaid', 'Partial', 'Paid'];
 
 function fmtDate(d: string | null | undefined) {
-  if (!d) return '—';
+  if (!d) return 'â€”';
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return d;
   return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -39,7 +39,7 @@ function fmtAmt(n: number | string | null | undefined) {
 }
 
 function fmtMonth(m: string | null | undefined) {
-  if (!m) return '—';
+  if (!m) return 'â€”';
   const [year, month] = (m as string).split('-');
   const date = new Date(Number(year), Number(month) - 1);
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
@@ -65,7 +65,7 @@ function StatusBadge({ status }: { status: string }) {
       letterSpacing: 0.3,
       textTransform: 'uppercase',
     }}>
-      {status || '—'}
+      {status || 'â€”'}
     </span>
   );
 }
@@ -308,7 +308,7 @@ export function AccountsQuery() {
           style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 0', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
         >
           <Icon name="refresh" size={15} color="#fff" />
-          {loading ? 'Running…' : 'Run Report'}
+          {loading ? 'Runningâ€¦' : 'Run Report'}
         </button>
       </aside>
 
@@ -343,7 +343,7 @@ export function AccountsQuery() {
         {/* Loading */}
         {loading && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300 }}>
-            <SectionLoading label="Generating report…" size={24} style={{ flexDirection: 'row', padding: 0 }} />
+            <SectionLoading label="Generating reportâ€¦" size={24} style={{ flexDirection: 'row', padding: 0 }} />
           </div>
         )}
 
@@ -422,8 +422,8 @@ export function AccountsQuery() {
                   <tbody>
                     {result.data.map((r: any, i: number) => (
                       <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.01)' }}>
-                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', fontFamily: 'var(--mono)' }}>{r.invoice_number || '—'}</td>
-                        <td style={{ padding: '10px 14px', color: 'var(--ink)' }}>{r.client_name || '—'}</td>
+                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', fontFamily: 'var(--font)' }}>{r.invoice_number || 'â€”'}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--ink)' }}>{r.client_name || 'â€”'}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink)', whiteSpace: 'nowrap' }}>{fmtDate(r.issue_date)}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink)', whiteSpace: 'nowrap' }}>{fmtDate(r.due_date)}</td>
                         <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{fmtAmt(r.total_amount)}</td>
@@ -451,8 +451,8 @@ export function AccountsQuery() {
                   <tbody>
                     {result.data.map((r: any, i: number) => (
                       <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.01)' }}>
-                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', fontFamily: 'var(--mono)' }}>{r.bill_number || '—'}</td>
-                        <td style={{ padding: '10px 14px', color: 'var(--ink)' }}>{r.vendor_name || '—'}</td>
+                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', fontFamily: 'var(--font)' }}>{r.bill_number || 'â€”'}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--ink)' }}>{r.vendor_name || 'â€”'}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink)', whiteSpace: 'nowrap' }}>{fmtDate(r.bill_date)}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink)', whiteSpace: 'nowrap' }}>{fmtDate(r.due_date)}</td>
                         <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{fmtAmt(r.total_amount)}</td>

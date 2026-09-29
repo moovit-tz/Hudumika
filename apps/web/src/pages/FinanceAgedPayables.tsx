@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
@@ -11,7 +11,7 @@ import { Button } from '../components/ui/button.js';
 export const FinanceAgedPayables: React.FC = () => {
   const co = useCompany();
   const cur = co.currency ?? 'TZS';
-  const fmtFull = (n: number) => n > 0 ? `${cur} ${n.toLocaleString()}` : '—';
+  const fmtFull = (n: number) => n > 0 ? `${cur} ${n.toLocaleString()}` : 'â€”';
 
   const [report, setReport] = useState<AgedReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,7 +58,7 @@ export const FinanceAgedPayables: React.FC = () => {
         crumbs={['Finance', 'Reports']}
         titlePlain="Aged"
         titleEm="payables"
-        subtitle={`Outstanding supplier balances by age${asOf ? ` — as of ${asOf}` : ''}`}
+        subtitle={`Outstanding supplier balances by age${asOf ? ` â€” as of ${asOf}` : ''}`}
         actions={
           <Button type="button" variant="outline" size="sm" onClick={exportCsv}>
             <Icon name="download" size={13} /> Export
@@ -67,7 +67,7 @@ export const FinanceAgedPayables: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading aged payables…</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading aged payablesâ€¦</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
@@ -86,7 +86,7 @@ export const FinanceAgedPayables: React.FC = () => {
           },
           {
             title: 'Total Overdue', value: fmtFull(overdue), icon: 'alertTriangle', invertTrend: true,
-            sub1Label: '1–90 DAYS', sub1Value: fmtFull(totals.days_1_30 + totals.days_31_60 + totals.days_61_90),
+            sub1Label: '1â€“90 DAYS', sub1Value: fmtFull(totals.days_1_30 + totals.days_31_60 + totals.days_61_90),
             sub2Label: '90+ DAYS', sub2Value: fmtFull(totals.days_90_plus), barHighlight: 'var(--red)',
           },
           {
@@ -101,9 +101,9 @@ export const FinanceAgedPayables: React.FC = () => {
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {[
               { label: 'Current',    value: totals.current,      color: 'var(--green)'  },
-              { label: '1–30 Days',  value: totals.days_1_30,    color: 'var(--gold)'       },
-              { label: '31–60 Days', value: totals.days_31_60,   color: 'var(--red)'    },
-              { label: '61–90 Days', value: totals.days_61_90,   color: 'var(--red)'    },
+              { label: '1â€“30 Days',  value: totals.days_1_30,    color: 'var(--gold)'       },
+              { label: '31â€“60 Days', value: totals.days_31_60,   color: 'var(--red)'    },
+              { label: '61â€“90 Days', value: totals.days_61_90,   color: 'var(--red)'    },
               { label: '90+ Days',   value: totals.days_90_plus, color: 'var(--purple)'       },
             ].map(band => {
               const pct = totals.total > 0 ? Math.round((band.value / totals.total) * 100) : 0;
@@ -116,7 +116,7 @@ export const FinanceAgedPayables: React.FC = () => {
                   <div style={{ height: 6, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${pct}%`, background: band.color, borderRadius: 'var(--r-sm)'}} />
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4, fontFamily: 'var(--mono)' }}>{fmtFull(band.value)}</div>
+                  <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4, fontFamily: 'var(--font)' }}>{fmtFull(band.value)}</div>
                 </div>
               );
             })}
@@ -132,7 +132,7 @@ export const FinanceAgedPayables: React.FC = () => {
             <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%', minWidth: 800 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)' }}>
-                  {['Supplier', 'Current', '1–30 Days', '31–60 Days', '61–90 Days', '90+ Days', 'Total', 'Status'].map(h => (
+                  {['Supplier', 'Current', '1â€“30 Days', '31â€“60 Days', '61â€“90 Days', '90+ Days', 'Total', 'Status'].map(h => (
                     <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -143,12 +143,12 @@ export const FinanceAgedPayables: React.FC = () => {
                   return (
                     <tr key={s.entity_id} style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none' }}>
                       <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 600, whiteSpace: 'nowrap' }}>{s.entity_name}</td>
-                      <td style={{ padding: '10px 16px', color: 'var(--green)',  fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.current)}</td>
-                      <td style={{ padding: '10px 16px', color: 'var(--gold)',       fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_1_30)}</td>
-                      <td style={{ padding: '10px 16px', color: 'var(--red)',    fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_31_60)}</td>
-                      <td style={{ padding: '10px 16px', color: 'var(--red)',    fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_61_90)}</td>
-                      <td style={{ padding: '10px 16px', color: 'var(--purple)',       fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_90_plus)}</td>
-                      <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 700, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.total)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--green)',  fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(s.current)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--gold)',       fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_1_30)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--red)',    fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_31_60)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--red)',    fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_61_90)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--purple)',       fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_90_plus)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 700, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(s.total)}</td>
                       <td style={{ padding: '10px 16px' }}>
                         <span style={{ fontSize: 10, fontWeight: 700, color: badge.color, background: badge.bg, borderRadius: 'var(--r-sm)', padding: '2px 7px' }}>{badge.label}</span>
                       </td>
@@ -157,12 +157,12 @@ export const FinanceAgedPayables: React.FC = () => {
                 })}
                 <tr style={{ background: 'var(--bg)' }}>
                   <td style={{ padding: '10px 16px', fontWeight: 700, color: 'var(--ink)', borderTop: '2px solid var(--border)' }}>Total</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--green)',  fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.current)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--gold)',       fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_1_30)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--red)',    fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_31_60)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--red)',    fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_61_90)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--purple)',       fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_90_plus)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.total)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--green)',  fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.current)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--gold)',       fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_1_30)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--red)',    fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_31_60)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--red)',    fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_61_90)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--purple)',       fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_90_plus)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.total)}</td>
                   <td style={{ borderTop: '2px solid var(--border)' }} />
                 </tr>
               </tbody>

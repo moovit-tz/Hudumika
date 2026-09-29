@@ -374,7 +374,7 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
                 <pre style={{
                   width: '100%', height: '100%', overflow: 'auto', margin: 0, padding: 20,
                   background: '#fff', color: '#1e293b', fontSize: 12.5, lineHeight: 1.6,
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                  fontFamily: 'var(--font)', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                 }}>{textBody}</pre>
               )
             )}

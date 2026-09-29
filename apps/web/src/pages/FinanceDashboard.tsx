@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -49,7 +49,7 @@ export const FinanceDashboard: React.FC = () => {
   }, []);
 
   const derived = useMemo(() => {
-    // Each invoice/bill may carry its own currency — always convert to the
+    // Each invoice/bill may carry its own currency â€” always convert to the
     // company's base currency before summing, otherwise a TZS invoice and a
     // USD invoice contribute their raw numbers and the total is meaningless.
     const toBase = (raw: number, c?: string) => convert(raw, c || currency);
@@ -92,13 +92,13 @@ export const FinanceDashboard: React.FC = () => {
     const amt = convert(raw, p.currency || currency);
     const isIn = p.direction === 'in' || p.type === 'receipt' || p.payment_type === 'receipt';
     return {
-      id: p.reference || (p.id ? p.id.slice(0, 8).toUpperCase() : '—'),
-      name: p.customer_name || p.supplier_name || p.party_name || '—',
-      desc: p.description || p.notes || '—',
+      id: p.reference || (p.id ? p.id.slice(0, 8).toUpperCase() : 'â€”'),
+      name: p.customer_name || p.supplier_name || p.party_name || 'â€”',
+      desc: p.description || p.notes || 'â€”',
       date: p.created_at
         ? new Date(p.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
-        : '—',
-      amount: (isIn ? '+' : '−') + fmtCompact(amt),
+        : 'â€”',
+      amount: (isIn ? '+' : 'âˆ’') + fmtCompact(amt),
       type: isIn ? 'in' : 'out',
       badge: p.status === 'settled' || p.status === 'completed' ? 'Settled' : 'Posted',
     };
@@ -130,12 +130,12 @@ export const FinanceDashboard: React.FC = () => {
 
   return (
     <div className="vex-finance-root">
-      {/* ── Page Header ── */}
+      {/* â”€â”€ Page Header â”€â”€ */}
       <PageHeader
         crumbs={['Finance', 'Command Center']}
         titlePlain="Finance command"
         titleEm="center"
-        subtitle={`Good morning, ${user?.name || 'Administrator'} · Real-time liquidity, quality of earnings, and capital control.`}
+        subtitle={`Good morning, ${user?.name || 'Administrator'} Â· Real-time liquidity, quality of earnings, and capital control.`}
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             <Button
@@ -156,7 +156,7 @@ export const FinanceDashboard: React.FC = () => {
         }
       />
 
-      {/* ── Top Bento Row ── */}
+      {/* â”€â”€ Top Bento Row â”€â”€ */}
       <div className="vex-top-bento">
         {/* Treasury Control Tower */}
         <div className="vex-treasury-tower">
@@ -177,7 +177,7 @@ export const FinanceDashboard: React.FC = () => {
             <div className="vex-tower-stats-grid">
               <div className="vex-tower-stat-box">
                 <div className="vex-tower-stat-lbl">Net margin</div>
-                <div className="vex-tower-stat-num">{derived.netMargin != null ? `${derived.netMargin.toFixed(1)}%` : '—'}</div>
+                <div className="vex-tower-stat-num">{derived.netMargin != null ? `${derived.netMargin.toFixed(1)}%` : 'â€”'}</div>
               </div>
               <div className="vex-tower-stat-box">
                 <div className="vex-tower-stat-lbl">Free cash flow</div>
@@ -210,7 +210,7 @@ export const FinanceDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Account Liquidity Breakdown — from real petty-cash wallets */}
+        {/* Account Liquidity Breakdown â€” from real petty-cash wallets */}
         <div className="vex-liquidity-card">
           {wallets.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 12, textAlign: 'center', padding: '16px 0' }}>
@@ -271,7 +271,7 @@ export const FinanceDashboard: React.FC = () => {
               </div>
               <div>
                 <div className="vex-rail-lbl">Net Margin</div>
-                <div className="vex-rail-val">{derived.netMargin != null ? `${derived.netMargin.toFixed(1)}%` : '—'}</div>
+                <div className="vex-rail-val">{derived.netMargin != null ? `${derived.netMargin.toFixed(1)}%` : 'â€”'}</div>
               </div>
             </div>
             <Badge variant={derived.netMargin != null && derived.netMargin >= 0 ? 'brand' : 'gray'}>
@@ -286,7 +286,7 @@ export const FinanceDashboard: React.FC = () => {
               </div>
               <div>
                 <div className="vex-rail-lbl">Cash Conversion</div>
-                <div className="vex-rail-val">{derived.cashConversion != null ? `${derived.cashConversion.toFixed(1)}%` : '—'}</div>
+                <div className="vex-rail-val">{derived.cashConversion != null ? `${derived.cashConversion.toFixed(1)}%` : 'â€”'}</div>
               </div>
             </div>
             <Badge variant="gray">Unavailable</Badge>
@@ -294,7 +294,7 @@ export const FinanceDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Row 2: Cash-Flow Forecast & AI Signals ── */}
+      {/* â”€â”€ Row 2: Cash-Flow Forecast & AI Signals â”€â”€ */}
       <div className="vex-row-2">
         {/* Cash-flow Forecast Chart */}
         <SectionCard
@@ -387,7 +387,7 @@ export const FinanceDashboard: React.FC = () => {
         </SectionCard>
       </div>
 
-      {/* ── Row 3: Working Capital & Spend/Budget Control ── */}
+      {/* â”€â”€ Row 3: Working Capital & Spend/Budget Control â”€â”€ */}
       <div className="vex-row-3">
         {/* Working Capital Intelligence */}
         <SectionCard
@@ -414,7 +414,7 @@ export const FinanceDashboard: React.FC = () => {
             <div className="vex-wc-kpi-card">
               <div className="vex-wc-kpi-badge" style={{ color: 'var(--red)' }}>Overdue A/R</div>
               <div className="vex-wc-kpi-val">{fmtCompact(derived.overdueAR)}</div>
-              <div className="vex-wc-kpi-sub">{derived.ar > 0 ? `${Math.round((derived.overdueAR / derived.ar) * 100)}% of A/R` : '—'}</div>
+              <div className="vex-wc-kpi-sub">{derived.ar > 0 ? `${Math.round((derived.overdueAR / derived.ar) * 100)}% of A/R` : 'â€”'}</div>
             </div>
             <div className="vex-wc-kpi-card">
               <div className="vex-wc-kpi-badge">Payables</div>
@@ -424,7 +424,7 @@ export const FinanceDashboard: React.FC = () => {
             <div className="vex-wc-kpi-card">
               <div className="vex-wc-kpi-badge" style={{ color: 'var(--gold)' }}>Due in 7 days</div>
               <div className="vex-wc-kpi-val">{fmtCompact(derived.apDueSoon)}</div>
-              <div className="vex-wc-kpi-sub">{derived.ap > 0 ? `${Math.round((derived.apDueSoon / derived.ap) * 100)}% of A/P` : '—'}</div>
+              <div className="vex-wc-kpi-sub">{derived.ap > 0 ? `${Math.round((derived.apDueSoon / derived.ap) * 100)}% of A/P` : 'â€”'}</div>
             </div>
           </div>
         </SectionCard>
@@ -471,7 +471,7 @@ export const FinanceDashboard: React.FC = () => {
         </SectionCard>
       </div>
 
-      {/* ── Row 4: Recent Cash Activity & Month-End Close Readiness ── */}
+      {/* â”€â”€ Row 4: Recent Cash Activity & Month-End Close Readiness â”€â”€ */}
       <div className="vex-row-4">
         {/* Recent Cash Activity */}
         <SectionCard
@@ -497,14 +497,14 @@ export const FinanceDashboard: React.FC = () => {
               <tbody>
                 {recentTransactions.map(t => (
                   <tr key={t.id}>
-                    <td style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink3)' }}>{t.id}</td>
+                    <td style={{ fontFamily: 'var(--font)', fontSize: 11.5, color: 'var(--ink3)' }}>{t.id}</td>
                     <td style={{ fontWeight: 700, color: 'var(--navy)' }}>{t.name}</td>
                     <td style={{ color: 'var(--ink2)', fontSize: 12 }}>{t.desc}</td>
                     <td style={{ color: 'var(--ink3)' }}>{t.date}</td>
                     <td
                       style={{
                         textAlign: 'right',
-                        fontFamily: 'var(--mono)',
+                        fontFamily: 'var(--font)',
                         fontWeight: 800,
                         color: t.type === 'in' ? 'var(--green)' : 'var(--red)',
                       }}

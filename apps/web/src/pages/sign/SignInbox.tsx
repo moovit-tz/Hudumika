@@ -1,4 +1,4 @@
-// ─── SignInbox.tsx — Inbox + Sent + Drafts + Completed views ─────────────────
+﻿// â”€â”€â”€ SignInbox.tsx â€” Inbox + Sent + Drafts + Completed views â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch, apiFetchBlob, apiDownload, BASE_URL } from '../../lib/api.js';
@@ -21,7 +21,7 @@ import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { showPrompt } from '../../lib/prompt.js';
 // Same real-canvas PDF render Cloud's Lightbox and the envelope editor both
-// use — this page used to show only a filename chip, with no way to
+// use â€” this page used to show only a filename chip, with no way to
 // actually see the document without downloading it first.
 import { usePdfDocument } from '../cloud/lib/usePdfDocument.js';
 import { PdfPageCanvas } from '../cloud/components/PdfPageCanvas.js';
@@ -55,7 +55,7 @@ function Pagination({ total, page, onPage, perPage = PER_PAGE }: { total: number
         <Icon name="chevronLeft" size={13} />
       </button>
       {pages.map((p, i) => p === '...' ? (
-        <span key={`e${i}`} style={{ color: 'var(--ink3)', fontSize: 12.5, padding: '0 4px' }}>…</span>
+        <span key={`e${i}`} style={{ color: 'var(--ink3)', fontSize: 12.5, padding: '0 4px' }}>â€¦</span>
       ) : (
         <button key={p} type="button" onClick={() => onPage(p as number)}
           style={{ ...btnBase, background: p === page ? 'hsl(var(--primary))' : 'var(--bg)', color: p === page ? 'hsl(var(--primary-foreground))' : 'var(--ink)', borderColor: p === page ? 'hsl(var(--primary))' : 'var(--border)' }}>
@@ -66,7 +66,7 @@ function Pagination({ total, page, onPage, perPage = PER_PAGE }: { total: number
         <Icon name="chevronRight" size={13} />
       </button>
       <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--ink3)' }}>
-        {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}
+        {(page - 1) * perPage + 1}â€“{Math.min(page * perPage, total)} of {total}
       </span>
     </div>
   );
@@ -89,33 +89,33 @@ function PerPageSelect({ value, onChange }: { value: number; onChange: (n: numbe
 
 const VIEW_TABS = [
   { key: 'documents', label: 'Documents',    icon: 'fileText'    as const,
-    subtitle: 'All your envelopes — created, sent, received and completed — in one place.' },
+    subtitle: 'All your envelopes â€” created, sent, received and completed â€” in one place.' },
   { key: 'inbox',     label: 'My Inbox',     icon: 'download'    as const,
     emWord: 'inbox', titlePlain: 'My',
     subtitle: 'Documents requiring your signature, approval, or other action.' },
   { key: 'sent',      label: 'Sent',         icon: 'send'        as const,
     subtitle: 'Everything you have sent out, at every stage from just-sent to fully signed.' },
   { key: 'drafts',    label: 'Drafts',       icon: 'edit'        as const,
-    subtitle: 'Still being prepared on your side — not sent to anyone yet.' },
+    subtitle: 'Still being prepared on your side â€” not sent to anyone yet.' },
   { key: 'completed', label: 'Completed',    icon: 'checkCircle' as const,
     subtitle: 'Every recipient has signed. Fully executed and locked.' },
-  // Voided and Declined used to share the same xCircle icon — both mean
+  // Voided and Declined used to share the same xCircle icon â€” both mean
   // "this didn't get signed," but for opposite reasons (you cancelled it
   // vs. a signer refused it), so they need distinct icons and copy that
-  // actually says who stopped it and why — that's the exact distinction
+  // actually says who stopped it and why â€” that's the exact distinction
   // a first-time user can't tell from the label alone.
   { key: 'voided',    label: 'Voided',       icon: 'xCircle'     as const,
     subtitle: 'You (the sender) cancelled these before everyone finished signing.' },
   { key: 'declined',  label: 'Declined',     icon: 'userMinus'   as const,
-    subtitle: 'A signer refused to sign — the envelope stopped because of them, not you.' },
+    subtitle: 'A signer refused to sign â€” the envelope stopped because of them, not you.' },
   { key: 'expired',   label: 'Expired',      icon: 'clock'       as const,
-    subtitle: 'Nobody cancelled or declined these — they just passed their signing deadline first.' },
+    subtitle: 'Nobody cancelled or declined these â€” they just passed their signing deadline first.' },
 ] as const;
 type ViewKey = typeof VIEW_TABS[number]['key'];
 
 // Same semantic mapping as statusBadgeClass/recipientStatusBadgeClass above,
-// but as ui/badge.tsx variants — for SignEnvelopeDetail, which uses the real
-// Badge component (CLAUDE.md's design-system mapping: "Status pill → Badge")
+// but as ui/badge.tsx variants â€” for SignEnvelopeDetail, which uses the real
+// Badge component (CLAUDE.md's design-system mapping: "Status pill â†’ Badge")
 // rather than this file's own .sign-badge-* CSS classes.
 type BadgeVariant = 'brand' | 'gray' | 'success' | 'warning' | 'error' | 'info';
 function envelopeBadgeVariant(status: string): BadgeVariant {
@@ -124,7 +124,7 @@ function envelopeBadgeVariant(status: string): BadgeVariant {
   };
   return map[status] ?? 'gray';
 }
-// Migration 416 — only WITNESSED_SIGNATURE/AFFIDAVIT/NOTARIAL_CERTIFICATION
+// Migration 416 â€” only WITNESSED_SIGNATURE/AFFIDAVIT/NOTARIAL_CERTIFICATION
 // ever render; NORMAL_SIGN is the default and deliberately shows no badge.
 const EXECUTION_TYPE_LABEL: Record<string, string> = {
   WITNESSED_SIGNATURE: 'Witnessed Signature',
@@ -138,22 +138,22 @@ function recipientBadgeVariant(status: string): BadgeVariant {
   return map[status] ?? 'warning';
 }
 
-/** Stacked, overlapping avatars for a "who's on this envelope" summary —
+/** Stacked, overlapping avatars for a "who's on this envelope" summary â€”
  *  shared by grid (EnvelopeCard) and list (EnvelopeRow). PersonAvatar draws
  *  a real photo when a recipient is a linked platform user, deterministic
- *  per-name initials otherwise — replacing the old array-index-based
+ *  per-name initials otherwise â€” replacing the old array-index-based
  *  coloring, which reassigned colors to the wrong person if recipients were
  *  ever reordered. */
 function RecipientAvatarStack({ recipients, size, max }: { recipients: SignRecipient[]; size: number; max: number }) {
   return (
     <div style={{ display: 'flex' }}>
       {recipients.slice(0, max).map((r, i) => (
-        // Tip, not PersonAvatar's own native-title fallback — every other
+        // Tip, not PersonAvatar's own native-title fallback â€” every other
         // hover label on this page (view toggle, share buttons, amend/void
         // actions) already renders through the platform's styled tooltip;
         // this stack was the one place still popping the browser's plain,
         // unstyled title after a full second's delay.
-        <Tip key={r.id} label={`${r.name} · ${r.status}`}>
+        <Tip key={r.id} label={`${r.name} Â· ${r.status}`}>
           <PersonAvatar userId={r.user_id ?? r.matched_user_id ?? undefined} name={r.name} size={size}
             style={{ marginLeft: i === 0 ? 0 : -Math.round(size * 0.28), border: '2px solid var(--card-bg)' }} />
         </Tip>
@@ -201,7 +201,7 @@ function EnvelopeCard({ env, onClick, selected, onToggleSelect, signUrl }: { env
   );
 }
 
-/** Dense, single-row rendering for list view — a real table row rather than
+/** Dense, single-row rendering for list view â€” a real table row rather than
  *  a hand-laid-out div, so Document/Status/Recipients/Updated line up in the
  *  same column on every row regardless of how long any one envelope's title,
  *  status text or filename happens to be (same reasoning as the Companies
@@ -236,7 +236,7 @@ function EnvelopeRow({ env, onClick, selected, onToggleSelect }: { env: Envelope
             <RecipientAvatarStack recipients={env.recipients} size={20} max={4} />
             <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{signedCount}/{signerCount} signed</span>
           </div>
-        ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
+        ) : <span style={{ color: 'var(--ink3)' }}>â€”</span>}
       </td>
       <td style={{ textAlign: 'right', color: 'var(--ink3)', fontSize: 12.5, whiteSpace: 'nowrap' }}>{new Date(env.updated_at).toLocaleDateString()}</td>
     </tr>
@@ -281,7 +281,7 @@ function InboxEnvelopeRow({ env, userId, onClick }: { env: EnvelopeWithRecipient
             </Badge>
             {myR.role_label && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{myR.role_label}</div>}
           </div>
-        ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
+        ) : <span style={{ color: 'var(--ink3)' }}>â€”</span>}
       </td>
       <td style={{ textAlign: 'right', paddingRight: 12 }} onClick={e => e.stopPropagation()}>
         {canSign && signUrl ? (
@@ -306,7 +306,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [search, setSearch] = useState('');
-  // Debounced so every keystroke doesn't fire its own request — real
+  // Debounced so every keystroke doesn't fire its own request â€” real
   // Postgres full-text search (migration 463) replaces what used to be an
   // in-memory substring filter over whatever page had already loaded.
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -326,7 +326,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
   const loadEnvelopes = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams();
-    // Drafts are a personal work-in-progress, same as Sent — the backend
+    // Drafts are a personal work-in-progress, same as Sent â€” the backend
     // scopes both to created_by when `view` is set, not just `status`.
     if (view === 'drafts') { params.set('status', 'draft'); params.set('view', 'drafts'); }
     else if (view === 'completed') params.set('status', 'completed');
@@ -342,7 +342,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
   }, [view, debouncedSearch]);
 
   useEffect(() => { loadEnvelopes(); }, [loadEnvelopes]);
-  // Clears on a view or search change, not just view — otherwise a
+  // Clears on a view or search change, not just view â€” otherwise a
   // selection made before narrowing the search could linger as a
   // "N selected" bar referencing rows no longer even in the list.
   useEffect(() => { setSelected(new Set()); }, [view, debouncedSearch]);
@@ -371,7 +371,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
       await loadEnvelopes();
       const failed = (res.results as { id: string; ok: boolean; error?: string }[]).filter(r => !r.ok);
       if (failed.length) {
-        showAlert(`${res.succeeded} succeeded, ${failed.length} skipped — ${failed[0].error}${failed.length > 1 ? ` (+${failed.length - 1} more)` : ''}`);
+        showAlert(`${res.succeeded} succeeded, ${failed.length} skipped â€” ${failed[0].error}${failed.length > 1 ? ` (+${failed.length - 1} more)` : ''}`);
       }
     } catch (err: any) {
       showAlert(err.message || `Bulk ${action} failed`);
@@ -381,7 +381,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
   }
 
   // Filtering now happens server-side (real full-text search, migration
-  // 463) — `envelopes` already reflects `debouncedSearch` by the time it's
+  // 463) â€” `envelopes` already reflects `debouncedSearch` by the time it's
   // rendered below.
   const filtered = envelopes;
   const currentTab = VIEW_TABS.find(t => t.key === view);
@@ -399,7 +399,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
     });
   }
 
-  // Inbox metrics — how many of my items are pending/viewed/signed
+  // Inbox metrics â€” how many of my items are pending/viewed/signed
   const inboxMetrics = useMemo(() => {
     if (view !== 'inbox') return null;
     const pending = filtered.filter(e => e.recipients?.find(r => (r.user_id === user?.id || r.matched_user_id === user?.id) && r.status === 'pending')).length;
@@ -422,7 +422,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
         ) : undefined}
       />
 
-      {/* Inbox metrics strip — only shown when there is something to act on */}
+      {/* Inbox metrics strip â€” only shown when there is something to act on */}
       {view === 'inbox' && !loading && filtered.length > 0 && inboxMetrics && (
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
           {inboxMetrics.pending > 0 && (
@@ -472,7 +472,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
               <Icon name="search" size={14} aria-hidden="true" />
               <Input
                 type="search"
-                placeholder="Search envelopes…"
+                placeholder="Search envelopesâ€¦"
                 value={search}
                 onChange={event => setSearch(event.target.value)}
                 aria-label="Search envelopes"
@@ -492,7 +492,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
         </div>
       </div>
 
-      {/* Bulk-select action bar — Void/Remind many envelopes from one
+      {/* Bulk-select action bar â€” Void/Remind many envelopes from one
           multi-select, instead of opening each one. The backend reports
           per-item skip reasons (e.g. a completed envelope can't be voided),
           surfaced via the summary alert after the batch runs. */}
@@ -530,16 +530,16 @@ export function SignInbox({ view }: { view: ViewKey }) {
             </FeaturedIcon>
             <div className="sign-inbox-empty-title">
               {search ? 'No matching envelopes'
-                : view === 'inbox' ? 'All clear — nothing waiting for you'
+                : view === 'inbox' ? 'All clear â€” nothing waiting for you'
                 : view === 'drafts' ? 'No drafts yet'
                 : `No ${view} envelopes`}
             </div>
             <div className="sign-inbox-empty-copy">
               {search ? 'Try adjusting your search terms.'
                 : view === 'inbox' ? 'When someone sends you a document to sign or approve, it will land here.'
-                : view === 'voided' ? 'Envelopes only land here once you cancel one yourself — nothing to show yet.'
-                : view === 'declined' ? 'This fills up if a signer ever refuses to sign — nothing here means everyone has signed so far.'
-                : view === 'expired' ? 'Envelopes land here only after their deadline passes unsigned — none have yet.'
+                : view === 'voided' ? 'Envelopes only land here once you cancel one yourself â€” nothing to show yet.'
+                : view === 'declined' ? 'This fills up if a signer ever refuses to sign â€” nothing here means everyone has signed so far.'
+                : view === 'expired' ? 'Envelopes land here only after their deadline passes unsigned â€” none have yet.'
                 : 'Create a new envelope to get started.'}
             </div>
             {view !== 'inbox' && !search && (
@@ -643,7 +643,7 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
         <DialogHeader>
           <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
             <Icon name="share" size={16} style={{ color: 'var(--teal)' }} />
-            Share Document — {env.title}
+            Share Document â€” {env.title}
           </DialogTitle>
         </DialogHeader>
 
@@ -754,13 +754,13 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
   );
 }
 
-// Phase S9 — a real DRAFT sales_invoices row (sign-billing.routes.ts),
+// Phase S9 â€” a real DRAFT sales_invoices row (sign-billing.routes.ts),
 // not a fee schedule: the preparer types the real amount being charged,
 // since Sign has no existing notary/consultant rate card to compute one
 // from. Finalization (tax, GL posting) happens entirely in FinOps's own
-// invoice screen afterward — this only creates the draft it starts from.
+// invoice screen afterward â€” this only creates the draft it starts from.
 function BillEnvelopeModal({ env, onClose, onBilled }: { env: EnvelopeWithRecipients; onClose: () => void; onBilled: (invoiceId: string) => void }) {
-  const [description, setDescription] = useState(`${env.title} — professional service fee`);
+  const [description, setDescription] = useState(`${env.title} â€” professional service fee`);
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('TZS');
   const [saving, setSaving] = useState(false);
@@ -791,12 +791,12 @@ function BillEnvelopeModal({ env, onClose, onBilled }: { env: EnvelopeWithRecipi
         <DialogHeader>
           <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
             <Icon name="invoice" size={16} style={{ color: 'var(--teal)' }} />
-            Create Invoice — {env.title}
+            Create Invoice â€” {env.title}
           </DialogTitle>
         </DialogHeader>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
           <p style={{ fontSize: 12, color: 'var(--ink3)', margin: 0, lineHeight: 1.5 }}>
-            Creates a draft invoice on this document's customer. Review and finalize it in FinOps's own invoice screen — tax and posting happen there, not here.
+            Creates a draft invoice on this document's customer. Review and finalize it in FinOps's own invoice screen â€” tax and posting happen there, not here.
           </p>
           <div>
             <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', display: 'block', marginBottom: 6 }}>Description</label>
@@ -816,7 +816,7 @@ function BillEnvelopeModal({ env, onClose, onBilled }: { env: EnvelopeWithRecipi
             </div>
           </div>
           <Button variant="default" onClick={submit} disabled={saving} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700 }}>
-            {saving ? 'Creating…' : 'Create Draft Invoice'}
+            {saving ? 'Creatingâ€¦' : 'Create Draft Invoice'}
           </Button>
         </div>
       </DialogContent>
@@ -834,7 +834,7 @@ function getAuditEventStyle(type: string) {
   if (t === 'stamped') return { icon: 'stamp' as const, color: 'var(--teal)', bg: 'var(--teal-l)' };
   if (t === 'verified') return { icon: 'shield' as const, color: 'var(--blue)', bg: 'var(--blue-l)' };
   if (t === 'anchored') return { icon: 'lock' as const, color: 'var(--green)', bg: 'var(--green-l)' };
-  // 'updated' covers every metadata edit — a rename, or PUT's own message/
+  // 'updated' covers every metadata edit â€” a rename, or PUT's own message/
   // recipient/field changes on a still-draft envelope.
   if (t === 'updated') return { icon: 'edit' as const, color: 'var(--ink2)', bg: 'var(--bg)' };
   if (t === 'voided') return { icon: 'xCircle' as const, color: 'var(--red)', bg: 'var(--red-l)' };
@@ -881,7 +881,7 @@ export function SignEnvelopeDetail() {
 
   async function handleVoid() {
     if (!env) return;
-    const reason = await showPrompt('This stops the envelope for every recipient — it can’t be un-voided.', { title: 'Reason for voiding (optional)', placeholder: 'e.g. Sent to the wrong recipient', confirmLabel: 'Void Envelope' });
+    const reason = await showPrompt('This stops the envelope for every recipient â€” it canâ€™t be un-voided.', { title: 'Reason for voiding (optional)', placeholder: 'e.g. Sent to the wrong recipient', confirmLabel: 'Void Envelope' });
     if (reason === null) return;
     await apiFetch(`/v1/sign/envelopes/${env.id}`, { method: 'DELETE', body: JSON.stringify({ reason }) });
     navigate('/sign');
@@ -938,7 +938,7 @@ export function SignEnvelopeDetail() {
   async function handleAmend() {
     if (!env) return;
     const ok = await showConfirm(
-      `This creates a new draft — Version ${env.version_number + 1} — copying the same document, recipients and fields. The signed original stays exactly as it is, on file.`,
+      `This creates a new draft â€” Version ${env.version_number + 1} â€” copying the same document, recipients and fields. The signed original stays exactly as it is, on file.`,
       { title: 'Create an amended version?', variant: 'info', confirmLabel: 'Create Version ' + (env.version_number + 1) });
     if (!ok) return;
     try {
@@ -1018,7 +1018,7 @@ export function SignEnvelopeDetail() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 380, gap: 12, color: 'var(--ink3)' }}>
         <Icon name="clock" size={32} style={{ opacity: 0.4, animation: 'ds-spin 2s linear infinite' }} />
-        <div style={{ fontSize: 14, fontWeight: 600 }}>Loading envelope details…</div>
+        <div style={{ fontSize: 14, fontWeight: 600 }}>Loading envelope detailsâ€¦</div>
       </div>
     );
   }
@@ -1047,14 +1047,14 @@ export function SignEnvelopeDetail() {
             <Badge variant={envelopeBadgeVariant(env.status)} style={{ textTransform: 'capitalize', padding: '5px 12px', fontSize: 12.5, fontWeight: 700 }}>
               {env.status}
             </Badge>
-            {/* Only shown for an advanced execution — an ordinary envelope's
+            {/* Only shown for an advanced execution â€” an ordinary envelope's
                 header looks exactly as it did before migration 416. */}
             {env.execution_type && env.execution_type !== 'NORMAL_SIGN' && (
               <Badge variant="warning" style={{ padding: '5px 12px', fontSize: 12.5, fontWeight: 700 }}>
                 {EXECUTION_TYPE_LABEL[env.execution_type] ?? env.execution_type}
               </Badge>
             )}
-            {/* Phase S7 — a free-text case tag (migration 428), shown to
+            {/* Phase S7 â€” a free-text case tag (migration 428), shown to
                 whoever can already see this envelope; the grouped /sign/
                 matters view itself stays admin-only (see that route's own
                 gate), so this reads as plain text, not a link. */}
@@ -1063,7 +1063,7 @@ export function SignEnvelopeDetail() {
                 <Icon name="briefcase" size={11} /> {env.matter_reference}
               </Badge>
             )}
-            {/* Phase S9 — a real draft invoice, not a claim of payment. Only
+            {/* Phase S9 â€” a real draft invoice, not a claim of payment. Only
                 offered when there's a customer to bill (client_id, Phase
                 S6/S7's own column) and not already billed. */}
             {env.invoice_id ? (
@@ -1079,7 +1079,7 @@ export function SignEnvelopeDetail() {
                 </Button>
               </Tip>
             )}
-            {/* Phase S4 — a real Bliss (or Jitsi-fallback) meeting, set from
+            {/* Phase S4 â€” a real Bliss (or Jitsi-fallback) meeting, set from
                 the editor's own MeetingLinkPanel. Shown to whoever can
                 already see this envelope; recipients get the same link on
                 the public signing page. */}
@@ -1092,7 +1092,7 @@ export function SignEnvelopeDetail() {
             )}
             {env.status === 'completed' ? (
               !env.next_version && (
-                <Tip label="This document has an issue — create an amended Version 2">
+                <Tip label="This document has an issue â€” create an amended Version 2">
                   <Button variant="outline" size="sm" onClick={handleAmend} style={{ borderColor: 'var(--teal)', color: 'var(--teal)' }}>
                     <Icon name="gitBranch" size={14} /> Amend Version
                   </Button>
@@ -1130,11 +1130,11 @@ export function SignEnvelopeDetail() {
         }
       />
 
-      {/* Sent by — the creator, so a shared workspace inbox reads as "who
+      {/* Sent by â€” the creator, so a shared workspace inbox reads as "who
           actually raised this," not just what and when. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink3)' }}>
         <PersonAvatar userId={env.created_by} name={env.created_by_name ?? ''} size={22} />
-        <span>Sent by <strong style={{ color: 'var(--ink2)' }}>{env.created_by_name ?? 'Unknown'}</strong> · {new Date(env.created_at).toLocaleDateString()}</span>
+        <span>Sent by <strong style={{ color: 'var(--ink2)' }}>{env.created_by_name ?? 'Unknown'}</strong> Â· {new Date(env.created_at).toLocaleDateString()}</span>
       </div>
 
       {/* Version chain banners */}
@@ -1143,7 +1143,7 @@ export function SignEnvelopeDetail() {
           role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/sign/envelope/${env.previous_version!.id}`); } }}
           style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--teal-l)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', padding: '12px 18px', fontSize: 13, color: 'var(--ink)' }}>
           <Icon name="gitBranch" size={16} style={{ color: 'var(--teal)', flexShrink: 0 } as React.CSSProperties} />
-          <span>This is Version {env.version_number}, amended from <strong>Version {env.previous_version.version_number} — {env.previous_version.title}</strong></span>
+          <span>This is Version {env.version_number}, amended from <strong>Version {env.previous_version.version_number} â€” {env.previous_version.title}</strong></span>
           <Icon name="chevronRight" size={14} style={{ marginLeft: 'auto', color: 'var(--teal)' } as React.CSSProperties} />
         </div>
       )}
@@ -1189,7 +1189,7 @@ export function SignEnvelopeDetail() {
                   style={{ background: 'none', border: 'none', cursor: previewPage <= 1 ? 'default' : 'pointer', opacity: previewPage <= 1 ? 0.3 : 1, display: 'flex', padding: 2 }}>
                   <Icon name="chevronLeft" size={14} color="#f8fafc" />
                 </button>
-                <span style={{ fontSize: 12, color: '#f8fafc', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--mono)' }}>
+                <span style={{ fontSize: 12, color: '#f8fafc', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--font)' }}>
                   {previewPage} / {previewNumPages}
                 </span>
                 <button onClick={() => setPreviewPage(p => Math.min(previewNumPages, p + 1))} disabled={previewPage >= previewNumPages}
@@ -1211,7 +1211,7 @@ export function SignEnvelopeDetail() {
                 {previewLoading || (previewIsPdf && !!previewUrl && previewPdfLoading) ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: 'var(--ink3)' }}>
                     <Icon name="clock" size={24} style={{ animation: 'ds-spin 2s linear infinite', color: 'var(--teal)' }} />
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>Loading document canvas…</div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>Loading document canvasâ€¦</div>
                   </div>
                 ) : !previewUrl ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: 'var(--ink3)', padding: 24, textAlign: 'center' }}>
@@ -1245,7 +1245,7 @@ export function SignEnvelopeDetail() {
             </div>
           )}
 
-          {/* Stamped & Verified Certificate Card (if Completed) — styled as an
+          {/* Stamped & Verified Certificate Card (if Completed) â€” styled as an
               actual certificate (serial plate + provenance line + corner
               seal) rather than a generic tinted SaaS status card. */}
           {env.status === 'completed' && env.verification_code && (
@@ -1255,7 +1255,7 @@ export function SignEnvelopeDetail() {
               padding: '22px 24px', boxShadow: 'var(--elev-sm)',
               display: 'flex', flexDirection: 'column', gap: 14,
             }}>
-              {/* Corner seal ring — a notary-stamp motif, not another icon-in-a-circle */}
+              {/* Corner seal ring â€” a notary-stamp motif, not another icon-in-a-circle */}
               <div aria-hidden style={{
                 position: 'absolute', top: -20, right: -20, width: 88, height: 88, borderRadius: '50%',
                 border: '2px dashed var(--sign-green)', opacity: 0.3, transform: 'rotate(12deg)', pointerEvents: 'none',
@@ -1279,7 +1279,7 @@ export function SignEnvelopeDetail() {
                 </div>
               </div>
 
-              {/* Certificate plate — the code presented like a serial number */}
+              {/* Certificate plate â€” the code presented like a serial number */}
               <div style={{
                 background: 'var(--white)', border: '1px dashed var(--sign-green)', borderRadius: 'var(--r-sm)',
                 padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
@@ -1288,7 +1288,7 @@ export function SignEnvelopeDetail() {
                   <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink3)' }}>
                     Certificate No.
                   </div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 800, letterSpacing: '0.07em', color: 'var(--sign-green)', marginTop: 2 }}>
+                  <div style={{ fontFamily: 'var(--font)', fontSize: 19, fontWeight: 800, letterSpacing: '0.07em', color: 'var(--sign-green)', marginTop: 2 }}>
                     {env.verification_code}
                   </div>
                 </div>
@@ -1303,7 +1303,7 @@ export function SignEnvelopeDetail() {
                   <Icon name={env.anchor_status === 'confirmed' ? 'checkCircle' : 'clock'} size={14} style={{ color: env.anchor_status === 'confirmed' ? 'var(--green)' : 'var(--gold)', flexShrink: 0 }} />
                   <span>
                     {env.anchor_status === 'confirmed'
-                      ? `Bitcoin-anchored — confirmed in block #${env.anchor_block_height}`
+                      ? `Bitcoin-anchored â€” confirmed in block #${env.anchor_block_height}`
                       : 'Bitcoin anchor pending blockchain confirmation'}
                   </span>
                 </div>
@@ -1314,7 +1314,7 @@ export function SignEnvelopeDetail() {
                   <Icon name="share" size={13} /> Share Link
                 </Button>
                 {env.stamped_file_url && (
-                  <Button variant="outline" size="sm" onClick={() => apiDownload(`/v1/sign/envelopes/${env.id}/download`, `${env.title} — signed.pdf`)} style={{ background: 'var(--sign-green-l)', borderColor: 'var(--sign-green)', color: 'var(--sign-green)', fontWeight: 700 }}>
+                  <Button variant="outline" size="sm" onClick={() => apiDownload(`/v1/sign/envelopes/${env.id}/download`, `${env.title} â€” signed.pdf`)} style={{ background: 'var(--sign-green-l)', borderColor: 'var(--sign-green)', color: 'var(--sign-green)', fontWeight: 700 }}>
                     <Icon name="download" size={13} /> Download PDF
                   </Button>
                 )}
@@ -1337,17 +1337,17 @@ export function SignEnvelopeDetail() {
                   // flexWrap, not a single fixed row: without it, a long
                   // name had nowhere to go but wrap onto a second line
                   // inside its own flex:1 column while the role badge and
-                  // the two buttons — plain siblings in the same unwrapped
-                  // row — stayed pinned in place, overlapping that second
+                  // the two buttons â€” plain siblings in the same unwrapped
+                  // row â€” stayed pinned in place, overlapping that second
                   // line (confirmed live: "Viden Remmigius Clemmence"
                   // wrapped under a "Superadmin" badge sitting on top of
                   // it). The name/email column now truncates with an
                   // ellipsis instead of wrapping its own text, and the
-                  // whole row wraps onto a second line — actions included —
+                  // whole row wraps onto a second line â€” actions included â€”
                   // once it runs out of room, on any width, not just below
                   // a mobile breakpoint.
                   <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, rowGap: 8, padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', flexWrap: 'wrap' }}>
-                    <Tip label={`${r.name} — ${r.email}`}>
+                    <Tip label={`${r.name} â€” ${r.email}`}>
                       <PersonAvatar userId={r.user_id ?? r.matched_user_id ?? undefined} name={r.name} size={30} />
                     </Tip>
                     <Badge variant={recipientBadgeVariant(r.status)}>{r.status}</Badge>
@@ -1377,7 +1377,7 @@ export function SignEnvelopeDetail() {
             </SectionCard>
           )}
 
-          {/* Recipients — a legal certifier (Certified True Copy — an
+          {/* Recipients â€” a legal certifier (Certified True Copy â€” an
               advocate/notary attesting the copy, not just another party
               signing it) gets its own section, separate from ordinary
               signatories/approvers, rather than being one more row in the
@@ -1387,22 +1387,22 @@ export function SignEnvelopeDetail() {
               // Same overlap risk as the signing-links row above, plus a
               // taller one: this row's second/third lines (certifier info,
               // a decline reason) are meant to wrap as real sentences, not
-              // truncate — so the trailing badges/timestamp need their own
+              // truncate â€” so the trailing badges/timestamp need their own
               // wrapping group, or a long reason growing this row taller
               // pushes past the single-line-height the trailing badges
               // assumed and overlaps them the same way.
               <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, rowGap: 8, padding: '12px 14px', borderRadius: 'var(--r)', background: r.is_certifier ? 'var(--blue-l)' : 'var(--bg)', border: `1px solid ${r.is_certifier ? 'var(--blue)' : 'var(--border)'}`, flexWrap: 'wrap' }}>
-                <Tip label={`${r.name} — ${r.email}`}>
+                <Tip label={`${r.name} â€” ${r.email}`}>
                   <PersonAvatar userId={r.user_id ?? r.matched_user_id ?? undefined} name={r.name} size={38} />
                 </Tip>
                 <div style={{ flex: '1 1 160px', minWidth: 0 }}>
                   <Tip label={r.name}>
                     <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
                   </Tip>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.email}{r.role_label ? ` · ${r.role_label}` : ''}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.email}{r.role_label ? ` Â· ${r.role_label}` : ''}</div>
                   {r.is_certifier && (
                     <div style={{ fontSize: 11.5, color: 'var(--blue)', fontWeight: 600, marginTop: 2 }}>
-                      {r.certifier_title || 'Advocate'}{r.certifier_roll_number ? ` · Roll No. ${r.certifier_roll_number}` : ''}{r.certifier_firm ? ` · ${r.certifier_firm}` : ''}
+                      {r.certifier_title || 'Advocate'}{r.certifier_roll_number ? ` Â· Roll No. ${r.certifier_roll_number}` : ''}{r.certifier_firm ? ` Â· ${r.certifier_firm}` : ''}
                     </div>
                   )}
                   {r.status === 'declined' && r.decline_reason && (
@@ -1411,7 +1411,7 @@ export function SignEnvelopeDetail() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
                   <Badge variant={recipientBadgeVariant(r.status)}>{r.status}</Badge>
-                  {r.signed_at && <span style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{new Date(r.signed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+                  {r.signed_at && <span style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{new Date(r.signed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
                 </div>
               </div>
             );
@@ -1459,7 +1459,7 @@ export function SignEnvelopeDetail() {
                         <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span>{new Date(ev.created_at).toLocaleString()}</span>
                           {ev.ip_address && (
-                            <span style={{ background: 'var(--white)', padding: '1px 6px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 10.5, fontFamily: 'var(--mono)' }}>
+                            <span style={{ background: 'var(--white)', padding: '1px 6px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 10.5, fontFamily: 'var(--font)' }}>
                               IP: {ev.ip_address}
                             </span>
                           )}
@@ -1484,11 +1484,11 @@ export function SignEnvelopeDetail() {
   );
 }
 
-// ─── SignAllDocuments — tenant-admin view across every user ───────────────────
+// â”€â”€â”€ SignAllDocuments â€” tenant-admin view across every user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Every other view in this file is scoped to "documents I own or I'm a
 // recipient on" (Inbox/Sent/Drafts/...). A tenant admin currently has no
 // way to find a colleague's document short of already knowing its exact
-// link — GET /envelopes?view=all (role-gated server-side, not just here)
+// link â€” GET /envelopes?view=all (role-gated server-side, not just here)
 // is the one query that isn't scoped to the requesting user, and this is
 // its one page.
 type AdminEnvelope = EnvelopeWithRecipients & { owner: { name: string; email: string } | null };
@@ -1529,7 +1529,7 @@ export function SignDocuments() {
         crumbs={['eSign', 'DOCUMENTS']}
         titlePlain="eSign"
         titleEm="documents"
-        subtitle="All your envelopes — created, sent, received and completed — in one place."
+        subtitle="All your envelopes â€” created, sent, received and completed â€” in one place."
         actions={
           <Button variant="default" onClick={() => navigate('/sign/editor')}
             style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, padding: '8px 16px' }}>
@@ -1641,7 +1641,7 @@ export function SignDocuments() {
                               <RecipientAvatarStack recipients={env.recipients} size={20} max={4} />
                               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{signedCount}/{signerCount} signed</span>
                             </div>
-                          ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
+                          ) : <span style={{ color: 'var(--ink3)' }}>â€”</span>}
                         </td>
                         <td style={{ textAlign: 'right', color: 'var(--ink3)', fontSize: 12.5, whiteSpace: 'nowrap' }}>{new Date(env.updated_at).toLocaleDateString()}</td>
                       </tr>
@@ -1683,7 +1683,7 @@ export function SignAllDocuments() {
   const pageItems = useMemo(() => filtered.slice((page - 1) * perPage, page * perPage), [filtered, page, perPage]);
 
   // Same tenant-wide stats shape SignInbox's MetricsRow already establishes
-  // for the personal Inbox/Sent/Drafts views — this admin oversight page
+  // for the personal Inbox/Sent/Drafts views â€” this admin oversight page
   // had none of that, just the bare table below.
   const stats = useMemo(() => {
     const total = envelopes.length;
@@ -1700,7 +1700,7 @@ export function SignAllDocuments() {
         crumbs={['eSign', 'Admin']}
         titlePlain="All"
         titleEm="documents"
-        subtitle="Every envelope in this workspace, regardless of who created it — for oversight and audit, not day-to-day signing."
+        subtitle="Every envelope in this workspace, regardless of who created it â€” for oversight and audit, not day-to-day signing."
       />
 
       {!loading && envelopes.length > 0 && (
@@ -1738,7 +1738,7 @@ export function SignAllDocuments() {
           <div style={{ position: 'relative', width: 260 }}>
             <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
             <input
-              type="search" placeholder="Search by title or owner…" value={search}
+              type="search" placeholder="Search by title or ownerâ€¦" value={search}
               onChange={e => setSearch(e.target.value)}
               style={{ width: '100%', padding: '9px 14px 9px 34px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, outline: 'none', boxSizing: 'border-box' }}
             />
@@ -1793,7 +1793,7 @@ export function SignAllDocuments() {
                         </td>
                         <td>
                           {env.owner ? (
-                            <Tip label={`${env.owner.name} — ${env.owner.email}`}>
+                            <Tip label={`${env.owner.name} â€” ${env.owner.email}`}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                                 <PersonAvatar userId={env.created_by} name={env.owner.name} size={26} />
                                 <div style={{ minWidth: 0 }}>
@@ -1802,7 +1802,7 @@ export function SignAllDocuments() {
                                 </div>
                               </div>
                             </Tip>
-                          ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
+                          ) : <span style={{ color: 'var(--ink3)' }}>â€”</span>}
                         </td>
                         <td><Badge variant={envelopeBadgeVariant(env.status)}>{env.status}</Badge></td>
                         <td>
@@ -1811,7 +1811,7 @@ export function SignAllDocuments() {
                               <RecipientAvatarStack recipients={env.recipients} size={20} max={4} />
                               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{signedCount}/{signerCount} signed</span>
                             </div>
-                          ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
+                          ) : <span style={{ color: 'var(--ink3)' }}>â€”</span>}
                         </td>
                         <td style={{ textAlign: 'right', color: 'var(--ink3)', fontSize: 12.5, whiteSpace: 'nowrap' }}>{new Date(env.updated_at).toLocaleDateString()}</td>
                       </tr>

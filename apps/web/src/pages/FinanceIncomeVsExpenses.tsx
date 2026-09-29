@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
@@ -119,7 +119,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading income vs expenses…</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading income vs expensesâ€¦</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
@@ -147,7 +147,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
 
         {/* Chart */}
         <SectionCard
-          title={`Monthly Comparison — ${year}`}
+          title={`Monthly Comparison â€” ${year}`}
           action={
             <div style={{ display: 'flex', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -180,9 +180,9 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
                 return (
                   <tr key={row.month} style={{ borderBottom: i < monthlyRows.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 600 }}>{row.month} {year}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--mono)' }}>{fmtFull(row.income)}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--red)', fontWeight: 600, fontFamily: 'var(--mono)' }}>{fmtFull(row.expense)}</td>
-                    <td style={{ padding: '10px 16px', color: row.net >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 700, fontFamily: 'var(--mono)' }}>{fmtFull(row.net)}</td>
+                    <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--font)' }}>{fmtFull(row.income)}</td>
+                    <td style={{ padding: '10px 16px', color: 'var(--red)', fontWeight: 600, fontFamily: 'var(--font)' }}>{fmtFull(row.expense)}</td>
+                    <td style={{ padding: '10px 16px', color: row.net >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 700, fontFamily: 'var(--font)' }}>{fmtFull(row.net)}</td>
                     <td style={{ padding: '10px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ width: 60, height: 4, borderRadius: 2, background: 'var(--border)', overflow: 'hidden' }}>
@@ -199,9 +199,9 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
               )}
               <tr style={{ background: 'var(--bg)' }}>
                 <td style={{ padding: '10px 16px', fontWeight: 700, color: 'var(--ink)', borderTop: '2px solid var(--border)' }}>Total {year}</td>
-                <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totalIncome)}</td>
-                <td style={{ padding: '10px 16px', color: 'var(--red)', fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totalExpenses)}</td>
-                <td style={{ padding: '10px 16px', color: netProfit >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(netProfit)}</td>
+                <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totalIncome)}</td>
+                <td style={{ padding: '10px 16px', color: 'var(--red)', fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totalExpenses)}</td>
+                <td style={{ padding: '10px 16px', color: netProfit >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(netProfit)}</td>
                 <td style={{ padding: '10px 16px', fontWeight: 700, color: 'var(--ink2)', borderTop: '2px solid var(--border)' }}>{profitMargin}%</td>
               </tr>
             </tbody>

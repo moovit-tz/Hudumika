@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import './OndiPages.css';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -141,7 +141,7 @@ export const OndiOrgActivity: React.FC = () => {
               boxShadow: '0 2px 8px var(--teal-m)'
             }}
           >
-            <Icon name="download" size={15} /> {exporting ? 'Exporting…' : 'Export CSV'}
+            <Icon name="download" size={15} /> {exporting ? 'Exportingâ€¦' : 'Export CSV'}
           </button>
         }
       />
@@ -250,7 +250,7 @@ export const OndiOrgActivity: React.FC = () => {
         {events === null && !err && (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
             <Spinner size={24} thickness={3} style={{ margin: '0 auto 12px' }} />
-            <span>Loading audit feed…</span>
+            <span>Loading audit feedâ€¦</span>
           </div>
         )}
 
@@ -290,7 +290,7 @@ export const OndiOrgActivity: React.FC = () => {
                         </FeaturedIcon>
                         <div>
                           <div style={{ fontWeight: 700, color: failed ? 'var(--red)' : 'var(--ink)' }}>{label}</div>
-                          <div style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink3)', marginTop: 1 }}>{e.event_type}</div>
+                          <div style={{ fontSize: 11, fontFamily: 'var(--font)', color: 'var(--ink3)', marginTop: 1 }}>{e.event_type}</div>
                         </div>
                       </div>
                     </td>
@@ -310,17 +310,17 @@ export const OndiOrgActivity: React.FC = () => {
 
                     <td>
                       {e.ip ? (
-                        <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink2)', background: 'var(--bg)', padding: '2px 7px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
+                        <code style={{ fontFamily: 'var(--font)', fontSize: 12, color: 'var(--ink2)', background: 'var(--bg)', padding: '2px 7px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                           {e.ip}
                         </code>
                       ) : (
-                        <span style={{ color: 'var(--ink3)' }}>—</span>
+                        <span style={{ color: 'var(--ink3)' }}>â€”</span>
                       )}
                     </td>
 
                     <td>
                       <div style={{ fontSize: 12, color: 'var(--ink3)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={e.user_agent || ''}>
-                        {e.user_agent ? e.user_agent.split(' ')[0] : '—'}
+                        {e.user_agent ? e.user_agent.split(' ')[0] : 'â€”'}
                       </div>
                     </td>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
@@ -12,7 +12,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { SectionCard } from '../components/SectionCard.js';
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface TrackingEvent {
   timestamp: string;
@@ -88,10 +88,10 @@ interface TrackingSnapshot {
   events: string | TrackingEvent[];
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const fmtDate = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+  iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'â€”';
 
 const fmtTime = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -118,9 +118,9 @@ const STATUS: Record<string, { bg: string; fg: string; label: string; icon: Icon
 const getStatus = (code?: string) =>
   STATUS[code?.toUpperCase() ?? ''] ?? { bg: 'var(--bg)', fg: 'var(--ink2)', label: code ?? 'Unknown', icon: 'info' as IconName };
 
-// ── PDF generator ─────────────────────────────────────────────────────────────
+// â”€â”€ PDF generator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// Brand color constant — matches CSS --teal: #0b1e3a
+// Brand color constant â€” matches CSS --teal: #0b1e3a
 const BRAND = '#0b1e3a';
 const NAVY  = '#0e1f3d';
 const NAVY2 = '#1a3260';
@@ -137,7 +137,7 @@ function generatePDF(result: TrackingResult) {
   const evtRows = result.events.map(ev => `
     <tr>
       <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:#1e293b;font-weight:600">${ev.description}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:#64748b">${ev.location || '—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:#64748b">${ev.location || 'â€”'}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:#64748b;white-space:nowrap">${fmtDate(ev.timestamp)} ${fmtTime(ev.timestamp)}</td>
     </tr>`).join('');
 
@@ -145,14 +145,14 @@ function generatePDF(result: TrackingResult) {
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>Tracking Report — ${result.tracking_number}</title>
+<title>Tracking Report â€” ${result.tracking_number}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
   @page { size: A4; margin: 18mm 20mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Inter', sans-serif; color: #1e293b; background: #fff; font-size: 13px; line-height: 1.5; }
 
-  /* Watermark — company name */
+  /* Watermark â€” company name */
   body::before {
     content: '${co.name.toUpperCase()}';
     position: fixed; top: 50%; left: 50%;
@@ -213,7 +213,7 @@ function generatePDF(result: TrackingResult) {
     </div>
     <div class="report-meta">
       Generated: ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}<br/>
-      ${new Date().toLocaleTimeString('en-GB')} · ${result.source === 'mock' ? 'Demo Data' : 'Live Data'}
+      ${new Date().toLocaleTimeString('en-GB')} Â· ${result.source === 'mock' ? 'Demo Data' : 'Live Data'}
     </div>
   </div>
 
@@ -232,7 +232,7 @@ function generatePDF(result: TrackingResult) {
       <div class="track-line"><div class="track-fill" style="width:${result.progress_pct}%"></div></div>
       <div class="port"><div class="port-code">${result.dest_code}</div><div class="port-name">${result.dest_name}</div></div>
     </div>
-    <div class="journey-loc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><path d="M12 13a3 3 0 100-6 3 3 0 000 6z"/></svg>Currently at <strong>${result.current_location}</strong> &nbsp;·&nbsp; ${result.progress_pct}% complete</div>
+    <div class="journey-loc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><path d="M12 13a3 3 0 100-6 3 3 0 000 6z"/></svg>Currently at <strong>${result.current_location}</strong> &nbsp;Â·&nbsp; ${result.progress_pct}% complete</div>
   </div>
 
   <div class="kpi-grid">
@@ -243,7 +243,7 @@ function generatePDF(result: TrackingResult) {
     </div>
     <div class="kpi">
       <div class="kpi-label">Days Remaining</div>
-      <div class="kpi-value" style="color:${(days ?? 0) < 0 ? 'var(--red)' : (days ?? 99) <= 3 ? 'var(--gold)' : NAVY}">${days == null ? '—' : days > 0 ? '~' + days + ' days' : days === 0 ? 'Today' : Math.abs(days) + 'd overdue'}</div>
+      <div class="kpi-value" style="color:${(days ?? 0) < 0 ? 'var(--red)' : (days ?? 99) <= 3 ? 'var(--gold)' : NAVY}">${days == null ? 'â€”' : days > 0 ? '~' + days + ' days' : days === 0 ? 'Today' : Math.abs(days) + 'd overdue'}</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Progress</div>
@@ -264,8 +264,8 @@ function generatePDF(result: TrackingResult) {
   </table>
 
   <div class="footer">
-    <div class="footer-brand"><div class="footer-dot"></div><strong>${co.name}</strong> · ClearOS powered by Hudumika</div>
-    <div>Generated automatically · may contain estimated data &copy; ${new Date().getFullYear()}</div>
+    <div class="footer-brand"><div class="footer-dot"></div><strong>${co.name}</strong> Â· ClearOS powered by Hudumika</div>
+    <div>Generated automatically Â· may contain estimated data &copy; ${new Date().getFullYear()}</div>
   </div>
 </div>
 </body>
@@ -278,7 +278,7 @@ function generatePDF(result: TrackingResult) {
   setTimeout(() => w.print(), 600);
 }
 
-// ── Snapshot card (dark, embeddable) ─────────────────────────────────────────
+// â”€â”€ Snapshot card (dark, embeddable) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingResult }>(({ result }, ref) => {
   const days = daysUntil(result.eta);
@@ -302,9 +302,9 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
           </div>
           <div>
             <div style={{ fontSize: 9, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 3 }}>
-              {result.tracking_type === 'AWB' ? 'Air Waybill' : 'Bill of Lading'} · {result.carrier}
+              {result.tracking_type === 'AWB' ? 'Air Waybill' : 'Bill of Lading'} Â· {result.carrier}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--mono)', letterSpacing: '.03em' }}>
+            <div style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--font)', letterSpacing: '.03em' }}>
               {result.tracking_number}
             </div>
           </div>
@@ -319,7 +319,7 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <div style={{ textAlign: 'center', minWidth: 54 }}>
-            <div style={{ fontSize: 19, fontWeight: 900, fontFamily: 'var(--mono)', letterSpacing: '-.01em' }}>{result.origin_code}</div>
+            <div style={{ fontSize: 19, fontWeight: 900, fontFamily: 'var(--font)', letterSpacing: '-.01em' }}>{result.origin_code}</div>
             <div style={{ fontSize: 9, color: 'var(--ink2)', marginTop: 1, maxWidth: 54, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{result.origin_name}</div>
           </div>
           <div style={{ flex: 1, position: 'relative', height: 30, display: 'flex', alignItems: 'center' }}>
@@ -332,7 +332,7 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
             </div>
           </div>
           <div style={{ textAlign: 'center', minWidth: 54 }}>
-            <div style={{ fontSize: 19, fontWeight: 900, fontFamily: 'var(--mono)', letterSpacing: '-.01em' }}>{result.dest_code}</div>
+            <div style={{ fontSize: 19, fontWeight: 900, fontFamily: 'var(--font)', letterSpacing: '-.01em' }}>{result.dest_code}</div>
             <div style={{ fontSize: 9, color: 'var(--ink2)', marginTop: 1, maxWidth: 54, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{result.dest_name}</div>
           </div>
         </div>
@@ -346,7 +346,7 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 14 }}>
         {[
           { icon: 'calendar' as IconName, label: 'ETA',        value: fmtDate(result.eta) },
-          { icon: 'clock'    as IconName, label: 'Time Left',  value: days == null ? '—' : days > 0 ? `~${days} days` : days === 0 ? 'Today' : 'Overdue' },
+          { icon: 'clock'    as IconName, label: 'Time Left',  value: days == null ? 'â€”' : days > 0 ? `~${days} days` : days === 0 ? 'Today' : 'Overdue' },
           { icon: 'layers'   as IconName, label: 'Progress',   value: `${result.progress_pct}%` },
           { icon: 'activity' as IconName, label: 'Updates',    value: `${result.events.length} events` },
         ].map(m => (
@@ -370,14 +370,14 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
           </div>
           <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink2)', letterSpacing: '.04em' }}>Hudumika ClearOS</span>
         </div>
-        <span style={{ fontSize: 9, color: 'var(--ink)' }}>{result.source === 'mock' ? 'Demo' : 'Live'} · {fmtDate(new Date().toISOString())}</span>
+        <span style={{ fontSize: 9, color: 'var(--ink)' }}>{result.source === 'mock' ? 'Demo' : 'Live'} Â· {fmtDate(new Date().toISOString())}</span>
       </div>
     </div>
   );
 });
 SnapshotCard.displayName = 'SnapshotCard';
 
-// ── Embedded badge ────────────────────────────────────────────────────────────
+// â”€â”€ Embedded badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function TrackingBadge({ snap }: { snap: Pick<TrackingSnapshot, 'tracking_type' | 'tracking_number' | 'status' | 'status_code' | 'eta' | 'progress_pct'> }) {
   const days = daysUntil(snap.eta ?? null);
@@ -385,15 +385,15 @@ export function TrackingBadge({ snap }: { snap: Pick<TrackingSnapshot, 'tracking
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 9px', fontSize: 11 }}>
       <Icon name={snap.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={12} color={st.fg} />
-      <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, letterSpacing: '.03em', color: 'var(--ink)' }}>{snap.tracking_number}</span>
+      <span style={{ fontFamily: 'var(--font)', fontWeight: 700, letterSpacing: '.03em', color: 'var(--ink)' }}>{snap.tracking_number}</span>
       <span style={{ color: 'var(--border)' }}>|</span>
       <span style={{ color: st.fg, fontWeight: 600 }}>{st.label}</span>
-      {days != null && <span style={{ color: 'var(--ink3)' }}>· {days > 0 ? `${days}d` : days === 0 ? 'Today' : 'OVD'}</span>}
+      {days != null && <span style={{ color: 'var(--ink3)' }}>Â· {days > 0 ? `${days}d` : days === 0 ? 'Today' : 'OVD'}</span>}
     </div>
   );
 }
 
-// ── Metric tile ───────────────────────────────────────────────────────────────
+// â”€â”€ Metric tile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function KpiCard({ icon, label, value, sub, accent = 'var(--teal)' }: { icon: IconName; label: string; value: string; sub?: string; accent?: string }) {
   return (
@@ -410,7 +410,7 @@ function KpiCard({ icon, label, value, sub, accent = 'var(--teal)' }: { icon: Ic
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const Tracker: React.FC = () => {
   const isMobile = useIsMobile();
@@ -445,7 +445,7 @@ export const Tracker: React.FC = () => {
   const handleInput = (v: string) => {
     setInputNumber(v);
     const n = v.trim();
-    if (!n) return; // don't reset type on clear — user may have manually chosen
+    if (!n) return; // don't reset type on clear â€” user may have manually chosen
     if (/^\d{3}-?\d/.test(n)) setTrackType('AWB');           // standard AWB: 123-12345678
     else if (/^[A-Z]{2,4}\d{6,}/i.test(n)) setTrackType('BL'); // BL: 4 letters + digits (MAEU1234...)
     // otherwise leave the user's chosen type unchanged
@@ -464,7 +464,7 @@ export const Tracker: React.FC = () => {
         const numbers = r.containers.map(c => c.number).join(',');
         apiFetch(`/v1/demurrage/containers?container_numbers=${encodeURIComponent(numbers)}`)
           .then(setDemurrageContainers)
-          .catch(() => {}); // demurrage entitlement may not be enabled — fail silently
+          .catch(() => {}); // demurrage entitlement may not be enabled â€” fail silently
       }
 
       // Bridge to carrier reliability analytics computed from this tenant's own history.
@@ -532,7 +532,7 @@ export const Tracker: React.FC = () => {
     } catch (e: any) { showAlert(e.message ?? 'Update failed'); }
   };
 
-  // ── Live (AJAX) search suggestions under the tracking input ──
+  // â”€â”€ Live (AJAX) search suggestions under the tracking input â”€â”€
   // Matches saved snapshots locally + queries the shipments API as you type,
   // so an operator can pull up an already-known BL/AWB instead of retyping it.
   interface Suggestion { kind: 'snapshot' | 'shipment'; number: string; type: 'AWB' | 'BL'; label: string; sub: string }
@@ -551,7 +551,7 @@ export const Tracker: React.FC = () => {
       // 1. Saved snapshots (local)
       for (const s of snapshots) {
         if (s.tracking_number.toUpperCase().includes(q)) {
-          out.push({ kind: 'snapshot', number: s.tracking_number, type: s.tracking_type as 'AWB' | 'BL', label: s.tracking_number, sub: `Saved · ${s.carrier ?? s.tracking_type} · ${s.status ?? ''}` });
+          out.push({ kind: 'snapshot', number: s.tracking_number, type: s.tracking_type as 'AWB' | 'BL', label: s.tracking_number, sub: `Saved Â· ${s.carrier ?? s.tracking_type} Â· ${s.status ?? ''}` });
         }
         if (out.length >= 4) break;
       }
@@ -568,11 +568,11 @@ export const Tracker: React.FC = () => {
             number: num,
             type: sh.bl_number ? 'BL' : 'AWB',
             label: num,
-            sub: `${sh.ref_number} · ${sh.customer_name ?? sh.goods_desc ?? 'Shipment'}`,
+            sub: `${sh.ref_number} Â· ${sh.customer_name ?? sh.goods_desc ?? 'Shipment'}`,
           });
           if (out.length >= 8) break;
         }
-      } catch { /* shipments module not available — local matches only */ }
+      } catch { /* shipments module not available â€” local matches only */ }
       setSuggestions(out);
       setShowSugg(out.length > 0);
       setSuggLoading(false);
@@ -600,7 +600,7 @@ export const Tracker: React.FC = () => {
     finally { setRetrackingId(null); }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const p = isMobile ? '16px 14px' : '24px 28px';
 
@@ -615,21 +615,21 @@ export const Tracker: React.FC = () => {
         .tr-input:focus { border-color: var(--teal) !important; box-shadow: 0 0 0 3px var(--teal-m) !important; }
       `}</style>
 
-      {/* ── Header ── */}
+      {/* â”€â”€ Header â”€â”€ */}
       <PageHeader
         crumbs={['Shipments', 'Tracker']}
         titlePlain="AWB & BL"
         titleEm="tracker"
-        subtitle="Track air waybills and bills of lading · save snapshots · embed in shipment cards."
+        subtitle="Track air waybills and bills of lading Â· save snapshots Â· embed in shipment cards."
         actions={result?.source === 'mock' ? (
           <Badge variant="warning">
             <Icon name="alertCircle" size={13} />
-            Demo mode — add Ship24 key in Settings for live data
+            Demo mode â€” add Ship24 key in Settings for live data
           </Badge>
         ) : undefined}
       />
 
-      {/* ── Search card ── */}
+      {/* â”€â”€ Search card â”€â”€ */}
       <div style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', marginBottom: 16, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 0, padding: 0, overflow: 'hidden' }}>
         {/* Left: input */}
         <div style={{ padding: isMobile ? '20px 18px' : '24px 28px' }}>
@@ -663,7 +663,7 @@ export const Tracker: React.FC = () => {
                 style={{
                   width: '100%', height: 50, paddingLeft: 46, paddingRight: 14,
                   border: '1.5px solid var(--border)', borderRadius: 'var(--r)',
-                  fontFamily: 'var(--mono)', fontSize: 15, fontWeight: 700,
+                  fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700,
                   background: 'var(--bg)', color: 'var(--ink)',
                   boxSizing: 'border-box', outline: 'none',
                 }}
@@ -687,7 +687,7 @@ export const Tracker: React.FC = () => {
                         <Icon name={s.type === 'AWB' ? 'compass' : 'anchor'} size={13} color={s.kind === 'snapshot' ? 'var(--teal)' : 'var(--blue)'} />
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{s.label}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>{s.label}</div>
                         <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.sub}</div>
                       </div>
                       <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', flexShrink: 0 }}>{s.kind === 'snapshot' ? 'Saved' : 'Shipment'}</span>
@@ -710,7 +710,7 @@ export const Tracker: React.FC = () => {
               } as React.CSSProperties}
             >
               {loading
-                ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,.3)', borderTopColor: 'hsl(var(--primary-foreground))', borderRadius: '50%', animation: 'ds-spin .7s linear infinite' }} />Tracking…</>
+                ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,.3)', borderTopColor: 'hsl(var(--primary-foreground))', borderRadius: '50%', animation: 'ds-spin .7s linear infinite' }} />Trackingâ€¦</>
                 : <><Icon name="search" size={16} color={inputNumber.trim() ? 'hsl(var(--primary-foreground))' : 'var(--ink3)'} />Track</>
               }
             </button>
@@ -739,7 +739,7 @@ export const Tracker: React.FC = () => {
                 </div>
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>{h.label}</div>
-                  <div style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{h.eg}</div>
+                  <div style={{ fontSize: 10, fontFamily: 'var(--font)', color: 'var(--ink3)' }}>{h.eg}</div>
                 </div>
               </div>
             ))}
@@ -747,7 +747,7 @@ export const Tracker: React.FC = () => {
         )}
       </div>
 
-      {/* ── Results ── */}
+      {/* â”€â”€ Results â”€â”€ */}
       {result && (
         <div className="tr-fade">
           {/* Journey dark banner */}
@@ -764,12 +764,12 @@ export const Tracker: React.FC = () => {
                   <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={20} color={BRAND} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 10, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 2 }}>{result.carrier}{result.service_name ? ` · ${result.service_name}` : ''}</div>
-                  <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 900, fontFamily: 'var(--mono)', letterSpacing: '.02em', lineHeight: 1.1 }}>{result.tracking_number}</div>
+                  <div style={{ fontSize: 10, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 2 }}>{result.carrier}{result.service_name ? ` Â· ${result.service_name}` : ''}</div>
+                  <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 900, fontFamily: 'var(--font)', letterSpacing: '.02em', lineHeight: 1.1 }}>{result.tracking_number}</div>
                   {result.vessel_name && (
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Icon name="ship" size={11} color="var(--ink3)" />
-                      {result.vessel_name}{result.voyage_number ? <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink2)' }}> · VOY {result.voyage_number}</span> : ''}
+                      {result.vessel_name}{result.voyage_number ? <span style={{ fontFamily: 'var(--font)', color: 'var(--ink2)' }}> Â· VOY {result.voyage_number}</span> : ''}
                     </div>
                   )}
                 </div>
@@ -799,14 +799,14 @@ export const Tracker: React.FC = () => {
                 {result.containers.map(c => (
                   <div key={c.number} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 'var(--r)', padding: '4px 10px', fontSize: 11 }}>
                     <Icon name="container" size={11} color={BRAND} />
-                    <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--bg)', letterSpacing: '.03em' }}>{c.number}</span>
+                    <span style={{ fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--bg)', letterSpacing: '.03em' }}>{c.number}</span>
                     <span style={{ color: 'var(--ink2)', fontSize: 10 }}>{c.size}</span>
                   </div>
                 ))}
                 {result.co2_emission && (
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', padding: '4px 10px', fontSize: 11, color: 'var(--green)' }}>
                     <Icon name="activity" size={11} color="var(--green)" />
-                    {result.co2_emission.toLocaleString()} kg CO₂
+                    {result.co2_emission.toLocaleString()} kg COâ‚‚
                   </div>
                 )}
               </div>
@@ -815,7 +815,7 @@ export const Tracker: React.FC = () => {
             {/* Route visualization */}
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 20, marginBottom: 18 }}>
               <div style={{ textAlign: 'center', minWidth: isMobile ? 52 : 72, flexShrink: 0 }}>
-                <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 900, fontFamily: 'var(--mono)', lineHeight: 1, letterSpacing: '-.01em' }}>{result.origin_code}</div>
+                <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 900, fontFamily: 'var(--font)', lineHeight: 1, letterSpacing: '-.01em' }}>{result.origin_code}</div>
                 <div style={{ fontSize: 10, color: 'var(--ink2)', marginTop: 3 }}>{result.origin_name}</div>
               </div>
               <div style={{ flex: 1, position: 'relative', height: 48, display: 'flex', alignItems: 'center' }}>
@@ -831,7 +831,7 @@ export const Tracker: React.FC = () => {
                 </div>
               </div>
               <div style={{ textAlign: 'center', minWidth: isMobile ? 52 : 72, flexShrink: 0 }}>
-                <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 900, fontFamily: 'var(--mono)', lineHeight: 1, letterSpacing: '-.01em' }}>{result.dest_code}</div>
+                <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 900, fontFamily: 'var(--font)', lineHeight: 1, letterSpacing: '-.01em' }}>{result.dest_code}</div>
                 <div style={{ fontSize: 10, color: 'var(--ink2)', marginTop: 3 }}>{result.dest_name}</div>
               </div>
             </div>
@@ -841,7 +841,7 @@ export const Tracker: React.FC = () => {
               <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,.07)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${result.progress_pct}%`, background: `linear-gradient(90deg,${NAVY2},${BRAND})`, borderRadius: 'var(--r-sm)', transition: 'width .9s ease' }} />
               </div>
-              <span style={{ fontSize: 13, fontWeight: 900, color: BRAND, fontFamily: 'var(--mono)', flexShrink: 0 }}>{result.progress_pct}%</span>
+              <span style={{ fontSize: 13, fontWeight: 900, color: BRAND, fontFamily: 'var(--font)', flexShrink: 0 }}>{result.progress_pct}%</span>
             </div>
           </div>
 
@@ -852,7 +852,7 @@ export const Tracker: React.FC = () => {
               sub={result.eta ? new Date(result.eta).toLocaleDateString('en-GB', { weekday: 'long' }) : undefined}
             />
             <KpiCard icon="clock" label="Days Remaining" accent="var(--navy)"
-              value={(() => { const d = daysUntil(result.eta); return d == null ? '—' : d > 0 ? `~${d}` : d === 0 ? 'Today' : 'Overdue'; })()}
+              value={(() => { const d = daysUntil(result.eta); return d == null ? 'â€”' : d > 0 ? `~${d}` : d === 0 ? 'Today' : 'Overdue'; })()}
               sub={(() => { const d = daysUntil(result.eta); return d != null && d < 0 ? `${Math.abs(d)}d overdue` : d != null && d <= 3 ? 'Arriving very soon' : undefined; })()}
             />
             <KpiCard icon="layers" label="Journey Progress" accent="var(--green)"
@@ -865,7 +865,7 @@ export const Tracker: React.FC = () => {
             />
           </div>
 
-          {/* ── Port Routing Table (ShipsGo / rich data) ── */}
+          {/* â”€â”€ Port Routing Table (ShipsGo / rich data) â”€â”€ */}
           {result.port_calls && result.port_calls.length > 0 && (
             <div style={{ marginBottom: 16 }}>
             <SectionCard
@@ -877,11 +877,11 @@ export const Tracker: React.FC = () => {
               ) : undefined}
             >
               <div style={{ overflowX: 'auto' }}>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>{result.port_calls.length} ports · actual dates confirmed · estimated shown in italic</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>{result.port_calls.length} ports Â· actual dates confirmed Â· estimated shown in italic</div>
 
               {/* All unique event codes across all port calls */}
               {(() => {
-                // Fixed chronological order: gate in → arrive → discharge → load → depart → gate out
+                // Fixed chronological order: gate in â†’ arrive â†’ discharge â†’ load â†’ depart â†’ gate out
                 const CODE_ORDER = ['EMSH', 'GTIN', 'ARRV', 'DISC', 'LOAD', 'DEPA', 'GTOT', 'EMRT'];
                 const presentCodes = new Set(result.port_calls!.flatMap(pc => pc.events.map(e => e.code)));
                 const allCodes = CODE_ORDER.filter(c => presentCodes.has(c));
@@ -919,7 +919,7 @@ export const Tracker: React.FC = () => {
                                 <div>
                                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>{pc.port_name}</div>
                                   <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <span style={{ fontFamily: 'var(--mono)' }}>{pc.port_code}</span>
+                                    <span style={{ fontFamily: 'var(--font)' }}>{pc.port_code}</span>
                                     {pc.is_transshipment && <span style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '1px 5px', fontSize: 9, fontWeight: 700, color: 'var(--ink3)' }}>T/S</span>}
                                   </div>
                                 </div>
@@ -938,11 +938,11 @@ export const Tracker: React.FC = () => {
                                         {fmtDate(date)}
                                       </div>
                                       {isActual && (
-                                        <div style={{ fontSize: 9, color: 'var(--teal)', fontWeight: 700, marginTop: 1 }}>✓ actual</div>
+                                        <div style={{ fontSize: 9, color: 'var(--teal)', fontWeight: 700, marginTop: 1 }}>âœ“ actual</div>
                                       )}
                                     </div>
                                   ) : (
-                                    <span style={{ color: 'var(--border)', fontSize: 14 }}>—</span>
+                                    <span style={{ color: 'var(--border)', fontSize: 14 }}>â€”</span>
                                   )}
                                 </td>
                               );
@@ -979,9 +979,9 @@ export const Tracker: React.FC = () => {
                         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{ev.description}</div>
                         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--ink3)' }}>
-                            <Icon name="mapPin" size={10} color="var(--ink3)" />{ev.location || '—'}
+                            <Icon name="mapPin" size={10} color="var(--ink3)" />{ev.location || 'â€”'}
                           </span>
-                          <span style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{fmtDate(ev.timestamp)} · {fmtTime(ev.timestamp)}</span>
+                          <span style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{fmtDate(ev.timestamp)} Â· {fmtTime(ev.timestamp)}</span>
                         </div>
                       </div>
                     </div>
@@ -994,7 +994,7 @@ export const Tracker: React.FC = () => {
             {/* Snapshot panel */}
             <div style={{ marginBottom: 16 }}>
             <SectionCard title="Tracking Snapshot">
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 10 }}>Save · Share · Embed · PDF</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 10 }}>Save Â· Share Â· Embed Â· PDF</div>
 
               <div style={{ margin: '16px 0' }}>
                 <SnapshotCard result={result} />
@@ -1011,7 +1011,7 @@ export const Tracker: React.FC = () => {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}>
                     {savingSnap
-                      ? <><div style={{ width: 14, height: 14, border: '2px solid hsl(var(--primary-foreground) / 0.3)', borderTopColor: 'hsl(var(--primary-foreground))', borderRadius: '50%', animation: 'ds-spin .7s linear infinite' }} />Saving…</>
+                      ? <><div style={{ width: 14, height: 14, border: '2px solid hsl(var(--primary-foreground) / 0.3)', borderTopColor: 'hsl(var(--primary-foreground))', borderRadius: '50%', animation: 'ds-spin .7s linear infinite' }} />Savingâ€¦</>
                       : <><Icon name="save" size={14} color="hsl(var(--primary-foreground))" />Save Snapshot</>
                     }
                   </button>
@@ -1058,21 +1058,21 @@ export const Tracker: React.FC = () => {
             </div>
           </div>
 
-          {/* ── Arrival Analytics + Demurrage bridge ── */}
+          {/* â”€â”€ Arrival Analytics + Demurrage bridge â”€â”€ */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '3fr 2fr', gap: 16, marginTop: 16 }}>
             {/* Arrival Analytics */}
             <SectionCard title="Arrival Analytics">
               <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>{result.carrier} reliability, computed from your own tracked shipments</div>
               {!carrierReliability || carrierReliability.on_time_pct === null ? (
                 <div style={{ padding: '20px 4px', fontSize: 12.5, color: 'var(--ink3)' }}>
-                  Not enough history for {result.carrier} yet — save a few more shipments on this carrier to build a reliability rating.
+                  Not enough history for {result.carrier} yet â€” save a few more shipments on this carrier to build a reliability rating.
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
                   {[
                     { label: 'On-time Rate', value: `${carrierReliability.on_time_pct}%`, accent: carrierReliability.on_time_pct >= 80 ? 'var(--green)' : carrierReliability.on_time_pct >= 50 ? 'var(--gold)' : 'var(--red)' },
-                    { label: 'Avg Deviation', value: carrierReliability.avg_deviation_days === null ? '—' : `${carrierReliability.avg_deviation_days > 0 ? '+' : ''}${carrierReliability.avg_deviation_days}d`, accent: 'var(--ink)' },
-                    { label: 'Avg Transit', value: carrierReliability.avg_transit_days === null ? '—' : `${carrierReliability.avg_transit_days}d`, accent: 'var(--ink)' },
+                    { label: 'Avg Deviation', value: carrierReliability.avg_deviation_days === null ? 'â€”' : `${carrierReliability.avg_deviation_days > 0 ? '+' : ''}${carrierReliability.avg_deviation_days}d`, accent: 'var(--ink)' },
+                    { label: 'Avg Transit', value: carrierReliability.avg_transit_days === null ? 'â€”' : `${carrierReliability.avg_transit_days}d`, accent: 'var(--ink)' },
                   ].map(s => (
                     <div key={s.label} style={{ padding: '14px 12px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>{s.label}</div>
@@ -1100,8 +1100,8 @@ export const Tracker: React.FC = () => {
                   {demurrageContainers.map((c: any) => (
                     <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 'var(--r)', background: c.demurrage_days > 0 ? 'var(--red-l)' : 'var(--bg)', border: `1px solid ${c.demurrage_days > 0 ? 'var(--red)' : 'var(--border)'}` }}>
                       <div>
-                        <div style={{ fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{c.container_number}</div>
-                        <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>{c.container_size} · {c.status}</div>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>{c.container_number}</div>
+                        <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>{c.container_size} Â· {c.status}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 13, fontWeight: 800, color: c.demurrage_days > 0 ? 'var(--red)' : 'var(--ink2)' }}>
@@ -1120,7 +1120,7 @@ export const Tracker: React.FC = () => {
         </div>
       )}
 
-      {/* ── Saved Snapshots ── */}
+      {/* â”€â”€ Saved Snapshots â”€â”€ */}
       <SectionCard
         title="Saved Snapshots"
         action={
@@ -1160,7 +1160,7 @@ export const Tracker: React.FC = () => {
                   {editingId === snap.id ? (
                     <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <input value={editNumber} onChange={e => setEditNumber(e.target.value)} placeholder="Tracking number"
-                        style={{ height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.92)', padding: '0 10px', fontSize: 12, fontFamily: 'var(--mono)' }} />
+                        style={{ height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.92)', padding: '0 10px', fontSize: 12, fontFamily: 'var(--font)' }} />
                       <input value={editCarrier} onChange={e => setEditCarrier(e.target.value)} placeholder="Carrier"
                         style={{ height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.92)', padding: '0 10px', fontSize: 12 }} />
                       <div style={{ display: 'flex', gap: 6 }}>
@@ -1174,8 +1174,8 @@ export const Tracker: React.FC = () => {
                         <Icon name={snap.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={15} color={BRAND} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 9, color: 'rgba(255,255,255,.65)', textTransform: 'uppercase', letterSpacing: '.09em' }}>{snap.tracking_type} · {snap.carrier}</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--mono)' }}>{snap.tracking_number}</div>
+                        <div style={{ fontSize: 9, color: 'rgba(255,255,255,.65)', textTransform: 'uppercase', letterSpacing: '.09em' }}>{snap.tracking_type} Â· {snap.carrier}</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--font)' }}>{snap.tracking_number}</div>
                       </div>
                       <button className="tr-btn" title="Edit entry" onClick={() => startEdit(snap)} style={{ width: 26, height: 26, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon name="edit" size={11} color="rgba(255,255,255,.55)" />
@@ -1188,7 +1188,7 @@ export const Tracker: React.FC = () => {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
                     <Icon name="mapPin" size={10} color="rgba(255,255,255,.65)" />
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,.55)' }}>{snap.origin_name} → {snap.dest_name}</span>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,.55)' }}>{snap.origin_name} â†’ {snap.dest_name}</span>
                   </div>
 
                   <div style={{ height: 3, background: 'rgba(255,255,255,.07)', borderRadius: 'var(--r-sm)', marginBottom: 10, overflow: 'hidden' }}>
@@ -1199,8 +1199,8 @@ export const Tracker: React.FC = () => {
                     <span style={{ fontSize: 11, fontWeight: 700, color: st.fg, display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Icon name={st.icon} size={11} color={st.fg} />{st.label}
                     </span>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,.65)', fontFamily: 'var(--mono)' }}>
-                      {fmtDate(snap.eta)}{days != null ? ` · ${days > 0 ? `${days}d` : days === 0 ? 'today' : 'OVD'}` : ''}
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,.65)', fontFamily: 'var(--font)' }}>
+                      {fmtDate(snap.eta)}{days != null ? ` Â· ${days > 0 ? `${days}d` : days === 0 ? 'today' : 'OVD'}` : ''}
                     </span>
                   </div>
 
@@ -1218,7 +1218,7 @@ export const Tracker: React.FC = () => {
                             options={shipments.slice(0, 30).map((s: any) => ({ value: s.id, label: s.ref_number }))}
                             value="" onChange={v => v && linkSnap(snap.id, v)}
                             disabled={linkingId === snap.id}
-                            placeholder="Link to shipment…"
+                            placeholder="Link to shipmentâ€¦"
                             triggerClassName="h-[30px] rounded-[7px] border-[rgba(255,255,255,.09)] bg-[rgba(255,255,255,.04)] text-[10px] font-bold text-[rgba(255,255,255,.55)] px-1.5 shadow-none"
                           />
                         </div>
@@ -1231,7 +1231,7 @@ export const Tracker: React.FC = () => {
                   {evts[0] && (
                     <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,.05)', fontSize: 10, color: 'rgba(255,255,255,.65)', display: 'flex', alignItems: 'center', gap: 5 }}>
                       <Icon name="activity" size={10} color="rgba(255,255,255,.65)" />
-                      {evts[0].description} · {fmtDate(evts[0].timestamp)}
+                      {evts[0].description} Â· {fmtDate(evts[0].timestamp)}
                     </div>
                   )}
                 </div>
