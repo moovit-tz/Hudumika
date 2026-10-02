@@ -189,8 +189,8 @@ export function HuduBIKpiCenter() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <PageHeader
         crumbs={['HuduBI', 'KPI Center']}
-        titlePlain="KPI "
-        titleEm="Center"
+        titlePlain="KPI"
+        titleEm="dashboard"
         subtitle="Set organizational objectives, live thresholds, and monitor real-time health across all departments."
         actions={
           canManage ? (

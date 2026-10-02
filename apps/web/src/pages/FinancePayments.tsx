@@ -50,7 +50,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="fileText" size={18} color="var(--blue)" /> Payment
         </h2>
-        <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink3)' }}>
+        <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink3)' }}>
           <Icon name="x" size={16} strokeWidth={2} />
         </button>
       </div>
@@ -60,11 +60,11 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, padding: 20, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>{payment.direction === 'in' ? 'Amount Received' : 'Amount Paid'}</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: payment.direction === 'in' ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--font)', lineHeight: 1 }}>{payment.direction === 'in' ? '+' : 'âˆ’'}{fmt(payment.amount, (payment.currency || 'TZS') as any)}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: payment.direction === 'in' ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--font)', lineHeight: 1 }}>{payment.direction === 'in' ? '+' : '−'}{fmt(payment.amount, (payment.currency || 'TZS') as any)}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>Date</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--navy)' }}>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-GB') : 'â€”'}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--navy)' }}>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-GB') : '—'}</div>
           </div>
         </div>
 
@@ -88,7 +88,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         <SectionCard title="Transaction Details" padded={false}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {[
-              { label: 'Payment Mode', value: payment.method || 'â€”' },
+              { label: 'Payment Mode', value: payment.method || '—' },
               { label: 'Logged By', value: payment.logged_by || 'System' },
               { label: 'Recorded', value: new Date(payment.created_at).toLocaleString('en-GB') },
             ].map((item, i, arr) => (
@@ -182,7 +182,7 @@ export const FinancePayments: React.FC = () => {
         body: JSON.stringify({ amount: parseFloat(fAmount), method: fMode, payment_date: fDate, note: fNote || undefined }),
       });
 
-      // Attach the receipt/proof to the Cloud file manager (real backend â€”
+      // Attach the receipt/proof to the Cloud file manager (real backend —
       // find/create the client + BL folders, then upload into it).
       if (fFile && selectedInvoice) {
         try {
@@ -265,7 +265,7 @@ export const FinancePayments: React.FC = () => {
         actions={
           <>
             <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)} disabled={saving}>Cancel</button>
-            <button type="submit" form="payment-form" className="btn btn-primary" disabled={saving}>{saving ? 'Savingâ€¦' : 'Save Payment'}</button>
+            <button type="submit" form="payment-form" className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save Payment'}</button>
           </>
         }
       >
@@ -335,9 +335,9 @@ export const FinancePayments: React.FC = () => {
       <div style={{ padding: 0 }}>
         <PageHeader
           crumbs={['FINANCE', 'PAYMENTS']}
-          titlePlain="Payment "
+          titlePlain="Payment"
           titleEm="transactions"
-          subtitle="Every payment in and out â€” customer receipts against invoices and supplier payments against bills."
+          subtitle="Every payment in and out — customer receipts against invoices and supplier payments against bills."
         />
 
         <MetricsRow cards={[
@@ -432,7 +432,7 @@ export const FinancePayments: React.FC = () => {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--ink3)' }}>Loading paymentsâ€¦</td></tr>
+                  <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--ink3)' }}>Loading payments…</td></tr>
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--ink3)' }}>No payments found.</td></tr>
                 ) : pagedPayments.map(p => (
@@ -454,11 +454,11 @@ export const FinancePayments: React.FC = () => {
                       </div>
                     </td>
                     {!isSplit && (
-                      <td style={{ padding: '12px 16px' }}>{p.method || 'â€”'}</td>
+                      <td style={{ padding: '12px 16px' }}>{p.method || '—'}</td>
                     )}
-                    <td style={{ padding: '12px 16px', color: 'var(--ink2)' }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-GB') : 'â€”'}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--ink2)' }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-GB') : '—'}</td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, fontFamily: 'var(--font)', color: p.direction === 'in' ? 'var(--green)' : 'var(--red)' }}>
-                      {p.direction === 'in' ? '+' : 'âˆ’'}{fmt(Number(p.amount), (p.currency || 'TZS') as any)}
+                      {p.direction === 'in' ? '+' : '−'}{fmt(Number(p.amount), (p.currency || 'TZS') as any)}
                     </td>
                   </tr>
                 ))}
@@ -469,7 +469,7 @@ export const FinancePayments: React.FC = () => {
             {filtered.length > PAGE_SIZE && (
               <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, background: 'var(--white)', marginTop: 'auto' }}>
                 <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                  Showing <strong>{offset + 1}â€“{Math.min(offset + PAGE_SIZE, filtered.length)}</strong> of <strong>{filtered.length}</strong> payments
+                  Showing <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)}</strong> of <strong>{filtered.length}</strong> payments
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <button

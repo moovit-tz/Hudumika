@@ -29,8 +29,8 @@ export function HrChecklists() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <PageHeader
         crumbs={['NexusHR', 'Checklists']}
-        titlePlain="Onboarding &"
-        titleEm="offboarding"
+        titlePlain="Onboarding"
+        titleEm="checklists"
         subtitle="A checklist a person actually gets, generated automatically the moment they join or leave."
       />
       <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid var(--border)' }}>

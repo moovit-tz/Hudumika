@@ -20,7 +20,7 @@ const workflowSchema = z.object({
 export async function apApprovalWorkflowRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
-  fastify.addHook('preHandler', requireFinanceCapability('finance.accounting.advanced'));
+  fastify.addHook('preHandler', requireFinanceCapability('finance.accounting.advanced', { preserveReadAccess: true }));
 
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,
   // fleet ops, HR, identity/access admin, or tenant configuration) with only

@@ -115,8 +115,8 @@ export const OndiVault: React.FC = () => {
     <div className="ov-page">
       <PageHeader
         crumbs={['Ondi', 'Personal']}
-        titlePlain="ID Documents &"
-        titleEm="vault."
+        titlePlain="ID"
+        titleEm="vault"
         subtitle="Secure personal identity storage, encrypted in your isolated employee Drive folder."
       />
 

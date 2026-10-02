@@ -153,7 +153,7 @@ export const FinanceBalanceSheet: React.FC = () => {
         crumbs={['Finance', 'Reports']}
         titlePlain="Balance"
         titleEm="sheet"
-        subtitle="Statement of financial position â€” Assets, liabilities and equity."
+        subtitle="Statement of financial position — Assets, liabilities and equity."
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <DatePicker date={parseDateOnly(asOf)} onChange={d => setAsOf(toDateOnlyString(d))} triggerClassName="w-auto" />
@@ -165,7 +165,7 @@ export const FinanceBalanceSheet: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading balance sheetâ€¦</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading balance sheet…</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
@@ -188,7 +188,7 @@ export const FinanceBalanceSheet: React.FC = () => {
             sub2Label: 'LIABILITIES', sub2Value: fmt(totalLiabilities), barHighlight: 'var(--green)',
           },
           {
-            title: 'Debt to Equity Ratio', value: totalEquity !== 0 ? `${(totalLiabilities / totalEquity).toFixed(2)}x` : 'â€”', icon: 'barChart2',
+            title: 'Debt to Equity Ratio', value: totalEquity !== 0 ? `${(totalLiabilities / totalEquity).toFixed(2)}x` : '—', icon: 'barChart2',
             sub1Label: 'LIABILITIES', sub1Value: fmt(totalLiabilities),
             sub2Label: 'EQUITY', sub2Value: fmt(totalEquity), barHighlight: 'var(--blue)',
           },
@@ -197,7 +197,7 @@ export const FinanceBalanceSheet: React.FC = () => {
         {Math.abs(totalAssets - (totalLiabilities + totalEquity)) > 1 && (
           <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 16px', borderRadius:'var(--r)', background:'var(--red-l)', border:'1px solid var(--red)', fontSize:12, fontWeight:600, color:'var(--red)' }}>
             <Icon name="alertTriangle" size={14} color="var(--red)" />
-            Assets do not equal Liabilities + Equity â€” difference of {fmt(Math.abs(totalAssets - (totalLiabilities + totalEquity)))}
+            Assets do not equal Liabilities + Equity — difference of {fmt(Math.abs(totalAssets - (totalLiabilities + totalEquity)))}
           </div>
         )}
 

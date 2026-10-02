@@ -275,7 +275,7 @@ export function ClockInPage() {
     }
   };
 
-  // â”€â”€ Timesheet approval â”€â”€
+  // ── Timesheet approval ──
   const loadApprovalState = useCallback(async () => {
     try {
       const res = await apiFetch(`/v1/hr/clock-in/timesheet/status?period_start=${periodStart}`);
@@ -377,15 +377,15 @@ export function ClockInPage() {
       if (isToday) dateLabel = 'Today';
 
       if (daySessions.length === 0) {
-        // No sessions recorded for this day â€” a genuine empty row. (There used
+        // No sessions recorded for this day — a genuine empty row. (There used
         // to be hardcoded Tue/Wed sample timelines here; a rest day must read
         // as a rest day, never as fabricated hours.)
         rows.push({
           dateIso: iso,
           dateLabel,
           dayOfWeek: d.toLocaleDateString('en-US', { weekday: 'short' }),
-          clockInTime: 'â€”',
-          clockOutTime: 'â€”',
+          clockInTime: '—',
+          clockOutTime: '—',
           durationHours: '0h',
           blocks: [],
         });
@@ -393,13 +393,13 @@ export function ClockInPage() {
         const firstIn = daySessions[daySessions.length - 1];
         const lastOut = daySessions[0];
         
-        let inTimeStr = 'â€”';
+        let inTimeStr = '—';
         if (firstIn.clock_in_at) {
           const inD = new Date(firstIn.clock_in_at);
           inTimeStr = inD.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         }
         
-        let outTimeStr = 'â€”';
+        let outTimeStr = '—';
         if (lastOut.clock_out_at) {
           const outD = new Date(lastOut.clock_out_at);
           outTimeStr = outD.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -414,7 +414,7 @@ export function ClockInPage() {
         // Generate scale blocks
         const blocks: DailyTimelineBlock[] = [];
         // Use the full day so early, late and overnight-shift punches remain
-        // visible. A fixed 09:00â€“18:00 scale hid legitimate shift patterns.
+        // visible. A fixed 09:00–18:00 scale hid legitimate shift patterns.
         const DAY_START_MINS = 0;
         const DAY_END_MINS = 24 * 60;
         const RANGE_MINS = DAY_END_MINS - DAY_START_MINS;
@@ -486,7 +486,7 @@ export function ClockInPage() {
       {/* Shared Standard Page Header */}
       <SharedPageHeader
         crumbs={['NexusHR', 'Clock-in']}
-        titlePlain="Clock-in & Weekly"
+        titlePlain="Clock-in"
         titleEm="timesheets"
         subtitle="Live attendance tracking, stopwatch timer, and weekly hours visualizer"
         actions={
@@ -498,7 +498,7 @@ export function ClockInPage() {
               </span>
             </div>
 
-            {/* Weekly timesheet approval status â€” reflects only what the API returns. */}
+            {/* Weekly timesheet approval status — reflects only what the API returns. */}
             {myApproval && (() => {
               const map = {
                 SUBMITTED: { bg: 'var(--gold-l)', fg: 'var(--gold)', icon: 'clock' as IconName, label: 'Awaiting approval' },
@@ -513,12 +513,12 @@ export function ClockInPage() {
             })()}
 
             <button type="button" className="btn btn-secondary" onClick={handleExportCsv} disabled={exporting} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="download" size={14} /> {exporting ? 'Exportingâ€¦' : 'Export CSV'}
+              <Icon name="download" size={14} /> {exporting ? 'Exporting…' : 'Export CSV'}
             </button>
 
             {(!myApproval || myApproval.status === 'REJECTED') && (
               <button type="button" className="btn btn-primary" onClick={handleSubmitForApproval} disabled={submittingSheet} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="send" size={14} /> {submittingSheet ? 'Submittingâ€¦' : (myApproval?.status === 'REJECTED' ? 'Resubmit' : 'Submit for approval')}
+                <Icon name="send" size={14} /> {submittingSheet ? 'Submitting…' : (myApproval?.status === 'REJECTED' ? 'Resubmit' : 'Submit for approval')}
               </button>
             )}
 
@@ -544,7 +544,7 @@ export function ClockInPage() {
               Welcome, {userProfile?.name || user?.name || 'there'}
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-              {userProfile?.role || user?.role || 'Team member'} Â· {new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
+              {userProfile?.role || user?.role || 'Team member'} · {new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
             </div>
           </div>
         </div>
@@ -561,7 +561,7 @@ export function ClockInPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--ink2)', fontWeight: 500 }}>
             <Icon name="calendar" size={14} color="var(--ink3)" />
             <span>
-              {new Date(periodStart + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} â€“ {new Date(periodEnd + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
+              {new Date(periodStart + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} – {new Date(periodEnd + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
             </span>
           </div>
         </div>
@@ -577,8 +577,8 @@ export function ClockInPage() {
                 <div style={{ flex: 1, minWidth: 160 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{a.employee_name || 'Employee'}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
-                    {new Date(a.period_start + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} â€“ {new Date(a.period_end + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}
-                    {' Â· '}{(a.total_worked_minutes / 60).toFixed(1)}h Â· {a.session_count} session{a.session_count === 1 ? '' : 's'}
+                    {new Date(a.period_start + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} – {new Date(a.period_end + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}
+                    {' · '}{(a.total_worked_minutes / 60).toFixed(1)}h · {a.session_count} session{a.session_count === 1 ? '' : 's'}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -586,7 +586,7 @@ export function ClockInPage() {
                     <Icon name="x" size={13} /> Reject
                   </Button>
                   <Button type="button" size="sm" onClick={() => handleReview(a.id, 'approve')} disabled={reviewingId === a.id} style={{ background: 'var(--green)', color: 'hsl(var(--green-foreground))' }}>
-                    <Icon name="check" size={13} /> {reviewingId === a.id ? 'â€¦' : 'Approve'}
+                    <Icon name="check" size={13} /> {reviewingId === a.id ? '…' : 'Approve'}
                   </Button>
                 </div>
               </div>
@@ -630,13 +630,13 @@ export function ClockInPage() {
                   </Button>
                   <Button type="button" size="sm" onClick={handleStopClockOut} disabled={clockAction !== null} style={{ background: 'var(--red)', color: 'hsl(var(--red-foreground))' }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--white)' }}></span>
-                    {clockAction === 'stop' ? 'Clocking outâ€¦' : 'Clock-out'}
+                    {clockAction === 'stop' ? 'Clocking out…' : 'Clock-out'}
                   </Button>
                 </>
               ) : (
                 <Button type="button" onClick={handleStartClockIn} disabled={clockAction !== null}>
                   <Icon name="check" size={16} />
-                  {clockAction === 'start' ? 'Clocking inâ€¦' : 'Clock-in Now'}
+                  {clockAction === 'start' ? 'Clocking in…' : 'Clock-in Now'}
                 </Button>
               )}
             </div>
@@ -840,14 +840,14 @@ export function ClockInPage() {
             <DialogFooter>
               <Button variant="outline" type="button" onClick={() => setShowManualModal(false)}>Cancel</Button>
               <Button type="submit" disabled={submittingManual}>
-                {submittingManual ? 'Savingâ€¦' : 'Save Entry'}
+                {submittingManual ? 'Saving…' : 'Save Entry'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Reject Timesheet Dialog â€” replaces a window.prompt() for the reason. */}
+      {/* Reject Timesheet Dialog — replaces a window.prompt() for the reason. */}
       <Dialog open={!!rejectTarget} onOpenChange={o => !o && setRejectTarget(null)}>
         <DialogContent className="sm:max-w-100">
           <DialogHeader><DialogTitle>Reject timesheet</DialogTitle></DialogHeader>
@@ -856,7 +856,7 @@ export function ClockInPage() {
             <Textarea
               value={rejectNote}
               onChange={e => setRejectNote(e.target.value)}
-              placeholder="Let them know what needs correctingâ€¦"
+              placeholder="Let them know what needs correcting…"
               rows={3}
             />
           </div>
@@ -870,7 +870,7 @@ export function ClockInPage() {
                 setRejectTarget(null);
               }}
             >
-              {reviewingId === rejectTarget ? 'Rejectingâ€¦' : 'Reject'}
+              {reviewingId === rejectTarget ? 'Rejecting…' : 'Reject'}
             </Button>
           </DialogFooter>
         </DialogContent>

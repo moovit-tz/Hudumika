@@ -11,20 +11,20 @@ import { showAlert } from '../../lib/alert.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 
 /** This used to be a fake multi-vendor SIP trunk marketplace (Twilio/
- *  Telnyx/Asterisk cards with invented account SIDs and per-minute rates) â€”
+ *  Telnyx/Asterisk cards with invented account SIDs and per-minute rates) —
  *  no PSTN/SIP telephony vendor is wired into this codebase anywhere,
  *  calling here is 1:1 WebRTC between logged-in staff (Calls.tsx) and
  *  multi-party WebRTC meetings (Meeting Center), not phone-network calls.
  *  Adding a real SIP vendor is a business decision (a purchased number, a
- *  vendor account, ongoing per-minute cost), not a code change â€” same
+ *  vendor account, ongoing per-minute cost), not a code change — same
  *  reasoning BlissCallCenter.tsx's own removal was built on.
  *
  *  What IS real here: the WebRTC connectivity infrastructure that actually
- *  exists â€” public STUN (hardcoded, genuinely used) plus an optional
+ *  exists — public STUN (hardcoded, genuinely used) plus an optional
  *  per-tenant TURN relay (calls.routes.ts's resolveIceServers, already
  *  live and already used by every 1:1 call and meeting). Without a TURN
  *  server, two callers who are both behind strict/symmetric NATs (common on
- *  corporate networks) simply cannot connect â€” this page is where a tenant
+ *  corporate networks) simply cannot connect — this page is where a tenant
  *  configures one, and where they can see whether it's live. */
 interface IceServer { urls: string | string[]; username?: string; credential?: string }
 
@@ -53,7 +53,7 @@ export const BlissTelephony: React.FC = () => {
       setCredentialConfigured(!!turn?.credential);
       setTurnCredential('');
       setLiveIceServers(Array.isArray(configRes?.iceServers) ? configRes.iceServers : null);
-      // The API already computes this (iceServers.length > 2) â€” trust it
+      // The API already computes this (iceServers.length > 2) — trust it
       // rather than re-deriving from URL string prefixes on the frontend.
       setTurnConfigured(!!configRes?.turnConfigured);
     }).catch(() => {
@@ -74,7 +74,7 @@ export const BlissTelephony: React.FC = () => {
             urls: urls.length > 1 ? urls : (urls[0] || ''),
             username: turnUsername.trim(),
             // Masked sentinel round-trips as "leave unchanged" (see
-            // settings.routes.ts) â€” only send a new value when one was typed.
+            // settings.routes.ts) — only send a new value when one was typed.
             ...(turnCredential.trim() ? { credential: turnCredential.trim() } : {}),
           },
         }),
@@ -93,8 +93,8 @@ export const BlissTelephony: React.FC = () => {
       <PageHeader
         crumbs={['Bliss', 'Settings', 'Telephony']}
         titlePlain="Calling"
-        titleEm="Infrastructure"
-        subtitle="STUN/TURN connectivity for WebRTC direct calls and meetings â€” not a PSTN/SIP phone line, which this platform doesn't integrate."
+        titleEm="infrastructure"
+        subtitle="STUN/TURN connectivity for WebRTC direct calls and meetings — not a PSTN/SIP phone line, which this platform doesn't integrate."
       />
 
       {loading ? (
@@ -170,11 +170,11 @@ export const BlissTelephony: React.FC = () => {
                 <input
                   type="password" className="input-field" style={{ marginTop: 4 }}
                   value={turnCredential} onChange={e => setTurnCredential(e.target.value)}
-                  placeholder={credentialConfigured ? 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢ (leave blank to keep current)' : 'Not set'}
+                  placeholder={credentialConfigured ? '•••••••• (leave blank to keep current)' : 'Not set'}
                 />
               </div>
               <Button variant="default" size="sm" onClick={saveTurnConfig} disabled={saving}>
-                <Icon name="checkCircle" size={13} /> {saving ? 'Savingâ€¦' : 'Save TURN Configuration'}
+                <Icon name="checkCircle" size={13} /> {saving ? 'Saving…' : 'Save TURN Configuration'}
               </Button>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
                 Any coturn/Xirsys/Twilio Network Traversal Service TURN server works. Leaving this empty falls back to public STUN only.

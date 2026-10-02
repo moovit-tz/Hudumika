@@ -7,6 +7,7 @@
 import { sql } from 'kysely';
 import { dbPlatform } from '../db/client.js';
 import { generateDueBills, generateDueInvoices } from '../services/recurring-documents.service.js';
+import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
 
 export async function runRecurringDocumentsJob(): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
@@ -18,6 +19,7 @@ export async function runRecurringDocumentsJob(): Promise<void> {
     let billsGenerated = 0;
     for (const { tenant_id } of billTenants.rows) {
       try {
+        if (!(await tenantHasEnabledFinanceCapability(tenant_id, 'finance.core'))) continue;
         const result = await generateDueBills(tenant_id, today);
         billsGenerated += result.generated.length;
       } catch (err) {
@@ -36,6 +38,7 @@ export async function runRecurringDocumentsJob(): Promise<void> {
     let invoicesGenerated = 0;
     for (const { tenant_id } of invoiceTenants.rows) {
       try {
+        if (!(await tenantHasEnabledFinanceCapability(tenant_id, 'finance.core'))) continue;
         const result = await generateDueInvoices(tenant_id, today);
         invoicesGenerated += result.generated.length;
       } catch (err) {

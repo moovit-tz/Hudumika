@@ -510,7 +510,7 @@
 
 /* ── Dark mode ── */
 [data-theme="dark"] .app-header {
-  background: #111218;
+  background: var(--white);
   border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
@@ -544,13 +544,13 @@
 }
 
 [data-theme="dark"] .app-header-icon-btn--active {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--teal-l);
+  color: var(--teal);
 }
 
 [data-theme="dark"] .app-header-user-dropdown,
 [data-theme="dark"] .app-header-clock-dropdown {
-  background: #1a1d26;
+  background: var(--white);
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: var(--elev-lg);
 }
@@ -574,7 +574,7 @@
 }
 
 [data-theme="dark"] .app-header-lang-dropdown {
-  background: #1a1d26;
+  background: var(--white);
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: var(--elev-lg);
 }
@@ -607,7 +607,7 @@
 }
 
 [data-theme="dark"] .app-header-search-modal {
-  background: #1a1d26;
+  background: var(--white);
   border-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -748,7 +748,7 @@
 .app-header-hub-search:focus-within {
   width: 380px;
   border-color: var(--teal);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+  box-shadow: 0 0 0 3px var(--teal-l);
   background: var(--white);
   color: var(--ink);
 }
@@ -808,7 +808,7 @@
 [data-theme="dark"] .app-header-hub-search:focus-within {
   background: rgba(255, 255, 255, 0.08);
   border-color: var(--teal);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px var(--teal-l);
   color: rgba(255, 255, 255, 0.85);
 }
 
@@ -1140,7 +1140,7 @@
   letter-spacing: 0.05em;
   color: var(--teal);
   background: var(--teal-l);
-  border: 1px solid rgba(13, 148, 136, 0.18);
+  border: 1px solid var(--teal-m);
   padding: 1.5px 7px;
   border-radius: var(--r-sm, 4px);
   margin-top: 4px;
@@ -1227,7 +1227,7 @@
 
 /* Dark theme overrides */
 [data-theme="dark"] .app-header-profile-menu {
-  background: #181e29 !important;
+  background: var(--white) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
 }

@@ -69,7 +69,7 @@ export const CustomerBulkUpload: React.FC = () => {
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 32 }}>
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* Template download â€” row on desktop; the icon+copy and the
+          {/* Template download — row on desktop; the icon+copy and the
               button stack on mobile instead of squeezing into a sliver
               between a fixed-width icon and a fixed-width button, which used
               to wrap the description into an unreadably narrow column. */}
@@ -175,7 +175,7 @@ export const CustomerBulkUpload: React.FC = () => {
                 onClick={handleImport}
                 disabled={uploading}
               >
-                <Icon name="upload" size={14} /> {uploading ? 'Uploadingâ€¦' : 'Upload & Import'}
+                <Icon name="upload" size={14} /> {uploading ? 'Uploading…' : 'Upload & Import'}
               </Button>
             </div>
           )}

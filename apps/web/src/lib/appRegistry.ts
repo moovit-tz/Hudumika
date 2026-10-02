@@ -28,7 +28,6 @@ const SLOGANS: Partial<Record<AppId, string>> = {
   cloud:        'Enterprise document storage & cloud drive',
   email:        'Internal corporate messaging center',
   contacts:     'Stakeholder and client phone book',
-  ai:           'Document OCR, copilot & predictive analytics',
   store:        'B2B procurement & equipment marketplace',
   workspace:    'Organization settings and configuration',
   admin:        'Platform governance, tenants & query builder',

@@ -5,6 +5,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { useComplyLicenseCatalog } from '../hooks/useComply.js';
 import type { CompLicenseCatalogEntry } from '@hudumika/types';
 import { Combobox } from '../components/ui/combobox.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import './ComplyOS.css';
 
 function formatFee(amount: number | null, currency: string): string {
@@ -19,6 +20,7 @@ export function ComplyLicenseCatalog() {
   const { catalog, loading, error } = useComplyLicenseCatalog();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('__all__');
+  const [showFilters, setShowFilters] = useState(false);
   const [selected, setSelected] = useState<CompLicenseCatalogEntry | null>(null);
 
   const categories = useMemo(() => {
@@ -39,33 +41,34 @@ export function ComplyLicenseCatalog() {
   return (
     <div className="comply-page">
       <PageHeader
-        crumbs={['ComplyOS', 'Business Licence Catalogue']} 
-        titlePlain="Business Licence"
+        crumbs={['ComplyOS', 'Licence catalogue']}
+        titlePlain="Licence"
         titleEm="catalogue"
         subtitle={<> Tanzania Business Licensing Act fee schedule — {catalog.length} licence options across 37 categories </>}
       />
 
       {error && <div className="comply-note comply-note--error">Failed to load the licence catalogue: {error}</div>}
 
-      <div className="comply-filters" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: 340 }}>
-          <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            className="input-field"
-            style={{ paddingLeft: 32 }}
-            placeholder="Search licence, category or tier…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <Combobox
-          triggerClassName="input-field"
-          value={category}
-          onChange={setCategory}
-          placeholder="All categories"
-          searchPlaceholder="Search category…"
-          options={[{ value: '__all__', label: 'All categories' }, ...categories]}
+      <div style={{ margin: '0 0 16px' }}>
+        <SearchToolbar
+          search={search}
+          onSearch={setSearch}
+          placeholder="Search licence, category or tier…"
+          activeFilterCount={category !== '__all__' ? 1 : 0}
+          onFiltersClick={() => setShowFilters(f => !f)}
+          filtersOpen={showFilters}
         />
+        {showFilters && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 0 4px', alignItems: 'center' }}>
+            <Combobox
+              value={category}
+              onChange={setCategory}
+              placeholder="All categories"
+              searchPlaceholder="Search category…"
+              options={[{ value: '__all__', label: 'All categories' }, ...categories]}
+            />
+          </div>
+        )}
       </div>
 
       <div className="comply-card">

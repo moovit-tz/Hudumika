@@ -5,6 +5,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import type { ProjectIndustry, ProjectType, ProjectPortfolio, ProjectProgram } from '@hudumika/types';
+import { ColorSwatchPicker } from '../../components/ui/color-swatch-picker.js';
 
 interface ProjectCreateModalProps {
   isOpen: boolean;
@@ -223,14 +224,8 @@ export const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Project Color</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                <input
-                  type="color"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  style={{ width: 38, height: 38, border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer', background: 'none' }}
-                />
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)' }}>{formData.color}</span>
+              <div style={{ marginTop: 4 }}>
+                <ColorSwatchPicker value={formData.color} onChange={color => setFormData({ ...formData, color })} />
               </div>
             </div>
           </div>

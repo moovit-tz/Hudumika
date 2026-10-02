@@ -49,7 +49,7 @@ export class InvalidMovement extends Error {
 export interface RecordMovementInput {
   actorId: string | null;
   actorType?: 'user' | 'system' | 'api_client';
-  movementType: 'receipt' | 'issue' | 'transfer' | 'adjust' | 'count_correction';
+  movementType: 'receipt' | 'issue' | 'return' | 'transfer' | 'adjust' | 'count_correction';
   itemId: string;
   fromLocationId?: string | null;
   toLocationId?: string | null;
@@ -62,6 +62,8 @@ export interface RecordMovementInput {
   /** Only meaningful on a 'receipt' — omit to leave the item's
    *  weighted-average cost unchanged (e.g. a transfer or correction). */
   unitCost?: number | null;
+  /** Optional Finance reporting dimension inherited from the source document. */
+  businessLineId?: string | null;
 }
 
 export class InventoryService {
@@ -78,7 +80,7 @@ export class InventoryService {
 
   static async recordMovement(trx: Transaction<Database>, tenantId: string, input: RecordMovementInput) {
     const item = await trx.selectFrom('inventory_items').select(['id', 'base_uom', 'is_batch_tracked', 'avg_cost'])
-      .where('id', '=', input.itemId).executeTakeFirst();
+      .where('tenant_id', '=', tenantId).where('id', '=', input.itemId).executeTakeFirst();
     if (!item) throw new InvalidMovement(`Item not found: ${input.itemId}`);
 
     const batchNo = (input.batchNo?.trim() || '');
@@ -102,6 +104,11 @@ export class InventoryService {
         if (!input.fromLocationId) throw new InvalidMovement('An issue requires a source location.');
         qtyDelta = -baseQty;
         fromLocationId = input.fromLocationId;
+        break;
+      case 'return':
+        if (!input.toLocationId) throw new InvalidMovement('A sales return requires a destination location.');
+        qtyDelta = baseQty;
+        toLocationId = input.toLocationId;
         break;
       case 'transfer':
         if (!input.fromLocationId || !input.toLocationId) throw new InvalidMovement('A transfer requires both a source and destination location.');
@@ -135,14 +142,14 @@ export class InventoryService {
       unitCost = input.unitCost;
       const onHandRow = await trx.selectFrom('inventory_stock_levels')
         .select(({ fn }) => fn.coalesce(fn.sum<string>('qty_on_hand'), sql.lit('0')).as('total'))
-        .where('item_id', '=', input.itemId).executeTakeFirst();
+        .where('tenant_id', '=', tenantId).where('item_id', '=', input.itemId).executeTakeFirst();
       const currentQty = Number(onHandRow?.total ?? 0);
       const currentAvg = Number(item.avg_cost);
       const newTotalQty = currentQty + baseQty;
       newAvgCost = newTotalQty > 0 ? (currentQty * currentAvg + baseQty * unitCost) / newTotalQty : unitCost;
       newAvgCost = Math.round(newAvgCost * 10000) / 10000;
       totalCost = Math.round(baseQty * unitCost * 100) / 100;
-    } else if (input.movementType === 'issue') {
+    } else if (input.movementType === 'issue' || input.movementType === 'return') {
       totalCost = Math.round(baseQty * Number(item.avg_cost) * 100) / 100;
     } else if (input.movementType === 'adjust' || input.movementType === 'count_correction') {
       // Magnitude only — qty_delta (already stored on the movement row) is
@@ -191,7 +198,8 @@ export class InventoryService {
     }
 
     if (newAvgCost != null) {
-      await trx.updateTable('inventory_items').set({ avg_cost: newAvgCost, updated_at: new Date() }).where('id', '=', input.itemId).execute();
+      await trx.updateTable('inventory_items').set({ avg_cost: newAvgCost, updated_at: new Date() })
+        .where('tenant_id', '=', tenantId).where('id', '=', input.itemId).execute();
     }
 
     // GL posting — one line shape per movement type, all sharing the same
@@ -206,6 +214,7 @@ export class InventoryService {
     if (totalCost != null && totalCost > 0) {
       const entryDate = new Date().toISOString().slice(0, 10);
       const common = { entryDate, reference: String(movement.id), sourceModule: 'EXPENSE' as const, createdBy: input.actorId ?? undefined };
+      const dimensions = input.businessLineId ? { business_line_id: input.businessLineId } : undefined;
 
       if (input.movementType === 'issue') {
         // COGS at the average cost as it stood the moment stock left.
@@ -213,8 +222,19 @@ export class InventoryService {
           ...common,
           description: `COGS: issue of ${baseQty} ${item.base_uom}`,
           lines: [
-            { accountCode: COGS_ACCOUNT, debit: totalCost, credit: 0, description: 'Cost of goods sold' },
-            { accountCode: INVENTORY_ASSET_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory reduced' },
+            { accountCode: COGS_ACCOUNT, debit: totalCost, credit: 0, description: 'Cost of goods sold', dimensions },
+            { accountCode: INVENTORY_ASSET_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory reduced', dimensions },
+          ],
+        });
+      } else if (input.movementType === 'return') {
+        // A customer return restores the original asset and reverses COGS. It
+        // is not a supplier receipt, so GRNI must never be touched here.
+        await GLService.post(tenantId, {
+          ...common,
+          description: `Sales return: ${baseQty} ${item.base_uom}`,
+          lines: [
+            { accountCode: INVENTORY_ASSET_ACCOUNT, debit: totalCost, credit: 0, description: 'Inventory returned', dimensions },
+            { accountCode: COGS_ACCOUNT, debit: 0, credit: totalCost, description: 'Cost of goods sold reversed', dimensions },
           ],
         });
       } else if (input.movementType === 'receipt') {
@@ -226,8 +246,8 @@ export class InventoryService {
           ...common,
           description: `Goods received: ${baseQty} ${item.base_uom} @ ${unitCost}`,
           lines: [
-            { accountCode: INVENTORY_ASSET_ACCOUNT, debit: totalCost, credit: 0, description: 'Inventory received' },
-            { accountCode: GRNI_ACCOUNT, debit: 0, credit: totalCost, description: 'Goods received, not yet invoiced' },
+            { accountCode: INVENTORY_ASSET_ACCOUNT, debit: totalCost, credit: 0, description: 'Inventory received', dimensions },
+            { accountCode: GRNI_ACCOUNT, debit: 0, credit: totalCost, description: 'Goods received, not yet invoiced', dimensions },
           ],
         });
       } else if (input.movementType === 'adjust' || input.movementType === 'count_correction') {
@@ -242,12 +262,12 @@ export class InventoryService {
           description: `Inventory ${verb}: ${shrinkage ? 'shortage' : 'overage'} of ${Math.abs(qtyDelta)} ${item.base_uom}`,
           lines: shrinkage
             ? [
-                { accountCode: SHRINKAGE_ACCOUNT, debit: totalCost, credit: 0, description: 'Inventory shrinkage' },
-                { accountCode: INVENTORY_ASSET_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory reduced' },
+                { accountCode: SHRINKAGE_ACCOUNT, debit: totalCost, credit: 0, description: 'Inventory shrinkage', dimensions },
+                { accountCode: INVENTORY_ASSET_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory reduced', dimensions },
               ]
             : [
-                { accountCode: INVENTORY_ASSET_ACCOUNT, debit: totalCost, credit: 0, description: 'Inventory increased' },
-                { accountCode: SHRINKAGE_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory found (shrinkage recovery)' },
+                { accountCode: INVENTORY_ASSET_ACCOUNT, debit: totalCost, credit: 0, description: 'Inventory increased', dimensions },
+                { accountCode: SHRINKAGE_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory found (shrinkage recovery)', dimensions },
               ],
         });
       }

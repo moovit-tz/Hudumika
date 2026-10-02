@@ -12,16 +12,17 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 
 /**
- * Multi-entity accounting (ClearOS/FinOps M8) â€” a legal-entity/branch
+ * Multi-entity accounting (ClearOS/FinOps M8) — a legal-entity/branch
  * concept on top of the GL, additive only. A tenant that never creates an
  * entity here keeps every report exactly as before: entity_id stays NULL
  * on every posting, and the existing single-tenant reports already ARE the
  * consolidated view. See gl.service.ts's M8 section for the full design.
  *
  * Figures are shown in each entity's own currency, not FX-converted to one
- * consolidated currency â€” that conversion logic doesn't exist anywhere in
+ * consolidated currency — that conversion logic doesn't exist anywhere in
  * this platform's GL reports yet (flagged, not silently invented).
  */
 
@@ -37,6 +38,7 @@ function monthStartIso() { const d = new Date(); return new Date(d.getFullYear()
 
 export function MultiEntityAccounting() {
   const isMobile = useIsMobile();
+  const readOnly = useFinanceReadOnly();
   const [tab, setTab] = useState<'entities' | 'intercompany' | 'consolidated'>('entities');
 
   const [entities, setEntities] = useState<Entity[]>([]);
@@ -63,6 +65,12 @@ export function MultiEntityAccounting() {
     ]).then(([e, t]) => { setEntities(e); setTxns(t); }).finally(() => setLoading(false));
   }, []);
   useEffect(load, [load]);
+  useEffect(() => {
+    if (readOnly) {
+      setShowEntityForm(false);
+      setShowTxnForm(false);
+    }
+  }, [readOnly]);
 
   const loadConsolidated = useCallback(() => {
     setConsolidatedLoading(true);
@@ -74,6 +82,7 @@ export function MultiEntityAccounting() {
   useEffect(() => { if (tab === 'consolidated') loadConsolidated(); }, [tab, loadConsolidated]);
 
   async function saveEntity() {
+    if (readOnly) return;
     if (!entityForm.name.trim() || !entityForm.entityCode.trim()) { setError('Name and entity code are required.'); return; }
     setSaving(true); setError(null);
     try {
@@ -92,6 +101,7 @@ export function MultiEntityAccounting() {
   }
 
   async function saveTxn() {
+    if (readOnly) return;
     if (!txnForm.fromEntityId || !txnForm.toEntityId || !txnForm.description.trim() || !txnForm.amount || !txnForm.fromAccountCode.trim() || !txnForm.toAccountCode.trim()) {
       setError('All fields are required.');
       return;
@@ -116,7 +126,7 @@ export function MultiEntityAccounting() {
 
   // Transaction amounts are per-row currency (each intercompany transaction
   // picks its own), so this deliberately never sums them into one blended
-  // figure â€” that's the same currency-mixing mistake PurchaseOrders.tsx's
+  // figure — that's the same currency-mixing mistake PurchaseOrders.tsx's
   // metrics card made (summed USD-priced lines as if they were TZS). Counts
   // and status/currency breakdowns stay real without needing a conversion.
   const meStats = {
@@ -134,7 +144,7 @@ export function MultiEntityAccounting() {
         crumbs={['Finance', 'Accounts', 'Multi-Entity']}
         titlePlain="Multi-entity"
         titleEm="accounting"
-        subtitle="Branches share one chart of accounts, tagged per entity for reporting â€” additive, so a tenant with no entities keeps its books exactly as before."
+        subtitle="Branches share one chart of accounts, tagged per entity for reporting — additive, so a tenant with no entities keeps its books exactly as before."
       />
 
       <MetricsRow cards={[
@@ -168,10 +178,10 @@ export function MultiEntityAccounting() {
 
       {tab === 'entities' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          {!readOnly && <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Button onClick={() => setShowEntityForm(s => !s)}><Icon name="plus" size={14} /> {showEntityForm ? 'Cancel' : 'New entity'}</Button>
-          </div>
-          {showEntityForm && (
+          </div>}
+          {showEntityForm && !readOnly && (
             <SectionCard title="New entity" collapsible={false}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
                 <div>
@@ -192,7 +202,7 @@ export function MultiEntityAccounting() {
                 </div>
               </div>
               {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-              <Button disabled={saving} onClick={saveEntity}>{saving ? 'Savingâ€¦' : 'Save entity'}</Button>
+              <Button disabled={saving} onClick={saveEntity}>{saving ? 'Saving…' : 'Save entity'}</Button>
             </SectionCard>
           )}
 
@@ -200,7 +210,7 @@ export function MultiEntityAccounting() {
             {loading ? (
               <SectionLoading />
             ) : entities.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No branches/entities configured â€” this tenant's books are one consolidated set, as they always have been.</div>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No branches/entities configured — this tenant's books are one consolidated set, as they always have been.</div>
             ) : (
               <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead><tr>{['Code', 'Name', 'Country', 'Currency', 'Status'].map(h => (
@@ -211,7 +221,7 @@ export function MultiEntityAccounting() {
                     <tr key={e.id} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>{e.entity_code}</td>
                       <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>{e.name}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{e.country_code || 'â€”'}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{e.country_code || '—'}</td>
                       <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{e.currency}</td>
                       <td style={{ padding: '12px 16px' }}><Badge variant={e.active ? 'success' : 'gray'}>{e.active ? 'active' : 'inactive'}</Badge></td>
                     </tr>
@@ -225,24 +235,24 @@ export function MultiEntityAccounting() {
 
       {tab === 'intercompany' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          {!readOnly && <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Button disabled={entities.length < 2} onClick={() => setShowTxnForm(s => !s)}><Icon name="plus" size={14} /> {showTxnForm ? 'Cancel' : 'New transaction'}</Button>
-          </div>
+          </div>}
           {entities.length < 2 && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Create at least two entities before posting an intercompany transaction.</div>}
-          {showTxnForm && (
+          {showTxnForm && !readOnly && (
             <SectionCard title="New intercompany transaction" collapsible={false}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>From entity (billing) *</label>
                   <Select value={txnForm.fromEntityId} onValueChange={v => setTxnForm(p => ({ ...p, fromEntityId: v }))}>
-                    <SelectTrigger className="input-field"><SelectValue placeholder="Chooseâ€¦" /></SelectTrigger>
+                    <SelectTrigger className="input-field"><SelectValue placeholder="Choose…" /></SelectTrigger>
                     <SelectContent>{entities.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>To entity (paying) *</label>
                   <Select value={txnForm.toEntityId} onValueChange={v => setTxnForm(p => ({ ...p, toEntityId: v }))}>
-                    <SelectTrigger className="input-field"><SelectValue placeholder="Chooseâ€¦" /></SelectTrigger>
+                    <SelectTrigger className="input-field"><SelectValue placeholder="Choose…" /></SelectTrigger>
                     <SelectContent>{entities.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
@@ -271,7 +281,7 @@ export function MultiEntityAccounting() {
                 Posts two balanced entries: the from-entity is debited to an Intercompany Receivable clearing account and credited on its own account code; the to-entity is debited on its own account code and credited to Intercompany Payable.
               </div>
               {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-              <Button disabled={saving} onClick={saveTxn}>{saving ? 'Postingâ€¦' : 'Post transaction'}</Button>
+              <Button disabled={saving} onClick={saveTxn}>{saving ? 'Posting…' : 'Post transaction'}</Button>
             </SectionCard>
           )}
 
@@ -315,7 +325,7 @@ export function MultiEntityAccounting() {
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>To</label>
                 <DatePicker date={parseDateOnly(plTo)} onChange={d => setPlTo(toDateOnlyString(d))} />
               </div>
-              <Button onClick={loadConsolidated} disabled={consolidatedLoading}>{consolidatedLoading ? 'Loadingâ€¦' : 'Refresh'}</Button>
+              <Button onClick={loadConsolidated} disabled={consolidatedLoading}>{consolidatedLoading ? 'Loading…' : 'Refresh'}</Button>
             </div>
           </SectionCard>
 

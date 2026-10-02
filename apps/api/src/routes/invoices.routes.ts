@@ -8,6 +8,8 @@ import { renderInvoicePdf } from '../services/invoice-pdf.service.js';
 import { DocumentService } from '../services/document.service.js';
 import { applyStamp, StampAccessDeniedError } from '../services/stamp.service.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
+import { requireFinanceCapability } from '../middleware/finance-capability.js';
 
 // Real values — Billing.tsx's own `Status` type.
 const INVOICE_STATUS = ['Draft', 'Partial', 'Paid', 'Credited', 'Unpaid', 'Overdue'] as const;
@@ -40,6 +42,7 @@ const invoiceCreateSchema = z.object({
   invoice_number: z.string().max(100).optional(),
   shipment_ref: z.string().max(100).optional(),
   customer_id: z.string().uuid().optional(),
+  business_line_id: z.string().uuid().nullable().optional(),
   client_name: z.string().max(300).optional(),
   client_address: z.array(z.string()).optional(),
   bl_number: z.string().max(100).optional(),
@@ -178,12 +181,13 @@ export function invoiceNetAndTax(
  * no matter how much VAT had been charged. Found by running a return end to end
  * and reading the entry it produced.
  */
-function invoiceJournalLines(grandTotal: number, { net, tax }: { net: number; tax: number }) {
+function invoiceJournalLines(grandTotal: number, { net, tax }: { net: number; tax: number }, businessLineId?: string | null) {
+  const dimensions = businessLineId ? { business_line_id: businessLineId } : undefined;
   return [
-    { accountCode: '1100', debit: grandTotal, credit: 0, description: 'Accounts Receivable' },
-    { accountCode: '4000', debit: 0, credit: net, description: 'Freight Revenue' },
+    { accountCode: '1100', debit: grandTotal, credit: 0, description: 'Accounts Receivable', dimensions },
+    { accountCode: '4000', debit: 0, credit: net, description: 'Freight Revenue', dimensions },
     ...(tax > 0
-      ? [{ accountCode: '2200', debit: 0, credit: tax, description: 'VAT output tax' }]
+      ? [{ accountCode: '2200', debit: 0, credit: tax, description: 'VAT output tax', dimensions }]
       : []),
   ];
 }
@@ -334,7 +338,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/recurring', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
+  fastify.post('/recurring', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'), requireFinanceCapability('finance.core')] }, async (request, reply) => {
     const user = request.user;
     const body = recurringInvoiceSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
@@ -371,7 +375,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/recurring/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
+  fastify.patch('/recurring/:id', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'), requireFinanceCapability('finance.core')] }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const body = recurringInvoiceSchema.parse(request.body);
@@ -402,7 +406,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/recurring/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
+  fastify.delete('/recurring/:id', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE'), requireFinanceCapability('finance.core')] }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
@@ -413,7 +417,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/recurring/:id/generate', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
+  fastify.post('/recurring/:id/generate', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'), requireFinanceCapability('finance.core')] }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const result = await generateDueInvoices(user.tenant_id, new Date().toISOString().slice(0, 10), id);
@@ -758,6 +762,9 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const body = invoiceCreateSchema.parse(request.body);
+    if (body.business_line_id && !(await tenantHasEnabledFinanceCapability(user.tenant_id, 'finance.accounting.advanced'))) {
+      return reply.status(403).send({ error: 'CAPABILITY_READ_ONLY', message: 'Enable Advanced Accounting to assign a business line.' });
+    }
     // Set once the insert below succeeds, read after withTenant's promise
     // resolves — i.e. strictly after the transaction commits. Filing the
     // PDF from *inside* the transaction callback (the same spot
@@ -773,6 +780,12 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       // return after a write commits the partial state.
       const resolved = await resolveItemTaxCodes(trx, user.tenant_id, body.items ?? []);
       if (!resolved.ok) return reply.status(400).send({ error: resolved.error });
+
+      if (body.business_line_id) {
+        const line = await trx.selectFrom('finance_business_lines').select('id')
+          .where('tenant_id', '=', user.tenant_id).where('id', '=', body.business_line_id).where('active', '=', true).executeTakeFirst();
+        if (!line) return reply.status(400).send({ error: 'The selected business line is invalid, archived, or belongs to another workspace.' });
+      }
 
       const invoiceNumber = body.invoice_number || await getNextDocNumber(trx, user.tenant_id, 'invoice');
 
@@ -792,6 +805,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         invoice_number: invoiceNumber,
         shipment_ref: body.shipment_ref || null,
         customer_id: body.customer_id || null,
+        business_line_id: body.business_line_id || null,
         client_name: body.client_name || null,
         client_address: JSON.stringify(body.client_address || []),
         bl_number: body.bl_number || null,
@@ -840,7 +854,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           sourceModule: 'AR',
           sourceId: inv.id,
           createdBy: user.sub,
-          lines: invoiceJournalLines(grandTotal, netAndTax),
+          lines: invoiceJournalLines(grandTotal, netAndTax, inv.business_line_id),
         });
       }
 
@@ -880,9 +894,21 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     let issuedId: string | null = null;
     let issuedNumber: string | null = null;
     const result = await withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('sales_invoices').select(['id', 'bill_date', 'currency'])
+      const existing = await trx.selectFrom('sales_invoices').select(['id', 'bill_date', 'currency', 'status', 'business_line_id'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Invoice not found' });
+      if (body.business_line_id !== undefined && existing.status !== 'Draft' && body.business_line_id !== existing.business_line_id) {
+        return reply.status(409).send({ error: 'The business line cannot be changed after an invoice has been issued because its ledger entry is already posted.' });
+      }
+      if (body.business_line_id && body.business_line_id !== existing.business_line_id
+        && !(await tenantHasEnabledFinanceCapability(user.tenant_id, 'finance.accounting.advanced'))) {
+        return reply.status(403).send({ error: 'CAPABILITY_READ_ONLY', message: 'Enable Advanced Accounting to assign a business line.' });
+      }
+      if (body.business_line_id) {
+        const line = await trx.selectFrom('finance_business_lines').select('id')
+          .where('tenant_id', '=', user.tenant_id).where('id', '=', body.business_line_id).where('active', '=', true).executeTakeFirst();
+        if (!line) return reply.status(400).send({ error: 'The selected business line is invalid, archived, or belongs to another workspace.' });
+      }
       // Lines inherit the currency this request leaves the invoice in, not the
       // one it had before it.
       const invCurrency = body.currency || existing.currency;
@@ -906,7 +932,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       if (!resolved.ok) return reply.status(400).send({ error: resolved.error });
 
       const updates: any = { updated_at: new Date() };
-      const fields = ['invoice_number', 'customer_id', 'client_name', 'client_address', 'shipment_ref', 'bl_number', 'origin', 'destination', 'mode', 'bill_date', 'due_date', 'sale_agent', 'payment_terms', 'exchange_rate', 'status', 'notes', 'ref_code', 'version'];
+      const fields = ['invoice_number', 'customer_id', 'business_line_id', 'client_name', 'client_address', 'shipment_ref', 'bl_number', 'origin', 'destination', 'mode', 'bill_date', 'due_date', 'sale_agent', 'payment_terms', 'exchange_rate', 'status', 'notes', 'ref_code', 'version'];
       const b = body as Record<string, unknown>;
       for (const f of fields) {
         if (b[f] !== undefined) updates[f] = f === 'client_address' ? JSON.stringify(b[f]) : b[f];
@@ -950,6 +976,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
               lines: invoiceJournalLines(
                 grandTotal,
                 invoiceNetAndTax(lines, inv.currency, Number(inv.exchange_rate) || 1),
+                inv.business_line_id,
               ),
             });
           }
@@ -1118,9 +1145,9 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         sourceId: inv.id,
         createdBy: user.sub,
         lines: [
-          { accountCode: '1010', debit: Number(amount), credit: 0, description: 'Cash received' },
-          ...(clearAmount > 0.01 ? [{ accountCode: '1100', debit: 0, credit: clearAmount, description: `Clear AR: ${inv.invoice_number}` }] : []),
-          ...(excessAmount > 0.01 ? [{ accountCode: '2150', debit: 0, credit: excessAmount, description: `Overpayment credit: ${inv.invoice_number}` }] : []),
+          { accountCode: '1010', debit: Number(amount), credit: 0, description: 'Cash received', dimensions: inv.business_line_id ? { business_line_id: inv.business_line_id } : undefined },
+          ...(clearAmount > 0.01 ? [{ accountCode: '1100', debit: 0, credit: clearAmount, description: `Clear AR: ${inv.invoice_number}`, dimensions: inv.business_line_id ? { business_line_id: inv.business_line_id } : undefined }] : []),
+          ...(excessAmount > 0.01 ? [{ accountCode: '2150', debit: 0, credit: excessAmount, description: `Overpayment credit: ${inv.invoice_number}`, dimensions: inv.business_line_id ? { business_line_id: inv.business_line_id } : undefined }] : []),
         ],
       });
 

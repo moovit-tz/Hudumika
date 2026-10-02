@@ -6,6 +6,7 @@ import { apiFetch } from '../../lib/api.js';
 import type { OnsiteProject } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
+import { ColorSwatchPicker } from '../../components/ui/color-swatch-picker.js';
 import './Onsite.css';
 
 export function OnsiteProjects() {
@@ -143,12 +144,7 @@ export function OnsiteProjects() {
               </div>
               <div className="onsite-form-group">
                 <label>Group Accent Color</label>
-                <input
-                  type="color"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                  style={{ width: '60px', height: '36px', padding: 0, border: 'none', cursor: 'pointer' }}
-                />
+                <ColorSwatchPicker value={color} onChange={setColor} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>

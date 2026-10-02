@@ -7,15 +7,15 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 /**
  * Milestone 3 of decomposing SuperAdmin's "god admin" pages into per-domain
  * insights layers: moved out of SuperAdmin.tsx (was /admin/devices) into
- * NexusHR's own shell, SUPER_ADMIN-gated â€” this is biometric attendance
+ * NexusHR's own shell, SUPER_ADMIN-gated — this is biometric attendance
  * hardware (379_attendance_devices.sql), a NexusHR-domain concept, not an
  * Ondi one. Ondi's own "devices" means personal login/session devices
- * (OndiPersonalDevices.tsx, OndiSessions.tsx) â€” a different, unrelated data
+ * (OndiPersonalDevices.tsx, OndiSessions.tsx) — a different, unrelated data
  * model that happens to share the English word. See the Title Treatment
  * Audit-adjacent plan (Decompose SuperAdmin) for the full reasoning.
  *
  * Platform-owner "monitor, troubleshoot, audit" over every tenant's devices,
- * never "manage" â€” matches superadmin.routes.ts's own view/support-only
+ * never "manage" — matches superadmin.routes.ts's own view/support-only
  * stance toward tenant leave/attendance elsewhere in that file. Backed by
  * GET /v1/superadmin/devices, unchanged by this move.
  */
@@ -48,7 +48,7 @@ function relTimeShort(iso: string | null): string {
 }
 
 /* Same plain headers+children shape SuperAdmin.tsx's own local DataTable
-   uses â€” kept local rather than shared, since this is the only table this
+   uses — kept local rather than shared, since this is the only table this
    page needs and the two are free to diverge later. */
 function DataTable({ headers, children }: { headers: string[]; children: React.ReactNode }) {
   return (
@@ -95,13 +95,13 @@ export function SuperAdminAttendanceDevices() {
         crumbs={['NexusHR', 'Devices']}
         titlePlain="Attendance"
         titleEm="devices"
-        subtitle={loaded ? `${devices.length} biometric terminal(s) registered across every tenant.` : 'Loadingâ€¦'}
+        subtitle={loaded ? `${devices.length} biometric terminal(s) registered across every tenant.` : 'Loading…'}
       />
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: 340 }}>
           <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search device, tenant, serialâ€¦" className="input-field" style={{ width: '100%', paddingLeft: 34 }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search device, tenant, serial…" className="input-field" style={{ width: '100%', paddingLeft: 34 }} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="input-field" style={{ width: 190 }}><SelectValue /></SelectTrigger>
@@ -127,7 +127,7 @@ export function SuperAdminAttendanceDevices() {
               <TD nowrap>{d.tenant_name}</TD>
               <TD nowrap>{d.provider}</TD>
               <TD nowrap><span style={{ fontFamily: 'var(--font)', fontSize: 12, color: 'var(--ink3)' }}>{d.serial_number}</span></TD>
-              <TD>{d.location || 'â€”'}</TD>
+              <TD>{d.location || '—'}</TD>
               <TD><PlatformDeviceStatusBadge status={d.status} /></TD>
               <TD nowrap>{relTimeShort(d.last_sync_at)}</TD>
               <TD right>{d.event_count}</TD>

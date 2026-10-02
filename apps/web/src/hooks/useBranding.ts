@@ -223,7 +223,16 @@ export function useBranding(platformOnly = false): BrandingState {
       if (data.loginSubtext) localStorage.setItem('hudumika_login_subtext', data.loginSubtext);
       if (data.loginBgStyle) localStorage.setItem('hudumika_login_bg', data.loginBgStyle);
       if (data.supportEmail) localStorage.setItem('hudumika_support_email', data.supportEmail);
-      if (data.accentColor) localStorage.setItem('hudumika_email_accent', data.accentColor);
+      // Only update hudumika_email_accent from the API if it hasn't been
+      // explicitly set to something different via the Identity section — the
+      // Identity "Accent Color" field is an intentional per-tenant override of
+      // brand.primary, and the two are kept in sync by BrandingView's saveIdentity.
+      if (data.accentColor) {
+        const existing = localStorage.getItem('hudumika_email_accent');
+        if (!existing || existing.toLowerCase() === '#0b1e3a') {
+          localStorage.setItem('hudumika_email_accent', data.accentColor);
+        }
+      }
 
       if (data.apps) {
         for (const [appId, cfg] of Object.entries(data.apps as Record<string, AppBrandingConfig>)) {

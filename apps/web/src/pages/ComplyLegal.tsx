@@ -198,9 +198,9 @@ export function ComplyLegal() {
   return (
     <div className="comply-page">
       <PageHeader
-        crumbs={['ComplyOS', 'Legal Firm Marketplace']}
-        titlePlain="Legal Firm"
-        titleEm="marketplace"
+        crumbs={['ComplyOS', 'Legal firms']}
+        titlePlain="Legal"
+        titleEm="firms"
         subtitle="Engage vetted legal firms to handle your compliance applications"
       />
 

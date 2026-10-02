@@ -154,134 +154,97 @@
   font-display: swap;
 }
 
-/* ── ClearOS Design System ── */
+/* ── ClearOS Design System — Dreams Core Baseline ── */
 
 :root {
   color-scheme: light;
 
-  --ink:    #0d1117;
-  --ink2:   #57606a;
-  --ink3:   #8b949e;
-  --bg:     #F7F5F0;
+  --ink:    #0f172a;
+  --ink2:   #475569;
+  --ink3:   #94a3b8;
+  --bg:     #f4f7fb;
   --white:  #ffffff;
-  --border: #e1e4e8;
-  --border2:#c9cdd4;
-  /* Sunken surface for a card's body/detail pane, so it reads distinct from
-     the white header. NOT --bg: index.css flattens --bg to --white inside
-     .page-layout (light mode), which silently turned every "grey" card body
-     white on the app pages. This token is never overridden there — it holds the
-     app's own background tone so the body reads "like the page", just a hair off
-     the white header. Every collapsible SectionCard body — and the segmented tab
-     track — reads from this one token. */
-  --card-sunken: #f5f5f5;
+  --border: #e2e8f0;
+  --border2:#cbd5e1;
+  --card-sunken: #f8fafc;
 
-  /* The vertical tree line down the left of a nav sub-group
-     (.app-sb-children-group). Its own token because neither --border nor
-     --border2 is right in both themes: --border is too faint on a dark
-     sidebar, --border2 too heavy on a light one. Defined once here, once in
-     the dark block, and once on the semi-dark sidebar — never per rule.
+  --nav-guide: rgba(255, 255, 255, 0.18);
 
-     It used to be drawn by three sidebars; the other two, FinOpsSidebar and
-     LeftNav, were imported by nothing and have been removed. */
-  --nav-guide: rgba(0, 0, 0, 0.12);
+  --teal:   #0f766e;
+  --teal-l: #ecfdf5;
+  --teal-m: #ccfbf1;
 
-  --teal:   #1257c6;
-  --teal-l: #e8f0ff;
-  --teal-m: #c9dbfa;
+  --navy:         #0f172a;
+  --navy2:        #1e293b;
+  --nav-header-bg: #0f172a;
 
-  --navy:         #0e1f3d;
-  --navy2:        #1a3260;
-  --nav-header-bg: #0e1f3d;
+  --gold:   #d97706;
+  --gold-l: #fef3c7;
 
-  --gold:   #9a6700;
-  --gold-l: #fff8c5;
+  --red:    #e11d48;
+  --red-l:  #ffe4e6;
 
-  --red:    #cf222e;
-  --red-l:  #fff0f0;
+  --green:  #059669;
+  --green-l:#ecfdf5;
 
-  --green:  #1a7f37;
-  --green-l:#dafbe1;
+  --blue:   #0284c7;
+  --blue-l: #e0f2fe;
 
-  --blue:   #0550ae;
-  --blue-l: #ddf4ff;
+  --purple: #7c3aed;
+  --purple-l:#f5f3ff;
 
-  --purple: #6e40c9;
-  --purple-l:#f3efff;
-
-  /* Static fallback for the brief window before useDesignSystem's injected
-     <style> tag overrides these with the precise, contrast-checked value
-     (pickForegroundHsl in lib/color.ts) — these light-theme colors all
-     clear AA against light text (5.0-7.7:1 measured), so light is a safe
-     default here even before JS computes the exact figure. */
   --gold-foreground:   210 40% 98%;
   --red-foreground:    210 40% 98%;
   --green-foreground:  210 40% 98%;
   --blue-foreground:   210 40% 98%;
   --purple-foreground: 210 40% 98%;
 
-  --r-sm: 5px;
-  --r:    9px;
-  --r-lg: 9px;
+  --r-sm: 8px;
+  --r:    12px;
+  --r-lg: 14px;
 
-  /* Selected sidebar-menu-item — the "Contacts"-style tinted pill: a soft
-     color-mix tint of the active app's own accent (--sb-color, set per-app
-     by WorkspaceApp) behind the label, at this corner radius. Kept as its
-     own token rather than reusing --r/--r-sm so this exact, approved shape
-     survives independently of the general shape scale. Consumed by
-     AppSidebar.css; any other primary left-nav should read the same pair
-     rather than hardcoding its own tint/radius. */
-  --nav-item-r: 8px;
-  --nav-active-tint: 14%;
-  --nav-active-tint-dark: 22%;
+  --nav-item-r: 10px;
+  --nav-active-tint: 16%;
+  --nav-active-tint-dark: 24%;
 
-  /* The single page gutter — see .app-shell-content. Matches what
-     /clearos/customs-tools/history already used (24px 32px), which is the
-     page this was standardised against. */
-  --page-pad-x: 8px;
-  --page-pad-y: 8px;
+  --page-pad-x: 16px;
+  --page-pad-y: 16px;
 
-  --ds-btn-py:   7px;
-  --ds-btn-py-xs: 3px;
-  --ds-btn-py-sm: 5px;
-  --ds-btn-py-lg: 10px;
+  --ds-btn-py:    11px;
+  --ds-btn-py-xs:  4px;
+  --ds-btn-py-sm:  7px;
+  --ds-btn-py-lg: 14px;
   --ctl-h-xs: 28px;
-  --ctl-h-sm: 32px;
-  --ctl-h:    36px;
-  --ctl-h-lg: 42px;
+  --ctl-h-sm: 36px;
+  --ctl-h:    42px;
+  --ctl-h-lg: 48px;
   --ds-input-py: 7px;
-  --ds-cell-py:  11px;
+  --ds-cell-py:  12px;
 
-  /* Canonical elevation values. SHADOW_PRESETS in useDesignSystem.ts
-     overwrites these three at runtime; the @theme block above aliases
-     Tailwind's --shadow-* scale onto them so a preset reaches the ui/
-     components and the legacy CSS alike. */
-  --elev-sm: 0 1px 2px rgba(0,0,0,0.04);
-  --elev:    0 2px 8px rgba(0,0,0,0.07);
-  --elev-lg: 0 6px 20px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+  /* Dreams Core Signature Layered Ambient Elevation */
+  --elev-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --elev:    0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 10px 15px -5px rgba(15, 23, 42, 0.04);
+  --elev-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
 
   --font: 'Atlassian Sans', system-ui, sans-serif;
   --mono: 'Atlassian Sans', system-ui, sans-serif;
-  --serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --bodoni: 'Bodoni Moda', Georgia, serif;
+  --serif: 'Atlassian Sans', system-ui, sans-serif;
+  --bodoni: 'Atlassian Sans', system-ui, sans-serif;
 
-  /* Page header warm cream — borrowed from editorial reference */
-  --page-header-bg: #f5f2ea;
+  --page-header-bg: transparent;
 
   /* ── Design system tokens (overridden live by DesignSystemProvider) ── */
   --card-bg:      var(--white);
   --card-border:  1px solid var(--border);
-  /* Cards follow the elevation setting. This was a hardcoded `none`, so no
-     card anywhere carried a shadow and choosing an elevation preset changed
-     nothing on any card in any app. */
-  --card-shadow:  var(--elev-sm);
-  --card-padding: 16px;
-  --card-radius:  var(--r);
+  --card-shadow:  var(--elev);
+  --card-padding: 18px;
+  --card-radius:  var(--r-lg, 14px);
 
-  --badge-radius: 20px;
-  --badge-py: 3px;
+  --badge-radius: 9999px;
+  --badge-py: 2px;
   --badge-px: 8px;
   --badge-fs: 11px;
-  --badge-min-h: 22px;
+  --badge-min-h: 20px;
   --badge-py-sm: 1px;
   --badge-px-sm: 6px;
   --badge-fs-sm: 10px;
@@ -289,11 +252,11 @@
 
   --page-padding: 8px;
   --content-gap:  16px;
-  --space-xs: 6px;
-  --space-sm: 12px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 14px;
+  --space-lg: 20px;
+  --space-xl: 28px;
 
   --dur-fast: 80ms;
   --dur:      150ms;
@@ -305,9 +268,9 @@
   --text-base: 13px;
   --text-md:   14px;
   --text-lg:   16px;
-  --text-xl:   20px;
-  --text-2xl:  24px;
-  --text-3xl:  30px;
+  --text-xl:   18px;
+  --text-2xl:  22px;
+  --text-3xl:  26px;
 }
 
 /* ── Theme View Transition Animation (Katalyst Circular Wave Reveal) ── */
@@ -336,8 +299,12 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
   --ink:    #e2e8f0;
   --ink2:   #94a3b8;
   --ink3:   #64748b;
-  --bg:     #080b10;
-  --white:  #111218;
+  /* Page background and card surface, faintly tinted with the active app accent.
+     --teal-fill-raw is the original (non-lightened) accent, set by WorkspaceApp
+     on :root per active app so each app gets its own hue in dark mode. On pages
+     without WorkspaceApp (pre-auth, legal) the fallback is the platform brand. */
+  --bg:     color-mix(in srgb, var(--teal-fill-raw, #1257c6) 7%, #080b10);
+  --white:  color-mix(in srgb, var(--teal-fill-raw, #1257c6) 10%, #111218);
   --border: rgba(255,255,255,0.07);
   --border2:rgba(255,255,255,0.13);
   /* Sunken card body surface (dark) — a hair lighter than the card so the
@@ -347,7 +314,7 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
 
   --navy:          #d8e4f4;
   --navy2:         #b8ccdf;
-  --nav-header-bg: #111d2f;
+  --nav-header-bg: color-mix(in srgb, var(--teal-fill-raw, #1257c6) 15%, #0a0e16);
 
   /* Semantic text colours — brighter for dark backgrounds */
   --gold:   #c8920a;
@@ -447,6 +414,45 @@ body, .card, .modal-overlay,
 [data-theme="dark"] option {
   background: var(--white);
   color: var(--ink);
+}
+
+/* ── Dark mode — recharts ──
+   Recharts SVG elements use hardcoded strokes and fills that disappear or
+   glare on the tinted dark surfaces. These overrides route them through the
+   design-system tokens, so they shift with each app's accent just like every
+   other surface. Uses [data-chart] so only ChartContainer-wrapped charts are
+   targeted — bare recharts calls on legacy pages keep their own overrides. */
+[data-theme="dark"] [data-chart] .recharts-cartesian-grid-horizontal line,
+[data-theme="dark"] [data-chart] .recharts-cartesian-grid-vertical line {
+  stroke: var(--border);
+}
+[data-theme="dark"] [data-chart] .recharts-cartesian-axis-tick-value,
+[data-theme="dark"] [data-chart] .recharts-text {
+  fill: var(--ink3);
+}
+[data-theme="dark"] [data-chart] .recharts-legend-item-text {
+  color: var(--ink2) !important;
+}
+/* Recharts tooltip uses a JS-rendered DOM node injected outside the SVG */
+[data-theme="dark"] .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--white) !important;
+  border: 1px solid var(--border2) !important;
+  border-radius: var(--r-sm, 8px) !important;
+  box-shadow: var(--elev-lg) !important;
+}
+[data-theme="dark"] .recharts-tooltip-wrapper .recharts-tooltip-label {
+  color: var(--ink) !important;
+}
+[data-theme="dark"] .recharts-tooltip-wrapper .recharts-tooltip-item {
+  color: var(--ink2) !important;
+}
+/* Bare (non-ChartContainer) recharts pages — grid lines and axis text */
+[data-theme="dark"] .recharts-wrapper .recharts-cartesian-grid-horizontal line,
+[data-theme="dark"] .recharts-wrapper .recharts-cartesian-grid-vertical line {
+  stroke: var(--border);
+}
+[data-theme="dark"] .recharts-wrapper .recharts-cartesian-axis-tick-value {
+  fill: var(--ink3);
 }
 
 /* Radix tooltips share the same floating-surface treatment as the rest of
@@ -674,6 +680,164 @@ body {
   border-color: var(--teal);
 }
 
+/* ── SEARCH TOOLBAR (.stb-*) ─────────────────────────────────────────────────
+   SearchToolbar component: search input + inline dropdowns + Filters button + optional actions.
+   Imported from ui/filter-dropdown.tsx.
+   ─────────────────────────────────────────────────────────────────────────── */
+.stb {
+  display: flex;
+  align-items: center;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 12px);
+  overflow: hidden;
+  min-height: var(--ctl-h, 40px);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.stb:focus-within {
+  border-color: hsl(var(--primary) / 0.5);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.08);
+}
+.stb-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 0 14px;
+  height: var(--ctl-h, 40px);
+}
+.stb-search-icon { color: var(--ink3); flex-shrink: 0; }
+.stb-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 13.5px;
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 500;
+  line-height: 1.25;
+}
+.stb-input::placeholder { color: var(--ink3); }
+.stb-input::-webkit-search-decoration,
+.stb-input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.stb-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  flex-shrink: 0;
+}
+.stb-dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--ctl-h, 40px);
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font);
+  white-space: nowrap;
+  outline: none;
+  transition: background 0.15s, color 0.15s;
+}
+.stb-dropdown-btn:hover { background: var(--bg); color: var(--ink); }
+.stb-dropdown-btn[data-active="true"] { color: var(--ink); font-weight: 600; }
+.stb-chevron {
+  color: var(--ink3);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+.stb-actions {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.stb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: var(--ctl-h-sm, 32px);
+  padding: 0 12px;
+  border-radius: var(--r-sm, 8px);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font);
+  white-space: nowrap;
+  outline: none;
+  transition: background 0.15s, color 0.15s;
+}
+.stb-btn:hover { background: var(--bg); color: var(--ink); }
+.stb-btn[data-active="true"] { color: var(--ink); background: var(--bg); }
+.stb-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ctl-h-sm, 32px);
+  height: var(--ctl-h-sm, 32px);
+  border-radius: var(--r-sm, 8px);
+  color: var(--ink3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.stb-icon-btn:hover { background: var(--bg); color: var(--ink); }
+.stb-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+}
+.stb-green-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  line-height: 1.2;
+}
+[data-theme="dark"] .stb-green-badge {
+  color: #34d399;
+  background: rgba(6, 78, 59, 0.4);
+  border-color: rgba(6, 95, 70, 0.6);
+}
+.stb-green-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10b981;
+  display: inline-block;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .stb { background: var(--surface); }
+
 /* ── STAT CARD ── */
 .stat-card { display: flex; align-items: center; gap: 12px; }
 .stat-card-icon { width: 20px; height: 20px; color: var(--teal); flex-shrink: 0; }
@@ -866,47 +1030,63 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: var(--ds-btn-py, 9px) 18px;
+  padding: 0 18px;
   font-family: var(--font);
   font-weight: 600;
-  border-radius: var(--r);
+  border-radius: var(--r-sm, 6px);
   border: var(--border-width, 1px) solid transparent;
   cursor: pointer;
   transition: all var(--dur-fast, 80ms) var(--ease, ease);
   white-space: nowrap;
-  font-size: var(--text-base, 14px);
-  /* Height is stated, not derived. Padding alone left a borderless primary
-     2px under the bordered secondary next to it, and a line-height of 1.2
-     4px under one of 1.5. With a floor, none of that reaches the height. */
-  min-height: var(--ctl-h);
+  font-size: 14px;
+  min-height: var(--ctl-h, 42px);
+  height: var(--ctl-h, 42px);
   box-sizing: border-box;
-  /* 1.25, not the inherited 1.5. A floor only binds when the content is
-     shorter than it: at 1.5 a 14px label made the box 41px on its own and
-     min-height never applied, which is the last 1px between a .btn and a
-     ui/Button. Every step's content now sits under its own floor. */
   line-height: 1.25;
 }
-/* The size steps read the same density tokens ui/Button does, so a legacy
-   .btn-sm and a <Button size="sm"> are the same height on the same screen.
-   They were fixed at 6px and 11px, which ignored the SuperAdmin density
-   setting entirely: a small legacy button sat at 32px beside a 48px one,
-   and the gap widened as density rose. */
-.btn-xs  { padding: var(--ds-btn-py-xs, 3px) 10px; font-size: 12px; min-height: var(--ctl-h-xs); }
-.btn-sm  { padding: var(--ds-btn-py-sm, 5px) 14px; font-size: 13px; min-height: var(--ctl-h-sm); }
-.btn-md  { padding: var(--ds-btn-py, 7px) 20px; font-size: 14px; min-height: var(--ctl-h); }
-.btn-lg  { padding: var(--ds-btn-py-lg, 10px) 24px; font-size: 15px; min-height: var(--ctl-h-lg); }
+.btn-xs  { padding: 0 10px; font-size: 12px; min-height: var(--ctl-h-xs, 28px); height: var(--ctl-h-xs, 28px); border-radius: var(--r-sm, 6px); }
+.btn-sm  { padding: 0 14px; font-size: 13px; min-height: var(--ctl-h-sm, 36px); height: var(--ctl-h-sm, 36px); border-radius: var(--r-sm, 6px); }
+.btn-md  { padding: 0 18px; font-size: 14px; min-height: var(--ctl-h, 42px); height: var(--ctl-h, 42px); border-radius: var(--r-sm, 6px); }
+.btn-lg  { padding: 0 22px; font-size: 15px; min-height: var(--ctl-h-lg, 48px); height: var(--ctl-h-lg, 48px); border-radius: var(--r-sm, 6px); }
 
-.btn-primary   { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: hsl(var(--primary)); }
-.btn-primary:hover { filter: brightness(0.88); }
+.btn-primary {
+  background: var(--teal, #0f766e);
+  color: #ffffff;
+  border-color: var(--teal, #0f766e);
+}
+.btn-primary:hover {
+  filter: brightness(0.92);
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.08);
+}
 
-.btn-secondary { background: var(--white); color: var(--ink); border-color: var(--border); }
-.btn-secondary:hover { background: var(--bg); border-color: var(--border2); }
+.btn-secondary {
+  background: var(--white, #ffffff);
+  color: var(--ink2, #475569);
+  border-color: var(--border, #e2e8f0);
+}
+.btn-secondary:hover {
+  background: var(--bg, #f8fafc);
+  border-color: var(--border2, #cbd5e1);
+  color: var(--ink, #0f172a);
+}
 
 .btn-ghost  { background: transparent; color: var(--ink2); border-color: transparent; }
-.btn-ghost:hover { background: rgba(0,0,0,0.03); color: var(--ink); }
+.btn-ghost:hover { background: rgba(0,0,0,0.04); color: var(--ink); }
 
-.btn-danger { background: var(--red); color: hsl(var(--red-foreground)); }
-.btn-danger:hover { background: #b01b25; }
+.btn-danger { background: var(--red); color: #ffffff; border-color: var(--red); }
+.btn-danger:hover { filter: brightness(0.92); }
+
+/* ── Button dark-mode overrides ──
+   In dark mode --teal is the *lightened* accent (good for text, not fills).
+   Using it as a solid button background + white text fails contrast for any
+   tenant colour that doesn't clear 4.5:1 at 45%-lightened. --primary and
+   --primary-foreground are the contrast-enforced pair from WorkspaceApp. */
+[data-theme="dark"] .btn-primary {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+[data-theme="dark"] .btn-ghost:hover { background: rgba(255,255,255,0.06); }
 
 /* ── BADGE ── */
 .badge {
@@ -3564,33 +3744,25 @@ select.input-field { cursor: pointer; }
   width: 100%;
   max-width: 100% !important;
   margin: 0;
-  /* --space-lg tracks density (SuperAdmin's compact/default/comfortable
-     setting) the same way every control-size token already does — this was
-     a hardcoded 20px, so changing density visibly resized every button and
-     input on the page but left its own outer gutter completely unmoved.
-     --space-lg resolves to 24px at default density, so this is a ~4px
-     increase from the old hardcoded value, not a jarring shrink. */
-  padding: var(--space-lg, 20px) var(--space-lg, 20px) 0;
+  padding: 24px 28px;
   box-sizing: border-box;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 0 0 9px 9px;
+  border-radius: var(--card-radius, 12px);
+  box-shadow: var(--elev-sm);
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  /* --space-xl was hardcoded 32px here too — same gap as the padding fix
-     above, just for the space *between* a page's stacked sections rather
-     than its outer edge. Matches --space-xl's own default-density value
-     exactly, so no visual change until density is actually switched. */
-  row-gap: var(--space-xl, 32px);
+  row-gap: 20px;
+  transition: background-color 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
 }
-/* Light mode: scope --bg to white inside page-layout so page root containers
-   that use var(--bg) as their background become white too */
-html:not([data-theme="dark"]) .page-layout {
-  --bg: var(--white);
+
+[data-theme="dark"] .page-layout {
+  background: var(--white);
+  border-color: var(--border);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
-/* Fill main-content height and scroll internally — keeps main-content from ever showing its own
-   scrollbar, which would narrow its content area and break centering alignment with the hnav. */
+/* Fill main-content height and scroll internally */
 .main-content > .page-layout {
   flex: 1;
   min-height: 0;
@@ -3599,18 +3771,11 @@ html:not([data-theme="dark"]) .page-layout {
 }
 
 /* ShipmentDetail's cover/hero band bleeds out of .page-layout's own
-   horizontal padding so it runs true edge-to-edge (like a profile cover
-   photo) while the rest of the page — the floating stage-stepper card,
-   tabs, body — stays within the normal padded layout. Negative margins
-   exactly mirror .page-layout's own responsive padding steps above so the
-   bleed is always exact at every breakpoint, in every shell ShipmentDetail
-   renders in (ClearOS staff view, customer portal /clearance/:id). */
+   horizontal padding so it runs true edge-to-edge while the rest stays within layout. */
 .shipdetail-cover-bleed {
-  margin-left: -20px;
-  margin-right: -20px;
-  /* Also cancels .page-layout's top padding, so the cover still starts flush
-     against the card's top edge rather than floating 20px below it. */
-  margin-top: -20px;
+  margin-left: -28px;
+  margin-right: -28px;
+  margin-top: -24px;
 }
 @media (max-width: 768px) {
   .shipdetail-cover-bleed { margin-left: -16px; margin-right: -16px; margin-top: -16px; }
@@ -3619,13 +3784,6 @@ html:not([data-theme="dark"]) .page-layout {
   .shipdetail-cover-bleed { margin-left: -12px; margin-right: -12px; margin-top: -12px; }
 }
 
-/* The hero band's fill.
-   Pilot of a more restrained palette (Hostinger-style): the app accent is
-   reserved for actual links, icons and the one primary action in this row
-   (Advance Stage) rather than painting the whole band. --bg is the same
-   neutral the page body sits on, so the band reads as a header row on the
-   page surface, not a coloured banner — and it needs no per-theme handling
-   of its own, unlike the gradient it replaces. */
 .shipdetail-hero-band {
   background: var(--bg);
   border-bottom: 1px solid var(--border);
@@ -3633,157 +3791,234 @@ html:not([data-theme="dark"]) .page-layout {
 
 /* ── Page footer ── */
 .page-footer {
-  /* No horizontal padding of its own. .page-layout already sets the page
-     gutter, and every other thing on a page — crumbs, title, subtitle,
-     toolbar buttons, table cells — lines up on it. The footer's own 28px
-     sat on top of that gutter, so its text started 28px to the right of
-     the title above it on every page in every app. Vertical padding stays;
-     only the horizontal inset was wrong. */
-  padding: 20px 0 32px;
+  padding: 18px 0 6px 0;
+  margin-top: auto;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 10px 8px;
-  /* Pinning the footer to the bottom of a short page is now .page-layout-
-     content's job (flex-grow, see its own comment above) — not this
-     margin. An auto margin here read fine on paper (eleven app stylesheets
-     independently arrived at the same `auto`) but stopped reliably
-     resolving to 0 once .page-layout also needed overflow-y:auto to
-     scroll at all, and rendered the footer overlapping real content
-     instead of following it. row-gap on .page-layout still gives the
-     breathing room between content and footer, same as before. */
 }
-.page-footer-copyright,
-.page-footer-powered {
+
+.page-footer-copyright {
   font-size: 11.5px;
   color: var(--ink3);
-  font-weight: 500;
+  font-weight: 400;
+  font-family: var(--font);
 }
+.page-footer-copyright strong {
+  color: var(--ink2);
+  font-weight: 600;
+}
+
+.page-footer-powered {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-family: var(--font);
+}
+.page-footer-app-name {
+  font-weight: 700;
+  color: var(--ink);
+}
+.page-footer-powered-by {
+  color: var(--ink3);
+  font-weight: 400;
+}
+.page-footer-hudumika-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal);
+}
+
 .page-footer-links {
+  grid-column: 3;
+  justify-self: end;
   display: flex;
   align-items: center;
+  gap: 8px;
+  font-family: var(--font);
 }
 .page-footer-link {
   font-size: 11.5px;
   color: var(--ink3);
-  font-weight: 500;
+  font-weight: 400;
   text-decoration: none;
-  padding: 0 10px;
-  border-right: 1px solid var(--border);
-  line-height: 1;
   transition: color 0.12s;
 }
-.page-footer-link:last-child { border-right: none; }
-.page-footer-link:hover { color: var(--teal); }
-/* When the three sections don't fit on one line (justify-content:space-between
-   has no effect on a lone item alone on its own wrapped line, so it was
-   collapsing to the left edge instead) — stack and center them instead. */
+.page-footer-link:hover {
+  color: var(--teal);
+  text-decoration: underline;
+}
+.page-footer-link-sep {
+  color: var(--border2);
+  font-size: 11px;
+  opacity: 0.6;
+}
+
 @media (max-width: 900px) {
-  .page-footer { flex-direction: column; align-items: center; text-align: center; }
+  .page-layout { padding: 16px; }
+}
+
+@media (max-width: 520px) {
+  .page-footer {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+  .page-footer-copyright { width: 100%; }
+  .page-footer-identity,
+  .page-footer-rights { display: block; }
+  .page-footer-rights { margin-top: 4px; }
+  .page-footer-links {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
 }
 
 /* ════════════════════════════════════════════════════════════
    PAGE HEADER — Atlassian Sans bold + Bodoni Moda italic
    Matches the hub welcome band style: transparent, no border
    ════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════
+   PAGE HEADER — Dreams Core Modern Structure
+   Clean breadcrumb trail with home icon, bold typography,
+   live telemetry badges, and action bars.
+   ════════════════════════════════════════════════════════════ */
 .page-header {
-  margin: 0 0 12px 0;
-  padding: 0;
+  margin: 0 0 16px 0;
+  padding: 16px 0 12px 0;
   background: transparent;
+  border: none;
+  box-shadow: none;
   position: relative;
 }
 
+/* DreamsCore breadcrumb — normal case, "/" separator, small muted gray */
 .page-header-crumb {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: var(--breadcrumb-size, 10.5px);
-  font-weight: 700;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 400;
   color: var(--ink3);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
-.page-header-crumb-link {
-  color: inherit;
+
+.page-header-crumb-home {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink3);
   text-decoration: none;
-  border-radius: var(--r-sm);
   transition: color var(--dur-fast, 80ms) var(--ease, ease);
 }
-.page-header-crumb-link:hover { color: var(--teal); text-decoration: underline; }
+.page-header-crumb-home:hover { color: var(--teal); }
+
+.page-header-crumb-link {
+  color: var(--ink3);
+  text-decoration: none;
+  transition: color var(--dur-fast, 80ms) var(--ease, ease);
+}
+.page-header-crumb-link:hover { color: var(--teal); }
 .page-header-crumb-link:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 
-.page-header-crumb-sep {
-  opacity: 0.5;
-  font-size: 10px;
+.page-header-crumb-current {
+  color: var(--ink2);
+  font-weight: 500;
 }
 
+.page-header-crumb-sep {
+  color: var(--ink3);
+  opacity: 0.5;
+  font-size: 12px;
+  font-weight: 300;
+  user-select: none;
+}
+
+/* DreamsCore page title — bold, plain, sans-serif. ph-em carries the
+   per-app accent on the final word without the old Cormorant Garamond. */
 .page-header-title {
   font-family: var(--font);
-  font-size: clamp(26px, 2.8vw, 34px);
-  font-weight: 300;
+  font-size: clamp(20px, 2vw, 26px);
+  font-weight: 700;
   color: var(--ink);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  margin: 0 0 8px;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  margin: 0;
 }
-.page-header-title em {
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-style: italic;
+.ph-em {
+  color: var(--teal);
+  font-weight: 700;
+}
+.page-header-title.ph-cjk .ph-em {
   font-weight: 700;
   color: var(--teal);
 }
-/* Arabic/Chinese locales — the italic Latin serif above was never going to
-   render as designed (no true italic in either script, so it silently
-   collapses to one flat weight in a fallback face). This keeps the same
-   two-tone hierarchy and the same --teal brand thread, just without the
-   Latin-only device. See PageHeader.tsx's `nonLatin` check. */
-.page-header-title.ph-cjk em {
-  font-family: var(--font);
-  font-style: normal;
+
+.page-header-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--teal);
+  color: #065f46;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.01em;
 }
-.page-header-title .ph-dot {
-  font-style: normal;
-  font-family: var(--font);
-  color: var(--ink);
+
+[data-theme="dark"] .page-header-live-badge {
+  color: #34d399;
+  background: rgba(6, 78, 59, 0.4);
+  border-color: rgba(5, 150, 105, 0.4);
+}
+
+.page-header-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
 }
 
 .page-header--create {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 .page-header--create .page-header-title--create {
   font-family: var(--font);
-  font-size: clamp(24px, 2.4vw, 30px);
+  font-size: clamp(18px, 1.8vw, 22px);
   font-style: normal;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
   margin-bottom: 4px;
 }
 .page-header--create > a:first-child,
 .page-header--create > button:first-child {
-  margin-bottom: 28px !important;
+  margin-bottom: 16px !important;
 }
 
 .page-header-sub {
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--ink3);
-  line-height: 1.5;
-  max-width: 580px;
+  line-height: 1.55;
+  max-width: 720px;
   font-family: var(--font);
-  margin: 6px 0 0 0;
+  margin: 4px 0 0 0;
 }
 
 @media (max-width: 768px) {
-  .page-header { padding: 0; margin-bottom: 10px; }
-  .page-header-sub { font-size: 13px; }
+  .page-header { padding: 12px 0 8px 0; margin-bottom: 12px; }
+  .page-header-sub { font-size: 12.5px; }
 }
 @media (max-width: 480px) {
-  .page-header { padding: 0; margin-bottom: 8px; }
+  .page-header { padding: 10px 0 6px 0; margin-bottom: 10px; }
 }
 
 /* Global modal motion — a short backdrop fade paired with an elevated
@@ -6061,41 +6296,58 @@ html:not([data-theme="dark"]) .page-layout {
 .notif-footer { padding: 11px 18px; border-top: 1px solid var(--border); display: flex; justify-content: center; }
 .notif-footer-btn { font-size: 13px; font-weight: 600; color: var(--teal); border: none; background: none; cursor: pointer; font-family: var(--font); }
 
-/* ── MetricCard ── */
+/* ── MetricCard — Dreams Core Bento KPI aesthetic ── */
 .mc-row {
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 16px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
 }
 .mc-card {
-  background: var(--white); border-radius: var(--r); border: 1px solid var(--border);
-  padding: 12px 14px; box-shadow: var(--elev-sm);
-  flex: 1 1 170px; min-width: 0; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--white);
+  border-radius: var(--card-radius, var(--r, 8px));
+  border: 1px solid var(--border);
+  padding: 16px 18px;
+  box-shadow: var(--elev-sm, 0 1px 2px 0 rgba(15, 23, 42, 0.05));
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.mc-head       { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
-.mc-head-left  { display: flex; align-items: center; gap: 8px; }
-.mc-title      { font-size: 11px; font-weight: 700; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--elev, 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 10px 15px -5px rgba(15, 23, 42, 0.04));
+}
+.mc-head       { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
+.mc-head-left  { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mc-title      { font-size: 11.5px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mc-refresh-btn {
-  color: var(--ink3); cursor: pointer; flex-shrink: 0; margin-top: 1px;
-  background: none; border: none; padding: 4px; border-radius: var(--r-sm); display: flex;
+  color: var(--ink3); cursor: pointer; flex-shrink: 0;
+  background: none; border: none; padding: 4px; border-radius: var(--r-sm, 6px); display: flex;
+  transition: background 0.15s, color 0.15s;
 }
 .mc-refresh-btn:hover { background: var(--bg); color: var(--ink); }
-.mc-value-row  { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; min-width: 0; }
-.mc-value      { font-size: clamp(16px, 1.25vw, 22px); font-weight: 800; color: var(--navy); letter-spacing: -0.4px; line-height: 1.1; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.mc-sub-row    { display: flex; gap: 4px 12px; margin-bottom: 4px; flex-wrap: wrap; min-width: 0; }
+.mc-value-row  { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; flex-wrap: wrap; min-width: 0; }
+.mc-value      { font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1.15; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--font); }
+.mc-sub-row    { display: flex; gap: 6px 16px; margin-top: auto; padding-top: 6px; flex-wrap: wrap; min-width: 0; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 .mc-sub-row > div { min-width: 0; }
-.mc-sub-label  { font-size: 9px; font-weight: 700; color: var(--ink3); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1px; }
-.mc-sub-value  { font-size: 11.5px; font-weight: 700; color: var(--ink2); white-space: nowrap; }
-.mc-spark-wrap { margin: auto -14px -12px; line-height: 0; }
-.mc-sparkline-svg { display: block; overflow: visible; flex-shrink: 0; }
+.mc-sub-label  { font-size: 9.5px; font-weight: 700; color: var(--ink3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; }
+.mc-sub-value  { font-size: 12px; font-weight: 700; color: var(--ink2); white-space: nowrap; }
+.mc-spark-wrap { margin: 8px -20px -18px; line-height: 0; }
+.mc-sparkline-svg { display: block; overflow: visible; flex-shrink: 0; width: 100%; }
 .mc-minibar-svg   { display: block; flex-shrink: 0; }
 .mc-trend {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 11.5px; font-weight: 700; padding: 3px 7px; border-radius: var(--badge-radius);
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700; padding: 2.5px 8px; border-radius: 9999px;
+  letter-spacing: 0.02em;
 }
-.mc-trend[data-up="true"]  { color: var(--green); background: var(--green-l); }
-.mc-trend[data-up="false"] { color: var(--red); background: var(--red-l); }
+.mc-trend[data-up="true"]  { color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; }
+.mc-trend[data-up="false"] { color: #e11d48; background: #fff1f2; border: 1px solid #fecdd3; }
+
+[data-theme="dark"] .mc-trend[data-up="true"]  { color: #34d399; background: rgba(6, 78, 59, 0.4); border-color: rgba(5, 150, 105, 0.4); }
+[data-theme="dark"] .mc-trend[data-up="false"] { color: #fb7185; background: rgba(136, 19, 55, 0.4); border-color: rgba(225, 29, 72, 0.4); }
 
 /* ══════════════════════════════════════════
    EXPANDED LAYOUT MODE
@@ -6221,4 +6473,168 @@ html[data-expanded="true"] .fin-shell {
   .crm-customer-table .crm-col-joined,
   .crm-customer-table .crm-col-actions { display: none; }
   .crm-customer-table .crm-col-email { min-width: 180px; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   DREAMS CORE DESIGN SYSTEM & BENTO UI SPECIFICATION
+   ───────────────────────────────────────────────────────────── */
+
+/* Font Display utility */
+.font-display {
+  font-family: var(--font, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
+  letter-spacing: -0.015em;
+}
+
+/* 1. Bento Grids */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1.25rem;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .bento-grid {
+    gap: 1rem;
+  }
+}
+
+/* 2. Dreams Core Surface Cards */
+.surface-card {
+  background-color: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg, 16px);
+  box-shadow: var(--elev, 0 1px 3px rgba(15, 23, 42, 0.05), 0 10px 25px -5px rgba(15, 23, 42, 0.04));
+  padding: 1.25rem;
+  position: relative;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease;
+}
+
+.surface-card.is-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--elev-lg, 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04));
+  border-color: var(--border2);
+}
+
+.surface-sunken {
+  background-color: var(--card-sunken, #f1f5f9);
+}
+
+.surface-raised {
+  background-color: var(--white);
+  box-shadow: var(--elev-sm, 0 1px 2px 0 rgba(15, 23, 42, 0.05));
+}
+
+/* 3. Dreams Core Badge Solid & Soft Palette */
+.badge-solid-primary { background: var(--teal, #0f766e) !important; color: #ffffff !important; }
+.badge-solid-success { background: var(--green, #059669) !important; color: #ffffff !important; }
+.badge-solid-warning { background: var(--gold, #d97706) !important; color: #ffffff !important; }
+.badge-solid-danger  { background: var(--red, #e11d48) !important; color: #ffffff !important; }
+.badge-solid-info    { background: var(--blue, #0284c7) !important; color: #ffffff !important; }
+.badge-solid-accent  { background: var(--purple, #7c3aed) !important; color: #ffffff !important; }
+.badge-solid-neutral { background: var(--ink2, #64748b) !important; color: #ffffff !important; }
+
+.badge-soft-primary { background: var(--teal-l, rgba(13, 148, 136, 0.12)) !important; color: var(--teal, #0f766e) !important; }
+.badge-soft-success { background: rgba(5, 150, 105, 0.12) !important; color: var(--green, #059669) !important; }
+.badge-soft-warning { background: rgba(217, 119, 6, 0.14) !important; color: var(--gold, #d97706) !important; }
+.badge-soft-danger  { background: rgba(225, 29, 72, 0.12) !important; color: var(--red, #e11d48) !important; }
+.badge-soft-info    { background: rgba(2, 132, 199, 0.12) !important; color: var(--blue, #0284c7) !important; }
+.badge-soft-accent  { background: rgba(124, 58, 237, 0.12) !important; color: var(--purple, #7c3aed) !important; }
+
+[data-theme="dark"] .badge-soft-primary { background: color-mix(in srgb, var(--teal) 18%, transparent) !important; color: var(--teal) !important; }
+[data-theme="dark"] .badge-soft-success { background: rgba(16, 185, 129, 0.18) !important; color: #34d399 !important; }
+[data-theme="dark"] .badge-soft-warning { background: rgba(245, 158, 11, 0.18) !important; color: #fbbf24 !important; }
+[data-theme="dark"] .badge-soft-danger  { background: rgba(244, 63, 94, 0.18) !important; color: #fb7185 !important; }
+[data-theme="dark"] .badge-soft-info    { background: rgba(56, 189, 248, 0.18) !important; color: #38bdf8 !important; }
+[data-theme="dark"] .badge-soft-accent  { background: rgba(167, 139, 250, 0.18) !important; color: #c084fc !important; }
+
+/* 4. Icon Chips */
+.icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm, 10px);
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.icon-chip.is-primary { background: var(--teal-l, rgba(13, 148, 136, 0.14)); color: var(--teal, #0f766e); }
+.icon-chip.is-success { background: rgba(5, 150, 105, 0.14); color: var(--green, #059669); }
+.icon-chip.is-warning { background: rgba(217, 119, 6, 0.16); color: var(--gold, #d97706); }
+.icon-chip.is-danger  { background: rgba(225, 29, 72, 0.14); color: var(--red, #e11d48); }
+.icon-chip.is-info    { background: rgba(2, 132, 199, 0.14); color: var(--blue, #0284c7); }
+.icon-chip.is-accent  { background: rgba(124, 58, 237, 0.14); color: var(--purple, #7c3aed); }
+.icon-chip.is-neutral { background: rgba(100, 116, 139, 0.14); color: var(--ink2, #64748b); }
+
+/* 5. Gradient and Special Hero Treatments */
+.dg-grad-text {
+  background: linear-gradient(135deg, var(--teal, #2563eb) 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logi-cx-1 {
+  background: linear-gradient(155deg, #1e40af 0%, #0f172a 100%) !important;
+  color: #ffffff !important;
+}
+
+.logi-cx-2 {
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.35) 0%, transparent 70%);
+}
+
+.logi-cx-3 {
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.25) 0%, transparent 70%);
+}
+
+.logi-cx-4 {
+  background: conic-gradient(from 0deg, #10b981 0%, #3b82f6 70%, rgba(255, 255, 255, 0.15) 70%, rgba(255, 255, 255, 0.15) 100%);
+  padding: 8px;
+}
+
+.logi-cx-5 {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+/* 6. Dreams Core Breadcrumb Bar */
+.dg-breadcrumb-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--card-sunken, #f1f5f9);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--breadcrumb-size, 11.5px);
+}
+
+/* 7. Enhanced v3 / Dreams Core Mode Overrides */
+[data-ds-version="v3"] .card,
+[data-ds-version="v3"] .section-card,
+[data-ds-version="v3"] .mc-card {
+  border-radius: var(--r-lg, 16px) !important;
+  box-shadow: var(--elev, 0 1px 3px rgba(15, 23, 42, 0.05), 0 10px 25px -5px rgba(15, 23, 42, 0.04)) !important;
+  border-color: var(--border) !important;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+[data-ds-version="v3"] .mc-card:hover,
+[data-ds-version="v3"] .section-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--elev-lg, 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04)) !important;
+}
+
+[data-ds-version="v3"] .table-container,
+[data-ds-version="v3"] .data-table-wrap {
+  border-radius: var(--r-lg, 16px) !important;
+  overflow: hidden;
+  border: 1px solid var(--border) !important;
+}
+
+[data-ds-version="v3"] .btn,
+[data-ds-version="v3"] .input-field {
+  border-radius: var(--r-sm, 10px) !important;
 }

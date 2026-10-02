@@ -48,7 +48,7 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
       // plan-derived UI decision already reads off this one endpoint.
       getAiCreditBalance(user.tenant_id),
       isByokAllowed(user.tenant_id),
-      getFinanceCapabilities(user.tenant_id, user.role === 'SUPER_ADMIN'),
+      getFinanceCapabilities(user.tenant_id),
     ]);
 
     const appStatus: Record<string, string> = {};

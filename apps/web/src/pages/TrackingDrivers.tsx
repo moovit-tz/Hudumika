@@ -149,7 +149,7 @@ export const TrackingDrivers: React.FC = () => {
               <Icon name="search" size={15} className="drv-search-icon" />
               <input
                 type="text"
-                placeholder="Search drivers by name, ID, phone, vehicle or plateâ€¦"
+                placeholder="Search drivers by name, ID, phone, vehicle or plate…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="drv-search-input"
@@ -273,7 +273,7 @@ export const TrackingDrivers: React.FC = () => {
                         className="drv-action-btn-primary"
                         title="Open Full Profile & Lifecycle"
                       >
-                        View Profile â†’
+                        View Profile →
                       </Link>
                     </div>
                   </div>
@@ -318,8 +318,8 @@ export const TrackingDrivers: React.FC = () => {
                             {d.status || 'Available'}
                           </span>
                         </td>
-                        <td style={{ fontSize: 13, color: 'var(--ink)' }}>{d.phone || 'â€”'}</td>
-                        <td style={{ fontSize: 13, color: 'var(--ink2)' }}>{d.email || 'â€”'}</td>
+                        <td style={{ fontSize: 13, color: 'var(--ink)' }}>{d.phone || '—'}</td>
+                        <td style={{ fontSize: 13, color: 'var(--ink2)' }}>{d.email || '—'}</td>
                         <td>
                           {d.vehicle_name ? (
                             <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>
@@ -344,7 +344,7 @@ export const TrackingDrivers: React.FC = () => {
                               className="drv-action-btn-primary"
                               style={{ padding: '5px 10px', fontSize: 12 }}
                             >
-                              Profile â†’
+                              Profile →
                             </Link>
                           </div>
                         </td>
@@ -382,7 +382,7 @@ export const TrackingDrivers: React.FC = () => {
                     borderRadius: 'var(--r-sm)',
                   }}
                 >
-                  Full Profile â†’
+                  Full Profile →
                 </Link>
                 <button
                   type="button"
@@ -419,11 +419,11 @@ export const TrackingDrivers: React.FC = () => {
                   <div className="drv-trk-route">
                     <div className="drv-trk-col">
                       <div className="drv-trk-label">Origin</div>
-                      <div className="drv-trk-val">{metrics.origin ?? 'â€”'}</div>
+                      <div className="drv-trk-val">{metrics.origin ?? '—'}</div>
                     </div>
                     <div className="drv-trk-col" style={{ textAlign: 'right' }}>
                       <div className="drv-trk-label">Destination</div>
-                      <div className="drv-trk-val">{metrics.destination ?? 'â€”'}</div>
+                      <div className="drv-trk-val">{metrics.destination ?? '—'}</div>
                       <div className="drv-trk-time">{metrics.eta ? `ETA: ${metrics.eta}` : ''}</div>
                     </div>
                   </div>

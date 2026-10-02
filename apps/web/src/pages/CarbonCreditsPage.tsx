@@ -129,8 +129,8 @@ export const CarbonCreditsPage: React.FC = () => {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
       <PageHeader 
         crumbs={['Analytics', 'Carbon Credits']} 
-        titlePlain="Carbon" 
-        titleEm="Credits" 
+        titlePlain="Carbon"
+        titleEm="credits"
         subtitle="Track and manage your carbon footprint and CO2 offsets."
         actions={
           <button onClick={printCertificate} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>

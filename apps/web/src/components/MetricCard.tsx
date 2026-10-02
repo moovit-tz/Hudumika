@@ -147,35 +147,34 @@ export function MetricCard({
   icon, onMenuClick, menuTitle,
 }: MetricCardProps) {
   const sparkId = React.useRef(`mc${++_sparkId}`).current;
-  const color    = barHighlight ?? 'var(--teal)'; // pass the CSS var straight through — it resolves live, so cards stay theme-reactive in dark mode
+  const color    = barHighlight ?? 'var(--teal)';
   const cfg      = COLOR_ICON[color] ?? { icon: 'barChart' as IconName };
   const iconName: IconName = icon ?? cfg.icon;
   const variant  = COLOR_VARIANT[color] ?? 'brand';
   const hasBars  = !!bars && bars.length > 0;
+  const chipClass = variant === 'brand' ? 'is-primary' : variant === 'info' ? 'is-info' : variant === 'success' ? 'is-success' : variant === 'warning' ? 'is-warning' : 'is-danger';
 
   return (
     <div className="mc-card">
       <div className="mc-head">
         <div className="mc-head-left">
-          <FeaturedIcon variant={variant} size="sm" shape="square">
-            <Icon name={iconName} size={18} strokeWidth={1.75} />
-          </FeaturedIcon>
+          <span className={`icon-chip ${chipClass}`}>
+            <Icon name={iconName} size={18} strokeWidth={1.8} />
+          </span>
           <span className="mc-title">{title}</span>
         </div>
-        {/* A single, honestly-labeled refresh action — not a fake "more
-            options" menu that never opens anything (the old three-dot icon
-            implied an overflow menu but every real usage only ever wired up
-            one action). */}
-        {onMenuClick && (
-          <button type="button" className="mc-refresh-btn" onClick={onMenuClick} title={menuTitle ?? 'Refresh'}>
-            <Icon name="refresh" size={14} strokeWidth={1.75} duotone={false} />
-          </button>
-        )}
+        <div className="mc-head-right" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {typeof trend === 'number' && trend !== 0 && <Trend val={trend} invert={invertTrend} />}
+          {onMenuClick && (
+            <button type="button" className="mc-refresh-btn" onClick={onMenuClick} title={menuTitle ?? 'Refresh'}>
+              <Icon name="refresh" size={13} strokeWidth={1.75} duotone={false} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mc-value-row">
         <span className="mc-value">{value}</span>
-        {typeof trend === 'number' && trend !== 0 && <Trend val={trend} invert={invertTrend} />}
       </div>
 
       {(sub1Value || sub2Value) && (

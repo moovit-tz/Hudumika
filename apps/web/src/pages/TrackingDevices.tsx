@@ -41,7 +41,7 @@ export const TrackingDevices: React.FC = () => {
     setSyncing(true); setSyncError(null);
     try {
       const res = await apiFetch('/v1/tracking/gpswox/sync-now', { method: 'POST' });
-      if (!res.ok) setSyncError(res.reason === 'login_failed' ? 'Login failed â€” check credentials.' : res.reason === 'not_configured' ? 'GPSWOX is not configured yet.' : 'Could not reach GPSWOX.');
+      if (!res.ok) setSyncError(res.reason === 'login_failed' ? 'Login failed — check credentials.' : res.reason === 'not_configured' ? 'GPSWOX is not configured yet.' : 'Could not reach GPSWOX.');
       reload();
     } catch (err: any) {
       setSyncError(err.message || 'Sync failed');
@@ -68,7 +68,7 @@ export const TrackingDevices: React.FC = () => {
         </div>
         <button type="button" onClick={syncNow} disabled={syncing || !configured}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: configured ? 'pointer' : 'default', opacity: configured ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-          <Icon name="refresh" size={15} /> {syncing ? 'Syncingâ€¦' : 'Sync Now'}
+          <Icon name="refresh" size={15} /> {syncing ? 'Syncing…' : 'Sync Now'}
         </button>
       </div>
 
@@ -78,7 +78,7 @@ export const TrackingDevices: React.FC = () => {
           <span style={{ width: 9, height: 9, borderRadius: '50%', background: configured ? 'var(--green)' : 'var(--red)', flexShrink: 0 }} />
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{configured ? 'Connected' : 'Not connected'}</span>
           {!configured && !loading && (
-            <Link to="/settings?s=int-gpswox" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, marginLeft: 4 }}>Configure in Settings â†’</Link>
+            <Link to="/settings?s=int-gpswox" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, marginLeft: 4 }}>Configure in Settings →</Link>
           )}
         </div>
 
@@ -121,7 +121,7 @@ export const TrackingDevices: React.FC = () => {
       </SectionCard>
       </div>
 
-      <SectionCard title="Vehicle â†” Device Mapping">
+      <SectionCard title="Vehicle ↔ Device Mapping">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
@@ -156,7 +156,7 @@ export const TrackingDevices: React.FC = () => {
 
       {!loading && unmapped.length > 0 && (
         <div style={{ marginTop: 14, fontSize: 12, color: 'var(--ink3)' }}>
-          {unmapped.length} vehicle{unmapped.length === 1 ? '' : 's'} without a Device ID ({unmapped.map(v => v.name).join(', ')}) â€” set one on the vehicle's edit form to include it in GPSWOX sync.
+          {unmapped.length} vehicle{unmapped.length === 1 ? '' : 's'} without a Device ID ({unmapped.map(v => v.name).join(', ')}) — set one on the vehicle's edit form to include it in GPSWOX sync.
         </div>
       )}
     </div>

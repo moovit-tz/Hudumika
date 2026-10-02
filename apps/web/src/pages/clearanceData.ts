@@ -103,6 +103,38 @@ export interface LedgerEntry {
   reference?: string;
 }
 
+/** One row in the job-charges grid — mirrors the shipment_job_charges table */
+export interface JobChargeLine {
+  id: string;
+  shipment_id: string;
+  charge_code: string;
+  description: string;
+  display_sequence: number;
+  invoice_type: string;
+  // Cost leg (AP)
+  creditor_id: string | null;
+  creditor_name: string | null;
+  cost_currency: string;
+  cost_amount: number;
+  cost_exchange_rate: number | null;
+  cost_local_amount: number | null;
+  cost_posted: boolean;
+  cost_reference: string | null;
+  // Sell leg (AR)
+  debtor_id: string | null;
+  debtor_name: string | null;
+  sell_currency: string;
+  sell_amount: number;
+  sell_exchange_rate: number | null;
+  sell_local_amount: number | null;
+  sell_posted: boolean;
+  sell_reference: string | null;
+  sell_invoice_id: string | null;
+  override_comment: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type TaskStatus   = 'not_started' | 'in_progress' | 'testing' | 'awaiting_feedback' | 'complete';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 

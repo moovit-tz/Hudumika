@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { useLocation, Link } from 'react-router-dom';
 import { Icon } from './Icon.js';
 import type { IconName } from './Icon.js';
-import { useAuth } from '../hooks/useAuth.js';
 import { APP_LABELS, APP_COLORS, MobileNavContext } from '../shells/WorkspaceApp.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { useTenantPlan } from '../hooks/useTenantPlan.js';
@@ -105,7 +104,6 @@ const APP_SUBTITLES: Partial<Record<AppId, string>> = {
 
 export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, loading }: Props) {
   const location    = useLocation();
-  const { logout }  = useAuth();
   const { t }       = useLocale();
   const { mobileOpen, setMobileOpen } = useContext(MobileNavContext);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
@@ -164,8 +162,8 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
   // Auto-expand (see isParentOpen below) covers the common case of landing
   // on a child route directly; this only needs to track explicit toggles.
   const [openParents, setOpenParents] = useState<Record<string, boolean>>({});
-  function toggleParent(path: string) {
-    setOpenParents(prev => ({ ...prev, [path]: !(prev[path] ?? false) }));
+  function toggleParent(path: string, isOpen: boolean) {
+    setOpenParents(prev => ({ ...prev, [path]: !isOpen }));
   }
   const [isDark, setIsDark] = useState(
     () => document.documentElement.getAttribute('data-theme') === 'dark'
@@ -313,7 +311,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
             onClick={toggleCollapse}
             title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
           >
-            <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} size={11} color="var(--ink)" strokeWidth={2.5} />
+            <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} size={11} color="currentColor" strokeWidth={2.5} />
           </button>
         )}
 
@@ -355,7 +353,11 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
                         onClick={isCollapsible ? () => toggleSection(section.title!) : undefined}
                       >
                         <span>{section.title}</span>
-                        {isCollapsible && <span className="app-sb-section-toggle">{isOpen ? '−' : '+'}</span>}
+                        {isCollapsible && (
+                          <span className={`app-sb-section-toggle${isOpen ? ' app-sb-section-toggle--open' : ''}`}>
+                            <Icon name="chevronDown" size={11} strokeWidth={2.5} />
+                          </span>
+                        )}
                       </div>
                     )}
                     {(isOpen || railCollapsed) && section.items.map(item => {
@@ -427,14 +429,16 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
                           <button
                             type="button"
                             className="app-sb-item app-sb-item--parent-hdr"
-                            onClick={() => toggleParent(item.path)}
+                            onClick={() => toggleParent(item.path, isParentOpen)}
                             aria-expanded={isParentOpen}
                           >
                             <span className="app-sb-item-icon">
                               <Icon name={item.icon} size={16} strokeWidth={1.8} />
                             </span>
                             <span className="app-sb-item-label">{item.label}</span>
-                            <span className="app-sb-item-parent-toggle">{isParentOpen ? '−' : '+'}</span>
+                            <span className={`app-sb-item-parent-toggle${isParentOpen ? ' app-sb-item-parent-toggle--open' : ''}`}>
+                              <Icon name="chevronDown" size={13} strokeWidth={2} />
+                            </span>
                           </button>
                           {isParentOpen && (
                             <div className="app-sb-children-group">
@@ -472,38 +476,60 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
           </>
         )}
 
-        {/* ── Footer — Subscription Box ── */}
+        {/* ── Footer — Storage Meter & User Profile / Subscription ── */}
         <div className="app-sb-sub-footer">
           {!railCollapsed ? (
-            <div className="app-sb-sub-box">
-              <div 
-                className="app-sb-sub-header" 
-                onClick={() => setSubOpen(!subOpen)}
-              >
-                <div className="app-sb-sub-title">
-                  <Icon name="zap" size={14} style={{ color: 'var(--teal)' }} />
-                  <span>{planLabel} Plan</span>
+            <div className="app-sb-footer-widgets">
+              {/* Subscription Card */}
+              <div className="app-sb-sub-box">
+                <div
+                  className="app-sb-sub-header"
+                  onClick={() => setSubOpen(!subOpen)}
+                >
+                  <div className="app-sb-sub-title">
+                    <Icon name="zap" size={14} style={{ color: 'var(--teal)' }} />
+                    <span>{planLabel} Plan</span>
+                  </div>
+                  <Icon name={subOpen ? 'chevronDown' : 'chevronRight'} size={13} />
                 </div>
-                <Icon name={subOpen ? 'chevronDown' : 'chevronRight'} size={14} />
+                {subOpen && (
+                  <div className="app-sb-sub-content">
+                    <div className="app-sb-sub-metric">
+                      <span>Price</span>
+                      <strong>{monthlyPrice ? `$${monthlyPrice}/mo` : 'Free'}</strong>
+                    </div>
+                    <div className="app-sb-sub-metric">
+                      <span>Expires</span>
+                      <strong>31 Dec 2026</strong>
+                    </div>
+                    {/* Cloud Storage — shown inside the expanded plan card */}
+                    <div className="app-sb-storage-widget">
+                      <div className="app-sb-storage-header">
+                        <div className="app-sb-storage-title">
+                          <Icon name="folder" size={12} style={{ color: 'var(--teal)' }} />
+                          <span>Cloud Storage</span>
+                        </div>
+                        <span className="app-sb-storage-pct">68.4%</span>
+                      </div>
+                      <div className="app-sb-storage-track">
+                        <div className="app-sb-storage-bar" style={{ width: '68.4%' }} />
+                      </div>
+                      <div className="app-sb-storage-meta">
+                        <span>68.4 GB of 100 GB used</span>
+                      </div>
+                    </div>
+                    <Link to="/subscription" className="app-sb-sub-btn">Upgrade Plan</Link>
+                  </div>
+                )}
               </div>
-              {subOpen && (
-                <div className="app-sb-sub-content">
-                  <div className="app-sb-sub-metric" style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink)' }}>
-                    <span style={{ color: 'var(--ink3)' }}>Price</span>
-                    <strong>{monthlyPrice ? `$${monthlyPrice}/mo` : 'Free'}</strong>
-                  </div>
-                  <div className="app-sb-sub-metric" style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink)' }}>
-                    <span style={{ color: 'var(--ink3)' }}>Expires</span>
-                    <strong>31 Dec 2026</strong>
-                  </div>
-                  <Link to="/subscription" className="app-sb-sub-btn">Pay Upfront</Link>
-                </div>
-              )}
+
             </div>
           ) : (
-            <Link to="/subscription" className="app-sb-footer-icon-btn" title="Subscription">
-              <Icon name="zap" size={16} style={{ color: 'var(--teal)' }} />
-            </Link>
+            <div className="app-sb-collapsed-footer-icons">
+              <Link to="/subscription" className="app-sb-footer-icon-btn" title="Subscription">
+                <Icon name="zap" size={16} style={{ color: 'var(--teal)' }} />
+              </Link>
+            </div>
           )}
         </div>
       </>

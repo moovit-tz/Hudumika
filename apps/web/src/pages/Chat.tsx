@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { Button } from '../components/ui/button.js';
 import type { IconName } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -388,17 +389,17 @@ export const Chat: React.FC = () => {
           <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Messages</h2>
           <div style={{ display: 'flex', gap: 4 }}>
             <Tip label="Browse channels">
-              <button type="button" onClick={openBrowse} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button type="button" onClick={openBrowse} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name={"compass" as IconName} size={15} />
               </button>
             </Tip>
             <Tip label="New Direct Message">
-              <button type="button" onClick={() => setCreating('dm')} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button type="button" onClick={() => setCreating('dm')} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="edit" size={15} />
               </button>
             </Tip>
             <Tip label="New Channel">
-              <button type="button" onClick={() => setCreating('channel')} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button type="button" onClick={() => setCreating('channel')} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="plus" size={15} />
               </button>
             </Tip>
@@ -782,7 +783,7 @@ export const Chat: React.FC = () => {
                     <Popover open={showEmoji} onOpenChange={setShowEmoji}>
                       <Tip label="Emoji">
                         <PopoverTrigger asChild>
-                          <button type="button" style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <button type="button" style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Icon name="smile" size={16} />
                           </button>
                         </PopoverTrigger>
@@ -1053,8 +1054,8 @@ export const Chat: React.FC = () => {
           )}
 
           <DialogFooter>
-            <button type="button" onClick={() => setCreating(null)} style={{ height: 38, padding: '0 16px', borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: '1px solid var(--border2)', color: 'var(--ink2)', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-            <button type="button" onClick={createChannelOrGroup} style={{ height: 38, padding: '0 16px', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontWeight: 700, cursor: 'pointer' }}>Create</button>
+            <Button variant="outline" onClick={() => setCreating(null)}>Cancel</Button>
+            <Button onClick={createChannelOrGroup}>Create</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -23,14 +23,14 @@ interface ClockOutPreview {
 }
 
 /**
- * AttendanceStatusBanner â€” Compact personal identity + live session status hero banner.
+ * AttendanceStatusBanner — Compact personal identity + live session status hero banner.
  *
- * Clock-in state is deliberately NOT this component's own â€” it reads
+ * Clock-in state is deliberately NOT this component's own — it reads
  * ClockInContext, the exact same shared state the header's own CheckInWidget
  * (`components/CheckInWidget.tsx`) publishes to. hr.routes.ts bridges
  * hr_clock_sessions (this card's own backing table) and hr_time_entries (the
  * header's) bidirectionally at the API layer already; this is the frontend
- * half of that â€” one poll, one truth, so clocking in from the header and
+ * half of that — one poll, one truth, so clocking in from the header and
  * clocking in from this card can never show two different answers on screen
  * at once. "Clock In Now" doesn't call the clock-in API directly at all: it
  * opens the SAME task/shipment picker the header uses (ctxTriggerOpen), so
@@ -43,7 +43,7 @@ export function AttendanceStatusBanner() {
   const [elapsedSecs, setElapsedSecs] = useState(0);
   const [clockOutSummary, setClockOutSummary] = useState<ClockOutSummary | null>(null);
 
-  // Pre-clock-out confirmation â€” worked time + tasks closed so far, fetched
+  // Pre-clock-out confirmation — worked time + tasks closed so far, fetched
   // live (not guessed client-side) the moment "Clock Out" is pressed, so the
   // number being confirmed is the real one the server would also compute.
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -106,7 +106,7 @@ export function AttendanceStatusBanner() {
   });
 
   // The timer's own start time comes from the shared context's entry, not a
-  // fetch this component owns â€” whichever surface (header or this card)
+  // fetch this component owns — whichever surface (header or this card)
   // actually opened the session, both read the same started_at.
   useEffect(() => {
     if (!isCheckedIn || !currentEntry?.started_at) { setElapsedSecs(0); return; }
@@ -118,7 +118,7 @@ export function AttendanceStatusBanner() {
   }, [isCheckedIn, currentEntry]);
 
   // "Clock In Now" opens the same task/shipment picker the header's clock
-  // button does â€” the one place in the platform that decides what
+  // button does — the one place in the platform that decides what
   // "select a task and start the clock" looks like, rather than this card
   // clocking in against a hardcoded placeholder task name of its own.
   const handleClockIn = () => ctxTriggerOpen();
@@ -143,7 +143,7 @@ export function AttendanceStatusBanner() {
       const res = await apiFetch('/v1/hr/clock-in/stop', { method: 'POST' });
       setConfirmOpen(false);
       setConfirmPreview(null);
-      // Instant sync â€” the header's CheckInWidget reads this same context,
+      // Instant sync — the header's CheckInWidget reads this same context,
       // so it flips to idle immediately rather than waiting on its own poll.
       ctxSetCheckedIn(false);
       if (res?.summary) setClockOutSummary(res.summary);
@@ -211,13 +211,13 @@ export function AttendanceStatusBanner() {
           <div className="asb-context-column">
             <div className="asb-meta-line">
               <span className="asb-meta-date">{dateStr}</span>
-              <span className="asb-dot-sep">Â·</span>
+              <span className="asb-dot-sep">·</span>
               <span className="asb-meta-time">{timeStr}</span>
             </div>
             {weather && (
               <div className="asb-meta-weather">
-                <span>{weather.desc}, {weather.temp}Â°C</span>
-                <span style={{ opacity: 0.6 }}>Â·</span>
+                <span>{weather.desc}, {weather.temp}°C</span>
+                <span style={{ opacity: 0.6 }}>·</span>
                 <span>{userCity || weather.city}</span>
               </div>
             )}
@@ -263,7 +263,7 @@ export function AttendanceStatusBanner() {
         </div>
       </div>
 
-      {/* Pre-clock-out confirmation â€” worked time + tasks so far, with a
+      {/* Pre-clock-out confirmation — worked time + tasks so far, with a
           real way out (Cancel) rather than an irreversible click. */}
       <Dialog open={confirmOpen} onOpenChange={o => !o && !clockingOut && setConfirmOpen(false)}>
         <DialogContent className="sm:max-w-md">
@@ -272,7 +272,7 @@ export function AttendanceStatusBanner() {
           </DialogHeader>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {confirmLoading ? (
-              <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0 }}>Loading your sessionâ€¦</p>
+              <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0 }}>Loading your session…</p>
             ) : confirmError ? (
               <p style={{ fontSize: 13, color: 'var(--red)', margin: 0 }}>{confirmError}</p>
             ) : confirmPreview && (
@@ -292,14 +292,14 @@ export function AttendanceStatusBanner() {
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <Link to={kpiLink} onClick={() => setConfirmOpen(false)} style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
-                View timesheet â†’
+                View timesheet →
               </Link>
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)} disabled={clockingOut}>
                   Cancel
                 </Button>
                 <Button type="button" onClick={confirmClockOut} disabled={confirmLoading || clockingOut} style={{ background: 'var(--red)', color: 'hsl(var(--red-foreground))', border: 'none' }}>
-                  {clockingOut ? 'Clocking outâ€¦' : 'Confirm Clock Out'}
+                  {clockingOut ? 'Clocking out…' : 'Confirm Clock Out'}
                 </Button>
               </div>
             </div>
@@ -318,7 +318,7 @@ export function AttendanceStatusBanner() {
               {clockOutSummary.is_short_shift && (
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 'var(--r)', background: 'var(--gold-l, #fffbeb)', border: '1px solid var(--gold-m, #fde68a)' }}>
                   <Icon name="alertCircle" size={15} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
-                  <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>That was a very short session â€” if this was a mis-click, you can clock back in.</span>
+                  <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>That was a very short session — if this was a mis-click, you can clock back in.</span>
                 </div>
               )}
               <div style={{ display: 'flex', gap: 12 }}>
@@ -348,7 +348,7 @@ export function AttendanceStatusBanner() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 4 }}>
                 <Link to={kpiLink} onClick={() => setClockOutSummary(null)} style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
-                  View HR insights â†’
+                  View HR insights →
                 </Link>
                 <Button type="button" onClick={() => setClockOutSummary(null)} style={{ height: 38, padding: '0 18px', fontSize: 13, fontWeight: 700, borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', border: '1px solid var(--border)', cursor: 'pointer' }}>
                   Close

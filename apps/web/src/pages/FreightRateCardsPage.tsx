@@ -12,7 +12,7 @@ interface RateCard {
   id: string; carrier_id: string; carrier_name: string | null; mode: string;
   origin_port: string; destination_port: string;
   // Postgres numeric columns come back through pg/Kysely as strings, not
-  // JS numbers â€” .toFixed() on these without Number(...) first throws and
+  // JS numbers — .toFixed() on these without Number(...) first throws and
   // takes the whole page down (found live: crashed right after saving the
   // very first rate card).
   cost_rate: string | number; sell_rate: string | number;
@@ -20,9 +20,9 @@ interface RateCard {
 }
 
 const MODES = [
-  { value: 'FCL_20', label: 'FCL â€” 20ft' },
-  { value: 'FCL_40', label: 'FCL â€” 40ft' },
-  { value: 'FCL_40HC', label: 'FCL â€” 40ft HC' },
+  { value: 'FCL_20', label: 'FCL — 20ft' },
+  { value: 'FCL_40', label: 'FCL — 40ft' },
+  { value: 'FCL_40HC', label: 'FCL — 40ft HC' },
   { value: 'LCL', label: 'LCL (per CBM)' },
   { value: 'AIR', label: 'Air (per kg)' },
   { value: 'ROAD', label: 'Road' },
@@ -41,7 +41,7 @@ export function FreightRateCardsPage() {
     setLoading(true);
     Promise.all([
       apiFetch('/v1/freight-booking/rate-cards'),
-      // Unfiltered â€” an inactive carrier still needs to be distinguishable
+      // Unfiltered — an inactive carrier still needs to be distinguishable
       // from "no carrier exists at all" for the empty-state message below;
       // the picker itself filters to active ones.
       apiFetch('/v1/freight-booking/carriers'),
@@ -79,7 +79,7 @@ export function FreightRateCardsPage() {
         crumbs={['CargoTracker', 'Freight Booking', 'Freight Rate Cards']}
         titlePlain="Freight rate"
         titleEm="cards"
-        subtitle="Carrier cost vs. customer sell rate by lane â€” the margin on every booking comes from here"
+        subtitle="Carrier cost vs. customer sell rate by lane — the margin on every booking comes from here"
         actions={
           <button type="button" className="btn btn-primary" onClick={() => setShowForm(s => !s)}>
             <Icon name="plus" size={14} /> {showForm ? 'Cancel' : 'Add Rate Card'}
@@ -90,8 +90,8 @@ export function FreightRateCardsPage() {
       {activeCarriers.length === 0 && !loading && (
         <div style={{ padding: '12px 18px', borderRadius: 'var(--r)', background: 'var(--gold-l)', border: '1px solid var(--gold)', marginBottom: 20, fontSize: 12.5, color: 'var(--ink2)' }}>
           {carriers.length === 0
-            ? 'Add a carrier first â€” rate cards belong to a carrier.'
-            : 'No active carriers â€” activate one on the Carriers page before adding a rate card.'}
+            ? 'Add a carrier first — rate cards belong to a carrier.'
+            : 'No active carriers — activate one on the Carriers page before adding a rate card.'}
         </div>
       )}
 
@@ -101,7 +101,7 @@ export function FreightRateCardsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Carrier *</label>
-              <Combobox options={activeCarriers.map(c => ({ value: c.id, label: c.name }))} value={form.carrier_id} onChange={v => setForm(p => ({ ...p, carrier_id: v }))} placeholder="Choose carrierâ€¦" />
+              <Combobox options={activeCarriers.map(c => ({ value: c.id, label: c.name }))} value={form.carrier_id} onChange={v => setForm(p => ({ ...p, carrier_id: v }))} placeholder="Choose carrier…" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Mode</label>
@@ -134,19 +134,19 @@ export function FreightRateCardsPage() {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Margin</label>
               <div className="input-field" style={{ display: 'flex', alignItems: 'center', color: 'var(--teal)', fontWeight: 700 }}>
-                {form.cost_rate && form.sell_rate ? `${form.currency} ${(parseFloat(form.sell_rate) - parseFloat(form.cost_rate)).toFixed(2)}` : 'â€”'}
+                {form.cost_rate && form.sell_rate ? `${form.currency} ${(parseFloat(form.sell_rate) - parseFloat(form.cost_rate)).toFixed(2)}` : '—'}
               </div>
             </div>
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-          <button type="button" className="btn btn-primary" onClick={saveCard} disabled={saving}>{saving ? 'Savingâ€¦' : 'Save Rate Card'}</button>
+          <button type="button" className="btn btn-primary" onClick={saveCard} disabled={saving}>{saving ? 'Saving…' : 'Save Rate Card'}</button>
         </SectionCard>
         </div>
       )}
 
       <SectionCard padded={false}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading rate cardsâ€¦</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading rate cards…</div>
         ) : cards.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No rate cards yet.</div>
         ) : (
@@ -164,11 +164,11 @@ export function FreightRateCardsPage() {
                   <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
                       <PersonAvatar userId={c.carrier_id} kind="carriers" name={c.carrier_name ?? ''} size={26} style={{ borderRadius: 'var(--r-sm)' }} />
-                      {c.carrier_name || 'â€”'}
+                      {c.carrier_name || '—'}
                     </span>
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{MODES.find(m => m.value === c.mode)?.label || c.mode}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.origin_port} â†’ {c.destination_port}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.origin_port} → {c.destination_port}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--ink3)' }}>{c.currency} {Number(c.cost_rate).toFixed(2)}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--ink)' }}>{c.currency} {Number(c.sell_rate).toFixed(2)}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--teal)' }}>{c.currency} {(Number(c.sell_rate) - Number(c.cost_rate)).toFixed(2)}</td>

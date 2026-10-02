@@ -1675,6 +1675,142 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // ── Job charges (CargoWise-style cost+sell grid) ──────────────────────────
+
+  const jobChargeSchema = z.object({
+    charge_code:        z.string().max(20),
+    description:        z.string().max(500),
+    display_sequence:   z.number().int().optional(),
+    invoice_type:       z.string().max(10).optional(),
+    creditor_id:        z.string().uuid().nullable().optional(),
+    creditor_name:      z.string().max(200).nullable().optional(),
+    cost_currency:      z.string().max(5).optional(),
+    cost_amount:        z.number().optional(),
+    cost_exchange_rate: z.number().optional(),
+    cost_local_amount:  z.number().optional(),
+    cost_posted:        z.boolean().optional(),
+    cost_reference:     z.string().max(200).nullable().optional(),
+    debtor_id:          z.string().uuid().nullable().optional(),
+    debtor_name:        z.string().max(200).nullable().optional(),
+    sell_currency:      z.string().max(5).optional(),
+    sell_amount:        z.number().optional(),
+    sell_exchange_rate: z.number().optional(),
+    sell_local_amount:  z.number().optional(),
+    sell_posted:        z.boolean().optional(),
+    sell_reference:     z.string().max(200).nullable().optional(),
+    sell_invoice_id:    z.string().uuid().nullable().optional(),
+    override_comment:   z.string().nullable().optional(),
+  });
+
+  /** GET /v1/shipments/:id/job-charges */
+  fastify.get('/:id/job-charges', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx
+        .selectFrom('shipment_job_charges')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('shipment_id', '=', id)
+        .orderBy('display_sequence', 'asc')
+        .orderBy('created_at', 'asc')
+        .execute();
+      return { data: rows };
+    });
+  });
+
+  /** POST /v1/shipments/:id/job-charges */
+  fastify.post('/:id/job-charges',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'FINANCE') },
+    async (request, reply) => {
+      const user = request.user;
+      const { id } = request.params as { id: string };
+      const body = jobChargeSchema.parse(request.body);
+      return withTenant(user.tenant_id, async (trx) => {
+        const maxSeq = await trx
+          .selectFrom('shipment_job_charges')
+          .select(trx.fn.max('display_sequence').as('m'))
+          .where('tenant_id', '=', user.tenant_id)
+          .where('shipment_id', '=', id)
+          .executeTakeFirst();
+        const nextSeq = body.display_sequence ?? ((Number(maxSeq?.m ?? 0)) + 1);
+        const row = await trx
+          .insertInto('shipment_job_charges')
+          .values({
+            tenant_id:          user.tenant_id,
+            shipment_id:        id,
+            display_sequence:   nextSeq,
+            charge_code:        body.charge_code,
+            description:        body.description,
+            invoice_type:       body.invoice_type ?? 'FIN',
+            creditor_id:        body.creditor_id ?? null,
+            creditor_name:      body.creditor_name ?? null,
+            cost_currency:      body.cost_currency ?? 'USD',
+            cost_amount:        body.cost_amount ?? 0,
+            cost_exchange_rate: body.cost_exchange_rate ?? null,
+            cost_local_amount:  body.cost_local_amount ?? null,
+            cost_posted:        body.cost_posted ?? false,
+            cost_reference:     body.cost_reference ?? null,
+            debtor_id:          body.debtor_id ?? null,
+            debtor_name:        body.debtor_name ?? null,
+            sell_currency:      body.sell_currency ?? 'USD',
+            sell_amount:        body.sell_amount ?? 0,
+            sell_exchange_rate: body.sell_exchange_rate ?? null,
+            sell_local_amount:  body.sell_local_amount ?? null,
+            sell_posted:        body.sell_posted ?? false,
+            sell_reference:     body.sell_reference ?? null,
+            sell_invoice_id:    body.sell_invoice_id ?? null,
+            override_comment:   body.override_comment ?? null,
+            created_by:         user.sub,
+          })
+          .returningAll()
+          .executeTakeFirstOrThrow();
+        reply.code(201);
+        return row;
+      });
+    },
+  );
+
+  /** PATCH /v1/shipments/:id/job-charges/:cid */
+  fastify.patch('/:id/job-charges/:cid',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'FINANCE') },
+    async (request, reply) => {
+      const user = request.user;
+      const { id, cid } = request.params as { id: string; cid: string };
+      const body = jobChargeSchema.partial().parse(request.body);
+      return withTenant(user.tenant_id, async (trx) => {
+        const row = await trx
+          .updateTable('shipment_job_charges')
+          .set({ ...body, updated_at: new Date() } as any)
+          .where('tenant_id', '=', user.tenant_id)
+          .where('shipment_id', '=', id)
+          .where('id', '=', cid)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+        return row;
+      });
+    },
+  );
+
+  /** DELETE /v1/shipments/:id/job-charges/:cid */
+  fastify.delete('/:id/job-charges/:cid',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'MANAGER') },
+    async (request, reply) => {
+      const user = request.user;
+      const { id, cid } = request.params as { id: string; cid: string };
+      return withTenant(user.tenant_id, async (trx) => {
+        await trx
+          .deleteFrom('shipment_job_charges')
+          .where('tenant_id', '=', user.tenant_id)
+          .where('shipment_id', '=', id)
+          .where('id', '=', cid)
+          .execute();
+        reply.code(204);
+        return null;
+      });
+    },
+  );
+
   /**
    * GET /v1/shipments/:id/timeline
    * Timeline endpoint combining stage history and update messages

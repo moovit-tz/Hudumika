@@ -14,6 +14,9 @@ import { logEvent, notifyRecipients, recipientsToNotify } from '../services/sign
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID_RE.test(v);
+
 // Same role set as comply-renewal.job.ts's own COMPLY_MGMT_ROLES and the
 // frontend's MGMT_ROLES (apps/web/src/lib/permissions.ts) — kept local
 // rather than shared since every other route file in this codebase
@@ -192,6 +195,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
   fastify.patch('/certificates/:id', async (request: any, reply) => {
     try {
       const { id } = request.params as { id: string };
+      if (!isUuid(id)) return reply.status(404).send({ error: 'Certificate not found' });
       await ComplyService.updateCertificate(request.user.tenant_id, id, request.body);
       return { ok: true };
     } catch (err: any) {
@@ -202,6 +206,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
   fastify.delete('/certificates/:id', async (request: any, reply) => {
     try {
       const { id } = request.params as { id: string };
+      if (!isUuid(id)) return reply.status(404).send({ error: 'Certificate not found' });
       await ComplyService.revokeCertificate(request.user.tenant_id, id);
       return { ok: true };
     } catch (err: any) {
@@ -232,6 +237,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
   fastify.patch('/applications/:id', async (request: any, reply) => {
     try {
       const { id } = request.params as { id: string };
+      if (!isUuid(id)) return reply.status(404).send({ error: 'Application not found' });
       await ComplyService.updateApplication(request.user.tenant_id, id, request.body);
       return { ok: true };
     } catch (err: any) {
@@ -253,6 +259,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
   // envelope status the same way ContractDetail.tsx already does.
   fastify.post<{ Params: { id: string } }>('/applications/:id/request-signature', async (request: any, reply) => {
     const user = request.user;
+    if (!isUuid(request.params.id)) return reply.status(404).send({ error: 'Application not found' });
     return withTenant(user.tenant_id, async (trx) => {
       const app = await trx.selectFrom('comply_applications')
         .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id)
@@ -310,6 +317,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
   fastify.delete('/applications/:id', async (request: any, reply) => {
     try {
       const { id } = request.params as { id: string };
+      if (!isUuid(id)) return reply.status(404).send({ error: 'Application not found' });
       await ComplyService.deleteApplication(request.user.tenant_id, id);
       return { ok: true };
     } catch (err: any) {
@@ -339,6 +347,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
   fastify.patch('/obligations/:id', async (request: any, reply) => {
     try {
       const { id } = request.params as { id: string };
+      if (!isUuid(id)) return reply.status(404).send({ error: 'Obligation not found' });
       await ComplyService.updateObligation(request.user.tenant_id, id, request.body);
       return { ok: true };
     } catch (err: any) {
@@ -349,6 +358,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
   fastify.delete('/obligations/:id', async (request: any, reply) => {
     try {
       const { id } = request.params as { id: string };
+      if (!isUuid(id)) return reply.status(404).send({ error: 'Obligation not found' });
       await ComplyService.deleteObligation(request.user.tenant_id, id);
       return { ok: true };
     } catch (err: any) {
@@ -379,6 +389,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
   fastify.post('/renewals/:id/approve', async (request: any, reply) => {
     try {
       const { id } = request.params as { id: string };
+      if (!isUuid(id)) return reply.status(404).send({ error: 'Renewal not found' });
       await ComplyService.approveRenewal(request.user.tenant_id, id, request.user.sub);
       return { ok: true };
     } catch (err: any) {
@@ -450,6 +461,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
   fastify.delete('/reminders/:id', async (request: any, reply) => {
     try {
       const { id } = request.params as { id: string };
+      if (!isUuid(id)) return reply.status(404).send({ error: 'Reminder not found' });
       await ComplyService.deleteReminder(request.user.tenant_id, id);
       return { ok: true };
     } catch (err: any) {

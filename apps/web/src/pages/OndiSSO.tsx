@@ -1,4 +1,4 @@
-﻿// â”€â”€â”€ OndiSSO.tsx â€” Perfected Ondi SSO, Benchmark, Flow & Feature Map â”€â”€
+﻿// ─── OndiSSO.tsx — Perfected Ondi SSO, Benchmark, Flow & Feature Map ──
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { apiFetch, BASE_URL } from '../lib/api.js';
@@ -15,7 +15,7 @@ import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { useEntitlements } from '../hooks/useEntitlements.js';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle } from '../components/ui/dialog.js';
 
-// The three real Studio triggers OAuth/SSO events emit (studio/triggers.ts) â€”
+// The three real Studio triggers OAuth/SSO events emit (studio/triggers.ts) —
 // a Studio automation bound to one of these actually fires when this exact
 // page's own actions happen (register a client, grant/revoke consent).
 const OAUTH_TRIGGER_IDS = new Set([
@@ -88,8 +88,8 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
             <textarea required value={redirectUris} onChange={e => setRedirectUris(e.target.value)} placeholder="http://localhost:3000/callback, https://helpdesk.company.com/oauth" style={{ ...inputStyle, height: 60, resize: 'vertical' }} />
           </div>
           <div>
-            <label style={labelStyle}>Client Secret (Optional â€” blank for public PKCE)</label>
-            <input type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" style={inputStyle} />
+            <label style={labelStyle}>Client Secret (Optional — blank for public PKCE)</label>
+            <input type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} placeholder="••••••••••••" style={inputStyle} />
           </div>
           <div>
             <label style={labelStyle}>App Logo URL (Optional)</label>
@@ -102,7 +102,7 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
             <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
             <button type="submit" disabled={saving || !name.trim() || !clientId.trim() || !redirectUris.trim()} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: (saving || !name.trim() || !clientId.trim() || !redirectUris.trim()) ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {saving ? 'Creatingâ€¦' : 'Register application'}
+              {saving ? 'Creating…' : 'Register application'}
             </button>
           </div>
         </form>
@@ -122,7 +122,7 @@ function AddProviderModal({ onClose, onAdded, onStartSaml }: { onClose: () => vo
   const [saving, setSaving] = useState(false);
 
   // SAML gets its own guided setup (SamlSetupWizard, below) instead of this
-  // form â€” it's real assertion handling now (ondi-saml.routes.ts), and a
+  // form — it's real assertion handling now (ondi-saml.routes.ts), and a
   // bare client-id/secret-shaped form was never the right fields for it
   // anyway. Picking it here just routes there, carrying the name they
   // already typed along so the wizard's own first step doesn't ask again.
@@ -153,8 +153,8 @@ function AddProviderModal({ onClose, onAdded, onStartSaml }: { onClose: () => vo
         <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Add identity provider</DialogTitle>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>
           {type === 'SAML'
-            ? 'Real assertion handling, walked through step by step â€” including sending your side to the IdP before it asks for theirs.'
-            : 'Configuration only â€” connecting this provider to real sign-in is a follow-on step.'}
+            ? 'Real assertion handling, walked through step by step — including sending your side to the IdP before it asks for theirs.'
+            : 'Configuration only — connecting this provider to real sign-in is a follow-on step.'}
         </div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
@@ -172,7 +172,7 @@ function AddProviderModal({ onClose, onAdded, onStartSaml }: { onClose: () => vo
           </div>
           {type === 'SAML' ? (
             <div style={{ background: 'var(--teal-l)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 12, color: 'var(--ink2)' }}>
-              Continuing opens a short, guided setup â€” it gives you Hudumika's own connection details first (to paste into Okta, Entra ID, or Google Workspace), then asks for theirs.
+              Continuing opens a short, guided setup — it gives you Hudumika's own connection details first (to paste into Okta, Entra ID, or Google Workspace), then asks for theirs.
             </div>
           ) : (
             <>
@@ -186,14 +186,14 @@ function AddProviderModal({ onClose, onAdded, onStartSaml }: { onClose: () => vo
               </div>
               <div>
                 <label style={labelStyle}>Metadata URL (OIDC)</label>
-                <input value={metadataUrl} onChange={e => setMetadataUrl(e.target.value)} placeholder="https://â€¦" style={inputStyle} />
+                <input value={metadataUrl} onChange={e => setMetadataUrl(e.target.value)} placeholder="https://…" style={inputStyle} />
               </div>
             </>
           )}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
             <button type="submit" disabled={saving || !canSubmit} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: (saving || !canSubmit) ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {saving ? 'Savingâ€¦' : type === 'SAML' ? 'Continue' : 'Add provider'}
+              {saving ? 'Saving…' : type === 'SAML' ? 'Continue' : 'Add provider'}
             </button>
           </div>
         </form>
@@ -202,43 +202,43 @@ function AddProviderModal({ onClose, onAdded, onStartSaml }: { onClose: () => vo
   );
 }
 
-/* â”€â”€ SAML setup â€” a real guided wizard, modeled on how Okta's own "Create
+/* ── SAML setup — a real guided wizard, modeled on how Okta's own "Create
    App Integration" flow actually works: the integration is created early
    (as soon as it's named) rather than only once every field is filled in,
    because that's what makes it possible to hand the admin *our* side of
-   the trust (ACS URL, Entity ID â€” both keyed off this provider's own id)
+   the trust (ACS URL, Entity ID — both keyed off this provider's own id)
    before asking for theirs. The old single-form modal had this backwards:
    it asked for the IdP's cert/URL first and only revealed our own URLs
-   after saving â€” but an admin can't get the IdP's values without first
+   after saving — but an admin can't get the IdP's values without first
    pasting *our* URLs into Okta/Entra/Google, so that ordering was a real
-   chicken-and-egg dead end for anyone actually following it in order. â”€â”€ */
+   chicken-and-egg dead end for anyone actually following it in order. ── */
 type SamlWizardStep = 'basics' | 'your-side' | 'their-side' | 'test';
 
 const SAML_VENDOR_GUIDES: Record<'okta' | 'azure' | 'google' | 'other', { label: string; steps: string[] }> = {
   okta: {
     label: 'Okta',
     steps: [
-      'In Okta: Applications â†’ Applications â†’ Create App Integration.',
+      'In Okta: Applications → Applications → Create App Integration.',
       'Choose "SAML 2.0" and continue.',
       'Name the app (e.g. "Hudumika"), then continue to Configure SAML.',
       'Paste the Single sign-on URL and Audience URI (SP Entity ID) below into the matching fields.',
-      'Finish the wizard, open the app\'s Sign On tab, and click "View Setup Instructions" â€” that page has the values the next step here asks for.',
+      'Finish the wizard, open the app\'s Sign On tab, and click "View Setup Instructions" — that page has the values the next step here asks for.',
     ],
   },
   azure: {
     label: 'Microsoft Entra ID',
     steps: [
-      'In the Entra admin center: Enterprise Applications â†’ New application â†’ Create your own application.',
-      'Open Single sign-on â†’ SAML.',
+      'In the Entra admin center: Enterprise Applications → New application → Create your own application.',
+      'Open Single sign-on → SAML.',
       'Under Basic SAML Configuration, paste the Identifier (Entity ID) and Reply URL below into the matching fields.',
-      'Download the Certificate (Base64) and copy the Login URL from Section 4 â€” the next step here asks for both.',
+      'Download the Certificate (Base64) and copy the Login URL from Section 4 — the next step here asks for both.',
     ],
   },
   google: {
     label: 'Google Workspace',
     steps: [
-      'In the Admin console: Apps â†’ Web and mobile apps â†’ Add app â†’ Add custom SAML app.',
-      'Name the app, then on Google IdP details, copy the SSO URL, Entity ID, and download the certificate â€” the next step here asks for all three.',
+      'In the Admin console: Apps → Web and mobile apps → Add app → Add custom SAML app.',
+      'Name the app, then on Google IdP details, copy the SSO URL, Entity ID, and download the certificate — the next step here asks for all three.',
       'On Service provider details, paste the ACS URL and Entity ID below into the matching fields.',
     ],
   },
@@ -247,7 +247,7 @@ const SAML_VENDOR_GUIDES: Record<'okta' | 'azure' | 'google' | 'other', { label:
     steps: [
       'Create a new SAML application in your identity provider.',
       'Use the values below as this application\'s Assertion Consumer Service (ACS) URL and Entity ID / Audience.',
-      'Copy your IdP\'s own Entity ID, SSO URL, and signing certificate â€” the next step here asks for all three.',
+      'Copy your IdP\'s own Entity ID, SSO URL, and signing certificate — the next step here asks for all three.',
     ],
   },
 };
@@ -263,7 +263,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
   );
   // Persisted into config.vendor (below) so a resumed/incomplete provider
   // still shows the right IdP's instructions instead of silently defaulting
-  // back to Okta â€” this was a real bug: picking "Microsoft Entra ID" here,
+  // back to Okta — this was a real bug: picking "Microsoft Entra ID" here,
   // then leaving and coming back via "Finish setup", used to reset to the
   // Okta copy because the choice was never saved anywhere.
   const [vendor, setVendor] = useState<'okta' | 'azure' | 'google' | 'other'>(existing?.config?.vendor ?? 'okta');
@@ -281,7 +281,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
   const btnPrimary: React.CSSProperties = { padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 };
   const btnGhost: React.CSSProperties = { padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 };
 
-  // Created as soon as it's named â€” a real (if not yet fully configured)
+  // Created as soon as it's named — a real (if not yet fully configured)
   // sso_providers row, so its own id exists and this wizard can show real
   // ACS/metadata/login URLs on the very next screen instead of asking the
   // admin to somehow paste in URLs that don't exist yet.
@@ -343,7 +343,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
       <DialogContent hideClose size="md">
         <DialogHeader>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{existing ? `Finish setup â€” ${existing.name}` : 'Connect a SAML identity provider'}</DialogTitle>
+            <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{existing ? `Finish setup — ${existing.name}` : 'Connect a SAML identity provider'}</DialogTitle>
             <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
           </div>
 
@@ -365,7 +365,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
         <DialogBody>
         {error && <div style={{ background: 'var(--red-l)', color: 'var(--red)', borderRadius: 'var(--r)', padding: '8px 12px', fontSize: 12.5, marginBottom: 14 }}>{error}</div>}
 
-        {/* Step 1 â€” name it */}
+        {/* Step 1 — name it */}
         {step === 'basics' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
@@ -382,12 +382,12 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
                   </button>
                 ))}
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 6 }}>Just picks which setup instructions to show you next â€” every provider here speaks the same SAML 2.0 underneath.</div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 6 }}>Just picks which setup instructions to show you next — every provider here speaks the same SAML 2.0 underneath.</div>
             </div>
           </div>
         )}
 
-        {/* Step 2 â€” give them our side first */}
+        {/* Step 2 — give them our side first */}
         {step === 'your-side' && provider && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ fontSize: 12.5, color: 'var(--ink2)' }}>
@@ -406,7 +406,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
           </div>
         )}
 
-        {/* Step 3 â€” now ask for theirs */}
+        {/* Step 3 — now ask for theirs */}
         {step === 'their-side' && provider && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ fontSize: 12.5, color: 'var(--ink2)' }}>
@@ -422,12 +422,12 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
             </div>
             <div>
               <label style={labelStyle}>IdP signing certificate (X.509, PEM)</label>
-              <textarea required value={idpCertificate} onChange={e => setIdpCertificate(e.target.value)} placeholder="-----BEGIN CERTIFICATE-----â€¦" style={{ ...inputStyle, height: 90, resize: 'vertical', fontFamily: 'var(--font)', fontSize: 11.5 }} />
+              <textarea required value={idpCertificate} onChange={e => setIdpCertificate(e.target.value)} placeholder="-----BEGIN CERTIFICATE-----…" style={{ ...inputStyle, height: 90, resize: 'vertical', fontFamily: 'var(--font)', fontSize: 11.5 }} />
             </div>
           </div>
         )}
 
-        {/* Step 4 â€” test, then turn it on */}
+        {/* Step 4 — test, then turn it on */}
         {step === 'test' && provider && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', fontSize: 13, fontWeight: 600 }}>
@@ -441,7 +441,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer' }}>
               <Checkbox checked={enabled} onCheckedChange={toggleEnabledHere} />
-              <span style={{ fontSize: 12.5, color: 'var(--ink)' }}><strong>Enable this provider</strong> â€” staff at your domain can sign in through it immediately.</span>
+              <span style={{ fontSize: 12.5, color: 'var(--ink)' }}><strong>Enable this provider</strong> — staff at your domain can sign in through it immediately.</span>
             </label>
             <CopyRow label="ACS / Reply URL" value={acsUrl} />
             <CopyRow label="Entity ID / Audience URI" value={metadataUrl} />
@@ -459,11 +459,11 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
           </button>
           {step === 'basics' && (
             <button type="button" onClick={createAndContinue} disabled={saving || !name.trim()} style={{ ...btnPrimary, opacity: (saving || !name.trim()) ? 0.6 : 1 }}>
-              {saving ? 'Creatingâ€¦' : 'Continue'}
+              {saving ? 'Creating…' : 'Continue'}
             </button>
           )}
           {step === 'your-side' && (
-            <button type="button" onClick={() => setStep('their-side')} style={btnPrimary}>I've done that â€” continue</button>
+            <button type="button" onClick={() => setStep('their-side')} style={btnPrimary}>I've done that — continue</button>
           )}
           {step === 'their-side' && (
             <button
@@ -472,7 +472,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
               disabled={saving || !idpEntityId.trim() || !idpSsoUrl.trim() || !idpCertificate.trim()}
               style={{ ...btnPrimary, opacity: (saving || !idpEntityId.trim() || !idpSsoUrl.trim() || !idpCertificate.trim()) ? 0.6 : 1 }}
             >
-              {saving ? 'Savingâ€¦' : 'Save & continue'}
+              {saving ? 'Saving…' : 'Save & continue'}
             </button>
           )}
           {step === 'test' && (
@@ -484,7 +484,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
   );
 }
 
-/** The SP-side URLs a tenant's IT admin needs to finish wiring their IdP â€”
+/** The SP-side URLs a tenant's IT admin needs to finish wiring their IdP —
  *  computed from the same :providerId ondi-saml.routes.ts itself keys off,
  *  not stored anywhere (there's nothing to get out of sync). */
 function CopyRow({ label, value }: { label: string; value: string }) {
@@ -503,7 +503,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-// SP-details display is now the SamlSetupWizard's own "test" step (below) â€”
+// SP-details display is now the SamlSetupWizard's own "test" step (below) —
 // resuming an already-complete provider opens the wizard straight there,
 // so a separate SamlDetailsModal is no longer needed.
 
@@ -515,21 +515,21 @@ export const OndiSSO: React.FC = () => {
   const [showAdd, setShowAdd] = useState(false);
   // `false` = closed, `null` = wizard open in "new provider" mode, an
   // SsoProvider = wizard open resuming that existing (possibly incomplete)
-  // provider â€” one flag covers both "Add" and "Finish setup"/"Manage".
+  // provider — one flag covers both "Add" and "Finish setup"/"Manage".
   const [samlWizard, setSamlWizard] = useState<SsoProvider | null | false>(false);
   const [samlWizardInitialName, setSamlWizardInitialName] = useState('');
   const [showAddClient, setShowAddClient] = useState(false);
   const [activeTab, setActiveTab] = useState<'registry' | 'flow'>('registry');
-  // Ondi Personal â–¸ Apps deep-links here with ?tab=clients when a non-admin
+  // Ondi Personal ▸ Apps deep-links here with ?tab=clients when a non-admin
   // page hands off to the real, admin-gated "register an application" flow
   // rather than duplicating a client-secret-issuing form on a self-service
-  // page â€” read once on mount, not kept in sync with the URL after that.
+  // page — read once on mount, not kept in sync with the URL after that.
   const [searchParams] = useSearchParams();
   const [subTab, setSubTab] = useState<'idps' | 'clients'>(searchParams.get('tab') === 'clients' ? 'clients' : 'idps');
 
-  // undefined while /v1/entitlements is still loading â€” default to
+  // undefined while /v1/entitlements is still loading — default to
   // entitled so the page doesn't flash an upgrade prompt before we know,
-  // matching RequireAppEnabled's own "entitlements === null â†’ render as if
+  // matching RequireAppEnabled's own "entitlements === null → render as if
   // allowed" convention.
   const entitlements = useEntitlements();
   const governanceEntitled = entitlements ? entitlements.features['ondi.governance'] !== false : true;
@@ -549,7 +549,7 @@ export const OndiSSO: React.FC = () => {
     reloadClients();
   }, [reload, reloadClients]);
 
-  // Related automation & policy â€” real, tenant-scoped reads, not fabricated
+  // Related automation & policy — real, tenant-scoped reads, not fabricated
   // relationships: Studio automations are filtered to the 3 real Ondi/OAuth
   // triggers (see studio/triggers.ts), and the policy readout is the same
   // /v1/ondi/org/policies OndiPolicies.tsx itself edits.
@@ -656,7 +656,7 @@ export const OndiSSO: React.FC = () => {
         <button style={tabStyle('flow')} onClick={() => setActiveTab('flow')}>Sign-In Flow</button>
       </div>
 
-      {/* â”€â”€ Tab 1: Provider Registry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Tab 1: Provider Registry ────────────────────────────────────── */}
       {activeTab === 'registry' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Sub-tabs selection bar */}
@@ -671,7 +671,7 @@ export const OndiSSO: React.FC = () => {
             <>
               <div style={{ background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: 12, color: 'var(--gold)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <Icon name="alertTriangle" size={15} style={{ flexShrink: 0 }} />
-                <span>Google, Microsoft and SAML providers here connect to real sign-in against Ondi Auth Server routes once enabled. A generic OIDC provider is still config-only â€” that federation still needs building.</span>
+                <span>Google, Microsoft and SAML providers here connect to real sign-in against Ondi Auth Server routes once enabled. A generic OIDC provider is still config-only — that federation still needs building.</span>
               </div>
 
               <SectionCard padded={false}>
@@ -697,7 +697,7 @@ export const OndiSSO: React.FC = () => {
                               ? <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '4px 12px', background: 'var(--gold-l)', color: 'var(--gold)' }}>Needs setup</span>
                               : <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '4px 12px', background: 'var(--green-l)', color: 'var(--green)' }}>Ready</span>
                           ) : (
-                            <span style={{ fontSize: 12, color: 'var(--ink3)' }}>â€”</span>
+                            <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>
                           )}
                         </td>
                         <td style={{ padding: '10px 14px' }}>
@@ -807,7 +807,7 @@ export const OndiSSO: React.FC = () => {
                 )}
               </SectionCard>
 
-              {/* Related Automation â€” real Studio automations bound to the
+              {/* Related Automation — real Studio automations bound to the
                   3 real OAuth/SSO triggers (client registered, consent
                   granted/revoked), plus the org's real MFA policy. Nothing
                   here is per-client-scoped (Studio automations react to the
@@ -829,7 +829,7 @@ export const OndiSSO: React.FC = () => {
                   <SectionLoading />
                 ) : relatedAutomations.length === 0 ? (
                   <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
-                    No Studio automation reacts to OAuth events yet. Client registration and consent grants/revocations on this page are real, available triggers â€”{' '}
+                    No Studio automation reacts to OAuth events yet. Client registration and consent grants/revocations on this page are real, available triggers —{' '}
                     <Link to="/studio/new" style={{ color: 'var(--teal)', fontWeight: 700, textDecoration: 'none' }}>build one in Studio</Link>.
                   </div>
                 ) : (
@@ -856,10 +856,10 @@ export const OndiSSO: React.FC = () => {
 
                 {sessionPolicy && (
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>Org sign-in policy â€” MFA required for every user</span>
+                    <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>Org sign-in policy — MFA required for every user</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <Badge variant={sessionPolicy.mfa_required ? 'success' : 'gray'}>{sessionPolicy.mfa_required ? 'Required' : 'Optional'}</Badge>
-                      <Link to="/ondi/policies" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Manage â†’</Link>
+                      <Link to="/ondi/policies" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Manage →</Link>
                     </div>
                   </div>
                 )}
@@ -869,7 +869,7 @@ export const OndiSSO: React.FC = () => {
         </div>
       )}
 
-      {/* â”€â”€ Tab 2: Sign-In Flow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Tab 2: Sign-In Flow ─────────────────────────────────────────── */}
       {activeTab === 'flow' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* Flow steps diagram */}
@@ -888,7 +888,7 @@ export const OndiSSO: React.FC = () => {
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{s.title}</div>
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{s.desc}</div>
                     {idx < 4 && (
-                      <span style={{ position: 'absolute', right: -10, top: '50%', transform: 'translateY(-50%)', zIndex: 1, color: 'var(--ink3)', fontSize: 14 }}>â†’</span>
+                      <span style={{ position: 'absolute', right: -10, top: '50%', transform: 'translateY(-50%)', zIndex: 1, color: 'var(--ink3)', fontSize: 14 }}>→</span>
                     )}
                   </div>
                 ))}
@@ -904,7 +904,7 @@ export const OndiSSO: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Session Identity</h4>
                   <p style={{ fontSize: 12.5, color: 'var(--ink3)', lineHeight: 1.4 }}>
-                    Every issued token carries <code style={{ fontSize: 11 }}>sub</code> (the signed-in user) and <code style={{ fontSize: 11 }}>tenant_id</code> (their workspace) â€” the same claims a session cookie and an OAuth client's access token both resolve to. A workspace's own registration can be verified separately under Business Verification (KYB).
+                    Every issued token carries <code style={{ fontSize: 11 }}>sub</code> (the signed-in user) and <code style={{ fontSize: 11 }}>tenant_id</code> (their workspace) — the same claims a session cookie and an OAuth client's access token both resolve to. A workspace's own registration can be verified separately under Business Verification (KYB).
                   </p>
                 </div>
               </div>

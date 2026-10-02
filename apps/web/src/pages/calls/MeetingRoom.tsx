@@ -797,14 +797,14 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
       {breakoutAssignedBanner && (
         <div style={{ position: 'absolute', top: 54, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#2d2f31', border: '1px solid var(--teal)', borderRadius: 'var(--r)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
           <span style={{ fontSize: 12.5, color: '#f1f5f9' }}>You've been placed in <strong>{breakoutAssignedBanner.roomName}</strong></span>
-          <button onClick={joinAssignedBreakoutRoom} style={{ height: 30, padding: '0 14px', borderRadius: 15, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>Join room</button>
+          <button onClick={joinAssignedBreakoutRoom} style={{ height: 'var(--ctl-h-sm)', padding: '0 14px', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>Join room</button>
           <button onClick={() => setBreakoutAssignedBanner(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex' }}><Icon name="close" size={14} /></button>
         </div>
       )}
       {myBreakoutRoom && (
         <div style={{ position: 'absolute', top: 54, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#2d2f31', border: '1px solid #3c4043', borderRadius: 'var(--r)', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 12, color: '#cbd5e1' }}>In breakout room: <strong style={{ color: '#f1f5f9' }}>{myBreakoutRoom.name}</strong></span>
-          <button onClick={returnToMainRoom} style={{ height: 28, padding: '0 12px', borderRadius: 14, background: '#3c4043', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11.5, cursor: 'pointer' }}>Return to main room</button>
+          <button onClick={returnToMainRoom} style={{ height: 'var(--ctl-h-xs)', padding: '0 12px', borderRadius: 'var(--r)', background: '#3c4043', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11.5, cursor: 'pointer' }}>Return to main room</button>
         </div>
       )}
       {breakoutMessage && (
@@ -856,13 +856,13 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
             )}
             {annotationTool && (
               <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 55, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(32,33,36,0.9)', backdropFilter: 'blur(8px)', borderRadius: 24, padding: '6px 10px', border: '1px solid #3c4043' }}>
-                <button onClick={() => setAnnotationTool('pen')} title="Pen" style={{ width: 30, height: 30, borderRadius: '50%', background: annotationTool === 'pen' ? 'var(--teal)' : 'transparent', border: 'none', color: annotationTool === 'pen' ? '#202124' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="edit" size={14} /></button>
-                <button onClick={() => setAnnotationTool('laser')} title="Laser pointer" style={{ width: 30, height: 30, borderRadius: '50%', background: annotationTool === 'laser' ? 'var(--teal)' : 'transparent', border: 'none', color: annotationTool === 'laser' ? '#202124' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="target" size={14} /></button>
+                <button onClick={() => setAnnotationTool('pen')} title="Pen" style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: '50%', background: annotationTool === 'pen' ? 'var(--teal)' : 'transparent', border: 'none', color: annotationTool === 'pen' ? '#202124' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="edit" size={14} /></button>
+                <button onClick={() => setAnnotationTool('laser')} title="Laser pointer" style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: '50%', background: annotationTool === 'laser' ? 'var(--teal)' : 'transparent', border: 'none', color: annotationTool === 'laser' ? '#202124' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="target" size={14} /></button>
                 {['#ef4444', 'var(--teal)', '#facc15', '#34d399'].map(c => (
                   <button key={c} onClick={() => setAnnotationColor(c)} title={c} style={{ width: 18, height: 18, borderRadius: '50%', background: c, border: annotationColor === c ? '2px solid #fff' : '2px solid transparent', cursor: 'pointer', padding: 0 }} />
                 ))}
-                {sharing && <button onClick={clearAnnotations} title="Clear drawings" style={{ fontSize: 11, background: 'none', border: '1px solid #5f6368', borderRadius: 'var(--r)', padding: '3px 10px', color: '#cbd5e1', cursor: 'pointer' }}>Clear</button>}
-                <button onClick={() => setAnnotationTool(null)} title="Close" style={{ width: 26, height: 26, borderRadius: '50%', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="close" size={13} /></button>
+                {sharing && <button onClick={clearAnnotations} title="Clear drawings" className="btn btn-xs" style={{ background: 'none', border: '1px solid #5f6368', color: '#cbd5e1' }}>Clear</button>}
+                <button onClick={() => setAnnotationTool(null)} title="Close" style={{ width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', borderRadius: '50%', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="close" size={13} /></button>
               </div>
             )}
 
@@ -982,7 +982,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Waiting room ({waitingRoomList.length})</div>
-                      <button onClick={admitAllWaiting} style={{ fontSize: 11, fontWeight: 700, background: 'none', border: '1px solid #3c4043', borderRadius: 'var(--r)', padding: '3px 10px', color: 'var(--teal)', cursor: 'pointer' }}>Admit all</button>
+                      <button onClick={admitAllWaiting} className="btn btn-xs" style={{ background: 'none', border: '1px solid #3c4043', color: 'var(--teal)' }}>Admit all</button>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {waitingRoomList.map(w => (
@@ -990,8 +990,8 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                           <PersonAvatar name={w.user_name} size={26} userId={w.user_id} />
                           <span style={{ flex: 1, fontSize: 12.5, color: '#f1f5f9', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.user_name}</span>
                           {!w.user_id && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r-sm)', padding: '1px 6px' }}>GUEST</span>}
-                          <button onClick={() => admitWaiting(w.id)} title="Admit" style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--green)', border: 'none', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={13} /></button>
-                          <button onClick={() => rejectWaiting(w.id)} title="Reject" style={{ width: 26, height: 26, borderRadius: '50%', background: '#3c4043', border: 'none', color: 'var(--red)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={13} /></button>
+                          <button onClick={() => admitWaiting(w.id)} title="Admit" style={{ width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', borderRadius: '50%', background: 'var(--green)', border: 'none', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={13} /></button>
+                          <button onClick={() => rejectWaiting(w.id)} title="Reject" style={{ width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', borderRadius: '50%', background: '#3c4043', border: 'none', color: 'var(--red)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={13} /></button>
                         </div>
                       ))}
                     </div>
@@ -1021,8 +1021,8 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                       <div style={{ fontSize: 12.5, color: '#f1f5f9', marginBottom: 6 }}>Meeting password {hostSettings.hasPassword && <span style={{ color: 'var(--green)', fontSize: 11 }}>(set)</span>}</div>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <input value={hostPasswordInput} onChange={e => setHostPasswordInput(e.target.value)} placeholder="New password" style={{ flex: 1, height: 32, background: '#2d2f31', border: '1px solid #3c4043', borderRadius: 'var(--r)', padding: '0 10px', color: '#fff', fontSize: 12, outline: 'none' }} />
-                        <button onClick={() => updateHostSetting({ password: hostPasswordInput })} style={{ fontSize: 11.5, fontWeight: 700, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '0 12px', cursor: 'pointer' }}>Set</button>
-                        {hostSettings.hasPassword && <button onClick={() => { setHostPasswordInput(''); updateHostSetting({ password: '' }); }} style={{ fontSize: 11.5, background: 'none', border: '1px solid #3c4043', borderRadius: 'var(--r)', padding: '0 10px', color: '#cbd5e1', cursor: 'pointer' }}>Clear</button>}
+                        <button onClick={() => updateHostSetting({ password: hostPasswordInput })} className="btn btn-primary btn-xs">Set</button>
+                        {hostSettings.hasPassword && <button onClick={() => { setHostPasswordInput(''); updateHostSetting({ password: '' }); }} className="btn btn-xs" style={{ background: 'none', border: '1px solid #3c4043', color: '#cbd5e1' }}>Clear</button>}
                       </div>
                     </div>
 
@@ -1043,7 +1043,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                         />
                         <button
                           onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/meet/${meetingId}`); }}
-                          style={{ fontSize: 11.5, fontWeight: 700, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '0 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          className="btn btn-primary btn-xs" style={{ whiteSpace: 'nowrap' }}
                         >Copy guest link</button>
                       </div>
                     )}
@@ -1132,7 +1132,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                 </div>
                 <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {isHost && !showNewPoll && (
-                    <button onClick={() => setShowNewPoll(true)} style={{ height: 38, borderRadius: 19, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>+ New poll</button>
+                    <button onClick={() => setShowNewPoll(true)} className="btn btn-primary">+ New poll</button>
                   )}
                   {isHost && showNewPoll && (
                     <div style={{ background: '#2d2f31', borderRadius: 'var(--r)', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1141,10 +1141,10 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                         <input key={i} value={opt} onChange={e => setNewPollOptions(prev => prev.map((o, oi) => oi === i ? e.target.value : o))} placeholder={`Option ${i + 1}`} style={{ height: 32, background: '#1e2022', border: '1px solid #3c4043', borderRadius: 'var(--r)', padding: '0 10px', color: '#fff', fontSize: 12, outline: 'none' }} />
                       ))}
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={() => setNewPollOptions(prev => [...prev, ''])} style={{ fontSize: 11.5, background: 'none', border: '1px solid #3c4043', borderRadius: 14, padding: '4px 10px', color: '#cbd5e1', cursor: 'pointer' }}>+ Option</button>
+                        <button onClick={() => setNewPollOptions(prev => [...prev, ''])} className="btn btn-xs" style={{ background: 'none', border: '1px solid #3c4043', color: '#cbd5e1' }}>+ Option</button>
                         <div style={{ flex: 1 }} />
-                        <button onClick={() => setShowNewPoll(false)} style={{ fontSize: 12, background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>Cancel</button>
-                        <button onClick={createPoll} style={{ fontSize: 12, fontWeight: 700, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 14, padding: '5px 14px', cursor: 'pointer' }}>Launch</button>
+                        <button onClick={() => setShowNewPoll(false)} className="btn btn-xs" style={{ background: 'none', border: 'none', color: '#94a3b8' }}>Cancel</button>
+                        <button onClick={createPoll} className="btn btn-primary btn-xs">Launch</button>
                       </div>
                     </div>
                   )}
@@ -1155,7 +1155,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                       {p.options.map((opt, i) => {
                         const pct = p.totalVotes > 0 ? Math.round((p.tally[i] / p.totalVotes) * 100) : 0;
                         return (
-                          <button key={i} disabled={!!p.closed_at} onClick={() => votePoll(p.id, i)} style={{ width: '100%', textAlign: 'left', position: 'relative', height: 32, borderRadius: 'var(--r-sm)', border: p.myVote === i ? '1px solid var(--teal)' : '1px solid #3c4043', background: '#1e2022', overflow: 'hidden', marginBottom: 6, cursor: p.closed_at ? 'default' : 'pointer' }}>
+                          <button key={i} disabled={!!p.closed_at} onClick={() => votePoll(p.id, i)} style={{ width: '100%', textAlign: 'left', position: 'relative', minHeight: 'var(--ctl-h-sm)', borderRadius: 'var(--r-sm)', border: p.myVote === i ? '1px solid var(--teal)' : '1px solid #3c4043', background: '#1e2022', overflow: 'hidden', marginBottom: 6, cursor: p.closed_at ? 'default' : 'pointer' }}>
                             <div style={{ position: 'absolute', inset: 0, width: `${pct}%`, background: 'var(--teal-l)' }} />
                             <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', padding: '0 10px', height: '100%', alignItems: 'center', fontSize: 12, color: '#f1f5f9' }}>
                               <span>{opt}{p.myVote === i ? ' ✓' : ''}</span>
@@ -1165,7 +1165,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                         );
                       })}
                       <div style={{ fontSize: 10.5, color: '#94a3b8', marginTop: 4 }}>{p.totalVotes} vote{p.totalVotes === 1 ? '' : 's'} · by {p.created_by_name}</div>
-                      {isHost && !p.closed_at && <button onClick={() => closePoll(p.id)} style={{ marginTop: 6, fontSize: 11, background: 'none', border: '1px solid #3c4043', borderRadius: 'var(--r)', padding: '3px 10px', color: '#cbd5e1', cursor: 'pointer' }}>Close poll</button>}
+                      {isHost && !p.closed_at && <button onClick={() => closePoll(p.id)} className="btn btn-xs" style={{ marginTop: 6, background: 'none', border: '1px solid #3c4043', color: '#cbd5e1' }}>Close poll</button>}
                     </div>
                   ))}
                 </div>
@@ -1201,7 +1201,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                 </div>
                 <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid #3c4043' }}>
                   <input value={newQuestionText} onChange={e => setNewQuestionText(e.target.value)} onKeyDown={e => e.key === 'Enter' && askQuestion()} placeholder="Ask a question…" style={{ flex: 1, height: 34, background: '#2d2f31', border: '1px solid #3c4043', borderRadius: 17, padding: '0 12px', color: '#fff', fontSize: 12.5, outline: 'none' }} />
-                  <button onClick={askQuestion} aria-label="Send" style={{ width: 34, height: 34, borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={13} /></button>
+                  <button onClick={askQuestion} aria-label="Send" style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={13} /></button>
                 </div>
               </div>
             )}
@@ -1223,7 +1223,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                     <>
                       <div style={{ fontSize: 42, fontWeight: 800, color: '#f1f5f9', fontVariantNumeric: 'tabular-nums' }}>{fmtDur(timerRemaining)}</div>
                       <div style={{ fontSize: 12, color: '#94a3b8', margin: '6px 0 16px' }}>visible to everyone in the meeting</div>
-                      {isHost && <button onClick={stopTimerFn} style={{ height: 36, padding: '0 20px', borderRadius: 18, background: '#3c4043', color: '#fff', border: 'none', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>Stop timer</button>}
+                      {isHost && <button onClick={stopTimerFn} className="btn btn-sm" style={{ background: '#3c4043', color: '#fff', border: 'none' }}>Stop timer</button>}
                     </>
                   ) : isHost ? (
                     <>
@@ -1255,7 +1255,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                 </div>
                 <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {canModerate && (
-                    <button onClick={generateSummary} disabled={summaryLoading} style={{ height: 38, borderRadius: 19, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+                    <button onClick={generateSummary} disabled={summaryLoading} className="btn btn-primary" style={{ width: '100%' }}>
                       {summaryLoading ? 'Generating…' : summary ? 'Regenerate summary' : 'Generate summary'}
                     </button>
                   )}
@@ -1287,7 +1287,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                             <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Action items</div>
-                            <button onClick={createTasksFromSummary} disabled={creatingTasks || tasksCreated} style={{ fontSize: 10.5, fontWeight: 700, background: 'none', border: '1px solid #3c4043', borderRadius: 'var(--r)', padding: '3px 10px', color: tasksCreated ? 'var(--green)' : 'var(--teal)', cursor: tasksCreated ? 'default' : 'pointer' }}>
+                            <button onClick={createTasksFromSummary} disabled={creatingTasks || tasksCreated} className="btn btn-xs" style={{ background: 'none', border: '1px solid #3c4043', color: tasksCreated ? 'var(--green)' : 'var(--teal)' }}>
                               {tasksCreated ? 'Tasks created ✓' : creatingTasks ? 'Creating…' : 'Create tasks'}
                             </button>
                           </div>
@@ -1334,15 +1334,15 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <input type="number" min={1} max={20} value={breakoutCount} onChange={e => setBreakoutCount(Math.max(1, Number(e.target.value) || 1))} style={{ width: 56, height: 36, textAlign: 'center', background: '#2d2f31', border: '1px solid #3c4043', borderRadius: 'var(--r)', color: '#fff', fontSize: 14 }} />
                         <span style={{ fontSize: 12.5, color: '#cbd5e1' }}>rooms</span>
-                        <button onClick={createBreakoutRooms} style={{ marginLeft: 'auto', height: 36, padding: '0 16px', borderRadius: 18, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontWeight: 800, fontSize: 12.5, cursor: 'pointer' }}>Create</button>
+                        <button onClick={createBreakoutRooms} className="btn btn-primary btn-sm" style={{ marginLeft: 'auto' }}>Create</button>
                       </div>
                       <div style={{ fontSize: 11.5, color: '#94a3b8' }}>Everyone currently in the main room can be auto-distributed evenly once rooms exist.</div>
                     </>
                   ) : (
                     <>
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={autoAssignBreakout} style={{ flex: 1, height: 34, borderRadius: 17, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>Auto-assign everyone</button>
-                        <button onClick={closeAllBreakouts} style={{ height: 34, padding: '0 14px', borderRadius: 17, background: '#3c4043', color: 'var(--red)', border: 'none', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Close all</button>
+                        <button onClick={autoAssignBreakout} className="btn btn-primary btn-sm" style={{ flex: 1 }}>Auto-assign everyone</button>
+                        <button onClick={closeAllBreakouts} className="btn btn-sm" style={{ background: '#3c4043', color: 'var(--red)', border: 'none' }}>Close all</button>
                       </div>
                       {breakoutRooms.map(r => (
                         <div key={r.id} style={{ background: '#2d2f31', borderRadius: 'var(--r)', padding: 10 }}>
@@ -1358,7 +1358,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                       <div style={{ height: 1, background: '#3c4043', margin: '4px 0' }} />
                       <div style={{ display: 'flex', gap: 6 }}>
                         <input value={breakoutBroadcastText} onChange={e => setBreakoutBroadcastText(e.target.value)} onKeyDown={e => e.key === 'Enter' && broadcastToBreakouts()} placeholder="Message all rooms…" style={{ flex: 1, height: 34, background: '#2d2f31', border: '1px solid #3c4043', borderRadius: 17, padding: '0 12px', color: '#fff', fontSize: 12, outline: 'none' }} />
-                        <button onClick={broadcastToBreakouts} aria-label="Send" style={{ width: 34, height: 34, borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={13} /></button>
+                        <button onClick={broadcastToBreakouts} aria-label="Send" style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={13} /></button>
                       </div>
                     </>
                   )}
@@ -1382,7 +1382,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                   <div style={{ fontSize: 11.5, color: '#cbd5e1', lineHeight: 1.4, marginBottom: 14 }}>
                     Real speech-to-text, run by your own browser (Web Speech API) — captures what you say and shares it live as captions and a saved transcript. Each participant who wants to be transcribed turns this on themselves.
                   </div>
-                  <button onClick={toggleTranscribe} style={{ width: '100%', height: 40, borderRadius: 20, background: transcribing ? 'var(--red)' : 'var(--teal)', color: transcribing ? '#fff' : '#202124', border: 'none', fontWeight: 800, fontSize: 13, cursor: 'pointer', marginBottom: 8 }}>
+                  <button onClick={toggleTranscribe} className="btn" style={{ width: '100%', background: transcribing ? 'var(--red)' : 'hsl(var(--primary))', color: transcribing ? '#fff' : 'hsl(var(--primary-foreground))', border: 'none', marginBottom: 8 }}>
                     {transcribing ? 'Stop transcribing' : 'Start transcribing my speech'}
                   </button>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#cbd5e1', cursor: 'pointer', margin: '10px 0 16px' }}>
@@ -1479,7 +1479,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                 ) : (
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input value={chatDraft} onChange={e => setChatDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder="Send a message to everyone" style={{ flex: 1, height: 36, background: '#2d2f31', border: '1px solid #3c4043', borderRadius: 18, padding: '0 14px', color: '#fff', fontSize: 13, outline: 'none' }} />
-                    <button onClick={sendChat} style={{ width: 36, height: 36, borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={sendChat} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Icon name="send" size={14} />
                     </button>
                   </div>
@@ -1551,7 +1551,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
             <Popover open={showAskAssistant} onOpenChange={setShowAskAssistant}>
               <PopoverTrigger asChild>
                 {isMobile ? (
-                  <button type="button" style={{ width: 40, height: 40, borderRadius: '50%', background: '#3c4043', border: 'none', color: 'var(--teal)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button type="button" style={{ width: 'var(--ctl-h)', height: 'var(--ctl-h)', borderRadius: '50%', background: '#3c4043', border: 'none', color: 'var(--teal)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="sparkle" size={18} />
                   </button>
                 ) : (
@@ -1662,7 +1662,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
           <Popover>
             <Tip label="Send reaction">
               <PopoverTrigger asChild>
-                <button type="button" style={{ width: 40, height: 40, borderRadius: '50%', background: '#3c4043', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <button type="button" style={{ width: 'var(--ctl-h)', height: 'var(--ctl-h)', borderRadius: '50%', background: '#3c4043', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="smile" size={18} />
                 </button>
               </PopoverTrigger>

@@ -18,6 +18,7 @@ import { Textarea } from './ui/textarea.js';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from './ui/select.js';
 import { Tip } from './ui/tooltip.js';
 import { apiFetch } from '../lib/api.js';
+import { ColorSwatchPicker } from './ui/color-swatch-picker.js';
 import './EmailBlockBuilder.css';
 
 function readCssAccent(): string {
@@ -316,10 +317,7 @@ function ColorRow({ value, onChange, label }: { value: string; onChange: (v: str
           ))}
         </div>
         <div className="ebb-color-custom">
-          <input type="color" value={value} onChange={e => onChange(e.target.value)}
-            style={{ width: 28, height: 28, border: 'none', padding: 0, cursor: 'pointer', borderRadius: 4, flexShrink: 0 }} />
-          <Input value={value} onChange={e => onChange(e.target.value)}
-            style={{ flex: 1, fontFamily: 'monospace', fontSize: 11 }} placeholder="#rrggbb" />
+          <ColorSwatchPicker value={value} onChange={onChange} />
         </div>
       </div>
     </div>

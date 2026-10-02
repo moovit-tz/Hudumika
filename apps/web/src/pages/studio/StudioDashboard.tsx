@@ -74,7 +74,7 @@ export function StudioDashboard() {
   }, [runs, runFilter]);
 
   if (loading) {
-    return <PageLoading label="Loading Workflow Studio dashboardâ€¦" />;
+    return <PageLoading label="Loading Workflow Studio dashboard…" />;
   }
 
   if (error) {
@@ -93,7 +93,7 @@ export function StudioDashboard() {
   return (
     <div style={{ maxWidth: 1360, margin: '0 auto', paddingBottom: 32 }}>
 
-      {/* â”€â”€ Studio Premium Hero Command Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Studio Premium Hero Command Banner ────────────────────────── */}
       <div className="studio-dashboard-hero">
         <div className="studio-dashboard-hero-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
           <div style={{ maxWidth: 680 }}>
@@ -109,7 +109,7 @@ export function StudioDashboard() {
               Automation &amp; Event Command Center
             </h1>
             <p style={{ margin: '6px 0 0 0', fontSize: 13.5, color: 'inherit', opacity: 0.8, lineHeight: 1.5 }}>
-              One central canvas for every automation across your workspace â€” configure triggers, multi-step actions, and live execution monitors.
+              One central canvas for every automation across your workspace — configure triggers, multi-step actions, and live execution monitors.
             </p>
           </div>
 
@@ -147,7 +147,7 @@ export function StudioDashboard() {
         </div>
       </div>
 
-      {/* â”€â”€ 4 KPI Stat Metric Cards Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── 4 KPI Stat Metric Cards Row ───────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
         
         {/* Workflows Total Card */}
@@ -164,7 +164,7 @@ export function StudioDashboard() {
           </div>
           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{stats.workflows.active} active</span>
-            <span>â€¢</span>
+            <span>•</span>
             <span>{stats.workflows.draft} draft</span>
           </div>
         </div>
@@ -217,14 +217,14 @@ export function StudioDashboard() {
           </div>
           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span>{stats.catalogue.triggers} Triggers</span>
-            <span>â€¢</span>
+            <span>•</span>
             <span>{stats.catalogue.actions} Actions</span>
           </div>
         </div>
 
       </div>
 
-      {/* â”€â”€ Active Draft Mode Warning Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Active Draft Mode Warning Banner ──────────────────────────── */}
       {stats.workflows.active === 0 && stats.workflows.total > 0 && (
         <div style={{
           padding: '14px 18px', borderRadius: 'var(--r)', background: 'var(--blue-l)', border: '1px solid var(--blue)',
@@ -235,18 +235,18 @@ export function StudioDashboard() {
             <Icon name="info" size={16} color="var(--blue)" />
           </div>
           <div style={{ flex: 1, lineHeight: 1.45 }}>
-            <strong>No workflow is active yet.</strong> Workflows that replace built-in behavior stay in <strong>Draft</strong> state on purpose â€” existing fallback logic keeps running until you toggle one to active.
+            <strong>No workflow is active yet.</strong> Workflows that replace built-in behavior stay in <strong>Draft</strong> state on purpose — existing fallback logic keeps running until you toggle one to active.
           </div>
           <Button type="button" size="sm" variant="outline" onClick={() => navigate('/studio/workflows')}>
-            Manage Workflows â†’
+            Manage Workflows →
           </Button>
         </div>
       )}
 
-      {/* â”€â”€ Main Studio Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Main Studio Grid ─────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 20, alignItems: 'start' }} className="studio-dash-grid">
         
-        {/* â”€â”€ LEFT COLUMN: Recent Execution Runs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── LEFT COLUMN: Recent Execution Runs ─────────────────────── */}
         <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -329,14 +329,14 @@ export function StudioDashboard() {
           </div>
         </div>
 
-        {/* â”€â”€ RIGHT COLUMN: Outcomes, App Distribution & Clearance â”€â”€â”€â”€â”€ */}
+        {/* ── RIGHT COLUMN: Outcomes, App Distribution & Clearance ───── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           
           {/* 1. Run Outcomes Distribution */}
           <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="barChart2" size={16} color="var(--purple)" />
-              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>Outcomes â€¢ Last 30 Days</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>Outcomes • Last 30 Days</span>
             </div>
             <div style={{ padding: '16px 20px' }}>
               {statuses.length === 0 ? (

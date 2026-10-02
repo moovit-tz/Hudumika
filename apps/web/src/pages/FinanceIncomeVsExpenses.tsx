@@ -119,7 +119,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading income vs expensesâ€¦</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading income vs expenses…</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
@@ -147,7 +147,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
 
         {/* Chart */}
         <SectionCard
-          title={`Monthly Comparison â€” ${year}`}
+          title={`Monthly Comparison — ${year}`}
           action={
             <div style={{ display: 'flex', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

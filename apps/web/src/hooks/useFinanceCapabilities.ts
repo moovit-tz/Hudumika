@@ -1,23 +1,41 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import type { FinanceCapabilitySummary, FinanceCapabilityKey } from '@hudumika/types';
+import { refreshEntitlementsCache } from './useEntitlements.js';
 
 let cache: FinanceCapabilitySummary | null = null;
 let inflight: Promise<FinanceCapabilitySummary> | null = null;
+let cacheGeneration = 0;
+const listeners = new Set<(value: FinanceCapabilitySummary | null) => void>();
 
-async function fetchCapabilities(): Promise<FinanceCapabilitySummary> {
-  if (cache) return cache;
+function publish(value: FinanceCapabilitySummary | null): void {
+  for (const listener of listeners) listener(value);
+}
+
+async function fetchCapabilities(force = false): Promise<FinanceCapabilitySummary> {
+  if (cache && !force) return cache;
   if (!inflight) {
-    inflight = apiFetch('/v1/finance/capabilities')
-      .then((r: any) => { cache = r; return cache!; })
-      .finally(() => { inflight = null; });
+    const generation = cacheGeneration;
+    let request!: Promise<FinanceCapabilitySummary>;
+    request = apiFetch('/v1/finance/capabilities')
+      .then((result: FinanceCapabilitySummary) => {
+        if (generation === cacheGeneration) {
+          cache = result;
+          publish(result);
+        }
+        return result;
+      })
+      .finally(() => { if (inflight === request) inflight = null; });
+    inflight = request;
   }
   return inflight;
 }
 
 export function resetFinanceCapabilitiesCache(): void {
+  cacheGeneration += 1;
   cache = null;
   inflight = null;
+  publish(null);
 }
 
 /** Returns loading/error/data state for Finance capabilities, plus a `setEnabled`
@@ -29,11 +47,27 @@ export function useFinanceCapabilities() {
 
   useEffect(() => {
     let alive = true;
+    listeners.add(setData);
     setLoading(!cache);
     fetchCapabilities()
       .then(s => { if (alive) { setData(s); setLoading(false); } })
       .catch(err => { if (alive) { setError(err?.message ?? 'Failed to load capabilities'); setLoading(false); } });
-    return () => { alive = false; };
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      void fetchCapabilities(true)
+        .then(() => { if (alive) setError(null); })
+        .catch(err => { if (alive) setError(err?.message ?? 'Failed to refresh capabilities'); });
+    };
+    const timer = window.setInterval(refresh, 60_000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      alive = false;
+      listeners.delete(setData);
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, []);
 
   const setEnabled = useCallback(async (key: FinanceCapabilityKey, enabled: boolean) => {
@@ -43,7 +77,8 @@ export function useFinanceCapabilities() {
       body: JSON.stringify({ enabled }),
     });
     cache = result;
-    setData(result);
+    publish(result);
+    await refreshEntitlementsCache();
     return result;
   }, []);
 

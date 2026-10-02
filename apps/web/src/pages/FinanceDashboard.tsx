@@ -11,6 +11,8 @@ import { useCurrency } from '../hooks/useCurrency.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { showAlert } from '../lib/alert.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
+import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
+import type { PosAnalytics } from '@hudumika/types';
 import './FinanceDashboard.css';
 
 export const FinanceDashboard: React.FC = () => {
@@ -18,6 +20,7 @@ export const FinanceDashboard: React.FC = () => {
   const { user } = useAuth();
   const { currency, fmtCompact, convert } = useCurrency();
   const { t } = useLocale();
+  const { isEnabled } = useFinanceCapabilities();
 
   const [loading, setLoading] = useState(true);
   const [snapshot, setSnapshot] = useState<any>(null);
@@ -25,6 +28,18 @@ export const FinanceDashboard: React.FC = () => {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [bills, setBills] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
+  const [posAnalytics, setPosAnalytics] = useState<PosAnalytics | null>(null);
+
+  const posEnabled = isEnabled('finance.pos');
+
+  useEffect(() => {
+    if (!posEnabled) { setPosAnalytics(null); return; }
+    let alive = true;
+    apiFetch('/v1/finance/pos/analytics')
+      .then(result => { if (alive) setPosAnalytics(result as PosAnalytics); })
+      .catch(() => { if (alive) setPosAnalytics(null); });
+    return () => { alive = false; };
+  }, [posEnabled]);
 
   useEffect(() => {
     let alive = true;
@@ -49,7 +64,7 @@ export const FinanceDashboard: React.FC = () => {
   }, []);
 
   const derived = useMemo(() => {
-    // Each invoice/bill may carry its own currency â€” always convert to the
+    // Each invoice/bill may carry its own currency — always convert to the
     // company's base currency before summing, otherwise a TZS invoice and a
     // USD invoice contribute their raw numbers and the total is meaningless.
     const toBase = (raw: number, c?: string) => convert(raw, c || currency);
@@ -92,13 +107,13 @@ export const FinanceDashboard: React.FC = () => {
     const amt = convert(raw, p.currency || currency);
     const isIn = p.direction === 'in' || p.type === 'receipt' || p.payment_type === 'receipt';
     return {
-      id: p.reference || (p.id ? p.id.slice(0, 8).toUpperCase() : 'â€”'),
-      name: p.customer_name || p.supplier_name || p.party_name || 'â€”',
-      desc: p.description || p.notes || 'â€”',
+      id: p.reference || (p.id ? p.id.slice(0, 8).toUpperCase() : '—'),
+      name: p.customer_name || p.supplier_name || p.party_name || '—',
+      desc: p.description || p.notes || '—',
       date: p.created_at
         ? new Date(p.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
-        : 'â€”',
-      amount: (isIn ? '+' : 'âˆ’') + fmtCompact(amt),
+        : '—',
+      amount: (isIn ? '+' : '−') + fmtCompact(amt),
       type: isIn ? 'in' : 'out',
       badge: p.status === 'settled' || p.status === 'completed' ? 'Settled' : 'Posted',
     };
@@ -130,12 +145,12 @@ export const FinanceDashboard: React.FC = () => {
 
   return (
     <div className="vex-finance-root">
-      {/* â”€â”€ Page Header â”€â”€ */}
+      {/* ── Page Header ── */}
       <PageHeader
-        crumbs={['Finance', 'Command Center']}
-        titlePlain="Finance command"
-        titleEm="center"
-        subtitle={`Good morning, ${user?.name || 'Administrator'} Â· Real-time liquidity, quality of earnings, and capital control.`}
+        crumbs={['Finance', 'Overview']}
+        titlePlain="Finance"
+        titleEm="overview"
+        subtitle={`Good morning, ${user?.name || 'Administrator'} · Real-time liquidity, quality of earnings, and capital control.`}
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             <Button
@@ -156,7 +171,7 @@ export const FinanceDashboard: React.FC = () => {
         }
       />
 
-      {/* â”€â”€ Top Bento Row â”€â”€ */}
+      {/* ── Top Bento Row ── */}
       <div className="vex-top-bento">
         {/* Treasury Control Tower */}
         <div className="vex-treasury-tower">
@@ -177,7 +192,7 @@ export const FinanceDashboard: React.FC = () => {
             <div className="vex-tower-stats-grid">
               <div className="vex-tower-stat-box">
                 <div className="vex-tower-stat-lbl">Net margin</div>
-                <div className="vex-tower-stat-num">{derived.netMargin != null ? `${derived.netMargin.toFixed(1)}%` : 'â€”'}</div>
+                <div className="vex-tower-stat-num">{derived.netMargin != null ? `${derived.netMargin.toFixed(1)}%` : '—'}</div>
               </div>
               <div className="vex-tower-stat-box">
                 <div className="vex-tower-stat-lbl">Free cash flow</div>
@@ -210,7 +225,7 @@ export const FinanceDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Account Liquidity Breakdown â€” from real petty-cash wallets */}
+        {/* Account Liquidity Breakdown — from real petty-cash wallets */}
         <div className="vex-liquidity-card">
           {wallets.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 12, textAlign: 'center', padding: '16px 0' }}>
@@ -271,7 +286,7 @@ export const FinanceDashboard: React.FC = () => {
               </div>
               <div>
                 <div className="vex-rail-lbl">Net Margin</div>
-                <div className="vex-rail-val">{derived.netMargin != null ? `${derived.netMargin.toFixed(1)}%` : 'â€”'}</div>
+                <div className="vex-rail-val">{derived.netMargin != null ? `${derived.netMargin.toFixed(1)}%` : '—'}</div>
               </div>
             </div>
             <Badge variant={derived.netMargin != null && derived.netMargin >= 0 ? 'brand' : 'gray'}>
@@ -286,7 +301,7 @@ export const FinanceDashboard: React.FC = () => {
               </div>
               <div>
                 <div className="vex-rail-lbl">Cash Conversion</div>
-                <div className="vex-rail-val">{derived.cashConversion != null ? `${derived.cashConversion.toFixed(1)}%` : 'â€”'}</div>
+                <div className="vex-rail-val">{derived.cashConversion != null ? `${derived.cashConversion.toFixed(1)}%` : '—'}</div>
               </div>
             </div>
             <Badge variant="gray">Unavailable</Badge>
@@ -294,7 +309,21 @@ export const FinanceDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* â”€â”€ Row 2: Cash-Flow Forecast & AI Signals â”€â”€ */}
+      {posEnabled && posAnalytics && (
+        <section className="vex-pos-strip" aria-label="Point of sale performance">
+          <div className="vex-pos-heading">
+            <div className="vex-pos-icon"><Icon name="shoppingCart" size={17} /></div>
+            <div><strong>Point of sale</strong><span>Live trading performance for today</span></div>
+          </div>
+          <div className="vex-pos-stat"><span>Net sales</span><strong>{fmtCompact(posAnalytics.today.revenue)}</strong><small>{posAnalytics.today.sales_count} transactions</small></div>
+          <div className="vex-pos-stat"><span>Average sale</span><strong>{fmtCompact(posAnalytics.today.average_sale)}</strong><small>Per completed receipt</small></div>
+          <div className="vex-pos-stat"><span>Gross margin</span><strong>{fmtCompact(posAnalytics.today.margin)}</strong><small>After tax and recorded cost</small></div>
+          <div className="vex-pos-stat"><span>Leading cashier</span><strong>{posAnalytics.cashiers[0]?.name ?? 'No sales yet'}</strong><small>{posAnalytics.cashiers[0] ? `${posAnalytics.cashiers[0].sales_count} sales · ${fmtCompact(posAnalytics.cashiers[0].revenue)}` : 'Waiting for the first sale'}</small></div>
+          <Button variant="outline" size="sm" onClick={() => navigate('/finance/pos')}>Open POS <Icon name="arrowUpRight" size={13} /></Button>
+        </section>
+      )}
+
+      {/* ── Row 2: Cash-Flow Forecast & AI Signals ── */}
       <div className="vex-row-2">
         {/* Cash-flow Forecast Chart */}
         <SectionCard
@@ -387,7 +416,7 @@ export const FinanceDashboard: React.FC = () => {
         </SectionCard>
       </div>
 
-      {/* â”€â”€ Row 3: Working Capital & Spend/Budget Control â”€â”€ */}
+      {/* ── Row 3: Working Capital & Spend/Budget Control ── */}
       <div className="vex-row-3">
         {/* Working Capital Intelligence */}
         <SectionCard
@@ -414,7 +443,7 @@ export const FinanceDashboard: React.FC = () => {
             <div className="vex-wc-kpi-card">
               <div className="vex-wc-kpi-badge" style={{ color: 'var(--red)' }}>Overdue A/R</div>
               <div className="vex-wc-kpi-val">{fmtCompact(derived.overdueAR)}</div>
-              <div className="vex-wc-kpi-sub">{derived.ar > 0 ? `${Math.round((derived.overdueAR / derived.ar) * 100)}% of A/R` : 'â€”'}</div>
+              <div className="vex-wc-kpi-sub">{derived.ar > 0 ? `${Math.round((derived.overdueAR / derived.ar) * 100)}% of A/R` : '—'}</div>
             </div>
             <div className="vex-wc-kpi-card">
               <div className="vex-wc-kpi-badge">Payables</div>
@@ -424,7 +453,7 @@ export const FinanceDashboard: React.FC = () => {
             <div className="vex-wc-kpi-card">
               <div className="vex-wc-kpi-badge" style={{ color: 'var(--gold)' }}>Due in 7 days</div>
               <div className="vex-wc-kpi-val">{fmtCompact(derived.apDueSoon)}</div>
-              <div className="vex-wc-kpi-sub">{derived.ap > 0 ? `${Math.round((derived.apDueSoon / derived.ap) * 100)}% of A/P` : 'â€”'}</div>
+              <div className="vex-wc-kpi-sub">{derived.ap > 0 ? `${Math.round((derived.apDueSoon / derived.ap) * 100)}% of A/P` : '—'}</div>
             </div>
           </div>
         </SectionCard>
@@ -471,7 +500,7 @@ export const FinanceDashboard: React.FC = () => {
         </SectionCard>
       </div>
 
-      {/* â”€â”€ Row 4: Recent Cash Activity & Month-End Close Readiness â”€â”€ */}
+      {/* ── Row 4: Recent Cash Activity & Month-End Close Readiness ── */}
       <div className="vex-row-4">
         {/* Recent Cash Activity */}
         <SectionCard

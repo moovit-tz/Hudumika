@@ -18,6 +18,9 @@ import { showAlert } from '../lib/alert.js';
 import { getCompany } from '../data/companyStore.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
+import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
+import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
 
 // Types and Interfaces
 // Mirrors the backend's purchase_orders.status CHECK constraint
@@ -41,6 +44,7 @@ interface PurchaseOrder {
   po_number: string;
   vendorId: string;
   warehouseId: string;
+  businessLineId: string;
   orderDate: string;
   dueDate: string;
   paymentTerms: string;
@@ -215,6 +219,7 @@ function apiToPO(apiPo: any, lines: any[], products: Product[]): PurchaseOrder {
     po_number: apiPo.po_number,
     vendorId: apiPo.supplier_id || '',
     warehouseId: apiPo.warehouse_id || '',
+    businessLineId: apiPo.business_line_id || '',
     orderDate: apiPo.order_date ? String(apiPo.order_date).slice(0, 10) : '',
     dueDate: apiPo.expected_date ? String(apiPo.expected_date).slice(0, 10) : '',
     paymentTerms: apiPo.payment_terms || '',
@@ -247,6 +252,10 @@ export const PurchaseOrders: React.FC = () => {
   const docLogoSrc = isDark ? (co.logoUrlDark || co.logoUrl) : co.logoUrl;
   const isMobile = useIsMobile();
   const { fmt } = useCurrency();
+  const readOnly = useFinanceReadOnly();
+  const financeCapabilities = useFinanceCapabilities();
+  const financeConfiguration = useFinanceConfiguration();
+  const canUseBusinessLines = financeCapabilities.isEnabled('finance.accounting.advanced');
   const formatUSD = (amount: number) => fmt(amount, 'USD');
   // Navigation & View Mode State
   const [viewMode, setViewMode] = useState<'LIST' | 'CREATE' | 'EDIT' | 'DETAILS'>('LIST');
@@ -287,11 +296,14 @@ export const PurchaseOrders: React.FC = () => {
   useEffect(() => { loadPOs(); }, [loadPOs]);
   useEffect(() => {
     function handler(e: Event) {
-      if ((e as CustomEvent).detail?.section === 'purchase-orders') setViewMode('CREATE');
+      if (!readOnly && (e as CustomEvent).detail?.section === 'purchase-orders') setViewMode('CREATE');
     }
     window.addEventListener('fin:new-doc', handler);
     return () => window.removeEventListener('fin:new-doc', handler);
-  }, []);
+  }, [readOnly]);
+  useEffect(() => {
+    if (readOnly && (viewMode === 'CREATE' || viewMode === 'EDIT')) setViewMode('LIST');
+  }, [readOnly, viewMode]);
 
   // List View Filter/Display State
   const [searchQuery, setSearchQuery] = useState('');
@@ -349,6 +361,7 @@ export const PurchaseOrders: React.FC = () => {
   const [formVendor, setFormVendor] = useState('');
   const [formVendorItem, setFormVendorItem] = useState<PickerItem | null>(null);
   const [formWarehouse, setFormWarehouse] = useState('');
+  const [formBusinessLine, setFormBusinessLine] = useState('');
   const [formOrderDate, setFormOrderDate] = useState('2026-06-15');
   const [formDueDate, setFormDueDate] = useState('');
   const [formPaymentTerms, setFormPaymentTerms] = useState('');
@@ -507,6 +520,7 @@ export const PurchaseOrders: React.FC = () => {
     const vendor = allSuppliers.find(s => s.id === po.vendorId);
     setFormVendorItem(vendor ? { id: vendor.id, label: vendor.name, sublabel: vendor.email || undefined } : null);
     setFormWarehouse(po.warehouseId);
+    setFormBusinessLine(po.businessLineId);
     setFormOrderDate(po.orderDate);
     setFormDueDate(po.dueDate);
     setFormPaymentTerms(po.paymentTerms);
@@ -522,6 +536,7 @@ export const PurchaseOrders: React.FC = () => {
     setFormVendor(firstVendor?.id || '');
     setFormVendorItem(firstVendor ? { id: firstVendor.id, label: firstVendor.name, sublabel: firstVendor.email || undefined } : null);
     setFormWarehouse(warehouses[0]?.id || '');
+    setFormBusinessLine('');
     const today = new Date();
     const due = new Date(today.getTime() + 30 * 86400000);
     setFormOrderDate(today.toISOString().slice(0, 10));
@@ -580,6 +595,7 @@ export const PurchaseOrders: React.FC = () => {
 
   const handleSavePO = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (readOnly) return;
 
     if (!formVendor || !formOrderDate || !formDueDate) {
       showToast('Please fill out all required fields', 'error');
@@ -598,6 +614,7 @@ export const PurchaseOrders: React.FC = () => {
       supplier_name: vendor?.name || null,
       warehouse_id: formWarehouse || null,
       warehouse_name: warehouse?.name || null,
+      business_line_id: formBusinessLine || null,
       order_date: formOrderDate,
       expected_date: formDueDate,
       payment_terms: formPaymentTerms,
@@ -617,13 +634,14 @@ export const PurchaseOrders: React.FC = () => {
         showToast(`Purchase Order updated successfully!`, 'success');
       }
       setViewMode('LIST');
-    } catch {
-      showToast('Failed to save purchase order', 'error');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to save purchase order', 'error');
     }
   };
 
   // Actions implementations
   const handlePostPO = async (id: string) => {
+    if (readOnly) return;
     try {
       await apiFetch(`/v1/purchase-orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: toApiStatus('Sent') }) });
       setPOs(prev => prev.map(po => po.id === id ? { ...po, status: 'Sent' } : po));
@@ -634,6 +652,7 @@ export const PurchaseOrders: React.FC = () => {
   };
 
   const handleDuplicatePO = async (id: string) => {
+    if (readOnly) return;
     const original = pos.find(p => p.id === id);
     if (!original) return;
 
@@ -647,6 +666,7 @@ export const PurchaseOrders: React.FC = () => {
       supplier_name: vendor?.name || null,
       warehouse_id: original.warehouseId || null,
       warehouse_name: warehouse?.name || null,
+      business_line_id: original.businessLineId || null,
       order_date: today.toISOString().slice(0, 10),
       expected_date: due.toISOString().slice(0, 10),
       payment_terms: original.paymentTerms,
@@ -664,6 +684,7 @@ export const PurchaseOrders: React.FC = () => {
   };
 
   const handleDeletePO = async (id: string) => {
+    if (readOnly) return;
     const po = pos.find(p => p.id === id);
     if (!po) return;
 
@@ -933,10 +954,10 @@ export const PurchaseOrders: React.FC = () => {
                     <Icon name={showFiltersPanel ? 'chevronUp' : 'chevronDown'} size={11} />
                   </button>
 
-                  <button type="button" onClick={handleCreateInit}
+                  {!readOnly && <button type="button" onClick={handleCreateInit}
                     style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
                     <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Purchase Order
-                  </button>
+                  </button>}
                 </div>
               </div>
 
@@ -1137,7 +1158,7 @@ export const PurchaseOrders: React.FC = () => {
                         >
                           <Icon name="eye" size={13} />
                         </button>
-                        {po.status === 'Draft' && (
+                        {!readOnly && po.status === 'Draft' && (
                           <>
                             <button
                               onClick={() => handleDuplicatePO(po.id)}
@@ -1376,7 +1397,7 @@ export const PurchaseOrders: React.FC = () => {
                                   <Icon name="eye" size={12.5} />
                                 </button>
                                 </Tip>
-                                {po.status === 'Draft' ? (
+                                {!readOnly && (po.status === 'Draft' ? (
                                   <>
                                     <Tip label="Duplicate purchase order">
                                     <button
@@ -1438,7 +1459,7 @@ export const PurchaseOrders: React.FC = () => {
                                   </>
                                 ) : (
                                   <div style={{ width: 94 }} /> // placeholder to keep actions aligned
-                                )}
+                                ))}
                               </div>
                             </td>
                           </tr>
@@ -1611,6 +1632,14 @@ export const PurchaseOrders: React.FC = () => {
                         <td style={{ padding: '4px 0', color: 'var(--ink3)' }}>Warehouse</td>
                         <td style={{ padding: '4px 0', textAlign: 'right', fontWeight: 600, color: 'var(--ink)' }}>{currentDetailsPo.warehouse?.name}</td>
                       </tr>
+                      {currentDetailsPo.businessLineId && (
+                        <tr>
+                          <td style={{ padding: '4px 0', color: 'var(--ink3)' }}>Business Line</td>
+                          <td style={{ padding: '4px 0', textAlign: 'right', fontWeight: 600, color: 'var(--ink)' }}>
+                            {financeConfiguration.data?.businessLines.find(line => line.id === currentDetailsPo.businessLineId)?.name ?? 'Archived business line'}
+                          </td>
+                        </tr>
+                      )}
                       <tr>
                         <td style={{ padding: '4px 0', color: 'var(--ink3)' }}>Terms</td>
                         <td style={{ padding: '4px 0', textAlign: 'right', fontWeight: 600, color: 'var(--ink)' }}>{currentDetailsPo.paymentTerms || 'COD'}</td>
@@ -1656,7 +1685,7 @@ export const PurchaseOrders: React.FC = () => {
                     Download PDF
                   </button>
 
-                  {currentDetailsPo.status === 'Draft' && (
+                  {!readOnly && currentDetailsPo.status === 'Draft' && (
                     <button
                       onClick={() => handlePostPO(currentDetailsPo.id)}
                       style={{
@@ -1768,7 +1797,7 @@ export const PurchaseOrders: React.FC = () => {
         )}
 
         {/* VIEW MODE: CREATE / EDIT PURCHASE ORDER FORM */}
-        {(viewMode === 'CREATE' || viewMode === 'EDIT') && (
+        {!readOnly && (viewMode === 'CREATE' || viewMode === 'EDIT') && (
           <FormPage
             title={viewMode === 'CREATE' ? 'New Purchase Order' : `Edit PO #${pos.find(p => p.id === selectedPoId)?.po_number ?? ''}`}
             subtitle="Request goods and services from a vendor — dates, items and terms."
@@ -1823,6 +1852,21 @@ export const PurchaseOrders: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {(canUseBusinessLines || Boolean(formBusinessLine)) && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Business Line</label>
+                    <Combobox
+                      options={(financeConfiguration.data?.businessLines ?? [])
+                        .filter(line => line.active || line.id === formBusinessLine)
+                        .map(line => ({ value: line.id, label: line.name, sublabel: `${line.code}${line.active ? '' : ' · archived'}` }))}
+                      value={formBusinessLine}
+                      onChange={setFormBusinessLine}
+                      placeholder="No business line"
+                      disabled={!canUseBusinessLines}
+                    />
+                  </div>
+                )}
 
               </div>
 

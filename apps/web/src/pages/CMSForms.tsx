@@ -22,7 +22,7 @@ function FL({ label, children }: { label: string; children: React.ReactNode }) {
 
 const FIELD_TYPE_LABELS: Record<CmsFormFieldType, string> = { text: 'Text', email: 'Email', textarea: 'Long text', select: 'Select' };
 
-/** The Forms list (Â§30-31 of the brief) â€” a tenant defines a form's own
+/** The Forms list (§30-31 of the brief) — a tenant defines a form's own
  *  field shape once, places it on the public site via a real 'form' block
  *  (BlockEditor.tsx/BlockPreview.tsx), and every submission lands here. */
 export function CMSFormsList() {
@@ -58,7 +58,7 @@ export function CMSFormsList() {
         crumbs={['CMS', 'Forms']}
         titlePlain="Forms &"
         titleEm="submissions"
-        subtitle="A form a visitor can actually fill in â€” contact requests, sign-ups â€” placed on any page or entry via a real Form block, with every submission landing here."
+        subtitle="A form a visitor can actually fill in — contact requests, sign-ups — placed on any page or entry via a real Form block, with every submission landing here."
         actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)}><Icon name="plus" size={13} /> New form</button>}
       />
 
@@ -71,7 +71,7 @@ export function CMSFormsList() {
                 <input className="input-field" value={name} placeholder="e.g. Contact us" onChange={e => setName(e.target.value)} autoFocus />
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>{saving ? 'Creatingâ€¦' : 'Create form'}</button>
+                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>{saving ? 'Creating…' : 'Create form'}</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)}>Cancel</button>
               </div>
             </div>
@@ -80,7 +80,7 @@ export function CMSFormsList() {
 
         {forms === null ? <SectionLoading /> : forms.length === 0 && !creating ? (
           <div style={{ textAlign: 'center', padding: 48, color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-            No forms yet. Build one once â€” a contact form, a sign-up â€” and place it on any page, post or entry with a Form block.
+            No forms yet. Build one once — a contact form, a sign-up — and place it on any page, post or entry with a Form block.
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
@@ -108,8 +108,8 @@ export function CMSFormsList() {
 function emptyField(): CmsFormField { return { key: '', label: '', type: 'text' }; }
 
 /** One form's own field builder + submissions viewer. Fields are edited as
- *  a plain array in local state and saved as a whole on "Save changes" â€”
- *  the same "edit locally, PATCH the whole array" shape Â§8's Component
+ *  a plain array in local state and saved as a whole on "Save changes" —
+ *  the same "edit locally, PATCH the whole array" shape §8's Component
  *  block editor already uses for its own `blocks` array. */
 export function CMSFormDetail() {
   const { formId } = useParams<{ formId: string }>();
@@ -212,11 +212,11 @@ export function CMSFormDetail() {
         crumbs={['CMS', 'Forms', form.name]}
         titlePlain={form.name}
         titleEm="fields"
-        subtitle={`Place this form anywhere with a Form block â€” key "${form.key}".`}
+        subtitle={`Place this form anywhere with a Form block — key "${form.key}".`}
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-secondary btn-sm" onClick={handleRename}>Rename</button>
-            {tab === 'fields' && <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave}>{saving ? 'Savingâ€¦' : dirty ? 'Save changes' : 'Saved'}</button>}
+            {tab === 'fields' && <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave}>{saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>}
           </div>
         }
       />
@@ -262,13 +262,13 @@ export function CMSFormDetail() {
                   )}
                 </div>
               ))}
-              {fields.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 12.5, textAlign: 'center', padding: '12px 0' }}>No fields yet â€” add the first one below.</div>}
+              {fields.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 12.5, textAlign: 'center', padding: '12px 0' }}>No fields yet — add the first one below.</div>}
               <button type="button" className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start' }} onClick={addField}><Icon name="plus" size={12} /> Add field</button>
             </div>
 
             <div className="card" style={{ padding: '20px 22px', marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <FL label="Success message (optional)">
-                <input className="input-field" style={{ fontSize: 13 }} placeholder="Thanks â€” we'll be in touch shortly." value={successMessage} onChange={e => { setSuccessMessage(e.target.value); setDirty(true); }} />
+                <input className="input-field" style={{ fontSize: 13 }} placeholder="Thanks — we'll be in touch shortly." value={successMessage} onChange={e => { setSuccessMessage(e.target.value); setDirty(true); }} />
               </FL>
               <FL label="Notify email (optional)">
                 <input className="input-field" style={{ fontSize: 13 }} placeholder="sales@yourcompany.com" value={notifyEmail} onChange={e => { setNotifyEmail(e.target.value); setDirty(true); }} />

@@ -15,6 +15,7 @@ import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
+import { ColorSwatchPicker } from '../components/ui/color-swatch-picker.js';
 
 interface Category { id: string; name: string; color: string }
 
@@ -83,8 +84,7 @@ export const FinanceExpenseCategories: React.FC = () => {
             ))}
             {adding && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input type="color" title="Pick category colour" value={newColor} onChange={e => setNewColor(e.target.value)}
-                  style={{ width: 32, height: 32, padding: 0, border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer' }} />
+                <ColorSwatchPicker value={newColor} onChange={setNewColor} />
                 <input className="input-field" placeholder="Category name" autoFocus value={newName}
                   onChange={e => setNewName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') doAdd(); if (e.key === 'Escape') setAdding(false); }}

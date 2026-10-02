@@ -1,7 +1,7 @@
-﻿/* Bliss brand color â€” set dynamically by WorkspaceApp via useBranding() */
+/* Bliss brand color — set dynamically by WorkspaceApp via useBranding() */
 .app-shell[data-bliss] {}
 
-/* â”€â”€ Support Center Body Card â”€â”€
+/* ── Support Center Body Card ──
    Matches the Hudumika design system body card treatment (/admin/dashboard
    and other platform workspaces) with a soft border, rounded corners, and elevation. */
 .bliss-inbox-card {
@@ -17,7 +17,7 @@
   box-sizing: border-box;
 }
 
-/* â”€â”€ Support Center Top Header & View Switcher Tabs â”€â”€ */
+/* ── Support Center Top Header & View Switcher Tabs ── */
 .bliss-inbox-header {
   background: var(--card-bg, var(--white));
   border-bottom: 1px solid var(--border);
@@ -182,10 +182,10 @@
   }
 }
 
-/* â”€â”€ Support shell â€” fills app-shell-content at full height â”€â”€
+/* ── Support shell — fills app-shell-content at full height ──
    app-shell-content is a flex item (flex: 1 1 0) but NOT a flex container,
    so height:100% is unreliable. We make it a flex column in bliss context
-   and use flex:1 on spt-shell so the height chain is always definite. â”€â”€ */
+   and use flex:1 on spt-shell so the height chain is always definite. ── */
 [data-bliss] .app-shell-content {
   display: flex;
   flex-direction: column;
@@ -198,7 +198,7 @@
    actual DOM child of app-shell-content is .page-layout, not the page's own
    root div. A plain block has no bounded height inside a flex column, so it
    just grows to fit its content and app-shell-content's overflow:hidden
-   above then clips it outright instead of scrolling â€” this is what made
+   above then clips it outright instead of scrolling — this is what made
    /bliss/whatsapp unscrollable once its card list grew taller than the
    viewport. .page-layout itself needs the flex:1 + min-height:0 + its own
    overflow-y, the same way .spt-shell gets it above for the routes that
@@ -225,7 +225,7 @@
   font-size: 13px;
 }
 
-/* â”€â”€ PageHeader wrapper in full-width tickets view â”€â”€ */
+/* ── PageHeader wrapper in full-width tickets view ── */
 .spt-hdr-wrap {
   padding: 0 20px;
   background: var(--white);
@@ -233,7 +233,7 @@
   flex-shrink: 0;
 }
 
-/* â”€â”€ Support page header actions â”€â”€ */
+/* ── Support page header actions ── */
 .spt-hdr-actions {
   display: flex;
   gap: 7px;
@@ -262,7 +262,7 @@
   color: hsl(var(--primary-foreground));
 }
 
-/* â”€â”€ Larger class-based buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Larger class-based buttons ─────────────────────────────────── */
 [data-bliss] .btn-primary {
   font-weight: 700;
 }
@@ -271,11 +271,11 @@
 
 [data-bliss] .btn-sm {}
 
-/* â”€â”€ Section stretching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Section stretching ──────────────────────────────────────────── */
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════════════════════
    Atom components
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════════════════════ */
 
 /* Avatar */
 .spt-av {
@@ -365,7 +365,7 @@
 }
 
 /* Channel pill (message meta) */
-/* Icon-only now (a Tip carries the channel name on hover/focus) â€” was an
+/* Icon-only now (a Tip carries the channel name on hover/focus) — was an
    icon+text pill, which repeated the same four words next to every message
    in a thread that's mostly one or two channels throughout. */
 .spt-ch-pill-sm {
@@ -446,9 +446,9 @@
   color: var(--teal);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   ConvList â€” left inbox column
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══════════════════════════════════════════════════════════════════
+   ConvList — left inbox column
+══════════════════════════════════════════════════════════════════ */
 .spt-conv-list {
   /* Full body width until a ticket is selected; hidden (see
      .spt-shell--has-selection below) once the thread + sidebar take over. */
@@ -567,7 +567,7 @@
   color: var(--navy);
 }
 
-/* Inbox filter nav â€” vertical list */
+/* Inbox filter nav — vertical list */
 .spt-inbox-nav {
   display: flex;
   flex-direction: column;
@@ -673,7 +673,7 @@
   color: var(--ink3);
   /* Same stated height as .spt-bedesk-nav-hdr (this pane's own top header)
      and the cross-column 50px (.spt-thread-hdr, .spt-bedesk-details-hdr,
-     the filter bar) â€” Views/Groups/Channels previously sized purely off
+     the filter bar) — Views/Groups/Channels previously sized purely off
      their own padding+content, which put Channels (icon+chevron only, no
      "+" add button) a full 1.5px under Views/Groups (which have one),
      despite sharing this exact class. */
@@ -932,9 +932,9 @@
   color: var(--ink3);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   ThreadPanel â€” centre column
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══════════════════════════════════════════════════════════════════
+   ThreadPanel — centre column
+══════════════════════════════════════════════════════════════════ */
 .spt-thread {
   flex: 1;
   min-width: 0;
@@ -1009,7 +1009,7 @@
   cursor: pointer;
   outline: none;
   /* The base SelectTrigger primitive ships shadow-sm in its own Tailwind
-     class list (ui/select.tsx) â€” every custom class here overrides border/
+     class list (ui/select.tsx) — every custom class here overrides border/
      background/padding/radius but none of them touched box-shadow, so that
      default shadow rendered on every one of these pills regardless. */
   box-shadow: none !important;
@@ -1593,7 +1593,7 @@
   color: hsl(var(--primary-foreground));
 }
 
-/* â”€â”€ Broadcast result toast â€” a floating card above the composer (the
+/* ── Broadcast result toast — a floating card above the composer (the
    platform's own overlay bar: rounded, elevated, a hairline ring) instead
    of the old edge-to-edge banner that permanently shoved the toolbar down
    for as long as it was visible. Color + icon track data-state so a
@@ -1658,7 +1658,7 @@
   border-color: var(--red);
 }
 
-/* Thin countdown bar, timed to handleSend's 5s auto-clear â€” a quieter,
+/* Thin countdown bar, timed to handleSend's 5s auto-clear — a quieter,
    more legible "this will dismiss itself" cue than an abrupt disappearance. */
 .spt-broadcast-toast-progress {
   position: absolute;
@@ -1685,7 +1685,7 @@
   to { transform: scaleX(0); }
 }
 
-/* â”€â”€ Broadcast channel toggles + Internal Note toggle â”€â”€ */
+/* ── Broadcast channel toggles + Internal Note toggle ── */
 .spt-broadcast-row {
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
@@ -1778,12 +1778,12 @@
   border-color: #92400e;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   DetailsPanel â€” right column
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══════════════════════════════════════════════════════════════════
+   DetailsPanel — right column
+══════════════════════════════════════════════════════════════════ */
 .spt-details {
   /* Used both inside the resizable "Ticket" tab column (desktop) and inside
-     .spt-details-drawer (mobile) â€” a hardcoded 280px left a visible dead
+     .spt-details-drawer (mobile) — a hardcoded 280px left a visible dead
      strip whenever either container rendered wider than that (a resized
      panel, or the drawer's own up-to-400px width), instead of the content
      actually reaching the container's real edge. */
@@ -1956,9 +1956,9 @@
   margin-right: 5px;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════════════════════
    Ticket table view
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════════════════════ */
 .spt-tix-table-wrap {
   flex: 1;
   overflow: auto;
@@ -2257,9 +2257,9 @@
   left: 24px;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════════════════════
    New ticket modal
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════════════════════ */
 .spt-modal-overlay {
   position: fixed;
   inset: 0;
@@ -2402,8 +2402,8 @@
   }
 }
 
-/* â”€â”€ Mobile customer-details drawer (Customer360Sidebar), triggered by
-   .spt-details-toggle in the thread header â”€â”€ */
+/* ── Mobile customer-details drawer (Customer360Sidebar), triggered by
+   .spt-details-toggle in the thread header ── */
 .spt-details-toggle {
   display: none;
 }
@@ -2438,13 +2438,13 @@
   background: var(--white);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════════════════════
    Bliss Dark Theme Overrides ([data-theme="dark"])
    Follows Hudumika Design System Tokens
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════════════════════ */
 
 [data-theme="dark"] [data-bliss] .page-layout {
-  background: radial-gradient(ellipse at 50% 0%, rgba(232, 70, 26, 0.03) 0%, transparent 65%), var(--bg);
+  background: var(--white);
 }
 
 [data-theme="dark"] .spt-shell {
@@ -2833,9 +2833,9 @@
   color: var(--ink2);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════════════════════
    BeDesk Inbox Navigation Sidebar
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════════════════════ */
 .spt-bedesk-nav-hdr {
   display: flex;
   align-items: center;
@@ -2975,10 +2975,10 @@
   background: var(--bg);
 }
 
-/* Row checkboxes â€” hidden until the row is hovered, already checked, or a
+/* Row checkboxes — hidden until the row is hovered, already checked, or a
    bulk selection is in progress (any row checked), matching the inbox
    pattern of not permanently cluttering every row with a selection control
-   nobody's using yet. The header's own "select all" checkbox is untouched â€”
+   nobody's using yet. The header's own "select all" checkbox is untouched —
    it's a standing control, not a per-row one. */
 .spt-row-checkbox {
   opacity: 0;
@@ -2993,7 +2993,7 @@
 }
 
 .spt-bedesk-conv-card--active {
-  /* Was var(--bg) â€” the same neutral every other row falls back to on
+  /* Was var(--bg) — the same neutral every other row falls back to on
      hover, so "selected" and "hovered" read as almost the same state.
      var(--teal-l) matches .spt-inbox-item--active (the sidebar's own
      selected-menu color) so a selected ticket and a selected inbox/view/
@@ -3297,7 +3297,7 @@
   color: #ffffff;
 }
 
-/* Icon-only â€” was a text pill ("WhatsApp", "Instagram"...) that could not
+/* Icon-only — was a text pill ("WhatsApp", "Instagram"...) that could not
    fit all 8 channels on a narrow screen without wrapping into an ungainly
    multi-row block; a fixed-size icon square wraps cleanly at any width and
    still identifies the channel via its brand icon + a title tooltip. */
@@ -3523,7 +3523,7 @@
   display: flex;
   align-items: center;
   /* Was space-between, pinning the label to the left edge and the value
-     (a ~110px Select trigger) to the right â€” on this panel's real width
+     (a ~110px Select trigger) to the right — on this panel's real width
      that reads as a big empty gap between two short things, not two
      things "spread out". Left-aligned with a fixed label column instead,
      so Assignee/Status/Group's values start at the same x position
@@ -3539,7 +3539,7 @@
 }
 
 .spt-bedesk-val-select {
-  /* --ctl-h-sm, not a hardcoded 26px â€” the status Tabs beside it are on
+  /* --ctl-h-sm, not a hardcoded 26px — the status Tabs beside it are on
      the same density-driven floor (ds-tabs.css's segmented trigger height),
      so this is the one way the two ever line up at every density setting,
      not just by coincidence at the default one. */
@@ -3550,13 +3550,13 @@
   background: var(--bg) !important;
   padding: 0 8px !important;
   border-radius: var(--r-sm) !important;
-  /* Same reason as .spt-status-select â€” the base SelectTrigger's own
+  /* Same reason as .spt-status-select — the base SelectTrigger's own
      shadow-sm Tailwind class survives every other override here. */
   box-shadow: none !important;
 }
 
 /* Same box as .spt-bedesk-val-select (height/padding/font), for a viewer
-   below OPS_ROLES who can see this field but not act on it â€” plain text
+   below OPS_ROLES who can see this field but not act on it — plain text
    in the same slot, not a control with nothing behind it. */
 .spt-bedesk-readonly-val {
   display: inline-flex;
@@ -3659,7 +3659,7 @@
 .spt-bedesk-kv-row {
   display: flex;
   align-items: center;
-  /* Same fix as .spt-bedesk-attr-row just above â€” space-between put
+  /* Same fix as .spt-bedesk-attr-row just above — space-between put
      "Type:" hard against the left edge and "Chat" hard against the
      right, with nothing but empty panel between them. */
   gap: 10px;
@@ -3703,7 +3703,7 @@
 }
 
 [data-theme="dark"] .spt-bedesk-conv-card--active {
-  /* Same reasoning as the light-mode rule above â€” matches
+  /* Same reasoning as the light-mode rule above — matches
      [data-theme="dark"] .spt-inbox-item--active's own var(--teal-l)
      instead of a separate hardcoded navy nothing else on this screen
      uses for "selected". */
@@ -3725,7 +3725,7 @@
 }
 
 [data-theme="dark"] .spt-bedesk-row--active {
-  /* Same var(--teal-l) as .spt-inbox-item--active â€” see the conv-card
+  /* Same var(--teal-l) as .spt-inbox-item--active — see the conv-card
      rule just above for why this used to be its own hardcoded navy. */
   background: var(--teal-l) !important;
 }

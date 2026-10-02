@@ -80,7 +80,7 @@ const PRESET_RULES = [
     title: 'Business Working Hours',
     keyword: 'HOURS',
     matchType: 'contains' as const,
-    replyText: 'Our customs & logistics operations run Monâ€“Fri 08:00â€“17:00 EAT and Sat 09:00â€“13:00. Urgent vessel inquiries are monitored 24/7.',
+    replyText: 'Our customs & logistics operations run Mon–Fri 08:00–17:00 EAT and Sat 09:00–13:00. Urgent vessel inquiries are monitored 24/7.',
     icon: 'clock',
   },
   {
@@ -260,7 +260,7 @@ export const BlissWhatsApp: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({ name: tplName.trim().toLowerCase().replace(/\s+/g, '_'), category: tplCategory, language: tplLanguage, bodyText: tplBody.trim() }),
       });
-      showAlert('Template submitted to Meta for review â€” it will show as Pending until approved.');
+      showAlert('Template submitted to Meta for review — it will show as Pending until approved.');
       setTplName(''); setTplBody(''); setShowNewTemplateModal(false);
       loadTemplates();
     } catch (e: any) {
@@ -374,7 +374,7 @@ export const BlissWhatsApp: React.FC = () => {
         <FeaturedIcon variant="brand" size="xl">
           <Icon name="refresh" size={28} style={{ animation: 'spin 1s linear infinite' }} />
         </FeaturedIcon>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Connecting to WhatsApp Business Hubâ€¦</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Connecting to WhatsApp Business Hub…</div>
       </div>
     );
   }
@@ -388,12 +388,12 @@ export const BlissWhatsApp: React.FC = () => {
       background: 'var(--bg)',
       minHeight: '100%',
     }}>
-      {/* â”€â”€ Standard Hudumika PageHeader â”€â”€ */}
+      {/* ── Standard Hudumika PageHeader ── */}
       <PageHeader
         crumbs={['Bliss', 'WhatsApp']}
         titlePlain="WhatsApp"
         titleEm="hub"
-        subtitle="Meta WhatsApp Cloud API integration â€” inbound tickets, HSM template dispatch, and keyword automations."
+        subtitle="Meta WhatsApp Cloud API integration — inbound tickets, HSM template dispatch, and keyword automations."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Badge variant={metrics?.configured ? 'success' : 'warning'}>
@@ -402,7 +402,7 @@ export const BlissWhatsApp: React.FC = () => {
             </Badge>
             <Button variant="outline" size="sm" onClick={() => loadCore(true)} disabled={refreshing}>
               <Icon name="refresh" size={13} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-              {refreshing ? 'Syncingâ€¦' : 'Sync Meta Data'}
+              {refreshing ? 'Syncing…' : 'Sync Meta Data'}
             </Button>
             <Link to="/bliss/inbox" style={{ textDecoration: 'none' }}>
               <Button variant="default" size="sm">
@@ -430,7 +430,7 @@ export const BlissWhatsApp: React.FC = () => {
         </div>
       )}
 
-      {/* â”€â”€ KPI Metric Cards Ribbon (Responsive Grid) â”€â”€ */}
+      {/* ── KPI Metric Cards Ribbon (Responsive Grid) ── */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
@@ -493,7 +493,7 @@ export const BlissWhatsApp: React.FC = () => {
             <Icon name="checkCircle" size={20} strokeWidth={2} />
           </FeaturedIcon>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>{metrics?.readRate != null ? `${metrics.readRate}%` : 'â€”'}</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>{metrics?.readRate != null ? `${metrics.readRate}%` : '—'}</div>
             <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, marginTop: 2 }}>Read Rate (Receipts)</div>
             <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{metrics?.readRate != null ? 'Blue double-check rate' : 'No receipts logged yet'}</div>
           </div>
@@ -526,7 +526,7 @@ export const BlissWhatsApp: React.FC = () => {
         </div>
       </div>
 
-      {/* â”€â”€ Main Tabbed Navigation (Hudumika Design System Outline Tabs) â”€â”€ */}
+      {/* ── Main Tabbed Navigation (Hudumika Design System Outline Tabs) ── */}
       <Tabs value={activeTab} onValueChange={v => setTab(v as any)} variant="outline" style={{ flexShrink: 0 }}>
         <TabsList>
           <TabsTrigger value="overview">
@@ -552,7 +552,7 @@ export const BlissWhatsApp: React.FC = () => {
         </TabsList>
       </Tabs>
 
-      {/* â”€â”€ TAB 1: OVERVIEW & ACTIVITY â”€â”€ */}
+      {/* ── TAB 1: OVERVIEW & ACTIVITY ── */}
       {activeTab === 'overview' && (
         <div style={{
           display: 'grid',
@@ -588,7 +588,7 @@ export const BlissWhatsApp: React.FC = () => {
                   className="input-field"
                   value={convSearch}
                   onChange={e => setConvSearch(e.target.value)}
-                  placeholder="Filter conversationsâ€¦"
+                  placeholder="Filter conversations…"
                   style={{
                     width: '100%',
                     height: 32,
@@ -707,7 +707,7 @@ export const BlissWhatsApp: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>Active Keyword Automations</div>
                 <Button variant="ghost" size="sm" onClick={() => setTab('automation')} style={{ fontSize: 11.5 }}>
-                  View all ({rules.length}) â†’
+                  View all ({rules.length}) →
                 </Button>
               </div>
 
@@ -746,7 +746,7 @@ export const BlissWhatsApp: React.FC = () => {
         </div>
       )}
 
-      {/* â”€â”€ TAB 2: LIVE SIMULATOR & TEST SANDBOX â”€â”€ */}
+      {/* ── TAB 2: LIVE SIMULATOR & TEST SANDBOX ── */}
       {activeTab === 'simulator' && (
         <div style={{
           display: 'grid',
@@ -815,7 +815,7 @@ export const BlissWhatsApp: React.FC = () => {
                   rows={4}
                   value={testText}
                   onChange={e => setTestText(e.target.value)}
-                  placeholder="Enter message textâ€¦"
+                  placeholder="Enter message text…"
                   style={{ fontSize: 13, lineHeight: 1.4, resize: 'vertical' }}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>
@@ -836,12 +836,12 @@ export const BlissWhatsApp: React.FC = () => {
                   ) : (
                     <Select value={testTemplate} onValueChange={setTestTemplate}>
                       <SelectTrigger className="input-field" style={{ fontFamily: 'var(--font)' }}>
-                        <SelectValue placeholder="Choose templateâ€¦" />
+                        <SelectValue placeholder="Choose template…" />
                       </SelectTrigger>
                       <SelectContent>
                         {approvedTemplates.map(t => (
                           <SelectItem key={t.id} value={t.name}>
-                            {t.name} ({t.category} Â· {t.language})
+                            {t.name} ({t.category} · {t.language})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -884,7 +884,7 @@ export const BlissWhatsApp: React.FC = () => {
               style={{ fontWeight: 800, height: 40, fontSize: 13 }}
             >
               <Icon name="send" size={15} />
-              {sendingTest ? 'Dispatching over Meta APIâ€¦' : 'Send Test Message'}
+              {sendingTest ? 'Dispatching over Meta API…' : 'Send Test Message'}
             </Button>
 
             {testResult && (
@@ -1002,22 +1002,22 @@ export const BlissWhatsApp: React.FC = () => {
                   </div>
                 )}
                 <div style={{ whiteSpace: 'pre-wrap' }}>
-                  {testMode === 'text' ? (testText || 'Type a message to previewâ€¦') : computedTemplatePreview}
+                  {testMode === 'text' ? (testText || 'Type a message to preview…') : computedTemplatePreview}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 4, fontSize: 9.5, color: 'var(--ink3)' }}>
                   <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  <span style={{ color: 'var(--teal)', fontWeight: 900 }}>âœ“âœ“</span>
+                  <span style={{ color: 'var(--teal)', fontWeight: 900 }}>✓✓</span>
                 </div>
               </div>
             </div>
 
-            {/* Input bar â€” typing here updates testText (text mode) and send triggers sendTest */}
+            {/* Input bar — typing here updates testText (text mode) and send triggers sendTest */}
             <div style={{ background: 'var(--card-bg, var(--white))', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--border)' }}>
               <input
                 value={testMode === 'text' ? testText : ''}
                 onChange={e => { if (testMode === 'text') setTestText(e.target.value); }}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !sendingTest) { e.preventDefault(); sendTest(); } }}
-                placeholder={testMode === 'text' ? 'Type a messageâ€¦' : 'Select a template above'}
+                placeholder={testMode === 'text' ? 'Type a message…' : 'Select a template above'}
                 disabled={testMode !== 'text'}
                 style={{ flex: 1, background: 'var(--card-sunken)', borderRadius: 'var(--r)', padding: '6px 14px', fontSize: 12, color: 'var(--ink)', border: '1px solid var(--border)', outline: 'none', minWidth: 0 }}
               />
@@ -1034,7 +1034,7 @@ export const BlissWhatsApp: React.FC = () => {
         </div>
       )}
 
-      {/* â”€â”€ TAB 3: MESSAGE TEMPLATES (HSM) â”€â”€ */}
+      {/* ── TAB 3: MESSAGE TEMPLATES (HSM) ── */}
       {activeTab === 'templates' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Top Filter & Search Toolbar */}
@@ -1086,7 +1086,7 @@ export const BlissWhatsApp: React.FC = () => {
                   className="input-field"
                   value={templateSearch}
                   onChange={e => setTemplateSearch(e.target.value)}
-                  placeholder="Search templatesâ€¦"
+                  placeholder="Search templates…"
                   style={{ width: '100%', height: 32, paddingLeft: 28, paddingRight: 8, fontSize: 12 }}
                 />
               </div>
@@ -1118,7 +1118,7 @@ export const BlissWhatsApp: React.FC = () => {
               gap: 10,
             }}>
               <Icon name="alertTriangle" size={16} />
-              {templatesError || 'META_WABA_ID is not configured in this environment â€” template management communicates with Meta WhatsApp Business Account Graph API.'}
+              {templatesError || 'META_WABA_ID is not configured in this environment — template management communicates with Meta WhatsApp Business Account Graph API.'}
             </div>
           )}
 
@@ -1168,7 +1168,7 @@ export const BlissWhatsApp: React.FC = () => {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--ink3)', marginBottom: 10 }}>
                         <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{t.category}</span>
-                        <span>Â·</span>
+                        <span>·</span>
                         <span>{t.language}</span>
                       </div>
                       <div style={{
@@ -1211,7 +1211,7 @@ export const BlissWhatsApp: React.FC = () => {
         </div>
       )}
 
-      {/* â”€â”€ TAB 4: KEYWORD AUTO-REPLY RULES â”€â”€ */}
+      {/* ── TAB 4: KEYWORD AUTO-REPLY RULES ── */}
       {activeTab === 'automation' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Preset Quick Add Library */}
@@ -1341,7 +1341,7 @@ export const BlissWhatsApp: React.FC = () => {
         </div>
       )}
 
-      {/* â”€â”€ TAB 5: API & WEBHOOK SETUP â”€â”€ */}
+      {/* ── TAB 5: API & WEBHOOK SETUP ── */}
       {activeTab === 'settings' && (
         <div style={{
           display: 'grid',
@@ -1456,7 +1456,7 @@ export const BlissWhatsApp: React.FC = () => {
         </div>
       )}
 
-      {/* â”€â”€ MODAL: CREATE HSM TEMPLATE â”€â”€ */}
+      {/* ── MODAL: CREATE HSM TEMPLATE ── */}
       {showNewTemplateModal && (
         <Dialog open onOpenChange={setShowNewTemplateModal}>
           <DialogContent className="max-w-xl">
@@ -1520,14 +1520,14 @@ export const BlissWhatsApp: React.FC = () => {
             <DialogFooter>
               <Button variant="outline" size="sm" onClick={() => setShowNewTemplateModal(false)}>Cancel</Button>
               <Button variant="default" size="sm" onClick={createTemplate} disabled={savingTpl}>
-                {savingTpl ? 'Submitting to Metaâ€¦' : 'Submit for Review'}
+                {savingTpl ? 'Submitting to Meta…' : 'Submit for Review'}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* â”€â”€ MODAL: CREATE AUTO-REPLY RULE â”€â”€ */}
+      {/* ── MODAL: CREATE AUTO-REPLY RULE ── */}
       {showNewRuleModal && (
         <Dialog open onOpenChange={setShowNewRuleModal}>
           <DialogContent className="max-w-lg">
@@ -1568,7 +1568,7 @@ export const BlissWhatsApp: React.FC = () => {
                   rows={3}
                   value={ruleReply}
                   onChange={e => setRuleReply(e.target.value)}
-                  placeholder="Enter auto-response sent to customerâ€¦"
+                  placeholder="Enter auto-response sent to customer…"
                   style={{ marginTop: 4, lineHeight: 1.4, resize: 'vertical' }}
                 />
               </div>
@@ -1577,7 +1577,7 @@ export const BlissWhatsApp: React.FC = () => {
             <DialogFooter>
               <Button variant="outline" size="sm" onClick={() => setShowNewRuleModal(false)}>Cancel</Button>
               <Button variant="default" size="sm" onClick={() => createRule()} disabled={savingRule}>
-                {savingRule ? 'Savingâ€¦' : 'Create Auto-Reply'}
+                {savingRule ? 'Saving…' : 'Create Auto-Reply'}
               </Button>
             </DialogFooter>
           </DialogContent>

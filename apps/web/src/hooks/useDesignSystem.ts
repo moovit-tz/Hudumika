@@ -212,8 +212,16 @@ export const SHADOW_PRESETS: Record<ShadowId, ShadowPreset> = {
     dark:  { sm: '0 1px 3px rgba(0,0,0,0.4)', base: '0 1px 3px rgba(0,0,0,0.4), 0 6px 18px rgba(0,0,0,0.4)', lg: '0 4px 8px rgba(0,0,0,0.5), 0 16px 36px rgba(0,0,0,0.5)' },
   },
   default: {
-    light: { sm: '0 1px 2px rgba(13,17,23,0.04), 0 1px 3px rgba(13,17,23,0.03)', base: '0 1px 3px rgba(13,17,23,0.06), 0 8px 24px rgba(13,17,23,0.06)', lg: '0 4px 8px rgba(13,17,23,0.08), 0 16px 40px rgba(13,17,23,0.10)' },
-    dark:  { sm: '0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)', base: '0 2px 4px rgba(0,0,0,0.6), 0 12px 32px rgba(0,0,0,0.5)', lg: '0 8px 16px rgba(0,0,0,0.7), 0 24px 56px rgba(0,0,0,0.65)' },
+    light: {
+      sm: '0 1px 2px 0 rgba(15, 23, 42, 0.05)',
+      base: '0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 10px 15px -5px rgba(15, 23, 42, 0.04)',
+      lg: '0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04)',
+    },
+    dark: {
+      sm: '0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)',
+      base: '0 2px 4px rgba(0,0,0,0.6), 0 12px 32px rgba(0,0,0,0.5)',
+      lg: '0 8px 16px rgba(0,0,0,0.7), 0 24px 56px rgba(0,0,0,0.65)',
+    },
   },
   elevated: {
     light: { sm: '0 2px 4px rgba(13,17,23,0.06)', base: '0 4px 8px rgba(13,17,23,0.10), 0 12px 32px rgba(13,17,23,0.10)', lg: '0 8px 16px rgba(13,17,23,0.14), 0 24px 56px rgba(13,17,23,0.16)' },
@@ -326,49 +334,49 @@ export const SHADOW_PRESETS: Record<ShadowId, ShadowPreset> = {
 // ── Defaults — copied verbatim from index.css's static :root values ───────────
 
 export const NEUTRAL_LIGHT_DEFAULT: NeutralSet = {
-  ink: '#0d1117', ink2: '#57606a', ink3: '#8b949e',
-  bg: '#F7F5F0', white: '#ffffff',
-  border: '#e1e4e8', border2: '#c9cdd4',
-  cardSunken: '#f5f5f5',
+  ink: '#0f172a', ink2: '#475569', ink3: '#94a3b8',
+  bg: '#f4f7fb', white: '#ffffff',
+  border: '#e2e8f0', border2: '#cbd5e1',
+  cardSunken: '#f1f5f9',
 };
 
 export const NEUTRAL_DARK_DEFAULT: NeutralSet = {
-  ink: '#e2e8f0', ink2: '#94a3b8', ink3: '#64748b',
+  ink: '#f8fafc', ink2: '#94a3b8', ink3: '#64748b',
   bg: '#080b10', white: '#111218',
   border: 'rgba(255,255,255,0.07)', border2: 'rgba(255,255,255,0.13)',
   cardSunken: 'rgba(255,255,255,0.035)',
 };
 
 export const SEMANTIC_LIGHT_DEFAULT: SemanticSet = {
-  gold: '#9a6700', red: '#cf222e', green: '#059669', blue: '#0550ae', purple: '#6e40c9',
-  navy: '#0e1f3d', navy2: '#1a3260',
+  gold: '#d97706', red: '#e11d48', green: '#059669', blue: '#0284c7', purple: '#7c3aed',
+  navy: '#0f172a', navy2: '#1e293b',
 };
 
 export const SEMANTIC_DARK_DEFAULT: SemanticSet = {
-  gold: '#c8920a', red: '#e84040', green: '#2db858', blue: '#4a9ef5', purple: '#9b72e8',
-  navy: '#d8e4f4', navy2: '#b8ccdf',
+  gold: '#f59e0b', red: '#f43f5e', green: '#10b981', blue: '#38bdf8', purple: '#a78bfa',
+  navy: '#0f172a', navy2: '#1e293b',
 };
 
 export const TYPE_SCALE_DEFAULT: TypeScale = {
-  xs: 11, sm: 12, base: 13, md: 14, lg: 16, xl: 20, xxl: 24, xxxl: 30,
+  xs: 11, sm: 12, base: 13, md: 14, lg: 16, xl: 18, xxl: 22, xxxl: 26,
 };
 
 export const SHAPE_DEFAULT: ShapeTokens = {
-  rSm: 5, r: 9, rLg: 9, badgeRadius: 20,
-  borderWidth: 1, iconStrokeWidth: 1.75, breadcrumbSize: 10.5,
+  rSm: 8, r: 12, rLg: 14, badgeRadius: 9999,
+  borderWidth: 1, iconStrokeWidth: 1.75, breadcrumbSize: 11,
 };
 
 export const DESIGN_TOKENS_DEFAULTS: DesignTokens = {
-  brand: { primary: '#1257c6' },
+  brand: { primary: '#0f766e' },
   neutral: { light: NEUTRAL_LIGHT_DEFAULT, dark: NEUTRAL_DARK_DEFAULT },
   semantic: { light: SEMANTIC_LIGHT_DEFAULT, dark: SEMANTIC_DARK_DEFAULT },
-  typography: { font: 'system', scale: TYPE_SCALE_DEFAULT },
+  typography: { font: 'atlassian-sans', scale: TYPE_SCALE_DEFAULT },
   shape: SHAPE_DEFAULT,
   elevation: 'default',
   density: 'default',
   iconLibrary: 'stroke',
   motion: { durFast: 80, dur: 150, durSlow: 300, ease: 'cubic-bezier(0.4, 0, 0.2, 1)' },
-  tabs: { variant: 'underline', radius: 8, height: 38, size: 13 },
+  tabs: { variant: 'segmented', radius: 6, height: 34, size: 13 },
   responsive: { breakpoint: 768 },
 };
 
@@ -403,6 +411,78 @@ export interface PlatformTheme {
 }
 
 export const PLATFORM_THEMES: PlatformTheme[] = [
+  {
+    id: 'dreams-core',
+    name: 'Dreams Core',
+    description: 'Modern Tailwind admin aesthetic with rounded 14px cards, 8px buttons, Plus Jakarta Sans, and emerald accents.',
+    tokens: {
+      brand: { primary: '#0f766e' },
+      neutral: {
+        light: {
+          ink: '#0f172a',
+          ink2: '#475569',
+          ink3: '#94a3b8',
+          bg: '#f4f7fb',
+          white: '#ffffff',
+          border: '#e2e8f0',
+          border2: '#cbd5e1',
+          cardSunken: '#f8fafc',
+        },
+        dark: {
+          ink: '#f8fafc',
+          ink2: '#94a3b8',
+          ink3: '#64748b',
+          bg: '#0c1917',
+          white: '#132320',
+          border: 'rgba(255,255,255,0.08)',
+          border2: 'rgba(255,255,255,0.14)',
+          cardSunken: '#172b27',
+        },
+      },
+      semantic: {
+        light: {
+          gold: '#d97706',
+          red: '#e11d48',
+          green: '#059669',
+          blue: '#0284c7',
+          purple: '#7c3aed',
+          navy: '#0f172a',
+          navy2: '#1e293b',
+        },
+        dark: {
+          gold: '#f59e0b',
+          red: '#f43f5e',
+          green: '#10b981',
+          blue: '#38bdf8',
+          purple: '#a78bfa',
+          navy: '#0c1917',
+          navy2: '#132320',
+        },
+      },
+      typography: {
+        font: 'plus-jakarta',
+        scale: { xs: 11, sm: 12, base: 13, md: 14, lg: 16, xl: 18, xxl: 22, xxxl: 26 },
+      },
+      shape: {
+        rSm: 8,
+        r: 12,
+        rLg: 14,
+        badgeRadius: 9999,
+        borderWidth: 1,
+        iconStrokeWidth: 1.75,
+        breadcrumbSize: 11,
+      },
+      elevation: 'default',
+      density: 'default',
+      tabs: {
+        variant: 'segmented',
+        radius: 8,
+        height: 34,
+        size: 13,
+      },
+    },
+    palette: ['#0f766e', '#059669', '#d97706', '#e11d48', '#0284c7', '#7c3aed', '#0891b2', '#4f46e5'],
+  },
   {
     id: 'midnight-navy',
     name: 'Midnight Navy',
@@ -824,7 +904,7 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--tab-radius': `${tokens.tabs.radius}px`,
     '--tab-height': `${tokens.tabs.height}px`,
     '--tab-size': `${tokens.tabs.size}px`,
-    '--r-sm': `${shape.rSm}px`, '--r': `${shape.r}px`, '--r-lg': `${shape.rLg}px`, '--badge-radius': `${shape.badgeRadius}px`,
+    '--r-sm': `${shape.rSm}px`, '--r': `${shape.r}px`, '--r-lg': `${shape.rLg}px`, '--card-radius': `${shape.rLg}px`, '--badge-radius': `${shape.badgeRadius}px`,
     '--border-width': `${shape.borderWidth}px`,
     '--icon-stroke-width': `${shape.iconStrokeWidth}`,
     '--breadcrumb-size': `${shape.breadcrumbSize}px`,
@@ -911,8 +991,28 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--mobile-breakpoint': `${responsive.breakpoint}px`,
   };
 
+  // Shadcn dark-surface tokens for platform/pre-auth pages (WorkspaceApp
+  // overrides these with per-app values; here they use the platform brand).
+  const [pr, pg, pb] = parseHex(tokens.brand.primary);
+  const dsToHex = (n: number) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0');
+  const dsMix = (mix: number, base: [number, number, number]) => `#${[
+    Math.round(pr * mix + base[0] * (1 - mix)),
+    Math.round(pg * mix + base[1] * (1 - mix)),
+    Math.round(pb * mix + base[2] * (1 - mix)),
+  ].map(dsToHex).join('')}`;
+  const dsBgHsl     = hexToHslTriplet(dsMix(0.07, [8,  11, 16]));
+  const dsCardHsl   = hexToHslTriplet(dsMix(0.10, [17, 18, 24]));
+  const dsAccentHsl = hexToHslTriplet(dsMix(0.12, [26, 32, 47]));
+
   const darkVars: Record<string, string | number> = {
     '--teal': darkTeal,
+
+    '--background': dsBgHsl,
+    '--card': dsCardHsl,
+    '--popover': dsCardHsl,
+    '--secondary': dsBgHsl,
+    '--muted': dsBgHsl,
+    '--accent': dsAccentHsl,
 
     '--primary': primaryHslDark,
     '--primary-foreground': primaryFgDark,
@@ -925,11 +1025,16 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--ink': tokens.neutral.dark.ink,
     '--ink2': tokens.neutral.dark.ink2,
     '--ink3': tokens.neutral.dark.ink3,
-    '--bg': tokens.neutral.dark.bg,
-    '--white': tokens.neutral.dark.white,
+    /* Page background and card surface, tinted by the active app's raw accent.
+       --teal-fill-raw is the original (non-lightened) hex set by WorkspaceApp on
+       :root — each app's real brand colour. The fallback is the platform brand so
+       pre-auth and platform pages stay in-brand without WorkspaceApp mounted. */
+    '--bg': `color-mix(in srgb, var(--teal-fill-raw, ${tokens.brand.primary}) 7%, ${tokens.neutral.dark.bg})`,
+    '--white': `color-mix(in srgb, var(--teal-fill-raw, ${tokens.brand.primary}) 10%, ${tokens.neutral.dark.white})`,
     '--card-sunken': tokens.neutral.dark.cardSunken ?? 'rgba(255,255,255,0.035)',
     '--border': tokens.neutral.dark.border,
     '--border2': tokens.neutral.dark.border2,
+    '--nav-header-bg': `color-mix(in srgb, var(--teal-fill-raw, ${tokens.brand.primary}) 15%, #0a0e16)`,
 
     '--gold': tokens.semantic.dark.gold,
     '--red': tokens.semantic.dark.red,
@@ -957,6 +1062,7 @@ export function applyDesignTokens(tokens: DesignTokens): void {
   tag.textContent = `:root {\n${block(lightVars)}\n}\n[data-theme="dark"] {\n${block(darkVars)}\n}`;
 
   document.documentElement.setAttribute('data-tabs', tokens.tabs.variant);
+  document.documentElement.setAttribute('data-ds-version', dsv.version);
   // Icon.tsx reads this directly (not through a CSS var — which library
   // renders is a real DOM/markup choice, not a style value) via its own
   // small useSyncExternalStore hook, so every already-mounted <Icon>

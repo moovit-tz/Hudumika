@@ -9,6 +9,7 @@ import { isTaxCodeUserError, resolveTaxCode } from '../services/tax-code.service
 import { InventoryService } from '../services/inventory.service.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
+import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
 
 // Wire format is uppercase (PurchaseOrders.tsx's toApiStatus does
 // POStatus.toUpperCase() before sending) even though the frontend's own
@@ -30,6 +31,7 @@ const poCreateSchema = z.object({
   po_number: z.string().max(100).optional(),
   supplier_id: z.string().optional(),
   supplier_name: z.string().max(300).optional(),
+  business_line_id: z.string().uuid().optional().nullable(),
   status: z.enum(PO_STATUS).optional(),
   order_date: z.string().optional(),
   expected_date: z.string().optional(),
@@ -39,6 +41,12 @@ const poCreateSchema = z.object({
   warehouse_name: z.string().max(200).optional(),
   payment_terms: z.string().max(200).optional(),
 });
+
+async function isActiveTenantBusinessLine(trx: Transaction<Database>, tenantId: string, id: string): Promise<boolean> {
+  const line = await trx.selectFrom('finance_business_lines').select('id')
+    .where('tenant_id', '=', tenantId).where('id', '=', id).where('active', '=', true).executeTakeFirst();
+  return Boolean(line);
+}
 
 
 /**
@@ -104,7 +112,7 @@ async function buildPoLines(
 export async function purchaseOrderRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
-  fastify.addHook('preHandler', requireFinanceCapability('finance.procurement'));
+  fastify.addHook('preHandler', requireFinanceCapability('finance.procurement', { preserveReadAccess: true }));
 
   // GET /v1/purchase-orders
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,
@@ -149,6 +157,14 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
         }
       }
       const items = Array.isArray(body.lines) ? body.lines : [];
+      if (body.business_line_id) {
+        if (!(await tenantHasEnabledFinanceCapability(user.tenant_id, 'finance.accounting.advanced'))) {
+          return reply.status(403).send({ error: 'Business-line tracking requires Advanced Accounting to be enabled.', code: 'CAPABILITY_READ_ONLY', capability: 'finance.accounting.advanced' });
+        }
+        if (!(await isActiveTenantBusinessLine(trx, user.tenant_id, body.business_line_id))) {
+          return reply.status(400).send({ error: 'Business line not found or archived.' });
+        }
+      }
       const built = await buildPoLines(trx, user.tenant_id, '', items);
       if (!built.ok) return reply.status(400).send({ error: built.error });
       const subtotal = built.subtotal;
@@ -163,6 +179,7 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
           po_number: poNumber,
           supplier_id: body.supplier_id || null,
           supplier_name: body.supplier_name || null,
+          business_line_id: body.business_line_id || null,
           status: body.status || 'DRAFT',
           order_date: body.order_date ? new Date(body.order_date) : null,
           expected_date: body.expected_date ? new Date(body.expected_date) : null,
@@ -223,15 +240,27 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx
         .selectFrom('purchase_orders')
-        .select('id')
+        .select(['id', 'status', 'business_line_id'])
         .where('id', '=', id)
         .where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
 
       if (!existing) return reply.status(404).send({ error: 'Purchase order not found' });
 
+      if (body.business_line_id !== undefined && body.business_line_id !== existing.business_line_id) {
+        if (existing.status !== 'DRAFT') return reply.status(400).send({ error: 'The business line cannot be changed after a purchase order leaves Draft.' });
+        if (body.business_line_id) {
+          if (!(await tenantHasEnabledFinanceCapability(user.tenant_id, 'finance.accounting.advanced'))) {
+            return reply.status(403).send({ error: 'Business-line tracking requires Advanced Accounting to be enabled.', code: 'CAPABILITY_READ_ONLY', capability: 'finance.accounting.advanced' });
+          }
+          if (!(await isActiveTenantBusinessLine(trx, user.tenant_id, body.business_line_id))) {
+            return reply.status(400).send({ error: 'Business line not found or archived.' });
+          }
+        }
+      }
+
       const updates: any = { updated_at: new Date() };
-      const fields = ['po_number', 'supplier_id', 'supplier_name', 'status', 'order_date', 'expected_date', 'currency', 'notes', 'warehouse_id', 'warehouse_name', 'payment_terms'];
+      const fields = ['po_number', 'supplier_id', 'supplier_name', 'business_line_id', 'status', 'order_date', 'expected_date', 'currency', 'notes', 'warehouse_id', 'warehouse_name', 'payment_terms'];
       const b = body as Record<string, unknown>;
       for (const f of fields) {
         if (b[f] !== undefined) {
@@ -367,6 +396,7 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
           unitCost: m.unitCost,
           reference: `PO-${po.po_number}`,
           reasonCode: 'po_receipt',
+          businessLineId: po.business_line_id,
         });
       }
 

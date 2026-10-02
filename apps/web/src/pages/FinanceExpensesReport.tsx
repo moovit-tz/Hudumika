@@ -110,7 +110,7 @@ export const FinanceExpensesReport: React.FC = () => {
     const byCat = new Map<string, number>();
     inPeriod.forEach(x => byCat.set(x.e.category, (byCat.get(x.e.category) || 0) + x.e.amount));
     const categoryBreakdown = Array.from(byCat.entries()).sort((a, b) => b[1] - a[1]);
-    const largestCategory = categoryBreakdown[0] ? catLabel(categoryBreakdown[0][0]) : 'â€”';
+    const largestCategory = categoryBreakdown[0] ? catLabel(categoryBreakdown[0][0]) : '—';
 
     return { expenses, monthLabels, monthlyTotals, totalExpenses, thisMonthTotal, categoryBreakdown, largestCategory };
   }, [rawExpenses, period, category]);
@@ -261,7 +261,7 @@ export const FinanceExpensesReport: React.FC = () => {
           {expenses.length > PAGE_SIZE && (
             <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, background: 'var(--white)' }}>
               <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                Showing <strong>{offset + 1}â€“{Math.min(offset + PAGE_SIZE, expenses.length)}</strong> of <strong>{expenses.length}</strong> expenses
+                Showing <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, expenses.length)}</strong> of <strong>{expenses.length}</strong> expenses
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <button

@@ -17,6 +17,9 @@ const messageCreateSchema = z.object({ body: z.string().trim().min(1) });
 // reason that file does.
 const MGMT_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'];
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID_RE.test(v);
+
 export async function complyLegalRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('complyos'));
@@ -58,6 +61,7 @@ export async function complyLegalRoutes(fastify: FastifyInstance) {
     const { status } = engagementStatusSchema.parse(request.body);
     try {
       const { id } = request.params as { id: string };
+      if (!isUuid(id)) return reply.status(404).send({ error: 'Engagement not found' });
       await LegalMarketplaceService.updateEngagementStatus(request.user.tenant_id, id, status);
       return { ok: true };
     } catch (err: any) {
@@ -68,6 +72,7 @@ export async function complyLegalRoutes(fastify: FastifyInstance) {
   fastify.delete('/engagements/:id', async (request: any, reply) => {
     try {
       const { id } = request.params as { id: string };
+      if (!isUuid(id)) return reply.status(404).send({ error: 'Engagement not found' });
       await LegalMarketplaceService.deleteEngagement(request.user.tenant_id, id);
       return { ok: true };
     } catch (err: any) {
@@ -79,6 +84,7 @@ export async function complyLegalRoutes(fastify: FastifyInstance) {
     const { body } = messageCreateSchema.parse(request.body);
     try {
       const { id } = request.params as { id: string };
+      if (!isUuid(id)) return reply.status(404).send({ error: 'Engagement not found' });
       return reply.status(201).send(
         await LegalMarketplaceService.addMessage(request.user.tenant_id, id, request.user.sub, body),
       );
@@ -91,6 +97,7 @@ export async function complyLegalRoutes(fastify: FastifyInstance) {
     const { status } = milestoneStatusSchema.parse(request.body);
     try {
       const { id, milestoneId } = request.params as { id: string; milestoneId: string };
+      if (!isUuid(id) || !isUuid(milestoneId)) return reply.status(404).send({ error: 'Engagement or milestone not found' });
       await LegalMarketplaceService.setMilestoneStatus(request.user.tenant_id, id, milestoneId, status);
       return { ok: true };
     } catch (err: any) {

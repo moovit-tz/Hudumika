@@ -6,7 +6,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireFinanceCapability } from '../middleware/finance-capability.js';
 import { computeAndPostFxRevaluation } from '../services/fx-revaluation.service.js';
 
-const FINANCE_TIER = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE'] as const;
+const FINANCE_TIER = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'] as const;
 
 /** Period-end FX revaluation (M7 of the corporate-tax build-out) — see
  * fx-revaluation.service.ts's own header for the exact scope and the
@@ -14,7 +14,7 @@ const FINANCE_TIER = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE'] as cons
 export async function fxRevaluationRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
-  fastify.addHook('preHandler', requireFinanceCapability('finance.multi_currency'));
+  fastify.addHook('preHandler', requireFinanceCapability('finance.multi_currency', { preserveReadAccess: true }));
 
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,
   // fleet ops, HR, identity/access admin, or tenant configuration) with only
@@ -26,7 +26,7 @@ export async function fxRevaluationRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/', async (request) => {
+  fastify.get('/', { preHandler: requireRole(...FINANCE_TIER) }, async (request) => {
     const user = request.user;
     const { subject_id } = request.query as { subject_id?: string };
     return withTenant(user.tenant_id, async (trx) => {

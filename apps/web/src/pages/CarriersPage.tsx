@@ -52,7 +52,7 @@ export function CarriersPage() {
   const [form, setForm] = useState({ name: '', mode: 'OCEAN', scac_or_iata: '', contact_name: '', contact_email: '', contact_phone: '' });
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  // â”€â”€ Browse the global carrier directory â”€â”€
+  // ── Browse the global carrier directory ──
   const [showDirectory, setShowDirectory] = useState(false);
   const [dirQuery, setDirQuery] = useState('');
   const [dirMode, setDirMode] = useState<string | null>(null);
@@ -148,11 +148,11 @@ export function CarriersPage() {
         }
       />
 
-      {/* â”€â”€ Browse the global carrier directory â”€â”€ */}
+      {/* ── Browse the global carrier directory ── */}
       {showDirectory && (
         <div style={{ marginBottom: 20 }}>
         <SectionCard title="Global carrier directory">
-          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 16 }}>119 real ocean, air, road & rail carriers â€” search and add with one click</div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 16 }}>119 real ocean, air, road & rail carriers — search and add with one click</div>
 
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: '1 1 260px', minWidth: 200 }}>
@@ -161,7 +161,7 @@ export function CarriersPage() {
                 className="input-field"
                 value={dirQuery}
                 onChange={e => setDirQuery(e.target.value)}
-                placeholder="Search by name, SCAC/IATA code, or countryâ€¦"
+                placeholder="Search by name, SCAC/IATA code, or country…"
                 style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 34, height: 42 }}
               />
             </div>
@@ -176,7 +176,7 @@ export function CarriersPage() {
           </div>
 
           {dirLoading ? (
-            <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Searchingâ€¦</div>
+            <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Searching…</div>
           ) : dirResults.length === 0 ? (
             <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No carriers match your search.</div>
           ) : (
@@ -190,7 +190,7 @@ export function CarriersPage() {
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)', display: 'flex', gap: 6, alignItems: 'center', marginTop: 1 }}>
                         {d.scac_or_iata && <span style={{ fontFamily: 'var(--font)' }}>{d.scac_or_iata}</span>}
-                        {d.country && <span>Â· {d.country}</span>}
+                        {d.country && <span>· {d.country}</span>}
                       </div>
                     </div>
                     <button
@@ -205,7 +205,7 @@ export function CarriersPage() {
                         border: 'none',
                       }}
                     >
-                      {already ? <><Icon name="checkCircle" size={12} /> Added</> : addingId === d.id ? 'Addingâ€¦' : <><Icon name="plus" size={12} /> Add</>}
+                      {already ? <><Icon name="checkCircle" size={12} /> Added</> : addingId === d.id ? 'Adding…' : <><Icon name="plus" size={12} /> Add</>}
                     </button>
                   </div>
                 );
@@ -216,7 +216,7 @@ export function CarriersPage() {
         </div>
       )}
 
-      {/* â”€â”€ Manual add form â”€â”€ */}
+      {/* ── Manual add form ── */}
       {showForm && (
         <div style={{ marginBottom: 20 }}>
         <SectionCard>
@@ -250,16 +250,16 @@ export function CarriersPage() {
             </div>
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-          <button type="button" className="btn btn-primary btn-lg" onClick={saveCarrier} disabled={saving}>{saving ? 'Savingâ€¦' : 'Save Carrier'}</button>
+          <button type="button" className="btn btn-primary btn-lg" onClick={saveCarrier} disabled={saving}>{saving ? 'Saving…' : 'Save Carrier'}</button>
         </SectionCard>
         </div>
       )}
 
       <SectionCard padded={false}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading carriersâ€¦</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading carriers…</div>
         ) : carriers.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No carriers yet â€” add one manually or browse the directory above.</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No carriers yet — add one manually or browse the directory above.</div>
         ) : (
           <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -279,8 +279,8 @@ export function CarriersPage() {
                     </span>
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{MODES.find(m => m.value === c.mode)?.label || c.mode}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--ink3)' }}>{c.scac_or_iata || 'â€”'}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.contact_name || c.contact_email || 'â€”'}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--ink3)' }}>{c.scac_or_iata || '—'}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.contact_name || c.contact_email || '—'}</td>
                   <td style={{ padding: '12px 16px' }}>
                     <button
                       type="button"
@@ -289,7 +289,7 @@ export function CarriersPage() {
                       title={c.active ? 'Click to deactivate' : 'Click to activate'}
                       style={{ background: 'none', border: 'none', padding: 0, cursor: togglingId === c.id ? 'wait' : 'pointer' }}
                     >
-                      <Badge variant={c.active ? 'success' : 'gray'}>{togglingId === c.id ? 'Updatingâ€¦' : c.active ? 'Active' : 'Inactive'}</Badge>
+                      <Badge variant={c.active ? 'success' : 'gray'}>{togglingId === c.id ? 'Updating…' : c.active ? 'Active' : 'Inactive'}</Badge>
                     </button>
                   </td>
                 </tr>

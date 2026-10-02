@@ -1,6 +1,7 @@
-﻿import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
+import { useBranding } from '../hooks/useBranding.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import './LegalPages.css';
@@ -49,6 +50,16 @@ export const SupportTicket: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const branding = useBranding(true);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || !/^#[0-9a-fA-F]{6}$/.test(branding.accentColor)) return;
+    const [r, g, b] = [1, 3, 5].map(i => parseInt(branding.accentColor.slice(i, i + 2), 16));
+    el.style.setProperty('--teal', branding.accentColor);
+    el.style.setProperty('--teal-l', `rgba(${r},${g},${b},0.1)`);
+    el.style.setProperty('--teal-m', `rgba(${r},${g},${b},0.18)`);
+  }, [branding.accentColor]);
 
   const [form, setForm] = useState({
     name:     user?.name  ?? '',
@@ -107,19 +118,20 @@ export const SupportTicket: React.FC = () => {
   };
 
   return (
-    <div className="lp-page st-page">
+    <div ref={rootRef} className="lp-page st-page">
       {/* Top bar */}
       <header className="lp-topbar">
         <div className="lp-topbar-inner">
-          <button type="button" className="lp-back-btn" onClick={() => navigate(-1)}>
+          <button type="button" className="lp-back-btn" onClick={() => navigate('/')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back
           </button>
-          <span className="lp-topbar-brand">Hudumika · Support</span>
-          <nav className="lp-topbar-links">
-            <Link to="/terms">Terms</Link>
-            <Link to="/privacy">Privacy</Link>
-          </nav>
+          <img
+            src={branding.logoLight}
+            alt={branding.platformName || 'Hudumika'}
+            className="lp-topbar-logo"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
         </div>
       </header>
 
@@ -299,11 +311,11 @@ export const SupportTicket: React.FC = () => {
 
       <footer className="lp-footer">
         <div className="lp-footer-inner">
-          <span>Hudumika Workspace · © {new Date().getFullYear()} Moovit Mobility Limited</span>
+          <span>&copy; {new Date().getFullYear()} Moovit Mobility Limited</span>
           <nav className="lp-footer-links">
             <Link to="/terms">Terms of Service</Link>
             <Link to="/privacy">Privacy Policy</Link>
-            <Link to="/support-ticket">Support</Link>
+            <Link to="/support/tickets">Support</Link>
           </nav>
         </div>
       </footer>

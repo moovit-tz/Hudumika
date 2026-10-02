@@ -15,12 +15,15 @@ import { FreightBookingsPage } from '../pages/FreightBookingsPage.js';
 import { CreateFreightBookingPage } from '../pages/CreateFreightBookingPage.js';
 import { FreightRateCardsPage } from '../pages/FreightRateCardsPage.js';
 import { CarrierContractsPage } from '../pages/CarrierContractsPage.js';
+import { ContainerDetailPage } from '../pages/ContainerDetailPage.js';
+import { RecordContainerPage } from '../pages/RecordContainerPage.js';
 
 const NAV: SidebarSection[] = [
   {
     items: [
       { label: 'Dashboard',            icon: 'activity',      path: '/cargotracker',            exact: true },
       { label: 'Track',                icon: 'map',           path: '/cargotracker/track' },
+      { label: 'Containers & Fleet',   icon: 'container',     path: '/cargotracker/containers/MSCU1234567' },
       { label: 'Demurrage & Detention', icon: 'alertTriangle', path: '/cargotracker/demurrage' },
     ],
   },
@@ -52,6 +55,9 @@ export function CargoTrackerShell() {
               <Route element={<PageLayout />}>
                 <Route index element={<CargoDashboard />} />
                 <Route path="track" element={<Tracker />} />
+                <Route path="containers/new" element={<RecordContainerPage />} />
+                <Route path="containers/:number" element={<ContainerDetailPage />} />
+                <Route path="containers/:number/edit" element={<RecordContainerPage />} />
                 <Route path="demurrage" element={<Demurrage />} />
                 <Route path="carriers" element={<CarriersPage />} />
                 <Route path="bookings" element={<RequireRoles roles={OPS_ROLES}><FreightBookingsPage /></RequireRoles>} />

@@ -15,7 +15,7 @@ import { SkeletonPage } from '../components/ui/skeleton.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import './UserProfile.css';
 
-/* â”€â”€ Role label mapping â”€â”€ */
+/* ── Role label mapping ── */
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super Administrator',
   ADMIN: 'Company Administrator',
@@ -29,7 +29,7 @@ const ROLE_LABELS: Record<string, string> = {
   CUSTOMER: 'Customer',
 };
 
-/* â”€â”€ Country defaults: capital city + closest timezone â”€â”€ */
+/* ── Country defaults: capital city + closest timezone ── */
 const COUNTRY_DEFAULTS: Record<string, { city: string; timezone?: string }> = {
   Tanzania:   { city: 'Dar es Salaam', timezone: 'Africa/Dar_es_Salaam' },
   Kenya:      { city: 'Nairobi',       timezone: 'Africa/Nairobi'       },
@@ -42,7 +42,7 @@ const COUNTRY_DEFAULTS: Record<string, { city: string; timezone?: string }> = {
   Mozambique: { city: 'Maputo'                                          },
 };
 
-/* â”€â”€ Tab configuration â”€â”€ */
+/* ── Tab configuration ── */
 interface Tab { key: string; label: string; icon: IconName }
 const TABS: Tab[] = [
   { key: 'personal',      label: 'Personal Info',      icon: 'user'      },
@@ -51,19 +51,19 @@ const TABS: Tab[] = [
   { key: 'activity',      label: 'Account Activity',    icon: 'activity'  },
 ];
 
-/* â”€â”€ Activity audit log rows â”€â”€ */
+/* ── Activity audit log rows ── */
 const ACTIVITY_LOG = [
-  { action: 'Session Login',           ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Chrome Â· Windows 11',  time: 'Just now',     ok: true  },
-  { action: 'Password Authenticated',  ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Chrome Â· Windows 11',  time: '2 hours ago',  ok: true  },
-  { action: 'Security Settings Audit', ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Chrome Â· Windows 11',  time: '3 days ago',   ok: true  },
-  { action: 'Failed Login Attempt',    ip: '185.22.41.100', location: 'Frankfurt, DE',     device: 'Unknown Client Â· Linux',time: '5 days ago',  ok: false },
-  { action: 'Mobile Web Authorization',ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Safari Â· iPhone 15',   time: '1 week ago',   ok: true  },
-  { action: 'Profile Details Saved',   ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Chrome Â· Windows 11',  time: '2 weeks ago',  ok: true  },
+  { action: 'Session Login',           ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Chrome · Windows 11',  time: 'Just now',     ok: true  },
+  { action: 'Password Authenticated',  ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Chrome · Windows 11',  time: '2 hours ago',  ok: true  },
+  { action: 'Security Settings Audit', ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Chrome · Windows 11',  time: '3 days ago',   ok: true  },
+  { action: 'Failed Login Attempt',    ip: '185.22.41.100', location: 'Frankfurt, DE',     device: 'Unknown Client · Linux',time: '5 days ago',  ok: false },
+  { action: 'Mobile Web Authorization',ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Safari · iPhone 15',   time: '1 week ago',   ok: true  },
+  { action: 'Profile Details Saved',   ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', device: 'Chrome · Windows 11',  time: '2 weeks ago',  ok: true  },
 ];
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════
    Main Component: UserProfile
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════ */
 export const UserProfile: React.FC = () => {
   usePageSEO('My Profile', 'Manage your account settings, personal details, security, and preferences.');
   const { user, logout, updateUser } = useAuth();
@@ -101,7 +101,7 @@ export const UserProfile: React.FC = () => {
   const [phoneRevealed, setPhoneRevealed] = useState(false);
   const maskPhone = useCallback((phone: string) => {
     if (!phone || phone.length < 6) return phone;
-    return phone.slice(0, 4) + ' â€¢â€¢â€¢ â€¢â€¢â€¢' + phone.slice(-3);
+    return phone.slice(0, 4) + ' ••• •••' + phone.slice(-3);
   }, []);
 
   /* Notifications state */
@@ -232,7 +232,7 @@ export const UserProfile: React.FC = () => {
 
   return (
     <div className="user-profile-page">
-      {/* â”€â”€ Executive Hero Showcase Card â”€â”€ */}
+      {/* ── Executive Hero Showcase Card ── */}
       <div className="profile-hero-card">
         {/* Cover banner with integrated Header & glassmorphic actions */}
         <div
@@ -259,7 +259,7 @@ export const UserProfile: React.FC = () => {
             <div className="profile-cover-header">
               <div className="profile-cover-crumbs">
                 <span>WORKSPACE</span>
-                <span className="profile-cover-crumb-sep">Â·</span>
+                <span className="profile-cover-crumb-sep">·</span>
                 <span>MY PROFILE</span>
               </div>
               <h1 className="profile-cover-title">
@@ -398,7 +398,7 @@ export const UserProfile: React.FC = () => {
                   }}
                 >
                   <Icon name="check" size={13} strokeWidth={2.4} />
-                  {saved ? 'Saved!' : saving ? 'Savingâ€¦' : 'Save Changes'}
+                  {saved ? 'Saved!' : saving ? 'Saving…' : 'Save Changes'}
                 </button>
               )}
               <button
@@ -477,15 +477,15 @@ export const UserProfile: React.FC = () => {
           </Tabs>
 
           <div style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>
-            Member since <strong style={{ color: 'var(--ink2)' }}>2025</strong> Â· Primary Tenant
+            Member since <strong style={{ color: 'var(--ink2)' }}>2025</strong> · Primary Tenant
           </div>
         </div>
       </div>
 
-      {/* â”€â”€ Tab Content â”€â”€ */}
+      {/* ── Tab Content ── */}
       <div className="profile-content-area">
 
-        {/* â•â• TAB 1: PERSONAL INFO (BENTO GRID) â•â• */}
+        {/* ══ TAB 1: PERSONAL INFO (BENTO GRID) ══ */}
         {activeTab === 'personal' && (
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             <div className="profile-card profile-card--attached">
@@ -682,10 +682,10 @@ export const UserProfile: React.FC = () => {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Africa/Dar_es_Salaam">East Africa Time (Africa/Dar_es_Salaam Â· UTC+3)</SelectItem>
-                            <SelectItem value="Africa/Nairobi">Nairobi Time (Africa/Nairobi Â· UTC+3)</SelectItem>
-                            <SelectItem value="Africa/Kampala">Uganda Time (Africa/Kampala Â· UTC+3)</SelectItem>
-                            <SelectItem value="Africa/Kigali">Central Africa Time (Africa/Kigali Â· UTC+2)</SelectItem>
+                            <SelectItem value="Africa/Dar_es_Salaam">East Africa Time (Africa/Dar_es_Salaam · UTC+3)</SelectItem>
+                            <SelectItem value="Africa/Nairobi">Nairobi Time (Africa/Nairobi · UTC+3)</SelectItem>
+                            <SelectItem value="Africa/Kampala">Uganda Time (Africa/Kampala · UTC+3)</SelectItem>
+                            <SelectItem value="Africa/Kigali">Central Africa Time (Africa/Kigali · UTC+2)</SelectItem>
                             <SelectItem value="UTC">Coordinated Universal Time (UTC)</SelectItem>
                           </SelectContent>
                         </Select>
@@ -700,7 +700,7 @@ export const UserProfile: React.FC = () => {
                           <SelectContent>
                             <SelectItem value="en">English (Default)</SelectItem>
                             <SelectItem value="sw">Kiswahili (East Africa)</SelectItem>
-                            <SelectItem value="fr">FranÃ§ais</SelectItem>
+                            <SelectItem value="fr">Français</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -843,7 +843,7 @@ export const UserProfile: React.FC = () => {
                     >
                       <Icon name="shield" size={14} color="var(--teal)" />
                       <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>Privacy Center</span>
-                      <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Download data, deletion requests, consent â†’</span>
+                      <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Download data, deletion requests, consent →</span>
                     </Link>
                   </div>{/* end subsection-body (Privacy) */}
                 </div>{/* end profile-subsection--divided (Privacy) */}
@@ -923,7 +923,7 @@ export const UserProfile: React.FC = () => {
                       <Icon name="check" size={14} strokeWidth={2.5} /> Saved!
                     </>
                   ) : saving ? (
-                    'Saving changesâ€¦'
+                    'Saving changes…'
                   ) : (
                     'Save Changes'
                   )}
@@ -933,14 +933,14 @@ export const UserProfile: React.FC = () => {
           </form>
         )}
 
-        {/* â•â• TAB 2: SECURITY & AUTH â•â• */}
+        {/* ══ TAB 2: SECURITY & AUTH ══ */}
         {activeTab === 'security' && (
           <div className="profile-security-embed">
             <AccountSecurityPanel />
           </div>
         )}
 
-        {/* â•â• TAB 3: NOTIFICATIONS â•â• */}
+        {/* ══ TAB 3: NOTIFICATIONS ══ */}
         {activeTab === 'notifications' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {/* Single unified notifications card */}
@@ -963,7 +963,7 @@ export const UserProfile: React.FC = () => {
                   <Icon name="mail" size={13} color="var(--teal)" strokeWidth={2.2} />
                   Email Notifications
                   <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0, color: 'var(--ink3)', marginLeft: 2 }}>
-                    â€” {user.email}
+                    — {user.email}
                   </span>
                 </div>
                 <div className="profile-subsection-body" style={{ gap: 0 }}>
@@ -1079,7 +1079,7 @@ export const UserProfile: React.FC = () => {
           </div>
         )}
 
-        {/* â•â• TAB 4: ACCOUNT ACTIVITY â•â• */}
+        {/* ══ TAB 4: ACCOUNT ACTIVITY ══ */}
         {activeTab === 'activity' && (
           <section className="profile-card profile-card--attached">
             <div className="profile-card-header">
@@ -1174,7 +1174,7 @@ export const UserProfile: React.FC = () => {
                             border: `1px solid ${row.ok ? 'rgba(26, 127, 55, 0.2)' : 'rgba(220, 38, 38, 0.2)'}`,
                           }}
                         >
-                          {row.ok ? 'âœ“ Authorized' : 'âœ— Blocked'}
+                          {row.ok ? '✓ Authorized' : '✗ Blocked'}
                         </span>
                       </td>
                     </tr>

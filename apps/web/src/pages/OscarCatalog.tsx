@@ -275,7 +275,7 @@ function CardsDemo({ style }: { style: 'hudumika' | 'oscar' }) {
         <TwotoneIcon name="building" size={28} color="var(--teal)" secondaryColor="var(--teal)" />
         <h5 className="font-semibold text-sm mt-3 mb-1">Standard Card</h5>
         <p className="text-xs text-muted-foreground">Hudumika default card surface with border and subtle shadow.</p>
-        <button type="button" className="btn btn-primary mt-4" style={{ fontSize: 12, padding: '5px 14px' }}>Learn more</button>
+        <button type="button" className="btn btn-primary btn-sm mt-4">Learn more</button>
       </div>
       <div className="card p-5 border-t-2" style={{ borderTopColor: 'var(--teal)' }}>
         <h5 className="font-semibold text-sm mb-1">Accent Card</h5>
@@ -544,11 +544,11 @@ function PaginationDemo({ style }: { style: 'hudumika' | 'oscar' }) {
 
   return (
     <div className="flex items-center gap-1">
-      <button type="button" className="btn btn-secondary" style={{ padding: '5px 10px' }} onClick={() => go(page - 1)} disabled={page === 1}><Icon name="chevronLeft" size={14} /></button>
+      <button type="button" className="btn btn-secondary btn-sm" onClick={() => go(page - 1)} disabled={page === 1}><Icon name="chevronLeft" size={14} /></button>
       {pages.map(p => (
-        <button key={p} type="button" className={`btn ${page === p ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', minWidth: 34 }} onClick={() => go(p)}>{p}</button>
+        <button key={p} type="button" className={`btn btn-sm ${page === p ? 'btn-primary' : 'btn-secondary'}`} style={{ minWidth: 34 }} onClick={() => go(p)}>{p}</button>
       ))}
-      <button type="button" className="btn btn-secondary" style={{ padding: '5px 10px' }} onClick={() => go(page + 1)} disabled={page === 5}><Icon name="chevronRight" size={14} /></button>
+      <button type="button" className="btn btn-secondary btn-sm" onClick={() => go(page + 1)} disabled={page === 5}><Icon name="chevronRight" size={14} /></button>
     </div>
   );
 }

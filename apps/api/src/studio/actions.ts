@@ -8,6 +8,7 @@ import { SealService } from '../services/seal.service.js';
 import { fireNotificationTrigger } from '../routes/support.routes.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { AppId } from './triggers.js';
+import type { FinanceCapabilityKey } from '@hudumika/types';
 
 /**
  * The catalogue of things a Studio workflow can actually do.
@@ -52,6 +53,9 @@ export interface ActionDef {
   inputSchema: z.ZodTypeAny;
   /** Gate reused from the existing middleware vocabulary. */
   requiredEntitlement?: string;
+  /** Finance actions must validate activation as well as the parent app grant;
+   * event-driven runs never pass through Finance's HTTP middleware. */
+  requiredFinanceCapability?: FinanceCapabilityKey;
   /**
    * Actions that write to a regulated ledger or file something with an
    * authority are never freely composable by a tenant admin — Studio offers
@@ -203,6 +207,8 @@ export const ACTIONS: ActionDef[] = [
   {
     id: 'finance.record_expense',
     app: 'finops',
+    requiredEntitlement: 'finops',
+    requiredFinanceCapability: 'finance.core',
     label: 'Record an expense against a shipment',
     description: 'Books a cost line. The amount must be supplied — this never derives one.',
     inputSchema: z.object({

@@ -49,9 +49,9 @@ export function InventoryDashboard() {
       <div className="inv-page-hdr">
         <div>
           <PageHeader
-            crumbs={['Inventory', 'Inventory Control Dashboard']}
-            titlePlain="Inventory Control"
-            titleEm="dashboard"
+            crumbs={['Inventory', 'Overview']}
+            titlePlain="Inventory"
+            titleEm="overview"
             subtitle="General multi-warehouse stock management — metrics, reorder alerts, stock movements &amp; item catalogs."
           />
         </div>

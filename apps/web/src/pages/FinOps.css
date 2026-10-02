@@ -33,7 +33,7 @@
 }
 
 [data-theme="dark"] [data-finops="true"] .page-layout,
-[data-theme="dark"] [data-finops="true"] .page-layout-main { background: var(--bg); }
+[data-theme="dark"] [data-finops="true"] .page-layout-main { background: var(--white); }
 
 [data-theme="dark"] [data-finops="true"] .card,
 [data-theme="dark"] [data-finops="true"] .fin-shell,

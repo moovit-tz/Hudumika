@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTi
 import { PageHeader } from '../components/PageHeader.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { EmailBlockBuilder, blocksToEmailHtml, type EmailBlock } from '../components/EmailBlockBuilder.js';
+import { ColorSwatchPicker } from '../components/ui/color-swatch-picker.js';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -720,7 +721,7 @@ function SimpleWysiwygEditor({
                 <div style={{ display: 'flex', gap: 12 }}>
                   <div style={{ flex: 1 }}>
                     <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Button Color</label>
-                    <Input type="color" value={btnColor} onChange={e => setBtnColor(e.target.value)} style={{ height: 36, padding: 2 }} />
+                    <ColorSwatchPicker value={btnColor} onChange={setBtnColor} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Alignment</label>

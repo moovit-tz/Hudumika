@@ -218,7 +218,7 @@ export const SupportKB: React.FC = () => {
           <div>
             <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{articles.length} Articles</div>
             <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
-              <strong style={{ color: 'var(--green)' }}>{publishedCount} Published</strong> â€¢ {articles.length - publishedCount} Drafts
+              <strong style={{ color: 'var(--green)' }}>{publishedCount} Published</strong> • {articles.length - publishedCount} Drafts
             </div>
           </div>
         </div>
@@ -310,7 +310,7 @@ export const SupportKB: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="ALL">All Statuses</SelectItem>
                     <SelectItem value="Published">ðŸŸ¢ Published</SelectItem>
-                    <SelectItem value="Draft">âšª Draft</SelectItem>
+                    <SelectItem value="Draft">⚪ Draft</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -530,7 +530,7 @@ export const SupportKB: React.FC = () => {
                 <div>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>CATEGORY</label>
                   <Combobox
-                    options={[{ value: '', label: 'â€” Uncategorized â€”' }, ...categories.map(c => ({ value: c.id, label: c.name }))]}
+                    options={[{ value: '', label: '— Uncategorized —' }, ...categories.map(c => ({ value: c.id, label: c.name }))]}
                     value={categoryId}
                     onChange={setCategoryId}
                   />
@@ -542,7 +542,7 @@ export const SupportKB: React.FC = () => {
                     <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Published">ðŸŸ¢ Published (Live)</SelectItem>
-                      <SelectItem value="Draft">âšª Draft (Internal)</SelectItem>
+                      <SelectItem value="Draft">⚪ Draft (Internal)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -563,7 +563,7 @@ export const SupportKB: React.FC = () => {
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
                 <Button variant="outline" size="sm" onClick={() => setShowArticleModal(false)}>Cancel</Button>
                 <Button variant="default" size="sm" onClick={saveArticle} disabled={saving}>
-                  <Icon name="checkCircle" size={14} /> {saving ? 'Savingâ€¦' : editingArticleId ? 'Save Changes' : 'Publish Article'}
+                  <Icon name="checkCircle" size={14} /> {saving ? 'Saving…' : editingArticleId ? 'Save Changes' : 'Publish Article'}
                 </Button>
               </div>
             </div>
@@ -606,7 +606,7 @@ export const SupportKB: React.FC = () => {
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
                 <Button variant="outline" size="sm" onClick={() => setShowCategoryModal(false)}>Cancel</Button>
                 <Button variant="default" size="sm" onClick={createCategory} disabled={savingCat}>
-                  <Icon name="folder" size={14} /> {savingCat ? 'Creatingâ€¦' : 'Save Category'}
+                  <Icon name="folder" size={14} /> {savingCat ? 'Creating…' : 'Save Category'}
                 </Button>
               </div>
             </div>
@@ -631,7 +631,7 @@ export const SupportKB: React.FC = () => {
             <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: '70vh' }}>
               <DialogTitle style={{ fontSize: 20 }}>{previewArticle.title}</DialogTitle>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)', borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
-                Views: <strong>{previewArticle.views}</strong> â€¢ Last Updated: <strong>{previewArticle.updated_at ? new Date(previewArticle.updated_at).toLocaleString() : 'Recently'}</strong>
+                Views: <strong>{previewArticle.views}</strong> • Last Updated: <strong>{previewArticle.updated_at ? new Date(previewArticle.updated_at).toLocaleString() : 'Recently'}</strong>
               </div>
               <div style={{ fontSize: 13.5, color: 'var(--ink2)', lineHeight: 1.6, whiteSpace: 'pre-wrap', fontFamily: 'var(--font)' }}>
                 {previewArticle.content || 'No article body content.'}

@@ -20,59 +20,62 @@ import { Calls }           from '../pages/Calls.js';
 import { CallsReports }    from '../pages/calls/CallsReports.js';
 import { MeetingCenter }   from '../pages/calls/MeetingCenter.js';
 import { MeetingSession }  from '../pages/calls/MeetingSession.js';
+import { AgentPerformanceReport } from '../pages/bliss/AgentPerformanceReport.js';
+import { SLAComplianceReport }    from '../pages/bliss/SLAComplianceReport.js';
+import { SupportTrafficReport }   from '../pages/bliss/SupportTrafficReport.js';
 
 const NAV: SidebarSection[] = [
   {
     items: [
-      { label: 'Support Center', icon: 'inbox', path: '/bliss/inbox' },
+      { label: 'Support Center', icon: 'inbox',    path: '/bliss/inbox'    },
       { label: 'Overview',       icon: 'activity', path: '/bliss/overview' },
     ],
   },
   {
-    title: 'Channels',
+    title: 'WORKSPACE',
     items: [
-      // Live Chat isn't its own page anymore — it's the "Live Chat" channel
-      // filter on Support Center's own conversation list (?view=livechat
-      // still works as a deep link, it's just no longer a separate nav item).
-      { label: 'WhatsApp', icon: 'chatBubble', path: '/bliss/whatsapp' },
+      {
+        label: 'Reports', icon: 'barChart2', path: '/bliss/reports/agent-performance',
+        children: [
+          { label: 'Agent Performance',  icon: 'award',      path: '/bliss/reports/agent-performance' },
+          { label: 'SLA Compliance',     icon: 'shield',     path: '/bliss/reports/sla-compliance'    },
+          { label: 'Traffic & Inbound',  icon: 'trendingUp', path: '/bliss/reports/traffic'           },
+          { label: 'Call Reports',       icon: 'barChart2',  path: '/bliss/calls/reports'             },
+        ],
+      },
+      {
+        // Live Chat is the ?view=livechat filter on Support Center, not a separate page.
+        label: 'Channels', icon: 'chatBubble', path: '/bliss/whatsapp',
+        children: [
+          { label: 'WhatsApp',      icon: 'chatBubble', path: '/bliss/whatsapp' },
+          { label: 'Knowledge Base', icon: 'fileText',  path: '/bliss/kb'       },
+        ],
+      },
+      {
+        // Team Chat is /bliss/inbox?view=team — not a separate nav entry.
+        label: 'Comms', icon: 'phone', path: '/bliss/calls',
+        children: [
+          { label: 'Call Center',    icon: 'phone',  path: '/bliss/calls'    },
+          { label: 'Meeting Center', icon: 'camera', path: '/bliss/meetings' },
+        ],
+      },
+      {
+        label: 'Settings', icon: 'sliders', path: '/bliss/telephony',
+        children: [
+          { label: 'Telephony Providers', icon: 'phone',   path: '/bliss/telephony'       },
+          { label: 'Operational Mode',    icon: 'sliders', path: '/bliss/operational-mode'},
+          { label: 'Performance',         icon: 'users',   path: '/bliss/overview/team'   },
+          { label: 'Notifications',       icon: 'bell',    path: '/bliss/notifications'   },
+        ],
+      },
     ],
   },
+  // Pages that hand off to a different app entirely go last — same "LINKED
+  // APPS" convention ClearOSShell.tsx uses for cross-app shortcuts.
   {
-    title: 'Intelligence & KB',
+    title: 'LINKED APPS',
     items: [
-      { label: 'Knowledge Base', icon: 'fileText', path: '/bliss/kb' },
-    ],
-  },
-  {
-    title: 'Internal Comms',
-    items: [
-      // Team Chat isn't its own nav entry — it's the "Team Chat" tab inside
-      // Support Center itself (/bliss/inbox?view=team). Calls.tsx (1:1
-      // direct calls) owns the "Call Center" name; BlissCallCenter.tsx — a
-      // second, mostly-redundant page that only linked back here anyway —
-      // is gone. Meetings (scheduled/instant multi-party video) are a real,
-      // separate concern with their own page.
-      { label: 'Call Center',    icon: 'phone',   path: '/bliss/calls' },
-      { label: 'Meeting Center', icon: 'camera',  path: '/bliss/meetings' },
-    ],
-  },
-  {
-    title: 'Settings & Admin',
-    items: [
-      { label: 'Telephony Providers', icon: 'phone', path: '/bliss/telephony' },
-      { label: 'Operational Mode',    icon: 'sliders', path: '/bliss/operational-mode' },
-      { label: 'Performance',         icon: 'users', path: '/bliss/overview/team' },
-      { label: 'Call Reports',        icon: 'barChart2', path: '/bliss/calls/reports' },
-      { label: 'Notifications',       icon: 'bell', path: '/bliss/notifications' },
-    ],
-  },
-  // Pages that hand off to a different app entirely go last, deliberately
-  // separate from Bliss's own pages above — same "LINKED APPS" convention
-  // ClearOSShell.tsx already uses for the same kind of cross-app shortcut.
-  {
-    title: 'Linked Apps',
-    items: [
-      { label: 'Customers',   icon: 'users',     path: '/crm/customers' },
+      { label: 'Customers',   icon: 'users',     path: '/crm/customers'              },
       { label: 'Automations', icon: 'gitBranch', path: '/studio/workflows?app=bliss' },
     ],
   },
@@ -113,8 +116,8 @@ export function BlissShell() {
               <Route path="call-center" element={<Navigate to="/bliss/calls" replace />} />
 
               <Route element={<PageLayout />}>
-                <Route path="whatsapp"          element={<BlissWhatsApp />} />
-                <Route path="telephony"         element={<BlissTelephony />} />
+                <Route path="whatsapp"                  element={<BlissWhatsApp />} />
+                <Route path="telephony"                 element={<BlissTelephony />} />
                 {/* BlissOperationalMode.tsx was a fake 4-mode "system
                     behavior" switcher with no backend and a no-op Apply
                     button — nothing it offered corresponds to a real,
@@ -124,15 +127,18 @@ export function BlissShell() {
                     automation/notification rules engine (support_rules),
                     plus real links to where each channel is configured —
                     and was itself orphaned (routed nowhere) until now. */}
-                <Route path="operational-mode"  element={<SupportSettings />} />
-                <Route path="overview"          element={<SupportOverview />} />
-                <Route path="overview/team"      element={<SupportTeam />} />
-                <Route path="kb"                element={<SupportKB />} />
-                <Route path="notifications"     element={<BlissNotifications />} />
-                <Route path="calls"             element={<Calls />} />
-                <Route path="calls/reports"     element={<CallsReports />} />
-                <Route path="calls/meeting/:id" element={<MeetingJoinRoute />} />
-                <Route path="meetings"          element={<MeetingCenter />} />
+                <Route path="operational-mode"          element={<SupportSettings />} />
+                <Route path="overview"                  element={<SupportOverview />} />
+                <Route path="overview/team"              element={<SupportTeam />} />
+                <Route path="reports/agent-performance" element={<AgentPerformanceReport />} />
+                <Route path="reports/sla-compliance"   element={<SLAComplianceReport />} />
+                <Route path="reports/traffic"          element={<SupportTrafficReport />} />
+                <Route path="kb"                        element={<SupportKB />} />
+                <Route path="notifications"             element={<BlissNotifications />} />
+                <Route path="calls"                     element={<Calls />} />
+                <Route path="calls/reports"             element={<CallsReports />} />
+                <Route path="calls/meeting/:id"         element={<MeetingJoinRoute />} />
+                <Route path="meetings"                  element={<MeetingCenter />} />
               </Route>
 
               <Route path="*" element={<Navigate to="/bliss/inbox" replace />} />

@@ -38,6 +38,7 @@ const WAREHOUSE_TYPES = [
 export function SealCompartments() {
   const navigate = useNavigate();
   const [compartments, setCompartments] = useState<Compartment[]>([]);
+  const [lotCounts, setLotCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [showNewCompartment, setShowNewCompartment] = useState(false);
 
@@ -51,10 +52,17 @@ export function SealCompartments() {
 
   function reload() {
     setLoading(true);
-    apiFetch('/v1/seal/compartments')
-      .then(res => setCompartments(res || []))
-      .catch(() => setCompartments([]))
-      .finally(() => setLoading(false));
+    Promise.all([
+      apiFetch('/v1/seal/compartments').catch(() => []),
+      apiFetch('/v1/seal/compartments/summary').catch(() => []),
+    ]).then(([comps, summary]: any[]) => {
+      setCompartments(comps || []);
+      const counts: Record<string, number> = {};
+      (summary || []).forEach((row: any) => {
+        if (row.compartment_id) counts[row.compartment_id] = parseInt(row.lot_count ?? '0');
+      });
+      setLotCounts(counts);
+    }).finally(() => setLoading(false));
   }
 
   useEffect(() => { reload(); }, []);
@@ -200,7 +208,7 @@ export function SealCompartments() {
                   onClick={() => navigate(`/seal/compartments/${c.id}`)}
                 >
                   <CompanyAvatar name={c.name} logoUrl={c.logo_url} size={44} shape="square" />
-                  <div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{c.name}</span>
                       {isSuspended && <Badge variant="error">SUSPENDED</Badge>}
@@ -208,6 +216,24 @@ export function SealCompartments() {
                     <div className="seal-mono" style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>
                       {c.code} · {c.warehouse_type.toLowerCase()} · {c.jurisdiction} · {c.default_storage_days}d storage
                     </div>
+                    {/* Capacity bar */}
+                    {(() => {
+                      const count = lotCounts[c.id] ?? 0;
+                      const maxCount = Math.max(...Object.values(lotCounts), 1);
+                      const pct = Math.round((count / maxCount) * 100);
+                      const barColor = pct >= 90 ? 'var(--red)' : pct >= 70 ? 'var(--gold)' : 'var(--teal)';
+                      return (
+                        <div style={{ marginTop: 8, maxWidth: 260 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--ink3)', marginBottom: 3 }}>
+                            <span style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>Lot Occupancy</span>
+                            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{count} lots</span>
+                          </div>
+                          <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 2, transition: 'width .3s' }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 

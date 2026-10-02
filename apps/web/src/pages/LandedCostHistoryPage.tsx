@@ -269,7 +269,7 @@ export const LandedCostHistoryPage: React.FC = () => {
       <PageHeader
         crumbs={['Customs Tools', 'Landed Cost', 'History']}
         titlePlain="Calculation"
-        titleEm="History"
+        titleEm="history"
         subtitle="Every landed cost estimate this workspace has run — search it, reopen the report, or amend one into a new version."
         actions={
           <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}

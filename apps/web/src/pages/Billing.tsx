@@ -24,6 +24,9 @@ import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { FormPage } from '../components/FormPage.js';
 import { MetricsRow } from '../components/MetricCard.js';
+import { Combobox } from '../components/ui/combobox.js';
+import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
+import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 
 /* â”€â”€ In-progress invoice draft, preserved across a trip to the full
    customer-onboarding page and back (see InvoiceEditor's createCustomer/
@@ -35,6 +38,7 @@ interface InvoiceDraft {
   client: string; addr: string; billDate: string; dueDate: string; agent: string;
   blNo: string; origin: string; dest: string; mode: string; exRate: string; terms: string;
   clearing: EditItem[]; shipping: EditItem[]; other: EditItem[];
+  businessLineId?: string;
 }
 
 function saveInvoiceDraft(draft: InvoiceDraft) {
@@ -76,6 +80,7 @@ export interface Invoice {
   id: string;
   _dbId?: string;
   customerId?: string;
+  businessLineId?: string;
   shipmentRef?: string;
   client: string;
   clientAddress: string[];
@@ -151,6 +156,7 @@ export function mapApiInvoice(d: any): Invoice {
     id: d.invoice_number || d.id,
     _dbId: d.id,
     customerId: d.customer_id || undefined,
+    businessLineId: d.business_line_id || undefined,
     shipmentRef: d.shipment_ref || undefined,
     client: d.client_name || '',
     clientAddress: (() => { try { return Array.isArray(d.client_address) ? d.client_address : JSON.parse(d.client_address || '[]'); } catch { return []; } })(),
@@ -659,6 +665,9 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   presetShipment?: any | null;
 }) {
   const navigate = useNavigate();
+  const financeConfiguration = useFinanceConfiguration();
+  const financeCapabilities = useFinanceCapabilities();
+  const canUseBusinessLines = financeCapabilities.isEnabled('finance.accounting.advanced');
   const today = new Date().toLocaleDateString('en-GB').split('/').join('-');
   // Only a fresh "create" editor (no `initial`) ever restores a draft â€” never
   // let a leftover sessionStorage entry bleed into editing a real invoice.
@@ -684,6 +693,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
     apiFetch('/v1/fx-rates/latest?base=USD&quote=TZS').then(setTodayFxRate).catch(() => setTodayFxRate(null));
   }, []);
   const [terms, setTerms]         = useState(draft?.terms ?? initial?.terms ?? 'Payment due within 14 days. All 3rd party charges are estimates and subject to actuals.');
+  const [businessLineId, setBusinessLineId] = useState(draft?.businessLineId ?? initial?.businessLineId ?? '');
 
   const [customer, setCustomer] = useState<PickerItem | null>(
     initial?.customerId ? { id: initial.customerId, label: initial.client } : presetCustomer,
@@ -765,7 +775,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   function createCustomer(name: string): Promise<PickerItem> {
     saveInvoiceDraft({
       client, addr, billDate, dueDate, agent, blNo, origin, dest, mode, exRate, terms,
-      clearing, shipping, other,
+      clearing, shipping, other, businessLineId,
     });
     navigate(`/crm/customers/new?name=${encodeURIComponent(name)}&returnTo=${encodeURIComponent('/finance/invoices')}`);
     // Never resolves â€” the page is navigating away, so EntityPicker's own
@@ -811,7 +821,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   function createShipment(): Promise<PickerItem> {
     saveInvoiceDraft({
       client, addr, billDate, dueDate, agent, blNo, origin, dest, mode, exRate, terms,
-      clearing, shipping, other,
+      clearing, shipping, other, businessLineId,
     });
     const qs = new URLSearchParams({ returnTo: '/finance/invoices' });
     if (customer?.id) qs.set('customer_id', customer.id);
@@ -846,6 +856,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
     const inv: Invoice = {
       id: invId, client: client || 'Unknown Client',
       customerId: customer?.id || undefined, shipmentRef: shipment?.id || undefined,
+      businessLineId: canUseBusinessLines ? (businessLineId || undefined) : initial?.businessLineId,
       clientAddress: addr.split('\n').filter(Boolean),
       blNumber: blNo, origin, destination: dest, mode,
       billDate, dueDate: dueDate || null,
@@ -885,6 +896,18 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
             placeholder="Search customersâ€¦"
           />
           <FormField label="Sale Agent" value={agent} onChange={setAgent} placeholder="Agent name" />
+          {canUseBusinessLines && (
+            <div>
+              <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Business Line (optional)</label>
+              <Combobox
+                options={financeConfiguration.data?.businessLines.filter(line => line.active || line.id === businessLineId).map(line => ({ value: line.id, label: `${line.name} Â· ${line.code}` })) ?? []}
+                value={businessLineId}
+                onChange={setBusinessLineId}
+                placeholder="All business lines"
+                disabled={Boolean(initial && initial.status !== 'Draft')}
+              />
+            </div>
+          )}
           <FormField label="Invoice Date" value={billDate} onChange={setBillDate} placeholder="DD-MM-YYYY" />
           <FormField label="Due Date (optional)" value={dueDate} onChange={setDueDate} placeholder="DD-MM-YYYY" />
           <div>
@@ -1078,6 +1101,8 @@ function RequestStampDialog({ invoiceLabel, onClose }: { invoiceLabel: string; o
 
 export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onRecordPayment, onSubmitTRA, isMobile = false }: DetailPanelProps & { isMobile?: boolean }) {
   const { fmt } = useCurrency();
+  const financeConfiguration = useFinanceConfiguration();
+  const businessLine = financeConfiguration.data?.businessLines.find(line => line.id === inv.businessLineId);
   const [co, setCo] = useState(getCompany);
   useEffect(() => subscribeCompany(() => setCo(getCompany())), []);
   const isDark = useIsDarkMode();
@@ -1439,9 +1464,10 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: isMobile ? 'flex-start' : 'flex-end' }}>
                 <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Invoice #:</span><span style={{ color: 'var(--teal)', fontWeight: 700 }}>{inv.id}</span></div>
                 <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Invoice Date:</span><span style={{ color: 'var(--ink)', fontWeight: 600 }}>{inv.billDate}</span></div>
-                {inv.dueDate && <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Due Date:</span><span style={{ color: inv.status === 'Overdue' ? 'var(--red)' : 'var(--ink)', fontWeight: inv.status === 'Overdue' ? 700 : 600 }}>{inv.dueDate}</span></div>}
-                <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Agent:</span><span style={{ color: 'var(--ink)', fontWeight: 600 }}>{inv.saleAgent}</span></div>
-              </div>
+                  {inv.dueDate && <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Due Date:</span><span style={{ color: inv.status === 'Overdue' ? 'var(--red)' : 'var(--ink)', fontWeight: inv.status === 'Overdue' ? 700 : 600 }}>{inv.dueDate}</span></div>}
+                  <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Agent:</span><span style={{ color: 'var(--ink)', fontWeight: 600 }}>{inv.saleAgent}</span></div>
+                  {businessLine && <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Business Line:</span><span style={{ color: 'var(--ink)', fontWeight: 600 }}>{businessLine.name} ({businessLine.code})</span></div>}
+                </div>
             </div>
           </div>
 
@@ -1857,6 +1883,7 @@ export const Billing: React.FC = () => {
       // correctly, but this payload never sent either, so the link only
       // ever lived in local state and was gone on the next page load.
       customer_id: inv.customerId || null,
+      business_line_id: inv.businessLineId || null,
       shipment_ref: inv.shipmentRef || null,
       client_name: inv.client,
       client_address: inv.clientAddress,

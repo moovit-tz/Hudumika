@@ -875,6 +875,7 @@ export interface SealLotsTable {
   volume_cbm: string | null;
   gross_weight_kg: string | null;
   destination_label: string | null;
+  product_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -1095,6 +1096,64 @@ export interface SealReeferReadingsTable {
   within_range: boolean;
   recorded_by: string | null;
   note: string | null;
+}
+
+export interface SealCycleCountsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  count_ref: string;
+  compartment_id: string | null;
+  status: Generated<string>;
+  initiated_by: string | null;
+  closed_by: string | null;
+  initiated_at: Generated<Date>;
+  closed_at: Date | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface SealCountLinesTable {
+  id: Generated<string>;
+  count_id: string;
+  lot_id: string;
+  system_qty: string;
+  counted_qty: string | null;
+  variance_qty: string | null;
+  counted_by: string | null;
+  counted_at: Date | null;
+  notes: string | null;
+}
+
+export interface SealStockTransfersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  transfer_ref: string;
+  from_compartment_id: string | null;
+  to_compartment_id: string | null;
+  from_zone: string | null;
+  to_zone: string | null;
+  from_slot: string | null;
+  to_slot: string | null;
+  status: Generated<string>;
+  requested_by: string | null;
+  approved_by: string | null;
+  executed_by: string | null;
+  requested_at: Generated<Date>;
+  approved_at: Date | null;
+  executed_at: Date | null;
+  expected_at: Date | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SealTransferLinesTable {
+  id: Generated<string>;
+  transfer_id: string;
+  lot_id: string;
+  qty_requested: string;
+  qty_actual: string | null;
+  notes: string | null;
 }
 
 export interface SealYardSlotsTable {
@@ -1495,6 +1554,46 @@ export interface ExpensesTable {
   estimate_record_id: string | null;
 }
 
+export interface ChargeCodesTable {
+  code: string;
+  description: string;
+  category: string | null;
+  sort_order: Generated<number>;
+}
+
+export interface ShipmentJobChargesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  shipment_id: string;
+  charge_code: string;
+  description: string;
+  display_sequence: Generated<number>;
+  invoice_type: Generated<string>;
+  // Cost leg (AP)
+  creditor_id: string | null;
+  creditor_name: string | null;
+  cost_currency: Generated<string>;
+  cost_amount: Generated<number>;
+  cost_exchange_rate: number | null;
+  cost_local_amount: number | null;
+  cost_posted: Generated<boolean>;
+  cost_reference: string | null;
+  // Sell leg (AR)
+  debtor_id: string | null;
+  debtor_name: string | null;
+  sell_currency: Generated<string>;
+  sell_amount: Generated<number>;
+  sell_exchange_rate: number | null;
+  sell_local_amount: number | null;
+  sell_posted: Generated<boolean>;
+  sell_reference: string | null;
+  sell_invoice_id: string | null;
+  override_comment: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface FinanceExpensesTable {
   id: Generated<string>;
   tenant_id: string;
@@ -1505,6 +1604,7 @@ export interface FinanceExpensesTable {
   shipment_id: string | null;
   customer_id: string | null;
   supplier_id: string | null;
+  business_line_id: string | null;
   payment_mode: string | null;
   reference: string | null;
   note: string | null;
@@ -2491,6 +2591,7 @@ export interface SalesInvoicesTable {
   // always the same target, unlike tasks' polymorphic subject_type/
   // subject_id (which varies by type), so a plain FK is simpler and correct.
   project_id: string | null;
+  business_line_id: string | null;
   client_name: string | null;
   client_address: string;
   bl_number: string | null;
@@ -3109,12 +3210,154 @@ export interface ProductsTable {
   unit: Generated<string>;
   sale_price: Generated<number>;
   purchase_price: Generated<number>;
+  compare_at_price: number | null;
   currency: Generated<string>;
   tax_rate: Generated<number>;
   tax_code_id: string | null;
   status: Generated<string>;
+  // Retail/POS expansion (migration 547)
+  image_urls: unknown | null;       // JSON array of URL strings
+  brand: string | null;
+  vendor_name: string | null;
+  stock_quantity: number | null;
+  low_stock_threshold: Generated<number>;
+  track_inventory: Generated<boolean>;
+  weight_kg: number | null;
+  dimensions_cm: unknown | null;    // JSON {length,width,height}
+  shipping_class: string | null;
+  variants: unknown | null;         // JSON [{name,values}]
+  meta_title: string | null;
+  meta_description: string | null;
+  url_handle: string | null;
+  visibility: Generated<string>;
+  channels: unknown | null;         // JSON string[]
+  notes: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+}
+
+export interface ProductCategoriesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  slug: string | null;
+  parent_id: string | null;
+  image_url: string | null;
+  description: string | null;
+  is_featured: Generated<boolean>;
+  status: Generated<string>;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProductReviewsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  product_id: string;
+  customer_id: string | null;
+  customer_name: string;
+  rating: number;
+  title: string | null;
+  body: string | null;
+  status: Generated<string>;
+  reply: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface PosShiftsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  opened_by: string;
+  closed_by: string | null;
+  status: Generated<'OPEN' | 'CLOSED'>;
+  opening_float: Generated<number>;
+  closing_cash: number | null;
+  expected_cash: number | null;
+  opened_at: Generated<Date>;
+  closed_at: Date | null;
+  notes: string | null;
+}
+
+export interface PosSalesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  shift_id: string;
+  sale_number: string;
+  customer_id: string | null;
+  customer_name: string | null;
+  status: Generated<'COMPLETED' | 'VOIDED' | 'REFUNDED' | 'POSTING_FAILED'>;
+  currency: Generated<string>;
+  subtotal: number;
+  discount_total: Generated<number>;
+  tax_total: Generated<number>;
+  grand_total: number;
+  amount_paid: number;
+  change_due: Generated<number>;
+  inventory_location_id: string | null;
+  journal_entry_id: string | null;
+  notes: string | null;
+  sold_by: string;
+  sold_at: Generated<Date>;
+  created_at: Generated<Date>;
+  refunded_at: Date | null;
+  refunded_by: string | null;
+  refund_reason: string | null;
+  reversal_journal_entry_id: string | null;
+  posting_error: string | null;
+  posting_attempts: Generated<number>;
+  last_posting_attempt_at: Date | null;
+}
+
+export interface PosSaleLinesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  sale_id: string;
+  product_id: string;
+  product_code: string;
+  product_name: string;
+  qty: number;
+  unit_price: number;
+  unit_cost: Generated<number>;
+  cost_total: Generated<number>;
+  discount: Generated<number>;
+  tax_rate: Generated<number>;
+  tax_amount: Generated<number>;
+  line_total: number;
+}
+
+export interface PosPaymentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  sale_id: string;
+  method: 'CASH' | 'CARD' | 'MOBILE_MONEY' | 'BANK' | 'OTHER';
+  amount: number;
+  reference: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface PosCashMovementsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  shift_id: string;
+  direction: 'IN' | 'OUT';
+  amount: number;
+  reason: string;
+  recorded_by: string;
+  recorded_at: Generated<Date>;
+}
+
+export interface PosHeldCartsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  label: string;
+  customer_id: string | null;
+  inventory_location_id: string | null;
+  currency: Generated<string>;
+  items: unknown;
+  held_by: string;
+  held_at: Generated<Date>;
 }
 
 export interface CustomerProductPricesTable {
@@ -3172,6 +3415,7 @@ export interface SupplierBillsTable {
   bill_number: string;
   supplier_id: string | null;
   supplier_name: string | null;
+  business_line_id: string | null;
   shipment_ref: string | null;
   po_number: string | null;
   // Real FK, additive alongside po_number (M8, migration 337) — a bill can
@@ -3481,6 +3725,7 @@ export interface RecurringBillsTable {
   name: string | null;
   supplier_id: string | null;
   supplier_name: string | null;
+  business_line_id: string | null;
   frequency: Generated<string>;
   currency: Generated<string>;
   amount: Generated<number>;
@@ -4784,6 +5029,10 @@ export interface SignRecipientsTable {
   // eligibility can be re-checked against the CURRENT credential at the
   // moment they actually certify, not just at assignment time.
   certifier_id: string | null;
+  // Migration 541 — re-routing a declined signer slot
+  rerouted_at: Date | null;
+  previous_email: string | null;
+  previous_name: string | null;
   created_at: Generated<Date>;
 }
 
@@ -5052,6 +5301,12 @@ export interface Database {
   tenant_finance_capabilities: TenantFinanceCapabilitiesTable;
   tenant_finance_profiles: TenantFinanceProfilesTable;
   finance_business_lines: FinanceBusinessLinesTable;
+  pos_shifts: PosShiftsTable;
+  pos_sales: PosSalesTable;
+  pos_sale_lines: PosSaleLinesTable;
+  pos_payments: PosPaymentsTable;
+  pos_cash_movements: PosCashMovementsTable;
+  pos_held_carts: PosHeldCartsTable;
   inventory_warehouses: InventoryWarehousesTable;
   inventory_locations: InventoryLocationsTable;
   inventory_items: InventoryItemsTable;
@@ -5130,6 +5385,10 @@ export interface Database {
   seal_stock_account_lines: SealStockAccountLinesTable;
   seal_dg_segregation_rules: SealDgSegregationRulesTable;
   seal_reefer_readings: SealReeferReadingsTable;
+  seal_cycle_counts: SealCycleCountsTable;
+  seal_count_lines: SealCountLinesTable;
+  seal_stock_transfers: SealStockTransfersTable;
+  seal_transfer_lines: SealTransferLinesTable;
   seal_yard_slots: SealYardSlotsTable;
   seal_ledger_anchors: SealLedgerAnchorsTable;
   domain_events: DomainEventsTable;
@@ -5156,6 +5415,8 @@ export interface Database {
   chat_message_reactions: ChatMessageReactionsTable;
   case_documents: CaseDocumentsTable;
   expenses: ExpensesTable;
+  charge_codes: ChargeCodesTable;
+  shipment_job_charges: ShipmentJobChargesTable;
   finance_expenses: FinanceExpensesTable;
   case_messages: CaseMessagesTable;
   risk_flags: RiskFlagsTable;
@@ -5293,6 +5554,8 @@ export interface Database {
   tax_jurisdictions: TaxJurisdictionsTable;
   // Suppliers / Vendors
   products: ProductsTable;
+  product_categories: ProductCategoriesTable;
+  product_reviews: ProductReviewsTable;
   customer_product_prices: CustomerProductPricesTable;
   suppliers: SuppliersTable;
   // Ondi (Identity & Access)
@@ -5756,6 +6019,11 @@ export interface Database {
   data_retention_policies: DataRetentionPoliciesTable;
   app_privacy_manifests: AppPrivacyManifestsTable;
   oauth_resource_scopes: OauthResourceScopesTable;
+  // Container Intelligence (Migration 551)
+  tracked_containers: TrackedContainersTable;
+  container_survey_reports: ContainerSurveyReportsTable;
+  container_repairs: ContainerRepairsTable;
+  container_stage_history: ContainerStageHistoryTable;
 }
 
 export interface DeveloperAccountsTable {
@@ -8703,6 +8971,7 @@ export interface PurchaseOrdersTable {
   po_number: string;
   supplier_id: string | null;
   supplier_name: string | null;
+  business_line_id: string | null;
   status: Generated<string>;
   order_date: DateOnlyNull;
   expected_date: DateOnlyNull;
@@ -11329,4 +11598,66 @@ export interface OauthResourceScopesTable {
   sensitivity_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'; data_domain: string;
   description: string | null; requires_tenant_approval: Generated<boolean>;
   requires_hudumika_verification: Generated<boolean>; is_active: Generated<boolean>;
+}
+
+// ── Container Intelligence (Migration 551) ───────────────────────────────────
+export interface TrackedContainersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  container_number: string;
+  iso_code: Generated<string>;
+  size_type: Generated<string>;
+  ownership: Generated<string>;
+  condition: Generated<string>;
+  carrier_name: string | null;
+  carrier_code: string | null;
+  color_hex: string | null;
+  lifecycle_stage: Generated<string>;
+  shipment_id: string | null;
+  customer_id: string | null;
+  dimensions: Generated<Record<string, unknown>>;
+  compliance: Generated<Record<string, unknown>>;
+  current_depot: Generated<Record<string, unknown>>;
+  classification: Generated<Record<string, unknown>>;
+  cargo_breakdown: Generated<Record<string, unknown>>;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+  updated_by: string | null;
+}
+
+export interface ContainerSurveyReportsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  container_id: string;
+  grade: Generated<string>;
+  rating_label: string | null;
+  survey_date: Generated<Date>;
+  surveyor_name: string | null;
+  surveyor_notes: string | null;
+  photos: Generated<unknown[]>;
+  created_at: Generated<Date>;
+}
+
+export interface ContainerRepairsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  container_id: string;
+  description: string;
+  repair_type: Generated<string>;
+  repair_date: Generated<Date>;
+  resolved: Generated<boolean>;
+  resolved_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface ContainerStageHistoryTable {
+  id: Generated<string>;
+  tenant_id: string;
+  container_id: string;
+  stage: string;
+  location: string | null;
+  notes: string | null;
+  recorded_by: string | null;
+  recorded_at: Generated<Date>;
 }

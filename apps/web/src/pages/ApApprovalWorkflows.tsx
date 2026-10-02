@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Icon } from '../components/Icon.js';
+import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 
 interface Staff { id: string; name: string; email: string; }
 interface Workflow {
@@ -25,6 +26,7 @@ const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--
 
 export function ApApprovalWorkflows() {
   const { fmt } = useCurrency();
+  const readOnly = useFinanceReadOnly();
   const [required, setRequired] = useState(false);
   const [savingRequired, setSavingRequired] = useState(false);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -57,6 +59,12 @@ export function ApApprovalWorkflows() {
     }
   };
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (readOnly) {
+      setShowForm(false);
+      setEditing(null);
+    }
+  }, [readOnly]);
 
   async function toggleRequired(next: boolean) {
     setSavingRequired(true);
@@ -144,17 +152,17 @@ export function ApApprovalWorkflows() {
           description="When on, a bill only posts straight to the ledger if no active workflow's threshold applies to its total — otherwise it waits for its named approver."
           checked={required}
           onCheckedChange={toggleRequired}
-          disabled={savingRequired}
+          disabled={readOnly || savingRequired}
         />
       </div>
 
-      <div style={{ padding: '0 0 16px', display: 'flex', justifyContent: 'flex-end' }}>
+      {!readOnly && <div style={{ padding: '0 0 16px', display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button"
           onClick={openNew}
           style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
           <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Workflow
         </button>
-      </div>
+      </div>}
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="rtbl-wrap">
@@ -201,11 +209,11 @@ export function ApApprovalWorkflows() {
                       </span>
                     </td>
                     <td style={{ padding: '9px 12px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                      {!readOnly && <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                         <button type="button" onClick={() => openEdit(w)} style={{ fontSize: 12, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Edit</button>
                         <button type="button" onClick={() => toggleActive(w)} style={{ fontSize: 12, color: 'var(--ink2)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>{w.active ? 'Deactivate' : 'Activate'}</button>
                         <button type="button" onClick={() => remove(w)} style={{ fontSize: 12, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
-                      </div>
+                      </div>}
                     </td>
                   </tr>
                 );
@@ -215,7 +223,7 @@ export function ApApprovalWorkflows() {
         </div>
       </div>
 
-      <Dialog open={showForm} onOpenChange={o => { if (!o) setShowForm(false); }}>
+      <Dialog open={!readOnly && showForm} onOpenChange={o => { if (!o) setShowForm(false); }}>
         <DialogContent className="max-w-100 gap-0">
           <DialogTitle style={{ fontWeight: 800, fontSize: 15, marginBottom: 16 }}>{editing ? 'Edit Workflow' : 'New Workflow'}</DialogTitle>
 

@@ -21,12 +21,12 @@ interface RelatedGroup {
 }
 
 /**
- * The generalized "what's linked to this record across other apps" panel â€”
+ * The generalized "what's linked to this record across other apps" panel —
  * GET /v1/related/:entityType/:entityId (related-records.ts's registry).
  * Same card-grid look ShipmentDetail.tsx's LinkedAppsPanel already
  * established, now driven by any entity type the backend registry knows
  * about instead of being hardcoded to shipments. A relation with no rows
- * for this record simply isn't in the response â€” nothing here is ever
+ * for this record simply isn't in the response — nothing here is ever
  * fabricated to fill an empty card.
  */
 export function RelatedRecordsPanel({ entityType, entityId, title = 'Related', isMobile = false, emptyText = 'Nothing linked yet.' }: {
@@ -46,7 +46,7 @@ export function RelatedRecordsPanel({ entityType, entityId, title = 'Related', i
       .catch(() => setData({}));
   }, [entityType, entityId]);
 
-  if (data === null) return null; // still loading â€” no flash of an empty state
+  if (data === null) return null; // still loading — no flash of an empty state
 
   const groups = Object.values(data);
 
@@ -70,7 +70,7 @@ export function RelatedRecordsPanel({ entityType, entityId, title = 'Related', i
             {group.items.slice(0, 3).map(item => (
               <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, padding: '4px 0' }}>
                 <span style={{ fontFamily: 'var(--font)', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
-                <span style={{ color: 'var(--ink3)', flexShrink: 0 }}>{[item.sublabel, item.status].filter(Boolean).join(' Â· ') || 'â€”'}</span>
+                <span style={{ color: 'var(--ink3)', flexShrink: 0 }}>{[item.sublabel, item.status].filter(Boolean).join(' · ') || '—'}</span>
               </div>
             ))}
             {group.items.length > 3 && (

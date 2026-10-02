@@ -1,0 +1,721 @@
+/* ═════════════════════════════════════════════════════════════════════
+   SealInventoryDashboard.css — Modern Warehouse & SKU Inventory Control
+   Matches the exact design specification with high fidelity,
+   fluid responsiveness, and full dark mode support.
+   ═════════════════════════════════════════════════════════════════════ */
+
+.sid-root {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font, system-ui, -apple-system, sans-serif);
+  color: var(--ink);
+}
+
+/* ── Top Header Row ── */
+.sid-header-wrap {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.sid-eyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink3);
+  margin-bottom: 4px;
+}
+
+.sid-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sid-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.sid-warehouse-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sid-warehouse-pill:hover {
+  background: var(--card-sunken, var(--border));
+  border-color: var(--border2);
+}
+
+.sid-subtitle {
+  font-size: 13px;
+  color: var(--ink3);
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+.sid-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sid-btn-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 36px;
+  border-radius: var(--r-sm, 8px);
+  background: var(--white);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--elev-sm);
+  transition: all 0.12s ease;
+}
+
+.sid-btn-date:hover {
+  background: var(--bg);
+  border-color: var(--border2);
+}
+
+.sid-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 36px;
+  border-radius: var(--r-sm, 8px);
+  background: var(--white);
+  border: 1px solid var(--border);
+  color: var(--ink2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--elev-sm);
+  transition: all 0.12s ease;
+}
+
+.sid-btn-outline:hover {
+  background: var(--bg);
+  color: var(--ink);
+  border-color: var(--border2);
+}
+
+.sid-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  height: 36px;
+  border-radius: var(--r-sm, 8px);
+  background: var(--teal, #0d9488);
+  border: 1px solid var(--teal, #0d9488);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  transition: all 0.12s ease;
+}
+
+.sid-btn-primary:hover {
+  filter: brightness(0.92);
+  transform: translateY(-1px);
+}
+
+/* ── Top Bento Grid (2 Cards) ── */
+.sid-bento-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 1050px) {
+  .sid-bento-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sid-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 12px);
+  padding: 18px 20px;
+  box-shadow: var(--elev-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sid-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sid-card-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin: 0 0 2px;
+}
+
+.sid-card-sub {
+  font-size: 12px;
+  color: var(--ink3);
+  font-weight: 500;
+}
+
+.sid-card-badge-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #059669;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .sid-card-badge-success {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+}
+
+.sid-card-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--teal, #0d9488);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.sid-card-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* ── Stock Level Chart Area ── */
+.sid-chart-container {
+  width: 100%;
+  height: 160px;
+  margin: 4px 0 14px;
+  position: relative;
+}
+
+.sid-chart-stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.sid-stat-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sid-stat-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink2);
+}
+
+.sid-segmented-bar {
+  height: 6px;
+  border-radius: 9999px;
+  overflow: hidden;
+  display: flex;
+  background: var(--bg);
+  width: 100%;
+}
+
+.sid-seg-a { background: #059669; height: 100%; }
+.sid-seg-b { background: #f59e0b; height: 100%; }
+.sid-seg-c { background: #94a3b8; height: 100%; }
+
+.sid-seg-age-1 { background: #059669; height: 100%; }
+.sid-seg-age-2 { background: #f59e0b; height: 100%; }
+.sid-seg-age-3 { background: #e11d48; height: 100%; }
+
+.sid-stat-meta {
+  font-size: 11px;
+  color: var(--ink3);
+  font-weight: 600;
+}
+
+/* ── Warehouse Distribution Right Card ── */
+.sid-dist-overview {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 4px 0 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.sid-donut-wrap {
+  width: 54px;
+  height: 54px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sid-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.sid-dist-stats {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+}
+
+.sid-dist-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sid-dist-stat-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink3);
+}
+
+.sid-dist-stat-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.sid-dist-stat-val--alert {
+  color: #e11d48;
+}
+
+.sid-wh-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sid-wh-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sid-wh-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.sid-wh-icon--rose { background: rgba(225, 29, 72, 0.12); color: #e11d48; }
+.sid-wh-icon--amber { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+.sid-wh-icon--teal { background: rgba(13, 148, 136, 0.12); color: #0d9488; }
+
+.sid-wh-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sid-wh-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.sid-wh-pct {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink2);
+}
+
+.sid-wh-track {
+  height: 5px;
+  background: var(--bg);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.sid-wh-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.sid-wh-fill--rose { background: #e11d48; }
+.sid-wh-fill--amber { background: #f59e0b; }
+.sid-wh-fill--teal { background: #0d9488; }
+
+/* ── Filter & Search Bar ── */
+.sid-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 10px);
+  padding: 8px 12px;
+  box-shadow: var(--elev-sm);
+  flex-wrap: wrap;
+}
+
+.sid-search-wrap {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink3);
+}
+
+.sid-search-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: var(--font);
+  font-size: 13.5px;
+  color: var(--ink);
+  outline: none;
+}
+
+.sid-search-input::placeholder {
+  color: var(--ink3);
+}
+
+.sid-select-filter {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--r-sm, 6px);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+
+.sid-select-filter:focus {
+  border-color: var(--teal, #0d9488);
+}
+
+/* ── Inventory Ledger Table Card ── */
+.sid-table-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 12px);
+  box-shadow: var(--elev-sm);
+  overflow: hidden;
+}
+
+.sid-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.sid-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.sid-table th {
+  padding: 12px 16px;
+  background: var(--card-sunken, #f8fafc);
+  color: var(--ink3);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .sid-table th {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sid-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+.sid-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sid-table tbody tr {
+  transition: background 0.1s ease;
+}
+
+.sid-table tbody tr:hover {
+  background: var(--bg);
+}
+
+.sid-prod-name {
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sid-sku-code {
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--ink3);
+  font-weight: 500;
+}
+
+.sid-wh-col {
+  color: var(--ink2);
+  font-weight: 500;
+}
+
+.sid-val-col {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ── Stock Status Badges ── */
+.sid-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sid-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sid-pill--in-stock {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+.sid-pill--in-stock .sid-pill-dot { background: #10b981; }
+
+[data-theme="dark"] .sid-pill--in-stock {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.sid-pill--low-stock {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+.sid-pill--low-stock .sid-pill-dot { background: #f59e0b; }
+
+[data-theme="dark"] .sid-pill--low-stock {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.sid-pill--out-of-stock {
+  background: rgba(225, 29, 72, 0.12);
+  color: #e11d48;
+}
+.sid-pill--out-of-stock .sid-pill-dot { background: #f43f5e; }
+
+[data-theme="dark"] .sid-pill--out-of-stock {
+  background: rgba(225, 29, 72, 0.2);
+  color: #fb7185;
+}
+
+.sid-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--ink3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.sid-action-btn:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* ── Modal Dialogs ── */
+.sid-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: sid-fade-in 0.18s ease;
+}
+
+.sid-modal {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 14px);
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  animation: sid-zoom-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.sid-modal-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sid-modal-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.sid-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sid-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sid-form-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+.sid-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: var(--r-sm, 6px);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.12s;
+}
+
+.sid-input:focus {
+  border-color: var(--teal, #0d9488);
+}
+
+.sid-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--card-sunken, #f8fafc);
+}
+
+[data-theme="dark"] .sid-modal-footer {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+@keyframes sid-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sid-zoom-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}

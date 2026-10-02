@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -14,6 +15,11 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { SectionCard } from '../components/SectionCard.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { ContainerTrackerCard } from '../components/container/ContainerTrackerCard.js';
+import { CarrierSelect } from '../components/container/CarrierSelect.js';
+import { CarrierLogo } from '../components/container/CarrierLogo.js';
+import { getContainerDetails } from '../components/container/containerData.js';
+import type { ContainerDetails } from '../components/container/containerTypes.js';
 
 interface Tariff {
   id: string;
@@ -76,6 +82,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export const Demurrage: React.FC = () => {
+  const navigate = useNavigate();
   const [view, setView] = useState<ViewMode>('dashboard');
   const isMobile = useIsMobile();
   const [tariffs, setTariffs] = useState<Tariff[]>([]);
@@ -90,6 +97,9 @@ export const Demurrage: React.FC = () => {
   const [calcReturnDate, setCalcReturnDate] = useState('');
   const [calcFreeDays, setCalcFreeDays] = useState(7);
   const [calcResult, setCalcResult] = useState<any>(null);
+
+  // Rich container 3D inspection modal
+  const [inspectingContainer, setInspectingContainer] = useState<ContainerDetails | null>(null);
 
   // Mark returned modal
   const [returnModal, setReturnModal] = useState<string | null>(null);
@@ -109,7 +119,7 @@ export const Demurrage: React.FC = () => {
       const list = Array.isArray(res) ? res : (res.invoices ?? res.data ?? []);
       setInvoiceOptions(
         list.filter((inv: any) => inv.status !== 'Void')
-          .map((inv: any) => ({ value: inv.id, label: `${inv.invoice_number} â€” ${inv.client_name || 'No customer'}` }))
+          .map((inv: any) => ({ value: inv.id, label: `${inv.invoice_number} — ${inv.client_name || 'No customer'}` }))
       );
     } catch {
       setInvoiceOptions([]);
@@ -187,7 +197,7 @@ export const Demurrage: React.FC = () => {
     }
   };
 
-  // â”€â”€ Container CRUD (inline form â€” no popups) â”€â”€
+  // ── Container CRUD (inline form — no popups) ──
   const emptyCForm = { container_number: '', container_size: '40HC', carrier_name: '', discharge_date: '', free_days: 7, shipment_id: '' };
   const [showCForm, setShowCForm] = useState(false);
   const [editCId, setEditCId] = useState<string | null>(null);
@@ -282,7 +292,7 @@ export const Demurrage: React.FC = () => {
           <TabsTrigger value="calculator" className="flex items-center gap-1.5 shrink-0"><Icon name="calculator" size={14} /> Quick Calc</TabsTrigger>
         </TabsList>
 
-        {/* â”€â”€ Dashboard Overview â”€â”€ */}
+        {/* ── Dashboard Overview ── */}
         <TabsContent value="dashboard">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <MetricsRow cards={[
@@ -317,7 +327,7 @@ export const Demurrage: React.FC = () => {
                     <div key={carrier} style={{ padding: 14, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                       <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 4 }}>{carrier}</div>
                       <div style={{ fontSize: 12, color: 'var(--ink2)' }}>
-                        {data.count} containers Â· {formatCurrency(data.cost)}
+                        {data.count} containers · {formatCurrency(data.cost)}
                       </div>
                     </div>
                   ))}
@@ -331,7 +341,7 @@ export const Demurrage: React.FC = () => {
           </div>
         </TabsContent>
 
-        {/* â”€â”€ Container Tracking â”€â”€ */}
+        {/* ── Container Tracking ── */}
         <TabsContent value="containers">
           <SectionCard
             title="Container Demurrage Tracker"
@@ -344,7 +354,7 @@ export const Demurrage: React.FC = () => {
           >
             <div style={{ padding: '8px 18px', fontSize: 11.5, color: 'var(--ink3)' }}>{containers.length} container{containers.length === 1 ? '' : 's'}</div>
 
-            {/* Inline add/edit form â€” full-width section, not a popup */}
+            {/* Inline add/edit form — full-width section, not a popup */}
             {showCForm && (
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>
@@ -365,18 +375,23 @@ export const Demurrage: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </label>
-                  <label style={label}>
-                    Carrier
-                    <input value={cForm.carrier_name} onChange={e => setCForm(f => ({ ...f, carrier_name: e.target.value }))} placeholder="MAERSK"
-                      style={fieldInput} />
-                  </label>
+                  <div>
+                    <CarrierSelect
+                      label="Carrier (Shipping Line)"
+                      containerNumber={cForm.container_number}
+                      value={cForm.carrier_name}
+                      onChange={(name) => setCForm(f => ({ ...f, carrier_name: name }))}
+                      placeholder="Select carrier..."
+                      size="sm"
+                    />
+                  </div>
                   <label style={label}>
                     Shipment (BL) {editCId ? '' : '*'}
                     <div style={{ marginTop: 4 }}>
                       <Combobox
-                        options={shipments.slice(0, 100).map((s: any) => ({ value: s.id, label: `${s.ref_number}${s.bl_number ? ` â€” ${s.bl_number}` : ''}` }))}
+                        options={shipments.slice(0, 100).map((s: any) => ({ value: s.id, label: `${s.ref_number}${s.bl_number ? ` — ${s.bl_number}` : ''}` }))}
                         value={cForm.shipment_id} onChange={v => setCForm(f => ({ ...f, shipment_id: v }))}
-                        placeholder="Select shipmentâ€¦"
+                        placeholder="Select shipment…"
                       />
                     </div>
                   </label>
@@ -419,10 +434,30 @@ export const Demurrage: React.FC = () => {
                   <tbody>
                     {containers.map(c => (
                       <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '10px 14px', fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>{c.container_number}</td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <Link
+                            to={`/cargotracker/containers/${c.container_number}`}
+                            style={{
+                              background: 'none', border: 'none', padding: 0,
+                              fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--teal)',
+                              cursor: 'pointer', textAlign: 'left', textDecoration: 'none',
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                            }}
+                            className="hover:underline"
+                          >
+                            <Icon name="container" size={13} color="var(--teal)" />
+                            {c.container_number}
+                          </Link>
+                        </td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.container_size}</td>
-                        <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.carrier_name || 'â€”'}</td>
-                        <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.discharge_date ? new Date(c.discharge_date).toLocaleDateString() : 'â€”'}</td>
+                        <td style={{ padding: '10px 14px' }}>
+                          {c.carrier_name ? (
+                            <CarrierLogo carrier={c.carrier_name} size="xs" variant="badge" />
+                          ) : (
+                            <span style={{ color: 'var(--ink3)' }}>—</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.discharge_date ? new Date(c.discharge_date).toLocaleDateString() : '—'}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.free_days}</td>
                         <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>{c.total_days}</td>
                         <td style={{ padding: '10px 14px' }}>
@@ -487,7 +522,7 @@ export const Demurrage: React.FC = () => {
           </SectionCard>
         </TabsContent>
 
-        {/* â”€â”€ Tariff Configuration â”€â”€ */}
+        {/* ── Tariff Configuration ── */}
         <TabsContent value="tariffs">
           <SectionCard title="Demurrage Tariff Configuration" padded={false}>
             <div style={{ padding: '8px 18px', fontSize: 11.5, color: 'var(--ink3)' }}>Configure daily rates per shipping line and container size. Rates use progressive step-up tiers.</div>
@@ -511,7 +546,9 @@ export const Demurrage: React.FC = () => {
                       try { tiers = JSON.parse(t.rate_tiers); } catch {}
                       return (
                         <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--ink)' }}>{t.carrier_name}</td>
+                          <td style={{ padding: '10px 14px' }}>
+                            <CarrierLogo carrier={t.carrier_name} size="xs" variant="badge" />
+                          </td>
                           <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{t.container_size}</td>
                           <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{t.free_days} days</td>
                           <td style={{ padding: '10px 14px' }}>
@@ -535,14 +572,19 @@ export const Demurrage: React.FC = () => {
           </SectionCard>
         </TabsContent>
 
-        {/* â”€â”€ Quick Calculator â”€â”€ */}
+        {/* ── Quick Calculator ── */}
         <TabsContent value="calculator">
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
             <SectionCard title="Demurrage Calculator">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
-                  <label style={{ display: 'block', ...label, marginBottom: 4 }}>Carrier / Shipping Line</label>
-                  <input type="text" value={calcCarrier} onChange={e => setCalcCarrier(e.target.value)} placeholder="e.g. MSC, Maersk" style={{ ...fieldInput, marginTop: 0 }} />
+                  <CarrierSelect
+                    label="Carrier / Shipping Line"
+                    value={calcCarrier}
+                    onChange={(name) => setCalcCarrier(name)}
+                    placeholder="e.g. MSC, Maersk..."
+                    size="sm"
+                  />
                 </div>
                 <div>
                   <label style={{ display: 'block', ...label, marginBottom: 4 }}>Container Size</label>
@@ -568,7 +610,7 @@ export const Demurrage: React.FC = () => {
                   <label style={{ display: 'block', ...label, marginBottom: 4 }}>Free Days</label>
                   <input type="number" value={calcFreeDays} onChange={e => setCalcFreeDays(Number(e.target.value))} style={{ ...fieldInput, marginTop: 0 }} />
                 </div>
-                <button type="button" className="btn btn-primary" onClick={handleQuickCalc} style={{ justifyContent: 'center', height: 42 }}>
+                <button type="button" className="btn btn-primary" onClick={handleQuickCalc} style={{ justifyContent: 'center' }}>
                   Calculate Demurrage
                 </button>
               </div>
@@ -661,8 +703,8 @@ export const Demurrage: React.FC = () => {
                 options={invoiceOptions}
                 value={rechargeInvoiceId}
                 onChange={setRechargeInvoiceId}
-                placeholder="Select an invoiceâ€¦"
-                searchPlaceholder="Search invoicesâ€¦"
+                placeholder="Select an invoice…"
+                searchPlaceholder="Search invoices…"
                 emptyText="No invoices found."
               />
             </div>
@@ -670,9 +712,27 @@ export const Demurrage: React.FC = () => {
           <DialogFooter>
             <button type="button" className="btn btn-secondary" onClick={() => setRechargeContainer(null)}>Cancel</button>
             <button type="button" className="btn btn-primary" disabled={!rechargeInvoiceId || rechargeSaving} onClick={submitRecharge}>
-              {rechargeSaving ? 'Rechargingâ€¦' : 'Recharge'}
+              {rechargeSaving ? 'Recharging…' : 'Recharge'}
             </button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── 3D Container Specs & Survey Lightbox Dialog ── */}
+      <Dialog open={!!inspectingContainer} onOpenChange={open => { if (!open) setInspectingContainer(null); }}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader className="mb-4 pb-2 border-b border-[var(--border)]">
+            <DialogTitle className="flex items-center gap-2 text-base font-black">
+              <Icon name="container" size={18} color="var(--teal)" />
+              Container Specifications &amp; Inspection: {inspectingContainer?.container_number}
+            </DialogTitle>
+          </DialogHeader>
+          {inspectingContainer && (
+            <ContainerTrackerCard
+              container={inspectingContainer}
+              initialTab="details"
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

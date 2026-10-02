@@ -11,7 +11,7 @@ import { Button } from '../components/ui/button.js';
 export const FinanceAgedPayables: React.FC = () => {
   const co = useCompany();
   const cur = co.currency ?? 'TZS';
-  const fmtFull = (n: number) => n > 0 ? `${cur} ${n.toLocaleString()}` : 'â€”';
+  const fmtFull = (n: number) => n > 0 ? `${cur} ${n.toLocaleString()}` : '—';
 
   const [report, setReport] = useState<AgedReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,7 +58,7 @@ export const FinanceAgedPayables: React.FC = () => {
         crumbs={['Finance', 'Reports']}
         titlePlain="Aged"
         titleEm="payables"
-        subtitle={`Outstanding supplier balances by age${asOf ? ` â€” as of ${asOf}` : ''}`}
+        subtitle={`Outstanding supplier balances by age${asOf ? ` — as of ${asOf}` : ''}`}
         actions={
           <Button type="button" variant="outline" size="sm" onClick={exportCsv}>
             <Icon name="download" size={13} /> Export
@@ -67,7 +67,7 @@ export const FinanceAgedPayables: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading aged payablesâ€¦</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading aged payables…</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
@@ -86,7 +86,7 @@ export const FinanceAgedPayables: React.FC = () => {
           },
           {
             title: 'Total Overdue', value: fmtFull(overdue), icon: 'alertTriangle', invertTrend: true,
-            sub1Label: '1â€“90 DAYS', sub1Value: fmtFull(totals.days_1_30 + totals.days_31_60 + totals.days_61_90),
+            sub1Label: '1–90 DAYS', sub1Value: fmtFull(totals.days_1_30 + totals.days_31_60 + totals.days_61_90),
             sub2Label: '90+ DAYS', sub2Value: fmtFull(totals.days_90_plus), barHighlight: 'var(--red)',
           },
           {
@@ -101,9 +101,9 @@ export const FinanceAgedPayables: React.FC = () => {
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {[
               { label: 'Current',    value: totals.current,      color: 'var(--green)'  },
-              { label: '1â€“30 Days',  value: totals.days_1_30,    color: 'var(--gold)'       },
-              { label: '31â€“60 Days', value: totals.days_31_60,   color: 'var(--red)'    },
-              { label: '61â€“90 Days', value: totals.days_61_90,   color: 'var(--red)'    },
+              { label: '1–30 Days',  value: totals.days_1_30,    color: 'var(--gold)'       },
+              { label: '31–60 Days', value: totals.days_31_60,   color: 'var(--red)'    },
+              { label: '61–90 Days', value: totals.days_61_90,   color: 'var(--red)'    },
               { label: '90+ Days',   value: totals.days_90_plus, color: 'var(--purple)'       },
             ].map(band => {
               const pct = totals.total > 0 ? Math.round((band.value / totals.total) * 100) : 0;
@@ -132,7 +132,7 @@ export const FinanceAgedPayables: React.FC = () => {
             <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%', minWidth: 800 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)' }}>
-                  {['Supplier', 'Current', '1â€“30 Days', '31â€“60 Days', '61â€“90 Days', '90+ Days', 'Total', 'Status'].map(h => (
+                  {['Supplier', 'Current', '1–30 Days', '31–60 Days', '61–90 Days', '90+ Days', 'Total', 'Status'].map(h => (
                     <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>

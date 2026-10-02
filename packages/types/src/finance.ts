@@ -126,6 +126,7 @@ export interface ProfitLossLine {
 
 export interface ProfitLossReport {
   period: { from: string; to: string };
+  business_line?: { id: string; name: string; code: string } | null;
   revenue: ProfitLossLine[];
   expenses: ProfitLossLine[];
   totals: { revenue: number; expenses: number; net: number };
@@ -205,6 +206,7 @@ export interface PurchaseOrder {
   po_number: string;
   supplier_id: string | null;
   supplier_name: string | null;
+  business_line_id: string | null;
   status: POStatus;
   order_date: string | null;
   expected_date: string | null;

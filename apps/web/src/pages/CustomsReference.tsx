@@ -14,7 +14,7 @@ import { Banner } from '../components/ui/alert.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Button } from '../components/ui/button.js';
 
-// â”€â”€ Customs Reference â€” ICD directory, TASAC agents, EAC excise, port/agency tariff â”€â”€
+// ── Customs Reference — ICD directory, TASAC agents, EAC excise, port/agency tariff ──
 // Real gazette data imported from the public EAC customs suite
 // (see apps/api/src/scripts/import-moovit-reference-data.ts for the
 // original one-off seed; SUPER_ADMIN can now refresh/edit it from here).
@@ -74,12 +74,12 @@ export const CustomsReference: React.FC = () => {
   const [tariffCategories, setTariffCategories] = useState<string[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // â”€â”€ Inline row editing â”€â”€
+  // ── Inline row editing ──
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
 
-  // â”€â”€ Bulk CSV import â”€â”€
+  // ── Bulk CSV import ──
   const [importBusy, setImportBusy] = useState<Tab | null>(null);
   const [importResult, setImportResult] = useState<{ tab: Tab; summary: ImportSummary } | null>(null);
   const [importError, setImportError] = useState('');
@@ -160,9 +160,9 @@ export const CustomsReference: React.FC = () => {
     else { setAgentsPage(p); load(q, p); }
   };
 
-  const fmtDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”');
+  const fmtDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 
-  // â”€â”€ Edit â”€â”€
+  // ── Edit ──
   function startEdit(row: any) { setEditingId(row.id); setDraft({ ...row }); }
   function cancelEdit() { setEditingId(null); setDraft({}); }
   function setField(k: string, v: any) { setDraft(d => ({ ...d, [k]: v })); }
@@ -193,7 +193,7 @@ export const CustomsReference: React.FC = () => {
     }
   }
 
-  // â”€â”€ Bulk import â”€â”€
+  // ── Bulk import ──
   function handleUploadClick(t: Tab) {
     importTargetTab.current = t;
     fileInputRef.current?.click();
@@ -215,7 +215,7 @@ export const CustomsReference: React.FC = () => {
       setImportResult({ tab: t, summary: res.data });
       if (t === tab) load(q, t === 'agents' ? agentsPage : 0);
     } catch (err: any) {
-      setImportError(err.message || 'Import failed â€” check the file is a valid CSV.');
+      setImportError(err.message || 'Import failed — check the file is a valid CSV.');
     } finally {
       setImportBusy(null);
       e.target.value = '';
@@ -230,7 +230,7 @@ export const CustomsReference: React.FC = () => {
   ];
   const AUTHORITY_LABEL: Record<string, string> = { TPA: 'TPA (Sea Ports)', TASAC_CFA: 'TASAC (Agency Fees)', TRA: 'TRA (Other Levies)' };
   const fmtRate = (t: TariffItem) => {
-    if (t.rate_amount == null) return t.is_placeholder ? 'Rate pending' : 'â€”';
+    if (t.rate_amount == null) return t.is_placeholder ? 'Rate pending' : '—';
     const n = Number(t.rate_amount);
     return `${t.rate_currency} ${n.toLocaleString('en-US', { minimumFractionDigits: n % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
   };
@@ -247,7 +247,7 @@ export const CustomsReference: React.FC = () => {
         subtitle="Licensed ICD operators, TASAC clearing-agent registry (GN 83/2026), EAC excise duty schedules, and the TPA/TASAC port & agency tariff book."
         actions={canEdit && tab !== 'tariff' ? (
           <Button type="button" onClick={() => handleUploadClick(tab)} disabled={importBusy !== null} style={{ flexShrink: 0 }}>
-            <Icon name="upload" size={15} /> {importBusy === tab ? 'Uploadingâ€¦' : `Upload fresh ${TABS.find(t => t.key === tab)?.label} list`}
+            <Icon name="upload" size={15} /> {importBusy === tab ? 'Uploading…' : `Upload fresh ${TABS.find(t => t.key === tab)?.label} list`}
           </Button>
         ) : undefined}
       />
@@ -255,14 +255,14 @@ export const CustomsReference: React.FC = () => {
       {!canEdit && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>
           <Icon name="lock" size={13} />
-          This is shared reference data used by every tenant on the platform â€” only a platform super-admin can edit or re-upload it.
+          This is shared reference data used by every tenant on the platform — only a platform super-admin can edit or re-upload it.
         </div>
       )}
 
       {importResult && importResult.tab === tab && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', marginBottom: 16, fontSize: 13, color: 'var(--green)', fontWeight: 600 }}>
           <span>
-            Imported {importResult.summary.total} rows â€” {importResult.summary.updated} updated, {importResult.summary.inserted} new
+            Imported {importResult.summary.total} rows — {importResult.summary.updated} updated, {importResult.summary.inserted} new
             {importResult.summary.skipped > 0 ? `, ${importResult.summary.skipped} skipped (missing required fields)` : ''}.
           </span>
           <button type="button" onClick={() => setImportResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--green)' }}><Icon name="x" size={14} /></button>
@@ -272,7 +272,7 @@ export const CustomsReference: React.FC = () => {
         <Banner variant="error" onDismiss={() => setImportError('')}>{importError}</Banner>
       )}
 
-      {/* Tabs + search â€” one row, responsive */}
+      {/* Tabs + search — one row, responsive */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented">
           <TabsList>
@@ -290,7 +290,7 @@ export const CustomsReference: React.FC = () => {
           <input
             value={q}
             onChange={e => onSearch(e.target.value)}
-            placeholder={tab === 'icd' ? 'Search operator, licence, addressâ€¦' : tab === 'agents' ? 'Search agent name, licence, emailâ€¦' : tab === 'tariff' ? 'Search clause, item, categoryâ€¦' : 'Search productâ€¦'}
+            placeholder={tab === 'icd' ? 'Search operator, licence, address…' : tab === 'agents' ? 'Search agent name, licence, email…' : tab === 'tariff' ? 'Search clause, item, category…' : 'Search product…'}
             style={{ width: '100%', height: 32, boxSizing: 'border-box', padding: '0 12px 0 30px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13 }}
           />
         </div>
@@ -361,10 +361,10 @@ export const CustomsReference: React.FC = () => {
                         <>
                           <td style={{ ...td, fontWeight: 600 }}>{o.name}<div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{o.address}</div></td>
                           <td style={td}><span style={{ padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 700, background: 'var(--teal-l)', color: 'var(--teal)' }}>{o.operator_type}</span></td>
-                          <td style={td}>{o.region ?? 'â€”'}</td>
-                          <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 12 }}>{o.license_no ?? 'â€”'}</td>
+                          <td style={td}>{o.region ?? '—'}</td>
+                          <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 12 }}>{o.license_no ?? '—'}</td>
                           <td style={td}>{fmtDate(o.license_exp)}</td>
-                          <td style={{ ...td, fontSize: 12 }}>{o.email ?? 'â€”'}{o.tel ? <div style={{ color: 'var(--ink3)' }}>{o.tel}</div> : null}</td>
+                          <td style={{ ...td, fontSize: 12 }}>{o.email ?? '—'}{o.tel ? <div style={{ color: 'var(--ink3)' }}>{o.tel}</div> : null}</td>
                           {canEdit && <td style={td}><button type="button" onClick={() => startEdit(o)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="edit" size={14} /></button></td>}
                         </>
                       )}
@@ -403,10 +403,10 @@ export const CustomsReference: React.FC = () => {
                         </>
                       ) : (
                         <>
-                          <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 12, whiteSpace: 'nowrap' }}>{a.license_no ?? 'â€”'}</td>
+                          <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 12, whiteSpace: 'nowrap' }}>{a.license_no ?? '—'}</td>
                           <td style={{ ...td, fontWeight: 600 }}>{a.name}</td>
-                          <td style={td}>{a.region ?? 'â€”'}</td>
-                          <td style={{ ...td, fontSize: 12 }}>{a.email ?? 'â€”'}</td>
+                          <td style={td}>{a.region ?? '—'}</td>
+                          <td style={{ ...td, fontSize: 12 }}>{a.email ?? '—'}</td>
                           {canEdit && <td style={td}><button type="button" onClick={() => startEdit(a)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="edit" size={14} /></button></td>}
                         </>
                       )}
@@ -447,7 +447,7 @@ export const CustomsReference: React.FC = () => {
                           <td style={{ ...td, fontSize: 11, fontWeight: 700, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{x.category}</td>
                           <td style={{ ...td, fontWeight: 600 }}>{x.item_description}</td>
                           {[x.tz_rate, x.ke_rate, x.ug_rate, x.rw_rate, x.bi_rate].map((r, i) => (
-                            <td key={i} style={{ ...td, fontFamily: 'var(--font)', fontSize: 12, whiteSpace: 'nowrap', color: r ? 'var(--ink)' : 'var(--ink3)' }}>{r ?? 'â€”'}</td>
+                            <td key={i} style={{ ...td, fontFamily: 'var(--font)', fontSize: 12, whiteSpace: 'nowrap', color: r ? 'var(--ink)' : 'var(--ink3)' }}>{r ?? '—'}</td>
                           ))}
                           {canEdit && <td style={td}><button type="button" onClick={() => startEdit(x)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="edit" size={14} /></button></td>}
                         </>
@@ -495,13 +495,13 @@ export const CustomsReference: React.FC = () => {
                       ) : (
                         <>
                           <td style={td}><span style={{ padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 700, background: 'var(--teal-l)', color: 'var(--teal)' }}>{AUTHORITY_LABEL[t.authority] ?? t.authority}</span></td>
-                          <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 11.5, whiteSpace: 'nowrap' }}>{t.clause_ref ?? 'â€”'}</td>
+                          <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 11.5, whiteSpace: 'nowrap' }}>{t.clause_ref ?? '—'}</td>
                           <td style={{ ...td, fontWeight: 600 }}>
                             {t.item_name}
-                            <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{[t.category, t.subcategory].filter(Boolean).join(' Â· ')}</div>
+                            <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{[t.category, t.subcategory].filter(Boolean).join(' · ')}</div>
                           </td>
-                          <td style={{ ...td, fontSize: 12 }}>{t.unit ?? 'â€”'}</td>
-                          <td style={{ ...td, fontSize: 12 }}>{[t.container_size, t.cargo_type].filter(Boolean).join(' / ') || 'â€”'}</td>
+                          <td style={{ ...td, fontSize: 12 }}>{t.unit ?? '—'}</td>
+                          <td style={{ ...td, fontSize: 12 }}>{[t.container_size, t.cargo_type].filter(Boolean).join(' / ') || '—'}</td>
                           <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 700, color: t.is_placeholder ? 'var(--gold)' : 'var(--ink)' }}>
                             {fmtRate(t)}
                             {t.min_charge != null && <div style={{ fontSize: 10.5, color: 'var(--ink3)', fontWeight: 400 }}>min {t.rate_currency} {Number(t.min_charge).toLocaleString('en-US')}</div>}

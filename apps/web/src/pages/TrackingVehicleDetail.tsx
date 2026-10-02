@@ -96,7 +96,7 @@ export const TrackingVehicleDetail: React.FC = () => {
 
   useEffect(() => { reload(); }, [reload]);
 
-  if (loading) return <div style={{ padding: 24, color: 'var(--ink3)', fontSize: 13 }}>Loading vehicleâ€¦</div>;
+  if (loading) return <div style={{ padding: 24, color: 'var(--ink3)', fontSize: 13 }}>Loading vehicle…</div>;
   if (!detail) return <div style={{ padding: 24, color: 'var(--ink3)', fontSize: 13 }}>Vehicle not found.</div>;
 
   const { vehicle, driver, last_position, active_trip, cost_of_ownership, total_cost, cost_per_km, service_reminders, reminders, documents, open_issues } = detail;
@@ -201,7 +201,7 @@ export const TrackingVehicleDetail: React.FC = () => {
           <div>
             <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>{vehicle.name}</div>
             <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>
-              {[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ') || vehicle.type} Â· {vehicle.plate_number || 'No plate'} Â· {vehicle.mileage_km != null ? `${vehicle.mileage_km.toLocaleString()} km` : 'No mileage recorded'}
+              {[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ') || vehicle.type} · {vehicle.plate_number || 'No plate'} · {vehicle.mileage_km != null ? `${vehicle.mileage_km.toLocaleString()} km` : 'No mileage recorded'}
             </div>
           </div>
         </div>
@@ -250,7 +250,7 @@ export const TrackingVehicleDetail: React.FC = () => {
                   style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
                 <button type="button" onClick={saveEdit} disabled={saving}
                   style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                  {saving ? 'Savingâ€¦' : 'Save'}
+                  {saving ? 'Saving…' : 'Save'}
                 </button>
               </div>
             )
@@ -261,12 +261,12 @@ export const TrackingVehicleDetail: React.FC = () => {
               ['year', 'Year'], ['make', 'Make'], ['model', 'Model'], ['trim', 'Trim'],
               ['color', 'Color'], ['ownership', 'Ownership'],
             ] as [string, string][] : [
-              ['Name', vehicle.name], ['Meter', vehicle.mileage_km != null ? `${vehicle.mileage_km.toLocaleString()} km` : 'â€”'],
-              ['Status', vehicle.status], ['Group', vehicle.group_name || 'No Group'], ['Operator', driver?.name ?? 'â€”'], ['Type', vehicle.type],
-              ['Fuel', vehicle.fuel_type || 'â€”'],
-              ['VIN/SN', vehicle.vin || 'â€”'], ['License Plate', vehicle.plate_number || 'â€”'],
-              ['Year', vehicle.year ?? 'â€”'], ['Make', vehicle.make || 'â€”'], ['Model', vehicle.model || 'â€”'],
-              ['Trim', vehicle.trim || 'â€”'], ['Color', vehicle.color || 'â€”'], ['Ownership', vehicle.ownership],
+              ['Name', vehicle.name], ['Meter', vehicle.mileage_km != null ? `${vehicle.mileage_km.toLocaleString()} km` : '—'],
+              ['Status', vehicle.status], ['Group', vehicle.group_name || 'No Group'], ['Operator', driver?.name ?? '—'], ['Type', vehicle.type],
+              ['Fuel', vehicle.fuel_type || '—'],
+              ['VIN/SN', vehicle.vin || '—'], ['License Plate', vehicle.plate_number || '—'],
+              ['Year', vehicle.year ?? '—'], ['Make', vehicle.make || '—'], ['Model', vehicle.model || '—'],
+              ['Trim', vehicle.trim || '—'], ['Color', vehicle.color || '—'], ['Ownership', vehicle.ownership],
               ['Device ID', vehicle.device_id],
             ] as [string, any][]).map(([k, v]) => (
               <div key={k as string} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
@@ -351,7 +351,7 @@ export const TrackingVehicleDetail: React.FC = () => {
               </div>
               {reminders.filter(r => r.status === 'PENDING').slice(0, 5).map(r => (
                 <div key={r.id} style={{ fontSize: 12, padding: '6px 0', borderTop: '1px solid var(--border)', color: 'var(--ink2)' }}>
-                  {r.title} â€” due {new Date(r.due_date).toLocaleDateString()}
+                  {r.title} — due {new Date(r.due_date).toLocaleDateString()}
                 </div>
               ))}
             </SectionCard>
@@ -373,9 +373,9 @@ export const TrackingVehicleDetail: React.FC = () => {
               <>
                 <div style={statLabel}>Cargo &amp; Capacity</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, margin: '8px 0 14px' }}>
-                  <div><div style={{ fontSize: 10, color: 'var(--ink3)' }}>Type</div><div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{active_trip.cargo_type || 'â€”'}</div></div>
-                  <div><div style={{ fontSize: 10, color: 'var(--ink3)' }}>Weight</div><div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{active_trip.cargo_weight_kg != null ? `${active_trip.cargo_weight_kg} kg` : 'â€”'}</div></div>
-                  <div><div style={{ fontSize: 10, color: 'var(--ink3)' }}>Temp</div><div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{active_trip.cargo_temp_c != null ? `${active_trip.cargo_temp_c}Â°C` : 'â€”'}</div></div>
+                  <div><div style={{ fontSize: 10, color: 'var(--ink3)' }}>Type</div><div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{active_trip.cargo_type || '—'}</div></div>
+                  <div><div style={{ fontSize: 10, color: 'var(--ink3)' }}>Weight</div><div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{active_trip.cargo_weight_kg != null ? `${active_trip.cargo_weight_kg} kg` : '—'}</div></div>
+                  <div><div style={{ fontSize: 10, color: 'var(--ink3)' }}>Temp</div><div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{active_trip.cargo_temp_c != null ? `${active_trip.cargo_temp_c}°C` : '—'}</div></div>
                 </div>
                 {active_trip.load_capacity_pct != null && (
                   <div style={{ marginBottom: 14 }}>
@@ -387,7 +387,7 @@ export const TrackingVehicleDetail: React.FC = () => {
                 )}
               </>
             ) : (
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>No active trip â€” not currently hauling cargo.</div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>No active trip — not currently hauling cargo.</div>
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
@@ -396,14 +396,14 @@ export const TrackingVehicleDetail: React.FC = () => {
                 <div style={{ fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase' }}>km/h</div>
               </div>
               <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '10px 12px', textAlign: 'center' }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{last_position?.battery_pct != null ? `${last_position.battery_pct}%` : 'â€”'}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{last_position?.battery_pct != null ? `${last_position.battery_pct}%` : '—'}</div>
                 <div style={{ fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase' }}>Battery</div>
               </div>
             </div>
 
             <div style={statLabel}>Status Overview</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-              <span>Ignition {last_position?.ignition ?? 'â€”'}</span>
+              <span>Ignition {last_position?.ignition ?? '—'}</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: (last_position?.speed ?? 0) > 3 ? 'var(--green)' : 'var(--red)' }}>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
                 {(last_position?.speed ?? 0) > 3 ? 'Moving' : 'Stopped'}
@@ -415,7 +415,7 @@ export const TrackingVehicleDetail: React.FC = () => {
               {last_position ? (
                 <>
                   <div style={{ fontFamily: 'var(--font)' }}>{last_position.latitude.toFixed(5)}, {last_position.longitude.toFixed(5)}</div>
-                  <div style={{ color: 'var(--ink3)', marginTop: 2 }}>Updated {minutesAgo != null ? `${minutesAgo}m ago` : 'â€”'} Â· Heading {last_position.heading ?? 'â€”'}Â°</div>
+                  <div style={{ color: 'var(--ink3)', marginTop: 2 }}>Updated {minutesAgo != null ? `${minutesAgo}m ago` : '—'} · Heading {last_position.heading ?? '—'}°</div>
                 </>
               ) : <div style={{ color: 'var(--ink3)' }}>No telemetry yet.</div>}
             </div>
@@ -444,9 +444,9 @@ export const TrackingVehicleDetail: React.FC = () => {
               {maintenance.map(m => (
                 <tr key={m.id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td style={{ padding: '8px 10px' }}>{m.service_type}</td>
-                  <td style={{ padding: '8px 10px' }}>{m.cost != null ? m.cost.toLocaleString() : 'â€”'}</td>
+                  <td style={{ padding: '8px 10px' }}>{m.cost != null ? m.cost.toLocaleString() : '—'}</td>
                   <td style={{ padding: '8px 10px' }}>{new Date(m.service_date).toLocaleDateString()}</td>
-                  <td style={{ padding: '8px 10px' }}>{m.next_due_date ? new Date(m.next_due_date).toLocaleDateString() : 'â€”'}</td>
+                  <td style={{ padding: '8px 10px' }}>{m.next_due_date ? new Date(m.next_due_date).toLocaleDateString() : '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -463,7 +463,7 @@ export const TrackingVehicleDetail: React.FC = () => {
               {fuel.map(f => (
                 <tr key={f.id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td style={{ padding: '8px 10px' }}>{f.liters} L</td>
-                  <td style={{ padding: '8px 10px' }}>{f.cost != null ? f.cost.toLocaleString() : 'â€”'}</td>
+                  <td style={{ padding: '8px 10px' }}>{f.cost != null ? f.cost.toLocaleString() : '—'}</td>
                   <td style={{ padding: '8px 10px' }}>{new Date(f.logged_at).toLocaleDateString()}</td>
                 </tr>
               ))}
@@ -481,13 +481,13 @@ export const TrackingVehicleDetail: React.FC = () => {
               {documents.map(d => (
                 <tr key={d.id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td style={{ padding: '8px 10px' }}>{d.doc_type}</td>
-                  <td style={{ padding: '8px 10px' }}>{d.doc_number || 'â€”'}</td>
-                  <td style={{ padding: '8px 10px' }}>{d.expiry_date ? new Date(d.expiry_date).toLocaleDateString() : 'â€”'}</td>
+                  <td style={{ padding: '8px 10px' }}>{d.doc_number || '—'}</td>
+                  <td style={{ padding: '8px 10px' }}>{d.expiry_date ? new Date(d.expiry_date).toLocaleDateString() : '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {documents.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No documents on file. Registration, insurance &amp; renewal records live here â€” add them from the Documents &amp; Insurance page.</div>}
+          {documents.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No documents on file. Registration, insurance &amp; renewal records live here — add them from the Documents &amp; Insurance page.</div>}
         </SectionCard>
       )}
 
@@ -528,7 +528,7 @@ function VehicleExpensesTab({ vehicleId }: { vehicleId: string }) {
           {expenses.map(e => (
             <tr key={e.id} style={{ borderTop: '1px solid var(--border)' }}>
               <td style={{ padding: '8px 10px' }}>{e.category}</td>
-              <td style={{ padding: '8px 10px', color: 'var(--ink3)' }}>{e.description || 'â€”'}</td>
+              <td style={{ padding: '8px 10px', color: 'var(--ink3)' }}>{e.description || '—'}</td>
               <td style={{ padding: '8px 10px' }}>{e.amount.toLocaleString()}</td>
               <td style={{ padding: '8px 10px' }}>{new Date(e.expense_date).toLocaleDateString()}</td>
             </tr>
@@ -635,9 +635,9 @@ function VehicleAssignmentsTab({ vehicleId }: { vehicleId: string }) {
               <td style={{ padding: '12px 10px' }}>
                 {a.labels ? (
                   <span style={{ background: 'var(--teal-l)', color: 'var(--teal)', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{a.labels}</span>
-                ) : 'â€”'}
+                ) : '—'}
               </td>
-              <td style={{ padding: '12px 10px', color: 'var(--ink3)', maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.comment || 'â€”'}</td>
+              <td style={{ padding: '12px 10px', color: 'var(--ink3)', maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.comment || '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -649,7 +649,7 @@ function VehicleAssignmentsTab({ vehicleId }: { vehicleId: string }) {
 
 // Compact reuse of the standalone Cargo Loading page's manifest+pack UI,
 // scoped to this one vehicle. Entitlement is enforced backend-side same as
-// the standalone page â€” this tab just shows an inline upgrade message scoped
+// the standalone page — this tab just shows an inline upgrade message scoped
 // to its own content instead of blocking the whole vehicle-detail page.
 function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
   const [manifests, setManifests] = useState<CargoManifest[]>([]);
@@ -732,7 +732,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
     } finally { setPacking(false); }
   }
 
-  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading load planâ€¦</div>;
+  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading load plan…</div>;
 
   if (locked) {
     return (
@@ -750,7 +750,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 12 }}>No load plan yet for this vehicle.</div>
         <button type="button" onClick={createDefaultPlan} disabled={creating}
           style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: creating ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-          {creating ? 'Creatingâ€¦' : 'Create load plan'}
+          {creating ? 'Creating…' : 'Create load plan'}
         </button>
       </div>
     );
@@ -764,7 +764,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
         <div style={cardStyle}>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>{manifest.name}</div>
           <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-            {manifest.container_length_cm} Ã— {manifest.container_width_cm} Ã— {manifest.container_height_cm} cm Â· max {manifest.max_weight_kg.toLocaleString()} kg
+            {manifest.container_length_cm} × {manifest.container_width_cm} × {manifest.container_height_cm} cm · max {manifest.max_weight_kg.toLocaleString()} kg
           </div>
         </div>
 
@@ -791,7 +791,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
             {items.map(it => (
               <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                 <div style={{ width: 9, height: 9, borderRadius: 3, background: it.color || '#0891b2', flexShrink: 0 }} />
-                <div style={{ flex: 1, color: 'var(--ink)' }}>{it.label} Ã— {it.quantity}</div>
+                <div style={{ flex: 1, color: 'var(--ink)' }}>{it.label} × {it.quantity}</div>
                 <button type="button" onClick={() => removeItem(it.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={11} /></button>
               </div>
             ))}
@@ -799,7 +799,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
           </div>
           <button type="button" onClick={pack} disabled={packing || items.length === 0}
             style={{ marginTop: 10, width: '100%', padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: items.length === 0 ? 'default' : 'pointer', opacity: items.length === 0 ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            {packing ? 'Packingâ€¦' : 'Pack load'}
+            {packing ? 'Packing…' : 'Pack load'}
           </button>
         </div>
 
@@ -814,7 +814,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
             </div>
             {packResult.unplaced_items.length > 0 && (
               <div style={{ marginTop: 8, padding: '7px 9px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r)', fontSize: 11, color: 'var(--red)' }}>
-                Didn't fit: {packResult.unplaced_items.map(u => `${u.label} Ã—${u.count}`).join(', ')}
+                Didn't fit: {packResult.unplaced_items.map(u => `${u.label} ×${u.count}`).join(', ')}
               </div>
             )}
           </div>

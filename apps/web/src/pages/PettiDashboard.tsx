@@ -225,8 +225,8 @@ export function PettiDashboard() {
     <div className="petti-container">
       <PageHeader
         crumbs={['Petti', 'Overview']}
-        titlePlain="Digital Treasury &"
-        titleEm="banking"
+        titlePlain="Treasury"
+        titleEm="overview"
         subtitle="Multi-currency digital wallets, automated petty cash disbursements, and real-time capital liquidity."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

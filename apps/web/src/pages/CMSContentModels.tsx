@@ -21,7 +21,7 @@ function FL({ label, children }: { label: string; children: React.ReactNode }) {
 
 const ICONS = ['package', 'fileText', 'users', 'calendar', 'briefcase', 'mapPin', 'star', 'tag', 'shoppingCart', 'building'] as const;
 
-/** The Content Models list â€” every tenant-defined type (Product, Employee,
+/** The Content Models list — every tenant-defined type (Product, Employee,
  *  Event, ...) alongside the built-in Pages/Posts, with a count of how many
  *  entries each has and a way to create a new one. */
 export function CMSContentModelsList() {
@@ -64,7 +64,7 @@ export function CMSContentModelsList() {
         crumbs={['CMS', 'Content Models']}
         titlePlain="Content"
         titleEm="models"
-        subtitle="Define your own content types â€” Product, Employee, Event, Property â€” beyond Pages and Posts."
+        subtitle="Define your own content types — Product, Employee, Event, Property — beyond Pages and Posts."
         actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)}><Icon name="plus" size={13} /> New model</button>}
       />
 
@@ -89,7 +89,7 @@ export function CMSContentModelsList() {
                 </Select>
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>{saving ? 'Creatingâ€¦' : 'Create model'}</button>
+                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>{saving ? 'Creating…' : 'Create model'}</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)}>Cancel</button>
               </div>
             </div>
@@ -98,7 +98,7 @@ export function CMSContentModelsList() {
 
         {models === null ? <SectionLoading /> : models.length === 0 && !creating ? (
           <div style={{ textAlign: 'center', padding: 48, color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-            No content models yet. Pages and Posts still work as before â€” models are for everything else: products, staff, events, listings.
+            No content models yet. Pages and Posts still work as before — models are for everything else: products, staff, events, listings.
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
@@ -124,7 +124,7 @@ export function CMSContentModelsList() {
   );
 }
 
-/** One model's Field Builder â€” define the fields (Product's Price, Employee's
+/** One model's Field Builder — define the fields (Product's Price, Employee's
  *  Department, ...) that its entries will have, plus a link into its Content
  *  Manager (CMSContentEntries.tsx). */
 export function CMSContentModelDetail() {
@@ -163,7 +163,7 @@ export function CMSContentModelDetail() {
       await apiFetch(`/v1/cms/content-models/${modelId}/fields`, {
         method: 'POST',
         // A computed field's own value is never client-set, so it makes no
-        // sense to also mark it "required" â€” the checkbox stays but this
+        // sense to also mark it "required" — the checkbox stays but this
         // pins required=false regardless, matching the backend's own view
         // that a computed value is always filled in on save.
         body: JSON.stringify({ label: fieldForm.label, field_type: fieldForm.field_type, required: fieldForm.field_type === 'computed' ? false : fieldForm.required, help_text: fieldForm.help_text || undefined, config }),
@@ -197,7 +197,7 @@ export function CMSContentModelDetail() {
     }
   }
 
-  // Â§12-13 â€” updateField replaces config wholesale, so toggling one display
+  // §12-13 — updateField replaces config wholesale, so toggling one display
   // flag must resubmit the field's own existing config alongside it, or a
   // relation's targetModelId / a computed field's formula would be silently
   // wiped the first time someone checks "Show in list."
@@ -283,7 +283,7 @@ export function CMSContentModelDetail() {
                       {fieldTypes.find(t => t.type === f.field_type)?.label ?? f.field_type}
                       {f.field_type === 'relation' && (() => {
                         const target = allModels.find(m => m.id === (f.config as any)?.targetModelId);
-                        return target ? <span style={{ color: 'var(--ink3)' }}> â†’ {target.name_plural}</span> : null;
+                        return target ? <span style={{ color: 'var(--ink3)' }}> → {target.name_plural}</span> : null;
                       })()}
                       {f.field_type === 'repeatable' && (f.config as any)?.itemType && (
                         <span style={{ color: 'var(--ink3)' }}> of {(f.config as any).itemType}</span>
@@ -292,9 +292,9 @@ export function CMSContentModelDetail() {
                         <span style={{ color: 'var(--ink3)', fontFamily: 'var(--font)', fontSize: 11.5 }}> = {(f.config as any).formula}</span>
                       )}
                     </td>
-                    <td style={{ padding: '10px 16px' }}>{f.required ? <Icon name="check" size={13} color="var(--teal)" /> : 'â€”'}</td>
+                    <td style={{ padding: '10px 16px' }}>{f.required ? <Icon name="check" size={13} color="var(--teal)" /> : '—'}</td>
                     <td style={{ padding: '10px 16px' }}>
-                      {/* Â§12-13 â€” which fields the generic public template shows,
+                      {/* §12-13 — which fields the generic public template shows,
                           and where: opt-in for the collection index (it shows
                           nothing but title/date by default), opt-out for the
                           entry detail view (it shows every field by default). */}
@@ -313,7 +313,7 @@ export function CMSContentModelDetail() {
                   </tr>
                 ))}
                 {(model.fields ?? []).length === 0 && !addingField && (
-                  <tr><td colSpan={7} style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)' }}>No fields yet â€” add the first one below.</td></tr>
+                  <tr><td colSpan={7} style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)' }}>No fields yet — add the first one below.</td></tr>
                 )}
               </tbody>
             </table>
@@ -335,7 +335,7 @@ export function CMSContentModelDetail() {
             {fieldForm.field_type === 'relation' && (
               <FL label="Relates to">
                 <Select value={fieldForm.targetModelId} onValueChange={v => setFieldForm(f => ({ ...f, targetModelId: v }))}>
-                  <SelectTrigger className="input-field"><SelectValue placeholder="Choose a modelâ€¦" /></SelectTrigger>
+                  <SelectTrigger className="input-field"><SelectValue placeholder="Choose a model…" /></SelectTrigger>
                   <SelectContent>{allModels.map(m => <SelectItem key={m.id} value={m.id}>{m.name_plural}</SelectItem>)}</SelectContent>
                 </Select>
               </FL>
@@ -374,7 +374,7 @@ export function CMSContentModelDetail() {
               </label>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleAddField}>{saving ? 'Addingâ€¦' : 'Add field'}</button>
+              <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleAddField}>{saving ? 'Adding…' : 'Add field'}</button>
               <button className="btn btn-secondary btn-sm" onClick={() => setAddingField(false)}>Cancel</button>
             </div>
           </div>

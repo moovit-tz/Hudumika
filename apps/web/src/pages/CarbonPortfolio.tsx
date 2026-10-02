@@ -76,14 +76,14 @@ export const CarbonPortfolio: React.FC = () => {
   const customerColumns: ColumnDef<CarbonCustomerBreakdown>[] = [
     { key: 'customer', label: 'Customer', sortValue: c => c.customer_name, render: c => <strong>{c.customer_name}</strong> },
     { key: 'shipments', label: 'Shipments', align: 'right', sortValue: c => c.shipment_count, render: c => `${c.shipment_count}` },
-    { key: 'co2', label: 'COâ‚‚ (kg)', align: 'right', sortValue: c => c.co2_kg, render: c => <span style={{ fontFamily: 'var(--font)' }}>{c.co2_kg.toLocaleString('en')}</span> },
+    { key: 'co2', label: 'CO₂ (kg)', align: 'right', sortValue: c => c.co2_kg, render: c => <span style={{ fontFamily: 'var(--font)' }}>{c.co2_kg.toLocaleString('en')}</span> },
     { key: 'credits', label: 'Credits (est.)', align: 'right', sortValue: c => c.credits, render: c => <span style={{ fontFamily: 'var(--font)', color: 'var(--green)' }}>{c.credits.toFixed(2)}</span> },
   ];
 
   const monthLabels = data?.by_month.map(m => fmtMonth(m.month)) ?? [];
   const monthValues = data?.by_month.map(m => m.co2_kg) ?? [];
 
-  // Real per-month trend data for the KPI card sparklines â€” only shown once
+  // Real per-month trend data for the KPI card sparklines — only shown once
   // there are at least 2 months to actually trace a trend across (a single
   // point isn't a trend, and there's no real data to fabricate one from).
   const hasMonthlyTrend = (data?.by_month.length ?? 0) >= 2;
@@ -95,7 +95,7 @@ export const CarbonPortfolio: React.FC = () => {
 
       {/* The date picker and Refresh go through PageHeader's own `actions`
           slot. They used to be siblings of the header in a flex-wrap row, so
-          the title's own width pushed both onto lines of their own â€” and the
+          the title's own width pushed both onto lines of their own — and the
           date picker, with nothing to size it, then stretched the full page.
           The title itself is untouched. */}
       {/* No leading icon. The house style is a plain face paired with a
@@ -111,7 +111,7 @@ export const CarbonPortfolio: React.FC = () => {
             actions={
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {/* DateRangePicker's trigger carries `w-full`, so without a
-                    width of its own it fills whatever it is put in â€” a whole
+                    width of its own it fills whatever it is put in — a whole
                     page row here, and once moved into the actions slot it took
                     the slot and pushed Refresh onto a second line. */}
                 <DateRangePicker range={dateRange} onChange={setDateRange} placeholder="All time" triggerClassName="w-48" />
@@ -123,7 +123,7 @@ export const CarbonPortfolio: React.FC = () => {
             }
           />
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>
-            {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Loadingâ€¦'}
+            {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Loading…'}
           </div>
         </div>
       </div>
@@ -132,7 +132,7 @@ export const CarbonPortfolio: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {error && <Banner variant="error">{error}</Banner>}
 
-          {/* Not-a-tradeable-credit disclosure â€” this is an internal GLEC-based estimate,
+          {/* Not-a-tradeable-credit disclosure — this is an internal GLEC-based estimate,
               not a Gold Standard/Verra registered offset. Shown once, up top, so it can't
               be missed or mistaken for something sellable. */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink2)' }}>
@@ -151,7 +151,7 @@ export const CarbonPortfolio: React.FC = () => {
               onMenuClick: load, menuTitle: 'Refresh emissions data',
             },
             {
-              // The value carried no unit at all â€” "73.9" of what. A carbon
+              // The value carried no unit at all — "73.9" of what. A carbon
               // credit is one tonne of CO2e, so it reads tCO2e now.
               //
               // It is also worth knowing what this number is: co2.service.ts
@@ -161,7 +161,7 @@ export const CarbonPortfolio: React.FC = () => {
               // emissions rise. The sub-label says so rather than letting the
               // card imply a measured saving against a real counterfactual.
               title: 'Credits Saved (est.)',
-              value: `${(data?.total_credits ?? 0).toLocaleString('en')} tCOâ‚‚e`,
+              value: `${(data?.total_credits ?? 0).toLocaleString('en')} tCO₂e`,
               sub1Label: 'VS ASSUMED BASELINE', sub1Value: '+25%',
               sub2Label: 'MODES TRACKED',       sub2Value: String(data?.by_mode.length ?? 0),
               icon: 'checkCircle',
@@ -172,7 +172,7 @@ export const CarbonPortfolio: React.FC = () => {
               title: 'Data Coverage',
               value: data && (data.calculated_shipment_count + data.uncalculated_shipment_count) > 0
                 ? `${Math.round((data.calculated_shipment_count / (data.calculated_shipment_count + data.uncalculated_shipment_count)) * 100)}%`
-                : 'â€”',
+                : '—',
               sub1Label: 'NOT YET CALCULATED', sub1Value: String(data?.uncalculated_shipment_count ?? 0),
               icon: 'package',
               // No sparkline: coverage isn't tracked per-month by the API, so
@@ -184,16 +184,16 @@ export const CarbonPortfolio: React.FC = () => {
 
           {loading ? (
             <div style={{ padding: 40, textAlign: 'center', fontSize: 14, color: 'var(--ink3)' }}>
-              Loading carbon portfolioâ€¦
+              Loading carbon portfolio…
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
 
-              {/* â”€â”€ By mode â”€â”€ */}
+              {/* ── By mode ── */}
               <SectionCard title="Emissions by transport mode" action={<ExportButton onClick={exportModeCsv} />}>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
                   {(data?.by_mode ?? []).map((m: CarbonModeBreakdown) => (
-                    <StatTile key={m.mode} label={`${m.mode} Â· ${m.shipment_count} shipment${m.shipment_count === 1 ? '' : 's'}`} value={`${m.co2_kg.toLocaleString('en')} kg`} />
+                    <StatTile key={m.mode} label={`${m.mode} · ${m.shipment_count} shipment${m.shipment_count === 1 ? '' : 's'}`} value={`${m.co2_kg.toLocaleString('en')} kg`} />
                   ))}
                   {(!data || data.by_mode.length === 0) && (
                     <div style={{ padding: 12, color: 'var(--ink3)', fontSize: 13 }}>No calculated shipments yet.</div>
@@ -204,12 +204,12 @@ export const CarbonPortfolio: React.FC = () => {
                     labels={data.by_mode.map(m => m.mode)}
                     values={data.by_mode.map(m => m.co2_kg)}
                     barColors={data.by_mode.map(m => MODE_COLOR[m.mode] ?? 'rgba(107,114,128,.75)')}
-                    yLabel="COâ‚‚ (kg)"
+                    yLabel="CO₂ (kg)"
                   />
                 )}
               </SectionCard>
 
-              {/* â”€â”€ Trend by month â”€â”€ */}
+              {/* ── Trend by month ── */}
               {data && data.by_month.length > 0 && (
                 <SectionCard
                   title="Monthly trend"
@@ -220,19 +220,19 @@ export const CarbonPortfolio: React.FC = () => {
                       labels={monthLabels}
                       values={monthValues}
                       barColors={monthLabels.map(() => 'rgba(20,184,166,.75)')}
-                      yLabel="COâ‚‚ (kg)"
+                      yLabel="CO₂ (kg)"
                     />
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink3)', fontSize: 13 }}>
                       <Icon name="info" size={15} strokeWidth={1.75} style={{ flexShrink: 0 }} />
-                      Only {data.by_month.length} month of data recorded so far ({fmtMonth(data.by_month[0].month)}: {data.by_month[0].co2_kg.toLocaleString('en')} kg) â€”
+                      Only {data.by_month.length} month of data recorded so far ({fmtMonth(data.by_month[0].month)}: {data.by_month[0].co2_kg.toLocaleString('en')} kg) —
                       a trend needs at least two months to compare.
                     </div>
                   )}
                 </SectionCard>
               )}
 
-              {/* â”€â”€ By customer â”€â”€ */}
+              {/* ── By customer ── */}
               <SectionCard title="Emissions by customer" action={<ExportButton onClick={exportCustomerCsv} />}>
                 <button
                   type="button"

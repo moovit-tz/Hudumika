@@ -1,7 +1,7 @@
-﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   OndiPersonal.css â€” Ondi Personal Â· My Identity Hub
+﻿/* ══════════════════════════════════════════════════════════
+   OndiPersonal.css — Ondi Personal · My Identity Hub
    Enterprise-grade identity, security posture & trust metrics.
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════════════ */
 
 .op-page {
   display: flex;
@@ -10,7 +10,7 @@
   width: 100%;
 }
 
-/* â”€â”€ Top Hero Grid: Identity Profile & Trust Score â”€â”€ */
+/* ── Top Hero Grid: Identity Profile & Trust Score ── */
 .op-hero-grid {
   display: grid;
   grid-template-columns: 1.35fr 1fr;
@@ -18,7 +18,7 @@
   align-items: stretch;
 }
 
-/* â”€â”€ Onboarding checklist + Recent activity preview â”€â”€ */
+/* ── Onboarding checklist + Recent activity preview ── */
 .op-onboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -154,7 +154,7 @@
   .op-onboard-grid { grid-template-columns: 1fr; }
 }
 
-/* â”€â”€ Identity Profile Card â”€â”€ */
+/* ── Identity Profile Card ── */
 .op-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -360,7 +360,7 @@
   flex-wrap: wrap;
 }
 
-/* â”€â”€ Trust Score Hero Card â”€â”€ */
+/* ── Trust Score Hero Card ── */
 .op-trust-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -476,7 +476,7 @@
   line-height: 1.4;
 }
 
-/* â”€â”€ Security Posture Row (3 Cards) â”€â”€ */
+/* ── Security Posture Row (3 Cards) ── */
 .op-posture-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -561,7 +561,7 @@
   gap: 6px;
 }
 
-/* â”€â”€ Organizational Reliability Signals â”€â”€ */
+/* ── Organizational Reliability Signals ── */
 .op-reliability-wrap {
   background: var(--white);
   border: 1px solid var(--border);
@@ -664,7 +664,7 @@
   transition: width 0.3s ease;
 }
 
-/* â”€â”€ Fast Navigation Ecosystem Hub â”€â”€ */
+/* ── Fast Navigation Ecosystem Hub ── */
 .op-nav-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -710,9 +710,9 @@
   margin-top: 2px;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════════════
    Responsive Breakpoints
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════════════ */
 @media (max-width: 1024px) {
   .op-hero-grid {
     grid-template-columns: 1fr;

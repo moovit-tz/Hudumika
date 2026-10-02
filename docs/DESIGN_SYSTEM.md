@@ -28,6 +28,20 @@ circular, such as a status mark or avatar treatment.
   dialog must use `DialogContent size` or `steady`, `DialogHeader`,
   `DialogBody`, and `DialogFooter`.
 
+## Sidebar submenus
+
+Admin (`/workspace`) is the reference for app sidebar submenus. App shells
+declare groups using `SidebarNavItem.children` and render them through
+`AppSidebar`; `AppSidebar.css` owns their indentation, dashed guide, row
+height, typography, active treatment, and chevrons for every app.
+Do not override `.app-sb-children-group`, `.app-sb-item--child`, or
+`.app-sb-item--parent-hdr` in an app stylesheet. Active and inactive child
+rows keep the same height and font size, so navigation does not shift.
+
+Parent rows toggle their submenu without navigating. The group containing
+the current route opens by default; an explicit toggle must close it on
+the first click. Keep each app's branding on the shared sidebar tokens.
+
 ## Global tabs contract
 
 The selection in `/admin/design-system?section=tabs` is authoritative for

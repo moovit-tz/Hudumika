@@ -1,9 +1,9 @@
-﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   OndiSecuritySettings.css â€” Ondi Personal Â· Security Hub
+﻿/* ══════════════════════════════════════════════════════════
+   OndiSecuritySettings.css — Ondi Personal · Security Hub
    Enterprise-grade authentication, biometric passkeys, KYC,
    mutual-consent recovery, and session management.
    Mobile-first, compact 2x2 KPIs, zero AI gradients.
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ══════════════════════════════════════════════════════════ */
 
 .oss-page {
   display: flex;
@@ -12,7 +12,7 @@
   width: 100%;
 }
 
-/* â”€â”€ Top Executive Posture KPI Grid â”€â”€ */
+/* ── Top Executive Posture KPI Grid ── */
 .oss-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -120,7 +120,7 @@
   gap: 5px;
 }
 
-/* â”€â”€ Section Jump Filter Pills â”€â”€ */
+/* ── Section Jump Filter Pills ── */
 .oss-nav-strip {
   display: flex;
   align-items: center;
@@ -164,7 +164,7 @@
   font-weight: 600;
 }
 
-/* â”€â”€ Main Layout: Content Grid (2 Columns Desktop) â”€â”€ */
+/* ── Main Layout: Content Grid (2 Columns Desktop) ── */
 .oss-layout-grid {
   display: grid;
   grid-template-columns: 1fr 320px;
@@ -186,7 +186,7 @@
   gap: 20px;
 }
 
-/* â”€â”€ Enterprise Card System â”€â”€ */
+/* ── Enterprise Card System ── */
 .oss-card {
   background: var(--white, #ffffff);
   border: 1px solid var(--border);
@@ -236,7 +236,7 @@
   gap: 16px;
 }
 
-/* â”€â”€ Responsive Form Rows â”€â”€ */
+/* ── Responsive Form Rows ── */
 .oss-form-row {
   display: grid;
   grid-template-columns: 160px 1fr;
@@ -301,7 +301,7 @@
   margin-top: 4px;
 }
 
-/* â”€â”€ 2FA Section â”€â”€ */
+/* ── 2FA Section ── */
 .oss-2fa-setup-wrap {
   display: flex;
   gap: 20px;
@@ -350,7 +350,7 @@
   color: var(--ink);
 }
 
-/* â”€â”€ Passkeys List â”€â”€ */
+/* ── Passkeys List ── */
 .oss-passkey-item {
   display: flex;
   align-items: center;
@@ -368,7 +368,7 @@
   border-color: var(--border-hover, #cbd5e1);
 }
 
-/* â”€â”€ Recovery Contacts Item & Requests â”€â”€ */
+/* ── Recovery Contacts Item & Requests ── */
 .oss-request-banner {
   padding: 12px 14px;
   background: var(--gold-l);
@@ -392,7 +392,7 @@
   border-radius: 8px;
 }
 
-/* â”€â”€ Right Column Posture / Dial Card â”€â”€ */
+/* ── Right Column Posture / Dial Card ── */
 .oss-side-trust-dial {
   display: flex;
   align-items: baseline;
@@ -436,7 +436,7 @@
   padding-bottom: 0;
 }
 
-/* â”€â”€ Responsive Breakpoints: Compact on Mobile â”€â”€ */
+/* ── Responsive Breakpoints: Compact on Mobile ── */
 @media (max-width: 960px) {
   .oss-kpi-grid {
     grid-template-columns: repeat(2, 1fr);

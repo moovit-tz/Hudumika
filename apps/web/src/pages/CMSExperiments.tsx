@@ -19,7 +19,7 @@ function FL({ label, children }: { label: string; children: React.ReactNode }) {
   );
 }
 
-/** The Experiments list (Â§35 of the brief) â€” two content-author-defined
+/** The Experiments list (§35 of the brief) — two content-author-defined
  *  variants, placed on the public site via a real 'experiment' block, a
  *  visitor sticky-assigned to one, and a real view count per variant. */
 export function CMSExperimentsList() {
@@ -55,7 +55,7 @@ export function CMSExperimentsList() {
         crumbs={['CMS', 'Experiments']}
         titlePlain="A/B"
         titleEm="experiments"
-        subtitle="Two block-array variants, a visitor sticky-assigned to one, a real view count per variant â€” placed on any page or entry with an A/B Test block."
+        subtitle="Two block-array variants, a visitor sticky-assigned to one, a real view count per variant — placed on any page or entry with an A/B Test block."
         actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)}><Icon name="plus" size={13} /> New experiment</button>}
       />
 
@@ -68,7 +68,7 @@ export function CMSExperimentsList() {
                 <input className="input-field" value={name} placeholder="e.g. Homepage hero" onChange={e => setName(e.target.value)} autoFocus />
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>{saving ? 'Creatingâ€¦' : 'Create experiment'}</button>
+                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>{saving ? 'Creating…' : 'Create experiment'}</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)}>Cancel</button>
               </div>
             </div>
@@ -96,7 +96,7 @@ export function CMSExperimentsList() {
                     <span style={{ marginLeft: 'auto', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: x.status === 'running' ? 'var(--teal)' : 'var(--ink3)' }}>{x.status}</span>
                   </div>
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 'auto' }}>
-                    {total.toLocaleString()} view{total === 1 ? '' : 's'} â€” A {x.variant_a_views.toLocaleString()} / B {x.variant_b_views.toLocaleString()}
+                    {total.toLocaleString()} view{total === 1 ? '' : 's'} — A {x.variant_a_views.toLocaleString()} / B {x.variant_b_views.toLocaleString()}
                   </div>
                 </Link>
               );
@@ -109,7 +109,7 @@ export function CMSExperimentsList() {
 }
 
 /** One experiment's own two-variant block editor + a live view-count
- *  comparison. Each variant is a real, independent BlockEditor instance â€”
+ *  comparison. Each variant is a real, independent BlockEditor instance —
  *  the same one Content-entry/Component editing already uses, so
  *  authoring two variants is exactly as capable as authoring one entry's
  *  own content, not a stripped-down "simple variant" concept. */
@@ -190,12 +190,12 @@ export function CMSExperimentDetail() {
         crumbs={['CMS', 'Experiments', experiment.name]}
         titlePlain={experiment.name}
         titleEm="variants"
-        subtitle={`Placed anywhere with an A/B Test block â€” key "${experiment.key}".`}
+        subtitle={`Placed anywhere with an A/B Test block — key "${experiment.key}".`}
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-secondary btn-sm" onClick={handleRename}>Rename</button>
             <button className="btn btn-secondary btn-sm" onClick={handleToggleStatus}>{experiment.status === 'running' ? 'Stop' : 'Resume'}</button>
-            <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave}>{saving ? 'Savingâ€¦' : dirty ? 'Save changes' : 'Saved'}</button>
+            <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave}>{saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>
           </div>
         }
       />
@@ -203,15 +203,15 @@ export function CMSExperimentDetail() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px', maxWidth: 1000 }}>
         <div className="card" style={{ padding: '18px 22px', marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--ink2)', marginBottom: 8 }}>
-            <span><b>Variant A</b> â€” {experiment.variant_a_views.toLocaleString()} view{experiment.variant_a_views === 1 ? '' : 's'} ({aPct}%)</span>
-            <span><b>Variant B</b> â€” {experiment.variant_b_views.toLocaleString()} view{experiment.variant_b_views === 1 ? '' : 's'} ({bPct}%)</span>
+            <span><b>Variant A</b> — {experiment.variant_a_views.toLocaleString()} view{experiment.variant_a_views === 1 ? '' : 's'} ({aPct}%)</span>
+            <span><b>Variant B</b> — {experiment.variant_b_views.toLocaleString()} view{experiment.variant_b_views === 1 ? '' : 's'} ({bPct}%)</span>
           </div>
           <div style={{ display: 'flex', height: 10, borderRadius: 6, overflow: 'hidden', background: 'var(--border)' }}>
             <div style={{ width: `${aPct}%`, background: 'var(--teal)' }} />
             <div style={{ width: `${bPct}%`, background: 'var(--gold, #c8920a)' }} />
           </div>
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 8 }}>
-            View counts only â€” a real, disclosed limitation: this shows how evenly visitors reach each variant, not which one converts better. Add conversion tracking as a future pass if you need that signal.
+            View counts only — a real, disclosed limitation: this shows how evenly visitors reach each variant, not which one converts better. Add conversion tracking as a future pass if you need that signal.
           </div>
         </div>
 

@@ -135,7 +135,7 @@ export const FinanceLedger: React.FC = () => {
     }
   }
 
-  // â”€â”€ Derived KPI values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Derived KPI values ──────────────────────────────────────────────────
   const totals = useMemo(() => {
     const dr = accounts.reduce((s, a) => s + a.period_debit, 0);
     const cr = accounts.reduce((s, a) => s + a.period_credit, 0);
@@ -203,7 +203,7 @@ export const FinanceLedger: React.FC = () => {
 
   return (
     <div className="acct-container">
-      {/* â”€â”€ Page Header â”€â”€ */}
+      {/* ── Page Header ── */}
       <PageHeader
         crumbs={['Finance', 'Corporate Accounting']}
         titlePlain="General"
@@ -226,7 +226,7 @@ export const FinanceLedger: React.FC = () => {
         }
       />
 
-      {/* â”€â”€ Hero Banner â”€â”€ */}
+      {/* ── Hero Banner ── */}
       <div className="acct-hero-banner">
         <div className="acct-hero-left">
           <div className="acct-score-circle">
@@ -239,11 +239,11 @@ export const FinanceLedger: React.FC = () => {
                 Corporate Accounting Control Center
               </h2>
               <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.35)', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
-                âœ“ {balanceScore}% Balanced
+                ✓ {balanceScore}% Balanced
               </span>
             </div>
             <p className="acct-hero-desc">
-              {currency} ledger Â· IFRS & TRA compliant Â· {accounts.length} active accounts Â· Period: {period.label}
+              {currency} ledger · IFRS & TRA compliant · {accounts.length} active accounts · Period: {period.label}
             </p>
           </div>
         </div>
@@ -251,35 +251,35 @@ export const FinanceLedger: React.FC = () => {
         <div className="acct-hero-kpis">
           <div className="acct-hero-kpi-tile">
             <div className="acct-hero-kpi-label">Assets</div>
-            <div className="acct-hero-kpi-val">{totals.assets > 0 ? fmtCompact(totals.assets) : 'â€”'}</div>
+            <div className="acct-hero-kpi-val">{totals.assets > 0 ? fmtCompact(totals.assets) : '—'}</div>
             <div className="acct-hero-kpi-sub">Period closing</div>
           </div>
           <div className="acct-hero-kpi-tile">
             <div className="acct-hero-kpi-label">Liabilities</div>
-            <div className="acct-hero-kpi-val">{totals.liabilities > 0 ? fmtCompact(totals.liabilities) : 'â€”'}</div>
+            <div className="acct-hero-kpi-val">{totals.liabilities > 0 ? fmtCompact(totals.liabilities) : '—'}</div>
             <div className="acct-hero-kpi-sub">Period closing</div>
           </div>
           <div className="acct-hero-kpi-tile">
             <div className="acct-hero-kpi-label">Net Equity</div>
-            <div className="acct-hero-kpi-val">{totals.equity > 0 ? fmtCompact(totals.equity) : 'â€”'}</div>
+            <div className="acct-hero-kpi-val">{totals.equity > 0 ? fmtCompact(totals.equity) : '—'}</div>
             <div className="acct-hero-kpi-sub">Period closing</div>
           </div>
           <div className="acct-hero-kpi-tile">
             <div className="acct-hero-kpi-label">Current Ratio</div>
-            <div className="acct-hero-kpi-val">{currentRatio > 0 ? `${currentRatio.toFixed(2)}x` : 'â€”'}</div>
+            <div className="acct-hero-kpi-val">{currentRatio > 0 ? `${currentRatio.toFixed(2)}x` : '—'}</div>
             <div className="acct-hero-kpi-sub">Target &gt; 2.0x</div>
           </div>
         </div>
       </div>
 
-      {/* â”€â”€ 4 Metric Cards â”€â”€ */}
+      {/* ── 4 Metric Cards ── */}
       <div className="acct-metrics-grid">
         <div className="acct-metric-card">
           <div className="acct-metric-header">
             <span className="acct-metric-label">Revenue MTD</span>
             <Badge variant={mtdRevenue > 0 ? 'success' : 'gray'}>{mtdRevenue > 0 ? currency : 'No data'}</Badge>
           </div>
-          <div className="acct-metric-val">{mtdRevenue > 0 ? fmtCompact(mtdRevenue) : 'â€”'}</div>
+          <div className="acct-metric-val">{mtdRevenue > 0 ? fmtCompact(mtdRevenue) : '—'}</div>
           <div className="acct-metric-spark">
             {[30, 42, 48, 55, 62, 70, 76, 80, 85, 90].map((h, i) => (
               <div key={i} className="acct-metric-spark-bar" style={{ height: `${h}%` }} />
@@ -292,7 +292,7 @@ export const FinanceLedger: React.FC = () => {
             <span className="acct-metric-label">Net Profit MTD</span>
             <Badge variant={mtdNet > 0 ? 'success' : mtdNet < 0 ? 'error' : 'gray'}>{mtdNet > 0 ? 'Profit' : mtdNet < 0 ? 'Loss' : 'No data'}</Badge>
           </div>
-          <div className="acct-metric-val" style={{ color: mtdNet < 0 ? 'var(--red)' : undefined }}>{mtdNet !== 0 ? fmtCompact(mtdNet) : 'â€”'}</div>
+          <div className="acct-metric-val" style={{ color: mtdNet < 0 ? 'var(--red)' : undefined }}>{mtdNet !== 0 ? fmtCompact(mtdNet) : '—'}</div>
           <div className="acct-metric-spark">
             {[35, 40, 42, 48, 54, 60, 65, 70, 75, 80].map((h, i) => (
               <div key={i} className="acct-metric-spark-bar" style={{ height: `${h}%` }} />
@@ -303,9 +303,9 @@ export const FinanceLedger: React.FC = () => {
         <div className="acct-metric-card">
           <div className="acct-metric-header">
             <span className="acct-metric-label">Net Margin MTD</span>
-            <Badge variant={netMarginPct > 0 ? 'brand' : netMarginPct < 0 ? 'error' : 'gray'}>{netMarginPct !== 0 ? `${netMarginPct > 0 ? '+' : ''}${netMarginPct.toFixed(1)}%` : 'â€”'}</Badge>
+            <Badge variant={netMarginPct > 0 ? 'brand' : netMarginPct < 0 ? 'error' : 'gray'}>{netMarginPct !== 0 ? `${netMarginPct > 0 ? '+' : ''}${netMarginPct.toFixed(1)}%` : '—'}</Badge>
           </div>
-          <div className="acct-metric-val">{netMarginPct !== 0 ? `${netMarginPct.toFixed(1)}%` : 'â€”'}</div>
+          <div className="acct-metric-val">{netMarginPct !== 0 ? `${netMarginPct.toFixed(1)}%` : '—'}</div>
           <div className="acct-metric-spark">
             {[25, 35, 40, 45, 50, 55, 58, 65, 70, 75].map((h, i) => (
               <div key={i} className="acct-metric-spark-bar" style={{ height: `${h}%` }} />
@@ -318,7 +318,7 @@ export const FinanceLedger: React.FC = () => {
             <span className="acct-metric-label">YTD Net P&amp;L</span>
             <Badge variant={ytdNet >= 0 ? 'success' : 'error'}>{ytdNet >= 0 ? 'Surplus' : 'Deficit'}</Badge>
           </div>
-          <div className="acct-metric-val" style={{ color: ytdNet < 0 ? 'var(--red)' : undefined }}>{ytdNet !== 0 ? fmtCompact(ytdNet) : 'â€”'}</div>
+          <div className="acct-metric-val" style={{ color: ytdNet < 0 ? 'var(--red)' : undefined }}>{ytdNet !== 0 ? fmtCompact(ytdNet) : '—'}</div>
           <div className="acct-metric-spark">
             {[45, 50, 54, 58, 62, 68, 72, 78, 82, 88].map((h, i) => (
               <div key={i} className="acct-metric-spark-bar" style={{ height: `${h}%` }} />
@@ -327,7 +327,7 @@ export const FinanceLedger: React.FC = () => {
         </div>
       </div>
 
-      {/* â”€â”€ GL Overview + Bank / Cash Summary â”€â”€ */}
+      {/* ── GL Overview + Bank / Cash Summary ── */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.3fr 1fr', gap: 16 }}>
         {/* General Ledger Monthly Activity */}
         <SectionCard
@@ -335,10 +335,10 @@ export const FinanceLedger: React.FC = () => {
           action={
             <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink3)' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--teal)' }} /> Debit ({totals.dr > 0 ? fmtCompact(totals.dr) : 'â€”'})
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--teal)' }} /> Debit ({totals.dr > 0 ? fmtCompact(totals.dr) : '—'})
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--gold)' }} /> Credit ({totals.cr > 0 ? fmtCompact(totals.cr) : 'â€”'})
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--gold)' }} /> Credit ({totals.cr > 0 ? fmtCompact(totals.cr) : '—'})
               </span>
             </div>
           }
@@ -423,14 +423,14 @@ export const FinanceLedger: React.FC = () => {
           <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
             <div>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink)' }}>TRA VAT Return (Form ITX)</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Next period filing â€” check TRA portal for deadlines</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Next period filing — check TRA portal for deadlines</div>
             </div>
             <Badge variant="gray">Compliance</Badge>
           </div>
         </SectionCard>
       </div>
 
-      {/* â”€â”€ AP vs AR Aging Breakdown â”€â”€ */}
+      {/* ── AP vs AR Aging Breakdown ── */}
       <div className="acct-aging-grid">
         {/* Vendor Aging (AP) */}
         <div className="acct-aging-box">
@@ -450,8 +450,8 @@ export const FinanceLedger: React.FC = () => {
             <>
               <div className="acct-aging-tiers">
                 {apTotals.current > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(apTotals.current / apTotals.total * 100)}%`, background: 'var(--teal)' }} title={`Current: ${fmt(apTotals.current)}`} />}
-                {apTotals.days_1_30 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(apTotals.days_1_30 / apTotals.total * 100)}%`, background: '#f59e0b' }} title={`1â€“30d: ${fmt(apTotals.days_1_30)}`} />}
-                {apTotals.days_31_60 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(apTotals.days_31_60 / apTotals.total * 100)}%`, background: 'var(--red)' }} title={`31â€“60d: ${fmt(apTotals.days_31_60)}`} />}
+                {apTotals.days_1_30 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(apTotals.days_1_30 / apTotals.total * 100)}%`, background: '#f59e0b' }} title={`1–30d: ${fmt(apTotals.days_1_30)}`} />}
+                {apTotals.days_31_60 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(apTotals.days_31_60 / apTotals.total * 100)}%`, background: 'var(--red)' }} title={`31–60d: ${fmt(apTotals.days_31_60)}`} />}
                 {(apTotals.days_61_90 + apTotals.days_90_plus) > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round((apTotals.days_61_90 + apTotals.days_90_plus) / apTotals.total * 100)}%`, background: '#991b1b' }} title={`61d+: ${fmt(apTotals.days_61_90 + apTotals.days_90_plus)}`} />}
               </div>
               <div className="acct-aging-legend">
@@ -460,11 +460,11 @@ export const FinanceLedger: React.FC = () => {
                   <strong style={{ color: 'var(--teal)' }}>{fmtCompact(apTotals.current)}</strong>
                 </div>
                 <div className="acct-aging-legend-item">
-                  <span style={{ color: 'var(--ink3)' }}>1â€“30 Days</span>
+                  <span style={{ color: 'var(--ink3)' }}>1–30 Days</span>
                   <strong style={{ color: '#f59e0b' }}>{fmtCompact(apTotals.days_1_30)}</strong>
                 </div>
                 <div className="acct-aging-legend-item">
-                  <span style={{ color: 'var(--ink3)' }}>31â€“90d+</span>
+                  <span style={{ color: 'var(--ink3)' }}>31–90d+</span>
                   <strong style={{ color: 'var(--red)' }}>{fmtCompact(apTotals.days_31_60 + apTotals.days_61_90 + apTotals.days_90_plus)}</strong>
                 </div>
               </div>
@@ -492,8 +492,8 @@ export const FinanceLedger: React.FC = () => {
             <>
               <div className="acct-aging-tiers">
                 {arTotals.current > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(arTotals.current / arTotals.total * 100)}%`, background: 'var(--teal)' }} title={`Current: ${fmt(arTotals.current)}`} />}
-                {arTotals.days_1_30 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(arTotals.days_1_30 / arTotals.total * 100)}%`, background: '#f59e0b' }} title={`1â€“30d: ${fmt(arTotals.days_1_30)}`} />}
-                {arTotals.days_31_60 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(arTotals.days_31_60 / arTotals.total * 100)}%`, background: 'var(--red)' }} title={`31â€“60d: ${fmt(arTotals.days_31_60)}`} />}
+                {arTotals.days_1_30 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(arTotals.days_1_30 / arTotals.total * 100)}%`, background: '#f59e0b' }} title={`1–30d: ${fmt(arTotals.days_1_30)}`} />}
+                {arTotals.days_31_60 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(arTotals.days_31_60 / arTotals.total * 100)}%`, background: 'var(--red)' }} title={`31–60d: ${fmt(arTotals.days_31_60)}`} />}
                 {(arTotals.days_61_90 + arTotals.days_90_plus) > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round((arTotals.days_61_90 + arTotals.days_90_plus) / arTotals.total * 100)}%`, background: '#991b1b' }} title={`61d+: ${fmt(arTotals.days_61_90 + arTotals.days_90_plus)}`} />}
               </div>
               <div className="acct-aging-legend">
@@ -502,11 +502,11 @@ export const FinanceLedger: React.FC = () => {
                   <strong style={{ color: 'var(--teal)' }}>{fmtCompact(arTotals.current)}</strong>
                 </div>
                 <div className="acct-aging-legend-item">
-                  <span style={{ color: 'var(--ink3)' }}>1â€“30 Days</span>
+                  <span style={{ color: 'var(--ink3)' }}>1–30 Days</span>
                   <strong style={{ color: '#f59e0b' }}>{fmtCompact(arTotals.days_1_30)}</strong>
                 </div>
                 <div className="acct-aging-legend-item">
-                  <span style={{ color: 'var(--ink3)' }}>31â€“90d+</span>
+                  <span style={{ color: 'var(--ink3)' }}>31–90d+</span>
                   <strong style={{ color: 'var(--red)' }}>{fmtCompact(arTotals.days_31_60 + arTotals.days_61_90 + arTotals.days_90_plus)}</strong>
                 </div>
               </div>
@@ -517,7 +517,7 @@ export const FinanceLedger: React.FC = () => {
         </div>
       </div>
 
-      {/* â”€â”€ Filters Toolbar â”€â”€ */}
+      {/* ── Filters Toolbar ── */}
       <SectionCard>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <Tabs value={typeFilter} onValueChange={v => setTypeFilter(v as AccountType | 'ALL')} variant="pill">
@@ -538,14 +538,14 @@ export const FinanceLedger: React.FC = () => {
               title="Search accounts"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search account code or nameâ€¦"
+              placeholder="Search account code or name…"
               style={{ paddingLeft: 32 }}
             />
           </div>
         </div>
       </SectionCard>
 
-      {/* â”€â”€ Accounts Ledger Table â”€â”€ */}
+      {/* ── Accounts Ledger Table ── */}
       {filtered.length === 0 ? (
         <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No account activity for this period.</div>
       ) : (
@@ -553,7 +553,7 @@ export const FinanceLedger: React.FC = () => {
           <div key={t} className="finance-ledger-group" style={{ marginBottom: 24 }}>
             <div className="acct-type-group-header" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: TYPE_CFG[t].bg, borderRadius: 'var(--r) var(--r) 0 0', borderBottom: `2px solid ${TYPE_CFG[t].color}` }}>
               <span style={{ fontSize: 11, fontWeight: 800, color: TYPE_CFG[t].color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{TYPE_CFG[t].label}S</span>
-              <span style={{ fontSize: 11, color: 'var(--ink3)' }}>â€” {grouped[t]!.length} accounts</span>
+              <span style={{ fontSize: 11, color: 'var(--ink3)' }}>— {grouped[t]!.length} accounts</span>
             </div>
 
             <div className="acct-table-container" style={{ borderTop: 'none', borderRadius: '0 0 var(--r) var(--r)' }}>
@@ -587,12 +587,12 @@ export const FinanceLedger: React.FC = () => {
                         boxSizing: 'border-box',
                       }}
                     >
-                      <span style={{ fontSize: 12, color: cfg.color, fontWeight: 700 }}>{isOpen ? 'âˆ’' : '+'}</span>
+                      <span style={{ fontSize: 12, color: cfg.color, fontWeight: 700 }}>{isOpen ? '−' : '+'}</span>
                       <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--ink3)', fontWeight: 600 }}>{acc.account_code}</span>
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{acc.account_name}</span>
                       <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--ink2)', textAlign: 'right' }}>{fmt(Math.abs(open))}</span>
-                      <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--blue)', textAlign: 'right' }}>{acc.period_debit > 0 ? fmt(acc.period_debit) : 'â€”'}</span>
-                      <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--purple)', textAlign: 'right' }}>{acc.period_credit > 0 ? fmt(acc.period_credit) : 'â€”'}</span>
+                      <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--blue)', textAlign: 'right' }}>{acc.period_debit > 0 ? fmt(acc.period_debit) : '—'}</span>
+                      <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--purple)', textAlign: 'right' }}>{acc.period_credit > 0 ? fmt(acc.period_credit) : '—'}</span>
                       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                         <span style={{ fontSize: 11, fontWeight: 700, color: close < 0 ? 'var(--purple)' : 'var(--blue)', background: close < 0 ? 'var(--purple-l)' : 'var(--blue-l)', padding: '2px 6px', borderRadius: 'var(--r)', whiteSpace: 'nowrap' }}>
                           {close < 0 ? 'Cr' : 'Dr'}
@@ -604,7 +604,7 @@ export const FinanceLedger: React.FC = () => {
                     {isOpen && (
                       <div className="finance-ledger-detail" style={{ minWidth: 790, borderTop: '1px solid var(--border)' }}>
                         {isLoadingLedger ? (
-                          <div style={{ padding: 16, fontSize: 12, color: 'var(--ink3)', textAlign: 'center' }}>Loading entriesâ€¦</div>
+                          <div style={{ padding: 16, fontSize: 12, color: 'var(--ink3)', textAlign: 'center' }}>Loading entries…</div>
                         ) : !ledger ? (
                           <div style={{ padding: 16, fontSize: 12, color: 'var(--ink3)', textAlign: 'center' }}>Couldn't load entries for this account.</div>
                         ) : (
@@ -649,7 +649,7 @@ export const FinanceLedger: React.FC = () => {
           borderRadius: 'var(--r)', background: 'var(--white)', fontSize: 12.5, color: 'var(--ink3)',
         }}>
           <span>
-            {offset + 1}â€“{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length} account{filtered.length === 1 ? '' : 's'}
+            {offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length} account{filtered.length === 1 ? '' : 's'}
           </span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <Button variant="outline" size="xs" disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>

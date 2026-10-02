@@ -9,7 +9,7 @@ import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 
-// Mirrors metrics-registry.service.ts's own METRICS_MGMT_ROLES exactly â€”
+// Mirrors metrics-registry.service.ts's own METRICS_MGMT_ROLES exactly —
 // MGMT_ROLES plus FINANCE, since a finance officer manages the AR/AP and
 // trial-balance alerts even though they aren't in the platform's general
 // management-roles set.
@@ -58,7 +58,7 @@ function formatValue(v: number, format: string, unit: string): string {
 const SEVERITY_VARIANT: Record<string, 'info' | 'warning' | 'error'> = { info: 'info', warning: 'warning', critical: 'error' };
 
 /** Existing alert rules for this one metric, plus (for a management role)
- *  an inline form to add one. Real CRUD against /v1/metrics/alerts â€” no
+ *  an inline form to add one. Real CRUD against /v1/metrics/alerts — no
  *  local-only state pretending to be a saved rule. */
 function AlertsMiniSection({ metricKey, canManage }: { metricKey: string; canManage: boolean }) {
   const [rules, setRules] = useState<AlertRule[] | null>(null);
@@ -139,7 +139,7 @@ function AlertsMiniSection({ metricKey, canManage }: { metricKey: string; canMan
               <option value="warning">warning</option>
               <option value="critical">critical</option>
             </select>
-            <button type="button" disabled={saving || !threshold} onClick={submit} style={{ fontSize: 11.5, fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'var(--teal)', border: 'none', borderRadius: 'var(--r-sm)', padding: '5px 10px', cursor: 'pointer' }}>
+            <button type="button" disabled={saving || !threshold} onClick={submit} className="btn btn-primary btn-xs">
               Save
             </button>
             <button type="button" onClick={() => setCreating(false)} style={{ fontSize: 11.5, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
@@ -156,7 +156,7 @@ function AlertsMiniSection({ metricKey, canManage }: { metricKey: string; canMan
 
 /** One registry row: name/description, source-app + domain badges, a live
  *  value fetched from this tenant's own data, and an expandable lineage
- *  panel â€” "where did this number come from?" answered from the registry's
+ *  panel — "where did this number come from?" answered from the registry's
  *  own config, not a separate doc. */
 function MetricRow({ def }: { def: MetricDef }) {
   const { user } = useAuth();
@@ -169,12 +169,12 @@ function MetricRow({ def }: { def: MetricDef }) {
     let cancelled = false;
     apiFetch(`/v1/metrics/${encodeURIComponent(def.metric_key)}/value?days=30`)
       .then((r: any) => { if (!cancelled) setValue(r); })
-      .catch(() => { if (!cancelled) setError('â€”'); });
+      .catch(() => { if (!cancelled) setError('—'); });
     return () => { cancelled = true; };
   }, [def.metric_key]);
 
   const lineage = def.kind === 'declarative'
-    ? `${def.config.sumColumn ? `SUM(${def.config.sumColumn})` : 'COUNT(*)'} FROM ${def.config.table}${def.config.dimension ? ` GROUP BY ${def.config.dimension}` : ''} â€” last 30 days`
+    ? `${def.config.sumColumn ? `SUM(${def.config.sumColumn})` : 'COUNT(*)'} FROM ${def.config.table}${def.config.dimension ? ` GROUP BY ${def.config.dimension}` : ''} — last 30 days`
     : def.config.formula || 'Computed by a dedicated service function.';
   const sourceTables = def.kind === 'declarative' ? [def.config.table].filter(Boolean) as string[] : (def.config.sourceTables || []);
 
@@ -198,13 +198,13 @@ function MetricRow({ def }: { def: MetricDef }) {
         <div style={{ width: 90, textAlign: 'right', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
           {error ? <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>{error}</span>
             : value ? formatValue(value.value, def.format, def.unit)
-            : <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>â€¦</span>}
+            : <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>…</span>}
         </div>
       </div>
       {expanded && (
         <div style={{ padding: '4px 4px 16px 32px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
-            <b style={{ color: 'var(--ink2)' }}>How this is calculated</b> â€” {lineage}
+            <b style={{ color: 'var(--ink2)' }}>How this is calculated</b> — {lineage}
           </div>
           {sourceTables.length > 0 && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -212,9 +212,9 @@ function MetricRow({ def }: { def: MetricDef }) {
             </div>
           )}
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', display: 'flex', gap: 16 }}>
-            {def.module && <span><b style={{ color: 'var(--ink2)' }}>Module</b> â€” {def.module}</span>}
-            {def.owner && <span><b style={{ color: 'var(--ink2)' }}>Owner</b> â€” {def.owner}</span>}
-            {value && <span><b style={{ color: 'var(--ink2)' }}>As of</b> â€” {new Date(value.asOf).toLocaleTimeString()}</span>}
+            {def.module && <span><b style={{ color: 'var(--ink2)' }}>Module</b> — {def.module}</span>}
+            {def.owner && <span><b style={{ color: 'var(--ink2)' }}>Owner</b> — {def.owner}</span>}
+            {value && <span><b style={{ color: 'var(--ink2)' }}>As of</b> — {new Date(value.asOf).toLocaleTimeString()}</span>}
           </div>
           <AlertsMiniSection metricKey={def.metric_key} canManage={canManageAlerts} />
         </div>
@@ -256,7 +256,7 @@ export function HuduBIMetricExplorer() {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <input
           className="input-field"
-          placeholder="Search metricsâ€¦"
+          placeholder="Search metrics…"
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ maxWidth: 260 }}
@@ -305,7 +305,7 @@ export function HuduBIMetricExplorer() {
       )}
 
       <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
-        This catalog is the platform's Metric Registry (migration 411) â€” the same declarative-metric engine HuduBI's Dashboard Builder widgets already run on, plus real Bliss support metrics (SLA compliance, CSAT, first-response time) shared with the Support Center's own dashboard rather than computed twice. <code style={{ fontFamily: 'var(--font)' }}>domain_events</code> and <code style={{ fontFamily: 'var(--font)' }}>metric_definitions</code> are also queryable from the platform Query Builder.
+        This catalog is the platform's Metric Registry (migration 411) — the same declarative-metric engine HuduBI's Dashboard Builder widgets already run on, plus real Bliss support metrics (SLA compliance, CSAT, first-response time) shared with the Support Center's own dashboard rather than computed twice. <code style={{ fontFamily: 'var(--font)' }}>domain_events</code> and <code style={{ fontFamily: 'var(--font)' }}>metric_definitions</code> are also queryable from the platform Query Builder.
       </div>
     </div>
   );

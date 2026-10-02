@@ -59,8 +59,8 @@ export function HuduBIDataQuality() {
         crumbs={['HuduBI', 'Data Quality']}
         titlePlain="Data"
         titleEm="quality"
-        subtitle="Real checks over domain_events and the tables the Metric Registry reads from â€” timestamp ordering, un-deduplicated retries, volume anomalies."
-        actions={<Button variant="default" size="sm" onClick={runNow} disabled={running}>{running ? 'Runningâ€¦' : 'Run checks now'}</Button>}
+        subtitle="Real checks over domain_events and the tables the Metric Registry reads from — timestamp ordering, un-deduplicated retries, volume anomalies."
+        actions={<Button variant="default" size="sm" onClick={runNow} disabled={running}>{running ? 'Running…' : 'Run checks now'}</Button>}
       />
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>

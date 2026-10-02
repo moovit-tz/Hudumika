@@ -6,22 +6,23 @@ export const PageLayout: React.FC = () => {
   return (
     <div className="page-layout">
       {/* Grows to push the footer to the bottom of a short page and never
-          shrinks below its own content on a tall one — see its own CSS
-          comment (index.css) for why this replaced margin-top:auto on the
-          footer itself. */}
+          shrinks below its own content on a tall one */}
       <div className="page-layout-content">
         <Outlet />
       </div>
       <footer className="page-footer">
-        {/* Left Aligned Copyrights */}
+        {/* Left: brand + legal */}
         <div className="page-footer-copyright">
-          Hudumika Workspace · © {year} Moovit Mobility Limited
+          <span className="page-footer-identity"><strong>Hudumika Workspace</strong> &copy; {year} <strong>Moovit Mobility Limited</strong>.</span>{' '}
+          <span className="page-footer-rights">All rights reserved.</span>
         </div>
 
-        {/* Right Aligned Links */}
+        {/* Right: links */}
         <nav className="page-footer-links">
-          <Link to="/terms"           className="page-footer-link">Terms of Service</Link>
-          <Link to="/privacy"         className="page-footer-link">Privacy Policy</Link>
+          <Link to="/terms" className="page-footer-link">Terms</Link>
+          <span className="page-footer-link-sep">·</span>
+          <Link to="/privacy" className="page-footer-link">Privacy</Link>
+          <span className="page-footer-link-sep">·</span>
           <Link to="/support/tickets" className="page-footer-link">Support</Link>
         </nav>
       </footer>

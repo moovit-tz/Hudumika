@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Inventory.css';
@@ -26,6 +27,8 @@ export function InventoryItems() {
   const [items, setItems] = useState<Item[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [q, setQ] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [showFilters, setShowFilters] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -99,6 +102,9 @@ export function InventoryItems() {
     }
   }
 
+  const activeFilterCount = typeFilter !== 'ALL' ? 1 : 0;
+  const displayed = typeFilter === 'ALL' ? items : items.filter(i => i.itemType === typeFilter);
+
   return (
     <div className="inv-page">
       <div className="inv-page-hdr">
@@ -115,8 +121,26 @@ export function InventoryItems() {
         </Button>
       </div>
 
-      <div style={{ marginBottom: 16, maxWidth: 320 }}>
-        <Input type="text" placeholder="Search by name or SKU…" value={q} onChange={e => setQ(e.target.value)} />
+      <div style={{ marginBottom: 12 }}>
+        <SearchToolbar
+          search={q}
+          onSearch={setQ}
+          placeholder="Search by name or SKU…"
+          activeFilterCount={activeFilterCount}
+          onFiltersClick={() => setShowFilters(f => !f)}
+          filtersOpen={showFilters}
+        />
+        {showFilters && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 0 2px' }}>
+            <SingleSelectFilter
+              label="Type"
+              options={ITEM_TYPES.map(t => ({ value: t, label: t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }))}
+              value={typeFilter === 'ALL' ? null : typeFilter}
+              onChange={v => setTypeFilter(v ?? 'ALL')}
+              allLabel="All Types"
+            />
+          </div>
+        )}
       </div>
 
       {showNew && (
@@ -174,15 +198,15 @@ export function InventoryItems() {
 
       <SectionCard padded={false}>
         <div style={{ overflowX: 'auto' }}>
-          {items.length === 0 ? (
-            <div className="inv-empty">No items match.</div>
+          {displayed.length === 0 ? (
+            <div className="inv-empty">No items match{q || typeFilter !== 'ALL' ? ' — try adjusting your search or filters.' : '.'}</div>
           ) : (
             <table className="inv-table">
               <thead>
                 <tr><th>Item</th><th>Type</th><th>Base Unit</th><th>Reorder Point</th><th>Product Link</th><th></th></tr>
               </thead>
               <tbody>
-                {items.map(item => (
+                {displayed.map(item => (
                   <React.Fragment key={item.id}>
                     <tr onClick={() => handleExpand(item)}>
                       <td>

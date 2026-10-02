@@ -12,6 +12,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/s
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { FormPage, FormPageActions } from '../components/FormPage.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 
 const CATEGORIES = ['OFFICE_EQUIPMENT', 'MOTOR_VEHICLE', 'IT_EQUIPMENT', 'FURNITURE', 'MACHINERY', 'OTHER'];
 const CATEGORY_LABEL: Record<string, string> = { OFFICE_EQUIPMENT: 'Office Equipment', MOTOR_VEHICLE: 'Motor Vehicle', IT_EQUIPMENT: 'IT Equipment', FURNITURE: 'Furniture', MACHINERY: 'Machinery', OTHER: 'Other' };
@@ -89,7 +90,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
                 style={inp}
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="e.g. Toyota Hilux â€” KDX 123A or Server Rack Switch"
+                placeholder="e.g. Toyota Hilux — KDX 123A or Server Rack Switch"
                 autoFocus
               />
             </div>
@@ -106,7 +107,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
               <div>
                 <label style={lbl}>Asset GL Account Code</label>
                 <div style={{ ...inp, background: 'var(--bg)', color: 'var(--ink2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>{category === 'MOTOR_VEHICLE' ? '1502 Â· Motor Vehicles' : '1501 Â· Office Equipment & Fixtures'}</span>
+                  <span>{category === 'MOTOR_VEHICLE' ? '1502 · Motor Vehicles' : '1501 · Office Equipment & Fixtures'}</span>
                   <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 4 }}>Auto</span>
                 </div>
               </div>
@@ -216,7 +217,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
                 disabled={saving}
                 onClick={submit}
               >
-                <Icon name="save" size={14} /> {saving ? 'Savingâ€¦' : 'Add Fixed Asset'}
+                <Icon name="save" size={14} /> {saving ? 'Saving…' : 'Add Fixed Asset'}
               </button>
             </div>
           </div>
@@ -228,6 +229,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
 
 export function FixedAssets() {
   const { fmt } = useCurrency();
+  const readOnly = useFinanceReadOnly();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -280,11 +282,18 @@ export function FixedAssets() {
     }
   }
 
-  if (showForm) {
+  useEffect(() => {
+    if (readOnly) {
+      setShowForm(false);
+      setDisposing(null);
+    }
+  }, [readOnly]);
+
+  if (showForm && !readOnly) {
     return <NewAssetForm onSave={handleSave} onClose={() => setShowForm(false)} fmt={fmt} />;
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading fixed assetsâ€¦</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading fixed assets…</div>;
 
   const totalCost = assets.reduce((s, a) => s + Number(a.cost), 0);
   const totalNBV = assets.filter(a => a.status === 'ACTIVE').reduce((s, a) => s + Number(a.net_book_value), 0);
@@ -327,13 +336,15 @@ export function FixedAssets() {
         },
       ]} />
 
-      <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
-        <button type="button"
-          onClick={() => setShowForm(true)}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Asset
-        </button>
-      </div>
+      {!readOnly && (
+        <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
+          <button type="button"
+            onClick={() => setShowForm(true)}
+            style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+            <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Asset
+          </button>
+        </div>
+      )}
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="rtbl-wrap">
@@ -367,8 +378,8 @@ export function FixedAssets() {
                   <td style={{ padding: '9px 12px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                       <button type="button" className="finance-icon-action" title="View schedule" onClick={() => viewSchedule(a)} style={{ color: 'var(--ink3)' }}><Icon name="fileText" size={14} /></button>
-                      {a.status === 'ACTIVE' && <button type="button" className="finance-icon-action" title="Dispose" onClick={() => { setDisposing(a); setDisposalProceeds(0); }} style={{ color: 'var(--gold)' }}><Icon name="logOut" size={14} /></button>}
-                      {a.accumulated_depreciation === 0 && a.status === 'ACTIVE' && <button type="button" className="finance-icon-action" title="Delete" onClick={() => handleDelete(a)} style={{ color: 'var(--red)' }}><Icon name="trash" size={14} /></button>}
+                      {!readOnly && a.status === 'ACTIVE' && <button type="button" className="finance-icon-action" title="Dispose" onClick={() => { setDisposing(a); setDisposalProceeds(0); }} style={{ color: 'var(--gold)' }}><Icon name="logOut" size={14} /></button>}
+                      {!readOnly && a.accumulated_depreciation === 0 && a.status === 'ACTIVE' && <button type="button" className="finance-icon-action" title="Delete" onClick={() => handleDelete(a)} style={{ color: 'var(--red)' }}><Icon name="trash" size={14} /></button>}
                     </div>
                   </td>
                 </tr>
@@ -399,7 +410,7 @@ export function FixedAssets() {
         </SheetContent>
       </Sheet>
 
-      <Dialog open={!!disposing} onOpenChange={o => { if (!o) setDisposing(null); }}>
+      <Dialog open={!readOnly && !!disposing} onOpenChange={o => { if (!o) setDisposing(null); }}>
         <DialogContent className="max-w-95 gap-0">
           {disposing && (
             <>

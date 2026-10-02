@@ -87,8 +87,8 @@ export const CustomerOverview: React.FC = () => {
     <div className="sales-analytics-container">
       {/* ── Page Header ── */}
       <PageHeader
-        crumbs={['CRM', 'Sales Intelligence']}
-        titlePlain="Revenue Intelligence &"
+        crumbs={['CRM', 'Analytics']}
+        titlePlain="Sales"
         titleEm="analytics"
         subtitle="Sales velocity, 5-stage funnel conversion, rep quota leaderboard, and deal slip risk AI advisor."
         actions={

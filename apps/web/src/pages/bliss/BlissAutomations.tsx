@@ -13,13 +13,13 @@ import { useAuth } from '../../hooks/useAuth.js';
 import { MGMT_ROLES } from '../../lib/permissions.js';
 import { showConfirm } from '../../lib/confirm.js';
 
-/** The real automation engine (support_rules â€” 4 real types, actually
+/** The real automation engine (support_rules — 4 real types, actually
  *  executed by support-rules.job.ts and inline in support.routes.ts), shown
  *  through this page's nicer WHEN/IF/THEN visual language instead of
  *  SupportSettings' plain toggle rows. This used to be 3 invented rules
  *  with made-up execution counts (412, 89, 1204) that a "Create"/"Edit"
  *  button did nothing for. The trigger/condition/action strings below are
- *  *derived* from each rule's real type+config â€” there's no free-form
+ *  *derived* from each rule's real type+config — there's no free-form
  *  arbitrary-condition builder on the backend, so creating a rule here
  *  still means picking one of the 4 real types, same as SupportSettings did. */
 type RuleType = 'auto_assign' | 'sla_escalation' | 'status_automation' | 'notification_trigger';
@@ -44,14 +44,14 @@ function describeRule(rule: Rule, agents: Agent[]): { trigger: string; condition
       };
     case 'status_automation':
       return {
-        trigger: `WHEN a ticket has been resolved for ${c.autoCloseAfterDays ?? 'â€”'} day(s)`,
+        trigger: `WHEN a ticket has been resolved for ${c.autoCloseAfterDays ?? '—'} day(s)`,
         condition: 'IF status = RESOLVED',
         action: 'THEN auto-close the ticket',
       };
     case 'notification_trigger':
       return {
         trigger: `WHEN ${String(c.event || 'an event').replace(/_/g, ' ')}`,
-        condition: 'â€”',
+        condition: '—',
         action: `THEN notify ${c.notify === 'assignee' ? "the ticket's assignee" : c.notify === 'manager_role' ? 'all managers' : 'selected users'}`,
       };
   }
@@ -189,7 +189,7 @@ function CreateRuleForm({ agents, onCancel, onSave, saving }: {
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
           <Button variant="outline" size="sm" onClick={onCancel}>Cancel</Button>
-          <Button variant="default" size="sm" disabled={!name.trim() || saving} onClick={handleSave}>{saving ? 'Savingâ€¦' : 'Create rule'}</Button>
+          <Button variant="default" size="sm" disabled={!name.trim() || saving} onClick={handleSave}>{saving ? 'Saving…' : 'Create rule'}</Button>
         </div>
       </div>
     </SectionCard>
@@ -252,8 +252,8 @@ export const BlissAutomations: React.FC = () => {
       <PageHeader
         crumbs={['Bliss', 'Automations']}
         titlePlain="Workflow"
-        titleEm="Automations"
-        subtitle="Real rules â€” auto-assignment, SLA escalation, status automation and notification triggers â€” actually executed by a background job, not a decorative list."
+        titleEm="automations"
+        subtitle="Real rules — auto-assignment, SLA escalation, status automation and notification triggers — actually executed by a background job, not a decorative list."
         actions={canManage ? (
           <Button variant="default" size="sm" onClick={() => setCreating(true)}>
             <Icon name="plus" size={14} /> Create Automation Rule
@@ -314,12 +314,12 @@ export const BlissAutomations: React.FC = () => {
                     <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase', marginBottom: 4 }}>1. WHEN (Trigger)</div>
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{d.trigger}</div>
                   </div>
-                  <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>â†“</div>
+                  <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>↓</div>
                   <div style={{ border: '2px dashed var(--blue)', borderRadius: 'var(--r)', padding: 14, background: 'var(--blue-l)' }}>
                     <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--blue)', textTransform: 'uppercase', marginBottom: 4 }}>2. IF (Condition)</div>
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{d.condition}</div>
                   </div>
-                  <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>â†“</div>
+                  <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>↓</div>
                   <div style={{ border: '2px dashed var(--green)', borderRadius: 'var(--r)', padding: 14, background: 'var(--green-l)' }}>
                     <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--green)', textTransform: 'uppercase', marginBottom: 4 }}>3. THEN (Action)</div>
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{d.action}</div>

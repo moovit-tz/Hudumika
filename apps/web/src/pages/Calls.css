@@ -1,0 +1,349 @@
+/* ═════════════════════════════════════════════════════════════════════════════
+   METRONIC 8 CALL CENTER DASHBOARD (.cc-*)
+   Inspired by KeenThemes Metronic 8 Demo 29 Call Center Dashboard
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+.cc-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 28px;
+  background: var(--bg);
+  min-height: 100%;
+  font-family: var(--font);
+  overflow-y: auto;
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .cc-container {
+    padding: 14px 16px;
+    gap: 14px;
+  }
+}
+
+/* ── Topographic Gradient Metric Cards ── */
+.cc-topo-card {
+  position: relative;
+  border-radius: var(--r, 16px);
+  padding: 22px 24px;
+  color: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 180px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cc-topo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -5px rgba(0, 0, 0, 0.18), 0 10px 12px -5px rgba(0, 0, 0, 0.1);
+}
+
+.cc-topo-red {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 45%, #9f1239 100%);
+}
+
+.cc-topo-purple {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 45%, #3730a3 100%);
+}
+
+.cc-topo-svg-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.22;
+  pointer-events: none;
+  object-fit: cover;
+}
+
+.cc-topo-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.cc-topo-val-main {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-family: var(--font);
+}
+
+.cc-topo-label-main {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 4px;
+}
+
+.cc-topo-val-sub {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-family: var(--font);
+}
+
+.cc-topo-label-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 2px;
+}
+
+/* ── Standard Metronic Surface Card ── */
+.cc-card {
+  background: var(--card-bg, var(--white));
+  border: 1px solid var(--border);
+  border-radius: var(--r, 16px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cc-card:hover {
+  border-color: hsl(var(--primary) / 0.3);
+}
+
+.cc-card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cc-card-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.cc-card-subtitle {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+.cc-card-body {
+  padding: 20px;
+  flex: 1;
+}
+
+/* ── Banner Card (Upgrade / Telephony CTA) ── */
+.cc-banner-card {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 45%, #c2410c 100%);
+  border-radius: var(--r, 16px);
+  padding: 24px 28px;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(234, 88, 12, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 180px;
+}
+
+.cc-banner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.cc-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #ea580c;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cc-banner-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  background: #fffbf7;
+}
+
+/* ── Timeframe Pills ── */
+.cc-timeframe-group {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  gap: 2px;
+}
+
+.cc-timeframe-btn {
+  padding: 4px 10px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cc-timeframe-btn:hover {
+  color: var(--ink);
+}
+
+.cc-timeframe-btn[data-active="true"] {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ── Activity Item List Row ── */
+.cc-activity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: var(--r-sm, 10px);
+  background: var(--card-sunken);
+  border: 1px solid var(--border);
+  transition: background-color 0.15s ease;
+}
+
+.cc-activity-row:hover {
+  background: var(--bg);
+}
+
+/* ── Metronic Table Styling ── */
+.cc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.cc-table th {
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-sunken);
+  text-align: left;
+}
+
+.cc-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+.cc-table tr:hover td {
+  background: var(--bg);
+}
+
+.cc-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Radar Diagram Styling ── */
+.cc-radar-center-tag {
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* ── Geography Map Markers ── */
+.cc-map-pin {
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    r: 4;
+    opacity: 1;
+  }
+  80%, 100% {
+    r: 12;
+    opacity: 0;
+  }
+}
+
+/* ── Responsive Grids ── */
+.cc-grid-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 16px;
+}
+
+.cc-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.cc-grid-3-2 {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 16px;
+}
+
+@media (max-width: 1180px) {
+  .cc-grid-top {
+    grid-template-columns: 1fr 1fr;
+  }
+  .cc-grid-top > :last-child {
+    grid-column: span 2;
+  }
+  .cc-grid-3-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .cc-grid-top {
+    grid-template-columns: 1fr;
+  }
+  .cc-grid-top > :last-child {
+    grid-column: span 1;
+  }
+  .cc-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}

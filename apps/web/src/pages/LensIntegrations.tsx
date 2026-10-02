@@ -73,7 +73,7 @@ export function LensIntegrations() {
     } finally { setBusy(null); }
   }
 
-  /** The check that matters â€” auth, then does the target exist, then may we write. */
+  /** The check that matters — auth, then does the target exist, then may we write. */
   async function runPreflight(p: Integration) {
     setBusy(p.provider);
     try {
@@ -100,7 +100,7 @@ export function LensIntegrations() {
         crumbs={['Lens', 'Integrations']}
         titlePlain="Connected"
         titleEm="tools"
-        subtitle="Where the work actually happens â€” GitHub, Slack, Jira, Linear, CircleCI."
+        subtitle="Where the work actually happens — GitHub, Slack, Jira, Linear, CircleCI."
         actions={<a href="/lens" className="btn btn-secondary btn-sm">Back to board</a>}
       />
 
@@ -155,7 +155,7 @@ export function LensIntegrations() {
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
                     {p.has_credential ? 'Credential stored' : 'Not configured'}
-                    {p.last_sync_at && ` Â· Synced ${new Date(p.last_sync_at).toLocaleDateString()}`}
+                    {p.last_sync_at && ` · Synced ${new Date(p.last_sync_at).toLocaleDateString()}`}
                   </div>
                 </div>
                 <div style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', color: 'var(--ink3)' }}>
@@ -200,7 +200,7 @@ export function LensIntegrations() {
                     <div style={{ flex: '1 1 200px' }}>
                       <label style={label}>{p.credentialLabel}</label>
                       <input style={input} type="password" autoComplete="off"
-                        placeholder={p.has_credential ? 'Stored â€” leave blank to keep it' : 'Paste the token'}
+                        placeholder={p.has_credential ? 'Stored — leave blank to keep it' : 'Paste the token'}
                         value={draft[p.provider]?.credential ?? ''}
                         onFocus={e => e.target.style.borderColor = 'var(--teal)'}
                         onBlur={e => e.target.style.borderColor = 'var(--border)'}
@@ -212,7 +212,7 @@ export function LensIntegrations() {
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                       <button type="button" className="btn btn-primary" style={{ height: 'var(--ctl-h-sm)' }}
                         disabled={busy === p.provider} onClick={() => save(p)}>
-                        {busy === p.provider ? 'Testingâ€¦' : 'Save & Test'}
+                        {busy === p.provider ? 'Testing…' : 'Save & Test'}
                       </button>
                       <button type="button" className="btn btn-secondary" style={{ height: 'var(--ctl-h-sm)' }}
                         disabled={busy === p.provider || !p.has_credential} onClick={() => test(p)}>
@@ -274,7 +274,7 @@ export function LensIntegrations() {
                             padding: '10px 12px', borderTop: '1px solid var(--border)',
                             background: 'var(--green-l)', fontSize: 12, color: 'var(--green)', fontWeight: 600,
                           }}>
-                            Ready â€” this connection can do what Lens will ask of it.
+                            Ready — this connection can do what Lens will ask of it.
                           </div>
                         )}
                       </div>
@@ -294,7 +294,7 @@ export function LensIntegrations() {
                       <div style={{ fontSize: 10, textTransform: 'uppercase', color: r?.ok ? 'var(--green)' : '#888', marginBottom: 6, fontWeight: 700, letterSpacing: '0.05em' }}>
                         {r?.ok ? 'Response / OK' : 'Response / Error'}
                       </div>
-                      {r ? `${r.status || 'no response'} â€” ${r.detail}` : p.last_error}
+                      {r ? `${r.status || 'no response'} — ${r.detail}` : p.last_error}
                     </div>
                   )}
                 </div>

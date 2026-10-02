@@ -27,6 +27,7 @@ export interface FinanceCapabilityDefinition {
   edition: FinanceEdition;
   configurable: boolean;
   dependencies: FinanceCapabilityKey[];
+  status: 'available' | 'planned';
 }
 
 export interface FinanceCapabilityAccess extends FinanceCapabilityDefinition {
@@ -36,24 +37,25 @@ export interface FinanceCapabilityAccess extends FinanceCapabilityDefinition {
 }
 
 export const FINANCE_CAPABILITIES: readonly FinanceCapabilityDefinition[] = [
-  { key: 'finance.core', name: 'Core finance', description: 'Customers, suppliers, invoices, receipts, expenses, payments and essential reports.', category: 'core', edition: 'basic', configurable: false, dependencies: [] },
-  { key: 'finance.accounting.advanced', name: 'Advanced accounting', description: 'Manual journals, accounting periods, reconciliation and the advanced ledger workspace.', category: 'accounting', edition: 'advanced', configurable: true, dependencies: ['finance.core'] },
-  { key: 'finance.budgets', name: 'Budgets', description: 'Plan and compare account-level budgets against actual performance.', category: 'accounting', edition: 'advanced', configurable: true, dependencies: ['finance.accounting.advanced'] },
-  { key: 'finance.fixed_assets', name: 'Fixed assets', description: 'Asset registers, depreciation and disposals.', category: 'accounting', edition: 'advanced', configurable: true, dependencies: ['finance.accounting.advanced'] },
-  { key: 'finance.multi_currency', name: 'Multi-currency', description: 'Foreign-currency transactions, rates and reporting.', category: 'accounting', edition: 'advanced', configurable: true, dependencies: ['finance.accounting.advanced'] },
-  { key: 'finance.inventory', name: 'Inventory', description: 'Stock-aware products, movements, valuation and availability.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'] },
-  { key: 'finance.procurement', name: 'Procurement', description: 'Purchase requisitions, orders and supplier fulfilment.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'] },
-  { key: 'finance.pos', name: 'Point of sale', description: 'Counter sales, shifts and payment capture using the shared catalogue.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.inventory'] },
-  { key: 'finance.warehouse', name: 'Warehouse operations', description: 'Multi-warehouse allocation, picking and fulfilment.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.inventory'] },
-  { key: 'finance.manufacturing', name: 'Manufacturing', description: 'Bills of materials, production orders, WIP and material planning.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.inventory', 'finance.accounting.advanced'] },
-  { key: 'finance.professional_services', name: 'Professional services', description: 'Service delivery, time and project profitability.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'] },
-  { key: 'finance.project_accounting', name: 'Project accounting', description: 'Project costs, revenue, budgets and profitability.', category: 'reporting', edition: 'advanced', configurable: true, dependencies: ['finance.accounting.advanced'] },
-  { key: 'finance.consolidation', name: 'Consolidation', description: 'Multi-entity consolidation and segment reporting.', category: 'reporting', edition: 'advanced', configurable: true, dependencies: ['finance.accounting.advanced'] },
+  { key: 'finance.core', name: 'Core finance', description: 'Customers, suppliers, invoices, receipts, expenses, payments and essential reports.', category: 'core', edition: 'basic', configurable: false, dependencies: [], status: 'available' },
+  { key: 'finance.accounting.advanced', name: 'Advanced accounting', description: 'Manual journals, accounting periods, reconciliation and the advanced ledger workspace.', category: 'accounting', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
+  { key: 'finance.budgets', name: 'Budgets', description: 'Plan and compare account-level budgets against actual performance.', category: 'accounting', edition: 'advanced', configurable: true, dependencies: ['finance.accounting.advanced'], status: 'available' },
+  { key: 'finance.fixed_assets', name: 'Fixed assets', description: 'Asset registers, depreciation and disposals.', category: 'accounting', edition: 'advanced', configurable: true, dependencies: ['finance.accounting.advanced'], status: 'available' },
+  { key: 'finance.multi_currency', name: 'Multi-currency', description: 'Foreign-currency transactions, rates and reporting.', category: 'accounting', edition: 'advanced', configurable: true, dependencies: ['finance.accounting.advanced'], status: 'available' },
+  { key: 'finance.inventory', name: 'Inventory', description: 'Stock-aware products, movements, valuation and availability.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
+  { key: 'finance.procurement', name: 'Procurement', description: 'Purchase requisitions, orders and supplier fulfilment.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
+  { key: 'finance.pos', name: 'Point of sale', description: 'Counter sales, shifts and payment capture using the shared catalogue.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.inventory'], status: 'available' },
+  { key: 'finance.warehouse', name: 'Warehouse operations', description: 'Multi-warehouse allocation, picking and fulfilment.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.inventory'], status: 'planned' },
+  { key: 'finance.manufacturing', name: 'Manufacturing', description: 'Bills of materials, production orders, WIP and material planning.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.inventory', 'finance.accounting.advanced'], status: 'planned' },
+  { key: 'finance.professional_services', name: 'Professional services', description: 'Service delivery, time and project profitability.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'planned' },
+  { key: 'finance.project_accounting', name: 'Project accounting', description: 'Project costs, revenue, budgets and profitability.', category: 'reporting', edition: 'advanced', configurable: true, dependencies: ['finance.accounting.advanced'], status: 'planned' },
+  { key: 'finance.consolidation', name: 'Consolidation', description: 'Multi-entity consolidation and segment reporting.', category: 'reporting', edition: 'advanced', configurable: true, dependencies: ['finance.accounting.advanced'], status: 'available' },
 ] as const;
 
 export interface FinanceCapabilitySummary {
   edition: FinanceEdition;
   capabilities: FinanceCapabilityAccess[];
+  usage: { used: number; limit: number | null; period: string };
 }
 
 export const FINANCE_INDUSTRY_KEYS = [

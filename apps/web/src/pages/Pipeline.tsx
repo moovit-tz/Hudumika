@@ -239,12 +239,12 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Activity</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <ComposeEmailButton subjectType="deal" subjectId={deal.id} onSent={() => setActivityRefresh(n => n + 1)}>
-                    <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '4px 10px', height: 26, fontSize: 11.5 }}>
+                    <button type="button" className="btn btn-secondary btn-xs">
                       <Icon name="mail" size={11} /> Email
                     </button>
                   </ComposeEmailButton>
                   <StartCallButton subjectType="deal" subjectId={deal.id} onLogged={() => setActivityRefresh(n => n + 1)}>
-                    <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '4px 10px', height: 26, fontSize: 11.5 }}>
+                    <button type="button" className="btn btn-secondary btn-xs">
                       <Icon name="phone" size={11} /> Call
                     </button>
                   </StartCallButton>

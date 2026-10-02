@@ -1,4 +1,4 @@
-﻿/* â”€â”€â”€ Onsite Infrastructure Control Plane Styling (Hostinger / hPanel UI) â”€â”€â”€ */
+﻿/* ─── Onsite Infrastructure Control Plane Styling (Hostinger / hPanel UI) ─── */
 
 .onsite-page {
   display: flex;
@@ -757,7 +757,7 @@
   margin: 0 0 0.75rem;
 }
 
-/* â”€â”€â”€ Domain Portfolio & Management Redesign â”€â”€â”€ */
+/* ─── Domain Portfolio & Management Redesign ─── */
 .onsite-domains-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1285,7 +1285,7 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-/* â”€â”€â”€ Website Control Plane Mobile Responsiveness â”€â”€â”€ */
+/* ─── Website Control Plane Mobile Responsiveness ─── */
 .onsite-plan-header-actions {
   display: flex;
   align-items: center;
@@ -1359,7 +1359,7 @@
   }
 }
 
-/* â”€â”€â”€ Email Hosting & Mailboxes Redesign â”€â”€â”€ */
+/* ─── Email Hosting & Mailboxes Redesign ─── */
 .onsite-email-banner {
   background: #f5f3ff;
   border: 1px solid #e9d5ff;

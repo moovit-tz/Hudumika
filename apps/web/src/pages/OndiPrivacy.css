@@ -1,9 +1,9 @@
-﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   OndiPrivacy.css â€” Ondi Personal Â· Privacy Hub
+﻿/* ══════════════════════════════════════════════════════════
+   OndiPrivacy.css — Ondi Personal · Privacy Hub
    Data transparency, export package, erasure rights,
    and compliance telemetry. Mobile-first, 2x2 compact KPIs,
    zero AI gradients, 0% transparency.
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ══════════════════════════════════════════════════════════ */
 
 .op-page {
   display: flex;
@@ -12,7 +12,7 @@
   width: 100%;
 }
 
-/* â”€â”€ Top Posture KPI Grid â”€â”€ */
+/* ── Top Posture KPI Grid ── */
 .op-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -120,7 +120,7 @@
   gap: 5px;
 }
 
-/* â”€â”€ Main Layout: Content Grid (2 Columns Desktop) â”€â”€ */
+/* ── Main Layout: Content Grid (2 Columns Desktop) ── */
 .op-layout-grid {
   display: grid;
   grid-template-columns: 1fr 320px;
@@ -142,7 +142,7 @@
   gap: 20px;
 }
 
-/* â”€â”€ Enterprise Card System (0% Transparency) â”€â”€ */
+/* ── Enterprise Card System (0% Transparency) ── */
 .op-card {
   background: var(--white, #ffffff);
   border: 1px solid var(--border);
@@ -192,7 +192,7 @@
   gap: 16px;
 }
 
-/* â”€â”€ Category Breakdown Chips â”€â”€ */
+/* ── Category Breakdown Chips ── */
 .op-categories-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -234,7 +234,7 @@
   color: var(--ink3);
 }
 
-/* â”€â”€ Status Banners â”€â”€ */
+/* ── Status Banners ── */
 .op-pending-box {
   display: flex;
   align-items: flex-start;
@@ -272,7 +272,7 @@
   border-bottom: none;
 }
 
-/* â”€â”€ Mobile Viewports (<640px) â”€â”€ */
+/* ── Mobile Viewports (<640px) ── */
 @media (max-width: 640px) {
   .op-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -311,7 +311,7 @@
   }
 }
 
-/* â”€â”€ Tablet/Mobile Collapse (<1024px) â”€â”€ */
+/* ── Tablet/Mobile Collapse (<1024px) ── */
 @media (max-width: 1024px) {
   .op-layout-grid {
     grid-template-columns: 1fr;

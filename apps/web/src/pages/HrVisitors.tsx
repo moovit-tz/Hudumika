@@ -1,12 +1,12 @@
-﻿// â”€â”€â”€ HrVisitors.tsx â€” NexusHR Â· Front desk â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Front-desk sign-in â€” real check-in/check-out, a real (if simple) badge
+﻿// ─── HrVisitors.tsx — NexusHR · Front desk ─────────────────────────
+// Front-desk sign-in — real check-in/check-out, a real (if simple) badge
 // code, no invented QR/kiosk hardware integration.
 //
-// Moved here from Ondi (was OneIdVisitors.tsx at /ondi/visitors) â€” a
+// Moved here from Ondi (was OneIdVisitors.tsx at /ondi/visitors) — a
 // physical front-desk log isn't an authentication moment, so it never fit
 // Ondi's own "appears at the moment of authentication, almost nowhere else"
 // rule; this belongs with NexusHR's other people/records surfaces instead.
-// Backend endpoint kept as-is (/v1/ondi/org/visitors) â€” only the page/nav
+// Backend endpoint kept as-is (/v1/ondi/org/visitors) — only the page/nav
 // moved, not the API.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
@@ -45,7 +45,7 @@ export const HrVisitors: React.FC = () => {
   }, []);
   useEffect(() => { reload(); }, [reload]);
 
-  // EntityPicker takes a search callback, not a built-in entity registry â€”
+  // EntityPicker takes a search callback, not a built-in entity registry —
   // the staff list is small enough on this platform's typical tenant size
   // to fetch once and filter client-side, same pattern used elsewhere
   // rather than standing up a new /search endpoint.
@@ -119,7 +119,7 @@ export const HrVisitors: React.FC = () => {
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <Button type="button" disabled={saving} onClick={checkIn}>
-                {saving ? 'Checking inâ€¦' : 'Check in'}
+                {saving ? 'Checking in…' : 'Check in'}
               </Button>
               <Button type="button" variant="outline" onClick={() => { setShowNew(false); resetForm(); }}>
                 Cancel
@@ -139,9 +139,9 @@ export const HrVisitors: React.FC = () => {
                 <Icon name="user" size={16} color="var(--green)" />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{v.name}{v.company ? ` Â· ${v.company}` : ''}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{v.name}{v.company ? ` · ${v.company}` : ''}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
-                  {v.purpose ? `${v.purpose} â€” ` : ''}{v.host_name ? `visiting ${v.host_name} â€” ` : ''}since {fmtTime(v.checked_in_at)}
+                  {v.purpose ? `${v.purpose} — ` : ''}{v.host_name ? `visiting ${v.host_name} — ` : ''}since {fmtTime(v.checked_in_at)}
                 </div>
               </div>
               <span style={{ fontSize: 11, fontFamily: 'var(--font)', color: 'var(--ink3)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '3px 8px' }}>{v.badge_code}</span>
@@ -158,11 +158,11 @@ export const HrVisitors: React.FC = () => {
           {past.slice(0, 30).map((v, i, arr) => (
             <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 20px', borderBottom: i < Math.min(arr.length, 30) - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, color: 'var(--ink)' }}><strong style={{ fontWeight: 600 }}>{v.name}</strong>{v.company ? ` Â· ${v.company}` : ''}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink)' }}><strong style={{ fontWeight: 600 }}>{v.name}</strong>{v.company ? ` · ${v.company}` : ''}</div>
               </div>
               <Badge variant="gray">Checked out</Badge>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)', minWidth: 200, textAlign: 'right' }}>
-                {fmtTime(v.checked_in_at)} â€“ {fmtTime(v.checked_out_at!)}
+                {fmtTime(v.checked_in_at)} – {fmtTime(v.checked_out_at!)}
               </div>
             </div>
           ))}

@@ -76,8 +76,8 @@ export function PettiActivity() {
     <div className="petti-container">
       <PageHeader
         crumbs={['Petti', 'Activity']}
-        titlePlain="Audit & Activity"
-        titleEm="logs"
+        titlePlain="Activity"
+        titleEm="log"
         subtitle="Chronological audit timeline of every deposit, approval, rejection, and disbursement across all wallets."
       />
 
@@ -143,14 +143,14 @@ export function PettiActivity() {
                 <tbody>
                   {rows.map(r => (
                     <tr key={r.id}>
-                      <td style={{ fontSize: 12, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink2)' }}>{r.ref || 'â€”'}</td>
+                      <td style={{ fontSize: 12, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink2)' }}>{r.ref || '—'}</td>
                       <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmtDateTime(r.at)}</td>
                       <td><Badge variant={ACTION_VARIANT[r.action] || 'gray'}>{ACTION_LABEL[r.action] || r.action}</Badge></td>
-                      <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{walletsById[r.walletId]?.name || 'â€”'}</td>
+                      <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{walletsById[r.walletId]?.name || '—'}</td>
                       <td style={{ fontFamily: 'var(--font)', fontWeight: 800, color: 'var(--navy)' }}>
                         {r.amount.toLocaleString()} {walletsById[r.walletId]?.currency || ''}
                       </td>
-                      <td style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{r.actorId ? (staffById[r.actorId] || 'â€”') : 'System Engine'}</td>
+                      <td style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{r.actorId ? (staffById[r.actorId] || '—') : 'System Engine'}</td>
                     </tr>
                   ))}
                 </tbody>

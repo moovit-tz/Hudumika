@@ -10,6 +10,7 @@ import { Button } from '../components/ui/button.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 
 interface Statement {
   id: string;
@@ -38,6 +39,7 @@ interface Candidate {
 
 export function BankReconciliation() {
   const { fmt } = useCurrency();
+  const readOnly = useFinanceReadOnly();
   const [statements, setStatements] = useState<Statement[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -60,6 +62,13 @@ export function BankReconciliation() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (readOnly) {
+      setShowImport(false);
+      setPendingLine(null);
+    }
+  }, [readOnly]);
 
   const loadDetail = (id: string) =>
     apiFetch(`/v1/bank-reconciliation/statements/${id}`)
@@ -162,7 +171,7 @@ export function BankReconciliation() {
       !(await showConfirm(
         `Delete this statement (${s.bank_name || 'Bank'}, ${new Date(
           s.statement_date_from
-        ).toLocaleDateString()}â€“${new Date(s.statement_date_to).toLocaleDateString()})? Matches are lost, not the underlying ledger entries.`,
+        ).toLocaleDateString()}–${new Date(s.statement_date_to).toLocaleDateString()})? Matches are lost, not the underlying ledger entries.`,
         { variant: 'danger', confirmLabel: 'Delete' }
       ))
     )
@@ -191,7 +200,7 @@ export function BankReconciliation() {
   const availableCandidates = detail ? detail.candidates.filter(c => !usedCandidateIds.has(c.id)) : [];
 
   if (loading)
-    return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading bank reconciliationâ€¦</div>;
+    return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading bank reconciliation…</div>;
 
   const brStats = (() => {
     const reconciledCount = statements.filter(s => s.matched === s.total && s.total > 0).length;
@@ -213,23 +222,25 @@ export function BankReconciliation() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20, fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['Finance', 'Bank Workspace']}
-        titlePlain="Bank Workspace &"
-        titleEm="match center"
+        crumbs={['Finance', 'Reconciliation']}
+        titlePlain="Bank"
+        titleEm="reconciliation"
         subtitle="Statement feeds reconciliation, AI-assisted journal entry pairing, and audit match verification."
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             <Button variant="outline" size="sm" onClick={() => showAlert('Generating reconciliation certificate...', { variant: 'success' })}>
               <Icon name="fileText" size={14} /> Audit Certificate
             </Button>
-            <Button variant="default" size="sm" onClick={() => setShowImport(true)}>
-              <Icon name="upload" size={14} /> Import Statement
-            </Button>
+            {!readOnly && (
+              <Button variant="default" size="sm" onClick={() => setShowImport(true)}>
+                <Icon name="upload" size={14} /> Import Statement
+              </Button>
+            )}
           </div>
         }
       />
 
-      {/* â”€â”€ Match Center Hero Banner â”€â”€ */}
+      {/* ── Match Center Hero Banner ── */}
       <div
         style={{
           background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, color-mix(in srgb, var(--teal) 35%, var(--navy2)) 100%)',
@@ -287,7 +298,7 @@ export function BankReconciliation() {
         </div>
       </div>
 
-      {/* â”€â”€ Main 2-Column Match Workspace â”€â”€ */}
+      {/* ── Main 2-Column Match Workspace ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20 }}>
         {/* Left: Statement Feed Selector */}
         <SectionCard
@@ -328,7 +339,7 @@ export function BankReconciliation() {
                   </Badge>
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>
-                  {new Date(s.statement_date_from).toLocaleDateString('en-GB')} â€“{' '}
+                  {new Date(s.statement_date_from).toLocaleDateString('en-GB')} –{' '}
                   {new Date(s.statement_date_to).toLocaleDateString('en-GB')}
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)', marginTop: 6 }}>
@@ -367,14 +378,14 @@ export function BankReconciliation() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 8 }}>
+                {!readOnly && <div style={{ display: 'flex', gap: 8 }}>
                   <Button variant="default" size="sm" onClick={handleAutoMatch}>
                     <Icon name="zap" size={14} /> Auto-Match Exact
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => handleDelete(selected)}>
                     <Icon name="trash" size={14} /> Delete Feed
                   </Button>
-                </div>
+                </div>}
               </div>
 
               {/* Match Table */}
@@ -396,7 +407,7 @@ export function BankReconciliation() {
                           {new Date(l.txn_date).toLocaleDateString('en-GB')}
                         </td>
                         <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--navy)' }}>
-                          {l.description || 'â€”'}
+                          {l.description || '—'}
                         </td>
                         <td
                           style={{
@@ -411,7 +422,7 @@ export function BankReconciliation() {
                           {fmt(l.amount)}
                         </td>
                         <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                          {l.matched_journal_line_id ? (
+                          {readOnly ? '—' : l.matched_journal_line_id ? (
                             <Badge variant="success">MATCHED</Badge>
                           ) : (
                             <Badge variant="warning">UNMATCHED</Badge>
@@ -424,7 +435,7 @@ export function BankReconciliation() {
                             </Button>
                           ) : (
                             <Button variant="default" size="xs" onClick={() => setPendingLine(l)}>
-                              <Icon name="link" size={12} /> Matchâ€¦
+                              <Icon name="link" size={12} /> Match…
                             </Button>
                           )}
                         </td>
@@ -439,7 +450,7 @@ export function BankReconciliation() {
       </div>
 
       {/* Import Modal */}
-      <Dialog open={showImport} onOpenChange={o => { if (!o) setShowImport(false); }}>
+      <Dialog open={!readOnly && showImport} onOpenChange={o => { if (!o) setShowImport(false); }}>
         <DialogContent className="max-w-110 gap-0" style={{ padding: 24 }}>
           <DialogTitle style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: 'var(--navy)' }}>Import Bank Statement</DialogTitle>
           <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>
@@ -469,7 +480,7 @@ export function BankReconciliation() {
             accept=".csv"
             multiple={false}
             onUpload={handleUpload}
-            uploadingFiles={importing ? [{ id: '1', name: 'Uploading statementâ€¦', size: 0, progress: 60, status: 'uploading' }] : []}
+            uploadingFiles={importing ? [{ id: '1', name: 'Uploading statement…', size: 0, progress: 60, status: 'uploading' }] : []}
             onRemoveFile={() => {}}
           />
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
@@ -481,7 +492,7 @@ export function BankReconciliation() {
       </Dialog>
 
       {/* Match Picker Dialog */}
-      <Dialog open={!!pendingLine} onOpenChange={o => { if (!o) setPendingLine(null); }}>
+      <Dialog open={!readOnly && !!pendingLine} onOpenChange={o => { if (!o) setPendingLine(null); }}>
         <DialogContent className="max-w-120 gap-0" style={{ padding: 24, maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
           {pendingLine && (
             <>
@@ -489,7 +500,7 @@ export function BankReconciliation() {
                 Match Statement Entry: "{pendingLine.description}"
               </DialogTitle>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 14 }}>
-                {new Date(pendingLine.txn_date).toLocaleDateString('en-GB')} Â· {fmt(pendingLine.amount)}
+                {new Date(pendingLine.txn_date).toLocaleDateString('en-GB')} · {fmt(pendingLine.amount)}
               </div>
               <div style={{ overflowY: 'auto', flex: 1 }}>
                 {availableCandidates.length === 0 ? (
@@ -525,7 +536,7 @@ export function BankReconciliation() {
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{c.description}</div>
                             <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                              Entry #{c.entryNumber} Â· {new Date(c.date).toLocaleDateString('en-GB')}
+                              Entry #{c.entryNumber} · {new Date(c.date).toLocaleDateString('en-GB')}
                               {isExact && <Badge variant="success" className="ml-2">Exact Match</Badge>}
                             </div>
                           </div>

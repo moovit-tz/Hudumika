@@ -47,7 +47,7 @@ export const AIInsights: React.FC = () => {
       </div>
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Generating digestâ€¦</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Generating digest…</div>
       ) : error ? (
         <Banner variant="error">{error}</Banner>
       ) : data ? (

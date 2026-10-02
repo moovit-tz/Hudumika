@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch, BASE_URL } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -11,9 +11,36 @@ import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
-import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { showAlert } from '../lib/alert.js';
+import {
+  Phone,
+  PhoneCall,
+  PhoneIncoming,
+  PhoneOutgoing,
+  Video,
+  Users,
+  Calendar,
+  Download,
+  FileText,
+  SlidersHorizontal,
+  TrendingUp,
+  TrendingDown,
+  ArrowUpRight,
+  ArrowDownRight,
+  MoreHorizontal,
+  Sparkles,
+  Shield,
+  Layers,
+  Activity,
+  Globe,
+  Radio,
+  X,
+  Check,
+  Zap,
+} from 'lucide-react';
+import './Calls.css';
 
 interface Staff {
   id: string;
@@ -21,6 +48,12 @@ interface Staff {
   role: string;
   email?: string;
   department?: string;
+  country?: string;
+  callsCount?: number;
+  crpRank?: string;
+  spending?: string;
+  trendPct?: number;
+  trendDir?: 'up' | 'down';
 }
 
 interface CallRow {
@@ -40,11 +73,138 @@ type CallState = 'idle' | 'calling' | 'incoming' | 'in-call';
 const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return 'â€”';
+  if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' Â· ' +
-    d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  return (
+    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
+    ' · ' +
+    d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+  );
 }
+
+// Topographic Contour Lines SVG
+function TopographicContourBg() {
+  return (
+    <svg
+      viewBox="0 0 500 240"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="none"
+      className="cc-topo-svg-bg"
+    >
+      <path
+        d="M-50 180 C 60 140, 140 220, 260 170 C 370 120, 440 190, 550 150"
+        stroke="white"
+        strokeWidth="1.2"
+        strokeDasharray="4 3"
+        opacity="0.5"
+      />
+      <path
+        d="M-50 140 C 70 90, 160 170, 270 120 C 380 70, 450 150, 550 100"
+        stroke="white"
+        strokeWidth="1.2"
+        opacity="0.6"
+      />
+      <path
+        d="M-50 100 C 80 50, 170 130, 290 80 C 390 30, 460 110, 550 60"
+        stroke="white"
+        strokeWidth="1.2"
+        strokeDasharray="6 4"
+        opacity="0.4"
+      />
+      <path
+        d="M-50 60 C 90 10, 180 90, 300 40 C 400 -10, 470 70, 550 20"
+        stroke="white"
+        strokeWidth="1.2"
+        opacity="0.5"
+      />
+      <path
+        d="M-50 20 C 100 -30, 190 50, 310 0 C 410 -50, 480 30, 550 -20"
+        stroke="white"
+        strokeWidth="1.2"
+        opacity="0.3"
+      />
+      <path
+        d="M-50 220 C 50 180, 130 250, 250 200 C 360 150, 430 230, 550 190"
+        stroke="white"
+        strokeWidth="1.2"
+        opacity="0.7"
+      />
+    </svg>
+  );
+}
+
+// Mini Sparkline Component
+function SparklineWave({ color = '#3b82f6', isUp = true }: { color?: string; isUp?: boolean }) {
+  const points = isUp
+    ? '0,18 20,22 40,14 60,18 80,10 100,16 120,6 140,12 160,4'
+    : '0,6 20,10 40,4 60,14 80,10 100,18 120,12 140,22 160,18';
+
+  return (
+    <svg width="90" height="26" viewBox="0 0 160 26" fill="none" style={{ overflow: 'visible' }}>
+      <path
+        d={`M ${points}`}
+        fill="none"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// Metronic Mock Agents with rich performance stats
+const MOCK_AGENTS: Staff[] = [
+  {
+    id: 'agent-1',
+    name: 'Jane Cooper',
+    role: 'Senior Support Agent',
+    department: 'Customer Care',
+    country: 'Monaco',
+    callsCount: 725,
+    spending: '$63.83%',
+    crpRank: '$63.83%',
+    trendPct: 0.4,
+    trendDir: 'down',
+  },
+  {
+    id: 'agent-2',
+    name: 'Jacob Jones',
+    role: 'Technical Specialist',
+    department: 'Tier 2 Support',
+    country: 'Poland',
+    callsCount: 173,
+    spending: '$92.56%',
+    crpRank: '$92.56%',
+    trendPct: 9.2,
+    trendDir: 'up',
+  },
+  {
+    id: 'agent-3',
+    name: 'Esther Howard',
+    role: 'Billing Advisor',
+    department: 'Finance & Billing',
+    country: 'Kiribati',
+    callsCount: 642,
+    spending: '$64.02%',
+    crpRank: '$64.02%',
+    trendPct: 9.2,
+    trendDir: 'up',
+  },
+  {
+    id: 'agent-4',
+    name: 'Ralph Edwards',
+    role: 'Inbound Sales Lead',
+    department: 'Sales Ops',
+    country: 'Iceland',
+    callsCount: 329,
+    spending: '$89.31%',
+    crpRank: '$89.31%',
+    trendPct: 0.4,
+    trendDir: 'down',
+  },
+];
 
 export function Calls() {
   const { user } = useAuth();
@@ -65,17 +225,21 @@ export function Calls() {
   const [error, setError] = useState<string | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
 
-  // â”€â”€ Tabs State â”€â”€
-  const [tab, setTab] = useState<'directory' | 'history' | 'dialpad'>('directory');
+  // ── Tabs State ──
+  const [activeTab, setActiveTab] = useState<'overview' | 'directory' | 'history' | 'dialpad'>('overview');
 
-  // â”€â”€ Filter & Pagination States - Directory â”€â”€
+  // ── Timeframe & Filter States ──
+  const [timeframe, setTimeframe] = useState<'1d' | '5d' | '1m' | '6m' | '1y'>('1d');
+  const [performanceHoverIndex, setPerformanceHoverIndex] = useState<number | null>(null);
+
+  // ── Filter & Pagination States - Directory ──
   const [searchStaff, setSearchStaff] = useState('');
   const [presenceFilter, setPresenceFilter] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
   const [dirPage, setDirPage] = useState(1);
   const DIR_PAGE_SIZE = 8;
 
-  // â”€â”€ Filter & Pagination States - History Log â”€â”€
+  // ── Filter & Pagination States - History Log ──
   const [searchHistory, setSearchHistory] = useState('');
   const [directionFilter, setDirectionFilter] = useState<string | null>(null);
   const [historyKindFilter, setHistoryKindFilter] = useState<string | null>(null);
@@ -83,7 +247,7 @@ export function Calls() {
   const [historyPage, setHistoryPage] = useState(1);
   const HISTORY_PAGE_SIZE = 10;
 
-  // â”€â”€ Dialpad State â”€â”€
+  // ── Dialpad State ──
   const [dialpadNumber, setDialpadNumber] = useState('');
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -99,63 +263,117 @@ export function Calls() {
   const load = useCallback(async () => {
     try {
       const s = await apiFetch('/v1/hr/staff');
-      if (Array.isArray(s)) setStaff(s.filter((x: any) => x.id !== user?.id));
-    } catch { /* */ }
+      if (Array.isArray(s)) {
+        const filtered = s.filter((x: any) => x.id !== user?.id);
+        setStaff(
+          filtered.map((item: any, idx: number) => ({
+            ...item,
+            callsCount: 150 + (idx * 95) % 600,
+            spending: `${(60 + (idx * 7.5) % 35).toFixed(2)}%`,
+            crpRank: `${(60 + (idx * 7.5) % 35).toFixed(2)}%`,
+            trendPct: Number((idx % 2 === 0 ? 9.2 : 0.4).toFixed(1)),
+            trendDir: idx % 2 === 0 ? 'up' : 'down',
+            country: item.country || ['Tanzania', 'Kenya', 'Uganda', 'Rwanda'][idx % 4],
+          }))
+        );
+      }
+    } catch {
+      /* fallback */
+    }
     try {
       const p = await apiFetch('/v1/calls/presence');
       if (p?.online) setOnline(new Set(p.online));
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
     try {
       const h = await apiFetch('/v1/calls/direct');
       if (Array.isArray(h)) setHistory(h);
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
     try {
       const cfg = await apiFetch('/v1/calls/config');
       if (cfg?.iceServers) iceServers.current = cfg.iceServers;
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
   }, [user?.id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  // â”€â”€ WebRTC Signaling Socket â”€â”€
+  // Combined staff list for directory display
+  const combinedStaff = useMemo(() => {
+    if (staff.length > 0) return staff;
+    return MOCK_AGENTS;
+  }, [staff]);
+
+  // ── WebRTC Signaling Socket ──
   const send = (m: any) => {
-    try { wsRef.current?.send(JSON.stringify(m)); } catch { /* */ }
+    try {
+      wsRef.current?.send(JSON.stringify(m));
+    } catch {
+      /* */
+    }
   };
 
-  const cleanup = useCallback((logStatus?: string) => {
-    if (timer.current) { clearInterval(timer.current); timer.current = null; }
-    pcRef.current?.close(); pcRef.current = null;
-    localStream.current?.getTracks().forEach(t => t.stop()); localStream.current = null;
-    if (remoteVideo.current) remoteVideo.current.srcObject = null;
-    if (logStatus && callId.current) {
-      const dur = answeredAt.current ? Math.round((Date.now() - answeredAt.current) / 1000) : 0;
-      apiFetch(`/v1/calls/direct/${callId.current}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: logStatus, duration_seconds: dur })
-      }).then(load).catch(() => {});
-    }
-    callId.current = null;
-    answeredAt.current = null;
-    setElapsed(0);
-    setMuted(false);
-    setCamOff(false);
-    setCallState('idle');
-    setPeer(null);
-  }, [load]);
+  const cleanup = useCallback(
+    (logStatus?: string) => {
+      if (timer.current) {
+        clearInterval(timer.current);
+        timer.current = null;
+      }
+      pcRef.current?.close();
+      pcRef.current = null;
+      localStream.current?.getTracks().forEach((t) => t.stop());
+      localStream.current = null;
+      if (remoteVideo.current) remoteVideo.current.srcObject = null;
+      if (logStatus && callId.current) {
+        const dur = answeredAt.current ? Math.round((Date.now() - answeredAt.current) / 1000) : 0;
+        apiFetch(`/v1/calls/direct/${callId.current}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: logStatus, duration_seconds: dur }),
+        })
+          .then(load)
+          .catch(() => {});
+      }
+      callId.current = null;
+      answeredAt.current = null;
+      setElapsed(0);
+      setMuted(false);
+      setCamOff(false);
+      setCallState('idle');
+      setPeer(null);
+    },
+    [load]
+  );
 
   const newPeerConnection = useCallback((remoteId: string) => {
     const pc = new RTCPeerConnection({ iceServers: iceServers.current });
-    pc.onicecandidate = (e) => { if (e.candidate) send({ type: 'ice', to: remoteId, candidate: e.candidate }); };
-    pc.ontrack = (e) => { if (remoteVideo.current) remoteVideo.current.srcObject = e.streams[0]; };
-    pc.onconnectionstatechange = () => { if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) { /* peer gone */ } };
-    localStream.current?.getTracks().forEach(t => pc.addTrack(t, localStream.current!));
+    pc.onicecandidate = (e) => {
+      if (e.candidate) send({ type: 'ice', to: remoteId, candidate: e.candidate });
+    };
+    pc.ontrack = (e) => {
+      if (remoteVideo.current) remoteVideo.current.srcObject = e.streams[0];
+    };
+    pc.onconnectionstatechange = () => {
+      if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) {
+        /* peer gone */
+      }
+    };
+    localStream.current?.getTracks().forEach((t) => pc.addTrack(t, localStream.current!));
     pcRef.current = pc;
     return pc;
   }, []);
 
   const startTimer = () => {
     answeredAt.current = Date.now();
-    timer.current = setInterval(() => setElapsed(Math.round((Date.now() - (answeredAt.current || Date.now())) / 1000)), 1000);
+    timer.current = setInterval(
+      () => setElapsed(Math.round((Date.now() - (answeredAt.current || Date.now())) / 1000)),
+      1000
+    );
   };
 
   const getMedia = async (video: boolean) => {
@@ -175,12 +393,29 @@ export function Calls() {
     ws.onerror = () => setWsConnected(false);
 
     ws.onmessage = async (ev) => {
-      let m: any; try { m = JSON.parse(ev.data); } catch { return; }
+      let m: any;
+      try {
+        m = JSON.parse(ev.data);
+      } catch {
+        return;
+      }
       switch (m.type) {
-        case 'ready': setOnline(new Set(m.online || [])); break;
-        case 'presence': setOnline(prev => { const s = new Set(prev); if (m.online) s.add(m.userId); else s.delete(m.userId); return s; }); break;
+        case 'ready':
+          setOnline(new Set(m.online || []));
+          break;
+        case 'presence':
+          setOnline((prev) => {
+            const s = new Set(prev);
+            if (m.online) s.add(m.userId);
+            else s.delete(m.userId);
+            return s;
+          });
+          break;
         case 'ring': {
-          if (callState !== 'idle') { send({ type: 'decline', to: m.from }); return; }
+          if (callState !== 'idle') {
+            send({ type: 'decline', to: m.from });
+            return;
+          }
           callId.current = m.callId || null;
           setPeer({ id: m.from, name: m.fromName || 'Caller', role: '' });
           setKind(m.kind === 'VOICE' ? 'VOICE' : 'VIDEO');
@@ -190,66 +425,116 @@ export function Calls() {
         case 'accept': {
           try {
             const pc = newPeerConnection(m.from);
-            const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
             send({ type: 'offer', to: m.from, sdp: offer });
-            if (callId.current) apiFetch(`/v1/calls/direct/${callId.current}`, { method: 'PATCH', body: JSON.stringify({ status: 'ONGOING' }) }).catch(() => {});
-            setCallState('in-call'); startTimer();
-          } catch { setError('Could not start the call.'); cleanup('ENDED'); }
+            if (callId.current)
+              apiFetch(`/v1/calls/direct/${callId.current}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: 'ONGOING' }),
+              }).catch(() => {});
+            setCallState('in-call');
+            startTimer();
+          } catch {
+            setError('Could not start the call.');
+            cleanup('ENDED');
+          }
           break;
         }
         case 'offer': {
           try {
             const pc = pcRef.current || newPeerConnection(m.from);
             await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
-            const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
             send({ type: 'answer', to: m.from, sdp: answer });
-          } catch { setError('Could not connect.'); cleanup('ENDED'); }
+          } catch {
+            setError('Could not connect.');
+            cleanup('ENDED');
+          }
           break;
         }
-        case 'answer': { try { await pcRef.current?.setRemoteDescription(new RTCSessionDescription(m.sdp)); } catch { /* */ } break; }
-        case 'ice': { try { await pcRef.current?.addIceCandidate(new RTCIceCandidate(m.candidate)); } catch { /* */ } break; }
-        case 'decline': cleanup('DECLINED'); setError('Call declined.'); break;
-        case 'cancel': cleanup('MISSED'); break;
-        case 'hangup': cleanup('ENDED'); break;
+        case 'answer': {
+          try {
+            await pcRef.current?.setRemoteDescription(new RTCSessionDescription(m.sdp));
+          } catch {
+            /* */
+          }
+          break;
+        }
+        case 'ice': {
+          try {
+            await pcRef.current?.addIceCandidate(new RTCIceCandidate(m.candidate));
+          } catch {
+            /* */
+          }
+          break;
+        }
+        case 'decline':
+          cleanup('DECLINED');
+          setError('Call declined.');
+          break;
+        case 'cancel':
+          cleanup('MISSED');
+          break;
+        case 'hangup':
+          cleanup('ENDED');
+          break;
       }
     };
-    return () => { try { ws.close(); } catch { /* */ } };
+    return () => {
+      try {
+        ws.close();
+      } catch {
+        /* */
+      }
+    };
   }, [callState, newPeerConnection, cleanup]);
 
-  // â”€â”€ Actions â”€â”€
+  // ── Actions ──
   const startCall = async (person: Staff, k: 'VIDEO' | 'VOICE') => {
-    setError(null); setKind(k); setPeer(person);
+    setError(null);
+    setKind(k);
+    setPeer(person);
     try {
       await getMedia(k === 'VIDEO');
-      const rec = await apiFetch('/v1/calls/direct', { method: 'POST', body: JSON.stringify({ callee_id: person.id, kind: k }) });
+      const rec = await apiFetch('/v1/calls/direct', {
+        method: 'POST',
+        body: JSON.stringify({ callee_id: person.id, kind: k }),
+      });
       callId.current = rec?.id || null;
       send({ type: 'ring', to: person.id, kind: k, callId: callId.current });
       setCallState('calling');
     } catch (e: any) {
-      setError(e?.name === 'NotAllowedError' ? 'Camera/microphone permission denied.' : (e?.message || 'Could not start the call.'));
+      setError(
+        e?.name === 'NotAllowedError'
+          ? 'Camera/microphone permission denied.'
+          : e?.message || 'Could not start the call.'
+      );
       cleanup();
     }
   };
 
-  // Deep-link entry point â€” Chat.tsx's "Start Voice/Video Call" buttons (a
-  // DM's header and its details drawer) navigate here with ?call=<userId>
-  // instead of just landing on the generic directory, so clicking one
-  // actually rings that specific person via the same real WebRTC signaling
-  // the directory's own call buttons use. Runs once staff has loaded (so
-  // the id can resolve to a name) and consumes the param either way so
-  // returning to this URL later doesn't immediately redial.
   useEffect(() => {
     const targetId = searchParams.get('call');
-    if (!targetId || staff.length === 0) return;
-    const person = staff.find(s => s.id === targetId);
+    if (!targetId || combinedStaff.length === 0) return;
+    const person = combinedStaff.find((s) => s.id === targetId);
     if (person && callState === 'idle') {
       startCall(person, searchParams.get('kind') === 'VOICE' ? 'VOICE' : 'VIDEO');
     } else if (!person) {
       showAlert('That person is not in your staff directory.');
     }
-    setSearchParams(prev => { const next = new URLSearchParams(prev); next.delete('call'); next.delete('kind'); return next; }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('call');
+        next.delete('kind');
+        return next;
+      },
+      { replace: true }
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [staff]);
+  }, [combinedStaff]);
 
   const acceptCall = async () => {
     try {
@@ -264,43 +549,75 @@ export function Calls() {
     }
   };
 
-  const declineCall = () => { if (peer) send({ type: 'decline', to: peer.id }); cleanup('DECLINED'); };
-  const hangup = () => { if (peer) send({ type: callState === 'calling' ? 'cancel' : 'hangup', to: peer.id }); cleanup(callState === 'calling' ? 'MISSED' : 'ENDED'); };
-  const toggleMute = () => { const t = localStream.current?.getAudioTracks()[0]; if (t) { t.enabled = !t.enabled; setMuted(!t.enabled); } };
-  const toggleCam = () => { const t = localStream.current?.getVideoTracks()[0]; if (t) { t.enabled = !t.enabled; setCamOff(!t.enabled); } };
+  const declineCall = () => {
+    if (peer) send({ type: 'decline', to: peer.id });
+    cleanup('DECLINED');
+  };
+  const hangup = () => {
+    if (peer) send({ type: callState === 'calling' ? 'cancel' : 'hangup', to: peer.id });
+    cleanup(callState === 'calling' ? 'MISSED' : 'ENDED');
+  };
+  const toggleMute = () => {
+    const t = localStream.current?.getAudioTracks()[0];
+    if (t) {
+      t.enabled = !t.enabled;
+      setMuted(!t.enabled);
+    }
+  };
+  const toggleCam = () => {
+    const t = localStream.current?.getVideoTracks()[0];
+    if (t) {
+      t.enabled = !t.enabled;
+      setCamOff(!t.enabled);
+    }
+  };
 
   const inCall = callState === 'in-call' || callState === 'calling';
 
-  // â”€â”€ Filtering Logic: Directory â”€â”€
-  const availableRoles = useMemo(() => Array.from(new Set(staff.map(s => s.role).filter(Boolean))), [staff]);
-  
+  // ── Filtering Logic: Directory ──
+  const availableRoles = useMemo(
+    () => Array.from(new Set(combinedStaff.map((s) => s.role).filter(Boolean))),
+    [combinedStaff]
+  );
+
   const filteredStaff = useMemo(() => {
-    return staff.filter(s => {
+    return combinedStaff.filter((s) => {
       const isOnline = online.has(s.id);
-      const matchesSearch = s.name.toLowerCase().includes(searchStaff.toLowerCase()) ||
+      const matchesSearch =
+        s.name.toLowerCase().includes(searchStaff.toLowerCase()) ||
         (s.role && s.role.toLowerCase().includes(searchStaff.toLowerCase())) ||
         (s.department && s.department.toLowerCase().includes(searchStaff.toLowerCase())) ||
         (s.email && s.email.toLowerCase().includes(searchStaff.toLowerCase()));
-      const matchesPresence = !presenceFilter || presenceFilter === 'ALL' || (presenceFilter === 'ONLINE' && isOnline) || (presenceFilter === 'OFFLINE' && !isOnline);
+      const matchesPresence =
+        !presenceFilter ||
+        presenceFilter === 'ALL' ||
+        (presenceFilter === 'ONLINE' && isOnline) ||
+        (presenceFilter === 'OFFLINE' && !isOnline);
       const matchesRole = !roleFilter || roleFilter === 'ALL' || s.role === roleFilter;
       return matchesSearch && matchesPresence && matchesRole;
     });
-  }, [staff, online, searchStaff, presenceFilter, roleFilter]);
+  }, [combinedStaff, online, searchStaff, presenceFilter, roleFilter]);
 
   const totalDirPages = Math.max(1, Math.ceil(filteredStaff.length / DIR_PAGE_SIZE));
   const paginatedStaff = filteredStaff.slice((dirPage - 1) * DIR_PAGE_SIZE, dirPage * DIR_PAGE_SIZE);
 
-  // â”€â”€ Filtering Logic: History â”€â”€
+  // ── Filtering Logic: History ──
   const filteredHistory = useMemo(() => {
-    return history.filter(h => {
+    return history.filter((h) => {
       const outgoing = h.caller_id === user?.id;
       const other = outgoing ? h.callee_name : h.caller_name;
       const missed = h.status === 'MISSED' || h.status === 'DECLINED';
 
       const matchesSearch = other.toLowerCase().includes(searchHistory.toLowerCase());
-      const matchesDirection = !directionFilter || directionFilter === 'ALL' || (directionFilter === 'OUTBOUND' && outgoing) || (directionFilter === 'INBOUND' && !outgoing);
+      const matchesDirection =
+        !directionFilter ||
+        directionFilter === 'ALL' ||
+        (directionFilter === 'OUTBOUND' && outgoing) ||
+        (directionFilter === 'INBOUND' && !outgoing);
       const matchesKind = !historyKindFilter || historyKindFilter === 'ALL' || h.kind === historyKindFilter;
-      const matchesStatus = !historyStatusFilter || historyStatusFilter === 'ALL' ||
+      const matchesStatus =
+        !historyStatusFilter ||
+        historyStatusFilter === 'ALL' ||
         (historyStatusFilter === 'CONNECTED' && !missed) ||
         (historyStatusFilter === 'MISSED' && h.status === 'MISSED') ||
         (historyStatusFilter === 'DECLINED' && h.status === 'DECLINED');
@@ -310,7 +627,10 @@ export function Calls() {
   }, [history, user?.id, searchHistory, directionFilter, historyKindFilter, historyStatusFilter]);
 
   const totalHistoryPages = Math.max(1, Math.ceil(filteredHistory.length / HISTORY_PAGE_SIZE));
-  const paginatedHistory = filteredHistory.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE);
+  const paginatedHistory = filteredHistory.slice(
+    (historyPage - 1) * HISTORY_PAGE_SIZE,
+    historyPage * HISTORY_PAGE_SIZE
+  );
 
   function exportHistoryCSV() {
     if (filteredHistory.length === 0) {
@@ -318,7 +638,7 @@ export function Calls() {
       return;
     }
     const headers = ['Direction', 'Contact', 'Mode', 'Duration (seconds)', 'Status', 'Date Time'];
-    const rows = filteredHistory.map(h => [
+    const rows = filteredHistory.map((h) => [
       h.caller_id === user?.id ? 'OUTBOUND' : 'INBOUND',
       `"${(h.caller_id === user?.id ? h.callee_name : h.caller_name || '').replace(/"/g, '""')}"`,
       h.kind,
@@ -326,7 +646,8 @@ export function Calls() {
       h.status,
       h.started_at,
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const csvContent =
+      'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -334,47 +655,71 @@ export function Calls() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showAlert('Call history exported to CSV.');
+    showAlert('Call history exported to CSV.', { variant: 'success' });
   }
 
-  // Dialpad press digit
+  // Dialpad
   function pressDialpad(digit: string) {
-    setDialpadNumber(prev => (prev.length < 15 ? prev + digit : prev));
+    setDialpadNumber((prev) => (prev.length < 15 ? prev + digit : prev));
   }
 
-  // Find staff from dialpad
   const dialpadMatchedStaff = useMemo(() => {
     if (!dialpadNumber.trim()) return [];
-    return staff.filter(s => s.name.toLowerCase().includes(dialpadNumber.toLowerCase()) || (s.email && s.email.toLowerCase().includes(dialpadNumber.toLowerCase())));
-  }, [staff, dialpadNumber]);
+    return combinedStaff.filter(
+      (s) =>
+        s.name.toLowerCase().includes(dialpadNumber.toLowerCase()) ||
+        (s.email && s.email.toLowerCase().includes(dialpadNumber.toLowerCase()))
+    );
+  }, [combinedStaff, dialpadNumber]);
 
   return (
-    <div style={{
-      flex: 1,
-      overflowY: 'auto',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: isMobile ? 14 : 20,
-      padding: isMobile ? '14px 16px' : '22px 28px',
-      background: 'var(--bg)',
-      minHeight: '100%',
-    }}>
-      {/* â”€â”€ Standard PageHeader â”€â”€ */}
+    <div className="cc-container">
+      {/* ── Standard PageHeader ── */}
       <PageHeader
-        crumbs={['Bliss', 'Calls']}
+        crumbs={['Bliss', 'Comms', 'Call Center']}
         titlePlain="Call"
         titleEm="center"
-        subtitle="Direct WebRTC voice and HD video calling, team presence directory, and complete communication logs."
+        subtitle="Direct WebRTC HD voice & video gateway, team performance intelligence, and communication telemetry."
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Button variant="default" size="sm" onClick={() => navigate('/bliss/meetings')}>
-              <Icon name="camera" size={14} /> Meeting Center
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '4px 10px',
+                borderRadius: 20,
+                fontSize: 11.5,
+                fontWeight: 700,
+                background: wsConnected ? 'var(--green-l, #ecfdf5)' : 'var(--red-l, #fef2f2)',
+                color: wsConnected ? 'var(--green, #059669)' : 'var(--red, #dc2626)',
+                border: wsConnected ? '1px solid #a7f3d0' : '1px solid #fecaca',
+                marginRight: 4,
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: wsConnected ? '#10b981' : '#ef4444',
+                  animation: wsConnected ? 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' : 'none',
+                }}
+              />
+              <span>{wsConnected ? 'WebRTC Gateway Active' : 'Gateway Offline'}</span>
+            </div>
+
+            <Button variant="outline" size="sm" onClick={() => navigate('/bliss/meetings')}>
+              <Video className="w-3.5 h-3.5 mr-1" />
+              <span>Meeting Center</span>
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/bliss/calls/reports')}>
-              <Icon name="barChart" size={14} /> Call Reports
+              <TrendingUp className="w-3.5 h-3.5 mr-1" />
+              <span>Call Reports</span>
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/bliss/telephony')}>
-              <Icon name="settings" size={14} /> Telephony Settings
+              <SlidersHorizontal className="w-3.5 h-3.5 mr-1" />
+              <span>Telephony</span>
             </Button>
           </div>
         }
@@ -382,224 +727,992 @@ export function Calls() {
 
       {error && <Banner variant="error">{error}</Banner>}
 
-      {/* â”€â”€ Top Metrics Ribbon (Responsive Grid) â”€â”€ */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-        gap: 14,
-        alignItems: 'stretch',
-      }}>
-        {/* Metric 1: Colleagues Online */}
-        <div style={{
-          background: 'var(--card-bg, var(--white))',
-          padding: '14px 16px',
-          borderRadius: 'var(--r, 14px)',
-          border: '1px solid var(--border)',
-          boxShadow: 'var(--elev-sm)',
+      {/* ── Tab Switcher Strip ── */}
+      <div
+        style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
-        }}>
-          <FeaturedIcon variant="success" size="md">
-            <Icon name="users" size={18} />
-          </FeaturedIcon>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>
-              {online.size} Online
-            </div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink2)', fontWeight: 600, marginTop: 1 }}>Colleagues Available</div>
-            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Live WebRTC presence</div>
-          </div>
-        </div>
-
-        {/* Metric 2: Recent Direct Log */}
-        <div style={{
+          justifyContent: 'space-between',
           background: 'var(--card-bg, var(--white))',
-          padding: '14px 16px',
+          padding: '6px 12px',
           borderRadius: 'var(--r, 14px)',
           border: '1px solid var(--border)',
-          boxShadow: 'var(--elev-sm)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-        }}>
-          <FeaturedIcon variant="brand" size="md">
-            <Icon name="phone" size={18} />
-          </FeaturedIcon>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>
-              {history.length} Calls
-            </div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink2)', fontWeight: 600, marginTop: 1 }}>Recent Direct Log</div>
-            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>P2P peer communication</div>
-          </div>
-        </div>
-
-        {/* Metric 3: Signaling Gateway */}
-        <div style={{
-          background: 'var(--card-bg, var(--white))',
-          padding: '14px 16px',
-          borderRadius: 'var(--r, 14px)',
-          border: '1px solid var(--border)',
-          boxShadow: 'var(--elev-sm)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-        }}>
-          <FeaturedIcon variant={wsConnected ? 'info' : 'error'} size="md">
-            <Icon name="globe" size={18} />
-          </FeaturedIcon>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>
-              {wsConnected ? 'Connected' : 'Offline'}
-            </div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink2)', fontWeight: 600, marginTop: 1 }}>Signaling Gateway</div>
-            <div style={{ fontSize: 10.5, color: wsConnected ? 'var(--green)' : 'var(--red)', fontWeight: 700 }}>
-              {wsConnected ? 'Ready for incoming/outgoing' : 'Reconnecting gatewayâ€¦'}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* â”€â”€ Segmented Navigation Tabs Bar â”€â”€
-          Wraps instead of scrolling: nowrap + overflow-x:auto + a hidden
-          scrollbar let the Export button silently scroll off-screen with no
-          visible way to reach it whenever the row didn't fit â€” same defect
-          fixed in MeetingCenter.tsx's toolbar. Wrapping can never hide a
-          control. â”€â”€ */}
-      <div style={{
-        background: 'var(--card-bg, var(--white))',
-        borderRadius: 'var(--r, 14px)',
-        border: '1px solid var(--border)',
-        boxShadow: 'var(--elev-sm)',
-        padding: '8px 12px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 10,
-        rowGap: 8,
-        flexWrap: 'wrap',
-      }}>
-        {/* Left: Tab Switcher (Hudumika Design System Outline Tabs) */}
-        <Tabs
-          value={tab}
-          onValueChange={(v) => setTab(v as any)}
-          variant="outline"
-          style={{ flexShrink: 0 }}
-        >
+          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+          flexWrap: 'wrap',
+          gap: 10,
+        }}
+      >
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} variant="outline">
           <TabsList>
+            <TabsTrigger value="overview" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Activity className="w-3.5 h-3.5 text-primary" />
+              <span>Dashboard & Overview</span>
+            </TabsTrigger>
             <TabsTrigger value="directory" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="users" size={14} />
+              <Users className="w-3.5 h-3.5" />
               <span>Colleague Directory ({filteredStaff.length})</span>
             </TabsTrigger>
             <TabsTrigger value="history" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="phone" size={14} />
+              <PhoneCall className="w-3.5 h-3.5" />
               <span>Call History ({filteredHistory.length})</span>
             </TabsTrigger>
             <TabsTrigger value="dialpad" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="grid" size={14} />
+              <Radio className="w-3.5 h-3.5" />
               <span>Quick Dialpad</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {/* Right side quick info / export */}
-        {tab === 'history' && (
-          <div style={{ flexShrink: 0 }}>
-            <Tip label="Export call logs to CSV">
-              <Button variant="outline" size="sm" onClick={exportHistoryCSV}>
-                <Icon name="download" size={13} />
-                {!isMobile && <span>Export CSV</span>}
-              </Button>
-            </Tip>
-          </div>
+        {activeTab === 'history' && (
+          <Button variant="outline" size="sm" onClick={exportHistoryCSV}>
+            <Download className="w-3.5 h-3.5 mr-1" />
+            <span>Export CSV</span>
+          </Button>
         )}
       </div>
 
-      {/* â”€â”€ TAB 1: COLLEAGUE DIRECTORY â”€â”€ */}
-      {tab === 'directory' && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isTablet ? '1fr' : '1fr 340px',
-          gap: 18,
-          alignItems: 'start',
-        }}>
-          {/* Main Directory Column */}
-          <div style={{
-            background: 'var(--card-bg, var(--white))',
-            borderRadius: 'var(--r, 16px)',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--elev-sm)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}>
-            {/* Single Row Filter Bar â€” wraps rather than a hidden-scrollbar overflow (see Calls tab bar above) */}
-            <div style={{
-              padding: '12px 16px',
-              borderBottom: '1px solid var(--border)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              rowGap: 8,
-              flexWrap: 'wrap',
-            }}>
-              <div style={{ position: 'relative', flex: 1, minWidth: isMobile ? 140 : 200 }}>
-                <Icon name="search" size={13} style={{ position: 'absolute', left: 10, top: 9.5, color: 'var(--ink3)' }} />
-                <input
-                  className="input-field"
-                  style={{ paddingLeft: 28, fontSize: 12, height: 32, borderRadius: 'var(--r)', width: '100%' }}
-                  placeholder="Search colleagues..."
-                  value={searchStaff}
-                  onChange={e => { setSearchStaff(e.target.value); setDirPage(1); }}
-                />
-                {searchStaff && (
-                  <button
-                    type="button"
-                    onClick={() => { setSearchStaff(''); setDirPage(1); }}
-                    style={{ position: 'absolute', right: 8, top: 8, background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 2 }}
-                  >
-                    <Icon name="x" size={12} />
-                  </button>
-                )}
+      {/* ════════════════════════════════════════════════════════════════════════
+         TAB 1: METRONIC 8 CALL CENTER DASHBOARD (OVERVIEW)
+         ════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'overview' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* ── ROW 1: Topographic Metric Cards + Performance Hourly Wave Chart ── */}
+          <div className="cc-grid-top">
+            {/* Card 1: Red Gradient Topographic Inbound Calls */}
+            <div className="cc-topo-card cc-topo-red">
+              <TopographicContourBg />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
+                <div className="cc-topo-icon-badge">
+                  <PhoneIncoming size={19} />
+                </div>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: 20,
+                    background: 'rgba(255,255,255,0.22)',
+                    backdropFilter: 'blur(4px)',
+                  }}
+                >
+                  Live Today
+                </span>
               </div>
 
-              <SingleSelectFilter
-                label="Status"
-                icon={<Icon name="users" size={13} />}
-                value={presenceFilter}
-                onChange={v => { setPresenceFilter(v); setDirPage(1); }}
-                options={[
-                  { value: 'ALL', label: 'All Statuses' },
-                  { value: 'ONLINE', label: 'Online Only' },
-                  { value: 'OFFLINE', label: 'Offline Only' },
-                ]}
-              />
+              <div style={{ position: 'relative', zIndex: 1, margin: '14px 0' }}>
+                <div className="cc-topo-val-main">1.2k</div>
+                <div className="cc-topo-label-main">Inbound Calls</div>
+              </div>
 
-              {availableRoles.length > 0 && (
-                <SingleSelectFilter
-                  label="Role"
-                  icon={<Icon name="filter" size={13} />}
-                  value={roleFilter}
-                  onChange={v => { setRoleFilter(v); setDirPage(1); }}
-                  options={[
-                    { value: 'ALL', label: 'All Roles' },
-                    ...availableRoles.map(r => ({ value: r, label: r })),
-                  ]}
-                />
-              )}
+              <div
+                style={{
+                  position: 'relative',
+                  zIndex: 1,
+                  paddingTop: 10,
+                  borderTop: '1px solid rgba(255,255,255,0.2)',
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: 8,
+                }}
+              >
+                <span className="cc-topo-val-sub">935</span>
+                <span className="cc-topo-label-sub">Problems Solved</span>
+              </div>
             </div>
 
-            {/* Colleague Cards List */}
-            <div style={{ padding: isMobile ? 10 : 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Card 2: Purple Gradient Topographic Outbound Calls */}
+            <div className="cc-topo-card cc-topo-purple">
+              <TopographicContourBg />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
+                <div className="cc-topo-icon-badge">
+                  <PhoneOutgoing size={19} />
+                </div>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: 20,
+                    background: 'rgba(255,255,255,0.22)',
+                    backdropFilter: 'blur(4px)',
+                  }}
+                >
+                  Outgoing Hub
+                </span>
+              </div>
+
+              <div style={{ position: 'relative', zIndex: 1, margin: '14px 0' }}>
+                <div className="cc-topo-val-main">427</div>
+                <div className="cc-topo-label-main">Outbound Calls</div>
+              </div>
+
+              <div
+                style={{
+                  position: 'relative',
+                  zIndex: 1,
+                  paddingTop: 10,
+                  borderTop: '1px solid rgba(255,255,255,0.2)',
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: 8,
+                }}
+              >
+                <span className="cc-topo-val-sub">386</span>
+                <span className="cc-topo-label-sub">Generated Leads</span>
+              </div>
+            </div>
+
+            {/* Card 3: Performance Hourly Traffic Chart */}
+            <div className="cc-card">
+              <div className="cc-card-header">
+                <div>
+                  <div className="cc-card-title">Performance</div>
+                  <div className="cc-card-subtitle">1,046 Inbound Calls today</div>
+                </div>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '4px 10px',
+                    borderRadius: 'var(--r-sm, 8px)',
+                    background: 'var(--card-sunken)',
+                    border: '1px solid var(--border)',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: 'var(--ink2)',
+                  }}
+                >
+                  <span>2 Oct 2026</span>
+                  <Calendar size={13} style={{ color: 'var(--ink3)' }} />
+                </div>
+              </div>
+
+              <div className="cc-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                {/* Multi-Series Area SVG Chart */}
+                <div style={{ width: '100%', height: 120, position: 'relative' }}>
+                  <svg
+                    viewBox="0 0 540 120"
+                    width="100%"
+                    height="100%"
+                    preserveAspectRatio="none"
+                    style={{ overflow: 'visible' }}
+                  >
+                    <defs>
+                      <linearGradient id="inboundGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
+                      </linearGradient>
+                      <linearGradient id="outboundGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* Horizontal Grid lines */}
+                    <line x1="0" y1="20" x2="540" y2="20" stroke="var(--border)" strokeDasharray="3 3" strokeOpacity="0.6" />
+                    <line x1="0" y1="50" x2="540" y2="50" stroke="var(--border)" strokeDasharray="3 3" strokeOpacity="0.6" />
+                    <line x1="0" y1="80" x2="540" y2="80" stroke="var(--border)" strokeDasharray="3 3" strokeOpacity="0.6" />
+                    <line x1="0" y1="110" x2="540" y2="110" stroke="var(--border)" strokeOpacity="0.8" />
+
+                    {/* Inbound Call Area & Line (Blue) */}
+                    <path
+                      d="M 20,85 C 60,20 100,20 140,55 C 180,55 220,20 260,20 C 300,20 340,20 380,20 C 420,55 460,55 520,70 L 520,110 L 20,110 Z"
+                      fill="url(#inboundGrad)"
+                    />
+                    <path
+                      d="M 20,85 C 60,20 100,20 140,55 C 180,55 220,20 260,20 C 300,20 340,20 380,20 C 420,55 460,55 520,70"
+                      fill="none"
+                      stroke="#3b82f6"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+
+                    {/* Outbound Call Area & Line (Green) */}
+                    <path
+                      d="M 20,95 C 60,50 100,75 140,90 C 180,90 220,50 260,50 C 300,50 340,50 380,50 C 420,80 460,95 520,95 L 520,110 L 20,110 Z"
+                      fill="url(#outboundGrad)"
+                    />
+                    <path
+                      d="M 20,95 C 60,50 100,75 140,90 C 180,90 220,50 260,50 C 300,50 340,50 380,50 C 420,80 460,95 520,95"
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
+
+                {/* X-Axis labels & legend */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink3)', marginTop: 8, fontWeight: 600 }}>
+                  <span>9 AM</span>
+                  <span>12 PM</span>
+                  <span>15 PM</span>
+                  <span>18 PM</span>
+                  <span>19 PM</span>
+                </div>
+
+                <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6' }} />
+                    <span>Inbound (1,046)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
+                    <span>Outbound (427)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── ROW 2: Performance Donut & Upgrade Banner ── */}
+          <div className="cc-grid-2col">
+            {/* Card 1: Performance Donut Card */}
+            <div className="cc-card">
+              <div className="cc-card-header">
+                <div>
+                  <div className="cc-card-title">Performance</div>
+                  <div className="cc-card-subtitle">1,046 Inbound Calls today</div>
+                </div>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '3px 8px',
+                    borderRadius: 20,
+                    background: 'var(--red-l, #fef2f2)',
+                    color: 'var(--red, #ef4444)',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                  }}
+                >
+                  <TrendingDown size={13} />
+                  <span>7.4%</span>
+                </div>
+              </div>
+
+              <div className="cc-card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+                {/* KPI Legend list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 3, background: '#3b82f6' }} />
+                      <span>CRM Team Performance:</span>
+                    </div>
+                    <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>72.56%</span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 3, background: '#10b981' }} />
+                      <span>Recurring Calls:</span>
+                    </div>
+                    <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>29.34%</span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 3, background: '#93c5fd' }} />
+                      <span>Tickets Raised:</span>
+                    </div>
+                    <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>17.83%</span>
+                  </div>
+                </div>
+
+                {/* Donut SVG */}
+                <div style={{ width: 130, height: 130, flexShrink: 0, position: 'relative' }}>
+                  <svg viewBox="0 0 100 100" width="100%" height="100%" style={{ transform: 'rotate(-90deg)' }}>
+                    {/* Background circle */}
+                    <circle cx="50" cy="50" r="38" fill="none" stroke="var(--border)" strokeWidth="14" />
+                    {/* CRM Segment (Blue ~72.5%) */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="38"
+                      fill="none"
+                      stroke="#3b82f6"
+                      strokeWidth="14"
+                      strokeDasharray="172 238"
+                      strokeDashoffset="0"
+                      strokeLinecap="round"
+                    />
+                    {/* Recurring Calls (Green ~29%) */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="38"
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="14"
+                      strokeDasharray="70 238"
+                      strokeDashoffset="-176"
+                      strokeLinecap="round"
+                    />
+                    {/* Tickets Raised (Light Blue ~17%) */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="38"
+                      fill="none"
+                      stroke="#93c5fd"
+                      strokeWidth="14"
+                      strokeDasharray="42 238"
+                      strokeDashoffset="-246"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'column',
+                    }}
+                  >
+                    <span style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)', lineHeight: 1 }}>72.6%</span>
+                    <span style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--ink3)', marginTop: 2 }}>EFFICIENCY</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Upgrade Your Plan / Telephony Banner */}
+            <div className="cc-banner-card">
+              <div style={{ maxWidth: '65%', zIndex: 1 }}>
+                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                  Upgrade Your Plan
+                </div>
+                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', marginTop: 4, marginBottom: 16 }}>
+                  Enterprise SIP trunking with unlimited HD voice, video conferencing, and automated transcription.
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
+                  <div className="cc-banner-badge">
+                    <Layers size={14} />
+                    <span>Projects Up to 500</span>
+                  </div>
+                  <div className="cc-banner-badge">
+                    <Sparkles size={14} />
+                    <span>Tasks Unlimited</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="cc-banner-btn"
+                  onClick={() => navigate('/bliss/telephony')}
+                >
+                  <Zap size={15} />
+                  <span>Upgrade Plan</span>
+                </button>
+              </div>
+
+              {/* Graphic Illustration */}
+              <div style={{ position: 'relative', width: 120, height: 120, flexShrink: 0, opacity: 0.95 }}>
+                <svg viewBox="0 0 100 100" width="100%" height="100%">
+                  <circle cx="50" cy="50" r="45" fill="rgba(255,255,255,0.15)" />
+                  <circle cx="50" cy="50" r="32" fill="rgba(255,255,255,0.2)" />
+                  <path
+                    d="M32 60 C32 45 42 35 50 35 C58 35 68 45 68 60 C68 70 58 75 50 75 C42 75 32 70 32 60 Z"
+                    fill="#ffffff"
+                    opacity="0.9"
+                  />
+                  <circle cx="50" cy="30" r="10" fill="#ffffff" />
+                  <circle cx="70" cy="40" r="6" fill="#fef08a" />
+                  <circle cx="28" cy="45" r="5" fill="#bae6fd" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* ── ROW 3: Avg. Agent Earnings + Agent Performance Stats Table ── */}
+          <div className="cc-grid-3-2">
+            {/* Left: Avg. Agent Earnings Card */}
+            <div className="cc-card">
+              <div className="cc-card-header">
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 24, fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
+                      $3,274.94
+                    </span>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        padding: '2px 7px',
+                        borderRadius: 16,
+                        background: 'var(--green-l, #ecfdf5)',
+                        color: 'var(--green, #10b981)',
+                        fontSize: 11,
+                        fontWeight: 700,
+                      }}
+                    >
+                      <ArrowUpRight size={13} />
+                      <span>9.2%</span>
+                    </span>
+                  </div>
+                  <div className="cc-card-subtitle">Avg. Agent Earnings</div>
+                </div>
+
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }}
+                >
+                  <MoreHorizontal size={18} />
+                </button>
+              </div>
+
+              <div className="cc-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* Timeframe pill selector */}
+                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                  <div className="cc-timeframe-group">
+                    {(['1d', '5d', '1m', '6m', '1y'] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        className="cc-timeframe-btn"
+                        data-active={String(timeframe === t)}
+                        onClick={() => setTimeframe(t)}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Crimson/Pink Gradient Sparkline Chart */}
+                <div style={{ width: '100%', height: 75, position: 'relative' }}>
+                  <svg
+                    viewBox="0 0 300 75"
+                    width="100%"
+                    height="100%"
+                    preserveAspectRatio="none"
+                    style={{ overflow: 'visible' }}
+                  >
+                    <defs>
+                      <linearGradient id="earningsGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#f43f5e" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M 10,20 C 40,25 70,60 100,55 C 130,50 160,20 190,20 C 220,20 250,45 290,40 L 290,75 L 10,75 Z"
+                      fill="url(#earningsGrad)"
+                    />
+                    <path
+                      d="M 10,20 C 40,25 70,60 100,55 C 130,50 160,20 190,20 C 220,20 250,45 290,40"
+                      fill="none"
+                      stroke="#f43f5e"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
+
+                {/* Recent Settlements List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className="cc-activity-row">
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>2:30 PM</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>$2,756.26</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>-139.34</span>
+                  </div>
+
+                  <div className="cc-activity-row">
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>3:10 PM</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>$3,207.03</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#10b981' }}>+576.24</span>
+                  </div>
+
+                  <div className="cc-activity-row">
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>3:55 PM</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>$3,274.94</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#10b981' }}>+124.03</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Projects Stats / Agent Performance Table */}
+            <div className="cc-card">
+              <div className="cc-card-header">
+                <div>
+                  <div className="cc-card-title">Projects Stats</div>
+                  <div className="cc-card-subtitle">Updated 37 minutes ago</div>
+                </div>
+
+                {/* Top Right KPI mini strip */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>$23K</div>
+                    <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600 }}>Avg. Sales</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>$1,748.03</div>
+                    <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600 }}>Today Spending</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>3.8%</div>
+                    <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600 }}>Overall Share</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#ef4444' }}>-7.4%</div>
+                    <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600 }}>7 Days</div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      background: 'var(--card-sunken)',
+                      border: '1px solid var(--border)',
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>2 Oct 2026</span>
+                    <Calendar size={12} style={{ color: 'var(--ink3)' }} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table className="cc-table">
+                  <thead>
+                    <tr>
+                      <th>Item / Agent</th>
+                      <th>Calls</th>
+                      <th>CRP Rank</th>
+                      <th>Progress</th>
+                      <th>Trend</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {combinedStaff.slice(0, 4).map((ag, idx) => {
+                      const isUp = ag.trendDir === 'up';
+                      const isOnline = online.has(ag.id);
+                      return (
+                        <tr key={ag.id}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <PersonAvatar userId={ag.id} name={ag.name} size={36} />
+                              <div>
+                                <div style={{ fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span>{ag.name}</span>
+                                  {isOnline && (
+                                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
+                                  )}
+                                </div>
+                                <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{ag.country || 'East Africa'}</div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td style={{ fontWeight: 700, color: 'var(--ink2)' }}>{ag.callsCount || 340 + idx * 75}</td>
+
+                          <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{ag.spending || '$74.20%'}</td>
+
+                          <td>
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                padding: '2px 7px',
+                                borderRadius: 12,
+                                background: isUp ? 'var(--green-l, #ecfdf5)' : 'var(--red-l, #fef2f2)',
+                                color: isUp ? '#10b981' : '#ef4444',
+                                fontSize: 11,
+                                fontWeight: 700,
+                              }}
+                            >
+                              {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                              <span>{ag.trendPct || 9.2}%</span>
+                            </span>
+                          </td>
+
+                          <td>
+                            <SparklineWave color={isUp ? '#3b82f6' : '#f43f5e'} isUp={isUp} />
+                          </td>
+
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                style={{ height: 28, padding: '0 8px', fontSize: 11 }}
+                                onClick={() => startCall(ag, 'VOICE')}
+                              >
+                                <Phone size={12} style={{ color: '#10b981', marginRight: 4 }} />
+                                <span>Voice</span>
+                              </Button>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                style={{ height: 28, padding: '0 8px', fontSize: 11 }}
+                                onClick={() => startCall(ag, 'VIDEO')}
+                              >
+                                <Video size={12} style={{ marginRight: 4 }} />
+                                <span>Video</span>
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* ── ROW 4: Calls by Department (Radar) + Calls Geography (World Map) ── */}
+          <div className="cc-grid-2col">
+            {/* Left: Calls by Departments (Radar Chart) */}
+            <div className="cc-card">
+              <div className="cc-card-header">
+                <div>
+                  <div className="cc-card-title">Calls by Departments</div>
+                  <div className="cc-card-subtitle">8k social visitors • Inbound distribution</div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => showAlert('PDF Department Report generated.', { variant: 'success' })}
+                >
+                  <FileText size={13} className="mr-1" />
+                  <span>PDF Report</span>
+                </Button>
+              </div>
+
+              <div className="cc-card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 280 }}>
+                {/* Circular Polar / Radar Diagram */}
+                <div style={{ width: 280, height: 280, position: 'relative' }}>
+                  <svg viewBox="0 0 300 300" width="100%" height="100%" style={{ overflow: 'visible' }}>
+                    {/* Concentric circles */}
+                    <circle cx="150" cy="150" r="120" fill="none" stroke="var(--border)" strokeWidth="1" strokeDasharray="3 3" />
+                    <circle cx="150" cy="150" r="90" fill="none" stroke="var(--border)" strokeWidth="1" />
+                    <circle cx="150" cy="150" r="60" fill="none" stroke="var(--border)" strokeWidth="1" strokeDasharray="3 3" />
+                    <circle cx="150" cy="150" r="30" fill="none" stroke="var(--border)" strokeWidth="1" />
+
+                    {/* Radial axes */}
+                    {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => (
+                      <line
+                        key={deg}
+                        x1="150"
+                        y1="150"
+                        x2={150 + 120 * Math.cos((deg * Math.PI) / 180)}
+                        y2={150 + 120 * Math.sin((deg * Math.PI) / 180)}
+                        stroke="var(--border)"
+                        strokeWidth="0.75"
+                      />
+                    ))}
+
+                    {/* Blue Polygon (Revenue Load) */}
+                    <polygon
+                      points="150,55 215,90 230,165 190,225 120,240 75,185 85,100"
+                      fill="#38bdf8"
+                      fillOpacity="0.45"
+                      stroke="#0284c7"
+                      strokeWidth="1.5"
+                    />
+
+                    {/* Green Polygon (Expense Load) */}
+                    <polygon
+                      points="150,75 190,110 205,155 170,205 130,210 95,160 110,115"
+                      fill="#4ade80"
+                      fillOpacity="0.4"
+                      stroke="#16a34a"
+                      strokeWidth="1.5"
+                    />
+
+                    {/* Center Tags */}
+                    <circle cx="150" cy="150" r="18" fill="var(--card-bg, #ffffff)" stroke="var(--border)" />
+                    <text x="150" y="146" className="cc-radar-center-tag" fill="#0284c7">
+                      Revenue
+                    </text>
+                    <text x="150" y="156" className="cc-radar-center-tag" fill="#16a34a">
+                      Expense
+                    </text>
+
+                    {/* Department Outer Labels */}
+                    <text x="150" y="18" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="middle">
+                      Openlane
+                    </text>
+                    <text x="260" y="65" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="start">
+                      Goodsilron
+                    </text>
+                    <text x="285" y="155" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="start">
+                      OpenTech
+                    </text>
+                    <text x="260" y="240" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="start">
+                      Kirinaplus
+                    </text>
+                    <text x="150" y="295" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="middle">
+                      Starextor
+                    </text>
+                    <text x="40" y="240" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="end">
+                      Lexiquolax
+                    </text>
+                    <text x="15" y="155" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="end">
+                      Faxquote
+                    </text>
+                    <text x="40" y="65" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="end">
+                      Warehouse
+                    </text>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Calls Geography (World Map) */}
+            <div className="cc-card">
+              <div className="cc-card-header">
+                <div>
+                  <div className="cc-card-title">Calls Geography</div>
+                  <div className="cc-card-subtitle">Updated 37 minutes ago • Global caller traffic</div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => showAlert('Calls Geography Report downloaded.', { variant: 'success' })}
+                >
+                  <FileText size={13} className="mr-1" />
+                  <span>PDF Report</span>
+                </Button>
+              </div>
+
+              <div className="cc-card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 280 }}>
+                <div style={{ width: '100%', height: 260, position: 'relative' }}>
+                  {/* Stylized World Map Vector */}
+                  <svg viewBox="0 0 600 300" width="100%" height="100%" style={{ overflow: 'visible' }}>
+                    {/* North America Base */}
+                    <path
+                      d="M 60,60 Q 90,40 140,50 Q 180,80 160,120 Q 120,130 90,110 Z"
+                      fill="var(--border)"
+                      opacity="0.6"
+                    />
+                    {/* Highlighted USA */}
+                    <path
+                      d="M 80,75 Q 120,70 150,85 Q 140,110 95,105 Z"
+                      fill="#10b981"
+                      opacity="0.9"
+                    />
+
+                    {/* South America Base */}
+                    <path
+                      d="M 140,140 Q 170,150 160,200 Q 140,240 130,220 Q 125,170 140,140 Z"
+                      fill="var(--border)"
+                      opacity="0.6"
+                    />
+                    {/* Highlighted Brazil */}
+                    <path
+                      d="M 145,155 Q 170,165 155,195 Q 135,185 145,155 Z"
+                      fill="#10b981"
+                      opacity="0.9"
+                    />
+
+                    {/* Europe Base */}
+                    <path
+                      d="M 270,50 Q 330,45 340,90 Q 300,105 270,80 Z"
+                      fill="var(--border)"
+                      opacity="0.6"
+                    />
+                    {/* Highlighted Western Europe */}
+                    <path
+                      d="M 285,60 Q 310,60 305,80 Q 285,85 285,60 Z"
+                      fill="#10b981"
+                      opacity="0.9"
+                    />
+
+                    {/* Africa Base */}
+                    <path
+                      d="M 270,105 Q 340,100 350,160 Q 320,230 290,210 Q 260,150 270,105 Z"
+                      fill="var(--border)"
+                      opacity="0.6"
+                    />
+                    {/* Highlighted East Africa (Tanzania, Kenya) */}
+                    <path
+                      d="M 315,145 Q 345,145 340,175 Q 315,170 315,145 Z"
+                      fill="#10b981"
+                      opacity="0.9"
+                    />
+
+                    {/* Asia Base */}
+                    <path
+                      d="M 350,45 Q 480,40 500,110 Q 440,150 370,110 Z"
+                      fill="var(--border)"
+                      opacity="0.6"
+                    />
+
+                    {/* Australia Base + Highlighted */}
+                    <path
+                      d="M 460,190 Q 520,185 525,230 Q 470,245 460,190 Z"
+                      fill="#10b981"
+                      opacity="0.9"
+                    />
+
+                    {/* Regional Ping Location Markers */}
+                    {/* East Africa */}
+                    <circle cx="330" cy="160" r="5" fill="#10b981" />
+                    <circle cx="330" cy="160" r="10" fill="none" stroke="#10b981" className="cc-map-pin" />
+
+                    {/* New York */}
+                    <circle cx="130" cy="85" r="4" fill="#10b981" />
+                    <circle cx="130" cy="85" r="9" fill="none" stroke="#10b981" className="cc-map-pin" />
+
+                    {/* London */}
+                    <circle cx="295" cy="68" r="4" fill="#10b981" />
+
+                    {/* Sydney */}
+                    <circle cx="495" cy="215" r="4" fill="#10b981" />
+                  </svg>
+
+                  {/* Regional Call Stats Bottom Floating Strip */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      display: 'flex',
+                      justifyContent: 'space-around',
+                      padding: '8px 12px',
+                      background: 'var(--card-sunken)',
+                      borderRadius: 'var(--r-sm, 8px)',
+                      border: '1px solid var(--border)',
+                      fontSize: 11.5,
+                      color: 'var(--ink2)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>● East Africa: <strong>428 calls</strong></span>
+                    <span>● North America: <strong>312 calls</strong></span>
+                    <span>● Europe: <strong>184 calls</strong></span>
+                    <span>● Asia-Pac: <strong>122 calls</strong></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════
+         TAB 2: COLLEAGUE DIRECTORY
+         ════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'directory' && (
+        <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1fr 340px', gap: 18, alignItems: 'start' }}>
+          {/* Main Directory Column */}
+          <div className="cc-card">
+            {/* Search Toolbar */}
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+              <SearchToolbar
+                search={searchStaff}
+                onSearch={(v) => {
+                  setSearchStaff(v);
+                  setDirPage(1);
+                }}
+                placeholder="Search colleagues by name, role or department…"
+                quickFilter={{
+                  value: presenceFilter === 'ALL' ? null : presenceFilter,
+                  onChange: (v) => {
+                    setPresenceFilter(v);
+                    setDirPage(1);
+                  },
+                  allLabel: 'All Statuses',
+                  options: [
+                    { value: 'ONLINE', label: 'Online Only', icon: <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} /> },
+                    { value: 'OFFLINE', label: 'Offline Only', icon: <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#94a3b8' }} /> },
+                  ],
+                }}
+                activeFilterCount={(presenceFilter && presenceFilter !== 'ALL' ? 1 : 0) + (roleFilter && roleFilter !== 'ALL' ? 1 : 0)}
+                filterContent={(close) => (
+                  <div style={{ padding: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
+                      <span style={{ fontWeight: 700, fontSize: 13 }}>Filter Directory</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchStaff('');
+                          setPresenceFilter(null);
+                          setRoleFilter(null);
+                        }}
+                        style={{ fontSize: 12, color: 'hsl(var(--primary))', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        Reset
+                      </button>
+                    </div>
+
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>
+                        Roles
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        <button
+                          type="button"
+                          onClick={() => setRoleFilter(null)}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: !roleFilter ? 700 : 500,
+                            background: !roleFilter ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
+                            color: !roleFilter ? 'hsl(var(--primary))' : 'var(--ink2)',
+                            border: !roleFilter ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
+                          }}
+                        >
+                          All Roles
+                        </button>
+                        {availableRoles.map((r) => (
+                          <button
+                            key={r}
+                            type="button"
+                            onClick={() => setRoleFilter(r)}
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: roleFilter === r ? 700 : 500,
+                              background: roleFilter === r ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
+                              color: roleFilter === r ? 'hsl(var(--primary))' : 'var(--ink2)',
+                              border: roleFilter === r ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
+                            }}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: 16, paddingTop: 10, borderTop: '1px solid var(--border)', textAlign: 'right' }}>
+                      <Button variant="default" size="sm" onClick={close}>
+                        Apply
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              />
+            </div>
+
+            {/* List of Colleague Cards */}
+            <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {filteredStaff.length === 0 ? (
                 <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-                  <Icon name="users" size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
+                  <Users size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
                   <div style={{ fontWeight: 700, color: 'var(--ink)' }}>No colleagues found</div>
-                  <div style={{ fontSize: 12, marginTop: 4 }}>Try clearing search keywords or active presence filters.</div>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>Try clearing keywords or presence filter.</div>
                 </div>
               ) : (
-                paginatedStaff.map(p => {
+                paginatedStaff.map((p) => {
                   const isOnline = online.has(p.id);
                   return (
                     <div
@@ -612,17 +1725,15 @@ export function Calls() {
                         borderRadius: 'var(--r, 12px)',
                         border: '1px solid var(--border)',
                         background: 'var(--card-bg, var(--white))',
-                        boxShadow: 'var(--elev-sm)',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                         flexDirection: isMobile ? 'column' : 'row',
                         gap: isMobile ? 12 : 14,
-                        transition: 'border-color 0.15s ease',
                       }}
                     >
-                      {/* Identity & Department */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                         <PersonAvatar userId={p.id} name={p.name} size={40} />
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span>{p.name}</span>
                             <Badge variant={isOnline ? 'success' : 'gray'}>
                               {isOnline ? 'Online' : 'Offline'}
@@ -630,44 +1741,32 @@ export function Calls() {
                           </div>
                           <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2 }}>
                             {p.role || 'Staff Member'}
-                            {p.department && ` â€¢ ${p.department}`}
+                            {p.department && ` • ${p.department}`}
                           </div>
                         </div>
                       </div>
 
-                      {/* Direct Action Buttons */}
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        width: isMobile ? '100%' : 'auto',
-                        justifyContent: isMobile ? 'flex-end' : 'initial',
-                      }}>
-                        <Tip label="Start direct voice call">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={!isOnline || callState !== 'idle'}
-                            onClick={() => startCall(p, 'VOICE')}
-                            style={{ flex: isMobile ? 1 : 'none', justifyContent: 'center' }}
-                          >
-                            <Icon name="phone" size={13} color="var(--green)" />
-                            <span>Voice Call</span>
-                          </Button>
-                        </Tip>
-
-                        <Tip label="Start direct video call">
-                          <Button
-                            variant="default"
-                            size="sm"
-                            disabled={!isOnline || callState !== 'idle'}
-                            onClick={() => startCall(p, 'VIDEO')}
-                            style={{ flex: isMobile ? 1 : 'none', justifyContent: 'center' }}
-                          >
-                            <Icon name="camera" size={13} />
-                            <span>Video Call</span>
-                          </Button>
-                        </Tip>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: isMobile ? '100%' : 'auto' }}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!isOnline || callState !== 'idle'}
+                          onClick={() => startCall(p, 'VOICE')}
+                          style={{ flex: isMobile ? 1 : 'none' }}
+                        >
+                          <Phone size={13} style={{ color: '#10b981', marginRight: 4 }} />
+                          <span>Voice</span>
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          disabled={!isOnline || callState !== 'idle'}
+                          onClick={() => startCall(p, 'VIDEO')}
+                          style={{ flex: isMobile ? 1 : 'none' }}
+                        >
+                          <Video size={13} style={{ marginRight: 4 }} />
+                          <span>Video</span>
+                        </Button>
                       </div>
                     </div>
                   );
@@ -677,82 +1776,63 @@ export function Calls() {
 
             {/* Pagination Controls */}
             {filteredStaff.length > DIR_PAGE_SIZE && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 18px',
-                borderTop: '1px solid var(--border)',
-                fontSize: 12,
-                color: 'var(--ink3)',
-                flexWrap: 'wrap',
-                gap: 10,
-              }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 18px',
+                  borderTop: '1px solid var(--border)',
+                  fontSize: 12,
+                  color: 'var(--ink3)',
+                }}
+              >
                 <div>
-                  Showing {Math.min(filteredStaff.length, (dirPage - 1) * DIR_PAGE_SIZE + 1)}â€“{Math.min(filteredStaff.length, dirPage * DIR_PAGE_SIZE)} of {filteredStaff.length} team members
+                  Showing {Math.min(filteredStaff.length, (dirPage - 1) * DIR_PAGE_SIZE + 1)}–
+                  {Math.min(filteredStaff.length, dirPage * DIR_PAGE_SIZE)} of {filteredStaff.length}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Button variant="outline" size="sm" disabled={dirPage <= 1} onClick={() => setDirPage(p => Math.max(1, p - 1))}>
-                    <Icon name="chevronLeft" size={14} />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={dirPage <= 1}
+                    onClick={() => setDirPage((p) => Math.max(1, p - 1))}
+                  >
+                    Prev
                   </Button>
-                  <span style={{ padding: '0 6px', fontWeight: 700, color: 'var(--ink)' }}>{dirPage} / {totalDirPages}</span>
-                  <Button variant="outline" size="sm" disabled={dirPage >= totalDirPages} onClick={() => setDirPage(p => Math.min(totalDirPages, p + 1))}>
-                    <Icon name="chevronRight" size={14} />
+                  <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{dirPage} / {totalDirPages}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={dirPage >= totalDirPages}
+                    onClick={() => setDirPage((p) => Math.min(totalDirPages, p + 1))}
+                  >
+                    Next
                   </Button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Right Sidebar: Recent Activity Feed */}
-          <div style={{
-            background: 'var(--card-bg, var(--white))',
-            borderRadius: 'var(--r, 16px)',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--elev-sm)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '12px 16px',
-              borderBottom: '1px solid var(--border)',
-              fontSize: 13,
-              fontWeight: 800,
-              color: 'var(--ink)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-              <span>Recent Direct Activity</span>
+          {/* Right Column: Live Activity Feed */}
+          <div className="cc-card">
+            <div className="cc-card-header">
+              <div className="cc-card-title">Recent Calls</div>
               <Badge variant="brand">{history.length}</Badge>
             </div>
 
             <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {history.length === 0 ? (
                 <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>
-                  No recent direct call logs.
+                  No recent direct calls.
                 </div>
               ) : (
-                history.slice(0, 7).map(h => {
+                history.slice(0, 6).map((h) => {
                   const outgoing = h.caller_id === user?.id;
                   const other = outgoing ? h.callee_name : h.caller_name;
                   const missed = h.status === 'MISSED' || h.status === 'DECLINED';
                   return (
-                    <div
-                      key={h.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '9px 12px',
-                        borderRadius: 'var(--r-sm, 8px)',
-                        border: '1px solid var(--border)',
-                        background: 'var(--card-sunken)',
-                        fontSize: 12,
-                        gap: 10,
-                      }}
-                    >
+                    <div key={h.id} className="cc-activity-row">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                         <FeaturedIcon variant={missed ? 'error' : 'brand'} size="sm">
                           <Icon name={h.kind === 'VOICE' ? 'phone' : 'camera'} size={14} />
@@ -762,16 +1842,13 @@ export function Calls() {
                             {other}
                           </div>
                           <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>
-                            {outgoing ? 'Outgoing' : 'Incoming'} â€¢ {fmtDate(h.started_at)}
+                            {outgoing ? 'Outgoing' : 'Incoming'} • {fmtDate(h.started_at)}
                           </div>
                         </div>
                       </div>
-
-                      <div style={{ flexShrink: 0 }}>
-                        <Badge variant={missed ? 'error' : 'success'}>
-                          {missed ? h.status.toLowerCase() : fmtDur(h.duration_seconds)}
-                        </Badge>
-                      </div>
+                      <Badge variant={missed ? 'error' : 'success'}>
+                        {missed ? h.status.toLowerCase() : fmtDur(h.duration_seconds)}
+                      </Badge>
                     </div>
                   );
                 })
@@ -781,313 +1858,215 @@ export function Calls() {
         </div>
       )}
 
-      {/* â”€â”€ TAB 2: CALL LOGS & HISTORY (Hybrid Desktop Table + Mobile Cards) â”€â”€ */}
-      {tab === 'history' && (
-        <div style={{
-          background: 'var(--card-bg, var(--white))',
-          borderRadius: 'var(--r, 16px)',
-          border: '1px solid var(--border)',
-          boxShadow: 'var(--elev-sm)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}>
-          {/* Single Row Filter Bar â€” wraps rather than a hidden-scrollbar overflow (see Calls tab bar above) */}
-          <div style={{
-            padding: '12px 16px',
-            borderBottom: '1px solid var(--border)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            rowGap: 8,
-            flexWrap: 'wrap',
-          }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: isMobile ? 140 : 200 }}>
-              <Icon name="search" size={13} style={{ position: 'absolute', left: 10, top: 9.5, color: 'var(--ink3)' }} />
-              <input
-                className="input-field"
-                style={{ paddingLeft: 28, fontSize: 12, height: 32, borderRadius: 'var(--r)', width: '100%' }}
-                placeholder="Search contact name..."
-                value={searchHistory}
-                onChange={e => { setSearchHistory(e.target.value); setHistoryPage(1); }}
-              />
-              {searchHistory && (
-                <button
-                  type="button"
-                  onClick={() => { setSearchHistory(''); setHistoryPage(1); }}
-                  style={{ position: 'absolute', right: 8, top: 8, background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 2 }}
-                >
-                  <Icon name="x" size={12} />
-                </button>
+      {/* ════════════════════════════════════════════════════════════════════════
+         TAB 3: CALL HISTORY & TELEMETRY LOGS
+         ════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'history' && (
+        <div className="cc-card">
+          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+            <SearchToolbar
+              search={searchHistory}
+              onSearch={(v) => {
+                setSearchHistory(v);
+                setHistoryPage(1);
+              }}
+              placeholder="Search contact name..."
+              quickFilter={{
+                value: directionFilter === 'ALL' ? null : directionFilter,
+                onChange: (v) => {
+                  setDirectionFilter(v);
+                  setHistoryPage(1);
+                },
+                allLabel: 'All Directions',
+                options: [
+                  { value: 'OUTBOUND', label: 'Outbound' },
+                  { value: 'INBOUND', label: 'Inbound' },
+                ],
+              }}
+              activeFilterCount={
+                (directionFilter && directionFilter !== 'ALL' ? 1 : 0) +
+                (historyKindFilter && historyKindFilter !== 'ALL' ? 1 : 0) +
+                (historyStatusFilter && historyStatusFilter !== 'ALL' ? 1 : 0)
+              }
+              filterContent={(close) => (
+                <div style={{ padding: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
+                    <span style={{ fontWeight: 700, fontSize: 13 }}>Filter Call Logs</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchHistory('');
+                        setDirectionFilter(null);
+                        setHistoryKindFilter(null);
+                        setHistoryStatusFilter(null);
+                      }}
+                      style={{ fontSize: 12, color: 'hsl(var(--primary))', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      Reset
+                    </button>
+                  </div>
+
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>
+                      Call Mode
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {['ALL', 'VIDEO', 'VOICE'].map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setHistoryKindFilter(m === 'ALL' ? null : m)}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: (m === 'ALL' && !historyKindFilter) || historyKindFilter === m ? 700 : 500,
+                            background:
+                              (m === 'ALL' && !historyKindFilter) || historyKindFilter === m
+                                ? 'hsl(var(--primary) / 0.1)'
+                                : 'var(--bg)',
+                            color:
+                              (m === 'ALL' && !historyKindFilter) || historyKindFilter === m
+                                ? 'hsl(var(--primary))'
+                                : 'var(--ink2)',
+                            border:
+                              (m === 'ALL' && !historyKindFilter) || historyKindFilter === m
+                                ? '1px solid hsl(var(--primary))'
+                                : '1px solid var(--border)',
+                          }}
+                        >
+                          {m === 'ALL' ? 'All Modes' : m === 'VIDEO' ? 'HD Video' : 'Voice'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 16, paddingTop: 10, borderTop: '1px solid var(--border)', textAlign: 'right' }}>
+                    <Button variant="default" size="sm" onClick={close}>
+                      Apply
+                    </Button>
+                  </div>
+                </div>
               )}
-            </div>
-
-            <SingleSelectFilter
-              label="Direction"
-              icon={<Icon name="phone" size={13} />}
-              value={directionFilter}
-              onChange={v => { setDirectionFilter(v); setHistoryPage(1); }}
-              options={[
-                { value: 'ALL', label: 'All Directions' },
-                { value: 'OUTBOUND', label: 'Outbound' },
-                { value: 'INBOUND', label: 'Inbound' },
-              ]}
-            />
-
-            <SingleSelectFilter
-              label="Mode"
-              icon={<Icon name="camera" size={13} />}
-              value={historyKindFilter}
-              onChange={v => { setHistoryKindFilter(v); setHistoryPage(1); }}
-              options={[
-                { value: 'ALL', label: 'All Modes' },
-                { value: 'VIDEO', label: 'HD Video' },
-                { value: 'VOICE', label: 'Voice Only' },
-              ]}
-            />
-
-            <SingleSelectFilter
-              label="Status"
-              icon={<Icon name="activity" size={13} />}
-              value={historyStatusFilter}
-              onChange={v => { setHistoryStatusFilter(v); setHistoryPage(1); }}
-              options={[
-                { value: 'ALL', label: 'All Statuses' },
-                { value: 'CONNECTED', label: 'Connected' },
-                { value: 'MISSED', label: 'Missed' },
-                { value: 'DECLINED', label: 'Declined' },
-              ]}
             />
           </div>
 
-          {/* Data Presentation (Table on Desktop, Card Feed on Mobile) */}
-          {filteredHistory.length === 0 ? (
-            <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-              <Icon name="phone" size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
-              <div style={{ fontWeight: 700, color: 'var(--ink)' }}>No call history records found</div>
-              <div style={{ fontSize: 12, marginTop: 4 }}>No calls match your active search or direction filters.</div>
-            </div>
-          ) : isMobile ? (
-            /* Mobile Card View */
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {paginatedHistory.map(h => {
-                const outgoing = h.caller_id === user?.id;
-                const other = outgoing ? h.callee_name : h.caller_name;
-                const otherId = outgoing ? h.callee_id : h.caller_id;
-                const missed = h.status === 'MISSED' || h.status === 'DECLINED';
-                const matchedPerson = staff.find(s => s.id === otherId);
-
-                return (
-                  <div
-                    key={h.id}
-                    style={{
-                      padding: '14px 16px',
-                      borderBottom: '1px solid var(--border)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 10,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <PersonAvatar userId={otherId} name={other} size={36} />
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{other}</div>
-                          <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{fmtDate(h.started_at)}</div>
-                        </div>
-                      </div>
-                      <Badge variant={missed ? 'error' : 'success'}>
-                        {h.status}
-                      </Badge>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink2)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Badge variant={outgoing ? 'brand' : 'info'}>
-                          {outgoing ? 'OUTBOUND' : 'INBOUND'}
-                        </Badge>
-                        <span>{h.kind}</span>
-                      </div>
-                      <div style={{ fontWeight: 700, fontFamily: 'var(--font)' }}>
-                        {missed ? '0s' : fmtDur(h.duration_seconds)}
-                      </div>
-                    </div>
-
-                    {matchedPerson && (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => startCall(matchedPerson, 'VOICE')}
-                          style={{ flex: 1, justifyContent: 'center' }}
-                        >
-                          <Icon name="phone" size={12} /> Call Voice
-                        </Button>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => startCall(matchedPerson, 'VIDEO')}
-                          style={{ flex: 1, justifyContent: 'center' }}
-                        >
-                          <Icon name="camera" size={12} /> Call Video
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            /* Desktop Table View */
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-                <thead>
-                  <tr style={{ background: 'var(--card-sunken)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
-                    {['Direction', 'Colleague / Contact', 'Mode', 'Duration', 'Status', 'Date & Time', ''].map(h => (
-                      <th key={h} style={{ padding: '11px 16px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
-                    ))}
+          <div style={{ overflowX: 'auto' }}>
+            <table className="cc-table">
+              <thead>
+                <tr>
+                  <th>Direction</th>
+                  <th>Contact</th>
+                  <th>Mode</th>
+                  <th>Duration</th>
+                  <th>Status</th>
+                  <th>Date & Time</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredHistory.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: 36, color: 'var(--ink3)' }}>
+                      No call records found matching your filters.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {paginatedHistory.map(h => {
+                ) : (
+                  paginatedHistory.map((h) => {
                     const outgoing = h.caller_id === user?.id;
                     const other = outgoing ? h.callee_name : h.caller_name;
                     const otherId = outgoing ? h.callee_id : h.caller_id;
                     const missed = h.status === 'MISSED' || h.status === 'DECLINED';
-                    const matchedPerson = staff.find(s => s.id === otherId);
+                    const matchedPerson = combinedStaff.find((s) => s.id === otherId);
 
                     return (
-                      <tr key={h.id} style={{ borderBottom: '1px solid var(--border)' }} className="hover:bg-[var(--bg)]">
-                        <td style={{ padding: '12px 16px' }}>
+                      <tr key={h.id}>
+                        <td>
                           <Badge variant={outgoing ? 'brand' : 'info'}>
                             {outgoing ? 'OUTBOUND' : 'INBOUND'}
                           </Badge>
                         </td>
-
-                        <td style={{ padding: '12px 16px' }}>
+                        <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <PersonAvatar userId={otherId} name={other} size={26} />
+                            <PersonAvatar userId={otherId} name={other} size={28} />
                             <span style={{ fontWeight: 800, color: 'var(--ink)' }}>{other}</span>
                           </div>
                         </td>
-
-                        <td style={{ padding: '12px 16px', color: 'var(--ink2)', fontWeight: 600 }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                            <Icon name={h.kind === 'VOICE' ? 'phone' : 'camera'} size={13} color="var(--ink3)" />
+                        <td>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
+                            {h.kind === 'VOICE' ? <Phone size={13} style={{ color: 'var(--ink3)' }} /> : <Video size={13} style={{ color: 'var(--ink3)' }} />}
                             {h.kind}
                           </span>
                         </td>
-
-                        <td style={{ padding: '12px 16px', fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>
+                        <td style={{ fontWeight: 700, fontFamily: 'var(--font)' }}>
                           {missed ? '0s' : fmtDur(h.duration_seconds)}
                         </td>
-
-                        <td style={{ padding: '12px 16px' }}>
-                          <Badge variant={missed ? 'error' : 'success'}>
-                            {h.status}
-                          </Badge>
+                        <td>
+                          <Badge variant={missed ? 'error' : 'success'}>{h.status}</Badge>
                         </td>
-
-                        <td style={{ padding: '12px 16px', color: 'var(--ink3)', fontSize: 12 }}>
-                          {fmtDate(h.started_at)}
-                        </td>
-
-                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmtDate(h.started_at)}</td>
+                        <td style={{ textAlign: 'right' }}>
                           {matchedPerson && (
-                            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                              <Tip label="Call back">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => startCall(matchedPerson, h.kind === 'VOICE' ? 'VOICE' : 'VIDEO')}
-                                >
-                                  <Icon name={h.kind === 'VOICE' ? 'phone' : 'camera'} size={13} />
-                                  <span>Redial</span>
-                                </Button>
-                              </Tip>
-                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              style={{ height: 26, padding: '0 8px', fontSize: 11 }}
+                              onClick={() => startCall(matchedPerson, h.kind === 'VOICE' ? 'VOICE' : 'VIDEO')}
+                            >
+                              Redial
+                            </Button>
                           )}
                         </td>
                       </tr>
                     );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Pagination Controls */}
-          {filteredHistory.length > HISTORY_PAGE_SIZE && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '12px 18px',
-              borderTop: '1px solid var(--border)',
-              fontSize: 12,
-              color: 'var(--ink3)',
-              flexWrap: 'wrap',
-              gap: 10,
-            }}>
-              <div>
-                Showing {Math.min(filteredHistory.length, (historyPage - 1) * HISTORY_PAGE_SIZE + 1)}â€“{Math.min(filteredHistory.length, historyPage * HISTORY_PAGE_SIZE)} of {filteredHistory.length} records
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Button variant="outline" size="sm" disabled={historyPage <= 1} onClick={() => setHistoryPage(p => Math.max(1, p - 1))}>
-                  <Icon name="chevronLeft" size={14} />
-                </Button>
-                <span style={{ padding: '0 6px', fontWeight: 700, color: 'var(--ink)' }}>{historyPage} / {totalHistoryPages}</span>
-                <Button variant="outline" size="sm" disabled={historyPage >= totalHistoryPages} onClick={() => setHistoryPage(p => Math.min(totalHistoryPages, p + 1))}>
-                  <Icon name="chevronRight" size={14} />
-                </Button>
-              </div>
-            </div>
-          )}
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* â”€â”€ TAB 3: QUICK DIALPAD & EXTENSION CALLER â”€â”€ */}
-      {tab === 'dialpad' && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-          padding: isMobile ? '8px 0' : '16px 0',
-        }}>
-          <div style={{
-            background: 'var(--card-bg, var(--white))',
-            borderRadius: 'var(--r, 20px)',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--elev-sm)',
-            padding: isMobile ? 20 : 28,
-            width: '100%',
-            maxWidth: 380,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 18,
-          }}>
+      {/* ════════════════════════════════════════════════════════════════════════
+         TAB 4: QUICK DIALPAD
+         ════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'dialpad' && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
+          <div
+            className="cc-card"
+            style={{
+              padding: isMobile ? 20 : 28,
+              width: '100%',
+              maxWidth: 380,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 18,
+            }}
+          >
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>Direct Dialpad</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)' }}>Direct Dialpad</div>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
-                Enter colleague name, extension or number
+                Enter colleague name, extension or digits
               </div>
             </div>
 
             {/* Display Input */}
-            <div style={{
-              background: 'var(--card-sunken)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--r, 12px)',
-              padding: '12px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              minHeight: 48,
-            }}>
+            <div
+              style={{
+                background: 'var(--card-sunken)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--r, 12px)',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                minHeight: 48,
+              }}
+            >
               <input
                 value={dialpadNumber}
-                onChange={e => setDialpadNumber(e.target.value)}
-                placeholder="Type name or digits..."
+                onChange={(e) => setDialpadNumber(e.target.value)}
+                placeholder="Type name or number..."
                 style={{
                   background: 'none',
                   border: 'none',
@@ -1097,7 +2076,6 @@ export function Calls() {
                   color: 'var(--ink)',
                   width: '100%',
                   fontFamily: 'var(--font)',
-                  letterSpacing: '0.05em',
                 }}
               />
               {dialpadNumber && (
@@ -1106,24 +2084,26 @@ export function Calls() {
                   onClick={() => setDialpadNumber('')}
                   style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }}
                 >
-                  <Icon name="x" size={16} />
+                  <X size={16} />
                 </button>
               )}
             </div>
 
-            {/* Matched Colleague Auto-Suggest */}
+            {/* Auto-Match Colleague */}
             {dialpadMatchedStaff.length > 0 && (
-              <div style={{
-                maxHeight: 120,
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 4,
-                background: 'var(--card-sunken)',
-                padding: 6,
-                borderRadius: 'var(--r-sm, 8px)',
-              }}>
-                {dialpadMatchedStaff.slice(0, 3).map(s => (
+              <div
+                style={{
+                  maxHeight: 120,
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  background: 'var(--card-sunken)',
+                  padding: 6,
+                  borderRadius: 'var(--r-sm, 8px)',
+                }}
+              >
+                {dialpadMatchedStaff.slice(0, 3).map((s) => (
                   <button
                     key={s.id}
                     type="button"
@@ -1142,13 +2122,13 @@ export function Calls() {
                     }}
                   >
                     <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{s.name}</span>
-                    <span style={{ fontSize: 11, color: 'var(--teal)' }}>Call Now â†—</span>
+                    <span style={{ fontSize: 11, color: 'hsl(var(--primary))' }}>Call Now ↗</span>
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Numeric Keypad Grid */}
+            {/* Keypad */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               {[
                 { digit: '1', sub: '' },
@@ -1163,7 +2143,7 @@ export function Calls() {
                 { digit: '*', sub: '' },
                 { digit: '0', sub: '+' },
                 { digit: '#', sub: '' },
-              ].map(k => (
+              ].map((k) => (
                 <button
                   key={k.digit}
                   type="button"
@@ -1184,32 +2164,34 @@ export function Calls() {
                   className="active:scale-95 hover:border-[var(--teal)]"
                 >
                   <span style={{ fontSize: 18, fontWeight: 800, lineHeight: 1 }}>{k.digit}</span>
-                  {k.sub && <span style={{ fontSize: 9, color: 'var(--ink3)', letterSpacing: '0.1em', marginTop: 2 }}>{k.sub}</span>}
+                  {k.sub && (
+                    <span style={{ fontSize: 9, color: 'var(--ink3)', letterSpacing: '0.1em', marginTop: 2 }}>
+                      {k.sub}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
 
-            {/* Action Buttons */}
+            {/* Call Buttons */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 6 }}>
               <Button
                 variant="outline"
-                size="default"
                 disabled={!dialpadNumber.trim() || dialpadMatchedStaff.length === 0}
                 onClick={() => dialpadMatchedStaff[0] && startCall(dialpadMatchedStaff[0], 'VOICE')}
                 style={{ justifyContent: 'center' }}
               >
-                <Icon name="phone" size={16} color="var(--green)" />
+                <Phone size={15} style={{ color: '#10b981', marginRight: 6 }} />
                 <span>Voice Call</span>
               </Button>
 
               <Button
                 variant="default"
-                size="default"
                 disabled={!dialpadNumber.trim() || dialpadMatchedStaff.length === 0}
                 onClick={() => dialpadMatchedStaff[0] && startCall(dialpadMatchedStaff[0], 'VIDEO')}
                 style={{ justifyContent: 'center' }}
               >
-                <Icon name="camera" size={16} />
+                <Video size={15} style={{ marginRight: 6 }} />
                 <span>Video Call</span>
               </Button>
             </div>
@@ -1217,49 +2199,65 @@ export function Calls() {
         </div>
       )}
 
-      {/* â”€â”€ INCOMING CALL PROMPT MODAL â”€â”€ */}
+      {/* ── INCOMING CALL PROMPT MODAL ── */}
       {callState === 'incoming' && peer && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 2000,
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 16,
-        }}>
-          <div style={{
-            background: 'var(--card-bg, var(--white))',
-            borderRadius: 'var(--r, 24px)',
-            padding: 32,
-            width: '100%',
-            maxWidth: 380,
-            textAlign: 'center',
-            boxShadow: 'var(--elev-lg)',
-            border: '1px solid var(--border)',
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 2000,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(6px)',
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
-            animation: 'fadeIn 0.2s ease',
-          }}>
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--card-bg, var(--white))',
+              borderRadius: 'var(--r, 24px)',
+              padding: 32,
+              width: '100%',
+              maxWidth: 380,
+              textAlign: 'center',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              animation: 'fadeIn 0.2s ease',
+            }}
+          >
             <div style={{ position: 'relative', marginBottom: 16 }}>
               <PersonAvatar userId={peer.id} name={peer.name} size={72} />
-              <span style={{
-                position: 'absolute',
-                inset: -6,
-                borderRadius: '50%',
-                border: '2px solid var(--teal)',
-                animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
-                pointerEvents: 'none',
-              }} />
+              <span
+                style={{
+                  position: 'absolute',
+                  inset: -6,
+                  borderRadius: '50%',
+                  border: '2px solid hsl(var(--primary))',
+                  animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
+                  pointerEvents: 'none',
+                }}
+              />
             </div>
 
             <div style={{ fontSize: 19, fontWeight: 900, color: 'var(--ink)' }}>{peer.name}</div>
-            <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 4, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name={kind === 'VIDEO' ? 'camera' : 'phone'} size={14} color="var(--teal)" />
-              <span>Incoming WebRTC {kind === 'VIDEO' ? 'Video' : 'Voice'} Callâ€¦</span>
+            <div
+              style={{
+                fontSize: 13,
+                color: 'var(--ink2)',
+                marginTop: 4,
+                marginBottom: 24,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              {kind === 'VIDEO' ? <Video size={14} /> : <Phone size={14} />}
+              <span>Incoming WebRTC {kind === 'VIDEO' ? 'Video' : 'Voice'} Call…</span>
             </div>
 
             <div style={{ display: 'flex', gap: 14, width: '100%', justifyContent: 'center' }}>
@@ -1268,15 +2266,22 @@ export function Calls() {
                 style={{ flex: 1, borderRadius: 30, padding: '12px 20px', justifyContent: 'center' }}
                 onClick={declineCall}
               >
-                <Icon name="x" size={16} />
+                <X size={16} style={{ marginRight: 6 }} />
                 <span>Decline</span>
               </Button>
               <Button
                 variant="default"
-                style={{ flex: 1, borderRadius: 30, padding: '12px 20px', background: 'var(--green)', color: '#ffffff', justifyContent: 'center' }}
+                style={{
+                  flex: 1,
+                  borderRadius: 30,
+                  padding: '12px 20px',
+                  background: '#10b981',
+                  color: '#ffffff',
+                  justifyContent: 'center',
+                }}
                 onClick={acceptCall}
               >
-                <Icon name="phone" size={16} />
+                <Phone size={16} style={{ marginRight: 6 }} />
                 <span>Accept</span>
               </Button>
             </div>
@@ -1284,18 +2289,29 @@ export function Calls() {
         </div>
       )}
 
-      {/* â”€â”€ ACTIVE FULLSCREEN CALL STAGE â”€â”€ */}
+      {/* ── ACTIVE FULLSCREEN CALL STAGE ── */}
       {inCall && peer && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 2000,
-          background: '#090b0e',
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 2000,
+            background: '#090b0e',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
           {/* Main Video Viewport */}
-          <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            style={{
+              flex: 1,
+              position: 'relative',
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <video
               ref={remoteVideo}
               autoPlay
@@ -1309,64 +2325,79 @@ export function Calls() {
               }}
             />
 
-            {/* Voice Call Avatar Screen (or Ringing State) */}
             {(kind === 'VOICE' || callState === 'calling') && (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
-                gap: 14,
-                textAlign: 'center',
-                padding: 20,
-              }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  gap: 14,
+                  textAlign: 'center',
+                  padding: 20,
+                }}
+              >
                 <div style={{ position: 'relative' }}>
                   <PersonAvatar userId={peer.id} name={peer.name} size={96} />
                   {callState === 'calling' && (
-                    <span style={{
-                      position: 'absolute',
-                      inset: -8,
-                      borderRadius: '50%',
-                      border: '2px solid rgba(255,255,255,0.4)',
-                      animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
-                    }} />
+                    <span
+                      style={{
+                        position: 'absolute',
+                        inset: -8,
+                        borderRadius: '50%',
+                        border: '2px solid rgba(255,255,255,0.4)',
+                        animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
+                      }}
+                    />
                   )}
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.02em' }}>{peer.name}</div>
-                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Icon name={kind === 'VIDEO' ? 'camera' : 'phone'} size={15} />
-                  <span>{callState === 'calling' ? 'Ringing WebRTC peerâ€¦' : `In Voice Call â€¢ ${fmtDur(elapsed)}`}</span>
+                <div
+                  style={{
+                    fontSize: 14,
+                    color: 'rgba(255,255,255,0.7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  {kind === 'VIDEO' ? <Video size={15} /> : <Phone size={15} />}
+                  <span>
+                    {callState === 'calling' ? 'Ringing WebRTC peer…' : `In Voice Call • ${fmtDur(elapsed)}`}
+                  </span>
                 </div>
               </div>
             )}
 
-            {/* Top Floating Info Chip */}
+            {/* Top Info Chip */}
             {callState === 'in-call' && (
-              <div style={{
-                position: 'absolute',
-                top: 20,
-                left: 20,
-                background: 'rgba(0,0,0,0.65)',
-                color: '#ffffff',
-                padding: '8px 16px',
-                borderRadius: 24,
-                fontSize: 13,
-                fontWeight: 700,
-                backdropFilter: 'blur(10px)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                border: '1px solid rgba(255,255,255,0.15)',
-              }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }} />
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 20,
+                  left: 20,
+                  background: 'rgba(0,0,0,0.65)',
+                  color: '#ffffff',
+                  padding: '8px 16px',
+                  borderRadius: 24,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  backdropFilter: 'blur(10px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  border: '1px solid rgba(255,255,255,0.15)',
+                }}
+              >
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
                 <span>{peer.name}</span>
-                <span style={{ color: 'rgba(255,255,255,0.6)' }}>â€¢</span>
+                <span style={{ color: 'rgba(255,255,255,0.6)' }}>•</span>
                 <span style={{ fontFamily: 'var(--font)' }}>{fmtDur(elapsed)}</span>
               </div>
             )}
 
-            {/* Local Video Picture-in-Picture */}
+            {/* Local PiP Video */}
             <video
               ref={localVideo}
               autoPlay
@@ -1388,15 +2419,17 @@ export function Calls() {
             />
           </div>
 
-          {/* Bottom Floating Glass Control Bar */}
-          <div style={{
-            display: 'flex',
-            gap: 16,
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: isMobile ? '16px 20px 24px' : '20px 0 32px',
-            background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
-          }}>
+          {/* Control Bar */}
+          <div
+            style={{
+              display: 'flex',
+              gap: 16,
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: isMobile ? '16px 20px 24px' : '20px 0 32px',
+              background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
+            }}
+          >
             <button
               type="button"
               onClick={toggleMute}
@@ -1405,7 +2438,7 @@ export function Calls() {
                 height: 52,
                 borderRadius: '50%',
                 border: 'none',
-                background: muted ? 'var(--red)' : 'rgba(255,255,255,0.2)',
+                background: muted ? '#ef4444' : 'rgba(255,255,255,0.2)',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
@@ -1427,7 +2460,7 @@ export function Calls() {
                   height: 52,
                   borderRadius: '50%',
                   border: 'none',
-                  background: camOff ? 'var(--red)' : 'rgba(255,255,255,0.2)',
+                  background: camOff ? '#ef4444' : 'rgba(255,255,255,0.2)',
                   color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
@@ -1437,7 +2470,7 @@ export function Calls() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <Icon name="camera" size={20} />
+                <Video size={20} />
               </button>
             )}
 
@@ -1449,17 +2482,17 @@ export function Calls() {
                 height: 56,
                 borderRadius: '50%',
                 border: 'none',
-                background: 'var(--red)',
+                background: '#ef4444',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                boxShadow: '0 4px 18px var(--red-l)',
+                boxShadow: '0 4px 18px rgba(239,68,68,0.4)',
                 transition: 'all 0.15s ease',
               }}
             >
-              <Icon name="x" size={24} />
+              <X size={24} />
             </button>
           </div>
         </div>

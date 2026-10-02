@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import type { Kysely, Transaction } from 'kysely';
 import { withTenant, type Database } from '../db/client.js';
 import { hashApiKey } from '../middleware/auth.js';
-import type { UserRole } from '@hudumika/types';
+import { FINANCE_CAPABILITIES, type UserRole } from '@hudumika/types';
 import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 
 type Db = Kysely<Database> | Transaction<Database>;
@@ -29,6 +29,17 @@ async function getGrantedFeatures(trx: Db, tenantId: string): Promise<Set<string
   for (const [key, enabled] of Object.entries(overrides)) {
     if (enabled) granted.add(key);
     else granted.delete(key);
+  }
+
+  // An API key is a durable credential, so Finance sub-scopes must reflect
+  // activation as well as package entitlement at issuance time. The runtime
+  // capability middleware repeats this check and handles later downgrades.
+  const activations = await trx.selectFrom('tenant_finance_capabilities')
+    .select(['capability_key', 'enabled']).where('tenant_id', '=', tenantId).execute();
+  const enabledCapabilities = new Map(activations.map(row => [row.capability_key, row.enabled]));
+  for (const capability of FINANCE_CAPABILITIES) {
+    if (capability.key === 'finance.core') continue;
+    if (capability.status !== 'available' || enabledCapabilities.get(capability.key) !== true) granted.delete(capability.key);
   }
   return granted;
 }

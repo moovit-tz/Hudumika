@@ -150,7 +150,7 @@ export function MyHubPage() {
     },
   ];
 
-  if (loading) return <div style={{ padding: 40, color: 'var(--ink3)', textAlign: 'center' }}>Loading your employee hubâ€¦</div>;
+  if (loading) return <div style={{ padding: 40, color: 'var(--ink3)', textAlign: 'center' }}>Loading your employee hub…</div>;
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 50 }}>
@@ -176,11 +176,11 @@ export function MyHubPage() {
                 </div>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Today's Shift Timeline</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Standard Shift: 08:00 AM â€“ 05:00 PM (1h Break)</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Standard Shift: 08:00 AM – 05:00 PM (1h Break)</div>
                 </div>
               </div>
               <Link to="/nexushr/clock-in" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
-                Full Roster âž”
+                Full Roster ➔
               </Link>
             </div>
 
@@ -259,7 +259,7 @@ export function MyHubPage() {
                 </div>
               </div>
               <Link to="/nexushr/my-payslips" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
-                All Slips ({slipCount}) âž”
+                All Slips ({slipCount}) ➔
               </Link>
             </div>
 
@@ -392,7 +392,7 @@ export function MyHubPage() {
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.4 }}>
               <strong>Nane Nane Day (Farmers' Day)</strong><br />
-              August 8, 2026 â€¢ Official National Holiday
+              August 8, 2026 • Official National Holiday
             </div>
           </div>
         </div>

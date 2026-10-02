@@ -4,7 +4,6 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireFinanceCapability } from '../middleware/finance-capability.js';
-import { requireFinanceCapability } from '../middleware/finance-capability.js';
 
 const lineSchema = z.object({
   account_code: z.string().min(1).max(20),
@@ -15,7 +14,7 @@ const lineSchema = z.object({
 export async function budgetRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
-  fastify.addHook('preHandler', requireFinanceCapability('finance.budgets'));
+  fastify.addHook('preHandler', requireFinanceCapability('finance.budgets', { preserveReadAccess: true }));
 
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,
   // fleet ops, HR, identity/access admin, or tenant configuration) with only

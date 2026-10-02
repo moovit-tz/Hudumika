@@ -12,7 +12,7 @@
   --cos-gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
   --cos-gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   --cos-gradient-orange: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-  --cos-border-radius: 16px;
+  --cos-border-radius: var(--card-radius, 8px);
   --cos-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

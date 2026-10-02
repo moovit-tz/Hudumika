@@ -221,9 +221,9 @@ export function ComplyLicenseAutomation() {
   return (
     <div className="comply-page" data-layout="full">
       <PageHeader
-        crumbs={['ComplyOS', 'License Automation Tool']}
-        titlePlain="License Automation"
-        titleEm="tool"
+        crumbs={['ComplyOS', 'Licence automation']}
+        titlePlain="Licence"
+        titleEm="automation"
         subtitle="Sign in to Tausi (TAMISEMI) directly inside the in-app browser below or upload your statement to extract, verify, and track all business licenses &amp; LGA levies."
       />
 

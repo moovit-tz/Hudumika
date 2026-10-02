@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -13,7 +13,7 @@ import './SupportOverview.css';
 
 /**
  * Merged with the page that used to live at /bliss/overview/analytics
- * (SupportAnalytics.tsx, now deleted) â€” both read the exact same
+ * (SupportAnalytics.tsx, now deleted) — both read the exact same
  * useSupportMetrics() hook and rendered the same KPI-card/section-header
  * look as two separate page loads for what is really one dashboard: this
  * page's own volume/status KPIs measure different things than Analytics'
@@ -40,7 +40,7 @@ export const SupportOverview: React.FC = () => {
   // Recent open/urgent tickets for quick action table
   const recentTickets = tickets.slice(0, 5);
 
-  // â”€â”€ From the former Analytics page â”€â”€
+  // ── From the former Analytics page ──
   const byCat = Array.from(new Set(tickets.map(t => t.category || 'Uncategorized')))
     .map(cat => ({ label: cat, count: tickets.filter(t => (t.category || 'Uncategorized') === cat).length }))
     .sort((a, b) => b.count - a.count);
@@ -59,7 +59,7 @@ export const SupportOverview: React.FC = () => {
   const escalation = metrics?.escalation ?? 0;
 
   if (loading) {
-    return <div className="sov-loading">Loading support overviewâ€¦</div>;
+    return <div className="sov-loading">Loading support overview…</div>;
   }
 
   return (
@@ -70,12 +70,18 @@ export const SupportOverview: React.FC = () => {
           crumbs={['Bliss', 'Support']}
           titlePlain="Support"
           titleEm="overview"
-          subtitle={`${total} total cases Â· ${urgent} urgent Â· ${resRate}% resolution rate`}
+          subtitle={`${total} total cases · ${urgent} urgent · ${resRate}% resolution rate`}
           actions={
-            <div className="sov-actions">
+            <div className="sov-actions" style={{ flexWrap: 'wrap' }}>
               <PeriodSwitcher period={period} setPeriod={setPeriod} />
-              <Button variant="outline" size="sm" onClick={() => navigate('/bliss/overview/team')}>
-                <Icon name="users" size={14} /> Team
+              <Button variant="outline" size="sm" onClick={() => navigate('/bliss/reports/agent-performance')}>
+                <Icon name="award" size={14} /> Performance
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigate('/bliss/reports/sla-compliance')}>
+                <Icon name="shield" size={14} /> SLA
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigate('/bliss/reports/traffic')}>
+                <Icon name="trendingUp" size={14} /> Traffic
               </Button>
               <Link to="/bliss/inbox" className="sov-all-tickets-btn">
                 <Icon name="message" size={14} strokeWidth={2} />
@@ -138,18 +144,18 @@ export const SupportOverview: React.FC = () => {
           </div>
         </div>
 
-        {/* â”€â”€ Satisfaction / quality â€” formerly a separate Analytics page â”€â”€ */}
+        {/* ── Satisfaction / quality — formerly a separate Analytics page ── */}
         <div className="sov-kpi-row">
-          <KpiCard icon="zap"         label="NPS Score"       value={metrics ? `${metrics.nps.score > 0 ? '+' : ''}${metrics.nps.score}` : 'â€”'} iconBg="var(--teal-l)"  color="var(--teal)"   sub={`${npsTotal} responses`} />
-          <KpiCard icon="smile"       label="CSAT Score"      value={metrics ? `${metrics.csat}/5` : 'â€”'}       iconBg="var(--green-l)" color="var(--green)"  sub="Customer satisfaction" />
-          <KpiCard icon="clock"       label="Avg First Reply" value={metrics ? `${metrics.firstReply}h` : 'â€”'}  iconBg="var(--blue-l)"  color="var(--blue)"   sub="Target: <2h" />
-          <KpiCard icon="timer"       label="Avg Solve Time"  value={metrics ? `${metrics.resolution}h` : 'â€”'}  iconBg="var(--gold-l)"  color="var(--gold)"   sub="Target: <8h" />
-          <KpiCard icon="tasks"       label="SLA Compliance"  value={metrics ? `${metrics.sla}%` : 'â€”'}         iconBg="var(--green-l)" color="var(--green)" />
-          <KpiCard icon="warning"     label="Defect Rate"     value={metrics ? `${metrics.defect}%` : 'â€”'}      iconBg="var(--red-l)"   color="var(--red)"    sub="Reopened / escalated" />
+          <KpiCard icon="zap"         label="NPS Score"       value={metrics ? `${metrics.nps.score > 0 ? '+' : ''}${metrics.nps.score}` : '—'} iconBg="var(--teal-l)"  color="var(--teal)"   sub={`${npsTotal} responses`} />
+          <KpiCard icon="smile"       label="CSAT Score"      value={metrics ? `${metrics.csat}/5` : '—'}       iconBg="var(--green-l)" color="var(--green)"  sub="Customer satisfaction" />
+          <KpiCard icon="clock"       label="Avg First Reply" value={metrics ? `${metrics.firstReply}h` : '—'}  iconBg="var(--blue-l)"  color="var(--blue)"   sub="Target: <2h" />
+          <KpiCard icon="timer"       label="Avg Solve Time"  value={metrics ? `${metrics.resolution}h` : '—'}  iconBg="var(--gold-l)"  color="var(--gold)"   sub="Target: <8h" />
+          <KpiCard icon="tasks"       label="SLA Compliance"  value={metrics ? `${metrics.sla}%` : '—'}         iconBg="var(--green-l)" color="var(--green)" />
+          <KpiCard icon="warning"     label="Defect Rate"     value={metrics ? `${metrics.defect}%` : '—'}      iconBg="var(--red-l)"   color="var(--red)"    sub="Reopened / escalated" />
         </div>
 
         {/* These are the same numbers registered in the platform Metric
-            Registry (bliss.sla_compliance, bliss.csat, ...) â€” one link out
+            Registry (bliss.sla_compliance, bliss.csat, ...) — one link out
             to where they can be compared against every other app's metrics,
             queried, or dropped onto a dashboard. */}
         <Link to="/hudubi/metrics?app=bliss" className="sov-hudubi-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
@@ -171,9 +177,9 @@ export const SupportOverview: React.FC = () => {
               </div>
               <div className="sov-nps-breakdown">
                 {[
-                  { label: 'Promoters',  pct: npsPromoters,  color: 'var(--green)', note: '9â€“10' },
-                  { label: 'Passives',   pct: npsPassives,   color: 'var(--gold)',  note: '7â€“8'  },
-                  { label: 'Detractors', pct: npsDetractors, color: 'var(--red)',   note: '0â€“6'  },
+                  { label: 'Promoters',  pct: npsPromoters,  color: 'var(--green)', note: '9–10' },
+                  { label: 'Passives',   pct: npsPassives,   color: 'var(--gold)',  note: '7–8'  },
+                  { label: 'Detractors', pct: npsDetractors, color: 'var(--red)',   note: '0–6'  },
                 ].map(row => (
                   <div key={row.label} className="sov-nps-bar-row">
                     <div className="sov-nps-bar-top">
@@ -215,7 +221,7 @@ export const SupportOverview: React.FC = () => {
             <SHdr title="Time & Quality" />
             {[
               { label: 'Avg Waiting Time', value: `${waiting}h`,    note: 'Before first reply', color: 'var(--blue)',  target: '< 2h',  ok: waiting <= 2  },
-              { label: 'Avg Solving Time', value: `${solveTime}h`,  note: 'Open â†’ resolved',    color: 'var(--teal)',  target: '< 8h',  ok: solveTime <= 8 },
+              { label: 'Avg Solving Time', value: `${solveTime}h`,  note: 'Open → resolved',    color: 'var(--teal)',  target: '< 8h',  ok: solveTime <= 8 },
               { label: 'SLA Compliance',   value: `${sla}%`,        note: 'Within agreed SLA',  color: 'var(--green)', target: '> 90%', ok: sla >= 90    },
               { label: 'Defect Rate',      value: `${defect}%`,     note: 'Reopened / escalated', color: 'var(--red)', target: '< 3%',  ok: defect <= 3   },
               { label: 'Escalation Rate',  value: `${escalation}%`, note: 'Sent to senior / mgmt', color: 'var(--gold)', target: '< 5%', ok: escalation <= 5 },
@@ -223,7 +229,7 @@ export const SupportOverview: React.FC = () => {
               <div key={m.label} className="sov-tq-row">
                 <div>
                   <div className="sov-tq-label">{m.label}</div>
-                  <div className="sov-tq-note">{m.note} Â· Target {m.target}</div>
+                  <div className="sov-tq-note">{m.note} · Target {m.target}</div>
                 </div>
                 <div className="sov-tq-value">
                   <span style={{ color: m.color }}>{m.value}</span>
@@ -238,7 +244,7 @@ export const SupportOverview: React.FC = () => {
           <div className="sov-card">
             <SHdr title="Hours Until First Agent Reply" />
             {(() => {
-              const buckets = [{ key: '0-1', label: '0â€“1h' }, { key: '1-8', label: '1â€“8h' }, { key: '8-24', label: '8â€“24h' }, { key: '>24', label: '>24h' }];
+              const buckets = [{ key: '0-1', label: '0–1h' }, { key: '1-8', label: '1–8h' }, { key: '8-24', label: '8–24h' }, { key: '>24', label: '>24h' }];
               const hist = metrics?.firstReplyHistogram || { '0-1': 0, '1-8': 0, '8-24': 0, '>24': 0 };
               const histMax = Math.max(...buckets.map(b => hist[b.key] || 0), 1);
               return (
@@ -307,7 +313,7 @@ export const SupportOverview: React.FC = () => {
                         const v = lookup.get(`${day}|${b}`) || 0;
                         const intensity = v / cellMax;
                         return (
-                          <div key={b} title={`${day} ${b}h â€” ${v} tickets`} className="sov-heatmap-cell"
+                          <div key={b} title={`${day} ${b}h — ${v} tickets`} className="sov-heatmap-cell"
                             style={{ background: intensity === 0 ? 'var(--bg)' : `color-mix(in srgb, var(--teal) ${Math.round(20 + intensity * 80)}%, var(--white))` }} />
                         );
                       })}

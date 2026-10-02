@@ -108,7 +108,7 @@ export const TrackingTrailerDetail: React.FC = () => {
               </select>
               <input placeholder="Document number" value={docNumber} onChange={e => setDocNumber(e.target.value)} style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12.5, flex: 1, minWidth: 120 }} />
               <input type="date" value={docExpiry} onChange={e => setDocExpiry(e.target.value)} style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12.5 }} />
-              <button type="submit" style={{ padding: '8px 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font)' }}>Save</button>
+              <button type="submit" className="btn btn-primary btn-sm">Save</button>
             </form>
           )}
           {documents.length === 0 ? (

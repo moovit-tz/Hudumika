@@ -8,6 +8,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
+import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 
 interface PLRow { label: string; amount: number; sub?: boolean; bold?: boolean; separator?: boolean }
 
@@ -50,7 +52,7 @@ function buildCostsProfitRows(revenueTotal: number, expenses: ProfitLossLine[]) 
   const cogs = expenses.filter(e => e.subtype === 'COST_OF_SERVICES');
   const opex = expenses.filter(e => e.subtype === 'OPERATING_EXPENSE' || e.subtype === 'ADMIN_EXPENSE');
   const finance = expenses.filter(e => e.subtype === 'FINANCE_COST');
-  // Income tax (5950) and deferred tax (5951) â€” kept out of the "Other
+  // Income tax (5950) and deferred tax (5951) — kept out of the "Other
   // Expenses" catch-all (M5 of the corporate-tax build-out) so the final
   // line can honestly say "after tax" only for a period where a real tax
   // figure was actually subtracted, not unconditionally as it did before
@@ -106,8 +108,8 @@ function buildCostsProfitRows(revenueTotal: number, expenses: ProfitLossLine[]) 
     rows.push({ label: '', amount: 0, separator: true });
     rows.push({ label: 'NET PROFIT AFTER TAX', amount: netProfitAfterTax, bold: true });
   } else {
-    // No tax posted for this period (e.g. a monthly period â€” deferred tax
-    // only posts at year-end close) â€” the plain "Net Profit" label is the
+    // No tax posted for this period (e.g. a monthly period — deferred tax
+    // only posts at year-end close) — the plain "Net Profit" label is the
     // honest one; claiming "after tax" here would assert a deduction that
     // never happened.
     rows.push({ label: 'NET PROFIT', amount: netProfitAfterTax, bold: true });
@@ -171,7 +173,13 @@ export const FinanceProfitLoss: React.FC = () => {
   const co = useCompany();
   const { fmtCompact } = useCurrency();
   const cur = co.currency ?? 'TZS';
+  const financeConfiguration = useFinanceConfiguration();
+  const financeCapabilities = useFinanceCapabilities();
+  const hasHistoricalBusinessLines = (financeConfiguration.data?.businessLines.length ?? 0) > 0;
+  const canSegmentByBusinessLine = (financeCapabilities.data?.capabilities.some(capability => capability.key === 'finance.accounting.advanced' && capability.entitled) ?? false)
+    || hasHistoricalBusinessLines;
   const [period, setPeriod] = useState('This Year (YTD)');
+  const [businessLineId, setBusinessLineId] = useState('all');
   const [report, setReport] = useState<ProfitLossReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -179,15 +187,20 @@ export const FinanceProfitLoss: React.FC = () => {
   const range = periodRange(period);
 
   useEffect(() => {
+    if (!canSegmentByBusinessLine && businessLineId !== 'all') setBusinessLineId('all');
+  }, [businessLineId, canSegmentByBusinessLine]);
+
+  useEffect(() => {
     let alive = true;
     setLoading(true);
     setError(null);
-    apiFetch(`/v1/finance/profit-loss?from=${range.from}&to=${range.to}`)
+    const businessLineQuery = businessLineId === 'all' ? '' : `&business_line_id=${encodeURIComponent(businessLineId)}`;
+    apiFetch(`/v1/finance/profit-loss?from=${range.from}&to=${range.to}${businessLineQuery}`)
       .then((res: ProfitLossReport) => { if (alive) setReport(res); })
       .catch((err: any) => { if (alive) setError(err?.message ?? 'Failed to load P&L'); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [range.from, range.to]);
+  }, [range.from, range.to, businessLineId]);
 
   const revenueTotal = report?.totals.revenue ?? 0;
   const incomeRows = useMemo(() => buildIncomeRows(report?.revenue ?? [], revenueTotal), [report, revenueTotal]);
@@ -196,7 +209,7 @@ export const FinanceProfitLoss: React.FC = () => {
     [report, revenueTotal]
   );
 
-  // Was `${cur} ${(n/1e6).toFixed(1)}M` â€” one tier, so it stopped being short
+  // Was `${cur} ${(n/1e6).toFixed(1)}M` — one tier, so it stopped being short
   // exactly when it mattered: a trillion USD in shillings came out as
   // "TZS 2646444401.0M", 17 characters in a card measured at 117px on a phone.
   // fmtCompact carries the full M/B/T/Q ladder and the tenant's own currency.
@@ -214,7 +227,8 @@ export const FinanceProfitLoss: React.FC = () => {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `profit-loss-${period.replace(/\s+/g, '-')}.csv`;
+    const scope = report?.business_line?.code ? `-${report.business_line.code}` : '';
+    a.href = url; a.download = `profit-loss-${period.replace(/\s+/g, '-')}${scope}.csv`;
     document.body.appendChild(a); a.click();
     document.body.removeChild(a); URL.revokeObjectURL(url);
   }
@@ -225,9 +239,18 @@ export const FinanceProfitLoss: React.FC = () => {
         crumbs={['Finance', 'Reports']}
         titlePlain="Profit and"
         titleEm="loss"
-        subtitle="Income statement â€” freight & customs clearing operations."
+        subtitle="Income statement — freight & customs clearing operations."
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {canSegmentByBusinessLine && <Select value={businessLineId} onValueChange={setBusinessLineId}>
+              <SelectTrigger aria-label="Business line" style={{ width: 190, height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue placeholder="All business lines" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All business lines</SelectItem>
+                {(financeConfiguration.data?.businessLines ?? []).map(line => (
+                  <SelectItem key={line.id} value={line.id}>{line.name}{line.active ? '' : ' (archived)'}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>}
             <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -242,7 +265,7 @@ export const FinanceProfitLoss: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading profit &amp; lossâ€¦</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading profit &amp; loss…</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
@@ -274,13 +297,13 @@ export const FinanceProfitLoss: React.FC = () => {
         {/* P&L Statement */}
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 300 }}>
-          <SectionCard title="Income" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>{period}</span>}>
+          <SectionCard title="Income" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>{report?.business_line?.name ?? period}</span>}>
             <PLSection rows={incomeRows} highlightColor="var(--teal)" cur={cur} />
           </SectionCard>
           </div>
 
           <div style={{ flex: 1, minWidth: 300 }}>
-          <SectionCard title="Costs & Profit" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>{period}</span>}>
+          <SectionCard title="Costs & Profit" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>{report?.business_line?.name ?? period}</span>}>
             <PLSection rows={costRows} highlightColor="var(--green)" cur={cur} />
           </SectionCard>
           </div>

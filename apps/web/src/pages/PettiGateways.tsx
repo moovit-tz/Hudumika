@@ -164,7 +164,7 @@ export function PettiGateways() {
                         {gw.name}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                        {gw.region} Â· {gw.enabled ? (gw.chargeSupported ? 'Live STK' : 'Manual only') : gw.configured ? 'Configured, disabled' : 'Not connected'}
+                        {gw.region} · {gw.enabled ? (gw.chargeSupported ? 'Live STK' : 'Manual only') : gw.configured ? 'Configured, disabled' : 'Not connected'}
                       </div>
                     </div>
                   </div>
@@ -195,12 +195,12 @@ export function PettiGateways() {
               <tbody>
                 {deposits.map(d => (
                   <tr key={d.id}>
-                    <td style={{ fontSize: 12, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink2)' }}>{d.ref || 'â€”'}</td>
+                    <td style={{ fontSize: 12, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink2)' }}>{d.ref || '—'}</td>
                     <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{new Date(d.created_at).toLocaleString()}</td>
                     <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{walletName(d.wallet_id)}</td>
                     <td style={{ fontFamily: 'var(--font)', fontWeight: 800, color: 'var(--green)' }}>+{Number(d.amount).toLocaleString()}</td>
-                    <td><Badge variant="info">{d.gateway_provider || 'â€”'}</Badge></td>
-                    <td style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--ink2)' }}>{d.gateway_tx_ref || 'â€”'}</td>
+                    <td><Badge variant="info">{d.gateway_provider || '—'}</Badge></td>
+                    <td style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--ink2)' }}>{d.gateway_tx_ref || '—'}</td>
                   </tr>
                 ))}
               </tbody>

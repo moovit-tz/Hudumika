@@ -10,6 +10,7 @@ export * from './comply.js';
 export * from './onboarding.js';
 export * from './entitlements.js';
 export * from './finance-capabilities.js';
+export * from './pos.js';
 export * from './cms.js';
 export * from './workflow.js';
 export * from './seal.js';

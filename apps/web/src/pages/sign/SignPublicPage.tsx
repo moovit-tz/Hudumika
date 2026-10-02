@@ -1,4 +1,4 @@
-﻿// â”€â”€â”€ SignPublicPage.tsx â€” Public signing experience (no auth required) â”€â”€â”€â”€â”€â”€â”€â”€
+﻿// ─── SignPublicPage.tsx — Public signing experience (no auth required) ────────
 // Accessed via /sign/public/:token
 // Shows the document, guides the signer through each required field,
 // lets them draw/type/upload their signature, then submits.
@@ -23,7 +23,7 @@ import { PdfPageCanvas } from '../cloud/components/PdfPageCanvas.js';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
 import '../sign/Sign.css';
 
-const A4_ASPECT = 1.414; // height/width ratio of A4 â€” same fallback SignEditor.tsx uses
+const A4_ASPECT = 1.414; // height/width ratio of A4 — same fallback SignEditor.tsx uses
 
 interface PublicSigningEnvelope {
   id: string; title: string; message: string | null;
@@ -32,17 +32,17 @@ interface PublicSigningEnvelope {
   verification_code: string | null;
   require_otp: boolean;
   // Only ever populated for a recipient tagged to a real colleague whose
-  // role clears the tenant's own stamp-access gate (Settings â–¸ E-Sign) â€”
+  // role clears the tenant's own stamp-access gate (Settings ▸ E-Sign) —
   // null for every external/untagged signer, even when the tenant has a
   // stamp configured. See GET /public/:token's own comment.
   tenant_stamp_image: string | null;
-  // Phase S4 â€” a real Bliss (or Jitsi-fallback) meeting link the sender
+  // Phase S4 — a real Bliss (or Jitsi-fallback) meeting link the sender
   // attached via the editor's MeetingLinkPanel, for a notarial execution
   // where the certifier and affiant may need to meet live before signing.
   meeting_url: string | null;
 }
 
-// A discriminated union, not one interface with optional fields â€” the
+// A discriminated union, not one interface with optional fields — the
 // backend's GET /public/:token genuinely sends two different shapes: once
 // an envelope is completed it short-circuits to just
 // `{ already_completed: true, envelope }` (nothing left to review/sign), so
@@ -50,7 +50,7 @@ interface PublicSigningEnvelope {
 // this way so TypeScript itself catches any future code that reads
 // data.fields etc. without first checking already_completed, instead of a
 // runtime crash on a signer's second visit to their own link (the actual
-// bug this fixes â€” the page never checked the flag at all before).
+// bug this fixes — the page never checked the flag at all before).
 type PublicSigningData =
   | { already_completed: true; envelope: PublicSigningEnvelope }
   | {
@@ -61,7 +61,7 @@ type PublicSigningData =
         phone_masked: string | null; otp_verified: boolean;
         // Their own saved signature (StaffDetail.tsx's Signature tab / NexusHR
         // profile), only present when this recipient is tagged to a real
-        // platform user â€” null for an external signer with no profile to pull.
+        // platform user — null for an external signer with no profile to pull.
         saved_signature: string | null;
       };
       tenant: { logo_url: string | null; primary_color: string | null; country: string | null };
@@ -87,7 +87,7 @@ interface StampPayload {
   title: string;
   signers: Array<{ name: string; email: string; signed_at: string | null }>;
   verify_url: string;
-  // null when the platform's public base URL isn't configured yet â€” see
+  // null when the platform's public base URL isn't configured yet — see
   // resolvePublicBaseUrl's own "withheld, not broken" reasoning.
   qr_data_uri: string | null;
 }
@@ -98,7 +98,7 @@ export function SignPublicPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
-  // No CompanyAvatar here â€” this strip is a wide wordmark-shaped logo
+  // No CompanyAvatar here — this strip is a wide wordmark-shaped logo
   // (height:34, contain-fit) with a specific branded "eSign" fallback, not
   // a square/circle "who" badge, and there's no tenant name in this public
   // payload for CompanyAvatar's own initials fallback to use. A broken
@@ -114,7 +114,7 @@ export function SignPublicPage() {
   const [submitting, setSubmitting] = useState(false);
   const [declining, setDeclining] = useState(false);
 
-  // â”€â”€ SMS verification gate (only relevant when envelope.require_otp) â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── SMS verification gate (only relevant when envelope.require_otp) ────────
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpChannel, setOtpChannel] = useState<'sms' | 'whatsapp' | null>(null);
   const [otpSentTo, setOtpSentTo] = useState<string | null>(null);
@@ -123,15 +123,15 @@ export function SignPublicPage() {
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [otpError, setOtpError] = useState<string | null>(null);
 
-  // â”€â”€ Real PDF rendering (pdf.js via canvas) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // document_data is the raw uploaded file's own data URI â€” for a PDF (the
+  // ── Real PDF rendering (pdf.js via canvas) ──────────────────────────────────
+  // document_data is the raw uploaded file's own data URI — for a PDF (the
   // overwhelming majority of what gets signed) that's `data:application/pdf;
   // base64,...`, which an <img> tag cannot render at all (browsers don't
-  // rasterize PDFs via <img src>) â€” the document silently showed as blank
+  // rasterize PDFs via <img src>) — the document silently showed as blank
   // white space with only the field overlays visible, which is exactly what
   // it looked like. SignEditor.tsx (the sender's own editor) and SignInbox.tsx
   // (the sender's envelope detail view) both already solve this the same way
-  // â€” real per-page canvas render via usePdfDocument/PdfPageCanvas â€” this
+  // — real per-page canvas render via usePdfDocument/PdfPageCanvas — this
   // mirrors that same proven pattern rather than inventing a third approach.
   const isPdf = !!(data && !data.already_completed && data.envelope.file_name?.toLowerCase().endsWith('.pdf'));
   const pdfSource = isPdf && data && !data.already_completed ? data.envelope.document_data : null;
@@ -150,7 +150,7 @@ export function SignPublicPage() {
     return () => { cancelled = true; };
   }, [pdfDoc]);
   // The document should fill the available column, not sit in a fixed
-  // 700px box with empty grey margins either side of it â€” measures the
+  // 700px box with empty grey margins either side of it — measures the
   // real doc-area container (same callback-ref + ResizeObserver pattern
   // SignInbox.tsx's own envelope-detail preview already proved out) and
   // caps generously rather than the narrow 800px a split-panel editor uses,
@@ -168,13 +168,13 @@ export function SignPublicPage() {
   const docPaneH = Math.round(docPaneW * (naturalPageSize ? naturalPageSize.height / naturalPageSize.width : A4_ASPECT));
   const pdfRenderScale = naturalPageSize ? docPaneW / naturalPageSize.width : 1;
 
-  // This document's real sender, not a generic Hudumika blue â€” the same
+  // This document's real sender, not a generic Hudumika blue — the same
   // tenants.primary_color/logo_url columns mail-template.service.ts /
   // email-envelope.ts already read for unauthenticated/system contexts.
   // Falls back to the original fixed blue until data (and therefore the
   // tenant) has loaded, or for a tenant that never set a brand color.
   const accent = (data && !data.already_completed ? data.tenant.primary_color : null) || '#1a56db';
-  // accent is an arbitrary tenant-picked hex with no contrast guarantee â€”
+  // accent is an arbitrary tenant-picked hex with no contrast guarantee —
   // same risk CLAUDE.md documents for --primary, but this page has no
   // --primary-foreground to read (it's a no-auth public page, no tenant
   // context guaranteed) since it already fetches the real color as data
@@ -189,7 +189,7 @@ export function SignPublicPage() {
         setData(d);
         setOtpVerified(!d.already_completed && !!d.recipient.otp_verified);
         // A tagged colleague's own saved signature (their NexusHR profile)
-        // pre-fills instead of forcing a fresh draw every time â€” the
+        // pre-fills instead of forcing a fresh draw every time — the
         // existing "Change" button below still lets them draw a different
         // one for this specific document.
         if (!d.already_completed && d.recipient.saved_signature) setSignature(d.recipient.saved_signature);
@@ -280,7 +280,7 @@ export function SignPublicPage() {
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
           <Icon name="edit" size={36} style={{ opacity: 0.4 }} />
         </div>
-        <div style={{ fontSize: 16 }}>Loading signing requestâ€¦</div>
+        <div style={{ fontSize: 16 }}>Loading signing request…</div>
       </div>
     </div>
   );
@@ -334,7 +334,7 @@ export function SignPublicPage() {
                 </div>
               ))}
               {/* Points at the same public verification page as "Verify a
-                  document" below â€” never the private download link. Only
+                  document" below — never the private download link. Only
                   renders when the platform's public URL is actually
                   configured (see StampPayload.qr_data_uri's own comment). */}
               {stamp.qr_data_uri && (
@@ -361,7 +361,7 @@ export function SignPublicPage() {
 
   if (!data) return null;
 
-  // A signer revisiting their own link after already completing it â€” the
+  // A signer revisiting their own link after already completing it — the
   // backend deliberately sends only { already_completed, envelope } at that
   // point (nothing left to review/sign), and this page used to never check
   // for it at all, so it fell straight into the normal signing render and
@@ -397,7 +397,7 @@ export function SignPublicPage() {
   );
 
   // A document sent with "Require SMS verification" cannot be reviewed or
-  // signed until the recipient proves they hold the phone on file â€” this
+  // signed until the recipient proves they hold the phone on file — this
   // gate replaces the whole signing UI, the same way the loading/error/
   // done states above do, rather than just disabling the Sign button
   // (which would still let someone read a confidential document's content).
@@ -420,12 +420,12 @@ export function SignPublicPage() {
               <Button variant="outline" onClick={() => handleRequestOtp('sms')} disabled={otpRequesting}
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Icon name="messageSquare" size={15} />
-                {otpRequesting ? 'Sendingâ€¦' : 'SMS'}
+                {otpRequesting ? 'Sending…' : 'SMS'}
               </Button>
               <Button variant="default" onClick={() => handleRequestOtp('whatsapp')} disabled={otpRequesting}
                 style={{ flex: 1, background: '#25D366', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Icon name="messageSquare" size={15} color="#fff" />
-                {otpRequesting ? 'Sendingâ€¦' : 'WhatsApp'}
+                {otpRequesting ? 'Sending…' : 'WhatsApp'}
               </Button>
             </div>
           ) : (
@@ -443,7 +443,7 @@ export function SignPublicPage() {
               />
               <Button variant="default" onClick={handleVerifyOtp} disabled={otpVerifying || otpCode.length !== 6}
                 style={{ width: '100%', marginBottom: 10, ...(otpCode.length === 6 ? { background: accent, color: accentFg } : {}) }}>
-                {otpVerifying ? 'Verifyingâ€¦' : 'Verify code'}
+                {otpVerifying ? 'Verifying…' : 'Verify code'}
               </Button>
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button variant="ghost" onClick={() => handleRequestOtp('sms')} disabled={otpRequesting} style={{ flex: 1, fontSize: 12.5 }}>
@@ -508,7 +508,7 @@ export function SignPublicPage() {
 
           <Button variant="outline" size="sm" onClick={handleDecline} disabled={declining}
             style={{ borderColor: 'var(--sign-red-l)', color: 'var(--sign-red)', height: 38, fontSize: 13, padding: '0 16px', fontWeight: 600 }}>
-            {declining ? 'Decliningâ€¦' : 'Decline'}
+            {declining ? 'Declining…' : 'Decline'}
           </Button>
         </div>
       </div>
@@ -540,7 +540,7 @@ export function SignPublicPage() {
             </div>
           )}
 
-          {/* Phase S4 â€” the real Bliss/Jitsi meeting link, if the sender
+          {/* Phase S4 — the real Bliss/Jitsi meeting link, if the sender
               attached one, for a notarial execution the certifier/affiant
               may need to meet live over before signing. */}
           {data.envelope.meeting_url && (
@@ -604,7 +604,7 @@ export function SignPublicPage() {
                     {pdfError ? "Couldn't load this document" : (
                       <>
                         <Icon name="clock" size={22} style={{ animation: 'ds-spin 2s linear infinite', color: accent }} />
-                        Loading documentâ€¦
+                        Loading document…
                       </>
                     )}
                   </div>
@@ -707,7 +707,7 @@ export function SignPublicPage() {
           <div className="sign-public-sidebar-header">
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 6 }}>Signing Identity</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {/* An external signer, not necessarily a Hudumika account â€”
+              {/* An external signer, not necessarily a Hudumika account —
                   name-only is the correct rendering here, not a fallback
                   (and this page is unauthenticated, so there's no session to
                   fetch a real photo with even if a userId existed). */}
@@ -816,7 +816,7 @@ export function SignPublicPage() {
             ))}
           </div>
 
-          {/* Jurisdiction disclosure â€” shown when the tenant's country has a
+          {/* Jurisdiction disclosure — shown when the tenant's country has a
               reviewed rule for this execution type (TZ: Electronic Transactions
               Act 2022; other jurisdictions once reviewed). Deliberately quiet:
               one line of provenance, with conditions expanded only when present.
@@ -848,7 +848,7 @@ export function SignPublicPage() {
             <Button type="button" onClick={handleSubmit} disabled={!signature || submitting}
               style={{ flex: 2, height: 38, fontSize: 13, fontWeight: 700, background: signature ? accent : 'var(--border)', color: signature ? accentFg : '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Icon name="checkCircle" size={15} color={signature ? accentFg : '#fff'} />
-              {submitting ? 'Submittingâ€¦' : 'Sign & Submit'}
+              {submitting ? 'Submitting…' : 'Sign & Submit'}
             </Button>
           </div>
         </div>

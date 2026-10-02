@@ -11,6 +11,7 @@ import { Button } from '../components/ui/button.js';
 import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 import './Budgets.css';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -49,6 +50,7 @@ function flattenAccounts(nodes: AccountNode[], out: AccountNode[] = []): Account
 
 export function Budgets() {
   const { fmt } = useCurrency();
+  const readOnly = useFinanceReadOnly();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [accounts, setAccounts] = useState<AccountNode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,15 +106,22 @@ export function Budgets() {
   useEffect(() => {
     if (selectedId) {
       loadDetail(selectedId);
-      setMode('edit');
+      setMode(readOnly ? 'actuals' : 'edit');
     }
-  }, [selectedId]);
+  }, [selectedId, readOnly]);
+
+  useEffect(() => {
+    if (readOnly) {
+      setShowNew(false);
+      if (selectedId) void viewActuals();
+    }
+  }, [readOnly]);
 
   const accountOptions: ComboboxOption[] = useMemo(
     () =>
       accounts
         .filter(a => !rows.some(r => r.account_code === a.code))
-        .map(a => ({ value: a.code, label: `${a.code} â€” ${a.name}`, sublabel: a.type })),
+        .map(a => ({ value: a.code, label: `${a.code} — ${a.name}`, sublabel: a.type })),
     [accounts, rows]
   );
 
@@ -192,14 +201,16 @@ export function Budgets() {
             <Button variant="outline" size="sm" onClick={() => showAlert('Budget variance prediction report generated.', { variant: 'success' })}>
               <Icon name="barChart2" size={14} /> Forecast Predictions
             </Button>
-            <Button variant="default" size="sm" onClick={() => setShowNew(true)}>
-              <Icon name="plus" size={14} /> New Budget
-            </Button>
+            {!readOnly && (
+              <Button variant="default" size="sm" onClick={() => setShowNew(true)}>
+                <Icon name="plus" size={14} /> New Budget
+              </Button>
+            )}
           </div>
         }
       />
 
-      {/* â”€â”€ Top Hero: Budget Intelligence Banner â”€â”€ */}
+      {/* ── Top Hero: Budget Intelligence Banner ── */}
       <div className="budgets-hero">
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
           <div
@@ -243,7 +254,7 @@ export function Budgets() {
         </div>
       </div>
 
-      {/* â”€â”€ Budget Planning Toolbar â”€â”€ */}
+      {/* ── Budget Planning Toolbar ── */}
       <div className="budgets-toolbar">
         <div className="budgets-toolbar-tabs">
           <Tabs value={selectedId ?? ''} onValueChange={setSelectedId}>
@@ -254,7 +265,7 @@ export function Budgets() {
                 </TabsTrigger>
               ))}
               {budgets.length === 0 && (
-                <span style={{ fontSize: 13, color: 'var(--ink3)' }}>No budgets yet â€” create one to begin.</span>
+                <span style={{ fontSize: 13, color: 'var(--ink3)' }}>No budgets yet — create one to begin.</span>
               )}
             </TabsList>
           </Tabs>
@@ -263,20 +274,22 @@ export function Budgets() {
         {selectedBudget && (
           <div className="budgets-toolbar-actions">
             <div className="budgets-mode-switch">
-              <Button variant={mode === 'edit' ? 'default' : 'outline'} size="sm" onClick={() => setMode('edit')}>
-                <Icon name="edit" size={13} /> Monthly grid
-              </Button>
+              {!readOnly && (
+                <Button variant={mode === 'edit' ? 'default' : 'outline'} size="sm" onClick={() => setMode('edit')}>
+                  <Icon name="edit" size={13} /> Monthly grid
+                </Button>
+              )}
               <Button variant={mode === 'actuals' ? 'default' : 'outline'} size="sm" onClick={viewActuals}>
                 <Icon name="trendingUp" size={13} /> Variance
               </Button>
             </div>
-            {mode === 'edit' && (
+            {mode === 'edit' && !readOnly && (
               <>
                 <div className="budgets-account-picker">
-                  <Combobox options={accountOptions} value="" onChange={addRow} placeholder="+ Add accountâ€¦" searchPlaceholder="Search accountsâ€¦" />
+                  <Combobox options={accountOptions} value="" onChange={addRow} placeholder="+ Add account…" searchPlaceholder="Search accounts…" />
                 </div>
                 <Button size="sm" disabled={saving} onClick={saveGrid}>
-                  <Icon name="check" size={13} /> {saving ? 'Savingâ€¦' : 'Save budget'}
+                  <Icon name="check" size={13} /> {saving ? 'Saving…' : 'Save budget'}
                 </Button>
               </>
             )}
@@ -312,7 +325,7 @@ export function Budgets() {
                     rows.map(r => (
                       <tr key={r.account_code} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>
-                          {r.account_code} â€” {r.account_name}
+                          {r.account_code} — {r.account_name}
                         </td>
                         {r.amounts.map((v, i) => (
                           <td key={i} style={{ padding: 3 }}>
@@ -320,6 +333,7 @@ export function Budgets() {
                               type="number"
                               value={v || ''}
                               placeholder="0"
+                              disabled={readOnly}
                               onChange={e => updateCell(r.account_code, i, parseFloat(e.target.value) || 0)}
                               style={{
                                 width: '100%',
@@ -340,14 +354,16 @@ export function Budgets() {
                           {fmt(r.amounts.reduce((a, b) => a + b, 0))}
                         </td>
                         <td style={{ padding: '8px 6px' }}>
-                          <button
-                            type="button"
-                            onClick={() => removeRow(r.account_code)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }}
-                            title="Remove account"
-                          >
-                            <Icon name="x" size={13} />
-                          </button>
+                          {!readOnly && (
+                            <button
+                              type="button"
+                              onClick={() => removeRow(r.account_code)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }}
+                              title="Remove account"
+                            >
+                              <Icon name="x" size={13} />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))
@@ -374,7 +390,7 @@ export function Budgets() {
           ) : (
             <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)' }}>
               {actualsLoading ? (
-                <div style={{ padding: 28, textAlign: 'center', color: 'var(--ink3)' }}>Loading actuals comparisonâ€¦</div>
+                <div style={{ padding: 28, textAlign: 'center', color: 'var(--ink3)' }}>Loading actuals comparison…</div>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, textAlign: 'left' }}>
                   <thead>
@@ -398,7 +414,7 @@ export function Budgets() {
                         return (
                           <tr key={r.account_code} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--ink)' }}>
-                              {r.account_code} â€” {r.account_name}
+                              {r.account_code} — {r.account_name}
                             </td>
                             <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--font)' }}>
                               {fmt(r.total_budgeted)}
@@ -431,7 +447,7 @@ export function Budgets() {
       )}
 
       {/* New Budget Dialog */}
-      <Dialog open={showNew} onOpenChange={o => { if (!o) setShowNew(false); }}>
+      <Dialog open={!readOnly && showNew} onOpenChange={o => { if (!o) setShowNew(false); }}>
         <DialogContent className="max-w-90 gap-0" style={{ padding: 24 }}>
           <DialogTitle style={{ fontWeight: 800, fontSize: 16, marginBottom: 16, color: 'var(--ink)' }}>
             Create New Budget

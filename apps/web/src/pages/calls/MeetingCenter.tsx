@@ -63,14 +63,14 @@ interface MeetingNotesData {
 }
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return 'â€”';
+  if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' Â· ' +
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' +
     d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
 function fmtTimeOnly(iso: string | null): string {
-  if (!iso) return 'â€”';
+  if (!iso) return '—';
   const d = new Date(iso);
   return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
@@ -214,14 +214,14 @@ export function MeetingCenter() {
 
   const totalMeetingsPages = Math.max(1, Math.ceil(meetingsTotal / MEETINGS_PAGE_SIZE));
 
-  function pageNumbers(current: number, total: number): (number | 'â€¦')[] {
+  function pageNumbers(current: number, total: number): (number | '…')[] {
     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
     const pages = new Set<number>([1, 2, total - 1, total, current - 1, current, current + 1]);
     const sorted = Array.from(pages).filter(p => p >= 1 && p <= total).sort((a, b) => a - b);
-    const out: (number | 'â€¦')[] = [];
+    const out: (number | '…')[] = [];
     let prev = 0;
     for (const p of sorted) {
-      if (prev && p - prev > 1) out.push('â€¦');
+      if (prev && p - prev > 1) out.push('…');
       out.push(p);
       prev = p;
     }
@@ -498,7 +498,7 @@ export function MeetingCenter() {
       background: 'var(--bg)',
       minHeight: '100%',
     }}>
-      {/* â”€â”€ Standard Hudumika PageHeader â”€â”€ */}
+      {/* ── Standard Hudumika PageHeader ── */}
       <PageHeader
         crumbs={['Bliss', 'Meetings']}
         titlePlain="Meeting"
@@ -510,13 +510,13 @@ export function MeetingCenter() {
               <Icon name="calendar" size={14} /> Schedule Meeting
             </Button>
             <Button variant="default" size="sm" onClick={startInstantMeeting} disabled={creatingMeeting}>
-              <Icon name="camera" size={14} /> {creatingMeeting ? 'Startingâ€¦' : 'Host Instant Meeting'}
+              <Icon name="camera" size={14} /> {creatingMeeting ? 'Starting…' : 'Host Instant Meeting'}
             </Button>
           </div>
         }
       />
 
-      {/* â”€â”€ Summary Stats + Join By Code Row â”€â”€ */}
+      {/* ── Summary Stats + Join By Code Row ── */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: isTablet ? '1fr' : 'repeat(3, 1fr) minmax(300px, 360px)',
@@ -638,11 +638,11 @@ export function MeetingCenter() {
         </div>
       </div>
 
-      {/* â”€â”€ Action & Filter Toolbar â€” tabs/filters left, search right-aligned (house rule) â”€â”€
+      {/* ── Action & Filter Toolbar — tabs/filters left, search right-aligned (house rule) ──
           Always wraps rather than overflowing: a fixed-width row here previously combined
           nowrap + overflow-x:auto + a hidden scrollbar, so once the controls didn't fit,
           Export silently scrolled off-screen with no visible way to reach it. Wrapping is
-          the only option that can never hide a control. â”€â”€ */}
+          the only option that can never hide a control. ── */}
       <div style={{
         background: 'var(--card-bg, var(--white))',
         borderRadius: 'var(--r)',
@@ -671,7 +671,7 @@ export function MeetingCenter() {
           </TabsList>
         </Tabs>
 
-        {/* Filter triggers â€” sit beside the tabs on the left, per house toolbar rule */}
+        {/* Filter triggers — sit beside the tabs on the left, per house toolbar rule */}
         <div style={{ width: isMobile ? '100%' : 160, flexShrink: 0 }}>
           <DateRangePicker
             range={dateRange}
@@ -704,7 +704,7 @@ export function MeetingCenter() {
           ]}
         />
 
-        {/* Right: Search + Export â€” the one group that's right-aligned */}
+        {/* Right: Search + Export — the one group that's right-aligned */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -755,7 +755,7 @@ export function MeetingCenter() {
         </div>
       </div>
 
-      {/* â”€â”€ Date-Grouped Meeting Cards List (Meetly Style) â”€â”€ */}
+      {/* ── Date-Grouped Meeting Cards List (Meetly Style) ── */}
       {loadingMeetings ? (
         <div style={{
           background: 'var(--card-bg, var(--white))',
@@ -767,7 +767,7 @@ export function MeetingCenter() {
           fontSize: 13,
         }}>
           <Icon name="refresh" size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: 10, color: 'var(--teal)' }} />
-          <div>Loading meetingsâ€¦</div>
+          <div>Loading meetings…</div>
         </div>
       ) : groupedMeetings.length === 0 ? (
         <div style={{
@@ -1061,10 +1061,10 @@ export function MeetingCenter() {
                                 Start & End Time
                               </div>
                               <div style={{ fontWeight: 800, color: 'var(--ink)', fontSize: 13 }}>
-                                {startTime} â€” {endTime}
+                                {startTime} — {endTime}
                               </div>
                               <div style={{ color: 'var(--ink2)', fontSize: 11, marginTop: 2 }}>
-                                {userTimezone} Â· {m.max_duration_minutes} min limit
+                                {userTimezone} · {m.max_duration_minutes} min limit
                               </div>
                             </div>
 
@@ -1090,7 +1090,7 @@ export function MeetingCenter() {
                                       fontSize: 12,
                                     }}
                                   >
-                                    Drive â–¸ Meetings â–¸ {m.title}
+                                    Drive ▸ Meetings ▸ {m.title}
                                   </button>
                                 </div>
                               ) : (
@@ -1267,7 +1267,7 @@ export function MeetingCenter() {
         </div>
       )}
 
-      {/* â”€â”€ Pagination â”€â”€ */}
+      {/* ── Pagination ── */}
       {!loadingMeetings && groupedMeetings.length > 0 && totalMeetingsPages > 1 && (
         <div style={{
           display: 'flex',
@@ -1278,7 +1278,7 @@ export function MeetingCenter() {
           padding: '10px 4px',
         }}>
           <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-            Page {meetingsPage} of {totalMeetingsPages} Â· {meetingsTotal} {meetingsTotal === 1 ? 'meeting' : 'meetings'}
+            Page {meetingsPage} of {totalMeetingsPages} · {meetingsTotal} {meetingsTotal === 1 ? 'meeting' : 'meetings'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <Button
@@ -1289,8 +1289,8 @@ export function MeetingCenter() {
             >
               <Icon name="chevronLeft" size={14} />
             </Button>
-            {pageNumbers(meetingsPage, totalMeetingsPages).map((p, i) => p === 'â€¦' ? (
-              <span key={`e${i}`} style={{ padding: '0 6px', color: 'var(--ink3)', fontSize: 12 }}>â€¦</span>
+            {pageNumbers(meetingsPage, totalMeetingsPages).map((p, i) => p === '…' ? (
+              <span key={`e${i}`} style={{ padding: '0 6px', color: 'var(--ink3)', fontSize: 12 }}>…</span>
             ) : (
               <button
                 key={p}
@@ -1323,7 +1323,7 @@ export function MeetingCenter() {
         </div>
       )}
 
-      {/* â”€â”€ MODAL: SCHEDULE FUTURE MEETING â”€â”€ */}
+      {/* ── MODAL: SCHEDULE FUTURE MEETING ── */}
       {showSchedule && (
         <Dialog open onOpenChange={setShowSchedule}>
           <DialogContent className="max-w-lg">
@@ -1442,7 +1442,7 @@ export function MeetingCenter() {
                     </span>
                   </div>
                   <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 3 }}>
-                    Defaults to 60 min Â· meeting auto-ends at the limit
+                    Defaults to 60 min · meeting auto-ends at the limit
                   </div>
                 </div>
 
@@ -1487,7 +1487,7 @@ export function MeetingCenter() {
         </Dialog>
       )}
 
-      {/* â”€â”€ MODAL: VIEW RECORDING (Saved in Drive under Meetings) â”€â”€ */}
+      {/* ── MODAL: VIEW RECORDING (Saved in Drive under Meetings) ── */}
       {viewRecordingMeeting && (
         <Dialog open onOpenChange={open => !open && setViewRecordingMeeting(null)}>
           <DialogContent className="max-w-xl">
@@ -1498,7 +1498,7 @@ export function MeetingCenter() {
             {loadingRecording ? (
               <div style={{ padding: '36px 0', textAlign: 'center', color: 'var(--ink3)' }}>
                 <Icon name="refresh" size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: 8, color: 'var(--teal)' }} />
-                <div>Resolving recording from Driveâ€¦</div>
+                <div>Resolving recording from Drive…</div>
               </div>
             ) : recordingInfo ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, margin: '8px 0' }}>
@@ -1522,7 +1522,7 @@ export function MeetingCenter() {
                     {recordingInfo.fileName}
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 2 }}>
-                    720p HD Â· {formatDuration(recordingInfo.durationSeconds)} Â· {formatBytes(recordingInfo.sizeBytes)}
+                    720p HD · {formatDuration(recordingInfo.durationSeconds)} · {formatBytes(recordingInfo.sizeBytes)}
                   </div>
                 </div>
 
@@ -1540,7 +1540,7 @@ export function MeetingCenter() {
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--ink3)' }}>Saved Location:</span>
                     <span style={{ fontWeight: 700, color: 'var(--ink)' }}>
-                      Drive â–¸ Meetings â–¸ {viewRecordingMeeting.title}
+                      Drive ▸ Meetings ▸ {viewRecordingMeeting.title}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1596,7 +1596,7 @@ export function MeetingCenter() {
         </Dialog>
       )}
 
-      {/* â”€â”€ MODAL: MEETING NOTES (Saved directly in Notes App) â”€â”€ */}
+      {/* ── MODAL: MEETING NOTES (Saved directly in Notes App) ── */}
       {viewNotesMeeting && (
         <Dialog open onOpenChange={open => !open && setViewNotesMeeting(null)}>
           <DialogContent className="max-w-xl">
@@ -1640,14 +1640,14 @@ export function MeetingCenter() {
                 <Icon name="externalLink" size={13} /> Open Notes App
               </Button>
               <Button variant="default" size="sm" onClick={saveMeetingNotes} disabled={savingNotes}>
-                <Icon name="check" size={13} /> {savingNotes ? 'Savingâ€¦' : 'Save to Notes'}
+                <Icon name="check" size={13} /> {savingNotes ? 'Saving…' : 'Save to Notes'}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* â”€â”€ MODAL: ACTION ITEMS / TO-DO (Added directly to To-Do App) â”€â”€ */}
+      {/* ── MODAL: ACTION ITEMS / TO-DO (Added directly to To-Do App) ── */}
       {viewTasksMeeting && (
         <Dialog open onOpenChange={open => !open && setViewTasksMeeting(null)}>
           <DialogContent className="max-w-lg">
@@ -1720,14 +1720,14 @@ export function MeetingCenter() {
                 <Icon name="externalLink" size={13} /> Open To-Do App
               </Button>
               <Button variant="default" size="sm" onClick={saveTasksToApp} disabled={savingTasks || taskList.length === 0}>
-                <Icon name="check" size={13} /> {savingTasks ? 'Addingâ€¦' : 'Add to To-Do App'}
+                <Icon name="check" size={13} /> {savingTasks ? 'Adding…' : 'Add to To-Do App'}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* â”€â”€ Active WebRTC Room / Lobby Overlay â”€â”€ */}
+      {/* ── Active WebRTC Room / Lobby Overlay ── */}
       {activeMeetingId && (
         <MeetingSession meetingId={activeMeetingId} onExit={() => { setActiveMeetingId(null); loadMeetings(); }} />
       )}

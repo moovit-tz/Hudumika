@@ -837,6 +837,80 @@ export async function signRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // ── Re-route a declined signer to a different person ─────────────────────
+  // Called by the sender when an envelope is in 'needs_rerouting' state.
+  // Replaces the declined recipient slot with a new person and re-activates
+  // the envelope without starting over.
+  fastify.post('/envelopes/:id/reroute-recipient', async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    const tid = tenantId(req);
+    const body = req.body as { recipientId?: string; newEmail?: string; newName?: string; newRoleLabel?: string };
+    if (!body?.recipientId || !body?.newEmail?.trim() || !body?.newName?.trim()) {
+      return reply.status(400).send({ error: 'recipientId, newEmail and newName are required' });
+    }
+    const recipientId = body.recipientId;
+    const newName     = body.newName.trim();
+    const newEmail    = body.newEmail.trim().toLowerCase();
+
+    return withTenant(tid, async (trx) => {
+      const envelope = await trx.selectFrom('sign_envelopes').selectAll()
+        .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
+      if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
+      if (!assertCanActOnEnvelope(req, reply, envelope)) return;
+
+      if (envelope.status !== 'needs_rerouting') {
+        return reply.status(409).send({ error: 'This envelope is not waiting for a signer re-assignment' });
+      }
+
+      const recipient = await trx.selectFrom('sign_recipients').selectAll()
+        .where('id', '=', recipientId).where('envelope_id', '=', req.params.id).executeTakeFirst();
+      if (!recipient) return reply.status(404).send({ error: 'Recipient not found on this envelope' });
+      if (recipient.status !== 'declined') {
+        return reply.status(409).send({ error: 'Only a declined recipient can be re-assigned' });
+      }
+
+      // Generate a fresh signing token so the old link is dead immediately.
+      const { randomBytes } = await import('crypto');
+      const newToken = randomBytes(32).toString('hex');
+
+      await trx.updateTable('sign_recipients').set({
+        name:           newName,
+        email:          newEmail,
+        role_label:     body.newRoleLabel?.trim() ?? recipient.role_label,
+        status:         'pending',
+        token:          newToken,
+        rerouted_at:    new Date(),
+        previous_name:  recipient.name,
+        previous_email: recipient.email,
+        declined_at:    null,
+        decline_reason: null,
+        viewed_at:      null,
+        signature_data: null,
+        signed_at:      null,
+        signed_ip:      null,
+        signed_user_agent: null,
+      }).where('id', '=', recipientId).execute();
+
+      // Restore the envelope to active signing.
+      await trx.updateTable('sign_envelopes').set({ status: 'sent' })
+        .where('id', '=', req.params.id).execute();
+
+      await logEvent(trx, req.params.id, tid, 'rerouted', {
+        actorName: userName(req), actorEmail: userEmail(req),
+        recipientId,
+        note: `Signing slot for ${recipient.name} (${recipient.email}) re-assigned to ${newName} (${newEmail})`,
+      });
+
+      // Fetch the updated recipient for the notification (needs the new token).
+      const updatedRecipient = await trx.selectFrom('sign_recipients').selectAll()
+        .where('id', '=', recipientId).executeTakeFirst();
+      if (updatedRecipient) {
+        await notifyRecipients(tid, envelope, [updatedRecipient], 'invite');
+      }
+
+      return reply.send({ ok: true, newToken });
+    });
+  });
+
   // ── Bulk actions — void or remind many envelopes from one multi-select
   // list action, instead of one request per row. Reuses the exact same
   // ownership check, status guard, and event logging each single-item route
@@ -1678,9 +1752,11 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       status: 'declined', declined_at: new Date(), decline_reason: body.reason ?? null,
     }).where('id', '=', recipient.id).execute();
 
-    // Void the envelope since one person declined
+    // Put the envelope into 'needs_rerouting' so the sender can reassign
+    // the declined slot without voiding the whole document.  The sender
+    // can still choose to void it via the normal void endpoint.
     await dbPlatform.updateTable('sign_envelopes').set({
-      status: 'declined', voided_at: new Date(), void_reason: `${recipient.name} declined: ${body.reason ?? 'No reason given'}`,
+      status: 'needs_rerouting',
     }).where('id', '=', envelope.id).execute();
 
     await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'declined', {
@@ -1691,8 +1767,8 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
 
     await createSignFollowUpTask(
       dbPlatform, envelope.tenant_id, envelope.created_by, envelope.id,
-      `Signer declined: ${envelope.title}`,
-      `${recipient.name} (${recipient.email}) declined to sign — ${body.reason ?? 'no reason given'}.`,
+      `Action required — signer declined: ${envelope.title}`,
+      `${recipient.name} (${recipient.email}) declined to sign${body.reason ? ` — ${body.reason}` : ''}. Open the envelope to re-assign this signing slot to a different person, or void the envelope.`,
     );
 
     return reply.send({ ok: true });

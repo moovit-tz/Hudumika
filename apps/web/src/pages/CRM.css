@@ -258,7 +258,7 @@
 
 [data-theme="dark"] [data-crm="true"] .page-layout,
 [data-theme="dark"] [data-crm="true"] .page-layout-main {
-  background: #080c14;
+  background: var(--white);
 }
 
 [data-theme="dark"] [data-crm="true"] .crm-card {

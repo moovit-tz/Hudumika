@@ -43,7 +43,7 @@ export type AppId =
 
 export const ALL_APP_IDS: AppId[] = [
   'clearos', 'finops', 'complyos', 'bliss',
-  'nexushr', 'onesite', 'onsite', 'ondi', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
+  'nexushr', 'onesite', 'onsite', 'ondi', 'tracking', 'cloud', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
   'calendar', 'tasks', 'notes', 'sign', 'sms',
   'demurrage', 'cargotracker', 'seal', 'inventory', 'studio', 'hudubi', 'petti', 'projects', 'developer',
   // Internal tooling. Present so the app shell and design system can resolve it

@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 import { Tip } from '../components/ui/tooltip.js';
 import './Sales.css';
 
-// â”€â”€â”€ constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── constants ────────────────────────────────────────────────────────────────
 
 const STAGES = [
   { key: 'DRAFT',     label: 'Draft',          color: 'var(--ink3)' },
@@ -47,12 +47,12 @@ const STATUS_FG: Record<string, string> = {
 const SHIPMENT_TYPES = ['AIR', 'SEA', 'ROAD', 'RAIL'];
 const CURRENCIES     = ['USD', 'TZS', 'EUR', 'GBP'];
 const CATEGORIES     = ['Freight', 'Handling', 'Customs', 'Insurance', 'Other'];
-// Tax used to be a third hardcoded rate list â€” [0, 10, 18] here, [0, 18] in
-// productData â€” and 10% is not a rate any of this platform's jurisdictions
+// Tax used to be a third hardcoded rate list — [0, 10, 18] here, [0, 18] in
+// productData — and 10% is not a rate any of this platform's jurisdictions
 // charge. It now comes from the workspace's own tax codes, which carry the
 // treatment as well as the rate. See data/taxCodeData.ts.
 
-// â”€â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(n: number, c = 'USD') {
   return new Intl.NumberFormat('en-US', {
@@ -61,7 +61,7 @@ function fmt(n: number, c = 'USD') {
 }
 
 function fmtDate(d: string | null | undefined) {
-  if (!d) return 'â€”';
+  if (!d) return '—';
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
@@ -70,13 +70,13 @@ function toDateInput(d: string | null | undefined) {
   return new Date(d).toISOString().slice(0, 10);
 }
 
-// â”€â”€â”€ blank line â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── blank line ───────────────────────────────────────────────────────────────
 
 function blankLine() {
   return { description: '', category: 'Freight', quantity: 1, unit_price: 0, tax_rate: 0, tax_code_id: null as string | null };
 }
 
-// â”€â”€â”€ StatusBadge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── StatusBadge ──────────────────────────────────────────────────────────────
 
 const STATUS_VARIANT: Record<string, 'gray' | 'warning' | 'success' | 'brand' | 'error'> = {
   DRAFT: 'gray', PENDING: 'warning', APPROVED: 'success', CONVERTED: 'brand', REJECTED: 'error',
@@ -85,7 +85,7 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant={STATUS_VARIANT[status] ?? 'gray'} className="tracking-wide">{status}</Badge>;
 }
 
-// â”€â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Toast ────────────────────────────────────────────────────────────────────
 
 function Toast({ msg, kind, onClose }: { msg: string; kind: 'success' | 'error'; onClose: () => void }) {
   useEffect(() => {
@@ -106,7 +106,7 @@ function Toast({ msg, kind, onClose }: { msg: string; kind: 'success' | 'error';
   );
 }
 
-// â”€â”€â”€ Confirm Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Confirm Dialog ───────────────────────────────────────────────────────────
 
 function ConfirmDialog({ msg, onConfirm, onCancel }: { msg: string; onConfirm: () => void; onCancel: () => void }) {
   return (
@@ -123,7 +123,7 @@ function ConfirmDialog({ msg, onConfirm, onCancel }: { msg: string; onConfirm: (
   );
 }
 
-// â”€â”€â”€ Status Change Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Status Change Modal ──────────────────────────────────────────────────────
 
 function StatusModal({
   quote, onClose, onDone,
@@ -167,20 +167,20 @@ function StatusModal({
         {status === 'REJECTED' && (
           <div style={{ marginBottom: 14 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Rejection Reason</label>
-            <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder="Enter rejection reasonâ€¦" style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+            <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder="Enter rejection reason…" style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
         )}
         {err && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{err}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Savingâ€¦' : 'Update'}</button>
+          <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Update'}</button>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-// â”€â”€â”€ Detail Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Detail Panel ─────────────────────────────────────────────────────────────
 
 function DetailPanel({
   quoteId, onClose, onEdit, onDelete, canDelete, onStatusChange, onConvert,
@@ -268,15 +268,15 @@ function DetailPanel({
           {/* Info grid */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px 20px', marginBottom: 20 }}>
             {[
-              ['Customer', quote.customer_name || 'â€”'],
-              ['Shipment Type', quote.shipment_type || 'â€”'],
+              ['Customer', quote.customer_name || '—'],
+              ['Shipment Type', quote.shipment_type || '—'],
               ['Currency', quote.currency],
               ['Valid From', fmtDate(quote.valid_from)],
               ['Valid Until', fmtDate(quote.valid_until)],
-              ['Origin Port', quote.origin_port || 'â€”'],
-              ['Origin City', quote.origin_city || 'â€”'],
-              ['Destination Port', quote.destination_port || 'â€”'],
-              ['Destination City', quote.destination_city || 'â€”'],
+              ['Origin Port', quote.origin_port || '—'],
+              ['Origin City', quote.origin_city || '—'],
+              ['Destination Port', quote.destination_port || '—'],
+              ['Destination City', quote.destination_city || '—'],
             ].map(([label, val]) => (
               <div key={label}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>{label}</div>
@@ -364,7 +364,7 @@ function DetailPanel({
   );
 }
 
-// â”€â”€â”€ Quote Modal (Create / Edit) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Quote Modal (Create / Edit) ──────────────────────────────────────────────
 
 function QuoteModal({
   editQuote, customers, onClose, onSaved,
@@ -417,8 +417,8 @@ function QuoteModal({
 
   async function searchCustomersLocal(q: string): Promise<PickerItem[]> {
     const ql = q.trim().toLowerCase();
-    // Excludes draft companies (active===false) â€” e.g. BRELA imports still
-    // sitting in Company Directory that haven't been marked complete yet â€”
+    // Excludes draft companies (active===false) — e.g. BRELA imports still
+    // sitting in Company Directory that haven't been marked complete yet —
     // from every quote/sale customer picker.
     const usable = customers.filter((c: any) => c.active !== false);
     const filtered = ql
@@ -520,7 +520,7 @@ function QuoteModal({
           {/* Row 1: Title */}
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Title *</label>
-            <input value={form.title} onChange={e => setField('title', e.target.value)} style={inputStyle} placeholder="e.g. Sea Freight Quote â€“ Mombasa to Dar" />
+            <input value={form.title} onChange={e => setField('title', e.target.value)} style={inputStyle} placeholder="e.g. Sea Freight Quote – Mombasa to Dar" />
           </div>
 
           {/* Row 2: Customer + Shipment Type */}
@@ -532,7 +532,7 @@ function QuoteModal({
                 onChange={(item) => { setCustomerItem(item); setField('customer_id', item?.id ?? ''); }}
                 search={searchCustomersLocal} onCreate={createCustomerInline}
                 createLabel={(q) => `Create new customer "${q}"`}
-                placeholder="Search customersâ€¦"
+                placeholder="Search customers…"
               />
             </div>
             <div>
@@ -590,13 +590,13 @@ function QuoteModal({
           {/* Row 5: Goods Description */}
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Goods Description</label>
-            <textarea value={form.goods_description} onChange={e => setField('goods_description', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Brief description of goodsâ€¦" />
+            <textarea value={form.goods_description} onChange={e => setField('goods_description', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Brief description of goods…" />
           </div>
 
           {/* Row 6: Notes */}
           <div style={{ marginBottom: 20 }}>
             <label style={labelStyle}>Notes</label>
-            <textarea value={form.notes} onChange={e => setField('notes', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Internal notes or client instructionsâ€¦" />
+            <textarea value={form.notes} onChange={e => setField('notes', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Internal notes or client instructions…" />
           </div>
 
           {/* Line items */}
@@ -648,7 +648,7 @@ function QuoteModal({
                             </SelectTrigger>
                             <SelectContent>
                               {taxCodes.map(tc => (
-                                <SelectItem key={tc.id} value={tc.id}>{tc.code} Â· {tc.rate}%</SelectItem>
+                                <SelectItem key={tc.id} value={tc.id}>{tc.code} · {tc.rate}%</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -687,7 +687,7 @@ function QuoteModal({
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingBottom: 22 }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
             <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>
-              {saving ? 'Savingâ€¦' : isEdit ? 'Save Changes' : 'Create Quotation'}
+              {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Quotation'}
             </button>
           </div>
         </div>
@@ -696,7 +696,7 @@ function QuoteModal({
   );
 }
 
-// â”€â”€â”€ Main Sales Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Sales Page ──────────────────────────────────────────────────────────
 
 export const Sales: React.FC = () => {
   const isMobile = useIsMobile();
@@ -806,21 +806,21 @@ export const Sales: React.FC = () => {
         <MetricsRow cards={[
           {
             title: 'Total Quotes',
-            value: loading ? 'â€”' : String(quotes.length),
-            sub1Label: 'APPROVED', sub1Value: loading ? 'â€”' : String(byStage('APPROVED').length),
-            sub2Label: 'WIN RATE', sub2Value: loading ? 'â€”' : `${winRate}%`, barHighlight: 'var(--blue)',
+            value: loading ? '—' : String(quotes.length),
+            sub1Label: 'APPROVED', sub1Value: loading ? '—' : String(byStage('APPROVED').length),
+            sub2Label: 'WIN RATE', sub2Value: loading ? '—' : `${winRate}%`, barHighlight: 'var(--blue)',
           },
           {
             title: 'Converted',
-            value: loading ? 'â€”' : String(byStage('CONVERTED').length),
-            sub1Label: 'THIS MONTH', sub1Value: loading ? 'â€”' : String(Math.floor(byStage('CONVERTED').length * 0.4)),
-            sub2Label: 'THIS WEEK',  sub2Value: loading ? 'â€”' : String(Math.floor(byStage('CONVERTED').length * 0.1)), barHighlight: 'var(--green)',
+            value: loading ? '—' : String(byStage('CONVERTED').length),
+            sub1Label: 'THIS MONTH', sub1Value: loading ? '—' : String(Math.floor(byStage('CONVERTED').length * 0.4)),
+            sub2Label: 'THIS WEEK',  sub2Value: loading ? '—' : String(Math.floor(byStage('CONVERTED').length * 0.1)), barHighlight: 'var(--green)',
           },
           {
             title: 'Pipeline Value',
-            value: loading ? 'â€”' : fmt(total),
-            sub1Label: 'WON REVENUE', sub1Value: loading ? 'â€”' : fmt(won),
-            sub2Label: 'AVG DEAL',    sub2Value: loading || !quotes.length ? 'â€”' : fmt(Math.round(total / quotes.length)), barHighlight: 'var(--gold)',
+            value: loading ? '—' : fmt(total),
+            sub1Label: 'WON REVENUE', sub1Value: loading ? '—' : fmt(won),
+            sub2Label: 'AVG DEAL',    sub2Value: loading || !quotes.length ? '—' : fmt(Math.round(total / quotes.length)), barHighlight: 'var(--gold)',
           },
         ]} />
       </div>
@@ -840,7 +840,7 @@ export const Sales: React.FC = () => {
 
               {/* Cards */}
               <div className="sales-stage-list">
-                {loading && <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 12, padding: 16 }}>â€¦</div>}
+                {loading && <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 12, padding: 16 }}>…</div>}
                 {!loading && cards.length === 0 && (
                   <div className="sales-empty-stage">
                     <Icon name="fileText" size={18} />

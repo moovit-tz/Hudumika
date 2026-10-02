@@ -14,7 +14,7 @@
   padding-bottom: 40px;
 }
 
-/* â”€â”€ Top Bento Row â”€â”€ */
+/* ── Top Bento Row ── */
 .vex-top-bento {
   display: grid;
   grid-template-columns: 1.3fr 1fr 1.2fr;
@@ -270,7 +270,7 @@
   letter-spacing: -0.02em;
 }
 
-/* â”€â”€ Row 2: Cash-Flow Forecast & AI Signals â”€â”€ */
+/* ── Row 2: Cash-Flow Forecast & AI Signals ── */
 .vex-row-2 {
   display: grid;
   grid-template-columns: 2fr 1.1fr;
@@ -384,7 +384,7 @@
   line-height: 1.4;
 }
 
-/* â”€â”€ Row 3: Working Capital & Spend/Budget â”€â”€ */
+/* ── Row 3: Working Capital & Spend/Budget ── */
 .vex-row-3 {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
@@ -456,7 +456,7 @@
   color: var(--teal);
 }
 
-/* â”€â”€ Row 4: Cash Activity & Close Readiness â”€â”€ */
+/* ── Row 4: Cash Activity & Close Readiness ── */
 .vex-row-4 {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
@@ -551,7 +551,58 @@
   line-height: 1.4;
 }
 
-/* â”€â”€ Responsive breakpoints â”€â”€ */
+.vex-pos-strip {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.15fr) repeat(4, minmax(130px, 1fr)) auto;
+  align-items: stretch;
+  gap: 0;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+}
+
+.vex-pos-heading,
+.vex-pos-stat {
+  min-width: 0;
+  padding: 15px 16px;
+  border-right: 1px solid var(--border);
+}
+
+.vex-pos-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.vex-pos-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-sm);
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.vex-pos-heading strong,
+.vex-pos-heading span,
+.vex-pos-stat span,
+.vex-pos-stat strong,
+.vex-pos-stat small {
+  display: block;
+}
+
+.vex-pos-heading strong { color: var(--ink); font-size: 13px; }
+.vex-pos-heading span,
+.vex-pos-stat span,
+.vex-pos-stat small { color: var(--ink3); font-size: 10.5px; }
+.vex-pos-heading span { margin-top: 3px; }
+.vex-pos-stat strong { margin: 5px 0 3px; color: var(--ink); font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vex-pos-strip > button { align-self: center; margin: 0 14px; white-space: nowrap; }
+
+/* ── Responsive breakpoints ── */
 @media (max-width: 1050px) {
   .vex-top-bento {
     grid-template-columns: 1fr;
@@ -561,6 +612,10 @@
   .vex-row-4 {
     grid-template-columns: 1fr;
   }
+  .vex-pos-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vex-pos-heading,
+  .vex-pos-stat { border-bottom: 1px solid var(--border); }
+  .vex-pos-strip > button { margin-block: 12px; justify-self: start; }
 }
 
 @media (max-width: 600px) {
@@ -570,4 +625,7 @@
   .vex-wc-kpis {
     grid-template-columns: repeat(2, 1fr);
   }
+  .vex-pos-strip { grid-template-columns: 1fr; }
+  .vex-pos-heading,
+  .vex-pos-stat { border-right: 0; }
 }

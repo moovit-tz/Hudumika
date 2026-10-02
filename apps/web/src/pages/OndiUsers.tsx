@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Button } from '../components/ui/button.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
@@ -89,10 +90,10 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
           </div>
           {error && <div style={{ fontSize: 12, color: 'var(--red)', background: 'var(--red-l)', padding: '8px 12px', borderRadius: 'var(--r-sm)'}}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
-            <button type="button" className="ondi-secondary-action" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-            <button type="submit" className="ondi-primary-action" disabled={saving} style={{ padding: '8px 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, boxShadow: '0 2px 8px var(--teal-m)' }}>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={saving}>
               {saving ? 'Sending…' : 'Send Invitation'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -545,9 +546,7 @@ export const OndiUsers: React.FC = () => {
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" className="ondi-primary-action" style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
-                              Approve as…
-                            </button>
+                            <Button size="sm">Approve as…</Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {ROLES.map(role => (

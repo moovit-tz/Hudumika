@@ -167,9 +167,9 @@ export function ComplyTraExtract() {
   return (
     <div className="comply-page">
       <PageHeader
-        crumbs={['ComplyOS', 'TRA Taxpayer Portal Agent']}
-        titlePlain="TRA Taxpayer Portal"
-        titleEm="preview"
+        crumbs={['ComplyOS', 'TRA Portal']}
+        titlePlain="TRA"
+        titleEm="portal"
         subtitle="TRA has no public API — this previews the shape of a taxpayer compliance profile by TIN. It never asks for your portal password and does not log in to the live TRA site."
       />
 
@@ -227,11 +227,11 @@ export function ComplyTraExtract() {
                 </div>
 
                 {status === 'idle' ? (
-                  <button type="submit" className="comply-btn-primary" style={{ padding: '12px', borderRadius: 'var(--r)', marginTop: 8 }}>
+                  <button type="submit" className="comply-btn-primary" style={{ marginTop: 8 }}>
                     <Icon name="zap" style={{ marginRight: 8 }} /> Generate Preview
                   </button>
                 ) : (
-                  <button type="button" className="comply-btn-secondary" disabled style={{ padding: '12px', borderRadius: 'var(--r)', marginTop: 8 }}>
+                  <button type="button" className="comply-btn-secondary" disabled style={{ marginTop: 8 }}>
                     Generating…
                   </button>
                 )}

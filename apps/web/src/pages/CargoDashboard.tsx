@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
-import { useIsMobile } from '../hooks/useIsMobile.js';
 
 interface Summary {
   shipments: number;
@@ -79,7 +80,6 @@ const panelSubStyle: React.CSSProperties = { fontSize: 12, color: 'var(--ink3)',
 
 export function CargoDashboard() {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [carriers, setCarriers] = useState<CarrierRow[]>([]);
   const [lanes, setLanes] = useState<LaneRow[]>([]);
@@ -119,20 +119,20 @@ export function CargoDashboard() {
   const maxCarrierCost = Math.max(1, ...Object.values(demurrage?.by_carrier ?? {}).map(v => v.cost));
 
   if (loading) {
-    return <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>Loading dashboard…</div>;
+    return <SectionLoading label="Loading dashboard…" />;
   }
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 32px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
         crumbs={['CargoTracker', 'Dashboard']}
-        titlePlain="Cargo tracking"
+        titlePlain="Cargo"
         titleEm="overview"
         subtitle="Shipments, containers, carrier reliability and demurrage — across every lane you track."
         actions={
-          <button type="button" className="btn btn-primary" onClick={() => navigate('/cargotracker/track')}>
-            <Icon name="search" size={14} /> Track a shipment
-          </button>
+          <Button size="sm" onClick={() => navigate('/cargotracker/track')}>
+            <Icon name="search" size={14} color="hsl(var(--primary-foreground))" /> Track a shipment
+          </Button>
         }
       />
 
@@ -248,9 +248,9 @@ export function CargoDashboard() {
       <SectionCard
         title="Demurrage & Detention"
         action={demurrageEnabled && (
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/cargotracker/demurrage')}>
-            Open Demurrage <Icon name="arrowRight" size={13} />
-          </button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/cargotracker/demurrage')}>
+            Open Demurrage <Icon name="arrowRight" size={13} color="var(--ink3)" />
+          </Button>
         )}
       >
         <div style={panelSubStyle}>Cost exposure by carrier and month</div>

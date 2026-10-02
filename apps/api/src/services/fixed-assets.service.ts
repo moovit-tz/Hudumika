@@ -1,6 +1,7 @@
 import { withTenant, type Database } from '../db/client.js';
 import type { Transaction } from 'kysely';
 import { GLService } from './gl.service.js';
+import { tenantHasEnabledFinanceCapability } from './finance-capability.service.js';
 
 const DEPRECIATION_EXPENSE_ACCOUNT = '5111';
 const ACCUMULATED_DEPRECIATION_ACCOUNT = '1503';
@@ -26,6 +27,11 @@ async function accumulatedDepreciation(trx: Transaction<Database>, assetId: stri
  * simply skipped from then on, not over-depreciated.
  */
 export async function runDepreciationForTenant(tenantId: string, periodDate = new Date().toISOString().slice(0, 8) + '01'): Promise<{ posted: number; skipped: number }> {
+  if (!(await tenantHasEnabledFinanceCapability(tenantId, 'finance.fixed_assets'))) {
+    throw Object.assign(new Error('Fixed Assets is not enabled for this workspace.'), {
+      statusCode: 403, code: 'CAPABILITY_READ_ONLY', capability: 'finance.fixed_assets',
+    });
+  }
   return withTenant(tenantId, async (trx) => {
     const assets = await trx.selectFrom('fixed_assets').selectAll()
       .where('tenant_id', '=', tenantId).where('status', '=', 'ACTIVE').execute();

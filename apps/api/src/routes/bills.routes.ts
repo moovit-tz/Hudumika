@@ -2,6 +2,8 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
+import { requireFinanceCapability } from '../middleware/finance-capability.js';
 
 // PENDING_APPROVAL added for M9 — supplier_bills.status has never carried
 // a DB-level CHECK constraint, so this is a pure app-level addition.
@@ -10,6 +12,7 @@ const recurringBillSchema = z.object({
   name: z.string().max(200).optional(),
   supplier_id: z.string().optional(),
   supplier_name: z.string().max(300).optional(),
+  business_line_id: z.string().uuid().nullable().optional(),
   frequency: z.enum(['WEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUAL']).optional(),
   currency: z.string().max(10).optional(),
   amount: z.number().min(0).optional(),
@@ -23,6 +26,8 @@ const recurringBillSchema = z.object({
   state: z.enum(['ACTIVE', 'PAUSED', 'ENDED']).optional(),
   bills_generated: z.number().int().min(0).optional(),
   total_spend: z.number().min(0).optional(),
+  po_id: z.string().uuid().nullable().optional(),
+  po_number: z.string().max(100).optional(),
 });
 // HUD-0060: previously documented `quantity`/`unit_cost`/`amount`/`account_id`
 // — fields buildBillLines() below has never read. The shipped Bills.tsx
@@ -47,6 +52,7 @@ const billCreateSchema = z.object({
   bill_number: z.string().max(100).optional(),
   supplier_id: z.string().optional(),
   supplier_name: z.string().max(300).optional(),
+  business_line_id: z.string().uuid().nullable().optional(),
   shipment_ref: z.string().max(100).optional(),
   po_number: z.string().max(100).optional(),
   po_id: z.string().uuid().nullable().optional(),
@@ -227,26 +233,44 @@ async function recomputeBillPosting(trx: Transaction<Database>, tenantId: string
  * understating what was owed.
  */
 function billJournalLines(args: {
-  byAccount: Map<string, number>; recoverable: number; nonRecoverable: number; total: number;
+  byAccount: Map<string, number>; recoverable: number; nonRecoverable: number; total: number; businessLineId?: string | null;
 }) {
-  const { byAccount, recoverable, nonRecoverable, total } = args;
+  const { byAccount, recoverable, nonRecoverable, total, businessLineId } = args;
+  const dimensions = businessLineId ? { business_line_id: businessLineId } : undefined;
   return [
     ...[...byAccount.entries()]
       .filter(([, amount]) => amount !== 0)
       .map(([accountCode, amount]) => ({
         accountCode, debit: amount, credit: 0,
-        description: nonRecoverable > 0 ? 'Purchase (incl. non-recoverable tax)' : 'Purchase',
+        description: nonRecoverable > 0 ? 'Purchase (incl. non-recoverable tax)' : 'Purchase', dimensions,
       })),
     ...(recoverable > 0
-      ? [{ accountCode: '1150', debit: recoverable, credit: 0, description: 'VAT input tax (recoverable)' }]
+      ? [{ accountCode: '1150', debit: recoverable, credit: 0, description: 'VAT input tax (recoverable)', dimensions }]
       : []),
-    { accountCode: '2000', debit: 0, credit: total, description: 'Accounts Payable' },
+    { accountCode: '2000', debit: 0, credit: total, description: 'Accounts Payable', dimensions },
   ];
+}
+
+async function validateBusinessLine(
+  trx: Transaction<Database>, tenantId: string, businessLineId: string | null | undefined,
+): Promise<boolean> {
+  if (!businessLineId) return true;
+  const line = await trx.selectFrom('finance_business_lines').select('id')
+    .where('tenant_id', '=', tenantId).where('id', '=', businessLineId).where('active', '=', true)
+    .executeTakeFirst();
+  return Boolean(line);
+}
+
+async function resolveTenantPurchaseOrder(trx: Transaction<Database>, tenantId: string, poId: string) {
+  return trx.selectFrom('purchase_orders')
+    .select(['id', 'po_number', 'supplier_id', 'business_line_id'])
+    .where('tenant_id', '=', tenantId).where('id', '=', poId).executeTakeFirst();
 }
 
 export async function billRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
+  fastify.addHook('preHandler', requireFinanceCapability('finance.core', { preserveReadAccess: true }));
 
   // ── Stats ─────────────────────────────────────────────────────────────────
 
@@ -297,7 +321,25 @@ export async function billRoutes(fastify: FastifyInstance) {
   fastify.post('/recurring', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const body = recurringBillSchema.parse(request.body);
+    if (body.business_line_id && !(await tenantHasEnabledFinanceCapability(user.tenant_id, 'finance.accounting.advanced'))) {
+      return reply.status(403).send({ error: 'Business-line tracking requires Advanced Accounting.' });
+    }
     return withTenant(user.tenant_id, async (trx) => {
+      if (!(await validateBusinessLine(trx, user.tenant_id, body.business_line_id))) {
+        return reply.status(400).send({ error: 'Select an active business line from this workspace.' });
+      }
+      let linkedPo = null;
+      if (body.po_id) {
+        linkedPo = await resolveTenantPurchaseOrder(trx, user.tenant_id, body.po_id);
+        if (!linkedPo) return reply.status(400).send({ error: 'Select a purchase order from this workspace.' });
+        if (body.supplier_id && linkedPo.supplier_id && body.supplier_id !== linkedPo.supplier_id) {
+          return reply.status(400).send({ error: 'The supplier bill and linked purchase order must use the same supplier.' });
+        }
+        if (body.business_line_id && linkedPo.business_line_id && body.business_line_id !== linkedPo.business_line_id) {
+          return reply.status(400).send({ error: 'The supplier bill must use the linked purchase order\'s business line.' });
+        }
+      }
+      const resolvedBusinessLineId = body.business_line_id || linkedPo?.business_line_id || null;
       // The treatment is validated here rather than when a bill is generated —
       // a template carrying a code from another workspace, or a sales-only code,
       // would otherwise fail silently every cycle.
@@ -314,6 +356,7 @@ export async function billRoutes(fastify: FastifyInstance) {
         name: body.name || null,
         supplier_id: body.supplier_id || null,
         supplier_name: body.supplier_name || null,
+        business_line_id: resolvedBusinessLineId,
         frequency: body.frequency || 'MONTHLY',
         currency: body.currency || 'USD',
         amount: Number(body.amount) || 0,
@@ -338,10 +381,17 @@ export async function billRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const body = recurringBillSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('recurring_bills').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const existing = await trx.selectFrom('recurring_bills').select(['id', 'business_line_id']).where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Recurring bill not found' });
+      if (body.business_line_id && body.business_line_id !== existing.business_line_id
+        && !(await tenantHasEnabledFinanceCapability(user.tenant_id, 'finance.accounting.advanced'))) {
+        return reply.status(403).send({ error: 'Business-line tracking requires Advanced Accounting.' });
+      }
+      if (!(await validateBusinessLine(trx, user.tenant_id, body.business_line_id))) {
+        return reply.status(400).send({ error: 'Select an active business line from this workspace.' });
+      }
       const updates: any = { updated_at: new Date() };
-      const fields = ['name', 'supplier_id', 'supplier_name', 'frequency', 'currency', 'amount', 'category', 'description', 'payment_terms', 'next_due', 'end_date', 'state', 'bills_generated', 'total_spend'];
+      const fields = ['name', 'supplier_id', 'supplier_name', 'business_line_id', 'frequency', 'currency', 'amount', 'category', 'description', 'payment_terms', 'next_due', 'end_date', 'state', 'bills_generated', 'total_spend'];
       const b = body as Record<string, unknown>;
       for (const f of fields) {
         if (b[f] !== undefined) updates[f] = b[f];
@@ -440,7 +490,13 @@ export async function billRoutes(fastify: FastifyInstance) {
   fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const body = billCreateSchema.parse(request.body);
+    if (body.business_line_id && !(await tenantHasEnabledFinanceCapability(user.tenant_id, 'finance.accounting.advanced'))) {
+      return reply.status(403).send({ error: 'Business-line tracking requires Advanced Accounting.' });
+    }
     return withTenant(user.tenant_id, async (trx) => {
+      if (!(await validateBusinessLine(trx, user.tenant_id, body.business_line_id))) {
+        return reply.status(400).send({ error: 'Select an active business line from this workspace.' });
+      }
       // HUD-0077: a supplier's own `blocked` status (fraud/dispute/etc.) used
       // to be purely cosmetic — set it, and every other route ignored it, so
       // a bill would still post normally with no warning anywhere. Checked
@@ -473,6 +529,16 @@ export async function billRoutes(fastify: FastifyInstance) {
         }
       }
 
+      // Resolve linked PO (optional — validates cross-tenant and supplier match).
+      let linkedPo: any = null;
+      if (body.po_id) {
+        linkedPo = await resolveTenantPurchaseOrder(trx, user.tenant_id, body.po_id);
+        if (!linkedPo) return reply.status(400).send({ error: 'Select a purchase order from this workspace.' });
+        if (body.supplier_id && linkedPo.supplier_id && body.supplier_id !== linkedPo.supplier_id) {
+          return reply.status(400).send({ error: 'The supplier bill and linked purchase order must use the same supplier.' });
+        }
+      }
+
       // AP approval (M9) — opt-in. A bill that would otherwise post
       // immediately instead lands PENDING_APPROVAL when the flag is on and
       // its amount qualifies for a real, active workflow; GL posting is
@@ -489,8 +555,9 @@ export async function billRoutes(fastify: FastifyInstance) {
         bill_number: billNumber,
         supplier_id: body.supplier_id || null,
         supplier_name: body.supplier_name || null,
+        business_line_id: body.business_line_id || null,
         shipment_ref: body.shipment_ref || null,
-        po_number: body.po_number || null,
+        po_number: linkedPo?.po_number || body.po_number || null,
         po_id: body.po_id || null,
         bill_date: body.bill_date || null,
         due_date: body.due_date || null,
@@ -520,7 +587,7 @@ export async function billRoutes(fastify: FastifyInstance) {
           sourceModule: 'AP',
           sourceId: bill.id,
           createdBy: user.sub,
-          lines: billJournalLines({ byAccount: built.byAccount, recoverable, nonRecoverable, total }),
+          lines: billJournalLines({ byAccount: built.byAccount, recoverable, nonRecoverable, total, businessLineId: bill.business_line_id }),
         });
       }
 
@@ -586,7 +653,7 @@ export async function billRoutes(fastify: FastifyInstance) {
           entryDate: bill.bill_date ? new Date(bill.bill_date).toISOString() : new Date().toISOString(),
           description: `Supplier bill: ${bill.bill_number}`,
           reference: bill.bill_number, sourceModule: 'AP', sourceId: bill.id, createdBy: user.sub,
-          lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total }),
+          lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total, businessLineId: bill.business_line_id }),
         });
       }
 
@@ -657,7 +724,7 @@ export async function billRoutes(fastify: FastifyInstance) {
           entryDate: bill.bill_date ? new Date(bill.bill_date).toISOString() : new Date().toISOString(),
           description: `Supplier bill: ${bill.bill_number}`,
           reference: bill.bill_number, sourceModule: 'AP', sourceId: bill.id, createdBy: user.sub,
-          lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total }),
+          lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total, businessLineId: bill.business_line_id }),
         });
       }
       const posted = await trx.updateTable('supplier_bills')
@@ -712,9 +779,22 @@ export async function billRoutes(fastify: FastifyInstance) {
       return reply.status(409).send({ error: 'Bill status cannot be changed through edit. Use submit, approve, reject, payment, or void.' });
     }
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('supplier_bills').select(['id', 'bill_date', 'supplier_id', 'status'])
+      const existing = await trx.selectFrom('supplier_bills').select(['id', 'bill_date', 'supplier_id', 'status', 'business_line_id', 'po_id'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Bill not found' });
+      if (body.po_id !== undefined && body.po_id !== existing.po_id && existing.status !== 'DRAFT') {
+        return reply.status(409).send({ error: 'The linked purchase order cannot be changed after a bill is submitted.' });
+      }
+      if (body.business_line_id !== undefined && existing.status !== 'DRAFT' && body.business_line_id !== existing.business_line_id) {
+        return reply.status(409).send({ error: 'The business line cannot be changed after a bill is submitted.' });
+      }
+      if (body.business_line_id && body.business_line_id !== existing.business_line_id
+        && !(await tenantHasEnabledFinanceCapability(user.tenant_id, 'finance.accounting.advanced'))) {
+        return reply.status(403).send({ error: 'Business-line tracking requires Advanced Accounting.' });
+      }
+      if (!(await validateBusinessLine(trx, user.tenant_id, body.business_line_id))) {
+        return reply.status(400).send({ error: 'Select an active business line from this workspace.' });
+      }
 
       try {
         const juris = await tenantJurisdiction(trx, user.tenant_id);
@@ -732,6 +812,17 @@ export async function billRoutes(fastify: FastifyInstance) {
       // bill that already existed against a since-blocked supplier can still
       // be edited/saved as DRAFT without this tripping on every unrelated save.
       const effectiveSupplierId = body.supplier_id !== undefined ? body.supplier_id : existing.supplier_id;
+      let linkedPo = null;
+      if (body.po_id) {
+        linkedPo = await resolveTenantPurchaseOrder(trx, user.tenant_id, body.po_id);
+        if (!linkedPo) return reply.status(400).send({ error: 'Select a purchase order from this workspace.' });
+        if (effectiveSupplierId && linkedPo.supplier_id && effectiveSupplierId !== linkedPo.supplier_id) {
+          return reply.status(400).send({ error: 'The supplier bill and linked purchase order must use the same supplier.' });
+        }
+        if (body.business_line_id && linkedPo.business_line_id && body.business_line_id !== linkedPo.business_line_id) {
+          return reply.status(400).send({ error: 'The supplier bill must use the linked purchase order\'s business line.' });
+        }
+      }
       const changingSupplier = body.supplier_id !== undefined && body.supplier_id !== existing.supplier_id;
       const postingNow = body.status === 'POSTED' && existing.status !== 'POSTED';
       if (effectiveSupplierId && (changingSupplier || postingNow)) {
@@ -745,10 +836,14 @@ export async function billRoutes(fastify: FastifyInstance) {
       }
 
       const updates: any = { updated_at: new Date() };
-      const fields = ['bill_number', 'supplier_id', 'supplier_name', 'shipment_ref', 'po_number', 'po_id', 'bill_date', 'due_date', 'status', 'currency', 'notes', 'recurring_id'];
+      const fields = ['bill_number', 'supplier_id', 'supplier_name', 'business_line_id', 'shipment_ref', 'po_number', 'po_id', 'bill_date', 'due_date', 'status', 'currency', 'notes', 'recurring_id'];
       const b = body as Record<string, unknown>;
       for (const f of fields) {
         if (b[f] !== undefined) updates[f] = b[f];
+      }
+      if (linkedPo) {
+        updates.po_number = linkedPo.po_number;
+        if (body.business_line_id === undefined) updates.business_line_id = linkedPo.business_line_id;
       }
 
       // Resolved before the line delete below — the delete is a write, and a
@@ -815,7 +910,7 @@ export async function billRoutes(fastify: FastifyInstance) {
               sourceModule: 'AP',
               sourceId: bill.id,
               createdBy: user.sub,
-              lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total: totalVal }),
+              lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total: totalVal, businessLineId: bill.business_line_id }),
             });
           }
         }
@@ -985,12 +1080,12 @@ export async function billRoutes(fastify: FastifyInstance) {
         sourceId: bill.id,
         createdBy: user.sub,
         lines: whtAmount > 0.01 ? [
-          { accountCode: '2000', debit: Number(amount), credit: 0, description: 'Clear AP' },
-          { accountCode: '1010', debit: 0, credit: Number(amount) - whtAmount, description: 'Cash paid (net of WHT)' },
-          { accountCode: '2300', debit: 0, credit: whtAmount, description: 'Withholding tax deducted' },
+          { accountCode: '2000', debit: Number(amount), credit: 0, description: 'Clear AP', dimensions: bill.business_line_id ? { business_line_id: bill.business_line_id } : undefined },
+          { accountCode: '1010', debit: 0, credit: Number(amount) - whtAmount, description: 'Cash paid (net of WHT)', dimensions: bill.business_line_id ? { business_line_id: bill.business_line_id } : undefined },
+          { accountCode: '2300', debit: 0, credit: whtAmount, description: 'Withholding tax deducted', dimensions: bill.business_line_id ? { business_line_id: bill.business_line_id } : undefined },
         ] : [
-          { accountCode: '2000', debit: Number(amount), credit: 0, description: 'Clear AP' },
-          { accountCode: '1010', debit: 0, credit: Number(amount), description: 'Cash paid' },
+          { accountCode: '2000', debit: Number(amount), credit: 0, description: 'Clear AP', dimensions: bill.business_line_id ? { business_line_id: bill.business_line_id } : undefined },
+          { accountCode: '1010', debit: 0, credit: Number(amount), description: 'Cash paid', dimensions: bill.business_line_id ? { business_line_id: bill.business_line_id } : undefined },
         ],
       });
 

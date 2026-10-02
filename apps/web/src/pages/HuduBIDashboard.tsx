@@ -81,7 +81,7 @@ export function HuduBIDashboard() {
       <PageHeader
         crumbs={['HuduBI', 'Overview']}
         titlePlain="Executive"
-        titleEm="snapshot"
+        titleEm="overview"
         subtitle="Live figures aggregated directly from your operational and finance data — no forecasts, no invented numbers."
         actions={
           <Button type="button" variant="outline" size="sm" onClick={openExplain}>

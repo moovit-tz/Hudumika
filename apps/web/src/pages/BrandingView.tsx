@@ -6,8 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Icon } from '../components/Icon.js';
 import { pushBranding, BRAND_ACCENT } from '../hooks/useBranding.js';
+import { pushDesignTokens, readDesignTokens } from '../hooks/useDesignSystem.js';
 import { LauncherAppSvg } from '../components/LauncherApps.js';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import { ColorSwatchPicker, PLATFORM_SWATCHES } from '../components/ui/color-swatch-picker.js';
 
 // ── Branding — three independent panels, embedded as Design System's
 // "Identity" / "Apps" / "Login screen" sections (see DesignSystemView.tsx).
@@ -91,9 +93,21 @@ export function BrandingIdentitySection() {
     localStorage.setItem('hudumika_support_url',      identity.supportUrl);
     localStorage.setItem('hudumika_website_url',      identity.websiteUrl);
     localStorage.setItem('hudumika_email_accent',     identity.accentColor);
+    // Keep design tokens' brand.primary in sync so useDesignSystem's on-mount
+    // API fetch doesn't clobber hudumika_email_accent with the stale DB value.
+    try {
+      const dt = readDesignTokens();
+      if (dt.brand) {
+        dt.brand.primary = identity.accentColor;
+        localStorage.setItem('hudumika_design_tokens', JSON.stringify(dt));
+      }
+    } catch {}
     window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
     try {
-      await pushBranding({ platformName: identity.name, platformTagline: identity.tagline, supportEmail: identity.supportEmail, accentColor: identity.accentColor });
+      await Promise.all([
+        pushBranding({ platformName: identity.name, platformTagline: identity.tagline, supportEmail: identity.supportEmail, accentColor: identity.accentColor }),
+        pushDesignTokens({ brand: { primary: identity.accentColor } }),
+      ]);
       flashSaved('identity');
     } catch (err: any) {
       flashError('identity', err);
@@ -154,10 +168,11 @@ export function BrandingIdentitySection() {
           </div>
           <div className="space-y-2">
             <Label>Accent Color</Label>
-            <div className="flex items-center gap-2">
-              <Input type="color" className="w-12 p-1 h-9" value={identity.accentColor} onChange={e => setIdentity({...identity, accentColor: e.target.value})} />
-              <span className="text-sm text-muted-foreground font-mono">{identity.accentColor}</span>
-            </div>
+            <ColorSwatchPicker
+              value={identity.accentColor}
+              onChange={accentColor => setIdentity({ ...identity, accentColor })}
+              swatches={PLATFORM_SWATCHES}
+            />
             <p className="text-xs text-muted-foreground">
               Used on documents and the login screen. Defaults to whatever theme is active on the Theme tab —
               set it here to override that default independently.
@@ -301,25 +316,11 @@ export function BrandingAppsSection() {
         </div>
         <div className="space-y-2">
           <Label>Accent Color</Label>
-          <div className="flex items-center gap-2">
-            <div
-              className="relative w-9 h-9 rounded-lg border border-input shrink-0 overflow-hidden cursor-pointer shadow-sm transition-transform hover:scale-105"
-              style={{ backgroundColor: colors[app.id] }}
-              title="Click to change accent color"
-            >
-              <input
-                type="color"
-                value={colors[app.id]}
-                onChange={e => setColors({...colors, [app.id]: e.target.value})}
-                className="absolute -inset-2 opacity-0 cursor-pointer"
-              />
-            </div>
-            <Input
-              value={colors[app.id]}
-              onChange={e => setColors({...colors, [app.id]: e.target.value})}
-              className="font-mono text-sm h-9"
-            />
-          </div>
+          <ColorSwatchPicker
+            value={colors[app.id]}
+            onChange={color => setColors({ ...colors, [app.id]: color })}
+            swatches={PLATFORM_SWATCHES}
+          />
         </div>
       </div>
       <div className="space-y-2">

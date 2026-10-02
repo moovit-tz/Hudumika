@@ -17,8 +17,8 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
    * Risk marker. Two states get one, and only because they cost money:
    * demurrage accruing, and an SLA already breached.
    *
-   * There used to be four â€” teal for "in progress" and green for "done" as
-   * well â€” so every row carried a coloured bar and the colour distinguished
+   * There used to be four — teal for "in progress" and green for "done" as
+   * well — so every row carried a coloured bar and the colour distinguished
    * nothing. And it was a floating 3px pill with margin around it, which read
    * as a stray mark beside the row rather than part of it; it is an inset rule
    * flush to the row's edge now.
@@ -29,9 +29,9 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
 
   // Stage progress. A shipment on a real custom workflow already carries its
   // own workflow_step_order/workflow_step_count (set by
-  // ShipmentService.listGroupedByCustomer) â€” pass those straight through.
+  // ShipmentService.listGroupedByCustomer) — pass those straight through.
   // Everything else falls into ProgressSegments' own fallback, which scales
-  // against the full 19-value CLEARANCE_STAGES enum â€” a different, finer
+  // against the full 19-value CLEARANCE_STAGES enum — a different, finer
   // scale than the 11-step collapse ShipmentDetail's own stepper uses
   // (toStage()/STAGES), so the same shipment showed a different fraction of
   // the bar filled in the list than inside the shipment itself. Deriving the
@@ -66,7 +66,7 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
         color: 'inherit',
       }}
     >
-      {/* Leading spacer â€” mirrors TableHeader's blank th-urgency column
+      {/* Leading spacer — mirrors TableHeader's blank th-urgency column
           (15px + 12px margin) so every column below lines up under its
           label. The risk marker itself is an inset box-shadow on the row,
           which takes no layout width, so without this every column here
@@ -97,7 +97,7 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
           {shipment.goods_desc}
         </div>
         <div className="sr-vessel" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '10.5px', color: 'var(--ink3)', marginTop: '2px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          <Icon name="ship" size={11} /> {shipment.vessel || 'N/A'} â€¢ {shipment.origin_port || 'Origin'} âž” {shipment.dest_port || 'Dest'}
+          <Icon name="ship" size={11} /> {shipment.vessel || 'N/A'} • {shipment.origin_port || 'Origin'} ➔ {shipment.dest_port || 'Dest'}
         </div>
       </div>
 
@@ -115,7 +115,7 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
         <StatusPill stage={(shipment as any).workflow_step_name || shipment.stage} />
       </div>
 
-      {/* Officer assigned â€” links to their staff profile when the shipment
+      {/* Officer assigned — links to their staff profile when the shipment
           actually has one on file. stopPropagation keeps the click from also
           firing the row's own navigate-to-shipment handler. */}
       <div className="sr-officer" style={{ width: '100px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -148,9 +148,9 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
         {diffDays}d
       </div>
 
-      {/* Arrow â€” visual indicator that row is clickable */}
+      {/* Arrow — visual indicator that row is clickable */}
       <div className="sr-arrow-btn" style={{ width: 24, height: 24, flexShrink: 0, color: 'var(--teal)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        â†’
+        →
       </div>
     </div>
   );

@@ -1,9 +1,9 @@
-﻿/* Basic (Agentic) landing â€” bespoke header + shell, deliberately separate
+﻿/* Basic (Agentic) landing — bespoke header + shell, deliberately separate
    from AppHeader (see App.tsx's HubPage). Reuses .hub2-welcome-* (index.css)
-   for the greeting band â€” a complete, theme-aware welcome-band style that
+   for the greeting band — a complete, theme-aware welcome-band style that
    already existed in the stylesheet with no component using it. */
 
-/* â”€â”€ Bespoke header â”€â”€ */
+/* ── Bespoke header ── */
 .ah-header {
   display: flex;
   align-items: center;
@@ -51,7 +51,7 @@
   box-shadow: 0 0 0 3px var(--teal-l);
 }
 
-/* â”€â”€ Dynamic App Brand Lockup in Header â”€â”€ */
+/* ── Dynamic App Brand Lockup in Header ── */
 .ah-header-brand-lockup {
   display: flex;
   align-items: center;
@@ -111,7 +111,7 @@
   min-width: 0;
 }
 
-/* â”€â”€ Perfected Segmented Tabs (Hudumika Design System) â”€â”€ */
+/* ── Perfected Segmented Tabs (Hudumika Design System) ── */
 .ah-header-tabs {
   flex-shrink: 1;
   min-width: 0;
@@ -193,7 +193,7 @@
   color: var(--white);
 }
 
-/* â”€â”€ Search Bar (Live AJAX Search + Shortcut) â”€â”€ */
+/* ── Search Bar (Live AJAX Search + Shortcut) ── */
 .ah-header-search {
   position: relative;
   flex: 0 1 300px;
@@ -482,7 +482,7 @@
   border-radius: 9999px;
 }
 
-/* â”€â”€ Profile Dropdown Menu in Design System â”€â”€ */
+/* ── Profile Dropdown Menu in Design System ── */
 .ah-profile-dropdown-menu {
   width: 250px;
   border-radius: var(--r-sm);
@@ -653,12 +653,12 @@
 
 /* Automations' ReactFlow canvas resolves its own `height: 100%` against
    this element the same way WorkspaceHome resolves against
-   .ah-operations-embed just above â€” a wrapper with no explicit height
+   .ah-operations-embed just above — a wrapper with no explicit height
    would collapse it to zero instead of filling the tab. */
 .ah-automations-embed { display: flex; flex-direction: column; min-height: 0; height: 100%; }
 
 /* Insights/Controls keep their own PageHeader + centered-column layout
-   (same components AIShell.tsx renders standalone) â€” this only adds the
+   (same components AIShell.tsx renders standalone) — this only adds the
    horizontal breathing room .ah-scroll itself doesn't provide, matching
    .hub2-welcome-band's 40px gutter used elsewhere on this page. */
 .ah-subpage-embed { padding-left: 40px; padding-right: 40px; }
@@ -666,7 +666,7 @@
   .ah-subpage-embed { padding-left: 16px; padding-right: 16px; }
 }
 
-/* â”€â”€ Chat FAB + panel â”€â”€ */
+/* ── Chat FAB + panel ── */
 .ah-chat-fab {
   position: absolute; bottom: 24px; right: 24px; width: 48px; height: 48px; border-radius: 50%;
   background: var(--teal); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -691,7 +691,7 @@
 .ah-chat-msg--pending { align-self: flex-start; background: var(--bg); color: var(--ink3); font-style: italic; border-bottom-left-radius: 4px; }
 
 /* A run's held tool call, waiting on a real human decision before it
-   executes â€” never auto-approved client-side, matching agent.routes.ts's
+   executes — never auto-approved client-side, matching agent.routes.ts's
    own gate. */
 .ah-approval-card {
   align-self: stretch; border: 1px solid var(--gold-m, var(--gold)); background: var(--gold-l);

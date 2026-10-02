@@ -9,7 +9,7 @@ import type { SubjectKind } from '../lib/identity.js';
 
 /**
  * Shared shell for FinOps "document" detail views (Invoices, Credit Notes,
- * Quotations, Delivery Documents) â€” one back-link + two-column layout +
+ * Quotations, Delivery Documents) — one back-link + two-column layout +
  * card set instead of each page reinventing its own. Extracted from
  * Quotations.tsx's QuoteDetailView, the best of the four before this pass,
  * and rebuilt on SectionCard/Badge/Button so every document reads as the
@@ -68,11 +68,11 @@ export function DocumentHeaderCard({ eyebrow, number, title, subtitle, status, m
   title?: React.ReactNode;
   /** Customer/party summary line under the title/number. */
   subtitle?: React.ReactNode;
-  /** Right-aligned slot â€” a status Badge, or (for a credit note) an amount block. */
+  /** Right-aligned slot — a status Badge, or (for a credit note) an amount block. */
   status?: React.ReactNode;
-  /** Full-width content below the title row â€” a route strip, an info grid. */
+  /** Full-width content below the title row — a route strip, an info grid. */
   meta?: React.ReactNode;
-  /** A warning/info strip below everything â€” rejection reason, void reason. */
+  /** A warning/info strip below everything — rejection reason, void reason. */
   banner?: React.ReactNode;
 }) {
   return (
@@ -103,7 +103,7 @@ export interface DocumentAction {
   onClick: () => void;
   variant?: ButtonProps['variant'];
   /** Override background/color for a semantic status action (submit/approve/
-   *  convert) â€” Button still owns height/padding/radius; only appearance
+   *  convert) — Button still owns height/padding/radius; only appearance
    *  changes, per CLAUDE.md's "an app may set appearance, not the box" rule. */
   style?: React.CSSProperties;
   loading?: boolean;
@@ -125,7 +125,7 @@ export function DocumentActionsCard({ title = 'Actions', groups }: { title?: str
               <Button key={a.key} type="button" variant={a.variant ?? 'outline'} disabled={a.disabled || a.loading}
                 onClick={a.onClick} title={a.label} style={{ width: '100%', justifyContent: 'flex-start', ...a.style }}>
                 {a.icon && <Icon name={a.icon as any} size={14} />}
-                {a.loading ? (a.loadingLabel ?? `${a.label}â€¦`) : a.label}
+                {a.loading ? (a.loadingLabel ?? `${a.label}…`) : a.label}
               </Button>
             ))}
           </React.Fragment>

@@ -19,10 +19,28 @@ const productCreateSchema = z.object({
   unit: z.string().max(30).optional(),
   sale_price: z.number().optional(),
   purchase_price: z.number().optional(),
+  compare_at_price: z.number().nullable().optional(),
   currency: z.string().max(10).optional(),
   status: z.enum(['active', 'inactive']).optional(),
   tax_code_id: z.string().optional(),
   tax_rate: z.number().optional(),
+  notes: z.string().max(5000).optional(),
+  // Retail/POS expansion (migration 547)
+  image_urls: z.array(z.string().url()).optional(),
+  brand: z.string().max(100).nullable().optional(),
+  vendor_name: z.string().max(200).nullable().optional(),
+  stock_quantity: z.number().int().nullable().optional(),
+  low_stock_threshold: z.number().int().optional(),
+  track_inventory: z.boolean().optional(),
+  weight_kg: z.number().nullable().optional(),
+  dimensions_cm: z.object({ length: z.number(), width: z.number(), height: z.number() }).nullable().optional(),
+  shipping_class: z.string().max(50).nullable().optional(),
+  variants: z.array(z.object({ name: z.string(), values: z.array(z.string()) })).optional(),
+  meta_title: z.string().max(300).nullable().optional(),
+  meta_description: z.string().nullable().optional(),
+  url_handle: z.string().max(300).nullable().optional(),
+  visibility: z.enum(['published', 'draft', 'scheduled']).optional(),
+  channels: z.array(z.string()).optional(),
 });
 const productPatchSchema = productCreateSchema.partial();
 const customerPricesSchema = z.object({
@@ -263,5 +281,163 @@ export async function productRoutes(fastify: FastifyInstance) {
       for (const r of rows) map[r.product_id] = { price: Number(r.price), currency: r.currency };
       return map;
     });
+  });
+
+  // ── Product Categories ────────────────────────────────────────────────────
+
+  const catSchema = z.object({
+    name:        z.string().trim().min(1).max(200),
+    slug:        z.string().max(200).nullable().optional(),
+    parent_id:   z.string().uuid().nullable().optional(),
+    image_url:   z.string().max(1000).nullable().optional(),
+    description: z.string().max(2000).nullable().optional(),
+    is_featured: z.boolean().optional(),
+    status:      z.enum(['active', 'inactive', 'draft']).optional(),
+    sort_order:  z.number().int().optional(),
+  });
+
+  function slugify(s: string) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+
+  fastify.get('/categories', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const cats = await trx.selectFrom('product_categories')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .orderBy('sort_order').orderBy('name')
+        .execute();
+      // Attach product counts
+      const counts = await trx.selectFrom('products')
+        .select(['category', trx.fn.count('id').as('cnt')])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('status', '=', 'active')
+        .groupBy('category')
+        .execute();
+      const countMap: Record<string, number> = {};
+      for (const r of counts) countMap[r.category ?? ''] = Number(r.cnt);
+      return { data: cats, product_counts: countMap };
+    });
+  });
+
+  fastify.post('/categories', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const body = catSchema.parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.insertInto('product_categories').values({
+        tenant_id:   user.tenant_id,
+        name:        body.name,
+        slug:        body.slug ?? slugify(body.name),
+        parent_id:   body.parent_id ?? null,
+        image_url:   body.image_url ?? null,
+        description: body.description ?? null,
+        is_featured: body.is_featured ?? false,
+        status:      body.status ?? 'active',
+        sort_order:  body.sort_order ?? 0,
+      }).returningAll().executeTakeFirstOrThrow();
+      reply.code(201);
+      return row;
+    });
+  });
+
+  fastify.patch('/categories/:cid', { preHandler: requireRole(...FIN_ROLES) }, async (request) => {
+    const user = request.user;
+    const { cid } = request.params as { cid: string };
+    const body = catSchema.partial().parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.updateTable('product_categories')
+        .set({ ...body, updated_at: new Date() } as any)
+        .where('tenant_id', '=', user.tenant_id)
+        .where('id', '=', cid)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.delete('/categories/:cid', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { cid } = request.params as { cid: string };
+    await withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('product_categories')
+        .where('tenant_id', '=', user.tenant_id)
+        .where('id', '=', cid)
+        .execute();
+    });
+    reply.code(204);
+    return null;
+  });
+
+  // ── Product Reviews ───────────────────────────────────────────────────────
+
+  const reviewSchema = z.object({
+    product_id:    z.string().min(1),
+    customer_id:   z.string().uuid().nullable().optional(),
+    customer_name: z.string().min(1).max(200),
+    rating:        z.number().int().min(1).max(5),
+    title:         z.string().max(300).nullable().optional(),
+    body:          z.string().nullable().optional(),
+    status:        z.enum(['pending', 'approved', 'rejected']).optional(),
+    reply:         z.string().nullable().optional(),
+  });
+
+  fastify.get('/reviews', async (request) => {
+    const user = request.user;
+    const { product_id, status } = request.query as { product_id?: string; status?: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      let q = trx.selectFrom('product_reviews as r')
+        .leftJoin('products as p', 'p.id', 'r.product_id')
+        .select(['r.id', 'r.product_id', 'r.customer_id', 'r.customer_name', 'r.rating', 'r.title', 'r.body', 'r.status', 'r.reply', 'r.created_at', 'r.updated_at', 'p.name as product_name'])
+        .where('r.tenant_id', '=', user.tenant_id)
+        .orderBy('r.created_at', 'desc');
+      if (product_id) q = q.where('r.product_id', '=', product_id) as any;
+      if (status) q = q.where('r.status', '=', status) as any;
+      return { data: await q.execute() };
+    });
+  });
+
+  fastify.post('/reviews', async (request, reply) => {
+    const user = request.user;
+    const body = reviewSchema.parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.insertInto('product_reviews').values({
+        tenant_id:    user.tenant_id,
+        product_id:   body.product_id,
+        customer_id:  body.customer_id ?? null,
+        customer_name: body.customer_name,
+        rating:       body.rating,
+        title:        body.title ?? null,
+        body:         body.body ?? null,
+        status:       body.status ?? 'pending',
+        reply:        body.reply ?? null,
+      }).returningAll().executeTakeFirstOrThrow();
+      reply.code(201);
+      return row;
+    });
+  });
+
+  fastify.patch('/reviews/:rid', { preHandler: requireRole(...FIN_ROLES) }, async (request) => {
+    const user = request.user;
+    const { rid } = request.params as { rid: string };
+    const body = reviewSchema.partial().parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.updateTable('product_reviews')
+        .set({ ...body, updated_at: new Date() } as any)
+        .where('tenant_id', '=', user.tenant_id)
+        .where('id', '=', rid)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.delete('/reviews/:rid', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { rid } = request.params as { rid: string };
+    await withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('product_reviews')
+        .where('tenant_id', '=', user.tenant_id)
+        .where('id', '=', rid)
+        .execute();
+    });
+    reply.code(204);
+    return null;
   });
 }

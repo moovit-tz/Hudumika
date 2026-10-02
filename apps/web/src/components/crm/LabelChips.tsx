@@ -116,7 +116,7 @@ export function LabelChips({ subjectType, subjectId }: { subjectType: SubjectTyp
               placeholder="New label…" value={newName} onChange={e => setNewName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') createAndAssign(); }}
             />
-            <button type="button" className="btn btn-primary btn-sm" style={{ height: 30, padding: '0 10px' }} disabled={creating || !newName.trim()} onClick={createAndAssign}>
+            <button type="button" className="btn btn-primary btn-sm" disabled={creating || !newName.trim()} onClick={createAndAssign}>
               Add
             </button>
           </div>

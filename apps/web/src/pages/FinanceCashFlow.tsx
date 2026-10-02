@@ -108,7 +108,7 @@ export const FinanceCashFlow: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading cash flowâ€¦</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading cash flow…</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
@@ -135,7 +135,7 @@ export const FinanceCashFlow: React.FC = () => {
         </div>
 
         {/* Cash Flow table */}
-        <SectionCard padded={false} title={`Monthly Cash Flow â€” ${year}`}>
+        <SectionCard padded={false} title={`Monthly Cash Flow — ${year}`}>
           <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
@@ -168,7 +168,7 @@ export const FinanceCashFlow: React.FC = () => {
         </SectionCard>
 
         {/* Breakdown note */}
-        <SectionCard title={`Cash Movement Breakdown â€” ${year}`}>
+        <SectionCard title={`Cash Movement Breakdown — ${year}`}>
           <div style={{ display: 'flex', gap: 14 }}>
             {sourceBreakdown.map(s => (
               <div key={s.label} style={{ flex: 1 }}>

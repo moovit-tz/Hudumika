@@ -96,6 +96,16 @@ export const OndiLogin: React.FC = () => {
     const surface = enforceContrastFloor(surfaceBase).hex;
     el.style.setProperty('--lp-accent-surface',    surface);
     el.style.setProperty('--lp-accent-surface-fg', `hsl(${pickForegroundHsl(surface)})`);
+    // Also apply the accent as --teal so any component using var(--teal)
+    // inside this page tracks the platform brand colour.
+    if (/^#[0-9a-fA-F]{6}$/.test(accent)) {
+      const ar = parseInt(accent.slice(1, 3), 16);
+      const ag = parseInt(accent.slice(3, 5), 16);
+      const ab = parseInt(accent.slice(5, 7), 16);
+      el.style.setProperty('--teal',   accent);
+      el.style.setProperty('--teal-l', `rgba(${ar},${ag},${ab},0.1)`);
+      el.style.setProperty('--teal-m', `rgba(${ar},${ag},${ab},0.18)`);
+    }
   }, [isDark, isBgDark, pageBg, accent]);
 
   return (

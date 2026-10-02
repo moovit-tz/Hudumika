@@ -17,9 +17,9 @@
   min-width: 0;
   flex-direction: column;
   justify-content: space-between;
-  padding: clamp(14px, 1.5vw, 20px);
+  padding: 16px 18px;
   border: 1px solid var(--border);
-  border-radius: var(--r);
+  border-radius: var(--card-radius, var(--r, 8px));
   background: var(--white);
   box-shadow: var(--elev-sm);
   color: inherit;
@@ -38,9 +38,9 @@
 }
 
 .hrd-hub {
-  padding: clamp(16px, 2vw, 24px);
+  padding: 18px 20px;
   border: 1px solid var(--border);
-  border-radius: var(--r);
+  border-radius: var(--card-radius, var(--r, 8px));
   background: var(--white);
   box-shadow: var(--elev-sm);
 }

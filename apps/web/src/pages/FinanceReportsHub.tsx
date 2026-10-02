@@ -5,6 +5,8 @@ import { Icon, type IconName } from '../components/Icon.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
+import type { FinanceCapabilityKey } from '@hudumika/types';
 
 /**
  * The index for /finance/reports.
@@ -35,17 +37,18 @@ interface ReportLink {
    *  section — pointless (and misleading) to show a card for these to a
    *  tenant user who will just be bounced by RequireRoles on click. */
   superAdminOnly?: boolean;
+  capability?: FinanceCapabilityKey;
 }
 
 const STATEMENTS: ReportLink[] = [
   { to: '/finance/accounts/chart-of-accounts', label: 'Chart of Accounts', icon: 'list',
     variant: 'gray',    blurb: 'Every account, its type, and where it sits in the tree.' },
   { to: '/finance/accounts/ledger', label: 'General Ledger', icon: 'fileText',
-    variant: 'brand',   blurb: 'Every posting against an account over a period.' },
+    variant: 'brand', capability: 'finance.accounting.advanced', blurb: 'Every posting against an account over a period.' },
   { to: '/finance/accounts/trial-balance', label: 'Trial Balance', icon: 'barChart2',
-    variant: 'brand',   blurb: 'Debits and credits per account, and whether they agree.' },
+    variant: 'brand', capability: 'finance.accounting.advanced', blurb: 'Debits and credits per account, and whether they agree.' },
   { to: '/finance/accounts/balance-sheet', label: 'Balance Sheet', icon: 'layers',
-    variant: 'info',    blurb: 'Assets, liabilities and equity as at a date.' },
+    variant: 'info', capability: 'finance.accounting.advanced', blurb: 'Assets, liabilities and equity as at a date.' },
   { to: '/finance/accounts/profit-loss', label: 'Profit & Loss', icon: 'trendingUp',
     variant: 'success', blurb: 'Revenue against expenses over a period.' },
   { to: '/finance/accounts/aged-receivables', label: 'Aged Receivables', icon: 'clock',
@@ -115,6 +118,7 @@ function Section({ title, hint, items }: { title: string; hint: string; items: R
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{r.label}</span>
                 {r.source && <Badge variant="gray">{r.source}</Badge>}
+                {r.capability && <Badge variant="brand">Advanced</Badge>}
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.5 }}>
                 {r.blurb}
@@ -130,7 +134,9 @@ function Section({ title, hint, items }: { title: string; hint: string; items: R
 
 export const FinanceReportsHub: React.FC = () => {
   const { user } = useAuth();
+  const { isEnabled } = useFinanceCapabilities();
   const crossApp = CROSS_APP.filter(r => !r.superAdminOnly || user?.role === 'SUPER_ADMIN');
+  const statements = STATEMENTS.filter(report => !report.capability || isEnabled(report.capability));
 
   return (
   <div>
@@ -144,7 +150,7 @@ export const FinanceReportsHub: React.FC = () => {
     <Section
       title="Statements"
       hint="Straight from the general ledger — every one reads /v1/finance/* against posted journal entries."
-      items={STATEMENTS}
+      items={statements}
     />
     <Section
       title="Activity"

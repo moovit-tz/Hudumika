@@ -5,6 +5,7 @@ import { TRIGGERS_BY_ID } from './triggers.js';
 import { applyOperator, readField } from './conditions.js';
 import { resolveContext } from './context.js';
 import { tenantHasEntitlement } from '../middleware/entitlement.js';
+import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
 
 /**
  * Executes a Studio workflow's node graph — for real.
@@ -205,6 +206,9 @@ export async function executeWorkflow(opts: ExecuteOptions): Promise<ExecuteResu
       // that entitlement lapses — the route guard never sees an event-driven run.
       if (action.requiredEntitlement && !(await tenantHasEntitlement(opts.tenantId, action.requiredEntitlement))) {
         throw new Error(`This organization is not entitled to "${action.requiredEntitlement}", which ${action.id} requires.`);
+      }
+      if (action.requiredFinanceCapability && !(await tenantHasEnabledFinanceCapability(opts.tenantId, action.requiredFinanceCapability))) {
+        throw new Error(`Finance capability "${action.requiredFinanceCapability}" is not enabled, which ${action.id} requires.`);
       }
 
       const rawInput = resolveTemplates(node.config?.input ?? node.config ?? {}, scope);

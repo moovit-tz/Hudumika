@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub,
   DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuLabel,
 } from '../components/ui/dropdown-menu.js';
-import { SingleSelectFilter, MultiSelectFilter, FilterOption } from '../components/ui/filter-dropdown.js';
+import { SingleSelectFilter, MultiSelectFilter, SearchToolbar, FilterOption } from '../components/ui/filter-dropdown.js';
 import { CheckboxRow, SwitchRow, FeatureToggleRow } from '../components/ui/list-item-row.js';
 import { DatePicker, DateRangePicker } from '../components/ui/date-picker.js';
 import type { DateRange } from 'react-day-picker';
@@ -27,6 +27,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '..
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { TwotoneIcon } from '../components/ui/twotone-icon.js';
+import { ColorSwatchPicker, PLATFORM_SWATCHES } from '../components/ui/color-swatch-picker.js';
 
 const SECTION = 'rounded-2xl border border-border bg-card p-6 shadow-sm';
 const SECTION_TITLE = 'mb-1 text-base font-bold text-foreground';
@@ -79,6 +80,8 @@ export default function ComponentShowcase() {
   const [comboValue, setComboValue] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>('open');
   const [modules, setModules] = useState<string[]>(['strategy']);
+  const [searchQ, setSearchQ] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [activeWorkspace, setActiveWorkspace] = useState('skyline');
   const [notifyEmail, setNotifyEmail] = useState(true);
   const [notifySms, setNotifySms] = useState(false);
@@ -90,6 +93,7 @@ export default function ComponentShowcase() {
   const [featPayments, setFeatPayments] = useState(false);
   const [singleDate, setSingleDate] = useState<Date | undefined>(new Date());
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [swatchColor, setSwatchColor] = useState(PLATFORM_SWATCHES[0]);
 
   return (
     <div>
@@ -233,6 +237,24 @@ export default function ComponentShowcase() {
           </div>
         </section>
 
+        {/* Search toolbar */}
+        <section className={SECTION}>
+          <div className={SECTION_TITLE}>Search toolbar</div>
+          <div className={SECTION_DESC}>Search input + Filters button with active-count badge + optional action slots. Use at the top of list/table pages.</div>
+          <div className="flex flex-col gap-3">
+            <SearchToolbar
+              search={searchQ}
+              onSearch={setSearchQ}
+              placeholder="Search products, SKU, or category..."
+              activeFilterCount={modules.length}
+              onFiltersClick={() => setFiltersOpen(f => !f)}
+              filtersOpen={filtersOpen}
+              onExpand={() => {}}
+            />
+            <div className="text-xs text-muted-foreground">Active filter count driven by the Multi-select above ({modules.length} selected). The Filters button glows and shows a count badge.</div>
+          </div>
+        </section>
+
         {/* Date pickers */}
         <section className={SECTION}>
           <div className={SECTION_TITLE}>Date &amp; date range picker</div>
@@ -355,6 +377,23 @@ export default function ComponentShowcase() {
               icon={<FileCheck2 className="h-5 w-5" />}
               title="Compliance" description="Tax and regulatory compliance checklist."
               checked={false} onCheckedChange={() => {}} disabled
+            />
+          </div>
+        </section>
+
+        {/* Color Swatch Picker */}
+        <section className={SECTION}>
+          <div className={SECTION_TITLE}>Color Swatch Picker</div>
+          <div className={SECTION_DESC}>
+            Preset-swatch grid with a selected ring + checkmark. "+" tile opens the native color picker for custom hex values.
+            Used for per-app accent colors and platform branding in SuperAdmin → Design System.
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-foreground">Accent color</span>
+            <ColorSwatchPicker
+              value={swatchColor}
+              onChange={setSwatchColor}
+              swatches={PLATFORM_SWATCHES}
             />
           </div>
         </section>

@@ -271,6 +271,12 @@ export function buildMockResult(number: string, type: 'AWB' | 'BL'): TrackingRes
   const doneEvents  = route.port_calls.reduce((s, pc) => s + pc.events.filter(e => e.act).length, 0);
   const progress_pct = Math.round((doneEvents / totalEvents) * 100);
 
+  // If the number looks like a container number (4 letters + digits e.g. MSCU1234567), ensure it's in the containers list
+  const isContainerNum = /^[A-Z]{4}\d{6,7}$/i.test(number);
+  const containerList: Container[] = isContainerNum
+    ? [{ number, size: '20GP' }, ...route.containers.filter(c => c.number !== number)]
+    : route.containers;
+
   return {
     tracking_number: number, tracking_type: 'BL',
     carrier: route.carrier,
@@ -286,9 +292,9 @@ export function buildMockResult(number: string, type: 'AWB' | 'BL'): TrackingRes
     vessel_imo: route.imo,
     voyage_number: route.voyage,
     service_name: route.service,
-    containers: route.containers,
+    containers: containerList,
     port_calls: route.port_calls,
-    co2_emission: Math.round(route.containers.length * 1840 + Math.random() * 200),
+    co2_emission: Math.round(containerList.length * 1840 + Math.random() * 200),
     transit_days: 18,
     source: 'mock',
   };
@@ -617,6 +623,395 @@ export async function trackerRoutes(fastify: FastifyInstance) {
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute()
     );
     return { ok: true };
+  });
+
+  // ── Container Intelligence, Carrier Color & Lifecycle API ─────────────────
+
+  // Pure function: derive carrier defaults from container number prefix
+  function detectCarrier(contNum: string) {
+    const prefix = contNum.slice(0, 4);
+    if (prefix.startsWith('MAE') || prefix.startsWith('MSK') || prefix.startsWith('SUD'))
+      return { carrierName: 'A.P. Moller – Maersk Line', carrierCode: 'MAEU', colorHex: '#0284c7', colorName: 'Maersk Sky Cyan' };
+    if (prefix.startsWith('CMA') || prefix.startsWith('ANL') || prefix.startsWith('APL'))
+      return { carrierName: 'CMA CGM Group', carrierCode: 'CMAU', colorHex: '#1e3a8a', colorName: 'CMA CGM Royal Blue' };
+    if (prefix.startsWith('HLX') || prefix.startsWith('HLC') || prefix.startsWith('UAS'))
+      return { carrierName: 'Hapag-Lloyd AG', carrierCode: 'HLXU', colorHex: '#ea580c', colorName: 'Hapag High-Vis Orange' };
+    if (prefix.startsWith('EGL') || prefix.startsWith('EMC') || prefix.startsWith('EIS'))
+      return { carrierName: 'Evergreen Marine Corporation', carrierCode: 'EGLU', colorHex: '#15803d', colorName: 'Evergreen Forest Jade' };
+    if (prefix.startsWith('ONE') || prefix.startsWith('KKF') || prefix.startsWith('NYK'))
+      return { carrierName: 'Ocean Network Express (ONE)', carrierCode: 'ONEY', colorHex: '#db2777', colorName: 'ONE Cherry Magenta' };
+    if (prefix.startsWith('COS') || prefix.startsWith('CCL') || prefix.startsWith('CSN'))
+      return { carrierName: 'COSCO Shipping Lines', carrierCode: 'COSU', colorHex: '#1e40af', colorName: 'COSCO Pacific Ultramarine' };
+    if (prefix.startsWith('YML') || prefix.startsWith('YMM'))
+      return { carrierName: 'Yang Ming Marine Transport', carrierCode: 'YMLU', colorHex: '#64748b', colorName: 'Yang Ming Industrial Silver' };
+    if (prefix.startsWith('ZIM'))
+      return { carrierName: 'ZIM Integrated Shipping', carrierCode: 'ZIMU', colorHex: '#0f766e', colorName: 'ZIM Deep Teal' };
+    return { carrierName: 'MSC Mediterranean Shipping Company', carrierCode: 'MSCU', colorHex: '#1d4ed8', colorName: 'MSC Marine Navy' };
+  }
+
+  function deriveSpecs(contNum: string) {
+    const is40 = contNum.includes('4') || contNum.startsWith('MAEU') || contNum.startsWith('HLXU') || contNum.startsWith('EGLU');
+    const isReefer = contNum.includes('R') || contNum.startsWith('CMAU');
+    return {
+      iso_code: is40 ? '40HC' : isReefer ? '22R1' : '20G1',
+      size_type: is40 ? 'High Cube - 40 feet Container' : isReefer ? 'Reefer - 20 feet Container' : 'Dry Standard - 20 feet Container',
+      dimensions: {
+        height_m: is40 ? 2.89 : 2.59,
+        width_m: 2.44,
+        length_m: is40 ? 12.19 : 6.06,
+        gross_weight_kg: is40 ? 32500 : 30480,
+        tare_weight_kg: is40 ? 3980 : 2280,
+        payload_kg: is40 ? 28520 : 28200,
+        cubic_capacity_cbm: is40 ? 76.4 : 33.2,
+        floor_type: isReefer ? 'T-Bar Aluminum Floor' : 'Corten Steel / Keruing Plywood (28mm)',
+        manufacture_year: 2023,
+        validity_years: 20,
+      },
+    };
+  }
+
+  // GET /v1/tracker/containers/:number
+  fastify.get('/containers/:number', async (req: FastifyRequest, reply) => {
+    const user = (req as any).user;
+    const { number } = req.params as any;
+    const contNum = String(number).trim().toUpperCase().replace(/\s/g, '');
+
+    // Fetch the main container row (with customer join)
+    const row = await withTenant(user.tenant_id, (trx) =>
+      trx.selectFrom('tracked_containers as tc')
+        .leftJoin('customers as c', 'c.id', 'tc.customer_id')
+        .select([
+          'tc.id', 'tc.container_number', 'tc.iso_code', 'tc.size_type',
+          'tc.ownership', 'tc.condition', 'tc.carrier_name', 'tc.carrier_code',
+          'tc.color_hex', 'tc.lifecycle_stage', 'tc.shipment_id', 'tc.customer_id',
+          'tc.dimensions', 'tc.compliance', 'tc.current_depot', 'tc.notes',
+          'tc.created_at', 'tc.updated_at',
+          'c.name as customer_name', 'c.email as customer_email',
+        ])
+        .where('tc.tenant_id', '=', user.tenant_id)
+        .where('tc.container_number', '=', contNum)
+        .executeTakeFirst()
+    ).catch(() => null);
+
+    // If no DB record exists, skip sub-table queries
+    const containerId = row?.id;
+    const [surveys, repairs, history] = containerId
+      ? await Promise.all([
+          withTenant(user.tenant_id, (trx) =>
+            trx.selectFrom('container_survey_reports')
+              .selectAll()
+              .where('tenant_id', '=', user.tenant_id)
+              .where('container_id', '=', containerId)
+              .orderBy('survey_date', 'desc')
+              .limit(5)
+              .execute()
+          ).catch(() => [] as any[]),
+          withTenant(user.tenant_id, (trx) =>
+            trx.selectFrom('container_repairs')
+              .selectAll()
+              .where('tenant_id', '=', user.tenant_id)
+              .where('container_id', '=', containerId)
+              .orderBy('repair_date', 'desc')
+              .execute()
+          ).catch(() => [] as any[]),
+          withTenant(user.tenant_id, (trx) =>
+            trx.selectFrom('container_stage_history as csh')
+              .leftJoin('users as u', 'u.id', 'csh.recorded_by')
+              .select([
+                'csh.id', 'csh.stage', 'csh.location', 'csh.notes', 'csh.recorded_at',
+                'u.name as actor_name', 'u.email as actor_email',
+              ])
+              .where('csh.tenant_id', '=', user.tenant_id)
+              .where('csh.container_id', '=', containerId)
+              .orderBy('csh.recorded_at', 'desc')
+              .limit(50)
+              .execute()
+          ).catch(() => [] as any[]),
+        ])
+      : [[] as any[], [] as any[], [] as any[]];
+
+    const carrier = detectCarrier(contNum);
+    const specs = deriveSpecs(contNum);
+
+    // Merge DB record over auto-detected defaults
+    const result: any = {
+      container_number: contNum,
+      iso_code: row?.iso_code || specs.iso_code,
+      size_type: row?.size_type || specs.size_type,
+      ownership: row?.ownership || 'Privately Owned / Line Lease',
+      carrier_name: row?.carrier_name || carrier.carrierName,
+      carrier_code: row?.carrier_code || carrier.carrierCode,
+      color_hex: row?.color_hex || carrier.colorHex,
+      color_name: carrier.colorName,
+      lifecycle_stage: row?.lifecycle_stage || 'IN_TRANSIT',
+      status: 'AVAILABLE',
+      dimensions: (row?.dimensions && Object.keys(row.dimensions).length > 0) ? row.dimensions : specs.dimensions,
+      compliance: (row?.compliance && Object.keys(row.compliance).length > 0) ? row.compliance : {
+        csc_certification_date: '10/10/2023',
+        csc_expiry_date: '14/09/2028',
+        csc_approved_by: 'Bureau Veritas (BV) / ISO 1496-1',
+        customs_seal_no: `KRA-SEAL-${contNum.slice(-6)}`,
+      },
+      location_info: (row?.current_depot && Object.keys(row.current_depot).length > 0) ? row.current_depot : {
+        current_depot: `${carrier.carrierName.split(' ')[0]} Yard Terminal 2`,
+        depot_code: `PORT-DEM-${contNum.slice(-2)}`,
+        status: 'Laden',
+      },
+      cargo_worthy: {
+        grade: surveys[0]?.grade || 'Grade A',
+        last_survey_date: surveys[0]?.survey_date || '15 Dec 2025',
+        surveyor_name: surveys[0]?.surveyor_name || 'Lloyds Maritime Register Inspector',
+        survey_notes: surveys[0]?.surveyor_notes || 'The shipping container is in excellent cargo-worthy condition, showing no structural deformation or floor delamination. All rubber door gaskets and locking rods are intact with valid CSC safety plate.',
+        inspection_photos: surveys[0]?.photos || [
+          { url: '/assets/container/inspection_front.jpg', caption: 'Front Door Locking Assembly & Gaskets' },
+          { url: '/assets/container/inspection_corner.jpg', caption: 'Exterior Corrugated Wall & Top Corner Casting' },
+          { url: '/assets/container/inspection_csc.jpg', caption: 'CSC Safety Approval Plate & ISO Decals' },
+          { url: '/assets/container/inspection_interior.jpg', caption: 'Interior Floor Planking & Lashing Rings' },
+        ],
+        repair_history: repairs.length > 0 ? repairs.map((r: any) => ({
+          description: r.description,
+          date: new Date(r.repair_date).toLocaleString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          resolved: r.resolved,
+        })) : [
+          { description: 'Paint touch-up on exterior bottom rail', date: '24 June 2025, 11:30 AM', resolved: true },
+          { description: 'Surface scratch on left corner post treated with anti-rust', date: '22 April 2025, 10:00 PM', resolved: true },
+        ],
+      },
+      voyage: {
+        pol_city: 'Kobe Port',
+        pol_country: 'JP',
+        pod_city: 'Mombasa Port',
+        pod_country: 'KE',
+        vessel_name: `${carrier.carrierName.split(' ')[0]} INTEGRITY`,
+        voyage_no: 'VOY-2026/09',
+        eta: new Date(Date.now() + 8 * 86400000).toISOString(),
+        etd: new Date(Date.now() - 12 * 86400000).toISOString(),
+        current_location: 'Indian Ocean Corridor',
+        delay_status: 'ON_SCHEDULE',
+      },
+      // Cross-app links
+      db_id: row?.id || null,
+      shipment_id: row?.shipment_id || null,
+      customer_id: row?.customer_id || null,
+      customer_name: row?.customer_name || null,
+      customer_email: row?.customer_email || null,
+      // Real stage history from DB (if any), fall back to empty
+      stage_history: history.map((h: any) => ({
+        stage: h.stage,
+        label: h.stage.replace(/_/g, ' '),
+        timestamp: h.recorded_at,
+        location: h.location || 'Container Depot',
+        actor: h.actor_name || h.actor_email || 'Operations Officer',
+        notes: h.notes || `Container lifecycle transitioned to ${h.stage}`,
+      })),
+    };
+
+    return reply.send(result);
+  });
+
+  // POST /v1/tracker/containers — Record or update container specifications (upsert)
+  fastify.post('/containers', async (req: FastifyRequest, reply) => {
+    const user = (req as any).user;
+    const body = req.body as any;
+    if (!body?.container_number) {
+      return reply.code(400).send({ error: 'Container number is required' });
+    }
+
+    const contNum = String(body.container_number).trim().toUpperCase().replace(/\s/g, '');
+    const carrier = detectCarrier(contNum);
+    const specs = deriveSpecs(contNum);
+
+    const row = await withTenant(user.tenant_id, async (trx) => {
+      // Check for existing record
+      const existing = await trx.selectFrom('tracked_containers')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('container_number', '=', contNum)
+        .executeTakeFirst();
+
+      const payload: any = {
+        tenant_id: user.tenant_id,
+        container_number: contNum,
+        iso_code: body.iso_code || existing?.iso_code || specs.iso_code,
+        size_type: body.size_type || existing?.size_type || specs.size_type,
+        ownership: body.ownership || existing?.ownership || 'Privately Owned / Line Lease',
+        condition: body.condition || existing?.condition || 'cargo_worthy',
+        carrier_name: body.carrier_name || existing?.carrier_name || carrier.carrierName,
+        carrier_code: body.carrier_code || existing?.carrier_code || carrier.carrierCode,
+        color_hex: body.color_hex || existing?.color_hex || carrier.colorHex,
+        lifecycle_stage: body.lifecycle_stage || existing?.lifecycle_stage || 'AVAILABLE_AT_DEPOT',
+        shipment_id: body.shipment_id ?? existing?.shipment_id ?? null,
+        customer_id: body.customer_id ?? existing?.customer_id ?? null,
+        dimensions: body.dimensions || existing?.dimensions || specs.dimensions,
+        compliance: body.compliance || existing?.compliance || {},
+        current_depot: body.current_depot || existing?.current_depot || {},
+        notes: body.notes ?? existing?.notes ?? null,
+        updated_at: new Date(),
+        updated_by: user.sub,
+      };
+
+      if (existing) {
+        return trx.updateTable('tracked_containers')
+          .set(payload)
+          .where('id', '=', existing.id)
+          .returningAll()
+          .executeTakeFirst();
+      } else {
+        return trx.insertInto('tracked_containers')
+          .values(payload)
+          .returningAll()
+          .executeTakeFirst();
+      }
+    });
+
+    return reply.code(201).send(row);
+  });
+
+  // PATCH /v1/tracker/containers/:number — Update fields on an existing container
+  fastify.patch('/containers/:number', async (req: FastifyRequest, reply) => {
+    const user = (req as any).user;
+    const { number } = req.params as any;
+    const body = req.body as any;
+    const contNum = String(number).trim().toUpperCase().replace(/\s/g, '');
+
+    const row = await withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('tracked_containers')
+        .select('id')
+        .where('tenant_id', '=', user.tenant_id)
+        .where('container_number', '=', contNum)
+        .executeTakeFirst();
+
+      if (!existing) return null;
+
+      const patch: any = { updated_at: new Date(), updated_by: user.sub };
+      const allowed = ['iso_code', 'size_type', 'ownership', 'condition', 'carrier_name', 'carrier_code',
+        'color_hex', 'lifecycle_stage', 'shipment_id', 'customer_id', 'dimensions', 'compliance',
+        'current_depot', 'cargo_breakdown', 'classification', 'notes'];
+      for (const k of allowed) {
+        if (body[k] !== undefined) patch[k] = body[k];
+      }
+
+      return trx.updateTable('tracked_containers')
+        .set(patch)
+        .where('id', '=', existing.id)
+        .returningAll()
+        .executeTakeFirst();
+    });
+
+    if (!row) return reply.code(404).send({ error: 'Container not found' });
+    return reply.send(row);
+  });
+
+  // PATCH /v1/tracker/containers/:number/stage — Advance lifecycle stage
+  fastify.patch('/containers/:number/stage', async (req: FastifyRequest, reply) => {
+    const user = (req as any).user;
+    const { number } = req.params as any;
+    const { stage, notes, location } = req.body as any;
+
+    if (!stage) return reply.code(400).send({ error: 'Stage is required' });
+
+    const contNum = String(number).trim().toUpperCase().replace(/\s/g, '');
+
+    const result = await withTenant(user.tenant_id, async (trx) => {
+      // Upsert the container record if it doesn't exist yet
+      let tc = await trx.selectFrom('tracked_containers')
+        .select(['id'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('container_number', '=', contNum)
+        .executeTakeFirst();
+
+      if (!tc) {
+        const carrier = detectCarrier(contNum);
+        const specs = deriveSpecs(contNum);
+        tc = await trx.insertInto('tracked_containers')
+          .values({
+            tenant_id: user.tenant_id,
+            container_number: contNum,
+            iso_code: specs.iso_code,
+            size_type: specs.size_type,
+            carrier_name: carrier.carrierName,
+            carrier_code: carrier.carrierCode,
+            color_hex: carrier.colorHex,
+            lifecycle_stage: stage,
+            dimensions: specs.dimensions,
+            updated_by: user.sub,
+          })
+          .returning('id')
+          .executeTakeFirstOrThrow();
+      } else {
+        await trx.updateTable('tracked_containers')
+          .set({ lifecycle_stage: stage, updated_at: new Date(), updated_by: user.sub })
+          .where('id', '=', tc.id)
+          .execute();
+      }
+
+      await trx.insertInto('container_stage_history')
+        .values({
+          tenant_id: user.tenant_id,
+          container_id: tc.id,
+          stage,
+          location: location || 'Container Depot',
+          notes: notes || `Container lifecycle transitioned to ${stage}`,
+          recorded_by: user.sub,
+        })
+        .execute();
+
+      return { container_number: contNum, lifecycle_stage: stage };
+    });
+
+    return reply.send(result);
+  });
+
+  // PATCH /v1/tracker/containers/:number/link — Link to shipment and/or customer
+  fastify.patch('/containers/:number/link', async (req: FastifyRequest, reply) => {
+    const user = (req as any).user;
+    const { number } = req.params as any;
+    const { shipment_id, customer_id } = req.body as any;
+    const contNum = String(number).trim().toUpperCase().replace(/\s/g, '');
+
+    const row = await withTenant(user.tenant_id, async (trx) => {
+      const tc = await trx.selectFrom('tracked_containers')
+        .select('id')
+        .where('tenant_id', '=', user.tenant_id)
+        .where('container_number', '=', contNum)
+        .executeTakeFirst();
+
+      if (!tc) return null;
+
+      const patch: any = { updated_at: new Date(), updated_by: user.sub };
+      if (shipment_id !== undefined) patch.shipment_id = shipment_id || null;
+      if (customer_id !== undefined) patch.customer_id = customer_id || null;
+
+      return trx.updateTable('tracked_containers')
+        .set(patch)
+        .where('id', '=', tc.id)
+        .returningAll()
+        .executeTakeFirst();
+    });
+
+    if (!row) return reply.code(404).send({ error: 'Container not found' });
+    return reply.send(row);
+  });
+
+  // GET /v1/tracker/containers — List containers for this tenant
+  fastify.get('/containers', async (req: FastifyRequest, reply) => {
+    const user = (req as any).user;
+
+    const rows = await withTenant(user.tenant_id, (trx) =>
+      trx.selectFrom('tracked_containers as tc')
+        .leftJoin('customers as c', 'c.id', 'tc.customer_id')
+        .select([
+          'tc.id', 'tc.container_number', 'tc.iso_code', 'tc.size_type',
+          'tc.carrier_name', 'tc.carrier_code', 'tc.color_hex',
+          'tc.lifecycle_stage', 'tc.shipment_id', 'tc.customer_id',
+          'tc.updated_at', 'c.name as customer_name',
+        ])
+        .where('tc.tenant_id', '=', user.tenant_id)
+        .orderBy('tc.updated_at', 'desc')
+        .execute()
+    );
+
+    return reply.send(rows);
   });
 }
 

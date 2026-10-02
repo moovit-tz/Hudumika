@@ -30,7 +30,7 @@ interface RailApp {
   label: string;
   icon: IconName;
   color: string;
-  /** Only offered/shown when this AppId is entitled for the tenant â€” apps
+  /** Only offered/shown when this AppId is entitled for the tenant — apps
    *  that pull real tenant-scoped data (unlike Notes' local scratchpad or
    *  Calendar/Notifications, which are core platform features). */
   entitlementKey?: string;
@@ -43,7 +43,7 @@ const RAIL_APPS: RailApp[] = [
   { id: 'email', label: 'Email', icon: 'mail', color: '#ea4335', entitlementKey: 'email' },
   { id: 'chat', label: 'Teams & Discussions', icon: 'messageSquare', color: '#7c3aed' },
   { id: 'notifications', label: 'Notifications', icon: 'bell', color: '#ef4444' },
-  // 'stamp' matches AppSidebar's own nav icon for this app (not 'mail' â€”
+  // 'stamp' matches AppSidebar's own nav icon for this app (not 'mail' —
   // that glyph is now Email's, above).
   { id: 'esign', label: 'eSign', icon: 'stamp', color: '#0284c7', entitlementKey: 'sign' },
   { id: 'contacts', label: 'Contacts', icon: 'contact', color: '#2563eb', entitlementKey: 'contacts' },
@@ -61,22 +61,22 @@ const RAIL_APPS: RailApp[] = [
 ];
 
 // 'ai' isn't in RAIL_APPS at all (not just excluded from the default pin
-// list) â€” it has its own dedicated, always-visible button below the
+// list) — it has its own dedicated, always-visible button below the
 // pinned-app list with the real Hudumika AI brand glyph, so offering it as
 // a pinnable rail app too would just duplicate that same trigger. This used
 // to be a RAIL_APPS entry excluded only from DEFAULT_PINNED, which still
 // let it be pinned (and end up looking duplicated) via the "+" customize
-// menu â€” removed from the catalog entirely instead.
+// menu — removed from the catalog entirely instead.
 const DEFAULT_PINNED: CompanionPanelId[] = ['notes', 'tasks', 'sms', 'email', 'chat', 'notifications', 'esign', 'contacts'];
 
-// Panels whose drawer shows a filterable list â€” the search button only
+// Panels whose drawer shows a filterable list — the search button only
 // appears for these, rather than on a scratchpad or a static toggle grid
 // where "search" wouldn't do anything real.
 const SEARCHABLE_PANELS = new Set<CompanionPanelId>(['tasks', 'calendar', 'esign', 'chat', 'notifications', 'sms', 'email', 'contacts', 'clearos', 'finops', 'petti', 'nexushr', 'seal', 'cargotracker', 'cloud', 'complyos', 'store']);
 
-// Real full-page route for panels that have one â€” drives the "open in app"
+// Real full-page route for panels that have one — drives the "open in app"
 // button. Panels without a dedicated page (settings) are omitted rather than
-// linking somewhere fake. notifications â†’ the same notification centre
+// linking somewhere fake. notifications → the same notification centre
 // AppHeader's own bell dropdown links out to (NotificationCentre.tsx's
 // footer), not a page built just for this drawer.
 const PANEL_ROUTES: Partial<Record<Exclude<CompanionPanelId, null>, string>> = {
@@ -89,7 +89,7 @@ const PANEL_ROUTES: Partial<Record<Exclude<CompanionPanelId, null>, string>> = {
 };
 const PINNED_KEY = 'hudumika_companion_rail_apps';
 
-// Shared look for every panel's inline "quick create" composer â€” one input
+// Shared look for every panel's inline "quick create" composer — one input
 // style and one collapsed-state toggle button, reused by Calendar/Notes/
 // SMS/Email/Contacts/Chat rather than each panel inventing its own.
 const composerInputStyle: React.CSSProperties = {
@@ -134,7 +134,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     setPinnedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   }
 
-  // â”€â”€ Notes â€” real, /v1/notes â”€â”€
+  // ── Notes — real, /v1/notes ──
   const [notesList, setNotesList] = useState<{ id: string; title: string; content: string; updatedAt: string; isTrashed: boolean; isArchived: boolean }[]>([]);
   const [noteComposerText, setNoteComposerText] = useState('');
   const [noteSaving, setNoteSaving] = useState(false);
@@ -164,7 +164,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     apiFetch(`/v1/notes/${id}/trash`, { method: 'PATCH' }).catch(() => {});
   }
 
-  // â”€â”€ Calendar â€” quick "+ New event" composer, real via addEvent() (POST /v1/tasks/events) â”€â”€
+  // ── Calendar — quick "+ New event" composer, real via addEvent() (POST /v1/tasks/events) ──
   const [eventComposerOpen, setEventComposerOpen] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventDate, setNewEventDate] = useState('');
@@ -186,7 +186,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     setNewEventTitle(''); setNewEventDate(''); setNewEventTime(''); setEventComposerOpen(false);
   }
 
-  // â”€â”€ eSign envelopes awaiting my signature â€” real, /v1/sign/envelopes â”€â”€
+  // ── eSign envelopes awaiting my signature — real, /v1/sign/envelopes ──
   const [envelopes, setEnvelopes] = useState<{ id: string; title: string; status: string }[]>([]);
   useEffect(() => {
     apiFetch('/v1/sign/envelopes?view=inbox')
@@ -194,7 +194,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  // â”€â”€ Notifications â€” real, /v1/notifications â”€â”€
+  // ── Notifications — real, /v1/notifications ──
   const [notifs, setNotifs] = useState<any[]>([]);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   useEffect(() => {
@@ -214,19 +214,19 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       showAlert(err?.message || 'Could not mark notifications as read.');
     }
   }
-  // Same shape as AppHeader's own handleMarkRead â€” one row read, on click.
+  // Same shape as AppHeader's own handleMarkRead — one row read, on click.
   function markNotificationRead(id: string) {
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     setUnreadNotifCount(prev => Math.max(0, prev - 1));
     apiFetch(`/v1/notifications/${id}/read`, { method: 'PATCH' }).catch(() => {});
   }
 
-  // â”€â”€ Team chat â€” real, /v1/chat/channels. Channel rows expand inline into a
-  // real reply thread (GET/POST .../messages) â€” there is no message edit or
+  // ── Team chat — real, /v1/chat/channels. Channel rows expand inline into a
+  // real reply thread (GET/POST .../messages) — there is no message edit or
   // delete anywhere in this app yet (not even the full Chat page), so this
   // panel doesn't fabricate those actions either. Leaving/deleting the
   // conversation itself is real (DELETE /v1/chat/channels/:id), same as the
-  // full Chat page's own kebab menu. â”€â”€
+  // full Chat page's own kebab menu. ──
   const [channels, setChannels] = useState<{ id: string; type: 'channel' | 'dm' | 'group'; name: string; created_by: string; unread: number; last_message: string | null; last_message_at: string | null }[]>([]);
   function loadChannels() {
     apiFetch('/v1/chat/channels')
@@ -283,7 +283,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     e.stopPropagation();
     const isOwner = ch.type !== 'dm' && ch.created_by === user?.id;
     const message = ch.type === 'dm'
-      ? `Remove your conversation with ${ch.name}? It stays in their inbox â€” this only clears it from yours.`
+      ? `Remove your conversation with ${ch.name}? It stays in their inbox — this only clears it from yours.`
       : isOwner
         ? `Delete #${ch.name} for everyone? Every message in it is gone for good.`
         : `Leave ${ch.name}? You can be re-added by another member later.`;
@@ -299,7 +299,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     }
   }
 
-  // Channels/groups in this tenant the user hasn't joined yet â€” shown behind
+  // Channels/groups in this tenant the user hasn't joined yet — shown behind
   // a "Browse" toggle so "Start a chat" isn't the only way in (that always
   // creates something new; this joins something that already exists).
   const [browseOpen, setBrowseOpen] = useState(false);
@@ -332,7 +332,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     }
   }
 
-  // â”€â”€ SMS â€” real, /v1/sms/messages (only fetched if the app is entitled) â”€â”€
+  // ── SMS — real, /v1/sms/messages (only fetched if the app is entitled) ──
   const smsEnabled = isAppEnabled('sms', enabledApps);
   const [smsMessages, setSmsMessages] = useState<{ id: string; to_number: string; contact_name: string | null; body: string; status: string; created_at: string }[]>([]);
   function loadSmsMessages() {
@@ -344,7 +344,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   useEffect(() => { loadSmsMessages(); }, [smsEnabled]);
 
   const [smsComposerOpen, setSmsComposerOpen] = useState(false);
-  // Picker's id doubles as the phone number itself â€” there's nothing else to
+  // Picker's id doubles as the phone number itself — there's nothing else to
   // key it by once a hand-typed number (no contact record) is in play.
   const [smsToItem, setSmsToItem] = useState<PickerItem | null>(null);
   const [smsBody, setSmsBody] = useState('');
@@ -354,7 +354,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     if (query.trim().length < 2) return [];
     const res = await apiFetch(`/v1/sms/recipients/search?q=${encodeURIComponent(query.trim())}`);
     const rows: { id: string; name: string; phone: string; source: string }[] = Array.isArray(res?.data) ? res.data : [];
-    return rows.map(r => ({ id: r.phone, label: r.name, sublabel: `${r.phone} Â· ${SMS_SOURCE_LABEL[r.source] || r.source}` }));
+    return rows.map(r => ({ id: r.phone, label: r.name, sublabel: `${r.phone} · ${SMS_SOURCE_LABEL[r.source] || r.source}` }));
   }
   async function handleSendSms(e: React.FormEvent) {
     e.preventDefault();
@@ -372,7 +372,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     }
   }
 
-  // â”€â”€ Contacts â€” real, /v1/contacts (only fetched if the app is entitled) â”€â”€
+  // ── Contacts — real, /v1/contacts (only fetched if the app is entitled) ──
   const contactsEnabled = isAppEnabled('contacts', enabledApps);
   const [contacts, setContacts] = useState<{ id: string; first_name: string; last_name: string | null; email: string | null; company: string | null }[]>([]);
   function loadContacts() {
@@ -402,7 +402,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     }
   }
 
-  // â”€â”€ Email â€” real, /v1/emails?folder=inbox (only fetched if the app is entitled) â”€â”€
+  // ── Email — real, /v1/emails?folder=inbox (only fetched if the app is entitled) ──
   const emailEnabled = isAppEnabled('email', enabledApps);
   const [inboxEmails, setInboxEmails] = useState<{ id: string; from: { name: string; email: string }; subject: string; snippet: string; read: boolean; date: string }[]>([]);
   function loadInboxEmails() {
@@ -413,10 +413,10 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   }
   useEffect(() => { loadInboxEmails(); }, [emailEnabled]);
 
-  // â”€â”€ AI Assistant â€” the governed agent runtime (/v1/agent/runs): saved
-  // memory + "remember thatâ€¦" (same ai_memory as before), read/write tools
+  // ── AI Assistant — the governed agent runtime (/v1/agent/runs): saved
+  // memory + "remember that…" (same ai_memory as before), read/write tools
   // across apps, and an inline approval card when a tool needs a human
-  // decision. Replaced /v1/ai/chat here once the runtime reached parity. â”€â”€
+  // decision. Replaced /v1/ai/chat here once the runtime reached parity. ──
   const { messages: aiMessages, busy: aiSending, error: aiError, pendingApproval: aiApproval, decisionBusy: aiDecisionBusy, send: sendAgentMessage, decide: decideAgentApproval } = useAgentChat();
   const [aiInput, setAiInput] = useState('');
 
@@ -428,10 +428,10 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     void sendAgentMessage(text);
   }
 
-  // â”€â”€ ClearOS â€” real, /v1/shipments. No inline create composer â€” a shipment
+  // ── ClearOS — real, /v1/shipments. No inline create composer — a shipment
   // needs customs-relevant fields (customer, mode, ports) a rail form
   // shouldn't dumb down, so this links out to the real intake page instead,
-  // same call the eSign panel makes for "+ New envelope". â”€â”€
+  // same call the eSign panel makes for "+ New envelope". ──
   const clearosEnabled = isAppEnabled('clearos', enabledApps);
   const [shipments, setShipments] = useState<{ id: string; bl_number: string | null; ref_number: string | null; goods_desc: string | null; status: string; type: string | null }[]>([]);
   function loadShipments() {
@@ -442,9 +442,9 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   }
   useEffect(() => { loadShipments(); }, [clearosEnabled]);
 
-  // â”€â”€ FinOps â€” real, /v1/invoices (GET) + POST for a minimal quick invoice
-  // (client name + a single line item) â€” the full form has line items, tax
-  // codes, shipment linking etc. that belong on the real Billing page. â”€â”€
+  // ── FinOps — real, /v1/invoices (GET) + POST for a minimal quick invoice
+  // (client name + a single line item) — the full form has line items, tax
+  // codes, shipment linking etc. that belong on the real Billing page. ──
   const finopsEnabled = isAppEnabled('finops', enabledApps);
   const [invoices, setInvoices] = useState<{ id: string; invoice_number: string; client_name: string | null; status: string; items: { rate?: number; qty?: number }[] }[]>([]);
   function loadInvoices() {
@@ -481,8 +481,8 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     }
   }
 
-  // â”€â”€ Petti â€” real, /v1/petti/wallets (GET) + /v1/petti/wallets/:id/deposits
-  // (POST) for a quick manual top-up against the first wallet. â”€â”€
+  // ── Petti — real, /v1/petti/wallets (GET) + /v1/petti/wallets/:id/deposits
+  // (POST) for a quick manual top-up against the first wallet. ──
   const pettiEnabled = isAppEnabled('petti', enabledApps);
   const [pettiWallets, setPettiWallets] = useState<{ id: string; name: string; currency: string; balance: number }[]>([]);
   function loadPettiWallets() {
@@ -518,9 +518,9 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     }
   }
 
-  // â”€â”€ NexusHR â€” real, /v1/hr/staff (GET). Quick-create sends a real invite
-  // (/v1/hr/invitations, email+role) â€” this app doesn't insert a staff row
-  // directly, a person joins via that same invite everywhere else too. â”€â”€
+  // ── NexusHR — real, /v1/hr/staff (GET). Quick-create sends a real invite
+  // (/v1/hr/invitations, email+role) — this app doesn't insert a staff row
+  // directly, a person joins via that same invite everywhere else too. ──
   const nexushrEnabled = isAppEnabled('nexushr', enabledApps);
   const [staffList, setStaffList] = useState<{ id: string; name: string; email: string; role: string; active: boolean }[]>([]);
   function loadStaff() {
@@ -549,9 +549,9 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     }
   }
 
-  // â”€â”€ SEAL â€” real, /v1/seal/consignments (GET). No inline create â€” a
+  // ── SEAL — real, /v1/seal/consignments (GET). No inline create — a
   // consignment needs a compartment + owner picker (same reasoning as
-  // ClearOS above), so this links out to the real intake page instead. â”€â”€
+  // ClearOS above), so this links out to the real intake page instead. ──
   const sealEnabled = isAppEnabled('seal', enabledApps);
   const [consignments, setConsignments] = useState<{ id: string; owner_name?: string; transport_doc_number: string | null; status: string; goods_description: string | null }[]>([]);
   function loadConsignments() {
@@ -562,9 +562,9 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   }
   useEffect(() => { loadConsignments(); }, [sealEnabled]);
 
-  // â”€â”€ CargoTracker â€” real, /v1/freight-booking/bookings (GET only â€” booking
+  // ── CargoTracker — real, /v1/freight-booking/bookings (GET only — booking
   // requests originate elsewhere; this app quotes/confirms them, it doesn't
-  // create new ones, so there's no quick-create composer here). â”€â”€
+  // create new ones, so there's no quick-create composer here). ──
   const cargotrackerEnabled = isAppEnabled('cargotracker', enabledApps);
   const [bookings, setBookings] = useState<{ id: string; booking_number: string; customer_name: string | null; origin_port: string; destination_port: string; status: string }[]>([]);
   function loadBookings() {
@@ -575,10 +575,10 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   }
   useEffect(() => { loadBookings(); }, [cargotrackerEnabled]);
 
-  // â”€â”€ Cloud/Drive â€” real, /v1/drives (to find the default drive) then
-  // /v1/files?drive_id=... for its recent files. No inline upload â€” file
+  // ── Cloud/Drive — real, /v1/drives (to find the default drive) then
+  // /v1/files?drive_id=... for its recent files. No inline upload — file
   // upload here is a real multipart request, a different shape from every
-  // other composer in this file, so it links out to the real Drive UI. â”€â”€
+  // other composer in this file, so it links out to the real Drive UI. ──
   const cloudEnabled = isAppEnabled('cloud', enabledApps);
   const [driveFiles, setDriveFiles] = useState<{ id: string; name: string; type: string; size: number | null; owner_name: string }[]>([]);
   function loadDriveFiles() {
@@ -598,9 +598,9 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   }
   useEffect(() => { loadDriveFiles(); }, [cloudEnabled]);
 
-  // â”€â”€ ComplyOS â€” real, /v1/comply/obligations. No inline create â€” an
+  // ── ComplyOS — real, /v1/comply/obligations. No inline create — an
   // obligation is picked from a licence/agency catalog, not typed freehand,
-  // same reasoning as ClearOS/SEAL above. â”€â”€
+  // same reasoning as ClearOS/SEAL above. ──
   const complyosEnabled = isAppEnabled('complyos', enabledApps);
   const [obligations, setObligations] = useState<{ id: string; name: string; status: string; due_date: string | null; customer_name: string | null }[]>([]);
   function loadObligations() {
@@ -611,9 +611,9 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   }
   useEffect(() => { loadObligations(); }, [complyosEnabled]);
 
-  // â”€â”€ Store â€” real, /v1/store/apps catalog. Installing an add-on is a
+  // ── Store — real, /v1/store/apps catalog. Installing an add-on is a
   // bigger decision (permissions consent) than a rail quick-action, so this
-  // is a browse-only view â€” no install button here. â”€â”€
+  // is a browse-only view — no install button here. ──
   const storeEnabled = isAppEnabled('store', enabledApps);
   const [storeApps, setStoreApps] = useState<{ id: string; name: string; category: string; shortDesc: string; rating: number }[]>([]);
   function loadStoreApps() {
@@ -666,20 +666,20 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     return null;
   }
 
-  // Available apps this tenant can actually use â€” entitlement-gated ones
+  // Available apps this tenant can actually use — entitlement-gated ones
   // (sms, esign, contacts) drop out entirely, rather than pinning a rail icon
   // that would only ever render an empty/permission-denied panel.
   const availableApps = RAIL_APPS.filter(app => !app.entitlementKey || isAppEnabled(app.entitlementKey, enabledApps));
 
   // The rail shows every pinned, available app, including whichever one is
-  // currently open â€” it used to drop out of this list the moment its drawer
+  // currently open — it used to drop out of this list the moment its drawer
   // opened, which meant there was nothing left on the rail to click to close
   // it again, and every icon below it jumped up to fill the gap. It now stays
   // put and just picks up '.active' (className below) instead.
   const railApps = availableApps.filter(app => pinnedIds.includes(app.id));
 
   // The drawer un-mounts a beat after activePanel clears, so it can play a
-  // real close transition instead of just vanishing â€” renderedPanel is what
+  // real close transition instead of just vanishing — renderedPanel is what
   // actually stays in the DOM (and what the drawer's own content reads,
   // shadowing activePanel by that same name inside the block below) while
   // `closing` drives the reverse of .gws-drawer's own open keyframes.
@@ -700,7 +700,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
 
   return (
     <div className="gws-right-sidebar-root">
-      {/* â”€â”€ 320px Companion Side Drawer â”€â”€ */}
+      {/* ── 320px Companion Side Drawer ── */}
       {renderedPanel && (
         <div className={`gws-drawer${closing ? ' gws-drawer-closing' : ''}`}>
         {(() => { const activePanel = renderedPanel; return (
@@ -763,7 +763,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 autoFocus
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Searchâ€¦"
+                placeholder="Search…"
                 className="gws-drawer-search-input"
               />
               {searchQuery && (
@@ -821,7 +821,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* CALENDAR PANEL â€” real, addEvent() posts to /v1/tasks/events */}
+            {/* CALENDAR PANEL — real, addEvent() posts to /v1/tasks/events */}
             {activePanel === 'calendar' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {eventComposerOpen ? (
@@ -862,7 +862,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* ESIGN PANEL â€” real, /v1/sign/envelopes?view=inbox */}
+            {/* ESIGN PANEL — real, /v1/sign/envelopes?view=inbox */}
             {activePanel === 'esign' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <a href="/sign/editor" style={composerToggleStyle}>
@@ -890,9 +890,9 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* CHAT PANEL â€” real, /v1/chat/channels. Each row expands inline
+            {/* CHAT PANEL — real, /v1/chat/channels. Each row expands inline
                 into a real reply thread (GET/POST .../messages). Editing or
-                deleting a message isn't offered â€” no route for either exists
+                deleting a message isn't offered — no route for either exists
                 anywhere in the Chat API today, not just in this panel. */}
             {activePanel === 'chat' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -927,7 +927,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                         </div>
                         <button type="button" onClick={() => handleJoinChannel(bc)} disabled={joiningChannelId === bc.id}
                           style={{ flexShrink: 0, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--teal-m)', background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 11, fontWeight: 700, cursor: joiningChannelId === bc.id ? 'default' : 'pointer' }}>
-                          {joiningChannelId === bc.id ? 'â€¦' : 'Join'}
+                          {joiningChannelId === bc.id ? '…' : 'Join'}
                         </button>
                       </div>
                     ))}
@@ -969,11 +969,11 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                                 </div>
                               ))}
                               {threadMessages.length === 0 && (
-                                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>No messages yet â€” say hello.</div>
+                                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>No messages yet — say hello.</div>
                               )}
                             </div>
                             <form onSubmit={handleSendReply} style={{ display: 'flex', gap: 6 }}>
-                              <input autoFocus value={threadReply} onChange={e => setThreadReply(e.target.value)} placeholder="Replyâ€¦" style={{ ...composerInputStyle, flex: 1, padding: '6px 10px' }} />
+                              <input autoFocus value={threadReply} onChange={e => setThreadReply(e.target.value)} placeholder="Reply…" style={{ ...composerInputStyle, flex: 1, padding: '6px 10px' }} />
                               <Button type="submit" size="xs" disabled={!threadReply.trim()}>Reply</Button>
                             </form>
                           </div>
@@ -988,7 +988,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* NOTIFICATIONS PANEL â€” real, /v1/notifications, same row component
+            {/* NOTIFICATIONS PANEL — real, /v1/notifications, same row component
                 and mark-read/deep-link behavior as AppHeader's own bell dropdown */}
             {activePanel === 'notifications' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '0 -16px' }}>
@@ -1029,20 +1029,20 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* NOTES PANEL â€” real, /v1/notes */}
+            {/* NOTES PANEL — real, /v1/notes */}
             {activePanel === 'notes' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <form onSubmit={handleCreateNote} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <textarea
                     value={noteComposerText}
                     onChange={e => setNoteComposerText(e.target.value)}
-                    placeholder="Take a noteâ€¦"
+                    placeholder="Take a note…"
                     rows={3}
                     style={{ width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, color: 'var(--ink)', resize: 'vertical' }}
                   />
                   {noteComposerText.trim() && (
                     <Button type="submit" size="xs" disabled={noteSaving} style={{ alignSelf: 'flex-end' }}>
-                      {noteSaving ? 'Savingâ€¦' : 'Save note'}
+                      {noteSaving ? 'Saving…' : 'Save note'}
                     </Button>
                   )}
                 </form>
@@ -1066,7 +1066,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* SMS PANEL â€” real, /v1/sms/messages + /v1/sms/send */}
+            {/* SMS PANEL — real, /v1/sms/messages + /v1/sms/send */}
             {activePanel === 'sms' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {smsComposerOpen ? (
@@ -1081,7 +1081,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     />
                     <textarea value={smsBody} onChange={e => setSmsBody(e.target.value)} placeholder="Message" rows={2} style={{ ...composerInputStyle, resize: 'vertical' }} />
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button type="submit" size="xs" disabled={smsSending} style={{ flex: 1 }}>{smsSending ? 'Sendingâ€¦' : 'Send'}</Button>
+                      <Button type="submit" size="xs" disabled={smsSending} style={{ flex: 1 }}>{smsSending ? 'Sending…' : 'Send'}</Button>
                       <Button type="button" size="xs" variant="outline" onClick={() => setSmsComposerOpen(false)}>Cancel</Button>
                     </div>
                   </form>
@@ -1108,11 +1108,11 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* EMAIL PANEL â€” real, /v1/emails?folder=inbox + /v1/emails/send.
+            {/* EMAIL PANEL — real, /v1/emails?folder=inbox + /v1/emails/send.
                 Compose used to be its own bare to/subject/body form here,
                 a second, much thinner composer than the real one in
                 EmailApp.tsx (no Cc/Bcc, no signature, no scheduling, no
-                attachments) â€” easy to open by mistake since both are
+                attachments) — easy to open by mistake since both are
                 labeled "Compose", and confusing when features present in
                 one silently weren't in the other. This now always opens
                 the one real compose window, navigating to /email first if
@@ -1142,7 +1142,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* CONTACTS PANEL â€” real, /v1/contacts */}
+            {/* CONTACTS PANEL — real, /v1/contacts */}
             {activePanel === 'contacts' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {contactComposerOpen ? (
@@ -1150,7 +1150,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     <input autoFocus value={newContactName} onChange={e => setNewContactName(e.target.value)} placeholder="Name" style={composerInputStyle} />
                     <input value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} placeholder="Phone (optional)" style={composerInputStyle} />
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button type="submit" size="xs" disabled={contactSaving} style={{ flex: 1 }}>{contactSaving ? 'Savingâ€¦' : 'Add contact'}</Button>
+                      <Button type="submit" size="xs" disabled={contactSaving} style={{ flex: 1 }}>{contactSaving ? 'Saving…' : 'Add contact'}</Button>
                       <Button type="button" size="xs" variant="outline" onClick={() => setContactComposerOpen(false)}>Cancel</Button>
                     </div>
                   </form>
@@ -1179,7 +1179,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* CLEAROS PANEL â€” real, /v1/shipments */}
+            {/* CLEAROS PANEL — real, /v1/shipments */}
             {activePanel === 'clearos' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <a href="/clearos/ops/new" style={composerToggleStyle}>
@@ -1203,7 +1203,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* FINOPS PANEL â€” real, /v1/invoices */}
+            {/* FINOPS PANEL — real, /v1/invoices */}
             {activePanel === 'finops' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {invoiceComposerOpen ? (
@@ -1212,7 +1212,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     <input value={invoiceDesc} onChange={e => setInvoiceDesc(e.target.value)} placeholder="Description" style={composerInputStyle} />
                     <input type="number" min="1" step="any" value={invoiceAmount} onChange={e => setInvoiceAmount(e.target.value)} placeholder="Amount" style={composerInputStyle} />
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button type="submit" size="xs" disabled={invoiceSaving} style={{ flex: 1 }}>{invoiceSaving ? 'Creatingâ€¦' : 'Create invoice'}</Button>
+                      <Button type="submit" size="xs" disabled={invoiceSaving} style={{ flex: 1 }}>{invoiceSaving ? 'Creating…' : 'Create invoice'}</Button>
                       <Button type="button" size="xs" variant="outline" onClick={() => setInvoiceComposerOpen(false)}>Cancel</Button>
                     </div>
                   </form>
@@ -1242,7 +1242,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* PETTI PANEL â€” real, /v1/petti/wallets + quick manual deposit */}
+            {/* PETTI PANEL — real, /v1/petti/wallets + quick manual deposit */}
             {activePanel === 'petti' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {depositComposerOpen ? (
@@ -1255,7 +1255,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     </Select>
                     <input type="number" min="1" step="any" autoFocus value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="Amount" style={composerInputStyle} />
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button type="submit" size="xs" disabled={depositSaving} style={{ flex: 1 }}>{depositSaving ? 'Depositingâ€¦' : 'Deposit'}</Button>
+                      <Button type="submit" size="xs" disabled={depositSaving} style={{ flex: 1 }}>{depositSaving ? 'Depositing…' : 'Deposit'}</Button>
                       <Button type="button" size="xs" variant="outline" onClick={() => setDepositComposerOpen(false)}>Cancel</Button>
                     </div>
                   </form>
@@ -1279,7 +1279,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* NEXUSHR PANEL â€” real, /v1/hr/staff + /v1/hr/invitations */}
+            {/* NEXUSHR PANEL — real, /v1/hr/staff + /v1/hr/invitations */}
             {activePanel === 'nexushr' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {inviteComposerOpen ? (
@@ -1295,7 +1295,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                       </SelectContent>
                     </Select>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button type="submit" size="xs" disabled={inviteSaving} style={{ flex: 1 }}>{inviteSaving ? 'Sendingâ€¦' : 'Send invite'}</Button>
+                      <Button type="submit" size="xs" disabled={inviteSaving} style={{ flex: 1 }}>{inviteSaving ? 'Sending…' : 'Send invite'}</Button>
                       <Button type="button" size="xs" variant="outline" onClick={() => setInviteComposerOpen(false)}>Cancel</Button>
                     </div>
                   </form>
@@ -1325,7 +1325,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* SEAL PANEL â€” real, /v1/seal/consignments */}
+            {/* SEAL PANEL — real, /v1/seal/consignments */}
             {activePanel === 'seal' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <a href="/seal/consignments" style={composerToggleStyle}>
@@ -1349,7 +1349,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* CARGOTRACKER PANEL â€” real, /v1/freight-booking/bookings (GET);
+            {/* CARGOTRACKER PANEL — real, /v1/freight-booking/bookings (GET);
                 create lives on its own page (CreateFreightBookingPage, needs
                 a customer picker) so this links out rather than duplicating
                 that form inline, same reasoning as ClearOS/SEAL above. */}
@@ -1366,7 +1366,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.booking_number}</span>
                         <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', flexShrink: 0 }}>{b.status?.replace(/_/g, ' ')}</span>
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.customer_name || ''} Â· {b.origin_port} â†’ {b.destination_port}</div>
+                      <div style={{ fontSize: 12, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.customer_name || ''} · {b.origin_port} → {b.destination_port}</div>
                     </a>
                   ))}
                   {bookings.length === 0 && (
@@ -1376,7 +1376,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* CLOUD PANEL â€” real, /v1/drives + /v1/files */}
+            {/* CLOUD PANEL — real, /v1/drives + /v1/files */}
             {activePanel === 'cloud' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <a href="/cloud" style={composerToggleStyle}>
@@ -1400,7 +1400,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* COMPLYOS PANEL â€” real, /v1/comply/obligations */}
+            {/* COMPLYOS PANEL — real, /v1/comply/obligations */}
             {activePanel === 'complyos' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <a href="/complyos/obligations" style={composerToggleStyle}>
@@ -1424,7 +1424,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* STORE PANEL â€” real, /v1/store/apps (browse-only â€” installing is a
+            {/* STORE PANEL — real, /v1/store/apps (browse-only — installing is a
                 bigger, permissions-consent decision than a rail quick-action) */}
             {activePanel === 'store' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1434,7 +1434,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     <a key={a.id} href="/store" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
-                        <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', flexShrink: 0 }}>â˜… {a.rating}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', flexShrink: 0 }}>★ {a.rating}</span>
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.shortDesc}</div>
                     </a>
@@ -1446,7 +1446,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* AI ASSISTANT PANEL â€” real, /v1/ai/chat (agentic chat, tenant memory + tools) */}
+            {/* AI ASSISTANT PANEL — real, /v1/ai/chat (agentic chat, tenant memory + tools) */}
             {activePanel === 'ai' && (
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 10 }}>
                 <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0 }}>
@@ -1473,7 +1473,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     </div>
                   ))}
                   {aiSending && (
-                    <div style={{ alignSelf: 'flex-start', fontSize: 12.5, color: 'var(--ink3)', padding: '8px 12px' }}>Thinkingâ€¦</div>
+                    <div style={{ alignSelf: 'flex-start', fontSize: 12.5, color: 'var(--ink3)', padding: '8px 12px' }}>Thinking…</div>
                   )}
                   {aiError && (
                     <div style={{ fontSize: 12.5, color: '#dc2626', padding: '8px 12px', borderRadius: 8, background: 'rgba(220,38,38,0.08)' }}>{aiError}</div>
@@ -1500,7 +1500,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                   <input
                     value={aiInput}
                     onChange={e => setAiInput(e.target.value)}
-                    placeholder={aiApproval ? 'Waiting on an approval decisionâ€¦' : 'Ask the AI assistantâ€¦'}
+                    placeholder={aiApproval ? 'Waiting on an approval decision…' : 'Ask the AI assistant…'}
                     disabled={aiSending || !!aiApproval}
                     style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--bg)', color: 'var(--ink)' }}
                   />
@@ -1528,13 +1528,13 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
         </div>
       )}
 
-      {/* â”€â”€ 56px Vertical Rail â”€â”€ */}
+      {/* ── 56px Vertical Rail ── */}
       <div className="gws-rail">
-        {/* Continues the header's border-bottom line across this column â€”
+        {/* Continues the header's border-bottom line across this column —
             same 57px band as AppHeader and AppSidebar's .app-sb-brand. */}
         <div className="gws-rail-header" />
 
-        {/* Collapse / expand toggle â€” floats on the left edge, mirroring
+        {/* Collapse / expand toggle — floats on the left edge, mirroring
             AppSidebar's own .app-sb-toggle on the opposite side. */}
         <Tip label={collapsed ? "Show apps" : "Hide apps"} side="left">
           <button
@@ -1546,12 +1546,12 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
           </button>
         </Tip>
 
-        {/* The pinned-app list â€” hidden while collapsed, but the rail itself
+        {/* The pinned-app list — hidden while collapsed, but the rail itself
             (toggle, star, +, settings) always stays visible, never the whole
             component vanishing behind an unstyled floating pill. */}
         {!collapsed && (
           <div className="gws-rail-top">
-            {/* Every pinned, entitled app â€” except whichever one is currently open */}
+            {/* Every pinned, entitled app — except whichever one is currently open */}
             {railApps.map(app => {
               const badge = badgeFor(app.id);
               const isActive = activePanel === app.id;
@@ -1573,7 +1573,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
 
         {/* Bottom Action Items */}
         <div className="gws-rail-bottom">
-          {/* AI Assistant â€” a flat sparkle glyph on this app's own accent
+          {/* AI Assistant — a flat sparkle glyph on this app's own accent
               (var(--teal)), matching the icon already used for "AI" in the
               drawer header/AI Digest buttons rather than the launcher grid's
               separate multi-point glyph (LAUNCHER_SVG_ICONS.ai), which is
@@ -1590,7 +1590,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
             </button>
           </Tip>
 
-          {/* Add / remove which apps show in this rail â€” same idea as Google's own "+" add-ons picker */}
+          {/* Add / remove which apps show in this rail — same idea as Google's own "+" add-ons picker */}
           <DropdownMenu>
             <Tip label="Add apps to this panel" side="left">
               <DropdownMenuTrigger asChild>

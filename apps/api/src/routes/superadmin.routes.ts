@@ -13,6 +13,7 @@ import { JOB_REGISTRY, isJobSchedulingConnected } from '../jobs/index.js';
 import { invalidatePlatformSettingsCache, maskAiForClient, mergeAiForSave, getPlatformProviderKey } from '../lib/platform-settings.js';
 import { runProviderKeyTest } from '../lib/ai-key-test.js';
 import { getPlatformAgentUsage } from '../lib/agent-usage.js';
+import { getFinanceCapabilities, getFinanceConfiguration } from '../services/finance-capability.service.js';
 import { AI_PROVIDERS, AI_PROVIDER_CONFIG } from '../lib/ai-providers.js';
 import { env } from '../config/env.js';
 import os from 'node:os';
@@ -513,6 +514,27 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       .executeTakeFirst();
     const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
     return { enabledApps: settings['enabled-apps'] || {} };
+  });
+
+  // Finance packaging is resolved from the tenant's actual plan and explicit
+  // activation rows. SuperAdmin needs this view before changing a package;
+  // using the tenant-scoped services also keeps RLS and usage calculations
+  // identical to what the tenant sees in Finance.
+  fastify.get('/tenants/:id/finance', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const tenant = await dbPlatform.selectFrom('tenants')
+      .select(['id', 'name', 'plan', 'active'])
+      .where('id', '=', id)
+      .executeTakeFirst();
+    if (!tenant) return reply.status(404).send({ error: 'Tenant not found' });
+
+    const [capabilitySummary, configuration] = await Promise.all([
+      // Deliberately resolve as the tenant, not with the SuperAdmin bypass:
+      // this endpoint reports what the workspace can actually use.
+      getFinanceCapabilities(id),
+      getFinanceConfiguration(id),
+    ]);
+    return { tenant, capabilitySummary, configuration };
   });
 
   // 5c. PATCH /v1/superadmin/tenants/:id/apps — enable/disable specific apps for this tenant

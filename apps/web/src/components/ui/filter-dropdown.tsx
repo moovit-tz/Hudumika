@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronDown, Search, X } from "lucide-react"
+import { Check, ChevronDown, Maximize2, Search, SlidersHorizontal, X } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 import { Checkbox } from "./checkbox"
 import { cn } from "@/lib/utils"
@@ -168,5 +168,269 @@ export function MultiSelectFilter({
         )}
       </PopoverContent>
     </Popover>
+  )
+}
+
+export interface QuickFilterConfig {
+  label?: string
+  allLabel?: string
+  value: string | null
+  options: FilterOption[]
+  onChange: (value: string | null) => void
+  icon?: React.ReactNode
+  /** Render options in N columns instead of one vertical list (2 is common for 4+ items) */
+  columns?: number
+}
+
+/* ── SearchToolbar ──────────────────────────────────────────────────────────
+ * Unified toolbar with search input + inline dropdown filters + Filters button + optional action slots.
+ *
+ * Usage:
+ *   <SearchToolbar
+ *     search={q} onSearch={setQ}
+ *     placeholder="Search products, SKU, or category..."
+ *     quickFilter={{
+ *       value: status, onChange: setStatus, allLabel: "All Status",
+ *       options: [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]
+ *     }}
+ *     activeFilterCount={activeFilters}
+ *     filterContent={(close) => <MyFiltersPanel close={close} />}
+ *   />
+ *
+ * CSS lives in index.css under "SEARCH TOOLBAR (.stb-*)".
+ */
+export interface SearchToolbarProps {
+  search?: string
+  onSearch?: (value: string) => void
+  placeholder?: string
+  /** Inline quick dropdown filter (e.g. "All Status ▾" like in Dreams Core) */
+  quickFilter?: QuickFilterConfig
+  /** Multiple inline quick filters */
+  quickFilters?: QuickFilterConfig[]
+  /** Number of active filters. Renders Dreams Core green badge on the Filters button when > 0. */
+  activeFilterCount?: number
+  /** Called when the Filters button is clicked. Omit to hide it if filterContent is also omitted. */
+  onFiltersClick?: () => void
+  /** Whether the filter panel is currently open — highlights the button. */
+  filtersOpen?: boolean
+  /** Content to render inside the Filters popover automatically. */
+  filterContent?: React.ReactNode | ((close: () => void) => React.ReactNode)
+  /** Called when the expand button is clicked. Omit to hide it. */
+  onExpand?: () => void
+  /** Extra ReactNode rendered inside the right action area — e.g. a DropdownMenu. */
+  actions?: React.ReactNode
+  className?: string
+  style?: React.CSSProperties
+}
+
+function InlineQuickFilter({ config }: { config: QuickFilterConfig }) {
+  const [open, setOpen] = React.useState(false)
+  const selected = config.options.find((o) => o.value === config.value)
+  const displayLabel = selected?.label ?? config.allLabel ?? 'All'
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          data-active={!!config.value}
+          className="stb-dropdown-btn"
+          aria-expanded={open}
+        >
+          {config.icon}
+          <span>{config.label ? `${config.label}: ` : ''}{displayLabel}</span>
+          <ChevronDown size={13} className="stb-chevron" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        style={config.columns && config.columns > 1 ? { width: `${config.columns * 130 + 24}px` } : undefined}
+        className="p-1.5 shadow-xl border border-border bg-popover w-52"
+      >
+        <button
+          type="button"
+          onClick={() => { config.onChange(null); setOpen(false) }}
+          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          <span>{config.allLabel ?? 'All'}</span>
+          {!config.value && <Check className="h-3.5 w-3.5 text-primary" />}
+        </button>
+        <div style={config.columns && config.columns > 1 ? { display:'grid', gridTemplateColumns:`repeat(${config.columns}, 1fr)` } : undefined}>
+          {config.options.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => { config.onChange(o.value); setOpen(false) }}
+              className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-medium outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <span className="flex items-center gap-2">
+                {o.icon}
+                <span className={cn(o.value === config.value ? "font-semibold text-foreground" : "")}>{o.label}</span>
+              </span>
+              {o.value === config.value && <Check className="h-3.5 w-3.5 text-primary" />}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function FiltersButton({
+  filterActive,
+  activeFilterCount,
+  onFiltersClick,
+  filterContent,
+}: {
+  filterActive: boolean
+  activeFilterCount: number
+  onFiltersClick?: () => void
+  filterContent?: React.ReactNode | ((close: () => void) => React.ReactNode)
+}) {
+  const [open, setOpen] = React.useState(false)
+
+  if (filterContent) {
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="stb-btn"
+            data-active={String(filterActive || open)}
+            aria-pressed={filterActive}
+          >
+            <SlidersHorizontal size={14} strokeWidth={2} aria-hidden />
+            <span>Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="stb-green-badge" aria-label={`${activeFilterCount} active filters`}>
+                <span className="stb-green-dot" />
+                <span>{activeFilterCount}</span>
+              </span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-80 sm:w-96 p-0 shadow-2xl rounded-xl border border-border bg-popover">
+          {typeof filterContent === 'function' ? filterContent(() => setOpen(false)) : filterContent}
+        </PopoverContent>
+      </Popover>
+    )
+  }
+
+  if (onFiltersClick) {
+    return (
+      <button
+        type="button"
+        className="stb-btn"
+        data-active={String(filterActive)}
+        onClick={onFiltersClick}
+        aria-pressed={filterActive}
+      >
+        <SlidersHorizontal size={14} strokeWidth={2} aria-hidden />
+        <span>Filters</span>
+        {activeFilterCount > 0 && (
+          <span className="stb-green-badge" aria-label={`${activeFilterCount} active filters`}>
+            <span className="stb-green-dot" />
+            <span>{activeFilterCount}</span>
+          </span>
+        )}
+      </button>
+    )
+  }
+
+  return null
+}
+
+export function SearchToolbar({
+  search = '',
+  onSearch,
+  placeholder = 'Search…',
+  quickFilter,
+  quickFilters,
+  activeFilterCount = 0,
+  onFiltersClick,
+  filtersOpen = false,
+  filterContent,
+  onExpand,
+  actions,
+  className,
+  style,
+}: SearchToolbarProps) {
+  const allQuickFilters = React.useMemo(() => {
+    const list: QuickFilterConfig[] = []
+    if (quickFilter) list.push(quickFilter)
+    if (quickFilters) list.push(...quickFilters)
+    return list
+  }, [quickFilter, quickFilters])
+
+  const hasFilters = Boolean(onFiltersClick || filterContent)
+  const filterActive = filtersOpen || activeFilterCount > 0
+
+  return (
+    <div className={cn('stb', className)} style={style}>
+      <div className="stb-search">
+        <Search className="stb-search-icon" size={15} strokeWidth={2} aria-hidden />
+        <input
+          type="search"
+          value={search}
+          onChange={e => onSearch?.(e.target.value)}
+          placeholder={placeholder}
+          className="stb-input"
+          aria-label={placeholder}
+        />
+        {search && (
+          <button
+            type="button"
+            className="stb-icon-btn"
+            style={{ width: 22, height: 22, minWidth: 22 }}
+            onClick={() => onSearch?.('')}
+            title="Clear"
+            aria-label="Clear search"
+          >
+            <X size={13} />
+          </button>
+        )}
+      </div>
+
+      {allQuickFilters.map((qf, i) => (
+        <React.Fragment key={i}>
+          <div className="stb-sep" aria-hidden />
+          <InlineQuickFilter config={qf} />
+        </React.Fragment>
+      ))}
+
+      {hasFilters && (
+        <>
+          <div className="stb-sep" aria-hidden />
+          <div className="stb-actions">
+            <FiltersButton
+              filterActive={filterActive}
+              activeFilterCount={activeFilterCount}
+              onFiltersClick={onFiltersClick}
+              filterContent={filterContent}
+            />
+          </div>
+        </>
+      )}
+
+      {(onExpand || actions) && (
+        <>
+          {!hasFilters && <div className="stb-sep" aria-hidden />}
+          <div className="stb-actions">
+            {onExpand && (
+              <button
+                type="button"
+                className="stb-icon-btn"
+                onClick={onExpand}
+                title="Expand"
+                aria-label="Expand view"
+              >
+                <Maximize2 size={14} strokeWidth={2} aria-hidden />
+              </button>
+            )}
+            {actions}
+          </div>
+        </>
+      )}
+    </div>
   )
 }

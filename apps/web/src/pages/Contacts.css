@@ -54,9 +54,9 @@
 }
 .csb-nav-item:hover { background: var(--bg); }
 .csb-nav-item--on {
-  background: var(--cts-accent-bg);
-  color: var(--cts-accent);
-  font-weight: 600;
+  background: var(--teal);
+  color: hsl(var(--primary-foreground));
+  font-weight: 700;
 }
 .csb-nav-icon {
   display: flex;
@@ -70,6 +70,10 @@
   color: var(--ink3);
   min-width: 20px;
   text-align: right;
+}
+.csb-nav-item--on .csb-nav-count {
+  color: hsl(var(--primary-foreground));
+  opacity: .75;
 }
 .csb-nav-count--red {
   background: #d93025;
@@ -89,7 +93,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 12px 6px 20px;
+  padding: 4px 12px 6px 12px;
 }
 .csb-labels-title {
   font-size: 10.5px;
@@ -119,7 +123,7 @@
   transition: background .12s;
 }
 .csb-label-row:hover { background: var(--bg); }
-.csb-label-row--on { background: var(--cts-accent-bg); }
+.csb-label-row--on { background: var(--teal); }
 .csb-label-btn {
   flex: 1;
   display: flex;
@@ -134,7 +138,7 @@
   padding: var(--ds-btn-py-sm) 4px 6px 20px;
   text-align: left;
 }
-.csb-label-row--on .csb-label-btn { color: var(--cts-accent); font-weight: 600; }
+.csb-label-row--on .csb-label-btn { color: hsl(var(--primary-foreground)); font-weight: 700; }
 .csb-label-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -168,7 +172,7 @@
   align-items: center;
   gap: 14px;
   width: 100%;
-  padding: 9px 12px 9px 20px;
+  padding: 9px 12px;
   border: none;
   border-radius: var(--nav-item-r, 8px);
   background: none;
@@ -180,8 +184,8 @@
   transition: background .12s;
 }
 .csb-sys-item:hover { background: var(--bg); }
-.csb-sys-item--on   { background: var(--cts-accent-bg); color: var(--cts-accent); }
-.csb-sys-item--icon { padding: 9px 12px; justify-content: center; gap: 0; }
+.csb-sys-item--on   { background: var(--teal); color: hsl(var(--primary-foreground)); }
+.csb-sys-item--icon { padding: 9px; justify-content: center; gap: 0; }
 .csb-file-input     { display: none; }
 
 /* New label modal */
@@ -260,8 +264,7 @@
 .csb-smart-empty {
   font-size: 12px;
   color: var(--ink3);
-  font-style: italic;
-  padding: 6px 12px 6px 20px;
+  padding: 6px 12px 6px 12px;
 }
 
 /* ══════════════════════════════════════════════════

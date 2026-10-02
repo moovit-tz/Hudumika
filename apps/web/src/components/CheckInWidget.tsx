@@ -8,7 +8,7 @@ import { Switch } from './ui/switch.js';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs.js';
 import { Dialog, DialogContent } from './ui/dialog.js';
 
-/* â”€â”€ Types â”€â”€ */
+/* ── Types ── */
 interface Task  { id: string; name: string; category: string; is_billable: boolean; color: string }
 interface Entry { id: string; task_name: string | null; is_billable: boolean; started_at: string; is_full_day: boolean; last_ack_at: string | null }
 
@@ -29,7 +29,7 @@ function elapsed(from: string): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─────────────────────────────────────────── */
 
 export const CheckInWidget: React.FC = () => {
   const { user } = useAuth();
@@ -52,15 +52,15 @@ export const CheckInWidget: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Skip widget for CUSTOMER role
-  // Some roles/people genuinely aren't measured by a timesheet at all â€” a
+  // Some roles/people genuinely aren't measured by a timesheet at all — a
   // platform SUPER_ADMIN overseeing tenants they don't do billable work in,
   // or anyone an HR admin has explicitly marked exempt (StaffDetail.tsx's
   // own "Exempt from timesheets" toggle, profile.timesheet_exempt). Showing
   // the check-in prompt to someone who was never meant to use it isn't a
-  // safe default to fall back on â€” it's a real nag with no correct action.
+  // safe default to fall back on — it's a real nag with no correct action.
   const isStaff = user && user.role !== 'CUSTOMER' && !user.profile?.timesheet_exempt;
 
-  // â”€â”€ Load tasks and shipments â”€â”€
+  // ── Load tasks and shipments ──
   useEffect(() => {
     if (!isStaff) return;
     apiFetch('/v1/hr/tasks')
@@ -72,7 +72,7 @@ export const CheckInWidget: React.FC = () => {
       .catch(() => {});
   }, [isStaff]);
 
-  // â”€â”€ Sync with API today's open entry on mount â”€â”€
+  // ── Sync with API today's open entry on mount ──
   useEffect(() => {
     if (!isStaff) return;
     apiFetch('/v1/hr/time/today').then((rows: any[]) => {
@@ -82,12 +82,12 @@ export const CheckInWidget: React.FC = () => {
     }).catch(() => {});
   }, [isStaff]);
 
-  // â”€â”€ Open when TopBar clock button (or a page's clock-gate) triggers â”€â”€
+  // ── Open when TopBar clock button (or a page's clock-gate) triggers ──
   useEffect(() => {
     if (openTrigger > 0 && isStaff) setOpen(true);
   }, [openTrigger, isStaff]);
 
-  // â”€â”€ Auto-detect the shipment/task the trigger fired from, if any â”€â”€
+  // ── Auto-detect the shipment/task the trigger fired from, if any ──
   useEffect(() => {
     if (openTrigger === 0) return;
     setSearch('');
@@ -109,7 +109,7 @@ export const CheckInWidget: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openTrigger]);
 
-  // â”€â”€ Tick every minute â”€â”€
+  // ── Tick every minute ──
   useEffect(() => {
     timerRef.current = setInterval(() => setTick(t => t + 1), 60000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
@@ -170,7 +170,7 @@ export const CheckInWidget: React.FC = () => {
     try {
       await apiFetch(`/v1/hr/time/${entry.id}/stop`, { method: 'PATCH' });
     } catch {
-      // Entry may not exist in DB (e.g. stale localStorage) â€” clear state anyway
+      // Entry may not exist in DB (e.g. stale localStorage) — clear state anyway
     } finally {
       setEntry(null);
       saveLS(null);
@@ -190,7 +190,7 @@ export const CheckInWidget: React.FC = () => {
   const filteredTasks = !q ? tasks : tasks.filter(t =>
     t.name.toLowerCase().includes(q) || t.category.toLowerCase().includes(q));
 
-  /* â”€â”€ Task selector panel â”€â”€ */
+  /* ── Task selector panel ── */
   if (open) {
     return (
       <Dialog open onOpenChange={o => { if (!o) setOpen(false); }}>
@@ -217,7 +217,7 @@ export const CheckInWidget: React.FC = () => {
             </button>
           </div>
 
-          {/* Mode toggle â€” hidden once auto-detected from a shipment/task page, so the type is locked but the specific item can still be changed below */}
+          {/* Mode toggle — hidden once auto-detected from a shipment/task page, so the type is locked but the specific item can still be changed below */}
           {!lockedMode && (
             <div style={{ padding: '0 24px 12px', display: 'flex', gap: 6 }}>
               <Tabs value={checkInMode} onValueChange={v => setCheckInMode(v as typeof checkInMode)} variant="segmented" style={{ width: '100%' }}>
@@ -237,7 +237,7 @@ export const CheckInWidget: React.FC = () => {
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder={checkInMode === 'shipment' ? 'Search shipmentsâ€¦' : 'Search tasksâ€¦'}
+                placeholder={checkInMode === 'shipment' ? 'Search shipments…' : 'Search tasks…'}
                 style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px 8px 32px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, outline: 'none' }}
               />
             </div>
@@ -273,7 +273,7 @@ export const CheckInWidget: React.FC = () => {
                   </div>
                 )}
                 {!tasksErr && tasks.length === 0 && (
-                  <div style={{ padding: '24px', fontSize: 13, color: 'var(--ink3)', textAlign: 'center' }}>Loading tasksâ€¦</div>
+                  <div style={{ padding: '24px', fontSize: 13, color: 'var(--ink3)', textAlign: 'center' }}>Loading tasks…</div>
                 )}
                 {!tasksErr && tasks.length > 0 && filteredTasks.length === 0 && (
                   <div style={{ padding: '24px', fontSize: 13, color: 'var(--ink3)', textAlign: 'center' }}>No tasks match your search.</div>
@@ -303,7 +303,7 @@ export const CheckInWidget: React.FC = () => {
             )}
           </div>
 
-          {/* Billable toggle â€” only shown in task mode */}
+          {/* Billable toggle — only shown in task mode */}
           {checkInMode === 'task' && selTask && (
             <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--ink2)', flex: 1 }}>Mark as billable</span>
@@ -323,7 +323,7 @@ export const CheckInWidget: React.FC = () => {
                 </button>
                 <button type="button" disabled={!selTask || saving} onClick={switchTask}
                   style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: (!selTask || saving) ? 'default' : 'pointer', opacity: (!selTask || saving) ? 0.6 : 1, transition: 'opacity 0.2s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                  {saving ? 'Switchingâ€¦' : 'Switch Task'}
+                  {saving ? 'Switching…' : 'Switch Task'}
                 </button>
               </>
             ) : (
@@ -334,7 +334,7 @@ export const CheckInWidget: React.FC = () => {
                 </button>
                 <button type="button" disabled={saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task')} onClick={startTask}
                   style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 'default' : 'pointer', opacity: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 0.6 : 1, transition: 'opacity 0.2s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                  {saving ? 'Startingâ€¦' : 'Check In'}
+                  {saving ? 'Starting…' : 'Check In'}
                 </button>
               </>
             )}

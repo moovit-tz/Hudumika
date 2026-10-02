@@ -15,9 +15,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/s
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
 
-/* â”€â”€ helpers â”€â”€ */
+/* ── helpers ── */
 function fmtDate(str?: string | null) {
-  if (!str) return 'â€”';
+  if (!str) return '—';
   // str comes as DD-MM-YYYY from mapApiInvoice, or ISO from API
   if (str.includes('T')) return new Date(str).toLocaleDateString('en-TZ', { day: 'numeric', month: 'short', year: 'numeric' });
   const [d, m, y] = str.split('-');
@@ -34,7 +34,7 @@ const FILTER_TABS: { key: FilterKey; label: string }[] = [
   { key: 'Paid',    label: 'Paid'     },
 ];
 
-/* â”€â”€ Invoice list card â”€â”€ */
+/* ── Invoice list card ── */
 function InvoiceCard({ inv, onClick }: { inv: Invoice; onClick: () => void }) {
   const st    = STATUS_STYLE[inv.status];
   const total = invoiceTotals(inv).grandTotalTZS;
@@ -61,13 +61,13 @@ function InvoiceCard({ inv, onClick }: { inv: Invoice; onClick: () => void }) {
 
       {/* Row 2: client + route */}
       <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {inv.origin} â†’ {inv.destination}
+        {inv.origin} → {inv.destination}
       </div>
 
       {/* Row 3: dates + amount */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
-          {inv.status === 'Paid' ? `Paid Â· ${fmtDate(inv.billDate)}` : `Due ${fmtDate(inv.dueDate)}`}
+          {inv.status === 'Paid' ? `Paid · ${fmtDate(inv.billDate)}` : `Due ${fmtDate(inv.dueDate)}`}
         </span>
         <span style={{ fontSize: 14, fontWeight: 700, color: isOverdue ? 'var(--red)' : 'var(--ink)' }}>
           {fmtTZS(bal > 0 ? bal : total)}
@@ -77,7 +77,7 @@ function InvoiceCard({ inv, onClick }: { inv: Invoice; onClick: () => void }) {
   );
 }
 
-/* â”€â”€ Dispute modal (bottom sheet) â”€â”€ */
+/* ── Dispute modal (bottom sheet) ── */
 function DisputeModal({ inv, onClose, onSubmit }: {
   inv: Invoice;
   onClose: () => void;
@@ -100,7 +100,7 @@ function DisputeModal({ inv, onClose, onSubmit }: {
           </label>
           <textarea
             title="Describe the dispute"
-            placeholder="Describe the issue with this invoiceâ€¦"
+            placeholder="Describe the issue with this invoice…"
             value={reason}
             onChange={e => setReason(e.target.value)}
             rows={4}
@@ -116,7 +116,7 @@ function DisputeModal({ inv, onClose, onSubmit }: {
   );
 }
 
-/* â”€â”€ Invoice detail (read-only) â”€â”€ */
+/* ── Invoice detail (read-only) ── */
 function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
   const co = useCompany();
   const isDark = useIsDarkMode();
@@ -185,7 +185,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
           </div>
           {inv.status === 'Partial' && inv.received > 0 && (
             <div style={{ marginTop: 8, fontSize: 12, color: 'hsl(var(--primary-foreground) / 0.7)' }}>
-              Received: {fmtTZS(inv.received)} Â· Outstanding: {fmtTZS(bal)}
+              Received: {fmtTZS(inv.received)} · Outstanding: {fmtTZS(bal)}
             </div>
           )}
         </div>
@@ -207,7 +207,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
           ))}
         </div>
 
-        {/* Carbon segment â€” live from the linked shipment, not a tradeable credit */}
+        {/* Carbon segment — live from the linked shipment, not a tradeable credit */}
         {inv.shipmentCarbon && (
           <div style={{ background: 'var(--green-l)', borderRadius: 'var(--r)', border: '1px solid var(--green)', padding: 16, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
@@ -217,7 +217,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
             <div style={{ display: 'flex', gap: 20 }}>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{Number(inv.shipmentCarbon.co2_emissions_kg).toLocaleString('en')} kg</div>
-                <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>COâ‚‚ emissions</div>
+                <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>CO₂ emissions</div>
               </div>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--green)' }}>{Number(inv.shipmentCarbon.carbon_credits_saved).toFixed(2)}</div>
@@ -225,12 +225,12 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
               </div>
             </div>
             <div style={{ fontSize: 9.5, color: 'var(--ink3)', marginTop: 8, fontStyle: 'italic' }}>
-              Internal ESG estimate â€” not a registry-issued or tradeable carbon credit.
+              Internal ESG estimate — not a registry-issued or tradeable carbon credit.
             </div>
           </div>
         )}
 
-        {/* Line items â€” Clearing */}
+        {/* Line items — Clearing */}
         {cl.length > 0 && (
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 16, marginBottom: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', marginBottom: 12 }}>CLEARING CHARGES (TZS)</div>
@@ -238,7 +238,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, paddingBottom: 8, borderBottom: i < cl.length - 1 ? '1px solid var(--bg)' : 'none' }}>
                 <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{item.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Qty {item.qty} Ã— {item.unit}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Qty {item.qty} × {item.unit}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{fmtTZS(item.qty * item.rate)}</div>
@@ -253,7 +253,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
           </div>
         )}
 
-        {/* Line items â€” Shipping */}
+        {/* Line items — Shipping */}
         {sh.length > 0 && (
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 16, marginBottom: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', marginBottom: 12 }}>SHIPPING CHARGES (USD)</div>
@@ -261,7 +261,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, paddingBottom: 8, borderBottom: i < sh.length - 1 ? '1px solid var(--bg)' : 'none' }}>
                 <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{item.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Qty {item.qty} Ã— {item.unit}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Qty {item.qty} × {item.unit}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>USD {(item.qty * item.rate).toFixed(2)}</div>
@@ -276,7 +276,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
           </div>
         )}
 
-        {/* Line items â€” Other */}
+        {/* Line items — Other */}
         {ot.length > 0 && (
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 16, marginBottom: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', marginBottom: 12 }}>OTHER CHARGES (TZS)</div>
@@ -284,7 +284,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, paddingBottom: 8, borderBottom: i < ot.length - 1 ? '1px solid var(--bg)' : 'none' }}>
                 <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{item.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Qty {item.qty} Ã— {item.unit}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Qty {item.qty} × {item.unit}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{fmtTZS(item.qty * item.rate)}</div>
@@ -314,7 +314,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
         </div>
       </div>
 
-      {/* Action bar â€” fixed at bottom */}
+      {/* Action bar — fixed at bottom */}
       <div style={{ position: 'fixed', bottom: 70, left: 0, right: 0, padding: '12px 16px', background: 'var(--white)', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, zIndex: 50 }}>
         <Button type="button" variant="outline" title="Download PDF" onClick={handlePrint} style={{ flex: 1 }}>
           <Icon name="download" size={15} />
@@ -336,7 +336,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
 
       {disputed && (
         <div style={{ position: 'fixed', bottom: 130, left: 16, right: 16, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', padding: '12px 16px', fontSize: 13, fontWeight: 600, zIndex: 200, textAlign: 'center' }}>
-          Dispute submitted â€” opening support ticketâ€¦
+          Dispute submitted — opening support ticket…
         </div>
       )}
 
@@ -345,12 +345,12 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
   );
 }
 
-/* â”€â”€ Main page â”€â”€ */
+/* ── Main page ── */
 export const CustomerInvoices: React.FC = () => {
   usePageSEO('Billing & Invoices', 'Manage your outstanding invoices and billing history.');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading]   = useState(true);
-  // A failed fetch used to silently substitute five invented invoices â€” a
+  // A failed fetch used to silently substitute five invented invoices — a
   // customer would see fabricated amounts and a fake client name in place of
   // their real bill. It now says the load failed and offers to retry, the same
   // as every other honest error state in the app.
@@ -381,7 +381,7 @@ export const CustomerInvoices: React.FC = () => {
       <div style={{ padding: '20px 16px 0' }}>
         <PageHeader crumbs={['Workspace', 'Billing']} titlePlain="Your" titleEm="invoices" />
         <p style={{ margin: '0 0 16px', fontSize: 13, color: overdue > 0 ? 'var(--red)' : 'var(--ink3)' }}>
-          {loading ? 'Loadingâ€¦' : unpaid > 0 ? `${unpaid} invoice${unpaid !== 1 ? 's' : ''} outstanding` : `${invoices.length} invoice${invoices.length !== 1 ? 's' : ''}`}
+          {loading ? 'Loading…' : unpaid > 0 ? `${unpaid} invoice${unpaid !== 1 ? 's' : ''} outstanding` : `${invoices.length} invoice${invoices.length !== 1 ? 's' : ''}`}
         </p>
 
         {/* Summary bar */}

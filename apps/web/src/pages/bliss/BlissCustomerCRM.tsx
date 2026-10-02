@@ -11,10 +11,10 @@ import { useMediaQuery } from '../../hooks/useMediaQuery.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { apiFetch } from '../../lib/api.js';
 
-/** Real customer directory â€” this used to be 3 hand-invented records with
+/** Real customer directory — this used to be 3 hand-invented records with
  *  fake lifetime values and fake account managers. Every field here now
  *  comes from the real `customers` table (migration 134's real profile
- *  fields: account_status, client_type, country, website â€” collected by
+ *  fields: account_status, client_type, country, website — collected by
  *  the Customers app's edit form for a while) plus two real aggregates:
  *  ticket counts from support_tickets and lifetime value summed from
  *  FinOps' actual sales_invoice_lines (support.routes.ts GET /customers). */
@@ -100,8 +100,8 @@ export const BlissCustomerCRM: React.FC = () => {
       <PageHeader
         crumbs={['Bliss', 'CRM']}
         titlePlain="Customer"
-        titleEm="Profiles"
-        subtitle="Contact records, conversation history and shipments â€” pulled from the real customer, ticket and shipment tables, not a separate copy."
+        titleEm="profiles"
+        subtitle="Contact records, conversation history and shipments — pulled from the real customer, ticket and shipment tables, not a separate copy."
         actions={
           <Link to="/customers" style={{ textDecoration: 'none' }}>
             <Button variant="outline" size="sm"><Icon name="externalLink" size={13} /> Full Customers app</Button>
@@ -131,7 +131,7 @@ export const BlissCustomerCRM: React.FC = () => {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{c.name}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--ink3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {c.contact_name || c.email || 'â€”'}
+                      {c.contact_name || c.email || '—'}
                     </div>
                   </div>
                   {c.open_tickets > 0 && <Badge variant="error">{c.open_tickets}</Badge>}
@@ -144,7 +144,7 @@ export const BlissCustomerCRM: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {!selectedCust ? (
             <div style={{ padding: 60, textAlign: 'center', color: 'var(--ink3)', fontSize: 13, background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)' }}>
-              {loading ? 'Loadingâ€¦' : 'Select a customer to view their profile.'}
+              {loading ? 'Loading…' : 'Select a customer to view their profile.'}
             </div>
           ) : (
             <>
@@ -159,7 +159,7 @@ export const BlissCustomerCRM: React.FC = () => {
                         {selectedCust.client_type && <Badge variant="gray">{selectedCust.client_type}</Badge>}
                       </div>
                       <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4 }}>
-                        {[selectedCust.city, selectedCust.country].filter(Boolean).join(', ') || 'â€”'}
+                        {[selectedCust.city, selectedCust.country].filter(Boolean).join(', ') || '—'}
                       </div>
                     </div>
                   </div>
@@ -218,11 +218,11 @@ export const BlissCustomerCRM: React.FC = () => {
                       <div>
                         <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Contact Details</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
-                          <div><strong style={{ color: 'var(--ink3)' }}>Contact person:</strong> {selectedCust.contact_name || 'â€”'}</div>
-                          <div><strong style={{ color: 'var(--ink3)' }}>Email:</strong> {selectedCust.email || 'â€”'}</div>
-                          <div><strong style={{ color: 'var(--ink3)' }}>Phone:</strong> {selectedCust.phone || 'â€”'}</div>
-                          <div><strong style={{ color: 'var(--ink3)' }}>WhatsApp:</strong> {selectedCust.phone_wa || 'â€”'}</div>
-                          <div><strong style={{ color: 'var(--ink3)' }}>Location:</strong> {[selectedCust.city, selectedCust.country].filter(Boolean).join(', ') || 'â€”'}</div>
+                          <div><strong style={{ color: 'var(--ink3)' }}>Contact person:</strong> {selectedCust.contact_name || '—'}</div>
+                          <div><strong style={{ color: 'var(--ink3)' }}>Email:</strong> {selectedCust.email || '—'}</div>
+                          <div><strong style={{ color: 'var(--ink3)' }}>Phone:</strong> {selectedCust.phone || '—'}</div>
+                          <div><strong style={{ color: 'var(--ink3)' }}>WhatsApp:</strong> {selectedCust.phone_wa || '—'}</div>
+                          <div><strong style={{ color: 'var(--ink3)' }}>Location:</strong> {[selectedCust.city, selectedCust.country].filter(Boolean).join(', ') || '—'}</div>
                           {selectedCust.website && <div><strong style={{ color: 'var(--ink3)' }}>Website:</strong> <a href={selectedCust.website} target="_blank" rel="noreferrer">{selectedCust.website}</a></div>}
                           <div><strong style={{ color: 'var(--ink3)' }}>Customer since:</strong> {new Date(selectedCust.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                         </div>
@@ -239,7 +239,7 @@ export const BlissCustomerCRM: React.FC = () => {
                             {tickets.slice(0, 4).map(t => (
                               <div key={t.id} style={{ borderLeft: '2px solid var(--teal)', paddingLeft: 10 }}>
                                 <div style={{ fontWeight: 700 }}>{t.subject}</div>
-                                <div style={{ color: 'var(--ink3)' }}>#{t.ref} Â· {t.status} Â· {new Date(t.updated_at || t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</div>
+                                <div style={{ color: 'var(--ink3)' }}>#{t.ref} · {t.status} · {new Date(t.updated_at || t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</div>
                               </div>
                             ))}
                           </div>
@@ -273,7 +273,7 @@ export const BlissCustomerCRM: React.FC = () => {
                           <Link key={s.id} to={`/shipments?search=${s.ref_number}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', textDecoration: 'none', color: 'inherit' }}>
                             <div>
                               <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{s.ref_number}</div>
-                              <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{s.goods_desc || 'â€”'}</div>
+                              <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{s.goods_desc || '—'}</div>
                             </div>
                             <Badge variant="gray">{s.stage}</Badge>
                           </Link>

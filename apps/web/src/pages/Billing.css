@@ -1,6 +1,6 @@
-﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   /finance/invoices â€” Billing.tsx
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+﻿/* ══════════════════════════════════════════════════════════════════
+   /finance/invoices — Billing.tsx
+══════════════════════════════════════════════════════════════════ */
 
 .inv-shell {
   display: flex;
@@ -10,7 +10,7 @@
   background: var(--bg);
 }
 
-/* â”€â”€ Top bar â”€â”€ */
+/* ── Top bar ── */
 .inv-topbar {
   position: relative;
   background: var(--white);
@@ -33,7 +33,7 @@
 
 .inv-topbar-spacer { flex: 1; }
 
-/* â”€â”€ Body: list + detail/editor â”€â”€ */
+/* ── Body: list + detail/editor ── */
 .inv-body {
   flex: 1;
   display: flex;
@@ -56,12 +56,12 @@
   border-right: 1px solid var(--border);
 }
 
-/* â”€â”€ List toolbar: status chips + search â”€â”€ */
+/* ── List toolbar: status chips + search ── */
 /* Tabs, action buttons and search all live in one row (.inv-toolbar-scroll)
-   that never wraps into a second row â€” on a viewport too narrow to fit
+   that never wraps into a second row — on a viewport too narrow to fit
    everything, it scrolls sideways instead (scrollbar hidden, so it reads as
    a clean single row, not an overflowing one). Create Invoice is a fixed
-   sibling outside that scroller (.inv-toolbar-cta), not inside it â€” the
+   sibling outside that scroller (.inv-toolbar-cta), not inside it — the
    primary action must never be something a user has to scroll to find. */
 .inv-list-toolbar {
   display: flex;
@@ -100,7 +100,7 @@
 .inv-toolbar-cta { flex-shrink: 0; }
 
 /* Status filter row itself is now the shared .ds-tabs-list/.ds-tabs-trigger
-   (segmented variant, ds-tabs.css) â€” only the per-chip count bubble is
+   (segmented variant, ds-tabs.css) — only the per-chip count bubble is
    still local, since the shared tab trigger has no built-in badge slot. */
 .inv-status-chip-count {
   font-size: var(--badge-fs-sm);
@@ -127,9 +127,9 @@
 }
 .inv-body--split .inv-search-input { width: 160px; }
 
-/* â”€â”€ Filters popover â€” the popover shell itself (position, background,
+/* ── Filters popover — the popover shell itself (position, background,
    border, shadow, radius) now comes from the shared Radix PopoverContent;
-   these are just the internal field layout. â”€â”€ */
+   these are just the internal field layout. ── */
 .inv-filters-field label {
   display: block;
   font-size: 10.5px;
@@ -155,7 +155,7 @@
 .inv-filters-row { display: flex; gap: 8px; }
 .inv-filters-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 2px; }
 
-/* â”€â”€ Table â”€â”€ */
+/* ── Table ── */
 .inv-table-wrap { flex: 1; overflow-y: auto; overflow-x: auto; }
 
 .inv-table {
@@ -198,8 +198,8 @@
 .th--checkbox { width: 36px; padding-right: 0 !important; text-align: center; }
 .th--checkbox input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--teal); cursor: pointer; margin: 0; }
 
-/* â”€â”€ Bulk selection â†’ export bar â€” appears in the toolbar only once at
-   least one row is checked. â”€â”€ */
+/* ── Bulk selection → export bar — appears in the toolbar only once at
+   least one row is checked. ── */
 .inv-bulk-actions {
   display: flex;
   align-items: center;
@@ -242,12 +242,12 @@
 
 .inv-status-badge { padding: var(--badge-py) var(--badge-px); border-radius: 20px; font-size: var(--badge-fs); font-weight: 700; white-space: nowrap; }
 
-/* â”€â”€ Empty / loading states â”€â”€ */
+/* ── Empty / loading states ── */
 .inv-table-msg { padding: 48px 20px; text-align: center; color: var(--ink3); font-size: 13px; }
 .inv-empty-title { font-size: 14px; font-weight: 700; color: var(--ink2); margin-bottom: 4px; }
 .inv-empty-sub { font-size: 12.5px; color: var(--ink3); margin-bottom: 16px; }
 
-/* â”€â”€ Footer summary â”€â”€ */
+/* ── Footer summary ── */
 .inv-list-footer {
   background: var(--bg);
   border-top: 1px solid var(--border);
@@ -259,20 +259,20 @@
   font-size: 12px;
 }
 
-/* â”€â”€ Mobile: List <-> Detail toggle â”€â”€ */
+/* ── Mobile: List <-> Detail toggle ── */
 @media (max-width: 899px) {
   .inv-body--has-selection .inv-list-panel { display: none; }
   .inv-body:not(.inv-body--has-selection) .inv-detail-panel { display: none; }
   .inv-body--split .inv-list-panel { width: 100%; }
   /* The toolbar stays one row (see .inv-list-toolbar above) and scrolls
-     sideways here instead of stacking â€” a fixed, narrower search box so it
+     sideways here instead of stacking — a fixed, narrower search box so it
      doesn't eat the whole scrollable width on its own. */
   .inv-search-input, .inv-body--split .inv-search-input { width: 150px; }
 }
 
 /* Create/edit occupies the full body. The form was rendering in the right
-   column of a split view, so a full invoice â€” parties, dates, shipment link
-   and a charges table â€” was laid out in roughly half the available width
+   column of a split view, so a full invoice — parties, dates, shipment link
+   and a charges table — was laid out in roughly half the available width
    with the list still scrolling beside it. */
 .inv-body--form .inv-list-panel { display: none; }
 .inv-body--form .inv-detail-panel { flex: 1; min-width: 0; }

@@ -21,6 +21,7 @@ import type {
   DeveloperTelemetrySummary,
   EnvironmentType,
 } from '@hudumika/types';
+import { ApiKeysPage } from './ApiKeysPage.js';
 import './DeveloperConsolePage.css';
 
 export function DeveloperConsolePage() {
@@ -164,8 +165,8 @@ export function DeveloperConsolePage() {
         <DeveloperProjectsTab account={activeAccount} environment={activeEnvironment} />
       )}
 
-      {currentTab === 'credentials' && activeAccount && (
-        <DeveloperCredentialsTab account={activeAccount} environment={activeEnvironment} />
+      {currentTab === 'credentials' && (
+        <ApiKeysPage />
       )}
 
       {currentTab === 'marketplace' && (
@@ -238,7 +239,7 @@ function DeveloperOverviewTab({
       <PageHeader
         crumbs={['Developer', 'Console']}
         titlePlain="Developer"
-        titleEm="Workspace"
+        titleEm="console"
         subtitle={`Managing ${account.name} · Active Environment: ${environment}`}
       />
 
@@ -459,7 +460,7 @@ function DeveloperProjectsTab({
       <PageHeader
         crumbs={['Developer', 'Projects']}
         titlePlain="Project"
-        titleEm="Workspaces"
+        titleEm="workspaces"
         subtitle="Manage developer projects, environments, and team access permissions."
         actions={
           <Button size="sm" onClick={() => setIsModalOpen(true)}>
@@ -637,7 +638,7 @@ function DeveloperCredentialsTab({
       <PageHeader
         crumbs={['Developer', 'Credentials']}
         titlePlain="API"
-        titleEm="Credentials"
+        titleEm="credentials"
         subtitle={`Environment-scoped API Keys for ${environment}`}
         actions={
           <Button size="sm" onClick={() => { setNewKeyRevealed(null); setKeyName(''); setIsCreateOpen(true); }}>
@@ -921,7 +922,7 @@ function DeveloperMarketplaceTab({
       <PageHeader
         crumbs={['Developer', 'Marketplace']}
         titlePlain="API"
-        titleEm="Marketplace"
+        titleEm="marketplace"
         subtitle="Discover, test, and subscribe to official Hudumika and partner APIs."
       />
 
@@ -1006,8 +1007,8 @@ function DeveloperAnalyticsTab({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
         crumbs={['Developer', 'Analytics']}
-        titlePlain="Usage &"
-        titleEm="Telemetry"
+        titlePlain="Usage"
+        titleEm="telemetry"
         subtitle={`Request volumes, errors, latency, and cost telemetry for ${environment}`}
       />
 
@@ -1096,8 +1097,8 @@ function DeveloperBillingTab({ account }: { account: DeveloperAccount }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
         crumbs={['Developer', 'Billing']}
-        titlePlain="Billing &"
-        titleEm="Credits"
+        titlePlain="Billing"
+        titleEm="credits"
         subtitle="Manage prepaid balance, active API subscriptions, and invoice history."
         actions={
           <Button size="sm" onClick={() => setIsTopUpOpen(true)}>
@@ -1228,8 +1229,8 @@ function DeveloperOrganizationTab({ account }: { account: DeveloperAccount }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
         crumbs={['Developer', 'Organization']}
-        titlePlain="Organization &"
-        titleEm="Team"
+        titlePlain="Organization"
+        titleEm="team"
         subtitle="Manage company profile, legal details, and developer member RBAC."
         actions={
           <Button size="sm" onClick={() => setIsInviteOpen(true)}>

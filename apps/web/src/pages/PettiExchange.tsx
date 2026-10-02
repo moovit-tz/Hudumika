@@ -61,7 +61,7 @@ export function PettiExchange() {
       return;
     }
     if (!sameCurrency) {
-      showAlert(`"${fromWallet?.name}" (${fromWallet?.currency}) and "${toWallet?.name}" (${toWallet?.currency}) are different currencies â€” cross-currency auto-conversion is currently restricted to reference lookup only.`);
+      showAlert(`"${fromWallet?.name}" (${fromWallet?.currency}) and "${toWallet?.name}" (${toWallet?.currency}) are different currencies — cross-currency auto-conversion is currently restricted to reference lookup only.`);
       return;
     }
     if (fromWallet && Number(amount) > fromWallet.balance) {
@@ -94,7 +94,7 @@ export function PettiExchange() {
     <div className="petti-container">
       <PageHeader
         crumbs={['Petti', 'Activities', 'Exchange Money']}
-        titlePlain="FX Currency"
+        titlePlain="FX"
         titleEm="exchange"
         subtitle="Real-time currency converter and exchange rate calculations across your multi-currency vaults."
       />
@@ -104,10 +104,10 @@ export function PettiExchange() {
         <div className="petti-stat-card">
           <div className="petti-stat-card-header">
             <span className="petti-stat-label">Reference Currency Pair</span>
-            <Badge variant="brand">{fromWallet?.currency || 'USD'} â†’ {toWallet?.currency || 'TZS'}</Badge>
+            <Badge variant="brand">{fromWallet?.currency || 'USD'} → {toWallet?.currency || 'TZS'}</Badge>
           </div>
           <div className="petti-stat-value" style={{ fontSize: 20 }}>
-            {sameCurrency ? '1:1 Parity' : rate ? `1 ${fromWallet?.currency} = ${rate} ${toWallet?.currency}` : 'Checking live ratesâ€¦'}
+            {sameCurrency ? '1:1 Parity' : rate ? `1 ${fromWallet?.currency} = ${rate} ${toWallet?.currency}` : 'Checking live rates…'}
           </div>
           <div className="petti-stat-sub">
             <span>Published platform exchange rate</span>
@@ -120,7 +120,7 @@ export function PettiExchange() {
             <Icon name="wallet" size={16} color="var(--teal)" />
           </div>
           <div className="petti-stat-value">
-            {fromWallet ? `${Number(fromWallet.balance).toLocaleString()} ${fromWallet.currency}` : 'â€”'}
+            {fromWallet ? `${Number(fromWallet.balance).toLocaleString()} ${fromWallet.currency}` : '—'}
           </div>
           <div className="petti-stat-sub">
             <span>{fromWallet?.name || 'Select source'}</span>
@@ -133,7 +133,7 @@ export function PettiExchange() {
             <Icon name="wallet" size={16} color="var(--teal)" />
           </div>
           <div className="petti-stat-value">
-            {toWallet ? `${Number(toWallet.balance).toLocaleString()} ${toWallet.currency}` : 'â€”'}
+            {toWallet ? `${Number(toWallet.balance).toLocaleString()} ${toWallet.currency}` : '—'}
           </div>
           <div className="petti-stat-sub">
             <span>{toWallet?.name || 'Select destination'}</span>
@@ -152,7 +152,7 @@ export function PettiExchange() {
                   options={wallets.map(w => ({ value: w.id, label: `${w.name} (${Number(w.balance).toLocaleString()} ${w.currency})` }))}
                   value={fromWalletId}
                   onChange={setFromWalletId}
-                  placeholder="Select walletâ€¦"
+                  placeholder="Select wallet…"
                 />
               </div>
 
@@ -162,7 +162,7 @@ export function PettiExchange() {
                   options={wallets.map(w => ({ value: w.id, label: `${w.name} (${Number(w.balance).toLocaleString()} ${w.currency})` }))}
                   value={toWalletId}
                   onChange={setToWalletId}
-                  placeholder="Select walletâ€¦"
+                  placeholder="Select wallet…"
                 />
               </div>
             </div>
@@ -183,8 +183,8 @@ export function PettiExchange() {
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Live Benchmark Rate</div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', marginTop: 2 }}>
-                  {sameCurrency ? 'Same currency â€” no conversion required'
-                    : rateLoading ? 'Querying live platform FX engineâ€¦'
+                  {sameCurrency ? 'Same currency — no conversion required'
+                    : rateLoading ? 'Querying live platform FX engine…'
                     : rate ? `1 ${fromWallet?.currency} = ${rate} ${toWallet?.currency}`
                     : `No active rate published for ${fromWallet?.currency}/${toWallet?.currency}`}
                 </div>
@@ -201,7 +201,7 @@ export function PettiExchange() {
             </div>
 
             <Button type="submit" disabled={converting || !sameCurrency} style={{ padding: '12px', fontWeight: 700, fontSize: 14 }}>
-              <Icon name="refresh" size={16} /> {converting ? 'Transferringâ€¦' : sameCurrency ? 'Execute Transfer' : 'Cross-Currency (Reference Only)'}
+              <Icon name="refresh" size={16} /> {converting ? 'Transferring…' : sameCurrency ? 'Execute Transfer' : 'Cross-Currency (Reference Only)'}
             </Button>
           </form>
         </SectionCard>

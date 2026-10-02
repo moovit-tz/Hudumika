@@ -60,8 +60,8 @@ export function OnsiteDomainSearch() {
     <div className="onsite-page">
       <PageHeader
         crumbs={['Onsite', 'Domain search']}
-        titlePlain="Find a"
-        titleEm="domain"
+        titlePlain="Domain"
+        titleEm="search"
         subtitle="Check live availability via RDAP and register a name for your project."
       />
 

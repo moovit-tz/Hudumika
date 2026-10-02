@@ -10,15 +10,15 @@ import { showAlert } from '../lib/alert.js';
 interface SetupData { secret: string; uri: string }
 
 /**
- * SuperAdmin â–¸ Settings â–¸ Security & Sessions' "Two-Factor Authentication
- * Policy: Required" lands here â€” auth.routes.ts's POST /login withholds a
+ * SuperAdmin ▸ Settings ▸ Security & Sessions' "Two-Factor Authentication
+ * Policy: Required" lands here — auth.routes.ts's POST /login withholds a
  * real session for an account that authenticated correctly but has no
  * authenticator enrolled yet, issuing only a narrow, 15-minute setup token
  * instead (see middleware/auth.ts's TWOFA_SETUP_ALLOWED_ROUTES). This page
  * is the only place that token is ever used, calling /v1/security/2fa/setup
  * and /verify directly with it as a Bearer header rather than the normal
  * session cookie. Once verify succeeds, the server has already set real
- * session cookies (security.routes.ts's own twofa_setup branch) â€” resumeSession()
+ * session cookies (security.routes.ts's own twofa_setup branch) — resumeSession()
  * just needs to read them back.
  */
 export const TwoFaSetupRequired: React.FC = () => {
@@ -75,7 +75,7 @@ export const TwoFaSetupRequired: React.FC = () => {
 
         {!setupData && (
           <Button variant="default" onClick={startSetup} disabled={busy}>
-            {busy ? 'Startingâ€¦' : 'Set up authenticator'}
+            {busy ? 'Starting…' : 'Set up authenticator'}
           </Button>
         )}
 
@@ -100,7 +100,7 @@ export const TwoFaSetupRequired: React.FC = () => {
               </div>
             </div>
             <Button variant="default" onClick={verifyAndFinish} disabled={busy || verifyCode.length < 6}>
-              {busy ? 'Verifyingâ€¦' : 'Verify & continue'}
+              {busy ? 'Verifying…' : 'Verify & continue'}
             </Button>
           </div>
         )}

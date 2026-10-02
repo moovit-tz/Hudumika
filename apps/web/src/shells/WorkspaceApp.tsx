@@ -213,6 +213,9 @@ export function WorkspaceApp({ appId, children, bypassGatePaths }: WorkspaceAppP
       '--teal-l': `rgba(${r},${g},${b},0.1)`,
       '--teal-m': `rgba(${r},${g},${b},0.18)`,
       '--teal-d': darkenHex(effectiveColor),
+      // Original, non-lightened accent — used by dark-mode color-mix() in
+      // useDesignSystem.ts/index.css to tint --bg and --white with this app's hue.
+      '--teal-fill-raw': appColor,
 
       /**
        * The accent as a *background fill*, which is not the same token as the
@@ -261,6 +264,49 @@ export function WorkspaceApp({ appId, children, bypassGatePaths }: WorkspaceAppP
       '--color-ring': `hsl(${primaryHsl})`,
       '--color-accent-foreground': `hsl(${primaryHsl})`,
     };
+
+    /**
+     * Dark mode: mirror the color-mix() tinting that index.css and
+     * useDesignSystem apply to --bg/--white, so Tailwind's bg-background and
+     * bg-card utilities (used by shadcn Dialog, Card, Popover, etc.) also
+     * reflect the app's accent hue. The percentages (7%/10%) must stay in sync
+     * with the color-mix() declarations in useDesignSystem.ts's darkVars block.
+     */
+    if (isDark) {
+      const [ar, ag, ab] = parseHex(appColor);
+      const toHex = (n: number) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0');
+      const bgHex = `#${[
+        Math.round(ar * 0.07 + 8  * 0.93),
+        Math.round(ag * 0.07 + 11 * 0.93),
+        Math.round(ab * 0.07 + 16 * 0.93),
+      ].map(toHex).join('')}`;
+      const cardHex = `#${[
+        Math.round(ar * 0.10 + 17 * 0.90),
+        Math.round(ag * 0.10 + 18 * 0.90),
+        Math.round(ab * 0.10 + 24 * 0.90),
+      ].map(toHex).join('')}`;
+      const bgHsl    = hexToHslTriplet(bgHex);
+      const cardHsl  = hexToHslTriplet(cardHex);
+      // Hover/active surface — slightly lighter than card, tinted at 12%.
+      const accentHex = `#${[
+        Math.round(ar * 0.12 + 26 * 0.88),
+        Math.round(ag * 0.12 + 32 * 0.88),
+        Math.round(ab * 0.12 + 47 * 0.88),
+      ].map(toHex).join('')}`;
+      const accentHsl = hexToHslTriplet(accentHex);
+      vars['--background'] = bgHsl;
+      vars['--card']       = cardHsl;
+      vars['--popover']    = cardHsl;
+      vars['--secondary']  = bgHsl;
+      vars['--muted']      = bgHsl;
+      vars['--accent']     = accentHsl;
+      vars['--color-background'] = `hsl(${bgHsl})`;
+      vars['--color-card']       = `hsl(${cardHsl})`;
+      vars['--color-popover']    = `hsl(${cardHsl})`;
+      vars['--color-secondary']  = `hsl(${bgHsl})`;
+      vars['--color-muted']      = `hsl(${bgHsl})`;
+      vars['--color-accent']     = `hsl(${accentHsl})`;
+    }
 
     /**
      * Both the wrapper and the document root get these.

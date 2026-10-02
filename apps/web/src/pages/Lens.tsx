@@ -93,7 +93,7 @@ export function Lens() {
   const [q, setQ] = useState('');
   const [showClosed, setShowClosed] = useState(false);
 
-  // List view only â€” the board doesn't paginate (a kanban column with a page
+  // List view only — the board doesn't paginate (a kanban column with a page
   // boundary through it makes drag-and-drop nonsensical), so this drives
   // /v1/lens/items alone, which the board's own /v1/lens/board call never
   // touches.
@@ -132,7 +132,7 @@ export function Lens() {
 
   useEffect(() => { load(); }, [load]);
   // A filter/search change makes the current page number meaningless against
-  // the new result set â€” back to page 1 rather than showing a page that may
+  // the new result set — back to page 1 rather than showing a page that may
   // no longer exist (or silently skipping matches on pages 1..n-1).
   useEffect(() => { setPage(1); }, [fKind, fArea, fConfidence, q, showClosed]);
 
@@ -197,17 +197,17 @@ export function Lens() {
         crumbs={['Lens']}
         titlePlain="Developer"
         titleEm="record"
-        subtitle="What is pending, what is broken, and what was decided â€” across the whole platform."
+        subtitle="What is pending, what is broken, and what was decided — across the whole platform."
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {ci?.ok && !ci.empty && (
-              <span title={`Pipeline #${ci.number} Â· ${ci.vcs ?? ''}`} style={{
+              <span title={`Pipeline #${ci.number} · ${ci.vcs ?? ''}`} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700,
                 padding: '5px 10px', borderRadius: 'var(--r-sm)',
                 background: ci.state === 'created' ? 'var(--blue-l)' : 'var(--bg)',
                 border: '1px solid var(--border)', color: 'var(--ink2)',
               }}>
-                <Icon name="refresh" size={12} /> CI #{ci.number} Â· {ci.state}
+                <Icon name="refresh" size={12} /> CI #{ci.number} · {ci.state}
               </span>
             )}
             
@@ -276,7 +276,7 @@ export function Lens() {
         </div>
 
         <div style={{ flex: '1 1 220px', minWidth: 200, maxWidth: 400, marginLeft: 'auto' }}>
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search title, body, evidenceâ€¦"
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search title, body, evidence…"
             style={{ ...input, width: '100%' }} />
         </div>
         </div>
@@ -310,7 +310,7 @@ export function Lens() {
 
               {col.over_wip && (
                 <div style={{ margin: '0 10px', padding: '6px 12px', fontSize: 11, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 'var(--r-sm)', flexShrink: 0 }}>
-                  Over {col.wip_limit} limit â€” finish something first.
+                  Over {col.wip_limit} limit — finish something first.
                 </div>
               )}
 
@@ -336,7 +336,7 @@ export function Lens() {
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.4 }}>{card.title}</div>
                     {card.waiting_on && (
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>â³ {card.waiting_on}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>⏳ {card.waiting_on}</div>
                     )}
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
                       {card.area_name && (
@@ -345,7 +345,7 @@ export function Lens() {
                       {card.links.map(l => (
                         <a key={`${l.provider}-${l.external_id}`} href={l.url ?? '#'} target="_blank" rel="noreferrer"
                           onClick={e => e.stopPropagation()}
-                          title={`${l.provider} ${l.external_id}${l.external_status ? ` â€” ${l.external_status}` : ''}`}
+                          title={`${l.provider} ${l.external_id}${l.external_status ? ` — ${l.external_status}` : ''}`}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, color: 'var(--ink3)', textDecoration: 'none' }}>
                           <Icon name={(PROVIDER_ICON[l.provider] ?? 'link') as any} size={11} />
                         </a>
@@ -362,7 +362,7 @@ export function Lens() {
           <div style={{ overflowY: 'auto', flex: 1, paddingRight: 8 }}>
             {items.length === 0 ? (
               <div style={{ ...card, padding: '48px 20px', textAlign: 'center', color: 'var(--ink3)' }}>
-                Nothing matches. {showClosed ? '' : 'Closed items are hidden â€” tick "Show closed" to include them.'}
+                Nothing matches. {showClosed ? '' : 'Closed items are hidden — tick "Show closed" to include them.'}
               </div>
             ) : (
               <SectionCard padded={false}>
@@ -396,7 +396,7 @@ export function Lens() {
           {total > PAGE_SIZE && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 2px 2px', flexShrink: 0 }}>
               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                {(page - 1) * PAGE_SIZE + 1}â€“{Math.min(page * PAGE_SIZE, total)} of {total}
+                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
               </span>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button type="button" className="btn btn-secondary btn-sm" disabled={page <= 1}
@@ -541,19 +541,19 @@ function Compose({ areas, onClose, onSaved }: {
           <label style={label}>How you know</label>
           <textarea style={{ ...input, minHeight: 84, resize: 'vertical', fontFamily: 'var(--font)' } as React.CSSProperties}
             value={f.evidence} onChange={e => setF({ ...f, evidence: e.target.value })}
-            placeholder="The command you ran, the figures that came back, the query that returned the row. Leave blank if you have not reproduced it â€” that is what SUSPECTED means." />
+            placeholder="The command you ran, the figures that came back, the query that returned the row. Leave blank if you have not reproduced it — that is what SUSPECTED means." />
         </div>
 
         <div style={{ gridColumn: '1 / -1' }}>
           <label style={label}>Waiting on</label>
           <input style={input} value={f.waiting_on} onChange={e => setF({ ...f, waiting_on: e.target.value })}
-            placeholder="A person, a decision, an authority â€” anything blocking it" />
+            placeholder="A person, a decision, an authority — anything blocking it" />
         </div>
 
         <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="button" className="btn btn-primary" disabled={saving || !f.title.trim()} onClick={save}>
-            {saving ? 'Savingâ€¦' : 'Open item'}
+            {saving ? 'Saving…' : 'Open item'}
           </button>
         </div>
       </div>
@@ -592,9 +592,9 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
             <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{item.body}</div>
           )}
 
-          {/* The proof, given its own place â€” it is the point of the record. */}
+          {/* The proof, given its own place — it is the point of the record. */}
           <div>
-            <div style={label}>How it is known â€” {CONFIDENCE_HINT[item.confidence]}</div>
+            <div style={label}>How it is known — {CONFIDENCE_HINT[item.confidence]}</div>
             <div style={{
               fontSize: 12.5, color: item.evidence ? 'var(--ink2)' : 'var(--gold)', lineHeight: 1.6,
               whiteSpace: 'pre-wrap', padding: '10px 12px', background: 'var(--bg)',
@@ -605,10 +605,10 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
           </div>
 
           <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 12.5, color: 'var(--ink2)' }}>
-            <div><span style={{ color: 'var(--ink3)' }}>Area</span> Â· {item.area_name ?? 'â€”'}</div>
-            <div><span style={{ color: 'var(--ink3)' }}>Severity</span> Â· {item.severity}</div>
-            <div><span style={{ color: 'var(--ink3)' }}>Status</span> Â· {item.status.replace('_', ' ')}</div>
-            {item.waiting_on && <div><span style={{ color: 'var(--ink3)' }}>Waiting on</span> Â· {item.waiting_on}</div>}
+            <div><span style={{ color: 'var(--ink3)' }}>Area</span> · {item.area_name ?? '—'}</div>
+            <div><span style={{ color: 'var(--ink3)' }}>Severity</span> · {item.severity}</div>
+            <div><span style={{ color: 'var(--ink3)' }}>Status</span> · {item.status.replace('_', ' ')}</div>
+            {item.waiting_on && <div><span style={{ color: 'var(--ink3)' }}>Waiting on</span> · {item.waiting_on}</div>}
           </div>
 
           {(refs.length > 0 || tags.length > 0) && (
@@ -639,7 +639,7 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
                 <button key={st} type="button"
                   className={item.status === st ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
                   onClick={() => {
-                    // Closing demands a resolution â€” the same rule the database
+                    // Closing demands a resolution — the same rule the database
                     // enforces, asked here rather than rejected later.
                     if (st === 'DONE' || st === 'WONTFIX') { setClosing(st); return; }
                     onPatch(item.ref, { status: st });
@@ -677,7 +677,7 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
           <div>
             <div style={label}>History</div>
             <textarea value={note} onChange={e => setNote(e.target.value)} rows={2}
-              placeholder="Add an observation â€” kept forever, never overwritten."
+              placeholder="Add an observation — kept forever, never overwritten."
               style={{ ...input, resize: 'vertical', marginBottom: 8 } as React.CSSProperties} />
             <button type="button" className="btn btn-secondary btn-sm" disabled={!note.trim()}
               onClick={async () => { await onNote(note.trim()); setNote(''); }}>Add note</button>
@@ -686,7 +686,7 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
               {(item.events ?? []).map(e => (
                 <div key={e.id} style={{ padding: '8px 0', borderTop: '1px solid var(--border)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.5 }}>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                    {new Date(e.created_at).toLocaleString()} Â· {e.actor_name ?? 'system'} Â· {e.kind}
+                    {new Date(e.created_at).toLocaleString()} · {e.actor_name ?? 'system'} · {e.kind}
                   </div>
                   {e.detail}
                 </div>
@@ -699,4 +699,4 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
   );
 }
 
-/* â”€â”€ New item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── New item ───────────────────────────────────────────────────────────── */

@@ -101,7 +101,7 @@ export function SealReceiveLot() {
     <div className="seal-page">
       <PageHeader
         crumbs={['SEAL', 'Receive Lot']}
-        titlePlain="Receive a"
+        titlePlain="Receive"
         titleEm="lot"
         subtitle="Book stock into bond against a compartment."
       />

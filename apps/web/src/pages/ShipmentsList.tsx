@@ -32,7 +32,7 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 
 // -- stage groups ------------------------------------------------------------
 // stage is now a string (a ClearanceStage literal for legacy shipments, or a
-// workflow_steps.id UUID for shipments on a tenant-defined custom workflow â€”
+// workflow_steps.id UUID for shipments on a tenant-defined custom workflow —
 // see workflow-resolver.service.ts). Custom-workflow stage values naturally
 // don't match any of these named buckets, so they land in "Other" below
 // rather than silently vanishing from the chart's totals.
@@ -45,12 +45,12 @@ const STAGE_GROUPS: Record<string, string[]> = {
 };
 
 const STAGE_COLORS = [
-  'rgba(139,92,246,.85)',   // Awaiting Docs â€” purple
-  'rgba(59,130,246,.85)',   // At Port â€” blue
-  'rgba(249,115,22,.85)',   // Inspection â€” orange
-  'rgba(20,184,166,.85)',   // Gate/Transit â€” teal
-  'rgba(34,197,94,.85)',    // Delivered â€” green
-  'rgba(148,163,184,.85)',  // Other (custom workflow steps) â€” gray
+  'rgba(139,92,246,.85)',   // Awaiting Docs — purple
+  'rgba(59,130,246,.85)',   // At Port — blue
+  'rgba(249,115,22,.85)',   // Inspection — orange
+  'rgba(20,184,166,.85)',   // Gate/Transit — teal
+  'rgba(34,197,94,.85)',    // Delivered — green
+  'rgba(148,163,184,.85)',  // Other (custom workflow steps) — gray
 ];
 
 const TYPE_LABELS: Record<ShipmentType, string> = {
@@ -75,7 +75,7 @@ function chartTheme() {
 
 // The KPI cards used to carry a CardSpark: ten bars from
 // Math.abs(Math.sin(seed + i * 0.73)) plus a hardcoded 'up' or 'down' tilt.
-// It read as each metric's recent history and was pseudo-random noise â€” the
+// It read as each metric's recent history and was pseudo-random noise — the
 // same shape every load, sloping whichever way the call site asked for.
 //
 // It was not replaced with a real sparkline, because none of these four
@@ -142,7 +142,7 @@ function exportCSV(shipments: any[]) {
 function exportPDF(shipments: any[]) {
   const html = `<!DOCTYPE html><html><head><title>Shipments Report</title>
   <style>body{font-family:Arial,sans-serif;font-size:12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:bold}h1{font-size:18px;margin-bottom:8px}</style></head>
-  <body><h1>ClearOS â€” Shipments Report</h1><p>Generated: ${new Date().toLocaleString()}</p>
+  <body><h1>ClearOS — Shipments Report</h1><p>Generated: ${new Date().toLocaleString()}</p>
   <table><thead><tr><th>Ref</th><th>Customer</th><th>Type</th><th>Origin</th><th>Destination</th><th>Stage</th><th>Created</th></tr></thead>
   <tbody>${shipments.map(s => `<tr><td>${s.ref_number}</td><td>${s.customer_name ?? s.customer?.name ?? ''}</td><td>${s.type || ''}</td><td>${s.origin_port || ''}</td><td>${s.dest_port || ''}</td><td>${s.stage || ''}</td><td>${new Date(s.created_at).toLocaleDateString('en-GB')}</td></tr>`).join('')}
   </tbody></table></body></html>`;
@@ -174,7 +174,7 @@ export const ShipmentsList: React.FC = () => {
       setOfficers(oRes.data ?? []);
       setBottlenecks(bRes.data ?? []);
     } catch {
-      /* graceful degradation â€” charts render with empty data */
+      /* graceful degradation — charts render with empty data */
     } finally {
       setLoading(false);
     }
@@ -185,7 +185,7 @@ export const ShipmentsList: React.FC = () => {
   // -- computed chart data ------------------------------------------------
   const th = chartTheme();
 
-  // Monthly trend â€” last 12 months from created_at
+  // Monthly trend — last 12 months from created_at
   const now = new Date();
   const monthlyTrend = Array.from({ length: 12 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
@@ -198,7 +198,7 @@ export const ShipmentsList: React.FC = () => {
     };
   });
 
-  // Stage distribution â€” shipments whose stage isn't in any named bucket
+  // Stage distribution — shipments whose stage isn't in any named bucket
   // (i.e. on a custom workflow) land in "Other" rather than vanishing.
   const namedStages = new Set(Object.values(STAGE_GROUPS).flat());
   const stageDist = [
@@ -299,9 +299,9 @@ export const ShipmentsList: React.FC = () => {
   /**
    * The current on-time rate. There is no weekly history behind it.
    *
-   * This used to render an eight-point "SLA Compliance â€” Last 8 Weeks" line
+   * This used to render an eight-point "SLA Compliance — Last 8 Weeks" line
    * chart whose values were `baseRate + sin(i)*5 + i*0.4`, with baseRate
-   * defaulting to a hardcoded 82 when the API had nothing â€” a sine wave drawn
+   * defaulting to a hardcoded 82 when the API had nothing — a sine wave drawn
    * as if it were eight weeks of measured performance, complete with an
    * upward drift. Nothing in the API returns per-week SLA history, so the
    * panel below now shows the one figure that is real and says what it is.
@@ -358,7 +358,7 @@ export const ShipmentsList: React.FC = () => {
         crumbs={['Shipments', 'Clearance']}
         titlePlain="Clearance"
         titleEm="operations"
-        subtitle="Manage freight clearance, track shipments, and coordinate with clients â€” end to end."
+        subtitle="Manage freight clearance, track shipments, and coordinate with clients — end to end."
         actions={headerActions}
       />
 
@@ -368,7 +368,7 @@ export const ShipmentsList: React.FC = () => {
         {/* -- Enterprise KPI Cards -- */}
         <div className="ent-kpi-grid">
 
-          {/* Card 1 â€” Ops & Logistics */}
+          {/* Card 1 — Ops & Logistics */}
           <Link to="/ops" className="ent-kpi-card ent-kpi-ops">
 
             <div className="ent-kpi-top">
@@ -380,18 +380,18 @@ export const ShipmentsList: React.FC = () => {
               </div>
             </div>
             <div className="ent-kpi-metric">
-              <span className="ent-kpi-value">{loading ? 'â€¦' : (kpis?.active_cases ?? 0)}</span>
+              <span className="ent-kpi-value">{loading ? '…' : (kpis?.active_cases ?? 0)}</span>
               <span className="ent-kpi-unit">shipments</span>
             </div>
             <div className="ent-kpi-label">Active &amp; in progress</div>
             <div className="ent-kpi-footer">
-              <span className="ent-kpi-pill ent-kpi-pill-green">âœ“ {loading ? 'â€¦' : (kpis?.delivered_today ?? 0)} delivered</span>
-              <span className="ent-kpi-pill ent-kpi-pill-neutral">{loading || kpis?.on_time_rate_pct == null ? 'â€”' : `${kpis.on_time_rate_pct}%`} SLA</span>
-              <span className="ent-kpi-pill ent-kpi-pill-neutral">{loading ? 'â€¦' : (kpis?.cases_this_month ?? 0)} this month</span>
+              <span className="ent-kpi-pill ent-kpi-pill-green">✓ {loading ? '…' : (kpis?.delivered_today ?? 0)} delivered</span>
+              <span className="ent-kpi-pill ent-kpi-pill-neutral">{loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`} SLA</span>
+              <span className="ent-kpi-pill ent-kpi-pill-neutral">{loading ? '…' : (kpis?.cases_this_month ?? 0)} this month</span>
             </div>
           </Link>
 
-          {/* Card 2 â€” Risk & Compliance */}
+          {/* Card 2 — Risk & Compliance */}
           <Link to="/ops?filter=risk" className="ent-kpi-card ent-kpi-risk">
 
             <div className="ent-kpi-top">
@@ -405,21 +405,21 @@ export const ShipmentsList: React.FC = () => {
             </div>
             <div className="ent-kpi-metric">
               <span className={`ent-kpi-value${((kpis?.demurrage_risk ?? 0) + (kpis?.sla_breached ?? 0)) > 0 ? ' ent-kpi-value-alert' : ''}`}>
-                {loading ? 'â€¦' : ((kpis?.demurrage_risk ?? 0) + (kpis?.sla_breached ?? 0))}
+                {loading ? '…' : ((kpis?.demurrage_risk ?? 0) + (kpis?.sla_breached ?? 0))}
               </span>
               <span className="ent-kpi-unit">alerts</span>
             </div>
             <div className="ent-kpi-label">Requiring immediate action</div>
             <div className="ent-kpi-footer">
-              <span className="ent-kpi-pill ent-kpi-pill-amber">{loading ? 'â€¦' : (kpis?.demurrage_risk ?? 0)} demurrage</span>
-              <span className="ent-kpi-pill ent-kpi-pill-red">{loading ? 'â€¦' : (kpis?.sla_breached ?? 0)} SLA breaches</span>
+              <span className="ent-kpi-pill ent-kpi-pill-amber">{loading ? '…' : (kpis?.demurrage_risk ?? 0)} demurrage</span>
+              <span className="ent-kpi-pill ent-kpi-pill-red">{loading ? '…' : (kpis?.sla_breached ?? 0)} SLA breaches</span>
               {(kpis?.penalty_exposure_tzs ?? 0) > 0 && (
                 <span className="ent-kpi-pill ent-kpi-pill-neutral">{((kpis.penalty_exposure_tzs ?? 0) / 1_000_000).toFixed(1)}M TZS exposure</span>
               )}
             </div>
           </Link>
 
-          {/* Card 3 â€” CRM & Network */}
+          {/* Card 3 — CRM & Network */}
           <div className="ent-kpi-card ent-kpi-crm">
             <RowLink to="/customers" label="View CRM & Network" />
 
@@ -434,17 +434,17 @@ export const ShipmentsList: React.FC = () => {
               </div>
             </div>
             <div className="ent-kpi-metric">
-              <span className="ent-kpi-value">{loading ? 'â€¦' : (kpis?.customer_count ?? 0)}</span>
+              <span className="ent-kpi-value">{loading ? '…' : (kpis?.customer_count ?? 0)}</span>
               <span className="ent-kpi-unit">accounts</span>
             </div>
             <div className="ent-kpi-label">Active consignee companies</div>
             <div className="ent-kpi-footer">
-              <span className="ent-kpi-pill ent-kpi-pill-purple">{loading ? 'â€¦' : (kpis?.awaiting_docs ?? 0)} awaiting docs</span>
-              <Link to="/customers" className="ent-kpi-link">View all â†’</Link>
+              <span className="ent-kpi-pill ent-kpi-pill-purple">{loading ? '…' : (kpis?.awaiting_docs ?? 0)} awaiting docs</span>
+              <Link to="/customers" className="ent-kpi-link">View all →</Link>
             </div>
           </div>
 
-          {/* Card 4 â€” Finance & Billing */}
+          {/* Card 4 — Finance & Billing */}
           <div className="ent-kpi-card ent-kpi-finance">
             <RowLink to="/billing" label="View Finance & Billing" />
 
@@ -457,13 +457,13 @@ export const ShipmentsList: React.FC = () => {
               </div>
             </div>
             <div className="ent-kpi-metric">
-              <span className="ent-kpi-value">{loading ? 'â€¦' : (kpis?.invoices_pending ?? 0)}</span>
+              <span className="ent-kpi-value">{loading ? '…' : (kpis?.invoices_pending ?? 0)}</span>
               <span className="ent-kpi-unit">invoices</span>
             </div>
             <div className="ent-kpi-label">Pending collection</div>
             <div className="ent-kpi-footer">
-              <span className="ent-kpi-pill ent-kpi-pill-amber">Duty: {loading ? 'â€¦' : ((kpis?.duty_payments_tzs ?? 0) / 1_000_000).toFixed(1)}M TZS</span>
-              <Link to="/finance" className="ent-kpi-link">Finance â†’</Link>
+              <span className="ent-kpi-pill ent-kpi-pill-amber">Duty: {loading ? '…' : ((kpis?.duty_payments_tzs ?? 0) / 1_000_000).toFixed(1)}M TZS</span>
+              <Link to="/finance" className="ent-kpi-link">Finance →</Link>
             </div>
           </div>
 
@@ -580,13 +580,13 @@ export const ShipmentsList: React.FC = () => {
           <Panel title="SLA Compliance">
             <div style={{ height: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, textAlign: 'center', padding: '0 24px' }}>
               <div style={{ fontSize: 42, fontWeight: 800, color: onTimeRate == null ? 'var(--ink3)' : 'var(--green)', lineHeight: 1 }}>
-                {onTimeRate == null ? 'â€”' : `${onTimeRate}%`}
+                {onTimeRate == null ? '—' : `${onTimeRate}%`}
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--ink2)', fontWeight: 600 }}>On-time across all closed cases</div>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.5, maxWidth: 320 }}>
                 {onTimeRate == null
                   ? 'No case has closed yet, so there is nothing to measure against.'
-                  : 'Cumulative, not a trend â€” per-week SLA history is not recorded.'}
+                  : 'Cumulative, not a trend — per-week SLA history is not recorded.'}
               </div>
             </div>
           </Panel>
@@ -655,7 +655,7 @@ export const ShipmentsList: React.FC = () => {
                       {c.atRisk > 0 ? (
                         <span style={{ color: 'var(--red)', fontWeight: 600 }}>{c.atRisk}</span>
                       ) : (
-                        <span style={{ color: 'var(--ink3)' }}>â€”</span>
+                        <span style={{ color: 'var(--ink3)' }}>—</span>
                       )}
                     </td>
                     <td style={{ padding: '8px 8px', textAlign: 'right' }}>

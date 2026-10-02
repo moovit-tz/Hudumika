@@ -1,8 +1,12 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { Spinner, SectionLoading, ButtonSpinner } from '../components/ui/spinner.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -11,8 +15,9 @@ import { Combobox } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { SectionCard } from '../components/SectionCard.js';
+import './Tracker.css';
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Types ────────────────────────────────────────────────────────────────────
 
 interface TrackingEvent {
   timestamp: string;
@@ -88,10 +93,10 @@ interface TrackingSnapshot {
   events: string | TrackingEvent[];
 }
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmtDate = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'â€”';
+  iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
 const fmtTime = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -118,9 +123,9 @@ const STATUS: Record<string, { bg: string; fg: string; label: string; icon: Icon
 const getStatus = (code?: string) =>
   STATUS[code?.toUpperCase() ?? ''] ?? { bg: 'var(--bg)', fg: 'var(--ink2)', label: code ?? 'Unknown', icon: 'info' as IconName };
 
-// â”€â”€ PDF generator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── PDF generator ─────────────────────────────────────────────────────────────
 
-// Brand color constant â€” matches CSS --teal: #0b1e3a
+// Brand color constant — matches CSS --teal: #0b1e3a
 const BRAND = '#0b1e3a';
 const NAVY  = '#0e1f3d';
 const NAVY2 = '#1a3260';
@@ -137,7 +142,7 @@ function generatePDF(result: TrackingResult) {
   const evtRows = result.events.map(ev => `
     <tr>
       <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:#1e293b;font-weight:600">${ev.description}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:#64748b">${ev.location || 'â€”'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:#64748b">${ev.location || '—'}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:#64748b;white-space:nowrap">${fmtDate(ev.timestamp)} ${fmtTime(ev.timestamp)}</td>
     </tr>`).join('');
 
@@ -145,14 +150,14 @@ function generatePDF(result: TrackingResult) {
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>Tracking Report â€” ${result.tracking_number}</title>
+<title>Tracking Report — ${result.tracking_number}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
   @page { size: A4; margin: 18mm 20mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Inter', sans-serif; color: #1e293b; background: #fff; font-size: 13px; line-height: 1.5; }
 
-  /* Watermark â€” company name */
+  /* Watermark — company name */
   body::before {
     content: '${co.name.toUpperCase()}';
     position: fixed; top: 50%; left: 50%;
@@ -213,7 +218,7 @@ function generatePDF(result: TrackingResult) {
     </div>
     <div class="report-meta">
       Generated: ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}<br/>
-      ${new Date().toLocaleTimeString('en-GB')} Â· ${result.source === 'mock' ? 'Demo Data' : 'Live Data'}
+      ${new Date().toLocaleTimeString('en-GB')} · ${result.source === 'mock' ? 'Demo Data' : 'Live Data'}
     </div>
   </div>
 
@@ -232,7 +237,7 @@ function generatePDF(result: TrackingResult) {
       <div class="track-line"><div class="track-fill" style="width:${result.progress_pct}%"></div></div>
       <div class="port"><div class="port-code">${result.dest_code}</div><div class="port-name">${result.dest_name}</div></div>
     </div>
-    <div class="journey-loc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><path d="M12 13a3 3 0 100-6 3 3 0 000 6z"/></svg>Currently at <strong>${result.current_location}</strong> &nbsp;Â·&nbsp; ${result.progress_pct}% complete</div>
+    <div class="journey-loc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><path d="M12 13a3 3 0 100-6 3 3 0 000 6z"/></svg>Currently at <strong>${result.current_location}</strong> &nbsp;·&nbsp; ${result.progress_pct}% complete</div>
   </div>
 
   <div class="kpi-grid">
@@ -243,7 +248,7 @@ function generatePDF(result: TrackingResult) {
     </div>
     <div class="kpi">
       <div class="kpi-label">Days Remaining</div>
-      <div class="kpi-value" style="color:${(days ?? 0) < 0 ? 'var(--red)' : (days ?? 99) <= 3 ? 'var(--gold)' : NAVY}">${days == null ? 'â€”' : days > 0 ? '~' + days + ' days' : days === 0 ? 'Today' : Math.abs(days) + 'd overdue'}</div>
+      <div class="kpi-value" style="color:${(days ?? 0) < 0 ? 'var(--red)' : (days ?? 99) <= 3 ? 'var(--gold)' : NAVY}">${days == null ? '—' : days > 0 ? '~' + days + ' days' : days === 0 ? 'Today' : Math.abs(days) + 'd overdue'}</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Progress</div>
@@ -264,8 +269,8 @@ function generatePDF(result: TrackingResult) {
   </table>
 
   <div class="footer">
-    <div class="footer-brand"><div class="footer-dot"></div><strong>${co.name}</strong> Â· ClearOS powered by Hudumika</div>
-    <div>Generated automatically Â· may contain estimated data &copy; ${new Date().getFullYear()}</div>
+    <div class="footer-brand"><div class="footer-dot"></div><strong>${co.name}</strong> · ClearOS powered by Hudumika</div>
+    <div>Generated automatically · may contain estimated data &copy; ${new Date().getFullYear()}</div>
   </div>
 </div>
 </body>
@@ -278,14 +283,14 @@ function generatePDF(result: TrackingResult) {
   setTimeout(() => w.print(), 600);
 }
 
-// â”€â”€ Snapshot card (dark, embeddable) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Snapshot card (dark, embeddable) ─────────────────────────────────────────
 
 export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingResult }>(({ result }, ref) => {
   const days = daysUntil(result.eta);
   const st = getStatus(result.status_code);
   return (
     <div ref={ref} style={{
-      background: `linear-gradient(150deg, ${NAVY} 0%, ${NAVY2} 100%)`,
+      background: 'linear-gradient(150deg, hsl(220 65% 7%) 0%, hsl(220 58% 13%) 100%)',
       borderRadius: 'var(--r-lg)', padding: '22px 22px 18px', color: 'var(--bg)',
       fontFamily: 'var(--font)', border: '1px solid rgba(255,255,255,.06)',
       boxShadow: 'var(--elev-lg)', position: 'relative', overflow: 'hidden',
@@ -297,12 +302,12 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
       {/* Top row */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18, position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: `linear-gradient(135deg,${NAVY2},${BRAND})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: 'linear-gradient(135deg, var(--teal), hsl(var(--primary)))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={17} color="hsl(var(--primary-foreground))" />
           </div>
           <div>
             <div style={{ fontSize: 9, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 3 }}>
-              {result.tracking_type === 'AWB' ? 'Air Waybill' : 'Bill of Lading'} Â· {result.carrier}
+              {result.tracking_type === 'AWB' ? 'Air Waybill' : 'Bill of Lading'} · {result.carrier}
             </div>
             <div style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--font)', letterSpacing: '.03em' }}>
               {result.tracking_number}
@@ -324,10 +329,10 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
           </div>
           <div style={{ flex: 1, position: 'relative', height: 30, display: 'flex', alignItems: 'center' }}>
             <div style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'rgba(255,255,255,.06)', borderRadius: 'var(--r-sm)'}} />
-            <div style={{ position: 'absolute', left: 0, width: `${result.progress_pct}%`, height: 2, background: `linear-gradient(90deg,${NAVY2},${BRAND})`, borderRadius: 'var(--r-sm)'}} />
+            <div style={{ position: 'absolute', left: 0, width: `${result.progress_pct}%`, height: 2, background: 'var(--teal)', borderRadius: 'var(--r-sm)'}} />
             <div style={{ position: 'absolute', left: `calc(${result.progress_pct}% - 13px)` }}>
-              <div style={{ width: 26, height: 26, borderRadius: '50%', background: NAVY, border: `2px solid ${BRAND}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--teal-m)' }}>
-                <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={11} color={BRAND} />
+              <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(255,255,255,.1)', border: '2px solid var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 3px rgba(255,255,255,.06)' }}>
+                <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={11} color="var(--teal)" />
               </div>
             </div>
           </div>
@@ -337,7 +342,7 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
           </div>
         </div>
         <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-          <Icon name="mapPin" size={10} color={BRAND} />
+          <Icon name="mapPin" size={10} color="var(--teal)" />
           Currently at <strong style={{ color: 'var(--ink3)', marginLeft: 3 }}>{result.current_location}</strong>
         </div>
       </div>
@@ -346,13 +351,13 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 14 }}>
         {[
           { icon: 'calendar' as IconName, label: 'ETA',        value: fmtDate(result.eta) },
-          { icon: 'clock'    as IconName, label: 'Time Left',  value: days == null ? 'â€”' : days > 0 ? `~${days} days` : days === 0 ? 'Today' : 'Overdue' },
+          { icon: 'clock'    as IconName, label: 'Time Left',  value: days == null ? '—' : days > 0 ? `~${days} days` : days === 0 ? 'Today' : 'Overdue' },
           { icon: 'layers'   as IconName, label: 'Progress',   value: `${result.progress_pct}%` },
           { icon: 'activity' as IconName, label: 'Updates',    value: `${result.events.length} events` },
         ].map(m => (
           <div key={m.label} style={{ background: 'rgba(255,255,255,.04)', borderRadius: 'var(--r)', padding: '9px 11px', border: '1px solid rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 26, height: 26, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon name={m.icon} size={12} color={BRAND} />
+              <Icon name={m.icon} size={12} color="var(--teal)" />
             </div>
             <div>
               <div style={{ fontSize: 8, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.07em' }}>{m.label}</div>
@@ -365,19 +370,19 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
       {/* Footer */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,.05)', paddingTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 18, height: 18, borderRadius: 'var(--r-sm)', background: `linear-gradient(135deg,${NAVY2},${BRAND})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 18, height: 18, borderRadius: 'var(--r-sm)', background: 'linear-gradient(135deg, var(--teal), hsl(var(--primary)))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="globe" size={9} color="#fff" />
           </div>
           <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink2)', letterSpacing: '.04em' }}>Hudumika ClearOS</span>
         </div>
-        <span style={{ fontSize: 9, color: 'var(--ink)' }}>{result.source === 'mock' ? 'Demo' : 'Live'} Â· {fmtDate(new Date().toISOString())}</span>
+        <span style={{ fontSize: 9, color: 'var(--ink)' }}>{result.source === 'mock' ? 'Demo' : 'Live'} · {fmtDate(new Date().toISOString())}</span>
       </div>
     </div>
   );
 });
 SnapshotCard.displayName = 'SnapshotCard';
 
-// â”€â”€ Embedded badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Embedded badge ────────────────────────────────────────────────────────────
 
 export function TrackingBadge({ snap }: { snap: Pick<TrackingSnapshot, 'tracking_type' | 'tracking_number' | 'status' | 'status_code' | 'eta' | 'progress_pct'> }) {
   const days = daysUntil(snap.eta ?? null);
@@ -388,18 +393,18 @@ export function TrackingBadge({ snap }: { snap: Pick<TrackingSnapshot, 'tracking
       <span style={{ fontFamily: 'var(--font)', fontWeight: 700, letterSpacing: '.03em', color: 'var(--ink)' }}>{snap.tracking_number}</span>
       <span style={{ color: 'var(--border)' }}>|</span>
       <span style={{ color: st.fg, fontWeight: 600 }}>{st.label}</span>
-      {days != null && <span style={{ color: 'var(--ink3)' }}>Â· {days > 0 ? `${days}d` : days === 0 ? 'Today' : 'OVD'}</span>}
+      {days != null && <span style={{ color: 'var(--ink3)' }}>· {days > 0 ? `${days}d` : days === 0 ? 'Today' : 'OVD'}</span>}
     </div>
   );
 }
 
-// â”€â”€ Metric tile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Metric tile ───────────────────────────────────────────────────────────────
 
 function KpiCard({ icon, label, value, sub, accent = 'var(--teal)' }: { icon: IconName; label: string; value: string; sub?: string; accent?: string }) {
   return (
             <div style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', padding: '18px 20px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: accent + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: `color-mix(in srgb, ${accent} 10%, var(--bg))`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name={icon} size={16} color={accent} />
         </div>
         <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.07em' }}>{label}</span>
@@ -410,16 +415,37 @@ function KpiCard({ icon, label, value, sub, accent = 'var(--teal)' }: { icon: Ic
   );
 }
 
-// â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main Page ─────────────────────────────────────────────────────────────────
+
+import { ContainerDetailView } from './ContainerDetailPage.js';
+import { getContainerDetails } from '../components/container/containerData.js';
+import type { ContainerDetails, DelayStatus } from '../components/container/containerTypes.js';
+
+function containerTimeline(result: TrackingResult): ContainerDetails['timeline'] {
+  return [...result.events].reverse().map(event => ({
+    location: event.location || result.current_location || 'Location pending',
+    events: [{
+      title: event.description,
+      date: `${fmtDate(event.timestamp)}, ${fmtTime(event.timestamp)}`,
+      status_type: 'actual',
+      badge: 'A',
+    }],
+  }));
+}
 
 export const Tracker: React.FC = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
-  const [trackType, setTrackType] = useState<'AWB' | 'BL'>('AWB');
+  const [trackType, setTrackType] = useState<'AWB' | 'BL' | 'CONTAINER'>('CONTAINER');
   const [inputNumber, setInputNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TrackingResult | null>(null);
+  const [activeContainerNum, setActiveContainerNum] = useState<string>('');
+  const [containerModel, setContainerModel] = useState<ContainerDetails | null>(null);
+  const containerRequest = useRef(0);
+
   const [snapshots, setSnapshots] = useState<TrackingSnapshot[]>([]);
   const [savingSnap, setSavingSnap] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -429,9 +455,19 @@ export const Tracker: React.FC = () => {
   const [loadingSnaps, setLoadingSnaps] = useState(true);
   const [demurrageContainers, setDemurrageContainers] = useState<any[]>([]);
   const [carrierReliability, setCarrierReliability] = useState<any | null>(null);
+  const [fleetContainers, setFleetContainers] = useState<any[]>([]);
+  const [loadingFleet, setLoadingFleet] = useState(true);
+
+  const loadFleet = useCallback(async () => {
+    setLoadingFleet(true);
+    try { setFleetContainers(await apiFetch('/v1/tracker/containers') ?? []); }
+    catch { setFleetContainers([]); }
+    finally { setLoadingFleet(false); }
+  }, []);
 
   useEffect(() => {
     loadSnapshots();
+    loadFleet();
     apiFetch('/v1/shipments').then((d: any) => setShipments(d?.data ?? d ?? [])).catch(() => {});
   }, []);
 
@@ -444,36 +480,103 @@ export const Tracker: React.FC = () => {
 
   const handleInput = (v: string) => {
     setInputNumber(v);
-    const n = v.trim();
-    if (!n) return; // don't reset type on clear â€” user may have manually chosen
-    if (/^\d{3}-?\d/.test(n)) setTrackType('AWB');           // standard AWB: 123-12345678
-    else if (/^[A-Z]{2,4}\d{6,}/i.test(n)) setTrackType('BL'); // BL: 4 letters + digits (MAEU1234...)
-    // otherwise leave the user's chosen type unchanged
+    const n = v.trim().toUpperCase();
+    if (!n) return;
+    if (/^\d{3}-?\d/.test(n)) setTrackType('AWB');
+    else if (/^[A-Z]{4}\d{6,7}$/.test(n)) setTrackType('CONTAINER');
+    else if (/^[A-Z]{2,4}\d{6,}/.test(n)) setTrackType('BL');
   };
 
-  const handleTrack = async () => {
-    if (!inputNumber.trim()) return;
-    setLoading(true); setError(null); setResult(null); setSavedId(null);
+  const executeTrack = async (targetNum: string, targetType: 'AWB' | 'BL' | 'CONTAINER') => {
+    const num = targetNum.replace(/\s/g, '').toUpperCase();
+    if (!num) return;
+
+    // A container has one canonical intelligence surface. Sending direct
+    // container searches there keeps search results, fleet shortcuts, and
+    // copied URLs consistent while BL/AWB searches retain their journey view.
+    if (targetType === 'CONTAINER') {
+      setShowSugg(false);
+      navigate(`/cargotracker/containers/${encodeURIComponent(num)}`);
+      return;
+    }
+
+    const requestId = ++containerRequest.current;
+    setLoading(true); setError(null); setSavedId(null); setContainerModel(null); setActiveContainerNum(''); setResult(null);
     setDemurrageContainers([]); setCarrierReliability(null);
     try {
-      const r: TrackingResult = await apiFetch('/v1/tracker/track', { method: 'POST', body: JSON.stringify({ number: inputNumber.trim(), type: trackType }) });
+      const r: TrackingResult = await apiFetch('/v1/tracker/track', { method: 'POST', body: JSON.stringify({ number: num, type: targetType }) });
+      if (requestId !== containerRequest.current) return;
       setResult(r);
 
-      // Bridge to Demurrage: containers on this BL may already be tracked for dwell/demurrage.
+      // Load container intelligence — prefer real DB record, fall back to generated data
+      const contNum = r.containers?.[0]?.number || '';
+      setActiveContainerNum(contNum);
+      if (targetType !== 'AWB' && contNum) {
+        const voyageOverride = {
+          timeline: containerTimeline(r),
+          voyage: {
+            pol_city: r.origin_name || 'Origin Port',
+            pol_country: r.origin_code || '',
+            pod_city: r.dest_name || 'Destination Port',
+            pod_country: r.dest_code || '',
+            voyage_no: r.voyage_number || 'VOY-2026/09',
+            vessel_name: r.vessel_name || `${r.carrier?.split(' ')[0] || 'Vessel'} INTEGRITY`,
+            etd: r.eta ? new Date(Date.now() - 12 * 86_400_000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
+            eta: r.eta ? new Date(r.eta).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
+            current_location: r.current_location || 'Transit Corridor',
+            delay_status: (r.status_code === 'DELAYED' ? 'DELAYED' : r.status_code === 'ON_HOLD' ? 'SLIGHTLY_DELAYED' : 'ON_TIME') as DelayStatus,
+          },
+          current_depot: {
+            name: `${r.current_location || r.dest_name || 'Container Depot'} Yard`,
+            code: `PORT-${r.dest_code || 'DEM'}-01`,
+            date: r.eta ? new Date(r.eta).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '',
+            state: 'Laden' as 'Laden' | 'Empty',
+          },
+        };
+        // Try the real container intelligence API first.
+        // Always use getContainerDetails as base so required fields (status, condition,
+        // survey_report, timeline…) are present even when the DB record omits them.
+        try {
+          const contData: any = await apiFetch(`/v1/tracker/containers/${contNum}`);
+          if (requestId !== containerRequest.current) return;
+          if (contData?.container_number) {
+            setContainerModel({
+              ...getContainerDetails(contNum),
+              ...contData,
+              ...voyageOverride,
+            } as any);
+          } else {
+            setContainerModel(getContainerDetails(contNum, voyageOverride));
+          }
+        } catch {
+          if (requestId !== containerRequest.current) return;
+          setContainerModel(getContainerDetails(contNum, voyageOverride));
+        }
+      }
+
+      // Bridge to Demurrage
       if (r.containers && r.containers.length > 0) {
         const numbers = r.containers.map(c => c.number).join(',');
         apiFetch(`/v1/demurrage/containers?container_numbers=${encodeURIComponent(numbers)}`)
           .then(setDemurrageContainers)
-          .catch(() => {}); // demurrage entitlement may not be enabled â€” fail silently
+          .catch(() => {});
       }
 
-      // Bridge to carrier reliability analytics computed from this tenant's own history.
+      // Bridge to carrier reliability
       apiFetch('/v1/cargotracker/dashboard/carrier-analysis')
         .then((rows: any[]) => setCarrierReliability((rows ?? []).find(row => row.carrier === r.carrier) ?? null))
         .catch(() => {});
     }
-    catch (e: any) { setError(e.message ?? 'Tracking failed'); }
-    finally { setLoading(false); }
+    catch (e: any) { if (requestId === containerRequest.current) setError(e.message ?? 'Tracking failed'); }
+    finally { if (requestId === containerRequest.current) setLoading(false); }
+  };
+
+  const handleTrack = () => executeTrack(inputNumber, trackType);
+
+  const selectPreset = (num: string, type: 'AWB' | 'BL' | 'CONTAINER') => {
+    setInputNumber(num);
+    setTrackType(type);
+    executeTrack(num, type);
   };
 
   const handleSave = async () => {
@@ -532,10 +635,8 @@ export const Tracker: React.FC = () => {
     } catch (e: any) { showAlert(e.message ?? 'Update failed'); }
   };
 
-  // â”€â”€ Live (AJAX) search suggestions under the tracking input â”€â”€
-  // Matches saved snapshots locally + queries the shipments API as you type,
-  // so an operator can pull up an already-known BL/AWB instead of retyping it.
-  interface Suggestion { kind: 'snapshot' | 'shipment'; number: string; type: 'AWB' | 'BL'; label: string; sub: string }
+  // Live suggestions
+  interface Suggestion { kind: 'snapshot' | 'shipment' | 'preset'; number: string; type: 'AWB' | 'BL' | 'CONTAINER'; label: string; sub: string }
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSugg, setShowSugg] = useState(false);
   const [suggLoading, setSuggLoading] = useState(false);
@@ -548,14 +649,21 @@ export const Tracker: React.FC = () => {
     setSuggLoading(true);
     suggTimer.current = setTimeout(async () => {
       const out: Suggestion[] = [];
-      // 1. Saved snapshots (local)
+      // 1. Tracked containers from DB fleet
+      for (const c of fleetContainers) {
+        if (c.container_number?.toUpperCase().includes(q)) {
+          out.push({ kind: 'preset', number: c.container_number, type: 'CONTAINER', label: c.container_number, sub: `${c.size_type || c.iso_code || 'Container'} · ${c.carrier_name?.split(' ')[0] || 'Fleet'} · ${c.lifecycle_stage?.replace(/_/g, ' ') || ''}` });
+          if (out.length >= 4) break;
+        }
+      }
+      // 2. Saved snapshots
       for (const s of snapshots) {
         if (s.tracking_number.toUpperCase().includes(q)) {
-          out.push({ kind: 'snapshot', number: s.tracking_number, type: s.tracking_type as 'AWB' | 'BL', label: s.tracking_number, sub: `Saved Â· ${s.carrier ?? s.tracking_type} Â· ${s.status ?? ''}` });
+          out.push({ kind: 'snapshot', number: s.tracking_number, type: s.tracking_type as any, label: s.tracking_number, sub: `Saved · ${s.carrier ?? s.tracking_type} · ${s.status ?? ''}` });
         }
         if (out.length >= 4) break;
       }
-      // 2. Shipments API (live)
+      // 3. Shipments API
       try {
         const res = await apiFetch(`/v1/shipments?search=${encodeURIComponent(q)}`);
         const rows = res?.data ?? res ?? [];
@@ -568,11 +676,11 @@ export const Tracker: React.FC = () => {
             number: num,
             type: sh.bl_number ? 'BL' : 'AWB',
             label: num,
-            sub: `${sh.ref_number} Â· ${sh.customer_name ?? sh.goods_desc ?? 'Shipment'}`,
+            sub: `${sh.ref_number} · ${sh.customer_name ?? sh.goods_desc ?? 'Shipment'}`,
           });
           if (out.length >= 8) break;
         }
-      } catch { /* shipments module not available â€” local matches only */ }
+      } catch { /* shipments module */ }
       setSuggestions(out);
       setShowSugg(out.length > 0);
       setSuggLoading(false);
@@ -584,9 +692,9 @@ export const Tracker: React.FC = () => {
     setInputNumber(s.number);
     setTrackType(s.type);
     setShowSugg(false);
+    executeTrack(s.number, s.type);
   };
 
-  // Re-run tracking for a saved entry and write the fresh status back onto it
   const retrack = async (snap: TrackingSnapshot) => {
     setRetrackingId(snap.id);
     try {
@@ -600,12 +708,46 @@ export const Tracker: React.FC = () => {
     finally { setRetrackingId(null); }
   };
 
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-  const p = isMobile ? '16px 14px' : '24px 28px';
+  const handleContainerSwitch = async (contNum: string) => {
+    const requestId = ++containerRequest.current;
+    setLoading(false);
+    setActiveContainerNum(contNum);
+    setContainerModel(null);
+    const voyageOverride = {
+      timeline: result ? containerTimeline(result) : [],
+      voyage: {
+        pol_city: result?.origin_name || 'Origin Port',
+        pol_country: result?.origin_code || '',
+        pod_city: result?.dest_name || 'Destination Port',
+        pod_country: result?.dest_code || '',
+        voyage_no: result?.voyage_number || 'VOY-2026/09',
+        vessel_name: result?.vessel_name || `${result?.carrier?.split(' ')[0] || 'Vessel'} INTEGRITY`,
+        etd: '',
+        eta: result?.eta ? new Date(result.eta).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
+        current_location: result?.current_location || 'Transit Corridor',
+        delay_status: (result?.status_code === 'DELAYED' ? 'DELAYED' : result?.status_code === 'ON_HOLD' ? 'SLIGHTLY_DELAYED' : 'ON_TIME') as DelayStatus,
+      },
+    };
+    try {
+      const contData: any = await apiFetch(`/v1/tracker/containers/${contNum}`);
+      if (requestId !== containerRequest.current) return;
+      if (contData?.container_number) {
+        setContainerModel({
+          ...getContainerDetails(contNum),
+          ...contData,
+          ...voyageOverride,
+        } as any);
+      } else {
+        setContainerModel(getContainerDetails(contNum, voyageOverride));
+      }
+    } catch {
+      if (requestId !== containerRequest.current) return;
+      setContainerModel(getContainerDetails(contNum, voyageOverride));
+    }
+  };
 
   return (
-    <div style={{ padding: p, boxSizing: 'border-box', width: '100%' }}>
+    <div className="tracker-page">
       <style>{`
         @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
         .tr-fade { animation: fadeUp .28s ease both; }
@@ -613,43 +755,57 @@ export const Tracker: React.FC = () => {
         .tr-btn:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.12); }
         .tr-btn:active:not(:disabled) { transform: translateY(0); }
         .tr-input:focus { border-color: var(--teal) !important; box-shadow: 0 0 0 3px var(--teal-m) !important; }
+        .tracker-ghost-dashed { border: 1px dashed var(--border) !important; }
       `}</style>
 
-      {/* â”€â”€ Header â”€â”€ */}
+      {/* ── Header ── */}
       <PageHeader
-        crumbs={['Shipments', 'Tracker']}
-        titlePlain="AWB & BL"
-        titleEm="tracker"
-        subtitle="Track air waybills and bills of lading Â· save snapshots Â· embed in shipment cards."
-        actions={result?.source === 'mock' ? (
-          <Badge variant="warning">
-            <Icon name="alertCircle" size={13} />
-            Demo mode â€” add Ship24 key in Settings for live data
-          </Badge>
-        ) : undefined}
+        crumbs={['Cargo Tracker', 'Intelligence']}
+        titlePlain="Cargo & Container"
+        titleEm="Tracker"
+        subtitle="Track containers, ocean bills of lading & air waybills · inspect 3D specifications, survey records, CSC certifications and milestone timelines."
+        actions={
+          <Button size="sm" onClick={() => navigate('/cargotracker/containers/new')}>
+            <Icon name="container" size={14} color="hsl(var(--primary-foreground))" />
+            Record Container
+          </Button>
+        }
       />
 
-      {/* â”€â”€ Search card â”€â”€ */}
-      <div style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', marginBottom: 16, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 0, padding: 0, overflow: 'hidden' }}>
-        {/* Left: input */}
-        <div style={{ padding: isMobile ? '20px 18px' : '24px 28px' }}>
+      {/* ── Search card ── */}
+      <div className="tracker-search-shell">
+        {/* Left: input & controls */}
+        <div className="tracker-search-main">
+          <div className="tracker-search-eyebrow">
+            <span className="tracker-live-dot" />
+            Global shipment visibility
+          </div>
+          <div className="tracker-search-heading">Where is your cargo?</div>
+          <div className="tracker-search-copy">Enter a container, bill of lading, or air waybill number for its latest operational status.</div>
+
           {/* Mode toggle */}
           <Tabs value={trackType} onValueChange={(v) => setTrackType(v as any)} variant="segmented">
-            <TabsList style={{ marginBottom: 18, width: 'fit-content' }}>
-              {(['AWB', 'BL'] as const).map(t => (
-                <TabsTrigger key={t} value={t}>
-                  <Icon name={t === 'AWB' ? 'compass' : 'anchor'} size={12} color={trackType === t ? 'var(--teal)' : 'var(--ink3)'} />
-                  {t === 'AWB' ? 'Air Waybill' : 'Bill of Lading'}
-                </TabsTrigger>
-              ))}
+            <TabsList className="tracker-mode-tabs">
+              <TabsTrigger value="CONTAINER">
+                <Icon name="container" size={12} color={trackType === 'CONTAINER' ? 'var(--teal)' : 'var(--ink3)'} />
+                Container No.
+              </TabsTrigger>
+              <TabsTrigger value="BL">
+                <Icon name="anchor" size={12} color={trackType === 'BL' ? 'var(--teal)' : 'var(--ink3)'} />
+                Bill of Lading
+              </TabsTrigger>
+              <TabsTrigger value="AWB">
+                <Icon name="compass" size={12} color={trackType === 'AWB' ? 'var(--teal)' : 'var(--ink3)'} />
+                Air Waybill
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
           {/* Input + button */}
-          <div style={{ display: 'flex', gap: 10, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-            <div style={{ flex: 1, position: 'relative', minWidth: isMobile ? '100%' : 0 }}>
+          <div className="tracker-search-row">
+            <div className="tracker-input-wrap">
               <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }}>
-                <Icon name={trackType === 'AWB' ? 'compass' : 'anchor'} size={18} color="var(--ink3)" />
+                <Icon name={trackType === 'AWB' ? 'compass' : trackType === 'CONTAINER' ? 'container' : 'anchor'} size={18} color="var(--ink3)" />
               </div>
               <input
                 type="text"
@@ -658,7 +814,8 @@ export const Tracker: React.FC = () => {
                 onKeyDown={e => { if (e.key === 'Enter') { setShowSugg(false); handleTrack(); } if (e.key === 'Escape') setShowSugg(false); }}
                 onFocus={() => suggestions.length > 0 && setShowSugg(true)}
                 onBlur={() => setTimeout(() => setShowSugg(false), 180)}
-                placeholder={trackType === 'AWB' ? 'e.g. 006-12345678' : 'e.g. MAEU1234567890'}
+                placeholder={trackType === 'AWB' ? 'e.g. 006-12345678' : trackType === 'CONTAINER' ? 'e.g. MSCU1234567' : 'e.g. MAEU1234567890'}
+                aria-label={`Track by ${trackType === 'AWB' ? 'air waybill' : trackType === 'CONTAINER' ? 'container number' : 'bill of lading'}`}
                 className="tr-input"
                 style={{
                   width: '100%', height: 50, paddingLeft: 46, paddingRight: 14,
@@ -669,7 +826,9 @@ export const Tracker: React.FC = () => {
                 }}
               />
               {suggLoading && inputNumber.trim().length >= 2 && (
-                <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, border: '2px solid var(--border)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'ds-spin .7s linear infinite' }} />
+                <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }}>
+                  <Spinner size={14} />
+                </div>
               )}
               {showSugg && suggestions.length > 0 && (
                 <div style={{ position: 'absolute', top: 54, left: 0, right: 0, zIndex: 40, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', overflow: 'hidden' }}>
@@ -683,38 +842,57 @@ export const Tracker: React.FC = () => {
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}
                     >
-                      <div style={{ width: 28, height: 28, borderRadius: 'var(--r)', background: s.kind === 'snapshot' ? 'var(--teal-l)' : 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name={s.type === 'AWB' ? 'compass' : 'anchor'} size={13} color={s.kind === 'snapshot' ? 'var(--teal)' : 'var(--blue)'} />
+                      <div style={{ width: 28, height: 28, borderRadius: 'var(--r)', background: s.type === 'CONTAINER' ? 'var(--gold-l)' : s.kind === 'snapshot' ? 'var(--teal-l)' : 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name={s.type === 'AWB' ? 'compass' : s.type === 'CONTAINER' ? 'container' : 'anchor'} size={13} color={s.type === 'CONTAINER' ? 'var(--gold)' : s.kind === 'snapshot' ? 'var(--teal)' : 'var(--blue)'} />
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>{s.label}</div>
                         <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.sub}</div>
                       </div>
-                      <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', flexShrink: 0 }}>{s.kind === 'snapshot' ? 'Saved' : 'Shipment'}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', flexShrink: 0 }}>{s.kind}</span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
-            <button
-              className="tr-btn"
+
+            <Button
               onClick={handleTrack}
               disabled={loading || !inputNumber.trim()}
-              style={{
-                height: 50, padding: '0 30px', borderRadius: 'var(--r)',
-                border: inputNumber.trim() && !loading ? 'none' : '1.5px solid var(--border)',
-                background: inputNumber.trim() && !loading ? `linear-gradient(135deg,${NAVY},${BRAND})` : 'var(--bg)',
-                color: inputNumber.trim() && !loading ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
-                fontFamily: 'var(--font)', fontWeight: 800, fontSize: 14, cursor: loading ? 'default' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0,
-              } as React.CSSProperties}
+              variant={inputNumber.trim() && !loading ? 'default' : 'outline'}
+              className="tracker-submit"
             >
               {loading
-                ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,.3)', borderTopColor: 'hsl(var(--primary-foreground))', borderRadius: '50%', animation: 'ds-spin .7s linear infinite' }} />Trackingâ€¦</>
+                ? <><ButtonSpinner />Tracking…</>
                 : <><Icon name="search" size={16} color={inputNumber.trim() ? 'hsl(var(--primary-foreground))' : 'var(--ink3)'} />Track</>
               }
-            </button>
+            </Button>
           </div>
+
+          {/* Fleet quick-access chips — from real DB */}
+          {fleetContainers.length > 0 && (
+            <div className="flex items-center flex-wrap gap-2 mt-3 pt-2">
+              <span className="text-[11px] font-bold text-(--ink3)">Your Fleet:</span>
+              {fleetContainers.slice(0, 6).map(c => (
+                <button
+                  key={c.container_number}
+                  type="button"
+                  onClick={() => selectPreset(c.container_number, 'CONTAINER')}
+                  title={`${c.size_type || c.iso_code} · ${c.lifecycle_stage?.replace(/_/g, ' ')}`}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-(--bg) border border-(--border) text-(--ink2) hover:border-(--teal) hover:text-(--ink) transition-colors"
+                >
+                  {c.container_number}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => navigate('/cargotracker/containers')}
+                className="px-2.5 py-1 rounded-md text-[11px] font-bold text-(--teal) hover:underline"
+              >
+                Fleet →
+              </button>
+            </div>
+          )}
 
           {error && (
             <div style={{ marginTop: 12, padding: '11px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -726,50 +904,174 @@ export const Tracker: React.FC = () => {
 
         {/* Right: format guide (desktop) */}
         {!isMobile && (
-          <div style={{ borderLeft: '1px solid var(--border)', background: 'var(--bg)', padding: '24px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>Number formats</div>
+          <aside className="tracker-format-guide">
+            <div className="tracker-format-icon"><Icon name="search" size={17} color="var(--teal)" /></div>
+            <div>
+              <div className="tracker-format-title">Supported references</div>
+              <div className="tracker-format-copy">Use the exact carrier-issued number.</div>
+            </div>
             {[
-              { icon: 'compass' as IconName, label: 'Air Waybill', eg: '006-12345678', c: BRAND },
-              { icon: 'anchor'  as IconName, label: 'Bill of Lading', eg: 'MAEU1234567890', c: NAVY },
-              { icon: 'container' as IconName, label: 'Container', eg: 'MSCU1234567', c: 'var(--gold)' },
+              { icon: 'container' as IconName, label: 'Container No.', eg: 'MSCU1234567', bg: 'var(--teal-l)', color: 'var(--teal)' },
+              { icon: 'anchor'  as IconName, label: 'Bill of Lading', eg: 'MAEU1234567890', bg: 'var(--blue-l)', color: 'var(--blue)' },
+              { icon: 'compass' as IconName, label: 'Air Waybill', eg: '006-12345678', bg: 'var(--gold-l)', color: 'var(--gold)' },
             ].map(h => (
-              <div key={h.label} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 'var(--r)', background: h.c + '14', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name={h.icon} size={13} color={h.c} />
+              <div key={h.label} className="tracker-format-row">
+                <div className="tracker-format-icon" style={{ background: h.bg, borderColor: 'transparent', width: 28, height: 28 }}>
+                  <Icon name={h.icon} size={13} color={h.color} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>{h.label}</div>
-                  <div style={{ fontSize: 10, fontFamily: 'var(--font)', color: 'var(--ink3)' }}>{h.eg}</div>
+                  <div className="tracker-format-title">{h.label}</div>
+                  <div className="tracker-format-copy">{h.eg}</div>
                 </div>
               </div>
             ))}
-          </div>
+          </aside>
         )}
       </div>
 
-      {/* â”€â”€ Results â”€â”€ */}
+      {/* ── Tracked Fleet (real DB containers) ── */}
+      {!result && !loading && (
+        <SectionCard
+            title="Tracked Fleet"
+            action={
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={loadFleet} disabled={loadingFleet}>
+                  <Icon name="refresh" size={13} color="var(--ink3)" />Refresh
+                </Button>
+                <Button size="sm" onClick={() => navigate('/cargotracker/containers/new')}>
+                  <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" />Add
+                </Button>
+              </div>
+            }
+          >
+            {loadingFleet ? (
+              <SectionLoading label="Loading your fleet…" />
+            ) : fleetContainers.length === 0 ? (
+              <div className="py-10 flex flex-col items-center gap-3">
+                <FeaturedIcon variant="gray" size="lg">
+                  <Icon name="container" size={22} color="var(--ink3)" />
+                </FeaturedIcon>
+                <div className="text-center">
+                  <div className="text-sm font-bold text-(--ink)">No containers recorded yet</div>
+                  <div className="text-xs text-(--ink3) mt-1">Track a container above, or add one to your fleet.</div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {fleetContainers.map((c: any) => {
+                  const stage = c.lifecycle_stage?.replace(/_/g, ' ') || 'Unknown';
+                  const stageVariant = c.lifecycle_stage === 'IN_TRANSIT' ? 'info'
+                    : c.lifecycle_stage === 'EMPTY_RETURNED' || c.lifecycle_stage === 'AVAILABLE_AT_DEPOT' ? 'success'
+                    : c.lifecycle_stage === 'CUSTOMS_CLEARED' || c.lifecycle_stage === 'DEVANNED' ? 'success'
+                    : c.lifecycle_stage === 'GATE_IN' || c.lifecycle_stage === 'LOADED_ON_VESSEL' ? 'brand'
+                    : 'gray';
+                  return (
+                    <div
+                      key={c.id}
+                      className="tracker-fleet-card"
+                      onClick={() => navigate(`/cargotracker/containers/${c.container_number}`)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate(`/cargotracker/containers/${c.container_number}`); }}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: c.color_hex || 'var(--teal)' }} />
+                          <span className="text-xs font-mono font-black text-(--ink) truncate">{c.container_number}</span>
+                        </div>
+                        <Badge variant={stageVariant as any} className="shrink-0 text-[10px]">
+                          {stage}
+                        </Badge>
+                      </div>
+                      <div className="text-[11px] text-(--ink3)">{c.size_type || c.iso_code}</div>
+                      {c.carrier_name && (
+                        <div className="text-[11px] text-(--ink3) mt-0.5">{c.carrier_name.split(' ')[0]} · {c.carrier_code}</div>
+                      )}
+                      {c.customer_name && (
+                        <div className="text-[11px] text-(--ink2) mt-1 font-semibold">{c.customer_name}</div>
+                      )}
+                      <div className="mt-2 flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-[10px] px-2"
+                          onClick={e => { e.stopPropagation(); selectPreset(c.container_number, 'CONTAINER'); }}
+                        >
+                          <Icon name="search" size={10} color="var(--teal)" />Track
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-[10px] px-2"
+                          onClick={e => { e.stopPropagation(); navigate(`/cargotracker/containers/${c.container_number}`); }}
+                        >
+                          <Icon name="externalLink" size={10} color="var(--ink3)" />Intel
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </SectionCard>
+      )}
+
+      {/* ── HIGH FIDELITY CONTAINER DETAILS & TRACKING CARD (Image 1 & 2) ── */}
+      {activeContainerNum && result && result.tracking_type !== 'AWB' && (
+        <div className="tr-fade">
+          {/* Multi-container switcher if BL has multiple containers */}
+          {result?.containers && result.containers.length > 1 && (
+            <div className="flex items-center gap-2 p-2 bg-[var(--white)] border border-[var(--border)] rounded-xl mb-4">
+              <span className="text-xs font-bold text-[var(--ink3)] px-2">Containers on this BL:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {result.containers.map((c) => (
+                  <Button
+                    key={c.number}
+                    size="sm"
+                    variant={activeContainerNum === c.number ? 'default' : 'outline'}
+                    onClick={() => handleContainerSwitch(c.number)}
+                    className="font-mono"
+                  >
+                    <Icon name="container" size={11} color={activeContainerNum === c.number ? 'hsl(var(--primary-foreground))' : 'var(--ink3)'} />
+                    {c.number} ({c.size})
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {containerModel ? (
+            <ContainerDetailView
+              key={containerModel.container_number}
+              number={containerModel.container_number}
+              providedContainer={containerModel}
+            />
+          ) : <SectionLoading label="Loading container intelligence…" />}
+        </div>
+      )}
+
       {result && (
         <div className="tr-fade">
           {/* Journey dark banner */}
           <div style={{
-            background: `linear-gradient(150deg,${NAVY},${NAVY2})`,
+            background: 'linear-gradient(150deg, hsl(220 65% 7%), hsl(220 58% 13%))',
             borderRadius: 'var(--r-lg)', border: '1px solid rgba(255,255,255,.06)',
-            padding: isMobile ? '20px 18px' : '24px 30px', marginBottom: 16, color: 'var(--bg)',
+            padding: isMobile ? '20px 18px' : '24px 30px', color: 'var(--bg)',
             boxShadow: 'var(--elev-lg)',
           }}>
             {/* Top row: carrier + BL + status */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 'var(--r-lg)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={20} color={BRAND} />
+                <div style={{ width: 44, height: 44, borderRadius: 'var(--r-lg)', background: 'rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={20} color="var(--teal)" />
                 </div>
                 <div>
-                  <div style={{ fontSize: 10, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 2 }}>{result.carrier}{result.service_name ? ` Â· ${result.service_name}` : ''}</div>
+                  <div style={{ fontSize: 10, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 2 }}>{result.carrier}{result.service_name ? ` · ${result.service_name}` : ''}</div>
                   <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 900, fontFamily: 'var(--font)', letterSpacing: '.02em', lineHeight: 1.1 }}>{result.tracking_number}</div>
                   {result.vessel_name && (
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Icon name="ship" size={11} color="var(--ink3)" />
-                      {result.vessel_name}{result.voyage_number ? <span style={{ fontFamily: 'var(--font)', color: 'var(--ink2)' }}> Â· VOY {result.voyage_number}</span> : ''}
+                      {result.vessel_name}{result.voyage_number ? <span style={{ fontFamily: 'var(--font)', color: 'var(--ink2)' }}> · VOY {result.voyage_number}</span> : ''}
                     </div>
                   )}
                 </div>
@@ -779,17 +1081,29 @@ export const Tracker: React.FC = () => {
                 {result.eta && result.eta_initial && result.eta !== result.eta_initial && (() => {
                   const delayDays = Math.round((new Date(result.eta).getTime() - new Date(result.eta_initial).getTime()) / 86_400_000);
                   return delayDays !== 0 ? (
-                    <div style={{ padding: '5px 12px', borderRadius: 'var(--badge-radius)', background: delayDays > 0 ? 'var(--red-l)' : 'var(--green-l)', color: delayDays > 0 ? 'var(--red)' : 'var(--green)', border: `1px solid ${delayDays > 0 ? 'var(--red)' : 'var(--green)'}`, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Badge variant={delayDays > 0 ? 'error' : 'success'}>
                       <Icon name={delayDays > 0 ? 'alertCircle' : 'checkCircle'} size={11} color={delayDays > 0 ? 'var(--red)' : 'var(--green)'} />
                       {delayDays > 0 ? `+${delayDays}d delay` : `${Math.abs(delayDays)}d early`}
-                    </div>
+                    </Badge>
                   ) : null;
                 })()}
-                {(() => { const st = getStatus(result.status_code); return (
-                  <div style={{ padding: '6px 16px', borderRadius: 'var(--badge-radius)', background: st.fg + '22', color: st.fg, border: `1px solid ${st.fg}33`, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Icon name={st.icon} size={13} color={st.fg} />{st.label}
-                  </div>
-                ); })()}
+                {(() => { const st = getStatus(result.status_code);
+                  const bv = st.fg === 'var(--green)' ? 'success' : st.fg === 'var(--red)' ? 'error' : st.fg === 'var(--gold)' ? 'warning' : st.fg === 'var(--blue)' ? 'info' : st.fg === 'var(--purple)' ? 'info' : 'gray';
+                  return (
+                    <Badge variant={bv as any}>
+                      <Icon name={st.icon} size={13} color={st.fg} />{st.label}
+                    </Badge>
+                  );
+                })()}
+                <button
+                  type="button"
+                  onClick={() => { setResult(null); setContainerModel(null); setError(null); setSavedId(null); setInputNumber(''); }}
+                  style={{ height: 28, padding: '0 10px', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)', fontSize: 10, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, letterSpacing: '.04em', textTransform: 'uppercase' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.12)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,.06)')}
+                >
+                  <Icon name="x" size={10} color="rgba(255,255,255,.7)" />New Search
+                </button>
               </div>
             </div>
 
@@ -798,7 +1112,7 @@ export const Tracker: React.FC = () => {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
                 {result.containers.map(c => (
                   <div key={c.number} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 'var(--r)', padding: '4px 10px', fontSize: 11 }}>
-                    <Icon name="container" size={11} color={BRAND} />
+                    <Icon name="container" size={11} color="var(--teal)" />
                     <span style={{ fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--bg)', letterSpacing: '.03em' }}>{c.number}</span>
                     <span style={{ color: 'var(--ink2)', fontSize: 10 }}>{c.size}</span>
                   </div>
@@ -806,7 +1120,7 @@ export const Tracker: React.FC = () => {
                 {result.co2_emission && (
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', padding: '4px 10px', fontSize: 11, color: 'var(--green)' }}>
                     <Icon name="activity" size={11} color="var(--green)" />
-                    {result.co2_emission.toLocaleString()} kg COâ‚‚
+                    {result.co2_emission.toLocaleString()} kg CO₂
                   </div>
                 )}
               </div>
@@ -820,13 +1134,13 @@ export const Tracker: React.FC = () => {
               </div>
               <div style={{ flex: 1, position: 'relative', height: 48, display: 'flex', alignItems: 'center' }}>
                 <div style={{ position: 'absolute', left: 0, right: 0, height: 3, background: 'rgba(255,255,255,.07)', borderRadius: 'var(--r-sm)'}} />
-                <div style={{ position: 'absolute', left: 0, width: `${result.progress_pct}%`, height: 3, background: `linear-gradient(90deg,${NAVY2},${BRAND})`, borderRadius: 'var(--r-sm)', transition: 'width .9s cubic-bezier(.34,1.56,.64,1)' }} />
+                <div style={{ position: 'absolute', left: 0, width: `${result.progress_pct}%`, height: 3, background: 'var(--teal)', borderRadius: 'var(--r-sm)', transition: 'width .9s cubic-bezier(.34,1.56,.64,1)' }} />
                 <div style={{ position: 'absolute', left: `calc(${result.progress_pct}% - 18px)`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, transition: 'left .9s cubic-bezier(.34,1.56,.64,1)' }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: BRAND, background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r-sm)', padding: '2px 7px', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--teal)', background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.18)', borderRadius: 'var(--r-sm)', padding: '2px 7px', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {result.current_location}
                   </div>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: NAVY, border: `2.5px solid ${BRAND}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--teal-m)' }}>
-                    <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={15} color={BRAND} />
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,.1)', border: '2.5px solid var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 4px rgba(255,255,255,.06)' }}>
+                    <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={15} color="var(--teal)" />
                   </div>
                 </div>
               </div>
@@ -839,20 +1153,20 @@ export const Tracker: React.FC = () => {
             {/* Progress bar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,.07)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${result.progress_pct}%`, background: `linear-gradient(90deg,${NAVY2},${BRAND})`, borderRadius: 'var(--r-sm)', transition: 'width .9s ease' }} />
+                <div style={{ height: '100%', width: `${result.progress_pct}%`, background: 'var(--teal)', borderRadius: 'var(--r-sm)', transition: 'width .9s ease' }} />
               </div>
-              <span style={{ fontSize: 13, fontWeight: 900, color: BRAND, fontFamily: 'var(--font)', flexShrink: 0 }}>{result.progress_pct}%</span>
+              <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--teal)', fontFamily: 'var(--font)', flexShrink: 0 }}>{result.progress_pct}%</span>
             </div>
           </div>
 
           {/* KPI row */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: 12 }}>
             <KpiCard icon="calendar" label="Estimated Arrival" accent="var(--teal)"
               value={fmtDate(result.eta)}
               sub={result.eta ? new Date(result.eta).toLocaleDateString('en-GB', { weekday: 'long' }) : undefined}
             />
-            <KpiCard icon="clock" label="Days Remaining" accent="var(--navy)"
-              value={(() => { const d = daysUntil(result.eta); return d == null ? 'â€”' : d > 0 ? `~${d}` : d === 0 ? 'Today' : 'Overdue'; })()}
+            <KpiCard icon="clock" label="Days Remaining" accent="var(--ink)"
+              value={(() => { const d = daysUntil(result.eta); return d == null ? '—' : d > 0 ? `~${d}` : d === 0 ? 'Today' : 'Overdue'; })()}
               sub={(() => { const d = daysUntil(result.eta); return d != null && d < 0 ? `${Math.abs(d)}d overdue` : d != null && d <= 3 ? 'Arriving very soon' : undefined; })()}
             />
             <KpiCard icon="layers" label="Journey Progress" accent="var(--green)"
@@ -865,9 +1179,8 @@ export const Tracker: React.FC = () => {
             />
           </div>
 
-          {/* â”€â”€ Port Routing Table (ShipsGo / rich data) â”€â”€ */}
+          {/* ── Port Routing Table (ShipsGo / rich data) ── */}
           {result.port_calls && result.port_calls.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
             <SectionCard
               title="Port Routing"
               action={result.provider ? (
@@ -877,11 +1190,11 @@ export const Tracker: React.FC = () => {
               ) : undefined}
             >
               <div style={{ overflowX: 'auto' }}>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>{result.port_calls.length} ports Â· actual dates confirmed Â· estimated shown in italic</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>{result.port_calls.length} ports · actual dates confirmed · estimated shown in italic</div>
 
               {/* All unique event codes across all port calls */}
               {(() => {
-                // Fixed chronological order: gate in â†’ arrive â†’ discharge â†’ load â†’ depart â†’ gate out
+                // Fixed chronological order: gate in → arrive → discharge → load → depart → gate out
                 const CODE_ORDER = ['EMSH', 'GTIN', 'ARRV', 'DISC', 'LOAD', 'DEPA', 'GTOT', 'EMRT'];
                 const presentCodes = new Set(result.port_calls!.flatMap(pc => pc.events.map(e => e.code)));
                 const allCodes = CODE_ORDER.filter(c => presentCodes.has(c));
@@ -938,11 +1251,11 @@ export const Tracker: React.FC = () => {
                                         {fmtDate(date)}
                                       </div>
                                       {isActual && (
-                                        <div style={{ fontSize: 9, color: 'var(--teal)', fontWeight: 700, marginTop: 1 }}>âœ“ actual</div>
+                                        <div style={{ fontSize: 9, color: 'var(--teal)', fontWeight: 700, marginTop: 1 }}>✓ actual</div>
                                       )}
                                     </div>
                                   ) : (
-                                    <span style={{ color: 'var(--border)', fontSize: 14 }}>â€”</span>
+                                    <span style={{ color: 'var(--border)', fontSize: 14 }}>—</span>
                                   )}
                                 </td>
                               );
@@ -956,14 +1269,12 @@ export const Tracker: React.FC = () => {
               })()}
               </div>
             </SectionCard>
-            </div>
           )}
 
           {/* Timeline + snapshot */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '3fr 2fr', gap: 16 }}>
 
             {/* Events */}
-            <div style={{ marginBottom: 16 }}>
             <SectionCard title="Tracking Events">
               <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>{result.events.length} updates recorded</div>
               <div style={{ maxHeight: 440, overflowY: 'auto' }}>
@@ -979,9 +1290,9 @@ export const Tracker: React.FC = () => {
                         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{ev.description}</div>
                         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--ink3)' }}>
-                            <Icon name="mapPin" size={10} color="var(--ink3)" />{ev.location || 'â€”'}
+                            <Icon name="mapPin" size={10} color="var(--ink3)" />{ev.location || '—'}
                           </span>
-                          <span style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{fmtDate(ev.timestamp)} Â· {fmtTime(ev.timestamp)}</span>
+                          <span style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{fmtDate(ev.timestamp)} · {fmtTime(ev.timestamp)}</span>
                         </div>
                       </div>
                     </div>
@@ -989,12 +1300,10 @@ export const Tracker: React.FC = () => {
                 })}
               </div>
             </SectionCard>
-            </div>
 
             {/* Snapshot panel */}
-            <div style={{ marginBottom: 16 }}>
             <SectionCard title="Tracking Snapshot">
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 10 }}>Save Â· Share Â· Embed Â· PDF</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 10 }}>Save · Share · Embed · PDF</div>
 
               <div style={{ margin: '16px 0' }}>
                 <SnapshotCard result={result} />
@@ -1003,76 +1312,57 @@ export const Tracker: React.FC = () => {
               {/* Actions */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {!savedId ? (
-                  <button className="tr-btn" onClick={handleSave} disabled={savingSnap} style={{
-                    height: 44, borderRadius: 'var(--r)', border: 'none', width: '100%',
-                    background: 'hsl(var(--primary))',
-                    color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 800, fontSize: 13,
-                    cursor: savingSnap ? 'default' : 'pointer', opacity: savingSnap ? .7 : 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  }}>
+                  <Button className="w-full" onClick={handleSave} disabled={savingSnap}>
                     {savingSnap
-                      ? <><div style={{ width: 14, height: 14, border: '2px solid hsl(var(--primary-foreground) / 0.3)', borderTopColor: 'hsl(var(--primary-foreground))', borderRadius: '50%', animation: 'ds-spin .7s linear infinite' }} />Savingâ€¦</>
+                      ? <><ButtonSpinner />Saving…</>
                       : <><Icon name="save" size={14} color="hsl(var(--primary-foreground))" />Save Snapshot</>
                     }
-                  </button>
+                  </Button>
                 ) : (
-                  <div style={{ padding: '11px 14px', borderRadius: 'var(--r)', background: 'var(--green-l)', border: '1px solid var(--green)', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--green)', fontWeight: 700 }}>
+                  <Badge variant="success" className="justify-center py-3 text-[13px]">
                     <Icon name="checkCircle" size={15} color="var(--green)" />
                     Snapshot saved
-                  </div>
+                  </Badge>
                 )}
 
                 {savedId && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    <button className="tr-btn" onClick={() => copyLink(snapshots.find(s => s.id === savedId)?.share_token ?? '')} style={{
-                      height: 40, borderRadius: 'var(--r)', border: '1.5px solid var(--border)', background: 'var(--white)',
-                      color: 'var(--teal)', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 12, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    }}>
+                    <Button variant="outline" size="sm" onClick={() => copyLink(snapshots.find(s => s.id === savedId)?.share_token ?? '')}>
                       <Icon name="link" size={13} color="var(--teal)" />
                       {copied ? 'Copied!' : 'Share Link'}
-                    </button>
-                    <button className="tr-btn" onClick={() => generatePDF(result)} style={{
-                      height: 40, borderRadius: 'var(--r)', border: '1.5px solid var(--border)', background: 'var(--white)',
-                      color: 'var(--ink2)', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 12, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    }}>
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => generatePDF(result)}>
                       <Icon name="fileText" size={13} color="var(--teal)" />
                       PDF Report
-                    </button>
+                    </Button>
                   </div>
                 )}
 
                 {result && (
-                  <button className="tr-btn" onClick={() => generatePDF(result)} style={{
-                    height: 38, borderRadius: 'var(--r)', border: '1.5px dashed var(--border)', background: 'transparent',
-                    color: 'var(--ink3)', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 11, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  }}>
+                  <Button variant="outline" size="sm" onClick={() => generatePDF(result)} className="w-full tracker-ghost-dashed" style={{ color: 'var(--ink3)' }}>
                     <Icon name="download" size={12} color="var(--ink3)" />
                     Export PDF without saving
-                  </button>
+                  </Button>
                 )}
               </div>
             </SectionCard>
-            </div>
           </div>
 
-          {/* â”€â”€ Arrival Analytics + Demurrage bridge â”€â”€ */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '3fr 2fr', gap: 16, marginTop: 16 }}>
+          {/* ── Arrival Analytics + Demurrage bridge ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '3fr 2fr', gap: 16 }}>
             {/* Arrival Analytics */}
             <SectionCard title="Arrival Analytics">
               <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>{result.carrier} reliability, computed from your own tracked shipments</div>
               {!carrierReliability || carrierReliability.on_time_pct === null ? (
                 <div style={{ padding: '20px 4px', fontSize: 12.5, color: 'var(--ink3)' }}>
-                  Not enough history for {result.carrier} yet â€” save a few more shipments on this carrier to build a reliability rating.
+                  Not enough history for {result.carrier} yet — save a few more shipments on this carrier to build a reliability rating.
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
                   {[
                     { label: 'On-time Rate', value: `${carrierReliability.on_time_pct}%`, accent: carrierReliability.on_time_pct >= 80 ? 'var(--green)' : carrierReliability.on_time_pct >= 50 ? 'var(--gold)' : 'var(--red)' },
-                    { label: 'Avg Deviation', value: carrierReliability.avg_deviation_days === null ? 'â€”' : `${carrierReliability.avg_deviation_days > 0 ? '+' : ''}${carrierReliability.avg_deviation_days}d`, accent: 'var(--ink)' },
-                    { label: 'Avg Transit', value: carrierReliability.avg_transit_days === null ? 'â€”' : `${carrierReliability.avg_transit_days}d`, accent: 'var(--ink)' },
+                    { label: 'Avg Deviation', value: carrierReliability.avg_deviation_days === null ? '—' : `${carrierReliability.avg_deviation_days > 0 ? '+' : ''}${carrierReliability.avg_deviation_days}d`, accent: 'var(--ink)' },
+                    { label: 'Avg Transit', value: carrierReliability.avg_transit_days === null ? '—' : `${carrierReliability.avg_transit_days}d`, accent: 'var(--ink)' },
                   ].map(s => (
                     <div key={s.label} style={{ padding: '14px 12px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>{s.label}</div>
@@ -1101,7 +1391,7 @@ export const Tracker: React.FC = () => {
                     <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 'var(--r)', background: c.demurrage_days > 0 ? 'var(--red-l)' : 'var(--bg)', border: `1px solid ${c.demurrage_days > 0 ? 'var(--red)' : 'var(--border)'}` }}>
                       <div>
                         <div style={{ fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>{c.container_number}</div>
-                        <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>{c.container_size} Â· {c.status}</div>
+                        <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>{c.container_size} · {c.status}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 13, fontWeight: 800, color: c.demurrage_days > 0 ? 'var(--red)' : 'var(--ink2)' }}>
@@ -1120,26 +1410,24 @@ export const Tracker: React.FC = () => {
         </div>
       )}
 
-      {/* â”€â”€ Saved Snapshots â”€â”€ */}
+      {/* ── Saved Snapshots ── */}
       <SectionCard
         title="Saved Snapshots"
         action={
-          <button className="tr-btn" onClick={loadSnapshots} style={{ height: 34, padding: '0 14px', borderRadius: 'var(--r)', border: '1.5px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Button variant="outline" size="sm" onClick={loadSnapshots}>
             <Icon name="refresh" size={13} />Refresh
-          </button>
+          </Button>
         }
       >
         <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 16 }}>{snapshots.length} snapshot{snapshots.length !== 1 ? 's' : ''}</div>
 
         {loadingSnaps ? (
-          <div style={{ padding: '40px 0', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'ds-spin .7s linear infinite' }} />
-          </div>
+          <SectionLoading label="Loading snapshots…" />
         ) : snapshots.length === 0 ? (
           <div style={{ padding: '48px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 64, height: 64, borderRadius: 'var(--r-lg)', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <FeaturedIcon variant="gray" size="xl">
               <Icon name="map" size={28} color="var(--ink3)" />
-            </div>
+            </FeaturedIcon>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>No snapshots yet</div>
               <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Track a shipment above and save it to see it here</div>
@@ -1152,7 +1440,7 @@ export const Tracker: React.FC = () => {
               const st = getStatus(snap.status_code);
               const evts = parseEvents(snap.events);
               return (
-                <div key={snap.id} style={{ background: `linear-gradient(150deg,${NAVY},${NAVY2})`, borderRadius: 'var(--r-lg)', border: '1px solid rgba(255,255,255,.07)', padding: '16px 18px', color: 'rgba(255,255,255,.92)', position: 'relative' }}>
+                <div key={snap.id} style={{ background: 'linear-gradient(150deg, hsl(220 65% 7%), hsl(220 58% 13%))', borderRadius: 'var(--r-lg)', border: '1px solid rgba(255,255,255,.07)', padding: '16px 18px', color: 'rgba(255,255,255,.92)', position: 'relative' }}>
                   <button onClick={() => deleteSnap(snap.id)} style={{ position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.07)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="x" size={12} color="rgba(255,255,255,.55)" />
                   </button>
@@ -1164,17 +1452,17 @@ export const Tracker: React.FC = () => {
                       <input value={editCarrier} onChange={e => setEditCarrier(e.target.value)} placeholder="Carrier"
                         style={{ height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.92)', padding: '0 10px', fontSize: 12 }} />
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="tr-btn" onClick={saveEdit} style={{ flex: 1, height: 28, borderRadius: 'var(--r)', border: 'none', background: BRAND, color: 'hsl(var(--primary-foreground))', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Save</button>
-                        <button className="tr-btn" onClick={() => setEditingId(null)} style={{ flex: 1, height: 28, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.15)', background: 'transparent', color: 'rgba(255,255,255,.55)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                        <Button size="sm" onClick={saveEdit} style={{ flex: 1 }}>Save</Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditingId(null)} style={{ flex: 1, borderColor: 'rgba(255,255,255,.15)', color: 'rgba(255,255,255,.55)', background: 'transparent' }}>Cancel</Button>
                       </div>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon name={snap.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={15} color={BRAND} />
+                      <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon name={snap.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={15} color="var(--teal)" />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 9, color: 'rgba(255,255,255,.65)', textTransform: 'uppercase', letterSpacing: '.09em' }}>{snap.tracking_type} Â· {snap.carrier}</div>
+                        <div style={{ fontSize: 9, color: 'rgba(255,255,255,.65)', textTransform: 'uppercase', letterSpacing: '.09em' }}>{snap.tracking_type} · {snap.carrier}</div>
                         <div style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--font)' }}>{snap.tracking_number}</div>
                       </div>
                       <button className="tr-btn" title="Edit entry" onClick={() => startEdit(snap)} style={{ width: 26, height: 26, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1188,19 +1476,24 @@ export const Tracker: React.FC = () => {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
                     <Icon name="mapPin" size={10} color="rgba(255,255,255,.65)" />
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,.55)' }}>{snap.origin_name} â†’ {snap.dest_name}</span>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,.55)' }}>{snap.origin_name} → {snap.dest_name}</span>
                   </div>
 
                   <div style={{ height: 3, background: 'rgba(255,255,255,.07)', borderRadius: 'var(--r-sm)', marginBottom: 10, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${snap.progress_pct}%`, background: `linear-gradient(90deg,${NAVY2},${BRAND})`, borderRadius: 'var(--r-sm)'}} />
+                    <div style={{ height: '100%', width: `${snap.progress_pct}%`, background: 'var(--teal)', borderRadius: 'var(--r-sm)'}} />
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: st.fg, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Icon name={st.icon} size={11} color={st.fg} />{st.label}
-                    </span>
+                    {(() => {
+                      const bv = st.fg === 'var(--green)' ? 'success' : st.fg === 'var(--red)' ? 'error' : st.fg === 'var(--gold)' ? 'warning' : st.fg === 'var(--blue)' ? 'info' : 'gray';
+                      return (
+                        <Badge variant={bv as any}>
+                          <Icon name={st.icon} size={11} color={st.fg} />{st.label}
+                        </Badge>
+                      );
+                    })()}
                     <span style={{ fontSize: 10, color: 'rgba(255,255,255,.65)', fontFamily: 'var(--font)' }}>
-                      {fmtDate(snap.eta)}{days != null ? ` Â· ${days > 0 ? `${days}d` : days === 0 ? 'today' : 'OVD'}` : ''}
+                      {fmtDate(snap.eta)}{days != null ? ` · ${days > 0 ? `${days}d` : days === 0 ? 'today' : 'OVD'}` : ''}
                     </span>
                   </div>
 
@@ -1218,12 +1511,12 @@ export const Tracker: React.FC = () => {
                             options={shipments.slice(0, 30).map((s: any) => ({ value: s.id, label: s.ref_number }))}
                             value="" onChange={v => v && linkSnap(snap.id, v)}
                             disabled={linkingId === snap.id}
-                            placeholder="Link to shipmentâ€¦"
+                            placeholder="Link to shipment…"
                             triggerClassName="h-[30px] rounded-[7px] border-[rgba(255,255,255,.09)] bg-[rgba(255,255,255,.04)] text-[10px] font-bold text-[rgba(255,255,255,.55)] px-1.5 shadow-none"
                           />
                         </div>
-                      : <div style={{ flex: 2, height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(74,222,128,.25)', background: 'rgba(74,222,128,.07)', fontSize: 10, fontWeight: 700, color: '#4ade80', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                          <Icon name="checkCircle" size={11} color="#4ade80" />Linked
+                      : <div style={{ flex: 2, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--green)', background: 'var(--green-l)', fontSize: 10, fontWeight: 700, color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          <Icon name="checkCircle" size={11} color="var(--green)" />Linked
                         </div>
                     }
                   </div>
@@ -1231,7 +1524,7 @@ export const Tracker: React.FC = () => {
                   {evts[0] && (
                     <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,.05)', fontSize: 10, color: 'rgba(255,255,255,.65)', display: 'flex', alignItems: 'center', gap: 5 }}>
                       <Icon name="activity" size={10} color="rgba(255,255,255,.65)" />
-                      {evts[0].description} Â· {fmtDate(evts[0].timestamp)}
+                      {evts[0].description} · {fmtDate(evts[0].timestamp)}
                     </div>
                   )}
                 </div>

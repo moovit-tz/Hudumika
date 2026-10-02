@@ -9,14 +9,11 @@
   flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
+  background: var(--bg);
 }
 
 [data-theme="dark"] .app-shell {
-  background: #080b10;
-}
-
-[data-theme="dark"] .app-main {
-  background: #111218;
+  background: var(--bg);
 }
 
 /* ── Main column (header + content) ── */
@@ -26,6 +23,11 @@
   flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
+  background: var(--bg);
+}
+
+[data-theme="dark"] .app-main {
+  background: var(--bg);
 }
 
 .app-shell-content {
@@ -66,26 +68,47 @@
   border: 1.5px solid var(--border);
 }
 
-/* ── Semi Dark — sidebar stays dark regardless of the page's own light/dark
-   theme. Values mirror index.css's [data-theme="dark"] block exactly. ── */
-[data-semi-dark="true"] .app-sidebar {
-  --ink: #e2e8f0;
-  --ink2: #94a3b8;
-  --ink3: #64748b;
-  --bg: #080b10;
-  --white: #111218;
-  --border: rgba(255, 255, 255, 0.07);
-  --border2: rgba(255, 255, 255, 0.13);
-  --nav-guide: rgba(255, 255, 255, 0.14);
-  color-scheme: dark;
-}
-
-/* ── Sidebar container ── */
+/* ── Sidebar style tokens — dark by default (color-scheme: dark)
+   Overridden per [data-sidebar-style] below:
+     dark   = always the dark forest look (legacy / default)
+     light  = always white/light regardless of page theme
+     system = follows the page's own light/dark theme                ── */
 .app-sidebar {
+  /* Dark-mode color tokens (default) — backgrounds tinted with the active
+     app's raw accent so the sidebar hue shifts with each app. --teal-fill-raw
+     is the original (non-lightened) accent set by WorkspaceApp on :root. */
+  --sb-bg:               color-mix(in srgb, var(--teal-fill-raw, #1257c6) 14%, #07090c);
+  --sb-bg-brand:         color-mix(in srgb, var(--teal-fill-raw, #1257c6) 16%, #080a0f);
+  --sb-bg-footer:        color-mix(in srgb, var(--teal-fill-raw, #1257c6) 10%, #050609);
+  --sb-bdr:              rgba(255, 255, 255, 0.07);
+  --sb-item-fg:          #cbd5e1;
+  --sb-item-hover-bg:    rgba(255, 255, 255, 0.06);
+  --sb-item-hover-fg:    #ffffff;
+  --sb-section-fg:       #64748b;
+  --sb-icon-fg:          #94a3b8;
+  --sb-brand-name-fg:    #f8fafc;
+  --sb-brand-sub-fg:     #64748b;
+  --sb-toggle-bg:        color-mix(in srgb, var(--teal-fill-raw, #1257c6) 22%, #0c0e14);
+  --sb-toggle-bdr:       rgba(255, 255, 255, 0.15);
+  --sb-toggle-fg:        #cbd5e1;
+  --sb-toggle-hover-bg:  color-mix(in srgb, var(--teal-fill-raw, #1257c6) 28%, #0e1018);
+  --sb-widget-bg:        rgba(255, 255, 255, 0.04);
+  --sb-widget-bdr:       rgba(255, 255, 255, 0.08);
+  --sb-widget-fg:        #f8fafc;
+  --sb-widget-muted:     #94a3b8;
+  --sb-footer-bdr:       rgba(255, 255, 255, 0.07);
+  --sb-child-bdr:        rgba(255, 255, 255, 0.18);
+  --sb-child-fg:         #94a3b8;
+  --sb-child-hover-bg:   rgba(255, 255, 255, 0.05);
+  --sb-child-hover-fg:   #ffffff;
+  --sb-skeleton-bg:      rgba(255, 255, 255, 0.08);
+  --sb-loading-bar-bg:   rgba(255, 255, 255, 0.05);
+  --sb-pending-shimmer:  rgba(255, 255, 255, 0.08);
+  /* Layout */
   width: 240px;
   min-width: 240px;
-  background: var(--white);
-  border-right: 1px solid rgba(0, 0, 0, 0.09);
+  background: var(--sb-bg) !important;
+  border-right: 1px solid var(--sb-bdr) !important;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -93,6 +116,101 @@
   position: relative;
   transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
               min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  color-scheme: dark;
+}
+
+/* ── Dark page-var injection — "dark" style and legacy semi-dark ──────────────
+   Any sidebar content CSS (csb-*, email, calendar, etc.) that uses
+   var(--ink2), var(--bg), var(--border) inherits these and gets dark values
+   automatically. The light/system styles leave these un-injected so the page's
+   own vars flow through unchanged.                                          ── */
+[data-sidebar-style="dark"] .app-sidebar,
+:root:not([data-sidebar-style]) .app-sidebar,
+[data-semi-dark="true"] .app-sidebar {
+  --ink:    #e2e8f0;
+  --ink2:   #94a3b8;
+  --ink3:   #64748b;
+  /* Tinted with the active app's raw accent — same pattern as the dark page
+     background, so the sidebar always matches the app it's hosting. */
+  --bg:     color-mix(in srgb, var(--teal-fill-raw, #1257c6) 12%, #070c0b);
+  --white:  color-mix(in srgb, var(--teal-fill-raw, #1257c6) 8%, #111218);
+  --border: rgba(255, 255, 255, 0.07);
+  --border2: rgba(255, 255, 255, 0.13);
+  --nav-guide: rgba(255, 255, 255, 0.14);
+  color-scheme: dark;
+}
+
+/* ── Light sidebar — always white, even in dark page theme ── */
+[data-sidebar-style="light"] .app-sidebar,
+[data-theme="dark"][data-sidebar-style="light"] .app-sidebar {
+  --sb-bg:               #ffffff;
+  --sb-bg-brand:         #ffffff;
+  --sb-bg-footer:        #f8fafc;
+  --sb-bdr:              rgba(0, 0, 0, 0.08);
+  --sb-item-fg:          #475569;
+  --sb-item-hover-bg:    #f1f5f9;
+  --sb-item-hover-fg:    #0f172a;
+  --sb-section-fg:       #94a3b8;
+  --sb-icon-fg:          #94a3b8;
+  --sb-brand-name-fg:    #0f172a;
+  --sb-brand-sub-fg:     #94a3b8;
+  --sb-toggle-bg:        #ffffff;
+  --sb-toggle-bdr:       rgba(0, 0, 0, 0.10);
+  --sb-toggle-fg:        #64748b;
+  --sb-toggle-hover-bg:  #f1f5f9;
+  --sb-widget-bg:        #f1f5f9;
+  --sb-widget-bdr:       rgba(0, 0, 0, 0.08);
+  --sb-widget-fg:        #0f172a;
+  --sb-widget-muted:     #64748b;
+  --sb-footer-bdr:       rgba(0, 0, 0, 0.08);
+  --sb-child-bdr:        rgba(0, 0, 0, 0.12);
+  --sb-child-fg:         #64748b;
+  --sb-child-hover-bg:   #f1f5f9;
+  --sb-child-hover-fg:   #0f172a;
+  --sb-skeleton-bg:      rgba(0, 0, 0, 0.06);
+  --sb-loading-bar-bg:   rgba(0, 0, 0, 0.04);
+  --sb-pending-shimmer:  rgba(255, 255, 255, 0.50);
+  color-scheme: light;
+}
+
+/* ── System sidebar — follows page light/dark theme ── */
+[data-sidebar-style="system"] .app-sidebar {
+  /* Light-theme values using page tokens (automatically go dark when page goes dark) */
+  --sb-bg:               var(--white);
+  --sb-bg-brand:         var(--white);
+  --sb-bg-footer:        var(--bg);
+  --sb-bdr:              var(--border);
+  --sb-item-fg:          var(--ink2);
+  --sb-item-hover-bg:    var(--bg);
+  --sb-item-hover-fg:    var(--ink);
+  --sb-section-fg:       var(--ink3);
+  --sb-icon-fg:          var(--ink3);
+  --sb-brand-name-fg:    var(--ink);
+  --sb-brand-sub-fg:     var(--ink3);
+  --sb-toggle-bg:        var(--white);
+  --sb-toggle-bdr:       var(--border2);
+  --sb-toggle-fg:        var(--ink2);
+  --sb-toggle-hover-bg:  var(--bg);
+  --sb-widget-bg:        var(--bg);
+  --sb-widget-bdr:       var(--border);
+  --sb-widget-fg:        var(--ink);
+  --sb-widget-muted:     var(--ink2);
+  --sb-footer-bdr:       var(--border);
+  --sb-child-bdr:        var(--border2);
+  --sb-child-fg:         var(--ink2);
+  --sb-child-hover-bg:   var(--bg);
+  --sb-child-hover-fg:   var(--ink);
+  --sb-skeleton-bg:      rgba(0, 0, 0, 0.06);
+  --sb-loading-bar-bg:   rgba(0, 0, 0, 0.04);
+  --sb-pending-shimmer:  rgba(255, 255, 255, 0.30);
+  color-scheme: light;
+}
+/* In dark page theme, system sidebar flips to dark values */
+[data-theme="dark"][data-sidebar-style="system"] .app-sidebar {
+  --sb-skeleton-bg:     rgba(255, 255, 255, 0.08);
+  --sb-loading-bar-bg:  rgba(255, 255, 255, 0.05);
+  --sb-pending-shimmer: rgba(255, 255, 255, 0.08);
+  color-scheme: dark;
 }
 
 .app-sidebar--collapsed {
@@ -114,8 +232,9 @@ html[data-expanded="true"] .app-sidebar {
   align-items: center;
   gap: 10px;
   padding: 0 10px 0 14px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.09);
+  border-bottom: 1px solid var(--sb-bdr);
   flex-shrink: 0;
+  background: var(--sb-bg-brand);
 }
 
 .app-sidebar--collapsed .app-sb-brand {
@@ -127,8 +246,6 @@ html[data-expanded="true"] .app-sidebar {
   width: 34px;
   height: 34px;
   min-width: 34px;
-  /* True superellipse clip is supplied by AppSidebar.tsx; this percentage is
-     only the graceful fallback for browsers without CSS path clipping. */
   border-radius: 33%;
   overflow: hidden;
   display: flex;
@@ -146,7 +263,7 @@ html[data-expanded="true"] .app-sidebar {
 .app-sb-brand-name {
   font-size: 14px;
   font-weight: 700;
-  color: var(--ink);
+  color: var(--sb-brand-name-fg);
   font-family: var(--font);
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -156,8 +273,8 @@ html[data-expanded="true"] .app-sidebar {
 
 .app-sb-brand-sub {
   font-size: 10px;
-  color: var(--ink3);
-  font-weight: 500;
+  color: var(--sb-brand-sub-fg);
+  font-weight: 600;
   white-space: nowrap;
   margin-top: 1px;
 }
@@ -169,23 +286,23 @@ html[data-expanded="true"] .app-sidebar {
   right: -11px;
   width: 22px;
   height: 22px;
-  border: 1px solid rgba(0, 0, 0, 0.16);
+  border: 1px solid var(--sb-toggle-bdr);
   border-radius: 50%;
-  background: var(--white);
-  box-shadow: var(--elev);
+  background: var(--sb-toggle-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--ink);
+  color: var(--sb-toggle-fg);
   transition: background 0.12s, box-shadow 0.12s, transform 0.12s;
   z-index: 20;
   flex-shrink: 0;
 }
 
 .app-sb-toggle:hover {
-  background: var(--bg);
-  box-shadow: var(--elev);
+  background: var(--sb-toggle-hover-bg);
+  color: var(--sb-item-hover-fg);
   transform: scale(1.08);
 }
 
@@ -197,41 +314,22 @@ html[data-expanded="true"] .app-sidebar {
   padding: 10px 0;
 }
 
-/* ── Fill-nav (replaces nav entirely, takes flex: 1) ── */
-.app-sb-fill-nav {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.app-sb-nav::-webkit-scrollbar       { width: 4px; }
-.app-sb-nav::-webkit-scrollbar-track { background: transparent; }
-.app-sb-nav::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 4px; }
-
 .app-sb-section-group {
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .app-sb-section-hdr {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--ink3);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--sb-section-fg);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  /* Kept tight and on the same 2px/4px rhythm the item rows and
-     .app-sb-section-group's own margin already use — this used to be
-     10px/4px, which only ever rendered in expanded mode (collapsed hides
-     section titles entirely), so a group boundary landing on a labeled
-     section jumped to a ~35px gap while every other boundary — including
-     the exact same one in collapsed mode — stayed at 4px. */
-  padding: 4px 18px 2px;
+  padding: 10px 18px 4px;
   white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  user-select: none;
 }
 
 .app-sb-section-hdr--collapsible {
@@ -241,54 +339,69 @@ html[data-expanded="true"] .app-sidebar {
 .app-sb-section-toggle {
   font-size: 12px;
   font-weight: 700;
-  color: var(--ink3);
-  line-height: 1;
+  color: var(--sb-section-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Nav items — Ngao-style rounded pill with brand color active ──
-   This is the platform's one canonical selected-menu-item treatment — the
-   tint (--nav-active-tint / -dark) and shape (--nav-item-r) are design
-   tokens in index.css, not local numbers, specifically so every left-nav
-   menu in the platform stays this same shape/color instead of drifting
-   into a private variant. Any new sidebar-style menu should render its
-   active item through these same two tokens rather than inventing its own. */
+.app-sb-section-toggle--open {
+  transform: rotate(0deg);
+}
+
+.app-sb-section-toggle:not(.app-sb-section-toggle--open) {
+  transform: rotate(-90deg);
+}
+
+/* ── Nav items ── */
 .app-sb-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 44px;
+  gap: 11px;
+  height: 42px;
   width: calc(100% - 16px);
-  margin: 2px 8px;
+  margin: 3px 8px;
   border: none;
   background: transparent;
   cursor: pointer;
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
-  color: #444;
+  color: var(--sb-item-fg);
   text-align: left;
   text-decoration: none;
-  padding: 0 14px;
-  border-radius: var(--nav-item-r);
-  transition: background 0.1s ease, color 0.1s ease;
+  padding: 0 12px;
+  border-radius: var(--nav-item-r, 10px);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   white-space: nowrap;
   box-sizing: border-box;
 }
 
 .app-sb-item:hover:not(.app-sb-item--active) {
-  background: var(--bg);
-  color: var(--ink);
+  background: var(--sb-item-hover-bg);
+  color: var(--sb-item-hover-fg);
+  transform: translateX(2px);
 }
 
 .app-sb-item--active {
-  background: color-mix(in srgb, var(--sb-color, #64748b) var(--nav-active-tint), transparent);
-  color: var(--sb-color, #64748b);
-  font-weight: 600;
+  /* --teal-fill is the fill-safe accent: appColor in light, darkenHex(appColor, 0.45)
+     in dark — so the active item stays saturated and deep even on a dark sidebar,
+     whereas --teal (used for text) is lightened in dark and reads washed-out as a fill. */
+  background: var(--teal-fill, var(--teal, #0f766e)) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: none !important;
 }
 
 .app-sb-item--active .app-sb-item-icon {
-  color: var(--sb-color, #64748b);
+  color: #ffffff !important;
+  opacity: 1;
+}
+
+.app-sb-item--active .app-sb-item-label {
+  color: #ffffff !important;
 }
 
 /* Collapsed: center icon, remove margins */
@@ -305,11 +418,18 @@ html[data-expanded="true"] .app-sidebar {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: inherit;
-  opacity: 0.75;
+  color: var(--sb-icon-fg);
+  opacity: 0.9;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.app-sb-item:hover .app-sb-item-icon {
+  color: var(--sb-item-hover-fg);
+  transform: scale(1.05);
 }
 
 .app-sb-item--active .app-sb-item-icon {
+  color: #ffffff;
   opacity: 1;
 }
 
@@ -322,30 +442,36 @@ html[data-expanded="true"] .app-sidebar {
   white-space: nowrap;
 }
 
-/* ── Parent items with children: toggle only, not a link — same idea as
-   the uppercase section headers (OPERATIONS, TOOLS, ...) but at item scale. ── */
+/* ── Parent items with children: toggle only ── */
 .app-sb-item--parent-hdr {
-  color: #444;
+  color: var(--sb-item-fg);
 }
 
 .app-sb-item-parent-toggle {
   font-size: 13px;
   font-weight: 700;
-  color: var(--ink3);
-  line-height: 1;
+  color: var(--sb-section-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  width: 16px;
-  text-align: center;
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Child items container with vertical guide line ── */
+.app-sb-item-parent-toggle--open {
+  transform: rotate(180deg);
+}
+
+/* ── Child items container with dashed vertical guide line ── */
 .app-sb-children-group {
   position: relative;
-  margin-left: 21px;
+  margin-left: 23px;
   margin-right: 8px;
-  padding-left: 6px;
+  padding-left: 10px;
   padding-right: 4px;
-  border-left: 1.5px solid var(--nav-guide);
+  border-left: 1.5px dashed var(--sb-child-bdr);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -360,90 +486,267 @@ html[data-expanded="true"] .app-sidebar {
   padding: 0 10px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--ink2);
-  border-radius: 6px;
+  color: var(--sb-child-fg);
+  border-radius: var(--r-sm, 8px);
   box-sizing: border-box;
+  position: relative;
 }
 
 .app-sb-children-group .app-sb-item--child:hover:not(.app-sb-item--active) {
-  background: var(--bg);
-  color: var(--ink);
+  background: var(--sb-child-hover-bg);
+  color: var(--sb-child-hover-fg);
 }
 
+/* Active Submenu Item — tinted pill with accent left pip */
 .app-sb-children-group .app-sb-item--child.app-sb-item--active {
-  background: color-mix(in srgb, var(--sb-color, #64748b) var(--nav-active-tint), transparent);
-  color: var(--sb-color, #64748b);
-  font-weight: 600;
+  background: var(--teal-l) !important;
+  color: var(--teal) !important;
+  font-weight: 700;
+  border-radius: 10px;
+  box-shadow: none !important;
 }
 
-/* ── Badges ── */
+.app-sb-children-group .app-sb-item--child.app-sb-item--active::before {
+  content: '';
+  position: absolute;
+  left: -12.5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 6px var(--teal);
+}
+
+/* ── Badges — Dreams Core pill badges ── */
 .app-sb-badge {
-  font-size: var(--badge-fs-sm);
-  font-weight: 700;
-  padding: var(--badge-py-sm) var(--badge-px-sm);
-  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1.5px 7px;
+  border-radius: 9999px;
   flex-shrink: 0;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.app-sb-badge--free {
-  background: var(--green-l);
-  color: var(--green);
+.app-sb-badge--tag,
+.app-sb-badge--soon {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.35);
 }
 
-.app-sb-badge--soon {
-  background: #f1f5f9;
-  color: var(--ink3);
+.app-sb-badge--free {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
 .app-sb-badge--count {
-  background: var(--sb-color, #64748b);
-  color: #fff;
+  background: #ef4444;
+  color: #ffffff;
 }
 
-/* ── Footer ── /* Subscription Footer Box */
+/* ── Footer ── */
 .app-sb-sub-footer {
   margin-top: auto;
-  border-top: 1px solid var(--border);
-  padding: 16px;
-  background: var(--bg);
+  border-top: 1px solid var(--sb-footer-bdr);
+  padding: 12px;
+  background: var(--sb-bg-footer);
+}
+
+.app-sb-footer-widgets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Storage Widget */
+.app-sb-storage-widget {
+  background: var(--sb-widget-bg);
+  border: 1px solid var(--sb-widget-bdr);
+  border-radius: var(--r-sm, 10px);
+  padding: 10px 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+/* When nested inside the plan expansion: no card chrome, just a data block */
+.app-sb-sub-content .app-sb-storage-widget {
+  background: none;
+  border: none;
+  border-top: 1px solid var(--sb-widget-bdr);
+  border-radius: 0;
+  padding: 8px 0 4px;
+  box-shadow: none;
+}
+
+.app-sb-storage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.app-sb-storage-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--sb-widget-fg);
+}
+
+.app-sb-storage-pct {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.app-sb-storage-track {
+  height: 6px;
+  background: var(--sb-widget-bdr);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.app-sb-storage-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal, #0f766e) 0%, color-mix(in srgb, var(--teal, #0f766e) 70%, #fff) 100%);
+  border-radius: 9999px;
+}
+
+.app-sb-storage-meta {
+  font-size: 10.5px;
+  color: var(--sb-widget-muted);
+  font-weight: 500;
+}
+
+/* User Profile Card */
+.app-sb-user-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--sb-widget-bg);
+  border: 1px solid var(--sb-widget-bdr);
+  border-radius: var(--r-sm, 10px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.app-sb-user-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.app-sb-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal, #0f766e) 0%, color-mix(in srgb, var(--teal, #0f766e) 70%, #000) 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.app-sb-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-sb-user-status-dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 1.5px solid #0c1917;
+}
+
+.app-sb-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-sb-user-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--sb-widget-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-sb-user-role {
+  font-size: 10.5px;
+  color: var(--sb-widget-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Collapsed footer icons */
+.app-sb-collapsed-footer-icons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-sb-collapsed-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--teal, #0f766e);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .app-sb-sub-box {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  background: var(--sb-widget-bg);
+  border: 1px solid var(--sb-widget-bdr);
+  border-radius: var(--r-sm, 10px);
   overflow: hidden;
-  box-shadow: var(--elev);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .app-sb-sub-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 14px;
+  padding: 10px 12px;
   cursor: pointer;
-  background: rgba(0,0,0,0.01);
   transition: background 0.15s;
 }
 
 .app-sb-sub-header:hover {
-  background: rgba(0,0,0,0.03);
+  background: var(--sb-item-hover-bg);
 }
 
 .app-sb-sub-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--ink);
+  color: var(--sb-widget-fg);
 }
 
 .app-sb-sub-content {
-  padding: 0 14px 14px 14px;
-  border-top: 1px solid rgba(0,0,0,0.03);
+  padding: 0 12px 12px 12px;
+  border-top: 1px solid var(--sb-footer-bdr);
 }
 
 .app-sb-sub-metric {
@@ -451,40 +754,27 @@ html[data-expanded="true"] .app-sidebar {
   justify-content: space-between;
   font-size: 11px;
   font-weight: 600;
-  color: var(--ink2);
-  margin-top: 12px;
-  margin-bottom: 4px;
-}
-
-.app-sb-sub-progress {
-  height: 6px;
-  background: rgba(0,0,0,0.05);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.app-sb-sub-bar {
-  height: 100%;
-  background: var(--teal);
-  border-radius: 4px;
+  color: var(--sb-widget-muted);
+  margin-top: 8px;
+  margin-bottom: 2px;
 }
 
 .app-sb-sub-btn {
   display: block;
   text-align: center;
-  margin-top: 16px;
-  padding: 8px;
-  background: var(--teal-l);
-  color: var(--teal-d);
-  font-size: 12px;
+  margin-top: 10px;
+  padding: 6px;
+  background: var(--teal, #0f766e);
+  color: #ffffff;
+  font-size: 11.5px;
   font-weight: 700;
+  border-radius: var(--r-sm, 8px);
   text-decoration: none;
-  border-radius: 8px;
-  transition: background 0.15s;
+  transition: opacity 0.15s;
 }
 
 .app-sb-sub-btn:hover {
-  background: var(--teal-m);
+  opacity: 0.9;
 }
 
 /* Collapsed: single icon button */
@@ -576,87 +866,80 @@ html[data-expanded="true"] .app-sidebar {
    own darker background — reading as a different tone). The mismatched
    literal broke that same relationship in dark mode, making the sidebar
    read as visibly darker than the content beside it. */
-[data-theme="dark"] .app-sidebar {
-  background: var(--white);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-}
+/* ── Dark page theme: only affects system-mode and (for tint active) all sidebar styles ── */
 
-[data-theme="dark"] .app-sb-brand {
+/* System mode in dark page: sidebar follows page — use dark vars flowing through from :root */
+[data-theme="dark"][data-sidebar-style="system"] .app-sidebar {
+  background: var(--white) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-brand {
+  background: var(--white);
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
-
-[data-theme="dark"] .app-sb-item {
-  color: rgba(255, 255, 255, 0.65);
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-item { color: rgba(255, 255, 255, 0.65); }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-item:hover:not(.app-sb-item--active) {
+  background: rgba(255, 255, 255, 0.05); color: #fff;
+}
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-section-hdr { color: rgba(255, 255, 255, 0.3); }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-item-icon { color: rgba(255,255,255,0.4); }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-item:hover .app-sb-item-icon { color: #fff; }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-toggle {
+  background: var(--bg); border-color: rgba(255,255,255,0.1); box-shadow: 2px 0 8px rgba(0,0,0,0.4);
+}
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-toggle:hover { background: var(--white); }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-sub-footer {
+  background: rgba(255,255,255,0.03); border-top-color: rgba(255,255,255,0.06);
+}
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-storage-widget,
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-user-card,
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-sub-box {
+  background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08);
+}
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-brand-name { color: #f8fafc; }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-brand-sub  { color: #64748b; }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-storage-title,
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-sub-title,
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-user-name { color: #f8fafc; }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-storage-meta,
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-sub-metric,
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-user-role { color: #94a3b8; }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-children-group { border-left-color: rgba(255,255,255,0.18); }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-children-group .app-sb-item--child { color: #94a3b8; }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-children-group .app-sb-item--child:hover:not(.app-sb-item--active) {
+  background: rgba(255,255,255,0.05); color: #fff;
+}
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-sub-content { border-top-color: rgba(255,255,255,0.07); }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-sub-header:hover { background: rgba(255,255,255,0.06); }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-footer-icon-btn { color: rgba(255,255,255,0.4); }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-footer-icon-btn:hover {
+  background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8);
+}
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-footer-signout { color: rgba(255,255,255,0.35); }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-footer-signout:hover {
+  background: rgba(220,38,38,0.15); color: #f87171;
+}
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-skeleton-icon,
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-skeleton-text { background: rgba(255,255,255,0.08); }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-loading-bar--active { background: rgba(255,255,255,0.05); }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-item--pending::after {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
 }
 
-[data-theme="dark"] .app-sb-item:hover:not(.app-sb-item--active) {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-}
-
-[data-theme="dark"] .app-sb-item--active {
+/* Active item tint in dark page theme for system sidebar */
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-item--active {
   background: color-mix(in srgb, var(--sb-color, #64748b) var(--nav-active-tint-dark), transparent);
   color: var(--sb-color, #64748b);
 }
-
-[data-theme="dark"] .app-sb-item--active .app-sb-item-icon {
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-item--active .app-sb-item-icon {
   color: var(--sb-color, #64748b);
 }
 
-[data-theme="dark"] .app-sb-section-hdr {
-  color: rgba(255, 255, 255, 0.3);
-}
-
-[data-theme="dark"] .app-sb-toggle {
-  background: #0d1117;
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.4);
-}
-
-[data-theme="dark"] .app-sb-toggle:hover {
-  background: #151c26;
-}
-
-[data-theme="dark"] .app-sb-footer {
-  background: rgba(255, 255, 255, 0.03);
-  border-top-color: rgba(255, 255, 255, 0.06);
-}
-
-[data-theme="dark"] .app-sb-theme-pills {
-  background: rgba(0, 0, 0, 0.3);
-}
-
-[data-theme="dark"] .app-sb-theme-pill {
-  color: rgba(255, 255, 255, 0.35);
-}
-
-[data-theme="dark"] .app-sb-theme-pill:hover {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-[data-theme="dark"] .app-sb-theme-pill--active {
-  background: #1e2433;
-  color: rgba(255, 255, 255, 0.9);
-  box-shadow: var(--elev-sm);
-}
-
-[data-theme="dark"] .app-sb-footer-icon-btn {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-[data-theme="dark"] .app-sb-footer-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.8);
-}
-
-[data-theme="dark"] .app-sb-footer-signout {
-  color: rgba(255, 255, 255, 0.35);
-}
-
-[data-theme="dark"] .app-sb-footer-signout:hover {
-  background: rgba(220, 38, 38, 0.15);
-  color: #f87171;
-}
+/* Dark theme pill overrides (apply for system mode only — dark/light sidebar styles don't use pills in practice) */
+[data-theme="dark"] .app-sb-theme-pills { background: rgba(0, 0, 0, 0.3); }
+[data-theme="dark"] .app-sb-theme-pill { color: rgba(255, 255, 255, 0.35); }
+[data-theme="dark"] .app-sb-theme-pill:hover { color: rgba(255, 255, 255, 0.7); }
+[data-theme="dark"] .app-sb-theme-pill--active { background: #1e2433; color: rgba(255,255,255,0.9); box-shadow: var(--elev-sm); }
 
 /* ── Tablet: icon-only at 1100px ── */
 @media (max-width: 1100px) {
@@ -796,9 +1079,8 @@ html[data-expanded="true"] .app-sidebar {
   background: rgba(0, 0, 0, 0.04);
 }
 
-[data-theme="dark"] .app-sb-loading-bar--active,
-[data-semi-dark="true"] .app-sb-loading-bar--active {
-  background: rgba(255, 255, 255, 0.05);
+.app-sb-loading-bar--active {
+  background: var(--sb-loading-bar-bg, rgba(0, 0, 0, 0.04));
 }
 
 .app-sb-loading-bar--active::after {
@@ -836,9 +1118,8 @@ html[data-expanded="true"] .app-sidebar {
   border-radius: inherit;
 }
 
-[data-theme="dark"] .app-sb-item--pending::after,
-[data-semi-dark="true"] .app-sb-item--pending::after {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+.app-sb-item--pending::after {
+  background: linear-gradient(90deg, transparent, var(--sb-pending-shimmer, rgba(255,255,255,0.08)), transparent);
 }
 
 .app-sb-item-spinner {
@@ -898,9 +1179,7 @@ html[data-expanded="true"] .app-sidebar {
   flex: 1;
 }
 
-[data-theme="dark"] .app-sb-skeleton-icon,
-[data-theme="dark"] .app-sb-skeleton-text,
-[data-semi-dark="true"] .app-sb-skeleton-icon,
-[data-semi-dark="true"] .app-sb-skeleton-text {
-  background: rgba(255, 255, 255, 0.08);
+.app-sb-skeleton-icon,
+.app-sb-skeleton-text {
+  background: var(--sb-skeleton-bg, rgba(255, 255, 255, 0.08));
 }

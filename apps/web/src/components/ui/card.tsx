@@ -9,10 +9,10 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-xl text-card-foreground",
+      "rounded-[var(--card-radius,8px)] text-card-foreground",
       className
     )}
-    style={{ border: 'var(--card-border)', background: 'var(--card-bg)', boxShadow: 'var(--card-shadow)', ...style }}
+    style={{ border: 'var(--card-border)', background: 'var(--card-bg)', boxShadow: 'var(--card-shadow)', borderRadius: 'var(--card-radius, 8px)', ...style }}
     {...props}
   />
 ))

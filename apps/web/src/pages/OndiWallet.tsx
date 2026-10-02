@@ -1,19 +1,19 @@
-﻿// â”€â”€â”€ OndiWallet.tsx â€” Ondi Personal Â· Credentials â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// A small credential vault for the user's own third-party logins â€” secrets
+﻿// ─── OndiWallet.tsx — Ondi Personal · Credentials ────────────────
+// A small credential vault for the user's own third-party logins — secrets
 // are encrypted at rest server-side (AES-256-GCM, onsite-secrets.service.ts)
 // and never sent to the browser except when explicitly revealed. Not the
-// "E2E-encrypted vault" ondi-mvp originally envisioned â€” that stays
+// "E2E-encrypted vault" ondi-mvp originally envisioned — that stays
 // deferred; this is real server-side encryption with a modest threat
 // model, honestly labeled as such below.
 //
 // Renamed from "Wallet" to "Credentials" (nav label in OndiShell.tsx, and
-// the page title below) â€” a real feature-gap pass found this one word away
+// the page title below) — a real feature-gap pass found this one word away
 // from Petti's own "Wallets" (money/petty-cash) in the same app switcher,
 // and "Credentials" is the more accurate name for what this page actually
 // stores anyway.
 //
 // Sharing (view/edit tiers, revocable) and the reveal step-up prompt below
-// are both part of the same feature-gap pass â€” security.routes.ts's wallet
+// are both part of the same feature-gap pass — security.routes.ts's wallet
 // routes now back both.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
@@ -84,7 +84,7 @@ export const OndiWallet: React.FC = () => {
   const [revealed, setRevealed] = useState<Record<string, string>>({});
   const [revealing, setRevealing] = useState<string | null>(null);
 
-  // Sharing panel state â€” which owned item currently has it expanded, its
+  // Sharing panel state — which owned item currently has it expanded, its
   // loaded grants, and the add-grant mini-form.
   const [shareOpenFor, setShareOpenFor] = useState<string | null>(null);
   const [sharesByItem, setSharesByItem] = useState<Record<string, ShareGrant[]>>({});
@@ -149,7 +149,7 @@ export const OndiWallet: React.FC = () => {
   }
 
   // Ondi feature-gap pass (M2): reveal is gated by the real authz-check
-  // step-up policy (security.routes.ts) â€” a 2FA-enabled account gets a real
+  // step-up policy (security.routes.ts) — a 2FA-enabled account gets a real
   // STEP_UP response here instead of the secret, answered by asking for the
   // current code and retrying once. An account with no 2FA configured
   // clears this immediately server-side (see authz-check.ts), so this
@@ -188,7 +188,7 @@ export const OndiWallet: React.FC = () => {
       catch (err: any) { showAlert(err.message); return; }
     }
     try { await navigator.clipboard.writeText(value); showAlert('Copied to clipboard.', { variant: 'success', title: 'Copied' }); }
-    catch { showAlert('Could not copy â€” your browser blocked clipboard access.'); }
+    catch { showAlert('Could not copy — your browser blocked clipboard access.'); }
   }
 
   async function toggleSharePanel(item: WalletItem) {
@@ -250,7 +250,7 @@ export const OndiWallet: React.FC = () => {
             <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
               <button type="button" disabled={saving} onClick={() => saveEdit(item.id)}
                 style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 12.5, fontFamily: 'var(--font)', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }}>
-                {saving ? 'Savingâ€¦' : 'Save changes'}
+                {saving ? 'Saving…' : 'Save changes'}
               </button>
               <button type="button" onClick={() => { setEditingId(null); resetForm(); }}
                 style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 12.5, fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }}>
@@ -268,10 +268,10 @@ export const OndiWallet: React.FC = () => {
                 {item.label} {opts.badge}
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
-                {item.username || 'â€”'}{item.url ? ` Â· ${item.url}` : ''}
+                {item.username || '—'}{item.url ? ` · ${item.url}` : ''}
               </div>
               <div style={{ fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--ink)', marginTop: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '4px 10px', display: 'inline-block', minWidth: 140 }}>
-                {revealed[item.id] !== undefined ? revealed[item.id] : 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢'}
+                {revealed[item.id] !== undefined ? revealed[item.id] : '••••••••••••'}
               </div>
               <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 4 }}>Updated {fmtDate(item.updated_at)}</div>
             </div>
@@ -308,7 +308,7 @@ export const OndiWallet: React.FC = () => {
             )}
             {(sharesByItem[item.id] || []).map(g => (
               <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
-                <div style={{ flex: 1, fontSize: 12.5, color: 'var(--ink)' }}>{g.grantee_name} <span style={{ color: 'var(--ink3)' }}>Â· {g.grantee_email}</span></div>
+                <div style={{ flex: 1, fontSize: 12.5, color: 'var(--ink)' }}>{g.grantee_name} <span style={{ color: 'var(--ink3)' }}>· {g.grantee_email}</span></div>
                 <Badge variant={g.permission === 'edit' ? 'brand' : 'gray'}>{g.permission === 'edit' ? 'Can edit' : 'Can view'}</Badge>
                 <button type="button" onClick={() => revokeShare(item.id, g.id)}
                   style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--red)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '3px 9px', cursor: 'pointer' }}>
@@ -318,7 +318,7 @@ export const OndiWallet: React.FC = () => {
             ))}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
               <div style={{ flex: 1 }}>
-                <EntityPicker value={shareGrantee} onChange={setShareGrantee} search={searchStaff} placeholder="Search a colleagueâ€¦" />
+                <EntityPicker value={shareGrantee} onChange={setShareGrantee} search={searchStaff} placeholder="Search a colleague…" />
               </div>
               <Select value={sharePermission} onValueChange={v => setSharePermission(v as 'view' | 'edit')}>
                 <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
@@ -329,7 +329,7 @@ export const OndiWallet: React.FC = () => {
               </Select>
               <button type="button" disabled={sharing} onClick={() => addShare(item.id)}
                 style={{ padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r-sm)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 12.5, fontFamily: 'var(--font)', cursor: 'pointer', opacity: sharing ? 0.6 : 1, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', whiteSpace: 'nowrap' }}>
-                {sharing ? 'Sharingâ€¦' : 'Share'}
+                {sharing ? 'Sharing…' : 'Share'}
               </button>
             </div>
           </div>
@@ -344,7 +344,7 @@ export const OndiWallet: React.FC = () => {
         crumbs={['Ondi', 'Personal']}
         titlePlain="Your"
         titleEm="credentials"
-        subtitle="Your own logins and secrets â€” encrypted at rest, never shown until you ask."
+        subtitle="Your own logins and secrets — encrypted at rest, never shown until you ask."
         actions={!showNew ? (
           <button type="button" onClick={() => { setShowNew(true); setEditingId(null); resetForm(); }}
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
@@ -360,7 +360,7 @@ export const OndiWallet: React.FC = () => {
             <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
               <button type="button" disabled={saving} onClick={createItem}
                 style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
-                {saving ? 'Savingâ€¦' : 'Save item'}
+                {saving ? 'Saving…' : 'Save item'}
               </button>
               <button type="button" onClick={() => { setShowNew(false); resetForm(); }}
                 style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
@@ -373,7 +373,7 @@ export const OndiWallet: React.FC = () => {
 
       <SectionCard padded={false}>
         {owned === null && <SectionLoading />}
-        {owned?.length === 0 && !showNew && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>Nothing saved yet â€” add your first item above.</div>}
+        {owned?.length === 0 && !showNew && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>Nothing saved yet — add your first item above.</div>}
         {owned?.map(item => renderItemRow(item, { canEdit: true, canDelete: true, canShare: true }))}
       </SectionCard>
 

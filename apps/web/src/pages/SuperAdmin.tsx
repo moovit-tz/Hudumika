@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
@@ -12,7 +12,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
 import { Combobox } from '../components/ui/combobox.js';
-import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { SlidersHorizontal, X, Check } from 'lucide-react';
 import { FeatureToggleRow } from '../components/ui/list-item-row.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Switch } from '../components/ui/switch.js';
@@ -29,11 +30,11 @@ import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { PaginationBar } from '../components/PaginationBar.js';
 import { AI_PROVIDERS } from '../lib/aiProviders.js';
-import { ALL_FEATURE_KEYS } from '@hudumika/types';
+import { ALL_FEATURE_KEYS, type FinanceCapabilitySummary, type FinanceConfiguration } from '@hudumika/types';
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    TYPES
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 type PlanId = 'starter' | 'growth' | 'scale' | 'enterprise';
 type CoStatus = 'active' | 'inactive' | 'trial' | 'suspended';
 type SubStatus = 'active' | 'expired' | 'trial' | 'cancelled';
@@ -45,7 +46,7 @@ interface Company { id:string; name:string; email:string; phone:string; plan:Pla
 interface Subscription { id:string; companyId:string; plan:PlanId; start:string; end:string; amount:number; billing:'monthly'|'annual'; status:SubStatus; }
 interface Package { id:string; code:string; name:string; monthly:number; annual:number; maxUsers:number; pricePerSeat:number|null; extraSeatPrice:number|null; extraSeatThreshold:number|null; monthlyItemLimit:number|null; storageLimitGb:number|null; monthlyAiCredits:number; byokAiAllowed:boolean; features:string[]; active:number; color:string; popular?:boolean; isActive:boolean; }
 /** Purchasable independent of which base Package a tenant is on
- *  (376_package_addons.sql) â€” Onsite's real home now, not a fourth
+ *  (376_package_addons.sql) — Onsite's real home now, not a fourth
  *  competing base package. */
 interface Addon { id:string; code:string; name:string; description:string; featureKey:string; monthly:number; annual:number; color:string; activeCompanies:number; }
 /** Module-level so both PackagesView (catalog management) and CompaniesView
@@ -60,11 +61,11 @@ function mapAddonFromApi(a: { id:string; code:string; name:string; description:s
 interface Domain { id:string; domain:string; companyId:string; status:DomainStatus; ssl:boolean; created:string; }
 interface Transaction { id:string; txRef:string; companyId:string; plan:PlanId; amount:number; date:string; method:PayMethod; status:TxStatus; }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    CONFIG
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 // Which plan a company is on isn't a status (unlike active/trial/suspended
-// below) â€” it doesn't need its own hue per tier. One neutral treatment for
+// below) — it doesn't need its own hue per tier. One neutral treatment for
 // every plan badge reads as "just information," not a rainbow of unrelated
 // categories.
 const PLAN_CFG: Record<PlanId,{label:string;color:string;bg:string}> = {
@@ -98,9 +99,9 @@ const TX_CFG: Record<TxStatus,{label:string;color:string;bg:string}> = {
 };
 const METHOD_LABELS: Record<PayMethod,string> = { card:'Credit Card', bank:'Bank Transfer', mpesa:'M-Pesa', paypal:'PayPal' };
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    SAMPLE DATA
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 const COMPANIES: Company[] = [
   { id:'C1', name:'Summit Traders Ltd',     email:'admin@summit.co.tz',    phone:'+255 712 345 678', plan:'enterprise',   users:48, status:'active',    domain:'summit.clearos.app',    created:'2024-01-15', owner:'Amina Hassan',     country:'Tanzania', color:'#0d7a6b' },
   { id:'C2', name:'Serengeti Foods Co.',    email:'info@serengeti.co.tz',  phone:'+255 754 987 321', plan:'growth',     users:18, status:'active',    domain:'serengeti.clearos.app', created:'2024-02-08', owner:'John Mwangi',      country:'Tanzania', color:'#3b82f6' },
@@ -130,7 +131,7 @@ const SUBSCRIPTIONS: Subscription[] = [
 
 
 // The icon shape (building/user/$/gear) already says which category an
-// entry belongs to â€” a different hue per category on top of that was pure
+// entry belongs to — a different hue per category on top of that was pure
 // decoration, not information. One neutral treatment throughout.
 const ACT_CFG: Record<ActivityType,{color:string;bg:string;icon:string}> = {
   company: { color:'var(--ink2)', bg:'var(--bg)', icon:'building'   },
@@ -140,30 +141,30 @@ const ACT_CFG: Record<ActivityType,{color:string;bg:string;icon:string}> = {
 };
 
 // The MOCK_ACTIVITY sample array lived here: twelve invented superadmin
-// actions â€” refunds, password resets and SSL renewals that never happened,
+// actions — refunds, password resets and SSL renewals that never happened,
 // against companies that do not exist. ActivityView reads
 // platform_activity_log now, which the superadmin routes write as they act.
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    SHARED HELPERS
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 function fmtCurrency(n: number) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 }); }
 function fmtDate(d: string) { return new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
 // A per-company hashed rainbow (8 unrelated hues keyed off the first letter
-// of the name) used to color every avatar in this app â€” nothing to do with
+// of the name) used to color every avatar in this app — nothing to do with
 // the company itself, just decoration. One consistent brand-accent tone
 // reads as a considered product, not a random-color-per-row template.
 function avColor(_n: string) { return 'var(--teal)'; }
 function coByID(id: string) { return COMPANIES.find(c=>c.id===id)!; }
 
-/* â”€â”€ Status badge â”€â”€ */
+/* ── Status badge ── */
 function Badge({ cfg }: { cfg:{label:string;color:string;bg:string} }) {
   return <span style={{ fontSize:11, fontWeight:700, color:cfg.color, background:cfg.bg, padding:'3px 9px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap' }}>{cfg.label}</span>;
 }
 
-/* â”€â”€ Company avatar â”€â”€ */
+/* ── Company avatar ── */
 // One consistent brand-tint treatment for every company, using the derived
-// tint token (--teal-l) rather than a per-company hue â€” matches the "never
+// tint token (--teal-l) rather than a per-company hue — matches the "never
 // hand-roll color-mix()/string-concat a tint" rule elsewhere in this
 // codebase (appending an alpha suffix onto a var() string, e.g.
 // `${color}22`, produces invalid CSS the moment color is a CSS variable
@@ -173,7 +174,7 @@ function CoAv({ co, size=34 }: { co:Company|undefined; size?:number }) {
   return <CompanyAvatar name={co?.name ?? '?'} logoUrl={co?.logoUrl} size={size} shape="square" />;
 }
 
-/* â”€â”€ Sparkline â”€â”€ */
+/* ── Sparkline ── */
 function Spark({ data, color='var(--teal)', width=100, height=28 }: { data:number[]; color?:string; width?:number; height?:number }) {
   if (data.length < 2) return null;
   const min = Math.min(...data), max = Math.max(...data), rng = max-min||1;
@@ -185,7 +186,7 @@ function Spark({ data, color='var(--teal)', width=100, height=28 }: { data:numbe
   );
 }
 
-/* â”€â”€ Bar chart â”€â”€ */
+/* ── Bar chart ── */
 function BarChart({ data, color='var(--teal)', height=72 }: { data:{label:string;value:number}[]; color?:string; height?:number }) {
   const max = Math.max(...data.map(d=>d.value)) || 1;
   return (
@@ -202,7 +203,7 @@ function BarChart({ data, color='var(--teal)', height=72 }: { data:{label:string
   );
 }
 
-/* â”€â”€ Donut chart â”€â”€ */
+/* ── Donut chart ── */
 function DonutChart({ segments, size=110 }: { segments:{pct:number;color:string;label:string}[]; size?:number }) {
   const r = 36, c = 2*Math.PI*r;
   let offset = 0;
@@ -219,17 +220,17 @@ function DonutChart({ segments, size=110 }: { segments:{pct:number;color:string;
   );
 }
 
-/* â”€â”€ KPI Card â”€â”€ */
+/* ── KPI Card ── */
 /**
  * `change` and `spark` are both optional, and both are omitted rather than
  * faked. Every one of these cards used to hard-code its own "vs last month"
- * delta â€” 19.01%, -12%, 6%, -8% â€” numbers nothing computed, sitting beside
+ * delta — 19.01%, -12%, 6%, -8% — numbers nothing computed, sitting beside
  * real totals on the screen where platform decisions get made. A card with no
  * comparable prior period now simply shows the number.
  */
 function KPICard({ title, value, change, icon, color, spark, hint, emptyHint }: {
   title:string; value:string; change?:number|null; icon:IconName; color:string; spark?:number[];
-  /** Always shown â€” real context about the number, e.g. what the estimate is. */
+  /** Always shown — real context about the number, e.g. what the estimate is. */
   hint?:string;
   /** Shown only when there is no trend to draw, explaining the absence. */
   emptyHint?:string;
@@ -265,18 +266,18 @@ function KPICard({ title, value, change, icon, color, spark, hint, emptyHint }: 
   );
 }
 
-/* â”€â”€ Page header â”€â”€ */
+/* ── Page header ── */
 /**
  * The platform console's page title.
  *
- * This was a private 20px <h1> â€” one of two copies that had grown alongside
+ * This was a private 20px <h1> — one of two copies that had grown alongside
  * the real PageHeader, which is why the SuperAdmin screens did not look like
  * the rest of the platform. It now delegates, so every view in this file
  * picks up the house style (plain face + Cormorant Garamond italic final
  * word in the app's colour) without touching a single call site.
  *
  * The final word becomes the emphasised one and is lowercased to match the
- * house style â€” "Purchase Transactions" reads as "Purchase transactions".
+ * house style — "Purchase Transactions" reads as "Purchase transactions".
  * A one-word title has no plain part to pair with, so those call sites pass
  * a two-word title instead of relying on the split.
  */
@@ -294,16 +295,57 @@ function PageHdr({ title, sub, action }: { title:string; sub:string; action?:Rea
   );
 }
 
-/* â”€â”€ Table wrapper â”€â”€ */
-function DataTable({ headers, children }: { headers:string[]; children:React.ReactNode }) {
+/* ── Table wrapper ── */
+function DataTable({ headers, children, selectAll, selectAllIndeterminate, onSelectAll, sortBy, sortDir, onSort }: {
+  headers: string[];
+  children: React.ReactNode;
+  selectAll?: boolean;
+  selectAllIndeterminate?: boolean;
+  onSelectAll?: () => void;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+  onSort?: (col: string) => void;
+}) {
   return (
     <div className="rtbl-wrap">
       <table className="rtbl">
         <thead>
           <tr style={{ background:'var(--bg)' }}>
-            {headers.map(h=>(
-              <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' }}>{h}</th>
-            ))}
+            {onSelectAll !== undefined && (
+              <th style={{ padding:'10px 14px', width:40, borderBottom:'1px solid var(--border)' }}>
+                <Checkbox
+                  checked={selectAllIndeterminate ? 'indeterminate' : !!selectAll}
+                  onCheckedChange={onSelectAll}
+                  aria-label="Select all"
+                />
+              </th>
+            )}
+            {headers.map(h => {
+              const active = onSort && sortBy === h;
+              return (
+                <th key={h}
+                  onClick={() => onSort?.(h)}
+                  style={{
+                    padding:'10px 14px', textAlign:'left', fontSize:11, fontWeight:700,
+                    color: active ? 'hsl(var(--primary))' : 'var(--ink3)',
+                    textTransform:'uppercase', letterSpacing:'0.05em',
+                    borderBottom:'1px solid var(--border)', whiteSpace:'nowrap',
+                    cursor: onSort ? 'pointer' : undefined,
+                    userSelect: 'none',
+                    transition: 'color .12s',
+                  }}
+                >
+                  <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                    {h}
+                    {onSort && (
+                      <span style={{ fontSize:9, lineHeight:1, color: active ? 'hsl(var(--primary))' : 'var(--ink3)', opacity: active ? 1 : 0.4 }}>
+                        {active && sortDir === 'desc' ? '▼' : '▲'}
+                      </span>
+                    )}
+                  </span>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>{children}</tbody>
@@ -312,17 +354,44 @@ function DataTable({ headers, children }: { headers:string[]; children:React.Rea
   );
 }
 
-/* â”€â”€ Table row hover â”€â”€ */
-function TR({ children, onClick }: { children:React.ReactNode; onClick?:()=>void }) {
+function useSortState() {
+  const [sortBy, setSortBy] = useState('');
+  const [sortDir, setSortDir] = useState<'asc'|'desc'>('asc');
+  const handleSort = (col: string) => {
+    setSortBy(prev => { if (prev === col) { setSortDir(d => d === 'asc' ? 'desc' : 'asc'); return col; } setSortDir('asc'); return col; });
+  };
+  return { sortBy, sortDir, handleSort } as const;
+}
+
+function sortedRows<T>(rows: T[], sortBy: string, sortDir: 'asc'|'desc', accessor: (col: string, row: T) => any): T[] {
+  if (!sortBy) return rows;
+  return [...rows].sort((a, b) => {
+    const va = accessor(sortBy, a), vb = accessor(sortBy, b);
+    if (va == null) return 1; if (vb == null) return -1;
+    const cmp = typeof va === 'number' && typeof vb === 'number'
+      ? va - vb
+      : String(va).localeCompare(String(vb), undefined, { numeric: true, sensitivity: 'base' });
+    return sortDir === 'desc' ? -cmp : cmp;
+  });
+}
+
+/* ── Table row hover ── */
+function TR({ children, onClick, selected, onSelect }: { children:React.ReactNode; onClick?:()=>void; selected?:boolean; onSelect?:()=>void }) {
   const [hov, setHov] = useState(false);
   return (
-    <tr onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} onClick={onClick} style={{ background:hov?'var(--bg)':'transparent', transition:'background .1s', cursor:onClick?'pointer':undefined }}>
+    <tr onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} onClick={onClick}
+      style={{ background: selected ? 'color-mix(in srgb, var(--teal) 6%, var(--white))' : hov?'var(--bg)':'transparent', transition:'background .1s', cursor:onClick?'pointer':undefined }}>
+      {onSelect !== undefined && (
+        <td style={{ padding:'11px 14px', borderBottom:'1px solid var(--border)', width:40 }} onClick={e=>e.stopPropagation()}>
+          <Checkbox checked={!!selected} onCheckedChange={onSelect} aria-label="Select row" />
+        </td>
+      )}
       {children}
     </tr>
   );
 }
 
-/* â”€â”€ TD â”€â”€ */
+/* ── TD ── */
 function TD({ children, right, nowrap }: { children:React.ReactNode; right?:boolean; nowrap?:boolean }) {
   return (
     <td style={{ padding:'11px 14px', borderBottom:'1px solid var(--border)', fontSize:13, color:'var(--ink)', textAlign:right?'right':undefined, whiteSpace:nowrap?'nowrap':undefined }}>
@@ -331,18 +400,21 @@ function TD({ children, right, nowrap }: { children:React.ReactNode; right?:bool
   );
 }
 
-/* â”€â”€ Action menu button â”€â”€ */
+/* ── Action menu button ── */
 function ActBtn({ icon, color, title, onClick }: { icon:IconName; color?:string; title:string; onClick:()=>void }) {
-  const [hov, setHov] = useState(false);
   return (
-    <button title={title} onClick={e=>{e.stopPropagation();onClick();}} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      style={{ background:hov?(color?`${color}18`:'var(--bg)'):'none', border:'none', borderRadius:'var(--r)', padding:5, cursor:'pointer', color:color||'var(--ink3)', display:'inline-flex', alignItems:'center', transition:'background .1s' }}>
-      <Icon name={icon} size={14} color={color||'var(--ink3)'} />
-    </button>
+    <Tip label={title}>
+      <button onClick={e=>{e.stopPropagation();onClick();}}
+        style={{ background:'none', border:'none', borderRadius:'var(--r)', padding:5, cursor:'pointer', color:color||'var(--ink3)', display:'inline-flex', alignItems:'center', transition:'background .1s' }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = color ? `color-mix(in srgb, ${color} 12%, var(--bg))` : 'var(--bg)'; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; }}>
+        <Icon name={icon} size={14} color={color||'var(--ink3)'} />
+      </button>
+    </Tip>
   );
 }
 
-/* â”€â”€ Stat summary card â”€â”€ */
+/* ── Stat summary card ── */
 function StatCard({ label, value }: { label:string; value:number|string; color?:string }) {
   return (
     <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', padding:'16px 20px', flex:1, boxShadow: 'var(--elev-sm, 0 1px 3px rgba(0, 0, 0, 0.03))' }}>
@@ -352,9 +424,9 @@ function StatCard({ label, value }: { label:string; value:number|string; color?:
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    DASHBOARD VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 
 export function DashboardView() {
   const isMobile = useIsMobile();
@@ -374,7 +446,7 @@ export function DashboardView() {
       });
   }, []);
 
-  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading dashboard statisticsâ€¦</div>;
+  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading dashboard statistics…</div>;
   if (error || !stats) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Error loading dashboard stats. Check server connection.</div>;
 
   const { kpis, planDist, spark, monthlyRev, transactions, platformInsights } = stats;
@@ -384,14 +456,14 @@ export function DashboardView() {
 
   return (
     <div>
-      <PageHdr title="Super Admin Dashboard" sub="Platform overview â€” all companies, revenue and activity at a glance" />
+      <PageHdr title="Super Admin Dashboard" sub="Platform overview — all companies, revenue and activity at a glance" />
 
       {/* KPI row */}
       <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap:16, marginBottom:24 }}>
         <KPICard title="Total Companies"    value={String(kpis.totalCompanies)}       icon="building"   color="var(--teal)"   spark={spark.companies}   emptyHint={noHistory} />
         <KPICard title="Active Companies"   value={String(kpis.activeCompanies)}      icon="check"      color="var(--teal)"  spark={spark.active}      emptyHint={noHistory} />
         <KPICard title="Total Subscribers"  value={`${kpis.totalSubscribers} users`}  icon="users"      color="var(--teal)" spark={spark.subscribers} emptyHint={noHistory} />
-        {/* Money received, not a list-price run-rate â€” the run-rate estimate is
+        {/* Money received, not a list-price run-rate — the run-rate estimate is
             the smaller figure and was previously the one shown as "earnings". */}
         <KPICard title="Revenue Collected"  value={fmtCurrency(kpis.collectedRevenue ?? 0)} icon="dollarSign" color="var(--teal)" spark={spark.earnings}
                  hint={`${fmtCurrency(kpis.totalEarnings)} list-price run rate`} />
@@ -458,7 +530,7 @@ export function DashboardView() {
               <div style={{ fontSize:12, color:'var(--ink3)', padding:'14px 0' }}>No payments recorded yet.</div>
             )}
             {/* companyName comes from the join on tenants. This used to call
-                coByID(), which searches the mock COMPANIES array â€” a real
+                coByID(), which searches the mock COMPANIES array — a real
                 tenant id never matched, so every row read "Unknown Company". */}
             {transactions.map((tx: any)=>{
               const txcfg = TX_CFG[tx.status as TxStatus] || TX_CFG.completed;
@@ -466,7 +538,7 @@ export function DashboardView() {
                 <div key={tx.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:'1px solid var(--border)' }}>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:12, fontWeight:600, color:'var(--ink)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{tx.companyName || 'Deleted company'}</div>
-                    <div style={{ fontSize:11, color:'var(--ink3)' }}>{tx.txRef}{tx.payerName ? ` Â· ${tx.payerName}` : ''}</div>
+                    <div style={{ fontSize:11, color:'var(--ink3)' }}>{tx.txRef}{tx.payerName ? ` · ${tx.payerName}` : ''}</div>
                   </div>
                   <div style={{ textAlign:'right' }}>
                     <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>{fmtCurrency(tx.amount)}</div>
@@ -480,10 +552,10 @@ export function DashboardView() {
 
         {/* "Upcoming Renewals" used to live here, built by claiming every tenant
             renews in exactly 30 days. `tenants` has no expiry or renewal column
-            and there is no subscriptions table, so there is nothing to show â€”
+            and there is no subscriptions table, so there is nothing to show —
             the panel is gone rather than filled with a date nobody committed to.
             Rollup cards for the two domain "Insights" layers relocated out of
-            this shell (Decompose SuperAdmin M1/M3) take the slot instead â€” a
+            this shell (Decompose SuperAdmin M1/M3) take the slot instead — a
             real number, linking straight to where the detail now lives. */}
         <div className="card" style={{ padding:'20px 22px' }}>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', marginBottom:14 }}>Platform Insights</div>
@@ -492,9 +564,9 @@ export function DashboardView() {
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                 <Icon name="alertCircle" size={16} color={platformInsights.lens.critical > 0 ? 'var(--red)' : 'var(--ink3)'} />
                 <div>
-                  <div style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>Lens â€” open engineering items</div>
+                  <div style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>Lens — open engineering items</div>
                   <div style={{ fontSize:11, color:'var(--ink3)' }}>
-                    {platformInsights.lens.critical > 0 ? `${platformInsights.lens.critical} critical Â· ` : ''}across every part of the platform
+                    {platformInsights.lens.critical > 0 ? `${platformInsights.lens.critical} critical · ` : ''}across every part of the platform
                   </div>
                 </div>
               </div>
@@ -504,17 +576,17 @@ export function DashboardView() {
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                 <Icon name="fingerprint" size={16} color={platformInsights.devices.error > 0 ? 'var(--red)' : 'var(--ink3)'} />
                 <div>
-                  <div style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>Attendance devices â€” all tenants</div>
+                  <div style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>Attendance devices — all tenants</div>
                   <div style={{ fontSize:11, color:'var(--ink3)' }}>
-                    {platformInsights.devices.online} online Â· {platformInsights.devices.offline} offline
-                    {platformInsights.devices.error > 0 ? ` Â· ${platformInsights.devices.error} error` : ''}
+                    {platformInsights.devices.online} online · {platformInsights.devices.offline} offline
+                    {platformInsights.devices.error > 0 ? ` · ${platformInsights.devices.error} error` : ''}
                   </div>
                 </div>
               </div>
               <div style={{ fontSize:18, fontWeight:800, color:'var(--ink)' }}>{platformInsights.devices.total}</div>
             </Link>
             <div style={{ fontSize:11, color:'var(--ink3)', textAlign:'center' }}>
-              Filterable, exportable detail for devices is in <Link to="/hudubi/reports" style={{ color:'var(--teal)', fontWeight:600 }}>HuduBI Reports</Link> â€” "Attendance devices by status".
+              Filterable, exportable detail for devices is in <Link to="/hudubi/reports" style={{ color:'var(--teal)', fontWeight:600 }}>HuduBI Reports</Link> — "Attendance devices by status".
             </div>
           </div>
         </div>
@@ -523,14 +595,14 @@ export function DashboardView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    COMPANIES VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 interface ApiTenant { id:string; name:string; slug:string; plan:string; active:boolean; created_at:string; logo_url?:string; primary_color?:string; users?:number; founder_personal_email_domain?:string|null; }
 interface CoForm { name:string; email:string; phone:string; plan:PlanId; owner:string; country:string; }
 const CO_FORM_DEFAULT: CoForm = { name:'', email:'', phone:'', plan:'starter', owner:'', country:'Tanzania' };
 
-// Each row already has a real checkbox + name â€” a different dot colour per
+// Each row already has a real checkbox + name — a different dot colour per
 // app added nothing but visual noise, since the checkbox state (not colour)
 // is what carries the actual information here.
 const TENANT_APPS: { id: string; name: string }[] = [
@@ -561,6 +633,11 @@ interface TenantCustomer {
   account_status: string; active: boolean; created_at: string;
 }
 
+interface TenantFinanceOverview {
+  capabilitySummary: FinanceCapabilitySummary;
+  configuration: FinanceConfiguration;
+}
+
 export function CompaniesView() {
   const isMobile = useIsMobile();
   const { impersonate, impersonateCustomer } = useAuth();
@@ -579,6 +656,8 @@ export function CompaniesView() {
   const [editEnabledApps, setEditEnabledApps] = useState<Record<string, boolean>>({});
   const [addonsCatalog, setAddonsCatalog] = useState<Addon[]>([]);
   const [editAddonGrants, setEditAddonGrants] = useState<Record<string, boolean>>({});
+  const [editFinance, setEditFinance] = useState<TenantFinanceOverview | null>(null);
+  const [editFinanceLoading, setEditFinanceLoading] = useState(false);
 
   useEffect(() => {
     apiFetch('/v1/addons').then(res => setAddonsCatalog((res.data as any[]).map(mapAddonFromApi))).catch(() => {});
@@ -593,6 +672,10 @@ export function CompaniesView() {
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [impersonatingCustomerId, setImpersonatingCustomerId] = useState<string|null>(null);
   const [resyncingCloud, setResyncingCloud] = useState(false);
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [coPage, setCoPage] = useState(1);
+  const [coPageSize, setCoPageSize] = useState(25);
 
   const load = useCallback(async () => {
     try {
@@ -612,7 +695,7 @@ export function CompaniesView() {
   const displayed = useMemo(() => {
     // The mock COMPANIES fixture (including a fabricated "suspended" tenant)
     // is only an honest stand-in when the real list genuinely couldn't be
-    // fetched â€” the subtitle below says "(mock â€” API offline)" for that case.
+    // fetched — the subtitle below says "(mock — API offline)" for that case.
     // It used to also cover a real, successful, genuinely-empty result (a
     // fresh platform with zero tenants), silently presenting fake companies
     // as real ones with no disclosure at all. A truly empty tenant list now
@@ -647,6 +730,43 @@ export function CompaniesView() {
       return true;
     }),
   [displayed, search, planFilter, statusFilter]);
+
+  // Reset selection and page when filters change
+  useEffect(() => { setSelected(new Set()); setCoPage(1); }, [search, planFilter, statusFilter]);
+
+  const { sortBy: coSortBy, sortDir: coSortDir, handleSort: coHandleSort } = useSortState();
+  const coAccessor = (col: string, c: Company) => ({
+    'Company': c.name, 'Contact': c.email, 'Plan': c.plan,
+    'Users': c.users, 'Status': c.status, 'Domain': c.domain, 'Created': c.created,
+  }[col]);
+
+  const paginated = useMemo(() => {
+    const sorted = sortedRows(filtered, coSortBy, coSortDir, coAccessor);
+    return sorted.slice((coPage - 1) * coPageSize, coPage * coPageSize);
+  }, [filtered, coPage, coPageSize, coSortBy, coSortDir]);
+
+  function exportCompanies() {
+    const rows = selected.size > 0 ? filtered.filter(c => selected.has(c.id)) : filtered;
+    const header = ['Name','Email','Phone','Plan','Users','Status','Domain','Country','Created'];
+    const lines = [header.join(','), ...rows.map(c => [
+      `"${c.name.replace(/"/g, '""')}"`,
+      `"${c.email}"`,
+      `"${c.phone}"`,
+      c.plan,
+      c.users,
+      c.status,
+      `"${c.domain}"`,
+      `"${c.country}"`,
+      c.created,
+    ].join(','))];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `companies-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function handleImpersonate(co: Company) {
     setImpersonating(co.id);
@@ -726,9 +846,15 @@ export function CompaniesView() {
     });
     setEditEnabledApps({});
     setEditAddonGrants({});
+    setEditFinance(null);
+    setEditFinanceLoading(true);
     setShowEdit(true);
     apiFetch(`/v1/superadmin/tenants/${co.id}/apps`).then((r: any) => setEditEnabledApps(r.enabledApps || {})).catch(() => {});
     apiFetch(`/v1/superadmin/tenants/${co.id}/addons`).then((r: any) => setEditAddonGrants(r.addonGrants || {})).catch(() => {});
+    apiFetch(`/v1/superadmin/tenants/${co.id}/finance`)
+      .then((r: TenantFinanceOverview) => setEditFinance(r))
+      .catch(() => setEditFinance(null))
+      .finally(() => setEditFinanceLoading(false));
   }
 
   async function saveEditCompany() {
@@ -776,7 +902,7 @@ export function CompaniesView() {
   }
 
   // A generic yes/no dialog was the only thing standing between a misclick
-  // and permanently, irreversibly deleting a live tenant's entire dataset â€”
+  // and permanently, irreversibly deleting a live tenant's entire dataset —
   // every shipment, invoice, user account and document, cascade-deleted with
   // no soft-delete or recovery path. This is the single most destructive
   // action in the whole SuperAdmin console, so it gets the one confirmation
@@ -801,41 +927,332 @@ export function CompaniesView() {
     <div>
       <PageHdr
         title="All Companies"
-        sub={apiLoaded ? `${displayed.length} registered ${apiError ? '(mock â€” API offline)' : 'companies'}` : 'Loadingâ€¦'}
+        sub={apiLoaded ? `${displayed.length} registered ${apiError ? '(mock — API offline)' : 'companies'}` : 'Loading…'}
         action={
           <div className="sa-toolbar-actions">
-            {apiError && <span className="sa-toolbar-offline">API offline â€” showing mock data</span>}
+            {apiError && <span className="sa-toolbar-offline">API offline — showing mock data</span>}
             <button type="button" title="Refresh companies" onClick={load} className="btn btn-secondary btn-sm sa-btn-gap-sm"><Icon name="refresh" size={12}/>Refresh</button>
             <button type="button" title="Add company" onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm sa-btn-gap-md"><Icon name="plus" size={13}/>Add Company</button>
           </div>
         }
       />
 
-      <div className="sa-toolbar">
-        <div className="sa-toolbar-search">
-          <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
-          <input title="Search companies" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search companiesâ€¦" className="input-field" />
-        </div>
-        <SingleSelectFilter
-          label="Status" allLabel="All Status"
-          options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]}
-          value={statusFilter === 'all' ? null : statusFilter} onChange={v => setStatusFilter((v ?? 'all') as any)}
+      {/* Unified Dreams Core style filter bar */}
+      <div style={{ marginBottom: 16 }}>
+        <SearchToolbar
+          search={search}
+          onSearch={setSearch}
+          placeholder="Search companies…"
+          quickFilter={{
+            value: statusFilter === 'all' ? null : statusFilter,
+            onChange: v => setStatusFilter((v ?? 'all') as any),
+            allLabel: "All Status",
+            options: [
+              {
+                value: 'active',
+                label: 'Active',
+                icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green, #10b981)', display: 'inline-block' }} />
+              },
+              {
+                value: 'inactive',
+                label: 'Inactive',
+                icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ink3, #94a3b8)', display: 'inline-block' }} />
+              },
+            ]
+          }}
+          activeFilterCount={(statusFilter !== 'all' ? 1 : 0) + (planFilter !== 'all' ? 1 : 0)}
+          filterContent={(close) => {
+            const count = (statusFilter !== 'all' ? 1 : 0) + (planFilter !== 'all' ? 1 : 0);
+            const hasActive = count > 0 || Boolean(search.trim());
+            return (
+              <div style={{ padding: 16, fontFamily: 'var(--font)' }}>
+                {/* Popover Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>
+                    <SlidersHorizontal size={14} style={{ color: 'hsl(var(--primary))' }} />
+                    <span>Filters</span>
+                    {count > 0 && (
+                      <span className="stb-green-badge">
+                        <span className="stb-green-dot" />
+                        <span>{count}</span>
+                      </span>
+                    )}
+                  </div>
+                  {hasActive && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch('');
+                        setStatusFilter('all');
+                        setPlanFilter('all');
+                      }}
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'hsl(var(--primary))',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '2px 6px',
+                      }}
+                      className="hover:underline"
+                    >
+                      Reset all
+                    </button>
+                  )}
+                </div>
+
+                {/* Status section */}
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                    Company Status
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {[
+                      { value: 'all', label: 'All Status' },
+                      { value: 'active', label: 'Active', dot: 'var(--green, #10b981)' },
+                      { value: 'inactive', label: 'Inactive', dot: 'var(--ink3, #94a3b8)' },
+                    ].map(opt => {
+                      const isSelected = statusFilter === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setStatusFilter(opt.value as any)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '5px 11px',
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: isSelected ? 600 : 500,
+                            border: isSelected ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
+                            background: isSelected ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
+                            color: isSelected ? 'hsl(var(--primary))' : 'var(--ink2)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {opt.dot && (
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: opt.dot }} />
+                          )}
+                          <span>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Plan section */}
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                    Subscription Plan
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => setPlanFilter('all')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '5px 11px',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: planFilter === 'all' ? 600 : 500,
+                        border: planFilter === 'all' ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
+                        background: planFilter === 'all' ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
+                        color: planFilter === 'all' ? 'hsl(var(--primary))' : 'var(--ink2)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      All Plans
+                    </button>
+                    {(Object.keys(PLAN_CFG) as PlanId[]).map(k => {
+                      const isSelected = planFilter === k;
+                      return (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => setPlanFilter(k)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            padding: '5px 11px',
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: isSelected ? 600 : 500,
+                            border: isSelected ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
+                            background: isSelected ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
+                            color: isSelected ? 'hsl(var(--primary))' : 'var(--ink2)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {PLAN_CFG[k].label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Footer summary & action */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
+                    Showing <strong style={{ color: 'var(--ink)' }}>{filtered.length}</strong> of {displayed.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={close}
+                    className="btn btn-primary btn-sm"
+                    style={{ padding: '4px 12px', fontSize: 12 }}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            );
+          }}
         />
-        <SingleSelectFilter
-          label="Plan" allLabel="All Plans"
-          options={(Object.keys(PLAN_CFG) as PlanId[]).map(k => ({ value: k, label: PLAN_CFG[k].label }))}
-          value={planFilter === 'all' ? null : planFilter} onChange={v => setPlanFilter((v ?? 'all') as PlanId | 'all')}
-        />
+
+        {/* Active Filter Chips strip */}
+        {((statusFilter !== 'all' ? 1 : 0) + (planFilter !== 'all' ? 1 : 0) > 0 || Boolean(search.trim())) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 10, paddingLeft: 2 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--ink3)', fontWeight: 600 }}>Active filters:</span>
+            {search.trim() && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  fontSize: 11.5,
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--ink)',
+                }}
+              >
+                Search: <strong>"{search}"</strong>
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
+                  title="Clear search"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {statusFilter !== 'all' && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  fontSize: 11.5,
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--ink)',
+                  textTransform: 'capitalize',
+                }}
+              >
+                Status: <strong>{statusFilter}</strong>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('all')}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
+                  title="Remove status filter"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {planFilter !== 'all' && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  fontSize: 11.5,
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--ink)',
+                }}
+              >
+                Plan: <strong>{PLAN_CFG[planFilter]?.label ?? planFilter}</strong>
+                <button
+                  type="button"
+                  onClick={() => setPlanFilter('all')}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
+                  title="Remove plan filter"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setStatusFilter('all');
+                setPlanFilter('all');
+              }}
+              style={{
+                fontSize: 11.5,
+                fontWeight: 600,
+                color: 'hsl(var(--primary))',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '2px 4px',
+              }}
+              className="hover:underline"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
       </div>
 
       {!apiLoaded && (
-        <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)', fontSize:13 }}>Loading tenantsâ€¦</div>
+        <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)', fontSize:13 }}>Loading tenants…</div>
+      )}
+
+      {apiLoaded && selected.size > 0 && (
+        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 14px', minHeight:'var(--ctl-h)', marginBottom:8, background:'color-mix(in srgb, var(--teal) 8%, var(--white))', border:'1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius:'var(--r)', fontSize:13, boxShadow:'0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+          <span style={{ fontWeight:600, color:'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'company' : 'companies'} selected</span>
+          <div style={{ flex:1 }} />
+          <button type="button" className="btn btn-secondary btn-sm" onClick={exportCompanies}><Icon name="download" size={12} style={{ marginRight:5 }}/>Export</button>
+          <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)' }} onClick={()=>setSelected(new Set())}>Clear</button>
+        </div>
       )}
 
       {apiLoaded && (
-        <DataTable headers={['Company','Contact','Plan','Users','Status','Domain','Created','Actions']}>
-          {filtered.map(co=>(
-            <TR key={co.id}>
+        <DataTable
+          headers={['Company','Contact','Plan','Users','Status','Domain','Created','Actions']}
+          selectAll={selected.size === paginated.length && paginated.length > 0}
+          selectAllIndeterminate={selected.size > 0 && selected.size < paginated.length}
+          onSelectAll={() => {
+            if (selected.size === paginated.length) {
+              setSelected(new Set());
+            } else {
+              setSelected(new Set(paginated.map(c => c.id)));
+            }
+          }}
+          sortBy={coSortBy} sortDir={coSortDir} onSort={coHandleSort}
+        >
+          {paginated.map(co=>(
+            <TR key={co.id} selected={selected.has(co.id)} onSelect={() => setSelected(prev => {
+              const next = new Set(prev);
+              if (next.has(co.id)) next.delete(co.id); else next.add(co.id);
+              return next;
+            })}>
               <TD>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                   <CoAv co={co} />
@@ -843,14 +1260,14 @@ export function CompaniesView() {
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                       <span style={{ fontWeight:600 }}>{co.name}</span>
                       {co.founderPersonalEmailDomain && (
-                        <span
-                          title={`Signed up with a personal email (${co.founderPersonalEmailDomain}), not a verified work domain`}
-                          style={{ fontSize:10, fontWeight:700, borderRadius:'var(--badge-radius)', padding:'2px 7px', color:'var(--gold)', background:'var(--gold-l)', whiteSpace:'nowrap' }}>
-                          Personal email
-                        </span>
+                        <Tip label={`Signed up with a personal email (${co.founderPersonalEmailDomain}), not a verified work domain`} side="top">
+                          <span style={{ fontSize:10, fontWeight:700, borderRadius:'var(--badge-radius)', padding:'2px 7px', color:'var(--gold)', background:'var(--gold-l)', whiteSpace:'nowrap', cursor:'default' }}>
+                            Personal email
+                          </span>
+                        </Tip>
                       )}
                     </div>
-                    <div style={{ fontSize:11, color:'var(--ink3)', fontFamily:'var(--font)' }}>{co.id.length > 10 ? co.id.slice(0,8)+'â€¦' : co.id}</div>
+                    <div style={{ fontSize:11, color:'var(--ink3)', fontFamily:'var(--font)' }}>{co.id.length > 10 ? co.id.slice(0,8)+'…' : co.id}</div>
                   </div>
                 </div>
               </TD>
@@ -865,15 +1282,16 @@ export function CompaniesView() {
               <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(co.created)}</span></TD>
               <TD>
                 <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                  <button
-                    type="button"
-                    title={`Login as ${co.name}`}
-                    disabled={!!impersonating}
-                    onClick={() => handleImpersonate(co)}
-                    style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonating ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonating===co.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                    <Icon name="eye" size={11} color="var(--teal)" />
-                    {impersonating === co.id ? 'Switchingâ€¦' : 'Login As'}
-                  </button>
+                  <Tip label={`Sign in as ${co.name} — you'll see the platform exactly as their admin does`} side="top">
+                    <button
+                      type="button"
+                      disabled={!!impersonating}
+                      onClick={() => handleImpersonate(co)}
+                      style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonating ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonating===co.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                      <Icon name="eye" size={11} color="var(--teal)" />
+                      {impersonating === co.id ? 'Switching…' : 'Login As'}
+                    </button>
+                  </Tip>
                   <ActBtn icon="users" title="View customers" onClick={()=>openCustomers(co)} />
                   <ActBtn icon="edit" color="var(--teal)" title="Edit company" onClick={()=>openEdit(co)} />
                   {co.status === 'active'
@@ -885,11 +1303,23 @@ export function CompaniesView() {
             </TR>
           ))}
           {filtered.length === 0 && (
-            <tr><td colSpan={8} style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>
+            <tr><td colSpan={9} style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>
               {!apiError && tenants.length === 0 ? 'No companies registered yet.' : 'No companies match your filters'}
             </td></tr>
           )}
         </DataTable>
+      )}
+
+      {apiLoaded && filtered.length > 0 && (
+        <PaginationBar
+          page={coPage}
+          pageSize={coPageSize}
+          total={filtered.length}
+          onPageChange={setCoPage}
+          onPageSizeChange={p => { setCoPageSize(p); setCoPage(1); }}
+          itemLabel="companies"
+          bordered
+        />
       )}
 
       {showAdd && (
@@ -969,7 +1399,7 @@ export function CompaniesView() {
               </div>
             </div>
 
-            {/* Add-ons (376_package_addons.sql) â€” granted independent of the
+            {/* Add-ons (376_package_addons.sql) — granted independent of the
                 plan above, e.g. Onsite for an agency/web-host/IT-provider
                 tenant. Mirrors the Enabled Apps grid exactly. */}
             {addonsCatalog.length > 0 && (
@@ -990,6 +1420,51 @@ export function CompaniesView() {
               </div>
             )}
 
+            <div style={{ marginTop: 16 }}>
+              <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:8 }}>Finance access</label>
+              <div style={{ padding:12, background:'var(--bg)', borderRadius:'var(--r)', border:'1px solid var(--border)' }}>
+                {editFinanceLoading ? (
+                  <SectionLoading label="Loading Finance access" />
+                ) : editFinance ? (() => {
+                  const summary = editFinance.capabilitySummary;
+                  const enabled = summary.capabilities.filter(item => item.enabled).length;
+                  const available = summary.capabilities.filter(item => item.state === 'available').length;
+                  const locked = summary.capabilities.filter(item => item.state === 'not_entitled').length;
+                  const quota = summary.usage.limit == null
+                    ? `${summary.usage.used.toLocaleString()} actions · Unlimited`
+                    : `${summary.usage.used.toLocaleString()} / ${summary.usage.limit.toLocaleString()} actions`;
+                  return (
+                    <div style={{ display:'grid', gap:10 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                        <UiBadge variant={summary.edition === 'advanced' ? 'brand' : 'gray'}>{summary.edition === 'advanced' ? 'Finance Advanced' : 'Finance Basic'}</UiBadge>
+                        <span style={{ fontSize:11.5, color:'var(--ink3)' }}>{quota} / {summary.usage.period}</span>
+                      </div>
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:6 }}>
+                        {[
+                          ['Enabled', enabled, 'var(--green)'],
+                          ['Available', available, 'var(--gold)'],
+                          ['Plan locked', locked, 'var(--ink3)'],
+                        ].map(([label, value, color]) => (
+                          <div key={String(label)} style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'8px 9px' }}>
+                            <div style={{ fontSize:15, fontWeight:700, color:String(color) }}>{value}</div>
+                            <div style={{ fontSize:10.5, color:'var(--ink3)' }}>{label}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ fontSize:11.5, color:'var(--ink2)', lineHeight:1.5 }}>
+                        {editFinance.configuration.industries.length
+                          ? `Industries: ${editFinance.configuration.industries.join(', ')}`
+                          : 'No industry profile selected'}
+                        {' · '}{editFinance.configuration.businessLines.length} business line{editFinance.configuration.businessLines.length === 1 ? '' : 's'}
+                      </div>
+                    </div>
+                  );
+                })() : (
+                  <span style={{ fontSize:12, color:'var(--ink3)' }}>Finance access could not be loaded.</span>
+                )}
+              </div>
+            </div>
+
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:22 }}>
               <button type="button" title="Cancel" onClick={()=>setShowEdit(false)} className="btn btn-secondary btn-sm">Cancel</button>
               <button type="button" title="Save changes" onClick={saveEditCompany} className="btn btn-primary btn-sm" disabled={!editForm.name.trim()}>Save Changes</button>
@@ -1002,17 +1477,19 @@ export function CompaniesView() {
         <div className="modal-overlay" onClick={()=>setCustomersCo(null)}>
           <div className="card" style={{ width:640, padding:28, maxHeight:'85vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18, gap:10 }}>
-              <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>{customersCo.name} â€” Customers</span>
+              <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>{customersCo.name} — Customers</span>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <button type="button" title="Retag customer/shipment Cloud folders created before entity linking existed" disabled={resyncingCloud}
-                  onClick={handleResyncCloudLinks} className="btn btn-secondary btn-sm">
-                  {resyncingCloud ? 'Resyncingâ€¦' : 'Resync Cloud Links'}
-                </button>
+                <Tip label="Retag customer and shipment Cloud folders created before entity linking existed" side="top">
+                  <button type="button" disabled={resyncingCloud}
+                    onClick={handleResyncCloudLinks} className="btn btn-secondary btn-sm">
+                    {resyncingCloud ? 'Resyncing…' : 'Resync Cloud Links'}
+                  </button>
+                </Tip>
                 <button type="button" title="Close" onClick={()=>setCustomersCo(null)} className="dp-close"><Icon name="close" size={16} /></button>
               </div>
             </div>
             {loadingCustomers ? (
-              <div style={{ textAlign:'center', padding:'32px 0', color:'var(--ink3)', fontSize:13 }}>Loading customersâ€¦</div>
+              <div style={{ textAlign:'center', padding:'32px 0', color:'var(--ink3)', fontSize:13 }}>Loading customers…</div>
             ) : tenantCustomers.length === 0 ? (
               <div style={{ textAlign:'center', padding:'32px 0', color:'var(--ink3)', fontSize:13 }}>This company has no customers yet.</div>
             ) : (
@@ -1026,7 +1503,7 @@ export function CompaniesView() {
                       </span>
                     </TD>
                     <TD>
-                      <div style={{ fontSize:12 }}>{cust.email || 'â€”'}</div>
+                      <div style={{ fontSize:12 }}>{cust.email || '—'}</div>
                       <div style={{ fontSize:11, color:'var(--ink3)' }}>{cust.phone || cust.phone_wa || ''}</div>
                     </TD>
                     <TD><Badge cfg={cust.active ? { label: cust.account_status || 'Active', color:'var(--green)', bg:'var(--green-l)' } : { label:'Inactive', color:'var(--ink3)', bg:'var(--bg)' }} /></TD>
@@ -1038,7 +1515,7 @@ export function CompaniesView() {
                         onClick={() => handleImpersonateCustomer(cust)}
                         style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonatingCustomerId ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonatingCustomerId===cust.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                         <Icon name="eye" size={11} color="var(--teal)" />
-                        {impersonatingCustomerId === cust.id ? 'Switchingâ€¦' : 'Login As Customer'}
+                        {impersonatingCustomerId === cust.id ? 'Switching…' : 'Login As Customer'}
                       </button>
                     </TD>
                   </TR>
@@ -1058,7 +1535,7 @@ export function CompaniesView() {
               </DialogHeader>
               <div style={{ display:'flex', flexDirection:'column', gap:12, padding:'4px 0' }}>
                 <p style={{ fontSize:13, color:'var(--ink2)', margin:0 }}>
-                  This permanently deletes every shipment, invoice, document and user account belonging to <strong>{deleteTarget.name}</strong>. This cannot be undone â€” there is no backup or recovery.
+                  This permanently deletes every shipment, invoice, document and user account belonging to <strong>{deleteTarget.name}</strong>. This cannot be undone — there is no backup or recovery.
                 </p>
                 <p style={{ fontSize:13, color:'var(--ink2)', margin:0 }}>
                   Type <strong>{deleteTarget.name}</strong> to confirm.
@@ -1077,7 +1554,7 @@ export function CompaniesView() {
                   disabled={deleteConfirmText !== deleteTarget.name || deleting}
                   onClick={confirmDeleteCompany}
                 >
-                  {deleting ? 'Deletingâ€¦' : 'Delete permanently'}
+                  {deleting ? 'Deleting…' : 'Delete permanently'}
                 </Button>
               </DialogFooter>
             </>
@@ -1088,12 +1565,15 @@ export function CompaniesView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    SUBSCRIPTIONS VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 export function SubscriptionsView() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<SubStatus|'all'>('all');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [subPage, setSubPage] = useState(1);
+  const [subPageSize, setSubPageSize] = useState(25);
 
   const counts = useMemo(()=>({
     total:    SUBSCRIPTIONS.length,
@@ -1111,6 +1591,33 @@ export function SubscriptionsView() {
     }),
   [search, statusFilter]);
 
+  useEffect(() => { setSelected(new Set()); setSubPage(1); }, [search, statusFilter]);
+
+  const { sortBy: subSortBy, sortDir: subSortDir, handleSort: subHandleSort } = useSortState();
+  const subAccessor = (col: string, s: typeof filtered[0]) => {
+    const co = coByID(s.companyId);
+    return ({ 'Company': co.name, 'Plan': s.plan, 'Billing': s.billing,
+      'Start Date': s.start, 'End Date': s.end, 'Amount': Number(s.amount), 'Status': s.status })[col];
+  };
+  const subPaginated = useMemo(() => {
+    const sorted = sortedRows(filtered, subSortBy, subSortDir, subAccessor);
+    return sorted.slice((subPage - 1) * subPageSize, subPage * subPageSize);
+  }, [filtered, subPage, subPageSize, subSortBy, subSortDir]);
+
+  function exportSubscriptions() {
+    const rows = selected.size > 0 ? filtered.filter(s => selected.has(s.id)) : filtered;
+    const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const header = ['Company','Plan','Billing','Start Date','End Date','Amount','Status'];
+    const csv = [header.join(','), ...rows.map(s => {
+      const co = coByID(s.companyId);
+      return [co.name, s.plan, s.billing, s.start, s.end, s.amount, s.status].map(esc).join(',');
+    })].join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url;
+    a.download = `subscriptions-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  }
+
   return (
     <div>
       <PageHdr title="Company Subscriptions" sub="All company subscription plans and billing status" />
@@ -1122,23 +1629,51 @@ export function SubscriptionsView() {
         <StatCard label="Expired / Cancelled"  value={counts.expired} color="var(--red)"      />
       </div>
 
-      <div className="sa-toolbar">
-        <div className="sa-toolbar-search">
-          <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
-          <input title="Search by company" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by companyâ€¦" className="input-field" />
-        </div>
-        <SingleSelectFilter
-          label="Status" allLabel="All Status"
-          options={(Object.keys(SUB_CFG) as SubStatus[]).map(k => ({ value: k, label: SUB_CFG[k].label }))}
-          value={statusFilter === 'all' ? null : statusFilter} onChange={v => setStatusFilter((v ?? 'all') as SubStatus | 'all')}
+      <div style={{ marginBottom: 16 }}>
+        <SearchToolbar
+          search={search}
+          onSearch={v => { setSearch(v); setSubPage(1); }}
+          placeholder="Search by company…"
+          quickFilter={{
+            value: statusFilter === 'all' ? null : statusFilter,
+            onChange: v => setStatusFilter((v ?? 'all') as SubStatus | 'all'),
+            allLabel: 'All Status',
+            columns: 2,
+            options: (Object.keys(SUB_CFG) as SubStatus[]).map(k => ({
+              value: k,
+              label: SUB_CFG[k].label,
+              icon: <span style={{ width:7, height:7, borderRadius:'50%', background: SUB_CFG[k].color, display:'inline-block' }} />,
+            })),
+          }}
+          activeFilterCount={statusFilter !== 'all' ? 1 : 0}
         />
       </div>
 
-      <DataTable headers={['Company','Plan','Billing','Start Date','End Date','Amount','Status','Actions']}>
-        {filtered.map(sub=>{
+      {selected.size > 0 && (
+        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 14px', minHeight:'var(--ctl-h)', marginBottom:8, background:'color-mix(in srgb, var(--teal) 8%, var(--white))', border:'1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius:'var(--r)', fontSize:13, boxShadow:'0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+          <span style={{ fontWeight:600, color:'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'subscription' : 'subscriptions'} selected</span>
+          <div style={{ flex:1 }} />
+          <button type="button" className="btn btn-secondary btn-sm" onClick={exportSubscriptions}><Icon name="download" size={12} style={{ marginRight:5 }}/>Export</button>
+          <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)' }} onClick={()=>setSelected(new Set())}>Clear</button>
+        </div>
+      )}
+
+      <DataTable
+        headers={['Company','Plan','Billing','Start Date','End Date','Amount','Status','Actions']}
+        selectAll={selected.size === subPaginated.length && subPaginated.length > 0}
+        selectAllIndeterminate={selected.size > 0 && selected.size < subPaginated.length}
+        onSelectAll={() => {
+          if (selected.size === subPaginated.length) setSelected(new Set());
+          else setSelected(new Set(subPaginated.map(s => s.id)));
+        }}
+        sortBy={subSortBy} sortDir={subSortDir} onSort={subHandleSort}
+      >
+        {subPaginated.map(sub=>{
           const co = coByID(sub.companyId);
           return (
-            <TR key={sub.id}>
+            <TR key={sub.id} selected={selected.has(sub.id)} onSelect={() => setSelected(prev => {
+              const next = new Set(prev); if (next.has(sub.id)) next.delete(sub.id); else next.add(sub.id); return next;
+            })}>
               <TD>
                 <div style={{ display:'flex', alignItems:'center', gap:9 }}>
                   <CoAv co={co} size={30} />
@@ -1160,23 +1695,35 @@ export function SubscriptionsView() {
             </TR>
           );
         })}
+        {filtered.length === 0 && (
+          <tr><td colSpan={9} style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>No subscriptions match your filters.</td></tr>
+        )}
       </DataTable>
+
+      {filtered.length > 0 && (
+        <PaginationBar
+          page={subPage} pageSize={subPageSize} total={filtered.length}
+          onPageChange={setSubPage}
+          onPageSizeChange={p => { setSubPageSize(p); setSubPage(1); }}
+          itemLabel="subscriptions" bordered
+        />
+      )}
     </div>
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    PACKAGES VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-// Same id â†’ display-name map every app launcher tile and sidebar already
-// reads (LauncherApps.tsx) â€” reused here instead of a second, hand-guessed
+══════════════════════════════════════════════════ */
+// Same id → display-name map every app launcher tile and sidebar already
+// reads (LauncherApps.tsx) — reused here instead of a second, hand-guessed
 // label set that would drift from it.
 const APP_NAME_BY_ID: Record<string, string> = Object.fromEntries(LAUNCHER_APPS.map(a => [a.id, a.name]));
 function humanize(s: string): string {
   return s.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 /** A dotted key ('tracking.cargo-loading') is a sub-feature of its prefix
- *  ('tracking') â€” ALL_FEATURE_KEYS already lists each parent immediately
+ *  ('tracking') — ALL_FEATURE_KEYS already lists each parent immediately
  *  before its children, so rendering in array order and indenting whichever
  *  rows have a parent groups them correctly with no tree-building needed. */
 function featureLabel(key: string): { parent: string | null; label: string } {
@@ -1186,7 +1733,7 @@ function featureLabel(key: string): { parent: string | null; label: string } {
   return { parent: APP_NAME_BY_ID[parentKey] || humanize(parentKey), label: humanize(key.slice(dot + 1)) };
 }
 
-/** Real, wired editor for which entitlement feature keys a package grants â€” PATCHes
+/** Real, wired editor for which entitlement feature keys a package grants — PATCHes
  *  /v1/superadmin/packages/:code/features (backed by the package_features table), distinct
  *  from the still-local-only price/maxUsers/display-features fields in the parent modal. */
 function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
@@ -1230,7 +1777,7 @@ function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
         <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>Feature Gates</div>
         <Button type="button" size="sm" variant="secondary" onClick={save} disabled={loading || saving}>
-          {saved ? 'Saved' : saving ? 'Savingâ€¦' : 'Save Gates'}
+          {saved ? 'Saved' : saving ? 'Saving…' : 'Save Gates'}
         </Button>
       </div>
       {loading ? (
@@ -1244,7 +1791,7 @@ function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
                 <TD>
                   {parent ? (
                     <span style={{ display:'inline-flex', alignItems:'baseline', gap:6, paddingLeft:18, fontSize:12.5, color:'var(--ink2)' }}>
-                      <span style={{ color:'var(--ink3)' }}>â€“</span> {label}
+                      <span style={{ color:'var(--ink3)' }}>–</span> {label}
                       <span style={{ fontSize:10.5, color:'var(--ink3)' }}>({parent})</span>
                     </span>
                   ) : (
@@ -1263,7 +1810,7 @@ function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
   );
 }
 
-/** Real, wired editor for per-app monthly item quotas on a package â€” PATCHes
+/** Real, wired editor for per-app monthly item quotas on a package — PATCHes
  *  /v1/superadmin/packages/:code/quotas (backed by package_app_quotas,
  *  migration 280). Layered on top of the blanket "Monthly item limit"
  *  field in the parent modal: both apply, whichever a tenant hits first
@@ -1318,7 +1865,7 @@ function AppQuotasEditor({ packageCode }: { packageCode: string }) {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
         <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>Per-app monthly quotas</div>
         <Button type="button" size="sm" variant="secondary" onClick={save} disabled={loading || saving}>
-          {saved ? 'Saved' : saving ? 'Savingâ€¦' : 'Save Quotas'}
+          {saved ? 'Saved' : saving ? 'Saving…' : 'Save Quotas'}
         </Button>
       </div>
       {loading ? (
@@ -1332,7 +1879,7 @@ function AppQuotasEditor({ packageCode }: { packageCode: string }) {
                 <TD>
                   {parent ? (
                     <span style={{ display:'inline-flex', alignItems:'baseline', gap:6, paddingLeft:18, fontSize:12.5, color:'var(--ink2)' }}>
-                      <span style={{ color:'var(--ink3)' }}>â€“</span> {label}
+                      <span style={{ color:'var(--ink3)' }}>–</span> {label}
                       <span style={{ fontSize:10.5, color:'var(--ink3)' }}>({parent})</span>
                     </span>
                   ) : (
@@ -1341,7 +1888,7 @@ function AppQuotasEditor({ packageCode }: { packageCode: string }) {
                 </TD>
                 <TD right>
                   <Input
-                    type="number" min={0} placeholder="âˆž"
+                    type="number" min={0} placeholder="∞"
                     value={quotas[key] ?? ''}
                     onChange={e => setLimit(key, e.target.value)}
                     style={{ width:90, textAlign:'right', display:'inline-flex' }}
@@ -1358,19 +1905,19 @@ function AppQuotasEditor({ packageCode }: { packageCode: string }) {
 
 export function PackagesView() {
   // null = still loading. Was seeded with the hardcoded PACKAGES sample
-  // array and only overwritten `if (mapped.length)` â€” so every load of this
+  // array and only overwritten `if (mapped.length)` — so every load of this
   // page first drew 4 fabricated cards with numbers that don't match any
   // real package (they haven't for a while: the real "scale" plan was
   // deactivated and its price changed to 299, and the real starter/growth/
   // enterprise prices are 3/10/50, not 6/18/0), then a moment later swapped
   // to whatever the real, *active* packages actually are (3 of them, not
-  // 4 â€” "scale" is real but inactive, so /v1/packages correctly omits it).
-  // That swap â€” a visibly different card count and different prices on
-  // every single page load â€” is exactly what "packages keep changing"
+  // 4 — "scale" is real but inactive, so /v1/packages correctly omits it).
+  // That swap — a visibly different card count and different prices on
+  // every single page load — is exactly what "packages keep changing"
   // describes. Loading state now, real data only, once. Now fetches
   // /v1/packages/all (every package, active or not) rather than the public
-  // /v1/packages, since this console is where a dormant tier â€” the free
-  // plan, legacy 'scale' â€” gets reactivated, not just where live ones get edited.
+  // /v1/packages, since this console is where a dormant tier — the free
+  // plan, legacy 'scale' — gets reactivated, not just where live ones get edited.
   const [packages, setPackages] = useState<Package[] | null>(null);
   const [packagesError, setPackagesError] = useState(false);
   const [billing, setBilling] = useState<'monthly'|'annual'>('monthly');
@@ -1381,10 +1928,10 @@ export function PackagesView() {
   const [addonsError, setAddonsError] = useState(false);
   const [editingAddon, setEditingAddon] = useState<Addon|null>(null);
 
-  // Load the canonical catalog from the API â€” shows a real error state on failure, no fabricated fallback.
+  // Load the canonical catalog from the API — shows a real error state on failure, no fabricated fallback.
   // Edit/Create/Deactivate below are wired to real endpoints (packages.routes.ts POST/PATCH/DELETE,
   // SuperAdmin-gated). The Feature Gates checklist in the edit modal is a separate, already-wired
-  // endpoint (/v1/superadmin/packages/:code/features) â€” see FeatureGatesEditor below.
+  // endpoint (/v1/superadmin/packages/:code/features) — see FeatureGatesEditor below.
   function mapFromApi(pkg: { id:string; code:string; name:string; monthly_price:number; annual_price:number; max_users:number; price_per_seat:number|null; extra_seat_price:number|null; extra_seat_threshold:number|null; monthly_item_limit:number|null; storage_limit_bytes:number|null; monthly_ai_credits:number; byok_ai_allowed:boolean; features:string[]; color:string; popular:boolean; is_active:boolean }): Package {
     return {
       id: pkg.id,
@@ -1402,7 +1949,7 @@ export function PackagesView() {
       byokAiAllowed: pkg.byok_ai_allowed ?? false,
       active: 0,
       // A package with no color set (onsite-standalone, agency-managed) used
-      // to fall through to `${pkg.color}18` â†’ "null18" and an unset Icon
+      // to fall through to `${pkg.color}18` → "null18" and an unset Icon
       // color, which is exactly how one plan card ended up a different,
       // unintended colour from the other three. Same real brand accent every
       // other package already uses, not a fresh arbitrary pick.
@@ -1413,7 +1960,7 @@ export function PackagesView() {
     };
   }
 
-  // /all (not the public / ) â€” SuperAdmin needs to see and reactivate
+  // /all (not the public / ) — SuperAdmin needs to see and reactivate
   // dormant packages (the free tier, legacy 'scale', etc.), not just the
   // ones already live to signups.
   function reload() {
@@ -1448,7 +1995,7 @@ export function PackagesView() {
       />
 
       {packages === null && !packagesError && (
-        <div style={{ padding:'32px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading packagesâ€¦</div>
+        <div style={{ padding:'32px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading packages…</div>
       )}
       {packagesError && (
         <div style={{ padding:'32px 0', textAlign:'center', color:'var(--red)', fontSize:13 }}>
@@ -1465,7 +2012,7 @@ export function PackagesView() {
               <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:pkg.color, color:'var(--white)', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>MOST POPULAR</div>
             )}
             {!pkg.isActive && (
-              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:'var(--ink3)', color:'var(--white)', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>INACTIVE â€” hidden from signups</div>
+              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:'var(--ink3)', color:'var(--white)', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>INACTIVE — hidden from signups</div>
             )}
 
             <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
@@ -1488,7 +2035,7 @@ export function PackagesView() {
               )}
               {pkg.pricePerSeat != null && (
                 <div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:6 }}>
-                  Billed at <strong style={{ color:'var(--ink2)' }}>${pkg.pricePerSeat}/seat/mo</strong> â€” the real per-tenant charge
+                  Billed at <strong style={{ color:'var(--ink2)' }}>${pkg.pricePerSeat}/seat/mo</strong> — the real per-tenant charge
                   {pkg.extraSeatThreshold != null && pkg.extraSeatPrice != null && (
                     <> (${pkg.extraSeatPrice}/seat past seat {pkg.extraSeatThreshold})</>
                   )}
@@ -1515,22 +2062,22 @@ export function PackagesView() {
         ))}
       </div>
 
-      {/* Get more with add-ons â€” purchasable independent of which of the
+      {/* Get more with add-ons — purchasable independent of which of the
           three base packages a tenant is on (376_package_addons.sql),
           the same idea as Google Workspace selling AI access or extra
           storage next to its own plan tiers rather than as a competing
-          tier. Onsite lives here now instead of being a fourth package â€”
+          tier. Onsite lives here now instead of being a fourth package —
           it's for a narrow slice of tenants (agencies, web hosts/cloud
           infra teams, IT providers), not a general-audience tier.
-          Used to render nothing at all â€” no header, no message â€” whenever
+          Used to render nothing at all — no header, no message — whenever
           `addons` was empty, which is indistinguishable on screen from
           "still loading" or "the fetch failed": always show the header now,
           and say which of those three states this actually is. */}
       <div style={{ marginTop:36 }}>
         <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Get more with add-ons</div>
-        <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:16 }}>Purchasable on top of any package above â€” not a separate tier.</div>
+        <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:16 }}>Purchasable on top of any package above — not a separate tier.</div>
         {addons === null && !addonsError && (
-          <div style={{ padding:'16px 0', color:'var(--ink3)', fontSize:13 }}>Loading add-onsâ€¦</div>
+          <div style={{ padding:'16px 0', color:'var(--ink3)', fontSize:13 }}>Loading add-ons…</div>
         )}
         {addonsError && (
           <div style={{ padding:'16px 0', color:'var(--red)', fontSize:13 }}>
@@ -1568,14 +2115,14 @@ export function PackagesView() {
         )}
       </div>
 
-      {/* Add-on edit modal â€” pricing/description only; an add-on has no
+      {/* Add-on edit modal — pricing/description only; an add-on has no
           user/storage tiers of its own to configure. */}
       <Dialog open={!!editingAddon} onOpenChange={o => { if (!o) setEditingAddon(null); }}>
         <DialogContent className="sm:max-w-md">
           {editingAddon && (
             <>
               <DialogHeader>
-                <DialogTitle>Edit Add-on â€” {editingAddon.name}</DialogTitle>
+                <DialogTitle>Edit Add-on — {editingAddon.name}</DialogTitle>
               </DialogHeader>
 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
@@ -1589,7 +2136,7 @@ export function PackagesView() {
                 </div>
               </div>
               <div style={{ marginTop:14 }}>
-                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Description â€” who this is for</label>
+                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Description — who this is for</label>
                 <textarea
                   value={editingAddon.description}
                   onChange={e=>setEditingAddon(p=>p?({...p,description:e.target.value}):p)}
@@ -1643,7 +2190,7 @@ export function PackagesView() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit modal â€” one scrollable dialog body (not two nested mini-scroll
+      {/* Edit modal — one scrollable dialog body (not two nested mini-scroll
           boxes), sticky title + footer, so Save/Deactivate are always
           reachable regardless of how tall the feature/quota tables get. */}
       <Dialog open={!!editing} onOpenChange={o => { if (!o) setEditing(null); }}>
@@ -1651,7 +2198,7 @@ export function PackagesView() {
           {editing && (
             <>
               <DialogHeader>
-                <DialogTitle>Edit Package â€” {editing.name}</DialogTitle>
+                <DialogTitle>Edit Package — {editing.name}</DialogTitle>
               </DialogHeader>
 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
@@ -1673,7 +2220,7 @@ export function PackagesView() {
               </div>
 
               {/* The real per-tenant charge (billing.routes.ts's computePlanAmount)
-                  reads price_per_seat, not the flat monthly/annual figures above â€”
+                  reads price_per_seat, not the flat monthly/annual figures above —
                   those were never editable anywhere in this console before now,
                   which is exactly why Subscription.tsx's own per-seat pricing has
                   had to be hand-migrated through SQL up to this point. */}
@@ -1681,7 +2228,7 @@ export function PackagesView() {
                 <FeatureToggleRow
                   icon={<Icon name="users" size={18} strokeWidth={1.75} />}
                   title="Per-seat pricing"
-                  description={editing.pricePerSeat != null ? 'Billed per active user, every month.' : 'Off â€” flat/custom pricing (e.g. "Talk to Sales" tiers).'}
+                  description={editing.pricePerSeat != null ? 'Billed per active user, every month.' : 'Off — flat/custom pricing (e.g. "Talk to Sales" tiers).'}
                   checked={editing.pricePerSeat != null}
                   onCheckedChange={(checked: boolean) => setEditing(p => p ? ({
                     ...p,
@@ -1713,7 +2260,7 @@ export function PackagesView() {
               <div style={{ marginTop:12, padding:'2px 16px', border:'1px solid var(--border)', borderRadius: 'var(--r)'}}>
                 <FeatureToggleRow
                   icon={<Icon name="eye" size={18} strokeWidth={1.75} />}
-                  title="Active â€” visible to signups"
+                  title="Active — visible to signups"
                   description={editing.isActive ? 'Live: tenants can pick this plan today.' : 'Dormant: hidden from signup/pricing, but any tenant already on it keeps working.'}
                   checked={editing.isActive}
                   onCheckedChange={(checked: boolean) => setEditing(p => p ? ({ ...p, isActive: checked }) : p)}
@@ -1725,8 +2272,8 @@ export function PackagesView() {
                   icon={<Icon name="sparkle" size={18} strokeWidth={1.75} />}
                   title="Bring your own AI key (BYOK)"
                   description={editing.byokAiAllowed
-                    ? 'On â€” a tenant on this tier can enter their own provider key in Settings, which always wins over the platform default and is billed to them directly, not against the AI-credits allowance above.'
-                    : 'Off â€” a tenant on this tier can only use the platform-billed AI key (see AI credits/month above); any key they type in Settings is ignored.'}
+                    ? 'On — a tenant on this tier can enter their own provider key in Settings, which always wins over the platform default and is billed to them directly, not against the AI-credits allowance above.'
+                    : 'Off — a tenant on this tier can only use the platform-billed AI key (see AI credits/month above); any key they type in Settings is ignored.'}
                   checked={editing.byokAiAllowed}
                   onCheckedChange={(checked: boolean) => setEditing(p => p ? ({ ...p, byokAiAllowed: checked }) : p)}
                 />
@@ -1743,10 +2290,10 @@ export function PackagesView() {
                     onClick={async () => {
                       // Deactivating goes through the same PATCH as every other
                       // field now (the "Active" toggle above) instead of a
-                      // separate destructive action â€” one save, one confirm,
+                      // separate destructive action — one save, one confirm,
                       // and reactivating (flip it back on, Save) works the same way.
                       if (!editing.isActive && packages?.find(pk => pk.id === editing.id)?.isActive) {
-                        if (!(await showConfirm(`Deactivate the ${editing.name} package? It will stop appearing to new signups â€” any tenant already on it keeps working.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
+                        if (!(await showConfirm(`Deactivate the ${editing.name} package? It will stop appearing to new signups — any tenant already on it keeps working.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
                       }
                       try {
                         const updated = await apiFetch(`/v1/packages/${editing.code}`, {
@@ -1790,7 +2337,7 @@ export function PackagesView() {
             { label:'Monthly Price ($)', key:'monthly', type:'number' },
             { label:'Annual Price ($)',  key:'annual',  type:'number' },
             { label:'Max Users',         key:'maxUsers',type:'number' },
-            { label:'Price per seat ($/mo, optional â€” 0 = flat/custom pricing)', key:'pricePerSeat', type:'number' },
+            { label:'Price per seat ($/mo, optional — 0 = flat/custom pricing)', key:'pricePerSeat', type:'number' },
           ].map(f=>(
             <div key={f.key}>
               <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>{f.label}</label>
@@ -1826,9 +2373,9 @@ export function PackagesView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    DOMAINS VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 /**
  * Custom domains, from platform_domains.
  *
@@ -1849,6 +2396,9 @@ export function DomainsView() {
   const [adding, setAdding] = useState(false);
   const [newHost, setNewHost] = useState('');
   const [newTenant, setNewTenant] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [domPage, setDomPage] = useState(1);
+  const [domPageSize, setDomPageSize] = useState(25);
 
   const load = React.useCallback(async () => {
     setLoadError('');
@@ -1879,6 +2429,33 @@ export function DomainsView() {
     }),
   [domains, search, statusFilter]);
 
+  useEffect(() => { setSelected(new Set()); setDomPage(1); }, [search, statusFilter]);
+
+  const { sortBy: domSortBy, sortDir: domSortDir, handleSort: domHandleSort } = useSortState();
+  const domAccessor = (col: string, d: any) => ({
+    'Domain': d.domain, 'Company': d.tenant_name ?? '',
+    'TLS certificate': d.ssl_ok ? 1 : 0, 'Status': d.status,
+    'Last checked': d.last_checked_at ?? '',
+  }[col]);
+  const domPaginated = useMemo(() => {
+    const sorted = sortedRows(filtered, domSortBy, domSortDir, domAccessor);
+    return sorted.slice((domPage - 1) * domPageSize, domPage * domPageSize);
+  }, [filtered, domPage, domPageSize, domSortBy, domSortDir]);
+
+  function exportDomains() {
+    const rows = selected.size > 0 ? filtered.filter(d => selected.has(d.id)) : filtered;
+    const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const header = ['Domain','Company','TLS OK','Status','Last Checked'];
+    const csv = [header.join(','), ...rows.map(d => [
+      d.domain, d.tenant_name ?? '', d.ssl_ok ? 'yes' : 'no', d.status,
+      d.last_checked_at ? fmtDate(d.last_checked_at) : 'never',
+    ].map(esc).join(','))].join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url;
+    a.download = `domains-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  }
+
   const stats = useMemo(()=>({
     total:    domains.length,
     verified: domains.filter(d=>d.status==='active').length,
@@ -1886,7 +2463,7 @@ export function DomainsView() {
     unchecked:domains.filter(d=>d.never_checked).length,
   }),[domains]);
 
-  if (loading) return <div style={{ padding:30, color:'var(--ink3)' }}>Loading domainsâ€¦</div>;
+  if (loading) return <div style={{ padding:30, color:'var(--ink3)' }}>Loading domains…</div>;
 
   return (
     <div>
@@ -1904,19 +2481,29 @@ export function DomainsView() {
         <StatCard label="Never checked"  value={stats.unchecked} color="var(--gold)"   />
       </div>
 
-      <div className="sa-toolbar">
-        <div className="sa-toolbar-search">
-          <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
-          <input title="Search domains" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search domainsâ€¦" className="input-field" />
-        </div>
-        <SingleSelectFilter
-          label="Status" allLabel="All Status"
-          options={(Object.keys(DOM_CFG) as DomainStatus[]).map(k => ({ value: k, label: DOM_CFG[k].label }))}
-          value={statusFilter === 'all' ? null : statusFilter} onChange={v => setStatusFilter((v ?? 'all') as DomainStatus | 'all')}
+      <div style={{ marginBottom: 16 }}>
+        <SearchToolbar
+          search={search}
+          onSearch={v => { setSearch(v); setDomPage(1); }}
+          placeholder="Search domains…"
+          quickFilter={{
+            value: statusFilter === 'all' ? null : statusFilter,
+            onChange: v => setStatusFilter((v ?? 'all') as DomainStatus | 'all'),
+            allLabel: 'All Status',
+            columns: 2,
+            options: (Object.keys(DOM_CFG) as DomainStatus[]).map(k => ({
+              value: k,
+              label: DOM_CFG[k].label,
+              icon: <span style={{ width:7, height:7, borderRadius:'50%', background: DOM_CFG[k].color, display:'inline-block' }} />,
+            })),
+          }}
+          activeFilterCount={statusFilter !== 'all' ? 1 : 0}
+          actions={
+            <button type="button" className="btn btn-primary btn-sm" onClick={()=>setAdding(a=>!a)}>
+              {adding ? 'Cancel' : '+ Add domain'}
+            </button>
+          }
         />
-        <button type="button" className="btn btn-primary" style={{ marginLeft:'auto' }} onClick={()=>setAdding(a=>!a)}>
-          {adding ? 'Cancel' : '+ Add domain'}
-        </button>
       </div>
 
       {adding && (
@@ -1931,7 +2518,7 @@ export function DomainsView() {
               options={tenants.map((t:any) => ({ value: t.id, label: t.name }))}
               value={newTenant}
               onChange={setNewTenant}
-              placeholder="Choose a companyâ€¦"
+              placeholder="Choose a company…"
             />
           </div>
           <button type="button" className="btn btn-primary" disabled={!newHost.trim() || !newTenant || !!busy}
@@ -1939,10 +2526,10 @@ export function DomainsView() {
               await apiFetch('/v1/superadmin/domains', { method:'POST', body: JSON.stringify({ tenant_id:newTenant, domain:newHost.trim() }) });
               setNewHost(''); setAdding(false);
             })}>
-            {busy==='add' ? 'Addingâ€¦' : 'Add domain'}
+            {busy==='add' ? 'Adding…' : 'Add domain'}
           </button>
           <div style={{ flexBasis:'100%', fontSize:11.5, color:'var(--ink3)' }}>
-            Added unverified. The company publishes the TXT token it is given, then Check confirms it â€” nothing is marked verified before that.
+            Added unverified. The company publishes the TXT token it is given, then Check confirms it — nothing is marked verified before that.
           </div>
         </div>
       )}
@@ -1954,74 +2541,109 @@ export function DomainsView() {
           <div style={{ fontSize:12, color:'var(--ink3)', marginTop:4 }}>Companies reach the platform on its default hostname until one is added here.</div>
         </div>
       ) : (
-      <DataTable headers={['Domain','Company','TLS certificate','Status','Last checked','Actions']}>
-        {filtered.map(d=>(
-          <TR key={d.id}>
-            <TD>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius: 'var(--r-sm)', background:'var(--bg)' }}>
-                  <Icon name="globe" size={14} color="var(--teal)" />
-                </span>
-                <div>
-                  <div style={{ fontFamily:'var(--font)', fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>{d.domain}</div>
-                  {!d.dns_ok && (
-                    <div style={{ fontFamily:'var(--font)', fontSize:10.5, color:'var(--ink3)' }}>TXT {d.verification_token}</div>
-                  )}
-                </div>
-              </div>
-            </TD>
-            <TD><span style={{ fontSize:13 }}>{d.tenant_name ?? 'company no longer on file'}</span></TD>
-            <TD>
-              {/* Only a handshake that returned a trusted certificate says
-                  anything here, and it says when that certificate expires. */}
-              {d.ssl_ok
-                ? <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, fontWeight:700, color:'var(--green)', background:'var(--green-l)', padding:'3px 8px', borderRadius:'var(--badge-radius)' }}>
-                    <Icon name="lock" size={10} color="var(--green)" />
-                    expires {d.ssl_expires_at ? fmtDate(d.ssl_expires_at) : 'unknown'}
+      <>
+        {selected.size > 0 && (
+          <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 14px', minHeight:'var(--ctl-h)', marginBottom:8, background:'color-mix(in srgb, var(--teal) 8%, var(--white))', border:'1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius:'var(--r)', fontSize:13, boxShadow:'0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+            <span style={{ fontWeight:600, color:'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'domain' : 'domains'} selected</span>
+            <div style={{ flex:1 }} />
+            <button type="button" className="btn btn-secondary btn-sm" onClick={exportDomains}><Icon name="download" size={12} style={{ marginRight:5 }}/>Export</button>
+            <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)' }} onClick={()=>setSelected(new Set())}>Clear</button>
+          </div>
+        )}
+
+        <DataTable
+          headers={['Domain','Company','TLS certificate','Status','Last checked','Actions']}
+          selectAll={selected.size === domPaginated.length && domPaginated.length > 0}
+          selectAllIndeterminate={selected.size > 0 && selected.size < domPaginated.length}
+          onSelectAll={() => {
+            if (selected.size === domPaginated.length) setSelected(new Set());
+            else setSelected(new Set(domPaginated.map((d:any) => d.id)));
+          }}
+          sortBy={domSortBy} sortDir={domSortDir} onSort={domHandleSort}
+        >
+          {domPaginated.map((d:any)=>(
+            <TR key={d.id} selected={selected.has(d.id)} onSelect={() => setSelected(prev => {
+              const next = new Set(prev); if (next.has(d.id)) next.delete(d.id); else next.add(d.id); return next;
+            })}>
+              <TD>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius: 'var(--r-sm)', background:'var(--bg)' }}>
+                    <Icon name="globe" size={14} color="var(--teal)" />
                   </span>
-                : d.never_checked
-                  ? <span style={{ fontSize:11.5, color:'var(--ink3)' }}>not checked yet</span>
-                  : <span style={{ fontSize:11, fontWeight:700, color:'var(--red)', background:'var(--red-l)', padding:'3px 8px', borderRadius:'var(--badge-radius)' }}>no certificate</span>}
-            </TD>
-            <TD>
-              <Badge cfg={DOM_CFG[d.status as DomainStatus]} />
-              {d.last_error && (
-                <div style={{ fontSize:10.5, color:'var(--ink3)', marginTop:3, maxWidth:260 }}>{d.last_error}</div>
-              )}
-            </TD>
-            <TD nowrap>
-              <span style={{ fontSize:12, color:'var(--ink3)' }}>
-                {d.last_checked_at ? fmtDate(d.last_checked_at) : 'never'}
-              </span>
-            </TD>
-            <TD>
-              <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                <button type="button" className="btn" style={{ fontSize:11, padding:'var(--ds-btn-py-xs) 9px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
-                  disabled={busy==='chk'+d.id}
-                  onClick={()=>act('chk'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}/check`, { method:'POST', body:'{}' }))}>
-                  {busy==='chk'+d.id ? 'Checkingâ€¦' : 'Check'}
-                </button>
-                <ActBtn icon="trash" color="var(--red)" title="Remove"
-                  onClick={()=>act('del'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}`, { method:'DELETE' }))} />
-              </div>
-            </TD>
-          </TR>
-        ))}
-      </DataTable>
+                  <div>
+                    <div style={{ fontFamily:'var(--font)', fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>{d.domain}</div>
+                    {!d.dns_ok && (
+                      <div style={{ fontFamily:'var(--font)', fontSize:10.5, color:'var(--ink3)' }}>TXT {d.verification_token}</div>
+                    )}
+                  </div>
+                </div>
+              </TD>
+              <TD><span style={{ fontSize:13 }}>{d.tenant_name ?? 'company no longer on file'}</span></TD>
+              <TD>
+                {d.ssl_ok
+                  ? <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, fontWeight:700, color:'var(--green)', background:'var(--green-l)', padding:'3px 8px', borderRadius:'var(--badge-radius)' }}>
+                      <Icon name="lock" size={10} color="var(--green)" />
+                      expires {d.ssl_expires_at ? fmtDate(d.ssl_expires_at) : 'unknown'}
+                    </span>
+                  : d.never_checked
+                    ? <span style={{ fontSize:11.5, color:'var(--ink3)' }}>not checked yet</span>
+                    : <span style={{ fontSize:11, fontWeight:700, color:'var(--red)', background:'var(--red-l)', padding:'3px 8px', borderRadius:'var(--badge-radius)' }}>no certificate</span>}
+              </TD>
+              <TD>
+                <Badge cfg={DOM_CFG[d.status as DomainStatus]} />
+                {d.last_error && (
+                  <div style={{ fontSize:10.5, color:'var(--ink3)', marginTop:3, maxWidth:260 }}>{d.last_error}</div>
+                )}
+              </TD>
+              <TD nowrap>
+                <span style={{ fontSize:12, color:'var(--ink3)' }}>
+                  {d.last_checked_at ? fmtDate(d.last_checked_at) : 'never'}
+                </span>
+              </TD>
+              <TD>
+                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                  <button type="button" className="btn" style={{ fontSize:11, padding:'var(--ds-btn-py-xs) 9px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
+                    disabled={busy==='chk'+d.id}
+                    onClick={()=>act('chk'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}/check`, { method:'POST', body:'{}' }))}>
+                    {busy==='chk'+d.id ? 'Checking…' : 'Check'}
+                  </button>
+                  <ActBtn icon="trash" color="var(--red)" title="Remove"
+                    onClick={()=>act('del'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}`, { method:'DELETE' }))} />
+                </div>
+              </TD>
+            </TR>
+          ))}
+          {filtered.length === 0 && (
+            <tr><td colSpan={7} style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>No domains match your filters.</td></tr>
+          )}
+        </DataTable>
+
+        {filtered.length > 0 && (
+          <PaginationBar
+            page={domPage} pageSize={domPageSize} total={filtered.length}
+            onPageChange={setDomPage}
+            onPageSizeChange={p => { setDomPageSize(p); setDomPage(1); }}
+            itemLabel="domains" bordered
+          />
+        )}
+      </>
       )}
     </div>
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    TRANSACTIONS VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 export function TransactionsView() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<TxStatus|'all'>('all');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [txPage, setTxPage] = useState(1);
+  const [txPageSize, setTxPageSize] = useState(25);
 
   // Real platform_transactions. This screen previously rendered the hardcoded
-  // TRANSACTIONS sample array â€” eleven 2025 payments for companies that do not
+  // TRANSACTIONS sample array — eleven 2025 payments for companies that do not
   // exist, $43,346 of revenue that was never collected.
   const [rows, setRows] = useState<any[]>([]);
   const [totals, setTotals] = useState<any>(null);
@@ -2048,9 +2670,22 @@ export function TransactionsView() {
     }),
   [rows, search, statusFilter]);
 
+  useEffect(() => { setSelected(new Set()); setTxPage(1); }, [search, statusFilter]);
+
+  const { sortBy: txSortBy, sortDir: txSortDir, handleSort: txHandleSort } = useSortState();
+  const txAccessor = (col: string, t: any) => ({
+    'Ref': t.txRef, 'Company': t.companyName ?? '', 'Package': t.packageCode ?? '',
+    'Amount': Number(t.amount), 'Date': t.created, 'Method': t.method ?? '', 'Status': t.status,
+  }[col]);
+  const txPaginated = useMemo(() => {
+    const sorted = sortedRows(filtered, txSortBy, txSortDir, txAccessor);
+    return sorted.slice((txPage - 1) * txPageSize, txPage * txPageSize);
+  }, [filtered, txPage, txPageSize, txSortBy, txSortDir]);
+
   function exportCsv() {
+    const exportRows = selected.size > 0 ? filtered.filter(t => selected.has(t.id)) : filtered;
     const head = ['Ref','Company','Package','Amount','Currency','Date','Method','Status','Payer'];
-    const body = filtered.map(t => [t.txRef, t.companyName ?? '', t.packageCode ?? '', t.amount, t.currency,
+    const body = exportRows.map(t => [t.txRef, t.companyName ?? '', t.packageCode ?? '', t.amount, t.currency,
       new Date(t.created).toISOString().slice(0,10), t.method ?? '', t.status, t.payerName ?? '']);
     const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const csv = [head, ...body].map(r => r.map(esc).join(',')).join('\r\n');
@@ -2076,20 +2711,28 @@ export function TransactionsView() {
         <StatCard label="Failed"            value={totals?.failedCount ?? 0}            color="var(--red)"   />
       </div>
 
-      <div className="sa-toolbar">
-        <div className="sa-toolbar-search">
-          <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
-          <input title="Search company or ref" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search company or Refâ€¦" className="input-field" />
-        </div>
-        <SingleSelectFilter
-          label="Status" allLabel="All Status"
-          options={(Object.keys(TX_CFG) as TxStatus[]).map(k => ({ value: k, label: TX_CFG[k].label }))}
-          value={statusFilter === 'all' ? null : statusFilter} onChange={v => setStatusFilter((v ?? 'all') as TxStatus | 'all')}
+      <div style={{ marginBottom: 16 }}>
+        <SearchToolbar
+          search={search}
+          onSearch={v => { setSearch(v); setTxPage(1); }}
+          placeholder="Search company or Ref…"
+          quickFilter={{
+            value: statusFilter === 'all' ? null : statusFilter,
+            onChange: v => setStatusFilter((v ?? 'all') as TxStatus | 'all'),
+            allLabel: 'All Status',
+            columns: 2,
+            options: (Object.keys(TX_CFG) as TxStatus[]).map(k => ({
+              value: k,
+              label: TX_CFG[k].label,
+              icon: <span style={{ width:7, height:7, borderRadius:'50%', background: TX_CFG[k].color, display:'inline-block' }} />,
+            })),
+          }}
+          activeFilterCount={statusFilter !== 'all' ? 1 : 0}
         />
       </div>
 
       {loading ? (
-        <div style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>Loading transactionsâ€¦</div>
+        <div style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>Loading transactions…</div>
       ) : filtered.length === 0 ? (
         <div className="card" style={{ padding:'34px 22px', textAlign:'center' }}>
           <div style={{ fontSize:14, fontWeight:650, color:'var(--ink)' }}>
@@ -2100,32 +2743,59 @@ export function TransactionsView() {
           </div>
         </div>
       ) : (
-      <DataTable headers={['Ref','Company','Package','Amount','Date','Method','Status']}>
-        {filtered.map(tx=>(
-          <TR key={tx.id}>
-            <TD><span style={{ fontFamily:'var(--font)', fontSize:12, color:'var(--ink3)' }}>{tx.txRef}</span></TD>
-            <TD>
-              <span style={{ fontWeight:600, fontSize:13 }}>{tx.companyName || 'Deleted company'}</span>
-              {tx.payerName && <span style={{ display:'block', fontSize:11, color:'var(--ink3)' }}>{tx.payerName}</span>}
-            </TD>
-            {/* The package actually paid for, from the transaction â€” not the
-                tenant's current plan, which can differ from what this payment bought. */}
-            <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{tx.packageCode ?? 'â€”'}{tx.billingCycle ? ` Â· ${tx.billingCycle}` : ''}</span></TD>
-            <TD right><span style={{ fontWeight:700, fontFamily:'var(--font)' }}>{tx.currency} {Number(tx.amount).toLocaleString()}</span></TD>
-            <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(tx.created)}</span></TD>
-            <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{METHOD_LABELS[tx.method as PayMethod] ?? tx.method ?? 'â€”'}</span></TD>
-            <TD><Badge cfg={TX_CFG[tx.status as TxStatus] ?? TX_CFG.completed} /></TD>
-          </TR>
-        ))}
-      </DataTable>
+      <>
+        {selected.size > 0 && (
+          <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 14px', minHeight:'var(--ctl-h)', marginBottom:8, background:'color-mix(in srgb, var(--teal) 8%, var(--white))', border:'1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius:'var(--r)', fontSize:13, boxShadow:'0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+            <span style={{ fontWeight:600, color:'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'transaction' : 'transactions'} selected</span>
+            <div style={{ flex:1 }} />
+            <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv}><Icon name="download" size={12} style={{ marginRight:5 }}/>Export selected</button>
+            <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)' }} onClick={()=>setSelected(new Set())}>Clear</button>
+          </div>
+        )}
+
+        <DataTable
+          headers={['Ref','Company','Package','Amount','Date','Method','Status']}
+          selectAll={selected.size === txPaginated.length && txPaginated.length > 0}
+          selectAllIndeterminate={selected.size > 0 && selected.size < txPaginated.length}
+          onSelectAll={() => {
+            if (selected.size === txPaginated.length) setSelected(new Set());
+            else setSelected(new Set(txPaginated.map((t:any) => t.id)));
+          }}
+          sortBy={txSortBy} sortDir={txSortDir} onSort={txHandleSort}
+        >
+          {txPaginated.map(tx=>(
+            <TR key={tx.id} selected={selected.has(tx.id)} onSelect={() => setSelected(prev => {
+              const next = new Set(prev); if (next.has(tx.id)) next.delete(tx.id); else next.add(tx.id); return next;
+            })}>
+              <TD><span style={{ fontFamily:'var(--font)', fontSize:12, color:'var(--ink3)' }}>{tx.txRef}</span></TD>
+              <TD>
+                <span style={{ fontWeight:600, fontSize:13 }}>{tx.companyName || 'Deleted company'}</span>
+                {tx.payerName && <span style={{ display:'block', fontSize:11, color:'var(--ink3)' }}>{tx.payerName}</span>}
+              </TD>
+              <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{tx.packageCode ?? '—'}{tx.billingCycle ? ` · ${tx.billingCycle}` : ''}</span></TD>
+              <TD right><span style={{ fontWeight:700, fontFamily:'var(--font)' }}>{tx.currency} {Number(tx.amount).toLocaleString()}</span></TD>
+              <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(tx.created)}</span></TD>
+              <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{METHOD_LABELS[tx.method as PayMethod] ?? tx.method ?? '—'}</span></TD>
+              <TD><Badge cfg={TX_CFG[tx.status as TxStatus] ?? TX_CFG.completed} /></TD>
+            </TR>
+          ))}
+        </DataTable>
+
+        <PaginationBar
+          page={txPage} pageSize={txPageSize} total={filtered.length}
+          onPageChange={setTxPage}
+          onPageSizeChange={p => { setTxPageSize(p); setTxPage(1); }}
+          itemLabel="transactions" bordered
+        />
+      </>
       )}
     </div>
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    FINANCE VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 
 /**
  * Two different things live on this page and they used to be conflated:
@@ -2169,7 +2839,7 @@ export function FinanceView() {
     return [...m.values()].sort((a, b) => b.total - a.total);
   }, [tx]);
 
-  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading finance dataâ€¦</div>;
+  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading finance data…</div>;
   if (error)   return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--red)' }}>{error}</div>;
 
   const collected = tx?.totals?.completed ?? 0;
@@ -2185,7 +2855,7 @@ export function FinanceView() {
 
   return (
     <div>
-      <PageHdr title="Platform Finance" sub="Platform billing â€” what has been received, and what active plans would bill" />
+      <PageHdr title="Platform Finance" sub="Platform billing — what has been received, and what active plans would bill" />
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:24 }}>
         <KPICard title="Revenue Collected"      value={fmtCurrency(collected)} icon="dollarSign" color="var(--teal)"
@@ -2195,7 +2865,7 @@ export function FinanceView() {
         {/* Named an estimate on the card, because it is one: list price for
             every active tenant, whether or not they have ever paid. */}
         <KPICard title="Run Rate (list price)"  value={fmtCurrency(runRate)}   icon="trendingUp" color="var(--teal)"
-                 hint="estimate â€” active tenants at list price" />
+                 hint="estimate — active tenants at list price" />
         <KPICard title="Paying Companies"       value={String(new Set((tx?.data ?? []).filter((t: any) => t.status === 'completed').map((t: any) => t.companyId)).size)}
                  icon="building" color="var(--teal)" hint={`of ${stats?.kpis?.activeCompanies ?? 0} active`} />
       </div>
@@ -2204,7 +2874,7 @@ export function FinanceView() {
         <div className="card" style={{ padding:'22px 24px' }}>
           <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Revenue Received</div>
           <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:20 }}>
-            Completed payments by month{trend.length ? '' : ' â€” nothing recorded yet'}
+            Completed payments by month{trend.length ? '' : ' — nothing recorded yet'}
           </div>
           {trend.length > 0
             ? <BarChart data={trend} color="var(--teal)" height={100} />
@@ -2248,15 +2918,15 @@ export function FinanceView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    ACTIVITY VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 /**
  * The platform audit trail, from platform_activity_log.
  *
  * Rows are written by the superadmin routes as they act, so this is a record
  * of what was done rather than a description of what such a screen might show.
- * Actor and target names are the snapshots taken at the time â€” a company that
+ * Actor and target names are the snapshots taken at the time — a company that
  * has since been deleted is still named, which is exactly when an audit trail
  * earns its keep.
  */
@@ -2305,6 +2975,19 @@ export function ActivityView() {
     return `${d}d ago`;
   }
 
+  function exportActivity() {
+    const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const head = ['When','Actor','Action','Category','Target','Company'];
+    const csv = [head.join(','), ...filtered.map(a => [
+      new Date(a.created_at).toISOString().slice(0,16).replace('T',' '),
+      a.actor_name, a.action, a.category, a.target_name ?? '', a.tenant_name ?? '',
+    ].map(esc).join(','))].join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url;
+    a.download = `activity-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  }
+
   const TYPE_LABELS: Record<ActivityType, string> = {
     company: 'Company', user: 'User', billing: 'Billing', system: 'System',
   };
@@ -2330,6 +3013,9 @@ export function ActivityView() {
           value={coFilter === 'all' ? null : coFilter}
           onChange={v => { setCoFilter(v ?? 'all'); setPage(1); }}
         />
+        <button type="button" className="btn btn-secondary btn-sm" style={{ marginLeft:'auto', gap:6 }} onClick={exportActivity} disabled={filtered.length === 0}>
+          <Icon name="download" size={12} style={{ marginRight:5 }}/>Export CSV
+        </button>
       </div>
 
       <div className="card" style={{ padding:'8px 0' }}>
@@ -2352,10 +3038,10 @@ export function ActivityView() {
                   {/* The company as it is named now, when it still exists.
                       The snapshot above survives its deletion either way. */}
                   {a.tenant_name && (
-                    <span style={{ fontSize:11, color:'var(--ink3)' }}>Â· {a.tenant_name}</span>
+                    <span style={{ fontSize:11, color:'var(--ink3)' }}>· {a.tenant_name}</span>
                   )}
                   {a.tenant_id === null && a.target_type === 'tenant' && (
-                    <span style={{ fontSize:11, color:'var(--ink3)', fontStyle:'italic' }}>Â· company since deleted</span>
+                    <span style={{ fontSize:11, color:'var(--ink3)', fontStyle:'italic' }}>· company since deleted</span>
                   )}
                 </div>
               </div>
@@ -2364,13 +3050,13 @@ export function ActivityView() {
           );
         })}
         {loading && (
-          <div style={{ padding:'48px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading activityâ€¦</div>
+          <div style={{ padding:'48px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading activity…</div>
         )}
         {!loading && rows.length === 0 && (
           <div style={{ padding:'48px 22px', textAlign:'center' }}>
             <div style={{ fontSize:13.5, color:'var(--ink2)' }}>Nothing has been recorded yet.</div>
             <div style={{ fontSize:12, color:'var(--ink3)', marginTop:5 }}>
-              Superadmin actions â€” creating a company, changing a plan, putting an app into maintenance â€” appear here as they happen.
+              Superadmin actions — creating a company, changing a plan, putting an app into maintenance — appear here as they happen.
             </div>
           </div>
         )}
@@ -2393,9 +3079,9 @@ export function ActivityView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    SETTINGS VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 const SETTINGS_SECTIONS: { id: string; label: string; icon: IconName }[] = [
   { id: 'security', label: 'Security & Sessions', icon: 'lock' },
   { id: 'smtp',      label: 'Email / SMTP',        icon: 'mail' },
@@ -2408,7 +3094,7 @@ const SETTINGS_SECTIONS: { id: string; label: string; icon: IconName }[] = [
   { id: 'server',    label: 'System & Server Info', icon: 'monitor' },
 ];
 
-// Third-party brand marks for the AI provider cards â€” literal brand identity
+// Third-party brand marks for the AI provider cards — literal brand identity
 // (like the Google/Microsoft/Apple colors on the SSO cards below), not the
 // app's own --teal accent, so these stay hardcoded on purpose.
 const AI_PROVIDER_BRAND: Record<string, { icon: IconName; color: string }> = {
@@ -2423,11 +3109,11 @@ export function SettingsView() {
   const [maintenance, setMaintenance] = useState(false);
   const [smtp, setSmtp] = useState({ host:'smtp.mailgun.org', port:'587', user:'no-reply@clearos.io', pass:'', from:'Hudumika Platform <no-reply@clearos.io>', tls:true });
   const [security, setSecurity] = useState({ minPasswordLength:'8', sessionTimeoutHours:'8', maxLoginAttempts:'5', lockoutMinutes:'15', twoFaPolicy:'optional' as 'off'|'optional'|'required', ipAllowlist:'' });
-  const [api, setApi] = useState({ rateLimit:'120', corsOrigins:'*', webhookSecret:'whs_live_â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢', keyRotationDays:'90' });
+  const [api, setApi] = useState({ rateLimit:'120', corsOrigins:'*', webhookSecret:'whs_live_••••••••••••••••', keyRotationDays:'90' });
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [ocr, setOcr] = useState({ geminiApiKey:'' });
   // Platform-wide fallback AI key (apps/api/src/lib/platform-settings.ts's
-  // resolveAiCredentials()) â€” used by every tenant that hasn't configured
+  // resolveAiCredentials()) — used by every tenant that hasn't configured
   // its own key in Settings > Integrations > AI Integration. A tenant's own
   // key always wins over this one; this only fills the gap for tenants
   // that never set one up, billed to the platform rather than the tenant.
@@ -2446,9 +3132,9 @@ export function SettingsView() {
     const def = AI_PROVIDERS.find(x => x.value === provider);
     setAiTest(prev => ({ ...prev, [provider]: { busy: true } }));
     try {
-      // A typed (unsaved) key is tested as typed; the mask means "use the stored key" â€” the server resolves it.
+      // A typed (unsaved) key is tested as typed; the mask means "use the stored key" — the server resolves it.
       const r = await apiFetch('/v1/superadmin/ai/test', { method: 'POST', body: JSON.stringify({ provider, model: row?.model || def?.models[0].value, apiKey: row?.apiKey || undefined }) });
-      setAiTest(prev => ({ ...prev, [provider]: { busy: false, ok: !!r.ok, message: r.ok ? `Working â€” ${r.model} answered in ${r.latencyMs} ms.` : (r.error || 'The provider rejected the request.') } }));
+      setAiTest(prev => ({ ...prev, [provider]: { busy: false, ok: !!r.ok, message: r.ok ? `Working — ${r.model} answered in ${r.latencyMs} ms.` : (r.error || 'The provider rejected the request.') } }));
     } catch (err: any) {
       setAiTest(prev => ({ ...prev, [provider]: { busy: false, ok: false, message: err?.message || 'Test failed' } }));
     }
@@ -2476,7 +3162,7 @@ export function SettingsView() {
     if (cronPage > lastPage) setCronPage(lastPage);
   }, [jobs.jobs.length, cronPage, cronPageSize]);
 
-  // 8 sections in one long scroll with no way to jump to one â€” tabbed instead,
+  // 8 sections in one long scroll with no way to jump to one — tabbed instead,
   // same ?section= deep-link convention DesignSystemView already established
   // (Navigate to="/admin/design-system?section=identity" etc. in
   // SuperAdminShell.tsx) so a bookmark/link to one settings section works the
@@ -2550,7 +3236,7 @@ export function SettingsView() {
     }
   }
 
-  // Used to just re-save whatever was already sitting in the field â€” clicking
+  // Used to just re-save whatever was already sitting in the field — clicking
   // "Regenerate" changed nothing at all. Generates a real random secret
   // client-side (crypto.getRandomValues, not Math.random) and saves it
   // immediately, same shape as an API key's own secret generation.
@@ -2675,19 +3361,19 @@ export function SettingsView() {
     <div className="sa-settings-page">
       <PageHdr title="Platform Settings" sub="Platform-wide configuration applied across all tenants" />
 
-      {/* â”€â”€ Maintenance Mode â”€â”€ */}
+      {/* ── Maintenance Mode ── */}
       <div className={`sa-settings-card sa-maintenance-card${maintenance ? ' is-active' : ''}`}>
         <div className="sa-maintenance-card-inner">
           <div className="sa-maintenance-copy">
             <div className="sa-maintenance-title">
               <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Maintenance Mode</span>
               <UiBadge variant={maintenance ? 'error' : 'success'}>
-                {maintenance ? 'Active â€” Platform Offline' : 'Operational'}
+                {maintenance ? 'Active — Platform Offline' : 'Operational'}
               </UiBadge>
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.45 }}>
               {maintenance
-                ? 'Platform is in maintenance mode â€” all tenants see a maintenance page. API endpoints return 503.'
+                ? 'Platform is in maintenance mode — all tenants see a maintenance page. API endpoints return 503.'
                 : 'Platform is live and fully accessible to all tenants and staff.'}
             </div>
           </div>
@@ -2717,7 +3403,7 @@ export function SettingsView() {
 
         <div className="sa-settings-content">
         <TabsContent value="security">
-      {/* â”€â”€ Security & Sessions â”€â”€ */}
+      {/* ── Security & Sessions ── */}
       <SectionCard title="Security & Sessions" sub="Password policy, session management, and access controls" section="security">
         <Banner variant="brand" icon="shield" className="sa-settings-banner">Enforced platform-wide on every login and request. SUPER_ADMIN accounts are exempt from the IP allowlist so a misconfiguration here can never lock the console itself out.</Banner>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
@@ -2741,9 +3427,9 @@ export function SettingsView() {
             <Select value={security.twoFaPolicy} onValueChange={v => setSecurity(p=>({...p,twoFaPolicy:v as any}))}>
               <SelectTrigger className="input-field" style={{ width:'100%' }}><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="off">Off â€” not offered</SelectItem>
-                <SelectItem value="optional">Optional â€” users can enable it</SelectItem>
-                <SelectItem value="required">Required â€” all users must enable it</SelectItem>
+                <SelectItem value="off">Off — not offered</SelectItem>
+                <SelectItem value="optional">Optional — users can enable it</SelectItem>
+                <SelectItem value="required">Required — all users must enable it</SelectItem>
               </SelectContent>
             </Select>
           </Field>
@@ -2756,7 +3442,7 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="smtp">
-      {/* â”€â”€ Email / SMTP â”€â”€ */}
+      {/* ── Email / SMTP ── */}
       <SectionCard title="Email / SMTP" sub="Outgoing email server configuration for notifications, alerts, and billing" section="smtp">
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
           <Field label="SMTP Host">
@@ -2778,7 +3464,7 @@ export function SettingsView() {
               onChange={e => setSmtp(p=>({...p,user:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="Password">
-            <input title="SMTP Password" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={smtp.pass}
+            <input title="SMTP Password" type="password" placeholder="••••••••" value={smtp.pass}
               onChange={e => setSmtp(p=>({...p,pass:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="From Address" hint="Displayed as the sender name in all platform emails">
@@ -2795,8 +3481,8 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="ai">
-      {/* â”€â”€ AI Providers (platform-wide fallback): one key per provider â”€â”€ */}
-      <SectionCard title="AI Providers" sub="Add a key for each provider you want available, then choose which one is the platform default. Billed to the platform â€” a tenant's own key (Hudu Advanced plan) always wins over these." section="ai">
+      {/* ── AI Providers (platform-wide fallback): one key per provider ── */}
+      <SectionCard title="AI Providers" sub="Add a key for each provider you want available, then choose which one is the platform default. Billed to the platform — a tenant's own key (Hudu Advanced plan) always wins over these." section="ai">
         <div className="sa-setting-row" style={{ paddingTop: 0 }}>
           <div className="sa-setting-row-main">
             <div className="sa-setting-row-title">
@@ -2807,15 +3493,15 @@ export function SettingsView() {
             </div>
             <div className="sa-setting-row-desc">
               {ai.enabled
-                ? 'On â€” tenants with no key of their own get a working agent, billed to the platform.'
-                : 'Off â€” a tenant without their own key sees "AI is not configured" until they add one.'}
+                ? 'On — tenants with no key of their own get a working agent, billed to the platform.'
+                : 'Off — a tenant without their own key sees "AI is not configured" until they add one.'}
             </div>
           </div>
           <Switch checked={ai.enabled} onCheckedChange={v => setAi(p=>({...p, enabled: v}))} size="lg" aria-label="Enable platform-default AI" />
         </div>
 
         {ai.enabled && !ai.providers[ai.provider]?.apiKey && (
-          <Banner variant="warning" className="sa-settings-banner">The default provider ({AI_PROVIDERS.find(x => x.value === ai.provider)?.label.split(' â€” ')[0]}) has no key yet, so AI stays off until you add one or make another provider the default.</Banner>
+          <Banner variant="warning" className="sa-settings-banner">The default provider ({AI_PROVIDERS.find(x => x.value === ai.provider)?.label.split(' — ')[0]}) has no key yet, so AI stays off until you add one or make another provider the default.</Banner>
         )}
 
         <div className="sa-ai-provider-grid">
@@ -2823,7 +3509,7 @@ export function SettingsView() {
             const row = ai.providers[prov.value] ?? { apiKey: '', model: '' };
             const hasKey = !!row.apiKey;
             const isDefault = ai.provider === prov.value;
-            const [name, freeNote] = prov.label.split(' â€” ');
+            const [name, freeNote] = prov.label.split(' — ');
             const brand = AI_PROVIDER_BRAND[prov.value] ?? { icon: 'sparkle' as IconName, color: 'var(--teal)' };
             const saveKey = `ai-${prov.value}`;
             return (
@@ -2847,7 +3533,7 @@ export function SettingsView() {
                 </div>
 
                 <div className="sa-ai-provider-fields">
-                  <Field label="API key" hint={freeNote ? `Free â€” ${freeNote}. Shown masked once saved.` : 'Shown masked once saved.'}>
+                  <Field label="API key" hint={freeNote ? `Free — ${freeNote}. Shown masked once saved.` : 'Shown masked once saved.'}>
                     <input title={`${name} API key`} type="password" placeholder="Paste API key" autoComplete="off" value={row.apiKey}
                       onChange={e => setAiRow(prov.value, { apiKey: e.target.value })} className="input-field" style={{ width:'100%' }} />
                   </Field>
@@ -2871,7 +3557,7 @@ export function SettingsView() {
                   <div className="sa-ai-provider-actions">
                     <Tip label={hasKey ? 'Test this provider with its saved key and current model' : 'Add and save an API key first'}>
                       <span><Button type="button" size="xs" variant="outline" disabled={!hasKey || aiTest[prov.value]?.busy}
-                        onClick={() => testAiProvider(prov.value)}>{aiTest[prov.value]?.busy ? 'Testingâ€¦' : 'Test'}</Button></span>
+                        onClick={() => testAiProvider(prov.value)}>{aiTest[prov.value]?.busy ? 'Testing…' : 'Test'}</Button></span>
                     </Tip>
                     {hasKey && <Button type="button" size="xs" variant="outline" onClick={() => { setAiRow(prov.value, { apiKey: '' }); setAiTest(prev => ({ ...prev, [prov.value]: { busy: false } })); }}>Remove key</Button>}
                     <Tip label={isDefault ? 'Current platform-default provider' : hasKey ? `Use ${name} as the platform default` : 'Add and save an API key first'}>
@@ -2894,11 +3580,11 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="ocr">
-      {/* â”€â”€ OCR / Document Scanning â”€â”€ */}
+      {/* ── OCR / Document Scanning ── */}
       <SectionCard title="OCR / Document Scanning" sub="Google Gemini API key used to extract structured data from scanned BLs, invoices, and TANSAD documents in ClearOS" section="ocr">
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
           <Field label="Gemini API Key" hint="From aistudio.google.com/apikey. Leave blank to keep OCR running on simulated demo data.">
-            <input title="Gemini API Key" type="password" placeholder="AIzaâ€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={ocr.geminiApiKey}
+            <input title="Gemini API Key" type="password" placeholder="AIza••••••••••••••••" value={ocr.geminiApiKey}
               onChange={e => setOcr(p=>({...p,geminiApiKey:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <div style={{ display:'flex', alignItems:'flex-end' }}>
@@ -2908,13 +3594,13 @@ export function SettingsView() {
           </div>
         </div>
         <div style={{ fontSize:11, color:'var(--ink3)', marginTop:6, display:'flex', alignItems:'center', gap:8 }}>
-          {ocr.geminiApiKey ? <UiBadge variant="success">Live â€” Gemini Vision Extraction Active</UiBadge> : <UiBadge variant="gray">Simulated â€” No API Key Configured</UiBadge>}
+          {ocr.geminiApiKey ? <UiBadge variant="success">Live — Gemini Vision Extraction Active</UiBadge> : <UiBadge variant="gray">Simulated — No API Key Configured</UiBadge>}
         </div>
       </SectionCard>
         </TabsContent>
 
         <TabsContent value="ondiSso">
-      {/* â”€â”€ Ondi SSO (Dark-launch flag & Social Auth) â”€â”€ */}
+      {/* ── Ondi SSO (Dark-launch flag & Social Auth) ── */}
       <SectionCard
         title="Ondi SSO & Social Authentication"
         sub="Default sign-in experience and OAuth 2.0 social identity providers for all tenant accounts"
@@ -2982,7 +3668,7 @@ export function SettingsView() {
                   style={{ fontFamily: 'var(--font)', fontSize: 12 }}
                 />
                 <span className="sa-sso-provider-hint">
-                  From Google Cloud Console â–¸ Credentials (ends in .apps.googleusercontent.com)
+                  From Google Cloud Console ▸ Credentials (ends in .apps.googleusercontent.com)
                 </span>
               </div>
               <div className="sa-provider-card-footer sa-provider-card-footer--end">
@@ -3019,7 +3705,7 @@ export function SettingsView() {
                   style={{ fontFamily: 'var(--font)', fontSize: 12 }}
                 />
                 <span className="sa-sso-provider-hint">
-                  From Azure Portal â–¸ App registrations â–¸ Application (client) ID
+                  From Azure Portal ▸ App registrations ▸ Application (client) ID
                 </span>
               </div>
               <div className="sa-provider-card-footer sa-provider-card-footer--end">
@@ -3056,7 +3742,7 @@ export function SettingsView() {
                   style={{ fontFamily: 'var(--font)', fontSize: 12 }}
                 />
                 <span className="sa-sso-provider-hint">
-                  From developer.apple.com â–¸ Identifiers â–¸ Services ID (not Bundle ID)
+                  From developer.apple.com ▸ Identifiers ▸ Services ID (not Bundle ID)
                 </span>
               </div>
               <div className="sa-provider-card-footer sa-provider-card-footer--end">
@@ -3080,7 +3766,7 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="api">
-      {/* â”€â”€ API & Webhooks â”€â”€ */}
+      {/* ── API & Webhooks ── */}
       <SectionCard title="API & Webhooks" sub="Rate limiting, CORS, and webhook security for platform APIs" section="api">
         <div style={{ marginBottom:16 }}>
           <Banner variant="warning">Rate limit and CORS origins are enforced platform-wide. Key rotation and the webhook secret below are saved but not yet acted on anywhere.</Banner>
@@ -3094,11 +3780,11 @@ export function SettingsView() {
             <input title="Key rotation days" type="number" min={30} max={365} value={api.keyRotationDays}
               onChange={e => setApi(p=>({...p,keyRotationDays:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
-          <Field label="CORS Allowed Origins" hint="Comma-separated extra origins, layered on top of the server's own configured origin â€” this can only add access, never remove the app's own.">
+          <Field label="CORS Allowed Origins" hint="Comma-separated extra origins, layered on top of the server's own configured origin — this can only add access, never remove the app's own.">
             <input title="CORS origins" placeholder="https://app.yourcompany.com" value={api.corsOrigins}
               onChange={e => setApi(p=>({...p,corsOrigins:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
-          <Field label="Webhook Signing Secret" hint="Not yet used to sign anything â€” saved for a future outbound webhook feature">
+          <Field label="Webhook Signing Secret" hint="Not yet used to sign anything — saved for a future outbound webhook feature">
             <div style={{ display:'flex', gap:8 }}>
               <input title="Webhook secret" type={showWebhookSecret ? 'text' : 'password'} value={api.webhookSecret}
                 onChange={e => setApi(p=>({...p,webhookSecret:e.target.value}))} className="input-field" style={{ flex:1 }} />
@@ -3120,16 +3806,16 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="modules-pointer">
-      {/* â”€â”€ Modules & Plan Features â”€â”€ */}
+      {/* ── Modules & Plan Features ── */}
       {/* This used to be two separate panels (Feature Flags, Storage Quotas)
-          whose toggles/fields saved to a settings key nothing ever read â€”
+          whose toggles/fields saved to a settings key nothing ever read —
           real writes, but a dead end. App Status and Packages already own
           this for real (app_status/package_features/package_app_quotas,
           actually enforced), so this card points there instead of running a
           second, disconnected copy of the same controls. */}
       <SectionCard title="Modules & Plan Features" sub="Per-app availability and per-plan feature/storage grants" section="modules-pointer" readOnly>
         <div style={{ fontSize:13, color:'var(--ink2)', lineHeight:1.6, marginBottom:16 }}>
-          Enabling or disabling an app platform-wide (or per tenant), and what each subscription plan includes â€” feature grants, storage limits, monthly item caps â€” are configured on their own real, enforced pages rather than duplicated here.
+          Enabling or disabling an app platform-wide (or per tenant), and what each subscription plan includes — feature grants, storage limits, monthly item caps — are configured on their own real, enforced pages rather than duplicated here.
         </div>
         <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
           <Link to="/admin/app-status" className="btn btn-outline btn-sm" style={{ gap:6 }}>
@@ -3143,11 +3829,11 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="cron">
-      {/* â”€â”€ Cron Jobs â”€â”€ */}
-      <SectionCard title="Cron Jobs" sub="Every background job actually registered by this server â€” name and schedule, read live" section="cron" readOnly>
+      {/* ── Cron Jobs ── */}
+      <SectionCard title="Cron Jobs" sub="Every background job actually registered by this server — name and schedule, read live" section="cron" readOnly>
         <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color: jobs.connected ? 'var(--green)' : 'var(--gold)', background: jobs.connected ? 'var(--green-l)' : 'var(--gold-l)', border: `1px solid ${jobs.connected ? 'var(--green)' : 'var(--gold)'}`, borderRadius: 'var(--r)', padding:'8px 12px', marginBottom:16 }}>
           <Icon name={jobs.connected ? 'checkCircle' : 'alertTriangle'} size={13} />
-          {jobs.connected ? 'BullMQ (Redis) connected â€” schedules below are persistent and distributed.' : 'Redis unavailable â€” running on an in-process interval fallback (no persisted run history).'}
+          {jobs.connected ? 'BullMQ (Redis) connected — schedules below are persistent and distributed.' : 'Redis unavailable — running on an in-process interval fallback (no persisted run history).'}
         </div>
         <div className="rtbl-wrap">
           <table className="rtbl">
@@ -3166,7 +3852,7 @@ export function SettingsView() {
                     <td className="sa-cron-td">{j.name}</td>
                     <td className="sa-cron-td--sched">{j.schedule}</td>
                     <td className="sa-cron-td--status">
-                      <span className={`sa-cron-badge sa-cron-badge--${runs ? 'active' : 'inactive'}`} title={j.fallbackOnly ? 'Only scheduled by the interval fallback â€” no BullMQ repeat registration exists for this job yet.' : undefined}>
+                      <span className={`sa-cron-badge sa-cron-badge--${runs ? 'active' : 'inactive'}`} title={j.fallbackOnly ? 'Only scheduled by the interval fallback — no BullMQ repeat registration exists for this job yet.' : undefined}>
                         {runs ? 'scheduled' : 'not scheduled'}
                       </span>
                     </td>
@@ -3194,7 +3880,7 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="server">
-      {/* â”€â”€ System & Server Info â”€â”€ */}
+      {/* ── System & Server Info ── */}
       <SectionCard title="System & Server Info" sub="Read-only platform infrastructure and runtime details, read live from the running process" section="server" readOnly>
         <div className="sa-server-grid">
           {serverInfo ? ([
@@ -3203,7 +3889,7 @@ export function SettingsView() {
             ['Database', String(serverInfo.database)],
             ['Job Scheduling', String(serverInfo.jobScheduling)],
             ['Platform', String(serverInfo.platform)],
-            ['CPU', `${serverInfo.cpuCount} Ã— ${serverInfo.cpuModel}`],
+            ['CPU', `${serverInfo.cpuCount} × ${serverInfo.cpuModel}`],
             ['System Memory', `${serverInfo.freeMemoryMb} MB free / ${serverInfo.totalMemoryMb} MB`],
             ['Process Heap', `${serverInfo.heapUsedMb} MB used / ${serverInfo.heapTotalMb} MB`],
             ['Server Timezone', String(serverInfo.timezone)],
@@ -3225,16 +3911,16 @@ export function SettingsView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   APP STATUS VIEW â€” per-app maintenance kill switch
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══════════════════════════════════════════════════
+   APP STATUS VIEW — per-app maintenance kill switch
+══════════════════════════════════════════════════ */
 const APP_LABELS: Record<string, string> = {
   ai: 'AI', clearos: 'ClearOS', cloud: 'Cloud', complyos: 'ComplyOS',
   contacts: 'Contacts', email: 'Email', finops: 'FinOps', ondi: 'Ondi',
   nexushr: 'NexusHR', tracking: 'Tracking', demurrage: 'Demurrage', cargotracker: 'CargoTracker',
   petti: 'Petti', notes: 'Notes', sign: 'eSign', sms: 'SMS', onsite: 'Onsite', onesite: 'CMS',
   inventory: 'Inventory',
-  // Backfilled by migration 395 â€” these had real feature keys and
+  // Backfilled by migration 395 — these had real feature keys and
   // package_features grants (see ALL_FEATURE_KEYS) but never got an
   // app_status row at all, so this console had nothing to toggle for them,
   // for maintenance or Beta either one.
@@ -3300,7 +3986,7 @@ export function AppStatusView() {
   }, [rows, search, statusFilter, betaOnly, sortBy]);
 
   /**
-   * Platform-wide "Beta" label (migration 395) â€” independent of the
+   * Platform-wide "Beta" label (migration 395) — independent of the
    * maintenance status toggle() below. Every tenant's GET /v1/entitlements
    * reports the same betaApps list, which is what Settings.tsx's Modules &
    * Extensions grid renders the pill from, so this is the one place that
@@ -3338,12 +4024,12 @@ export function AppStatusView() {
     }
   }
 
-  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading app statusâ€¦</div>;
+  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading app status…</div>;
 
   const liveCount = rows.filter(r => r.status === 'active').length;
   const betaCount = rows.filter(r => r.is_beta).length;
   const SORT_OPTIONS: { value: string; label: string }[] = [
-    { value: 'name',    label: 'Name Aâ€“Z' },
+    { value: 'name',    label: 'Name A–Z' },
     { value: 'status',  label: 'Maintenance first' },
     { value: 'updated', label: 'Recently updated' },
   ];
@@ -3352,7 +4038,7 @@ export function AppStatusView() {
     <div>
       <PageHdr
         title="App Status"
-        sub="Per-app maintenance switch and Beta label â€” take a single app down for a deploy, or flag it Beta, without affecting the rest of the platform. Both are seen identically by every tenant."
+        sub="Per-app maintenance switch and Beta label — take a single app down for a deploy, or flag it Beta, without affecting the rest of the platform. Both are seen identically by every tenant."
         action={
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <Badge cfg={{ label: `${betaCount} Beta`, color:'var(--gold)', bg:'var(--gold-l)' }} />
@@ -3371,7 +4057,7 @@ export function AppStatusView() {
             className="input-field"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search appsâ€¦"
+            placeholder="Search apps…"
             style={{ width:'100%', boxSizing:'border-box', paddingLeft:34, height:36 }}
           />
         </div>
@@ -3441,7 +4127,7 @@ export function AppStatusView() {
                 <FeatureToggleRow
                   icon={<Icon name={APP_ICONS[row.app_id] ?? 'layers'} size={18} />}
                   title={label}
-                  description={inMaintenance ? 'All tenants are blocked from this app.' : 'Accessible per each tenantâ€™s plan.'}
+                  description={inMaintenance ? 'All tenants are blocked from this app.' : "Accessible per each tenant's plan."}
                   checked={!inMaintenance}
                   onCheckedChange={() => toggle(row)}
                   disabled={busy}
@@ -3457,7 +4143,7 @@ export function AppStatusView() {
                   action={inMaintenance && (
                     <input
                       title="Maintenance message shown to tenants"
-                      placeholder="Optional message shown to tenants while in maintenanceâ€¦"
+                      placeholder="Optional message shown to tenants while in maintenance…"
                       value={drafts[row.app_id] ?? row.message ?? ''}
                       onChange={e => setDrafts(prev => ({ ...prev, [row.app_id]: e.target.value }))}
                       className="input-field"
@@ -3504,7 +4190,7 @@ export function AppStatusView() {
                   </div>
                 </div>
                 <div style={{ fontSize:12, color:'var(--ink3)', opacity: muted ? 0.7 : 1 }}>
-                  {inMaintenance ? 'All tenants are blocked from this app.' : 'Accessible per each tenantâ€™s plan.'}
+                  {inMaintenance ? 'All tenants are blocked from this app.' : "Accessible per each tenant's plan."}
                 </div>
                 <label
                   title="Show this app's Beta pill to every tenant"
@@ -3516,7 +4202,7 @@ export function AppStatusView() {
                 {inMaintenance && (
                   <input
                     title="Maintenance message shown to tenants"
-                    placeholder="Optional message shown to tenants while in maintenanceâ€¦"
+                    placeholder="Optional message shown to tenants while in maintenance…"
                     value={drafts[row.app_id] ?? row.message ?? ''}
                     onChange={e => setDrafts(prev => ({ ...prev, [row.app_id]: e.target.value }))}
                     className="input-field"
@@ -3532,16 +4218,16 @@ export function AppStatusView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   DEVICES â€” cross-tenant Device Management oversight
+/* ══════════════════════════════════════════════════
+   DEVICES — cross-tenant Device Management oversight
    (379_attendance_devices.sql). Read-only: "monitor,
    troubleshoot, audit", same stance this console already
-   takes toward tenant attendance/leave data â€” never a
+   takes toward tenant attendance/leave data — never a
    write action on another tenant's device from here.
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+══════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
    MAIN COMPONENT
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 type ActivityType = 'company'|'user'|'billing'|'system';
 
 interface ActivityLog { id:string; actor:string; action:string; target:string; companyId?:string; time:string; type:ActivityType; }

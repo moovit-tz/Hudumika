@@ -316,7 +316,7 @@ function RouteReferenceTable({ routes, onChanged }: { routes: TransitRoute[]; on
   return (
     <SectionCard title="Route Reference Table" action={
       !adding && !editingId ? (
-        <button type="button" onClick={startAdd} className="btn btn-secondary" style={{ height: 28, fontSize: 11.5, fontWeight: 700, padding: '0 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
+        <button type="button" onClick={startAdd} className="btn btn-secondary btn-xs" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <Icon name="plus" size={12} /> Add Route
         </button>
       ) : undefined

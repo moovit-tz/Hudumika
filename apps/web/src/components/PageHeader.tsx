@@ -8,7 +8,7 @@ import { BackButton } from './ui/BackButton.js';
 export type Crumb = string | { label: string; to?: string };
 
 interface PageHeaderProps {
-  /** e.g. ['Finance', 'Dashboard'] → "FINANCE · DASHBOARD" */
+  /** e.g. ['Finance', 'Dashboard'] → "Finance / Dashboard" */
   crumbs: Crumb[];
   /** Plain part before the italic word, e.g. "Finance" */
   titlePlain?: string;
@@ -31,6 +31,8 @@ interface PageHeaderProps {
   backTo?: string;
   backLabel?: string;
   onBack?: () => void;
+  /** Optional live telemetry status badge (e.g. "Live") */
+  liveStatus?: string;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
@@ -44,6 +46,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   backTo,
   backLabel = 'Back',
   onBack,
+  liveStatus,
 }) => {
   // An explicit split always wins; `title` is the runtime fallback.
   let plain = titlePlain ?? '';
@@ -54,30 +57,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     plain = words.join(' ');
   }
 
-  // The italic-serif accent (Cormorant Garamond) is a Latin-only device —
-  // Arabic and CJK type families carry no true italic, so the browser either
-  // fake-obliques an unrelated fallback face or just ignores font-style
-  // entirely, and the crafted two-tone signature quietly collapses into one
-  // flat weight. .ph-cjk keeps the *hierarchy* (still a weight jump) and the
-  // *brand thread* (still --teal) for these locales, just without the one
-  // device that was never going to render as designed. See the Title
-  // Treatment Audit for the full before/after.
   const { language } = useLocale();
   const nonLatin = language === 'ar' || language === 'zh';
-  /**
-   * Crumbs carry no path of their own — 153 call sites pass bare strings —
-   * so a destination is derived from the URL: crumb i maps to the first i+1
-   * segments of the current path.
-   *
-   * That is only sound when the crumbs line up with the segments, and often
-   * they do not: ['ClearOS','Compliance','Overview'] is three crumbs over the
-   * two segments of /clearos/compliance. So a crumb is only linked when its
-   * derived path is a genuine prefix of where we already are — a path the
-   * router demonstrably resolves, because we are standing on it. Anything
-   * else stays plain text rather than becoming a link to nowhere.
-   *
-   * The last crumb is never a link: it is the page you are on.
-   */
   const { pathname } = useLocation();
   const segments = pathname.split('/').filter(Boolean);
 
@@ -89,40 +70,52 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   }
 
   return (
-  <div className={`page-header${variant === 'create' ? ' page-header--create' : ''}`}>
-    {variant === 'create' && (backTo || onBack) && (
-      <BackButton to={backTo} onClick={onBack} label={backLabel} color="var(--ink2)" />
-    )}
-    {/* Breadcrumb */}
-    {variant !== 'create' && <div className="page-header-crumb">
-      {crumbs.map((c, i) => {
-        const label = typeof c === 'string' ? c : c.label;
-        const href = hrefFor(c, i);
-        return (
-          <React.Fragment key={label}>
-            {i > 0 && <span className="page-header-crumb-sep">·</span>}
-            {href
-              ? <Link to={href} className="page-header-crumb-link">{label}</Link>
-              : <span>{label}</span>}
-          </React.Fragment>
-        );
-      })}
-    </div>}
-
-    {/* Title row */}
-    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-      {variant === 'create' ? (
-        <h1 className="page-header-title page-header-title--create">{[plain, em].filter(Boolean).join(' ')}</h1>
-      ) : (
-        <h1 className={`page-header-title${nonLatin ? ' ph-cjk' : ''}`}>
-          {plain} <em>{em}</em><span className="ph-dot">.</span>
-        </h1>
+    <div className={`page-header${variant === 'create' ? ' page-header--create' : ''}`}>
+      {variant === 'create' && (backTo || onBack) && (
+        <BackButton to={backTo} onClick={onBack} label={backLabel} color="var(--ink2)" />
       )}
-      {actions && <div style={{ flexShrink: 0, minWidth: 0, maxWidth: '100%', paddingBottom: 6 }}>{actions}</div>}
-    </div>
+      
+      {/* DreamsCore breadcrumb — "Parent / Current page" */}
+      {variant !== 'create' && (
+        <div className="page-header-crumb">
+          {crumbs.map((c, i) => {
+            const label = typeof c === 'string' ? c : c.label;
+            const href = hrefFor(c, i);
+            const isLast = i === crumbs.length - 1;
+            return (
+              <React.Fragment key={label}>
+                {i > 0 && <span className="page-header-crumb-sep">/</span>}
+                {href
+                  ? <Link to={href} className="page-header-crumb-link">{label}</Link>
+                  : <span className={isLast ? 'page-header-crumb-current' : ''}>{label}</span>}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      )}
 
-    {/* Subtitle */}
-    {subtitle && <p className="page-header-sub">{subtitle}</p>}
-  </div>
+      {/* Title row */}
+      <div className="page-header-main-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {variant === 'create' ? (
+            <h1 className="page-header-title page-header-title--create">{[plain, em].filter(Boolean).join(' ')}</h1>
+          ) : (
+            <h1 className={`page-header-title${nonLatin ? ' ph-cjk' : ''}`}>
+              {plain}{plain && em ? ' ' : ''}<span className="ph-em">{em}</span>
+            </h1>
+          )}
+          {liveStatus && (
+            <span className="page-header-live-badge">
+              <span className="page-header-live-dot" />
+              {liveStatus}
+            </span>
+          )}
+        </div>
+        {actions && <div className="page-header-actions-wrap" style={{ flexShrink: 0, minWidth: 0, maxWidth: '100%' }}>{actions}</div>}
+      </div>
+
+      {/* Subtitle */}
+      {subtitle && <p className="page-header-sub">{subtitle}</p>}
+    </div>
   );
 };

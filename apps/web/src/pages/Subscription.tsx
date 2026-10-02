@@ -17,25 +17,26 @@ import { APP_META } from './Utilities.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import type { Addon } from '@hudumika/types';
+import { FINANCE_CAPABILITIES } from '@hudumika/types';
 import { AreaSparkline } from '../components/MetricCard.js';
 import { refreshFxRates, convertAmount, formatAmount } from '../lib/currency.js';
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type SubTab = 'company' | 'billing' | 'payments' | 'plans' | 'modules' | 'reports' | 'support';
-// Was a fixed 4-value union ('starter'|'growth'|'scale'|'enterprise') â€” that
+// Was a fixed 4-value union ('starter'|'growth'|'scale'|'enterprise') — that
 // ceiling is exactly why this page couldn't see anything a SuperAdmin added,
 // renamed, or retired in /admin/packages: any other code was silently
 // dropped by `if (pkg.code in next)` below. A package's code is real,
 // admin-defined data (packages.routes.ts), not a fixed set this page gets
-// to assume â€” so it's a plain string everywhere from here down.
+// to assume — so it's a plain string everywhere from here down.
 type PlanKey = string;
 
-// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 type PlanDisplay = { name: string; color: string; bg: string; pricePerSeat: number | null; extraSeatPrice: number | null; extraSeatThreshold: number | null; itemLimit: number | null; storageLimitGb: number | null; tagline?: string; icon: IconName; badge?: string; features: string[] };
 
-/** Mirrors billing.routes.ts's computePlanAmount â€” the real per-period charge
+/** Mirrors billing.routes.ts's computePlanAmount — the real per-period charge
  *  for a seat count, discounted past extraSeatThreshold when a plan has one
  *  set. Used only as the pre-invoice estimate; once a real invoice exists,
  *  its server-computed amount is authoritative (see priceMonthlyTotalNum's
@@ -48,23 +49,23 @@ function estimatePlanAmount(plan: PlanDisplay, seats: number): number | null {
   return plan.pricePerSeat * seats;
 }
 
-// Curated tagline/icon for the packages seeded by migration 078 â€” cosmetic
+// Curated tagline/icon for the packages seeded by migration 078 — cosmetic
 // polish for codes this page happens to already know about, never a gate on
 // which packages appear. Any other real code (renamed, added, or retired-and-
 // replaced in /admin/packages) still renders fully, just with a generic icon
 // and no tagline rather than fabricated copy.
 const PLAN_TAGLINES: Record<string, string> = {
-  starter: 'HuduStarter â€” For solo founders and small teams just getting started',
-  growth: 'HuduPlus â€” For growing teams scaling their operations',
-  scale: 'Legacy Plan â€” Scale',
-  enterprise: 'Hudu Advanced â€” Metered option shared per quotation',
+  starter: 'HuduStarter — For solo founders and small teams just getting started',
+  growth: 'HuduPlus — For growing teams scaling their operations',
+  scale: 'Legacy Plan — Scale',
+  enterprise: 'Hudu Advanced — Metered option shared per quotation',
 };
 const PLAN_ICONS: Record<string, IconName> = {
   starter: 'zap', growth: 'trendingUp', scale: 'barChart', enterprise: 'crown',
 };
 
 // Shown only until /v1/packages resolves for the first time, so there's no
-// flash of an empty page â€” replaced wholesale (not merged) by the real
+// flash of an empty page — replaced wholesale (not merged) by the real
 // catalog once it loads. Mirrors migration 078's seeded values.
 const PLAN_DEFAULTS: Record<string, PlanDisplay> = {
   starter: {
@@ -82,7 +83,7 @@ const PLAN_DEFAULTS: Record<string, PlanDisplay> = {
 };
 
 /** Fetches the canonical package catalog (same /v1/packages SuperAdmin's own
- *  PackagesView reads) and shapes it to match this page's render code â€”
+ *  PackagesView reads) and shapes it to match this page's render code —
  *  every real, active package the admin has configured, keyed by its own
  *  code, nothing added or dropped. */
 function usePlans(): Record<string, PlanDisplay> {
@@ -120,14 +121,14 @@ const UNKNOWN_PLAN: PlanDisplay = {
 
 /** The tenant's own current plan by code, falling back to the first real
  *  package if that exact code isn't in the live catalog for some reason
- *  (never silently to a *different specific* plan's price â€” that plan's
+ *  (never silently to a *different specific* plan's price — that plan's
  *  own genuine "Custom pricing" state is closer to the truth than pretending
  *  they're on whichever code happens to be first). */
 function planFor(plans: Record<string, PlanDisplay>, code: string): PlanDisplay {
   return plans[code] ?? Object.values(plans)[0] ?? UNKNOWN_PLAN;
 }
 
-/** East African tenants think in shillings first â€” every headline USD price
+/** East African tenants think in shillings first — every headline USD price
  *  on this page gets a real TZS-equivalent line under it, sourced from the
  *  same live customs/fx-rates feed FinOps already uses (currency.ts). The
  *  stored plan/invoice amounts stay USD (no billing-pipeline change); this
@@ -142,7 +143,7 @@ function tzsEquivalent(usd: number): string {
 }
 
 /** Green below the limit, gold once a tenant is close enough to it that a
- *  heads-up is actually useful, red once it's actually hit â€” never a silent
+ *  heads-up is actually useful, red once it's actually hit — never a silent
  *  jump straight from "fine" to "blocked". */
 function usageBarColor(used: number, limit: number, base: string): string {
   const pct = (used / limit) * 100;
@@ -151,7 +152,7 @@ function usageBarColor(used: number, limit: number, base: string): string {
   return base;
 }
 
-/** Active (non-suspended) user count for this tenant â€” drives the per-seat price estimate. */
+/** Active (non-suspended) user count for this tenant — drives the per-seat price estimate. */
 function useSeatCount(): number {
   const [seats, setSeats] = useState(1);
   useEffect(() => {
@@ -160,9 +161,9 @@ function useSeatCount(): number {
   return seats;
 }
 
-/** Relative-time formatter for session `last_used_at` â€” same pattern as TopBar.tsx's relTime(), duplicated locally since it's not exported from there. */
+/** Relative-time formatter for session `last_used_at` — same pattern as TopBar.tsx's relTime(), duplicated locally since it's not exported from there. */
 function relTime(dateStr: string | null | undefined): string {
-  if (!dateStr) return 'â€”';
+  if (!dateStr) return '—';
   const ms = Date.now() - new Date(dateStr).getTime();
   const sec = Math.floor(ms / 1000);
   if (sec < 60) return `${Math.max(sec, 0)} sec ago`;
@@ -174,13 +175,13 @@ function relTime(dateStr: string | null | undefined): string {
 }
 
 function fmtDate(d: string | null | undefined): string {
-  if (!d) return 'â€”';
+  if (!d) return '—';
   const dt = new Date(d);
-  if (isNaN(dt.getTime())) return 'â€”';
+  if (isNaN(dt.getTime())) return '—';
   return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-/** Real subscription invoices â€” replaces the old PAYMENT_HISTORY fixture. Generates the current
+/** Real subscription invoices — replaces the old PAYMENT_HISTORY fixture. Generates the current
  *  period's invoice (idempotent) on mount so there's always at least one real row to show. */
 function useInvoices() {
   const [invoices, setInvoices] = useState<any[] | null>(null);
@@ -203,7 +204,7 @@ function useInvoices() {
   return { invoices, reload };
 }
 
-/** Real payment methods â€” replaces the hardcoded Visa/PayPal fixture rows. */
+/** Real payment methods — replaces the hardcoded Visa/PayPal fixture rows. */
 function usePaymentMethods() {
   const [methods, setMethods] = useState<any[] | null>(null);
 
@@ -220,7 +221,7 @@ function usePaymentMethods() {
   return { methods, reload };
 }
 
-// â”€â”€â”€ Small helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Small helpers ────────────────────────────────────────────────────────────
 
 function SectionHead({ title, sub, action }: { title: string; sub?: string; action?: React.ReactNode }) {
   return (
@@ -256,7 +257,7 @@ function CardHead({ title, sub, right }: { title: string; sub?: string; right?: 
 
 function StatusBadge({ status }: { status: string }) {
   // Keys are case-insensitive so this covers both the old display-cased fixture
-  // strings (Paid/Open/Highâ€¦) and the real API's UPPER_SNAKE enums (OPEN, IN_PROGRESS,
+  // strings (Paid/Open/High…) and the real API's UPPER_SNAKE enums (OPEN, IN_PROGRESS,
   // due/paid/overdue/cancelled) without needing two lookup tables.
   const variants: Record<string, 'success' | 'warning' | 'error' | 'info' | 'gray'> = {
     PAID: 'success', DUE: 'warning',
@@ -294,7 +295,7 @@ function FormRow({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-// â”€â”€â”€ Tab: Company Info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Tab: Company Info ────────────────────────────────────────────────────────
 
 function CompanyInfoTab({ tenant }: { tenant: any }) {
   const co = useCompany();
@@ -323,11 +324,11 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Company name, logo, contact and address fields live in Settings > Company Info
-            (the single source for that data, shared across every app) â€” not duplicated here. */}
+            (the single source for that data, shared across every app) — not duplicated here. */}
         <Card>
           <CardHead
             title="Regulatory Details"
-            sub={`Customs authority credentials and clearance licence for ${co.name || 'this account'}. Company profile and logo are managed in Settings â†’ Company Info.`}
+            sub={`Customs authority credentials and clearance licence for ${co.name || 'this account'}. Company profile and logo are managed in Settings → Company Info.`}
             right={
               editingReg ? (
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -348,7 +349,7 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
                 {editingReg ? (
                   <input value={regForm[key]} onChange={e => setRegForm(f => ({ ...f, [key]: e.target.value }))} className="input-field" style={{ fontSize: 13, padding: '7px 12px', width: '100%', fontFamily: 'var(--font)' }} />
                 ) : (
-                  <span style={{ fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{co[key] || 'â€”'}</span>
+                  <span style={{ fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{co[key] || '—'}</span>
                 )}
               </FormRow>
             ))}
@@ -384,7 +385,7 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
             ))}
             {estMonthly !== null && (
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -6, marginBottom: 8 }}>
-                <span style={{ fontSize: 11, color: 'var(--ink3)' }}>â‰ˆ {tzsEquivalent(estMonthly)}</span>
+                <span style={{ fontSize: 11, color: 'var(--ink3)' }}>≈ {tzsEquivalent(estMonthly)}</span>
               </div>
             )}
             {usage && (
@@ -410,7 +411,7 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
   );
 }
 
-// â”€â”€â”€ Tab: Billing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Tab: Billing ─────────────────────────────────────────────────────────────
 
 function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t: SubTab) => void }) {
   const plans = usePlans();
@@ -428,9 +429,9 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
   const [paying, setPaying] = useState<string | null>(null);
 
   // The real, server-computed total for the current period (plan + active
-  // add-ons â€” see billing.routes.ts's /invoices/generate) is what's actually
+  // add-ons — see billing.routes.ts's /invoices/generate) is what's actually
   // owed. A client-recomputed `pricePerSeat * seats` used to stand in for
-  // this even once a real invoice existed, silently excluding add-ons â€”
+  // this even once a real invoice existed, silently excluding add-ons —
   // e.g. a tenant with $9 of add-ons active saw "$36/mo" as the headline
   // figure here while the adjacent Billing Summary card's real "Amount Due"
   // correctly read $45. Only fall back to the estimate before any invoice
@@ -441,7 +442,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
 
   function fmtAmount(inv: any) { return `${inv.currency} ${Number(inv.amount).toFixed(2)}`; }
   function planNameFor(code: string) { return plans[code as PlanKey]?.name ?? code; }
-  function descFor(inv: any) { return `${planNameFor(inv.plan_code)} Plan${Number(inv.addons_amount ?? 0) > 0 ? ' + add-ons' : ''} â€” ${fmtDate(inv.period_start)}`; }
+  function descFor(inv: any) { return `${planNameFor(inv.plan_code)} Plan${Number(inv.addons_amount ?? 0) > 0 ? ' + add-ons' : ''} — ${fmtDate(inv.period_start)}`; }
 
   async function payInvoice(id: string) {
     if (!defaultMethod) {
@@ -467,7 +468,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
     }
   }
 
-  // No bulk-export endpoint exists â€” loops the same per-invoice download call across every
+  // No bulk-export endpoint exists — loops the same per-invoice download call across every
   // row rather than fabricating a combined statement.
   async function downloadAll() {
     if (!invoices?.length) return;
@@ -476,7 +477,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
 
   async function cancelSubscription() {
     if (!(await showConfirm('Are you sure you want to cancel your subscription?', { variant: 'danger', confirmLabel: 'Cancel Subscription' }))) return;
-    showAlert('Contact support to cancel your subscription â€” self-service cancellation isnâ€™t available yet.', { variant: 'info', title: 'Contact support' });
+    showAlert("Contact support to cancel your subscription — self-service cancellation isn't available yet.", { variant: 'info', title: 'Contact support' });
   }
 
   return (
@@ -493,12 +494,12 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>{plan.name} Plan</div>
                 <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 2 }}>
-                  {plan.itemLimit === null ? 'Unlimited items / month' : `Up to ${plan.itemLimit.toLocaleString()} items / month`} Â· {priceLabel}/mo Â· {seats} seat{seats === 1 ? '' : 's'}
+                  {plan.itemLimit === null ? 'Unlimited items / month' : `Up to ${plan.itemLimit.toLocaleString()} items / month`} · {priceLabel}/mo · {seats} seat{seats === 1 ? '' : 's'}
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: plan.color }}>{priceMonthlyTotal}</div>
-                {priceMonthlyTotalNum !== null && <div style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>â‰ˆ {tzsEquivalent(priceMonthlyTotalNum)}</div>}
+                {priceMonthlyTotalNum !== null && <div style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>≈ {tzsEquivalent(priceMonthlyTotalNum)}</div>}
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>per month</div>
                 {Number(current?.addons_amount ?? 0) > 0 && (
                   <div style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 600, marginTop: 2 }}>
@@ -534,7 +535,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
           <CardHead title="Billing Summary" />
           <div style={{ padding: '16px 20px' }}>
             {[
-              ['Amount Due', current ? fmtAmount(current) : 'â€”'],
+              ['Amount Due', current ? fmtAmount(current) : '—'],
               ['Due Date',   fmtDate(current?.due_date)],
               ['Currency',   current?.currency || 'USD'],
               ['Tax',        'Included'],
@@ -546,7 +547,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
             ))}
             {current && current.status !== 'paid' ? (
               <button onClick={() => payInvoice(current.id)} disabled={paying === current.id} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: paying === current.id ? 'default' : 'pointer', opacity: paying === current.id ? 0.6 : 1, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                {paying === current.id ? 'Processingâ€¦' : 'Pay Now'}
+                {paying === current.id ? 'Processing…' : 'Pay Now'}
               </button>
             ) : (
               <div style={{ width: '100%', marginTop: 16, padding: '10px 0', textAlign: 'center', borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 13.5, fontWeight: 700 }}>
@@ -569,7 +570,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
           </thead>
           <tbody>
             {invoices === null && (
-              <tr><td colSpan={7} style={{ padding: 20, textAlign: 'center', fontSize: 12.5, color: 'var(--ink3)' }}>Loading invoicesâ€¦</td></tr>
+              <tr><td colSpan={7} style={{ padding: 20, textAlign: 'center', fontSize: 12.5, color: 'var(--ink3)' }}>Loading invoices…</td></tr>
             )}
             {invoices?.length === 0 && (
               <tr><td colSpan={7} style={{ padding: 20, textAlign: 'center', fontSize: 12.5, color: 'var(--ink3)' }}>No invoices yet.</td></tr>
@@ -597,10 +598,10 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
   );
 }
 
-// â”€â”€â”€ Tab: Payments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Tab: Payments ────────────────────────────────────────────────────────────
 
-// Mobile money leads â€” it's the rail most tenants in this market actually
-// pay with â€” followed by the Petti wallet (itself funded by mobile money
+// Mobile money leads — it's the rail most tenants in this market actually
+// pay with — followed by the Petti wallet (itself funded by mobile money
 // deposits), with card last since it's the least commonly held option here.
 const METHOD_TYPES: { value: 'card' | 'mobile_money' | 'petti_wallet'; label: string; sub: string; icon: IconName }[] = [
   { value: 'mobile_money', label: 'Mobile Money', sub: 'M-Pesa, Tigo Pesa, Airtel Money', icon: 'smartphone' },
@@ -612,7 +613,7 @@ const MOBILE_MONEY_PROVIDERS = ['M-Pesa', 'Tigo Pesa', 'Airtel Money', 'HaloPesa
 
 // Tanzania's mobile numbers carry the network in their prefix, so once
 // someone's typed enough digits there's no real ambiguity about which
-// wallet a payment will actually move through â€” asking them to also pick it
+// wallet a payment will actually move through — asking them to also pick it
 // from a list is a second step for information the number already gave.
 const MOBILE_MONEY_PREFIX_MAP: Record<string, string> = {
   '074': 'M-Pesa', '075': 'M-Pesa', '076': 'M-Pesa',       // Vodacom
@@ -629,7 +630,7 @@ function detectMobileMoneyProvider(phone: string): string | null {
   return MOBILE_MONEY_PREFIX_MAP['0' + digits.slice(0, 2)] ?? null;
 }
 
-/** The tenant's own Petti wallets â€” for the "pay from wallet" payment
+/** The tenant's own Petti wallets — for the "pay from wallet" payment
  *  method. Empty (not an error) if Petti isn't entitled for this tenant;
  *  the option just has nothing to offer, same as add-ons with none configured. */
 function useWallets() {
@@ -663,7 +664,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
   const paidInvoices = (invoices ?? []).filter((inv: any) => !!inv.tx_ref);
   useFxReady();
 
-  // The wallet-top-up nudge â€” the default method IS a Petti wallet but its
+  // The wallet-top-up nudge — the default method IS a Petti wallet but its
   // real balance (billing.routes.ts enriches this on every GET) can't cover
   // what's about to come due, so the fix is one tap to Petti, not a failed
   // charge discovered after the fact.
@@ -671,9 +672,9 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
   const walletLow = !!(upcoming && defaultMethodForNudge?.type === 'petti_wallet' && Number(defaultMethodForNudge.wallet_balance ?? 0) < Number(upcoming.amount));
 
   function methodLabelFor(id: string | null) {
-    if (!id) return 'â€”';
+    if (!id) return '—';
     const m = methods?.find(mm => mm.id === id);
-    return m ? (m.label || `${m.brand ?? ''} â€¢â€¢â€¢â€¢ ${m.last4 ?? ''}`) : 'â€”';
+    return m ? (m.label || `${m.brand ?? ''} •••• ${m.last4 ?? ''}`) : '—';
   }
 
   function resetForm() {
@@ -751,8 +752,8 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
         <Card>
           <CardHead title="Payment Methods" sub="Manage cards and accounts used for billing." right={<Btn label="Add Method" icon="plus" variant="primary" onClick={() => setShowAddForm(v => !v)} />} />
           <div style={{ padding: '0 20px 8px' }}>
-            {methods === null && <div style={{ padding: '14px 0', fontSize: 12.5, color: 'var(--ink3)' }}>Loading payment methodsâ€¦</div>}
-            {methods?.length === 0 && !showAddForm && <div style={{ padding: '14px 0', fontSize: 12.5, color: 'var(--ink3)' }}>No payment methods yet â€” add one below.</div>}
+            {methods === null && <div style={{ padding: '14px 0', fontSize: 12.5, color: 'var(--ink3)' }}>Loading payment methods…</div>}
+            {methods?.length === 0 && !showAddForm && <div style={{ padding: '14px 0', fontSize: 12.5, color: 'var(--ink3)' }}>No payment methods yet — add one below.</div>}
             {methods?.map((m) => (
               <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ width: 52, height: 36, borderRadius: 'var(--r-sm)', background: m.is_default ? 'var(--navy2)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -760,7 +761,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
-                    {m.label || m.brand}{m.last4 ? ` â€¢â€¢â€¢â€¢ ${m.last4}` : ''}
+                    {m.label || m.brand}{m.last4 ? ` •••• ${m.last4}` : ''}
                     {m.is_default && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 'var(--r)', background: 'var(--green-l)', color: 'var(--green)', fontSize: 10, fontWeight: 700 }}>Default</span>}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
@@ -817,7 +818,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                     </FormRow>
                     <FormRow label="Provider">
                       <Select value={provider} onValueChange={setProvider}>
-                        <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue placeholder="Choose a providerâ€¦" /></SelectTrigger>
+                        <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue placeholder="Choose a provider…" /></SelectTrigger>
                         <SelectContent>
                           {MOBILE_MONEY_PROVIDERS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                         </SelectContent>
@@ -827,17 +828,17 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                 ) : (
                   <FormRow label="Wallet">
                     {wallets === null ? (
-                      <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '8px 0' }}>Loading your Petti walletsâ€¦</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '8px 0' }}>Loading your Petti wallets…</div>
                     ) : wallets.length === 0 ? (
                       <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '8px 0' }}>
                         No Petti wallets found. Set one up in the <a onClick={() => window.location.assign('/petti')} style={{ color: 'var(--teal)', cursor: 'pointer' }}>Petti app</a> first.
                       </div>
                     ) : (
                       <Select value={walletId} onValueChange={setWalletId}>
-                        <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue placeholder="Choose a walletâ€¦" /></SelectTrigger>
+                        <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue placeholder="Choose a wallet…" /></SelectTrigger>
                         <SelectContent>
                           {wallets.map(w => (
-                            <SelectItem key={w.id} value={w.id}>{w.name} â€” {w.currency} {w.balance.toLocaleString()}</SelectItem>
+                            <SelectItem key={w.id} value={w.id}>{w.name} — {w.currency} {w.balance.toLocaleString()}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -847,7 +848,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                 <FormRow label="Label (optional)"><input value={methodLabel} onChange={e => setMethodLabel(e.target.value)} placeholder="e.g. Company Visa" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
                 {formError && <div style={{ color: 'var(--red)', fontSize: 12.5, marginTop: 8 }}>{formError}</div>}
                 <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-                  <Btn label={saving ? 'Savingâ€¦' : 'Save Method'} icon="save" variant="primary" onClick={submitAdd} disabled={saving} />
+                  <Btn label={saving ? 'Saving…' : 'Save Method'} icon="save" variant="primary" onClick={submitAdd} disabled={saving} />
                   <Btn label="Cancel" onClick={() => { setShowAddForm(false); resetForm(); }} />
                 </div>
               </div>
@@ -892,7 +893,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
             {upcoming ? (
               <>
                 <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{fmtAmount(upcoming)}</div>
-                {upcoming.currency === 'USD' && <div style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600, marginBottom: 4 }}>â‰ˆ {tzsEquivalent(Number(upcoming.amount))}</div>}
+                {upcoming.currency === 'USD' && <div style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600, marginBottom: 4 }}>≈ {tzsEquivalent(Number(upcoming.amount))}</div>}
                 <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>Due on {fmtDate(upcoming.due_date)}</div>
                 {[[`${upcoming.plan_code} (${upcoming.seats} seat${upcoming.seats === 1 ? '' : 's'})`, fmtAmount(upcoming)], ['Tax', 'Included'], ['Total', fmtAmount(upcoming)]].map(([k, v], i) => (
                   <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '8px 0', borderBottom: '1px solid var(--border)', fontWeight: i === 2 ? 700 : 400, color: i === 2 ? 'var(--ink)' : 'var(--ink3)' }}>
@@ -902,11 +903,11 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                 {walletLow && (
                   <div style={{ marginTop: 14 }}>
                     <Banner variant="warning">Your wallet balance won't cover this invoice.</Banner>
-                    <a href="/petti" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', whiteSpace: 'nowrap' }}>Top up â†’</a>
+                    <a href="/petti" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', whiteSpace: 'nowrap' }}>Top up →</a>
                   </div>
                 )}
                 <button onClick={payUpcoming} disabled={payingUpcoming} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: payingUpcoming ? 'default' : 'pointer', opacity: payingUpcoming ? 0.6 : 1, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                  {payingUpcoming ? 'Processingâ€¦' : 'Pay Now'}
+                  {payingUpcoming ? 'Processing…' : 'Pay Now'}
                 </button>
               </>
             ) : (
@@ -917,7 +918,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
         <Card>
           <CardHead title="Billing Contact" sub="The account this workspace's billing notices go to." />
           <div style={{ padding: '0 20px 16px' }}>
-            {[['Name', user?.name || 'â€”'], ['Email', user?.email || 'â€”'], ['Phone', user?.phone || 'â€”']].map(([k, v]) => (
+            {[['Name', user?.name || '—'], ['Email', user?.email || '—'], ['Phone', user?.phone || '—']].map(([k, v]) => (
               <FormRow key={k} label={k}><span style={{ fontSize: 13 }}>{v}</span></FormRow>
             ))}
           </div>
@@ -927,12 +928,12 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
   );
 }
 
-// â”€â”€â”€ Tab: Security â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Tab: Security ────────────────────────────────────────────────────────────
 
-// â”€â”€â”€ Tab: Plans â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Tab: Plans ───────────────────────────────────────────────────────────────
 
 // PLAN_ORDER/PLAN_TAGLINES/PLAN_ICONS/COMPARE_ROWS used to be hardcoded to
-// exactly the 4 packages migration 078 seeded â€” meaning a package renamed,
+// exactly the 4 packages migration 078 seeded — meaning a package renamed,
 // retired, or added in /admin/packages since then either vanished from this
 // tab or (worse) COMPARE_ROWS kept showing fabricated feature checkmarks for
 // whatever 3 codes happened to still be here. PLAN_TAGLINES/PLAN_ICONS now
@@ -940,19 +941,19 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
 // legacy codes, not a gate). The list below and the compare table are both
 // derived from whatever `plans` the live catalog actually contains.
 
-/** Real packages only â€” cheapest first, custom-priced (pricePerSeat: null)
+/** Real packages only — cheapest first, custom-priced (pricePerSeat: null)
  *  last regardless of price so "Talk to Sales" tiers don't interleave with
  *  numeric ones. */
 function orderedPlanCodes(plans: Record<string, PlanDisplay>): string[] {
   // /v1/packages already returns rows ordered by the admin's own sort_order
   // (packages.routes.ts) and usePlans() fills `plans` by iterating that same
-  // response in order â€” plain string keys preserve insertion order in JS, so
+  // response in order — plain string keys preserve insertion order in JS, so
   // this is that same admin-configured order, not a second opinion re-derived
   // from price.
   return Object.keys(plans);
 }
 
-/** Real add-ons catalog (376_package_addons.sql) â€” "Get more with add-ons",
+/** Real add-ons catalog (376_package_addons.sql) — "Get more with add-ons",
  *  the same purchasable-independent-of-plan concept SuperAdmin's own Packages
  *  page shows (there for catalog management; here for the tenant's own
  *  purchase/cancel action). Onsite lives here now instead of being a fourth
@@ -966,13 +967,87 @@ function useAddons() {
   return { addons, reload };
 }
 
+// ─── Finance edition breakdown ─────────────────────────────────────────────────
+// Shows which Finance capabilities are in Basic (all plans) vs Advanced
+// (Growth and Enterprise), so users on the plans tab can see exactly what
+// they unlock when upgrading rather than seeing a generic "Finance Advanced"
+// badge only when they hit a locked page.
+function FinanceEditionSection() {
+  const availableCapabilities = FINANCE_CAPABILITIES.filter(c => c.status === 'available');
+  const basicCaps = availableCapabilities.filter(c => c.edition === 'basic');
+  const advancedCaps = availableCapabilities.filter(c => c.edition === 'advanced');
+
+  const categoryOrder: Record<string, number> = { core: 0, accounting: 1, operations: 2, reporting: 3 };
+  const sortedAdvanced = [...advancedCaps].sort((a, b) => (categoryOrder[a.category] ?? 9) - (categoryOrder[b.category] ?? 9));
+
+  const categoryLabel: Record<string, string> = {
+    core: 'Core', accounting: 'Accounting', operations: 'Operations', reporting: 'Reporting',
+  };
+
+  return (
+    <div style={{ marginTop: 32 }}>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: 4 }}>Finance module</div>
+        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: 'var(--ink)' }}>Finance editions by plan</h2>
+        <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--ink3)' }}>
+          Every plan includes Finance Basic. Finance Advanced unlocks with the Growth plan and above.
+        </p>
+      </div>
+      <div className="sub-finance-edition-grid">
+        {/* Basic column */}
+        <div className="sub-finance-edition-col">
+          <div className="sub-finance-edition-header">
+            <div className="sub-finance-edition-badge sub-finance-edition-badge--basic">Basic</div>
+            <div className="sub-finance-edition-plans">All plans</div>
+          </div>
+          <ul className="sub-finance-edition-list">
+            {basicCaps.map(c => (
+              <li key={c.key}>
+                <Icon name="check" size={13} strokeWidth={2.5} style={{ color: 'var(--teal)', flexShrink: 0 } as React.CSSProperties} />
+                <span><strong>{c.name}</strong> — {c.description}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Advanced column */}
+        <div className="sub-finance-edition-col sub-finance-edition-col--advanced">
+          <div className="sub-finance-edition-header">
+            <div className="sub-finance-edition-badge sub-finance-edition-badge--advanced">Advanced</div>
+            <div className="sub-finance-edition-plans">Growth &amp; Enterprise</div>
+          </div>
+          <ul className="sub-finance-edition-list">
+            {sortedAdvanced.map(c => (
+              <li key={c.key}>
+                <Icon name="check" size={13} strokeWidth={2.5} style={{ color: 'var(--teal)', flexShrink: 0 } as React.CSSProperties} />
+                <span>
+                  <strong>{c.name}</strong>
+                  {' '}
+                  <span style={{ fontSize: 11.5, color: 'var(--ink3)', background: 'var(--bg)', padding: '1px 5px', borderRadius: 4, border: '1px solid var(--border)', fontWeight: 500 }}>
+                    {categoryLabel[c.category]}
+                  </span>
+                  {' '}— {c.description}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="sub-finance-edition-footer">
+            <Icon name="info" size={13} style={{ flexShrink: 0, color: 'var(--ink3)' } as React.CSSProperties} />
+            Advanced capabilities can be individually enabled or disabled in Finance Settings after upgrading.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AddonsSection() {
   const { addons, reload } = useAddons();
   const [busyCode, setBusyCode] = useState<string | null>(null);
   useFxReady();
 
   // There is deliberately no separate checkout step (addons.routes.ts's own
-  // comment: "instant activation, no separate checkout step") â€” activating
+  // comment: "instant activation, no separate checkout step") — activating
   // here folds the cost into the next generated subscription invoice
   // (Billing tab), paid from your on-file default payment method, the same
   // as the base plan itself. That's easy to miss with no confirmation
@@ -982,7 +1057,7 @@ function AddonsSection() {
     try {
       await apiFetch(`/v1/addons/${code}/purchase`, { method: 'POST' });
       await reload();
-      showAlert(`${name} added. There's no separate checkout â€” its cost is included on your next Billing invoice, charged from your default payment method there.`, { variant: 'success', title: 'Add-on activated' });
+      showAlert(`${name} added. There's no separate checkout — its cost is included on your next Billing invoice, charged from your default payment method there.`, { variant: 'success', title: 'Add-on activated' });
     } catch (err: any) {
       showAlert(`Failed to add: ${err.message}`);
     } finally {
@@ -1007,7 +1082,7 @@ function AddonsSection() {
 
   return (
     <Card style={{ marginTop: 20 }}>
-      <CardHead title="Get more with add-ons" sub="Purchasable on top of your plan â€” not a separate tier. Adding one activates it immediately; there's no checkout, its cost is simply included on your next Billing invoice." />
+      <CardHead title="Get more with add-ons" sub="Purchasable on top of your plan — not a separate tier. Adding one activates it immediately; there's no checkout, its cost is simply included on your next Billing invoice." />
       <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
         {addons.map(addon => (
           <div key={addon.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1023,14 +1098,14 @@ function AddonsSection() {
                 <div style={{ fontSize: 15, fontWeight: 800, color: addon.color ?? 'var(--navy)', marginTop: 2 }}>
                   ${addon.monthlyPrice}<span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)' }}>/mo</span>
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)' }}>â‰ˆ {tzsEquivalent(addon.monthlyPrice)}/mo</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)' }}>≈ {tzsEquivalent(addon.monthlyPrice)}/mo</div>
               </div>
             </div>
             <p style={{ fontSize: 12, color: 'var(--ink2)', margin: 0, lineHeight: 1.5, flex: 1 }}>{addon.description}</p>
             {addon.purchased ? (
-              <Btn label={busyCode === addon.code ? 'Removingâ€¦' : 'Remove'} variant="danger" onClick={() => cancel(addon.code, addon.name)} disabled={busyCode === addon.code} />
+              <Btn label={busyCode === addon.code ? 'Removing…' : 'Remove'} variant="danger" onClick={() => cancel(addon.code, addon.name)} disabled={busyCode === addon.code} />
             ) : (
-              <Btn label={busyCode === addon.code ? 'Addingâ€¦' : 'Add to Plan'} icon="plus" variant="primary" onClick={() => purchase(addon.code, addon.name)} disabled={busyCode === addon.code} />
+              <Btn label={busyCode === addon.code ? 'Adding…' : 'Add to Plan'} icon="plus" variant="primary" onClick={() => purchase(addon.code, addon.name)} disabled={busyCode === addon.code} />
             )}
           </div>
         ))}
@@ -1041,7 +1116,7 @@ function AddonsSection() {
 
 function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<void> }) {
   const plans = usePlans();
-  // Monthly is the hero choice, not yearly â€” a market where cash flow is
+  // Monthly is the hero choice, not yearly — a market where cash flow is
   // tight and unpredictable-spend is the real objection favors the lower
   // up-front commitment by default; yearly is still one tap away for anyone
   // who wants the discount.
@@ -1052,7 +1127,7 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
 
   async function handleSelectPlan(k: PlanKey) {
     const name = plans[k]?.name ?? k;
-    if (!(await showConfirm(`Change your plan to ${name}? This takes effect immediately â€” there's no separate checkout, the new price is simply what's billed on your next Billing invoice.`, { variant: 'warning', confirmLabel: 'Change Plan' }))) return;
+    if (!(await showConfirm(`Change your plan to ${name}? This takes effect immediately — there's no separate checkout, the new price is simply what's billed on your next Billing invoice.`, { variant: 'warning', confirmLabel: 'Change Plan' }))) return;
     try {
       await apiFetch('/v1/settings', {
         method: 'PATCH',
@@ -1089,7 +1164,7 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
           const p = plans[k];
           const isCurrent = k === currentPlan;
           const isCustom = p.pricePerSeat === null;
-          // Yearly billing = ~17% off, same discount rate the old flat-price plans used â€” no separate
+          // Yearly billing = ~17% off, same discount rate the old flat-price plans used — no separate
           // per-seat-yearly column on the backend, so it's derived client-side from the monthly seat price.
           const perSeatDisplay = isCustom ? null : (billing === 'yearly' ? Math.round((p.pricePerSeat as number) * 0.83) : (p.pricePerSeat as number));
           return (
@@ -1118,11 +1193,11 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
                     <span className="sub-card-price">{perSeatDisplay!.toLocaleString()}</span>
                     <span className="sub-card-per">/user/mo</span>
                   </div>
-                  <div className="sub-card-fx">â‰ˆ {tzsEquivalent(perSeatDisplay!)}/user/mo</div>
+                  <div className="sub-card-fx">≈ {tzsEquivalent(perSeatDisplay!)}/user/mo</div>
                   <div className="sub-card-annual-note">
                     {billing === 'yearly'
-                      ? `Billed annually Â· $${(perSeatDisplay! * 12).toLocaleString()} /seat/yr â€” save ${tzsEquivalent(((p.pricePerSeat as number) - perSeatDisplay!) * 12)}/seat/yr`
-                      : 'Billed monthly Â· switch to yearly for 2 months free'}
+                      ? `Billed annually · $${(perSeatDisplay! * 12).toLocaleString()} /seat/yr — save ${tzsEquivalent(((p.pricePerSeat as number) - perSeatDisplay!) * 12)}/seat/yr`
+                      : 'Billed monthly · switch to yearly for 2 months free'}
                   </div>
                   <div className="sub-card-annual-note" style={{ marginTop: 2 }}>
                     {p.itemLimit === null ? 'Unlimited items / month' : `Up to ${p.itemLimit.toLocaleString()} items / month`}
@@ -1172,9 +1247,11 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
         Need something custom? <a className="sub-contact-link" href="mailto:sales@hudumika.tz">Talk to sales</a>
       </div>
 
+      <FinanceEditionSection />
+
       <AddonsSection />
 
-      {/* Feature comparison table â€” 3 rows only, each backed by a real
+      {/* Feature comparison table — 3 rows only, each backed by a real
           per-package column (packages.routes.ts), not the fixed 3-plan,
           8-fabricated-checkmark table this used to be. Each plan's own
           free-text feature list is already shown on its card above, so it
@@ -1214,14 +1291,14 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
   );
 }
 
-// â”€â”€â”€ Tab: Modules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Tab: Modules ─────────────────────────────────────────────────────────────
 
 function ModulesTab() {
   /**
    * Modules are configured in Settings.
    *
    * This tab, the Settings section and the Utilities panel were three screens
-   * editing one value, each with its own local state â€” so changing it in one
+   * editing one value, each with its own local state — so changing it in one
    * left the other two showing the old value until a reload, and each carried
    * its own copy of the "send the whole map" rule. One control now.
    */
@@ -1246,7 +1323,7 @@ function ModulesTab() {
   );
 }
 
-// â”€â”€â”€ Tab: Reports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Tab: Reports ─────────────────────────────────────────────────────────────
 
 function ReportsTab() {
   const seats = useSeatCount();
@@ -1256,7 +1333,7 @@ function ReportsTab() {
 
   const history = usage?.history ?? [];
   // getUsageHistory zero-fills every month in range, so this is only ever
-  // empty/short while /v1/entitlements is still loading â€” never a real
+  // empty/short while /v1/entitlements is still loading — never a real
   // "less than a year old" tenant getting a fabricated flat line.
   const hasHistory = history.length > 1;
 
@@ -1272,8 +1349,8 @@ function ReportsTab() {
         <Card>
           <div style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Items This Period{usage?.period ? ` (${usage.period})` : ''}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{usage ? usage.used : 'â€”'}</div>
-            <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: usage && usage.limit !== null ? 8 : 0 }}>{usage ? (usage.limit !== null ? `of ${usage.limit}` : 'Unlimited') : 'Loadingâ€¦'}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{usage ? usage.used : '—'}</div>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: usage && usage.limit !== null ? 8 : 0 }}>{usage ? (usage.limit !== null ? `of ${usage.limit}` : 'Unlimited') : 'Loading…'}</div>
             {usage && usage.limit !== null && usage.used / usage.limit >= 0.8 && usage.used < usage.limit && (
               <div style={{ fontSize: 10.5, color: 'var(--gold)', fontWeight: 600, marginBottom: 6 }}>Approaching this month's limit</div>
             )}
@@ -1287,7 +1364,7 @@ function ReportsTab() {
         <Card>
           <div style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Modules Enabled</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)' }}>{modulesOn ?? 'â€”'}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)' }}>{modulesOn ?? '—'}</div>
           </div>
         </Card>
       </div>
@@ -1296,7 +1373,7 @@ function ReportsTab() {
         <Card>
           <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 20 }}>
             <div style={{ flexShrink: 0 }}>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Usage â€” last {history.length} months</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Usage — last {history.length} months</div>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
                 {history[0].period} <Icon name="arrowRight" size={10} style={{ verticalAlign: 'middle', margin: '0 3px' }} /> {history[history.length - 1].period}
               </div>
@@ -1311,7 +1388,7 @@ function ReportsTab() {
   );
 }
 
-// â”€â”€â”€ Tab: Support â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Tab: Support ─────────────────────────────────────────────────────────────
 
 const TICKET_CATEGORIES = [
   { value: 'general', label: 'General' },
@@ -1393,7 +1470,7 @@ function SupportTab() {
           <Card>
             <CardHead title="New Support Ticket" />
             <div style={{ padding: '0 20px 20px' }}>
-              <FormRow label="Subject"><input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Describe the issue brieflyâ€¦" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
+              <FormRow label="Subject"><input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Describe the issue briefly…" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
               <FormRow label="Priority">
                 <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
                   <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
@@ -1415,11 +1492,11 @@ function SupportTab() {
               </FormRow>
               <div style={{ marginTop: 14 }}>
                 <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Description</label>
-                <textarea value={message} onChange={e => setMessage(e.target.value)} rows={4} placeholder="Provide steps to reproduce, screenshots, or any relevant detailsâ€¦" className="input-field" style={{ width: '100%', fontSize: 13, padding: '10px 12px', resize: 'none', boxSizing: 'border-box' as const }} />
+                <textarea value={message} onChange={e => setMessage(e.target.value)} rows={4} placeholder="Provide steps to reproduce, screenshots, or any relevant details…" className="input-field" style={{ width: '100%', fontSize: 13, padding: '10px 12px', resize: 'none', boxSizing: 'border-box' as const }} />
               </div>
               {formError && <div style={{ color: 'var(--red)', fontSize: 12.5, marginTop: 8 }}>{formError}</div>}
               <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                <Btn label={submitting ? 'Submittingâ€¦' : 'Submit Ticket'} icon="send" variant="primary" onClick={submitTicket} disabled={submitting} />
+                <Btn label={submitting ? 'Submitting…' : 'Submit Ticket'} icon="send" variant="primary" onClick={submitTicket} disabled={submitting} />
                 <Btn label="Cancel" onClick={() => setShowNew(false)} />
               </div>
             </div>
@@ -1437,7 +1514,7 @@ function SupportTab() {
             </thead>
             <tbody>
               {tickets === null && (
-                <tr><td colSpan={6} style={{ padding: 20, textAlign: 'center', fontSize: 12.5, color: 'var(--ink3)' }}>Loading ticketsâ€¦</td></tr>
+                <tr><td colSpan={6} style={{ padding: 20, textAlign: 'center', fontSize: 12.5, color: 'var(--ink3)' }}>Loading tickets…</td></tr>
               )}
               {tickets?.length === 0 && (
                 <tr><td colSpan={6} style={{ padding: 20, textAlign: 'center', fontSize: 12.5, color: 'var(--ink3)' }}>No support tickets yet.</td></tr>
@@ -1460,20 +1537,20 @@ function SupportTab() {
                     <tr>
                       <td colSpan={6} style={{ padding: '14px 16px', background: 'var(--bg)' }}>
                         {!thread ? (
-                          <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading threadâ€¦</div>
+                          <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading thread…</div>
                         ) : (
                           <div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
                               {thread.messages.map((m: any) => (
                                 <div key={m.id} style={{ fontSize: 12.5, padding: '8px 10px', borderRadius: 'var(--r)', background: m.is_platform_staff ? 'var(--teal-l)' : 'var(--white)', border: '1px solid var(--border)' }}>
-                                  <div style={{ fontWeight: 700, marginBottom: 2 }}>{m.author_name}{m.is_platform_staff ? ' Â· Hudumika Support' : ''}</div>
+                                  <div style={{ fontWeight: 700, marginBottom: 2 }}>{m.author_name}{m.is_platform_staff ? ' · Hudumika Support' : ''}</div>
                                   <div style={{ color: 'var(--ink2)' }}>{m.content}</div>
                                   <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 4 }}>{new Date(m.created_at).toLocaleString()}</div>
                                 </div>
                               ))}
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>
-                              <input value={reply} onChange={e => setReply(e.target.value)} placeholder="Replyâ€¦" className="input-field" style={{ flex: 1, fontSize: 12.5, padding: '7px 10px' }} />
+                              <input value={reply} onChange={e => setReply(e.target.value)} placeholder="Reply…" className="input-field" style={{ flex: 1, fontSize: 12.5, padding: '7px 10px' }} />
                               <Btn label="Send" icon="send" variant="primary" onClick={sendReply} disabled={!reply.trim()} />
                             </div>
                           </div>
@@ -1520,7 +1597,7 @@ function SupportTab() {
         <Card>
           <CardHead title="Resources" />
           <div style={{ padding: '12px 20px 16px' }}>
-            {/* No real docs/status pages exist in this app yet â€” decorative only, so the
+            {/* No real docs/status pages exist in this app yet — decorative only, so the
                 cursor and external-link affordance are removed rather than promising a link that goes nowhere. */}
             {[
               { label: 'Documentation',      icon: 'fileText'  as IconName },
@@ -1542,11 +1619,11 @@ function SupportTab() {
   );
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════════
 //   Main Component
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Security used to be a tab here (rendering AccountSecurityPanel â€” password/
+// Security used to be a tab here (rendering AccountSecurityPanel — password/
 // 2FA/passkeys/sessions for the signed-in admin's own account). Removed: the
 // exact same panel already lives on /profile and Ondi's own Security
 // Settings page, and personal 2FA is not something anyone thinks to look
@@ -1587,7 +1664,7 @@ export const Subscription: React.FC = () => {
   }, [load]);
 
   if (loading) {
-    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading account & billing informationâ€¦</div>;
+    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading account & billing information…</div>;
   }
 
   const tenantName = tenant?.name || 'My Company';
@@ -1597,12 +1674,12 @@ export const Subscription: React.FC = () => {
   return (
     <div className="sub-account-root" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
 
-      {/* â”€â”€ Page Header â”€â”€ */}
+      {/* ── Page Header ── */}
       <PageHeader
         crumbs={['Workspace Admin', 'Subscription & Billing']}
         titlePlain="Subscription &"
         titleEm="billing."
-        subtitle={`${tenantName} â€” ${planLabel} Plan Â· Account & Billing Management`}
+        subtitle={`${tenantName} — ${planLabel} Plan · Account & Billing Management`}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <div style={{ padding: '5px 12px', borderRadius: 'var(--badge-radius)', background: tenant?.active ? 'var(--green-l)' : 'var(--red-l)', color: tenant?.active ? 'var(--green)' : 'var(--red)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, border: '1px solid currentColor' }}>
@@ -1622,7 +1699,7 @@ export const Subscription: React.FC = () => {
         }
       />
 
-      {/* â”€â”€ Tab Bar Navigation â€” the shared segmented ds-tabs â”€â”€ */}
+      {/* ── Tab Bar Navigation — the shared segmented ds-tabs ── */}
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented">
         <TabsList>
           {TABS.map(t => (
@@ -1634,7 +1711,7 @@ export const Subscription: React.FC = () => {
         </TabsList>
       </Tabs>
 
-      {/* â”€â”€ Tab content â”€â”€ */}
+      {/* ── Tab content ── */}
       <div className="sub-tab-content">
         {tab === 'company'  && <CompanyInfoTab tenant={tenant} />}
         {tab === 'billing'  && <BillingTab tenant={tenant} onNavigateTab={setTab} />}

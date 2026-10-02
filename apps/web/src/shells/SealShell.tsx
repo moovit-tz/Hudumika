@@ -29,10 +29,16 @@ import { SealFulfillment } from '../pages/SealFulfillment.js';
 import { SealFulfillmentDetail } from '../pages/SealFulfillmentDetail.js';
 import { SealDispatchRequests } from '../pages/SealDispatchRequests.js';
 import { SealSortingDashboard } from '../pages/SealSortingDashboard.js';
-import { SealCompartmentSwitcher } from '../components/SealCompartmentSwitcher.js';
+import { SealAppointments } from '../pages/SealAppointments.js';
+import { SealStorageInvoices } from '../pages/SealStorageInvoices.js';
+import { SealAgedStorage } from '../pages/SealAgedStorage.js';
+import { SealStockTransfers } from '../pages/SealStockTransfers.js';
+import { SealStockTransferDetail, SealStockTransferNew } from '../pages/SealStockTransferDetail.js';
+import { SealAdjustments } from '../pages/SealAdjustments.js';
 import { SealExWarehouseEntries } from '../pages/seal/SealExWarehouseEntries.js';
 import { SealExWarehouseEntryNew } from '../pages/seal/SealExWarehouseEntryNew.js';
 import { SealExWarehouseEntryDetail } from '../pages/seal/SealExWarehouseEntryDetail.js';
+import { useSealCapabilities } from '../hooks/useSealCapabilities.js';
 
 /**
  * These pages read seal_customs_entries — the ex-warehouse entry that takes a
@@ -52,60 +58,102 @@ function ExWarehouseDetailRedirect() {
   return <Navigate to={`/seal/ex-warehouse/${id}`} replace />;
 }
 
-const NAV: SidebarSection[] = [
-  {
-    items: [
-      { label: 'Dashboard', icon: 'home', path: '/seal', exact: true },
-    ],
-  },
-  {
-    title: 'GATE & RECEIVING',
-    items: [
-      { label: 'Consignments', icon: 'truck', path: '/seal/consignments' },
-    ],
-  },
-  {
-    title: 'THE LEDGER',
-    items: [
-      { label: 'Lots', icon: 'package', path: '/seal/lots' },
-      { label: 'Compartments', icon: 'layers', path: '/seal/compartments' },
-      { label: 'Guarantees', icon: 'shield', path: '/seal/guarantees' },
-    ],
-  },
-  {
-    title: 'CUSTOMS',
-    items: [
-      { label: 'Ex-warehouse Entries', icon: 'fileText', path: '/seal/ex-warehouse' },
-      { label: 'Examinations', icon: 'search', path: '/seal/examinations' },
-      { label: 'Stock Account', icon: 'clipboard', path: '/seal/stock-account' },
-    ],
-  },
-  {
+function buildNav(caps: ReturnType<typeof useSealCapabilities>): SidebarSection[] {
+  const sections: SidebarSection[] = [
+    {
+      items: [
+        { label: 'Dashboard', icon: 'home', path: '/seal', exact: true },
+      ],
+    },
+    {
+      title: 'GATE & RECEIVING',
+      items: [
+        { label: 'Consignments', icon: 'truck', path: '/seal/consignments' },
+        { label: 'Appointments', icon: 'calendar', path: '/seal/appointments' },
+      ],
+    },
+    {
+      title: caps.customs ? 'THE LEDGER' : 'INVENTORY',
+      items: [
+        { label: 'Lots', icon: 'package', path: '/seal/lots' },
+        { label: 'Stock Transfers', icon: 'arrowRight' as const, path: '/seal/stock-transfers' },
+        { label: 'Warehouses', icon: 'layers', path: '/seal/compartments' },
+        ...(caps.guarantees
+          ? [{ label: 'Guarantees', icon: 'shield' as const, path: '/seal/guarantees' }]
+          : []),
+      ],
+    },
+  ];
+
+  if (caps.customs) {
+    sections.push({
+      title: 'CUSTOMS',
+      items: [
+        { label: 'Ex-warehouse Entries', icon: 'fileText', path: '/seal/ex-warehouse' },
+        ...(caps.examinations
+          ? [{ label: 'Examinations', icon: 'search' as const, path: '/seal/examinations' }]
+          : []),
+        { label: 'Stock Account', icon: 'clipboard', path: '/seal/stock-account' },
+      ],
+    });
+  }
+
+  sections.push({
     title: 'YARD',
     items: [
       { label: 'Yard Slots', icon: 'grid', path: '/seal/yard-slots' },
     ],
-  },
-  {
+  });
+
+  sections.push({
     title: 'OPERATIONS',
     items: [
-      { label: 'Activities', icon: 'clipboardList', path: '/seal/activities' },
+      { label: 'Warehouse Tasks', icon: 'clipboardList', path: '/seal/activities' },
       { label: 'Equipment', icon: 'tool', path: '/seal/equipment' },
       { label: 'Automation', icon: 'zap', path: '/seal/automation' },
       { label: 'Fulfillment', icon: 'truck', path: '/seal/fulfillment' },
       { label: 'Dispatch Requests', icon: 'link', path: '/seal/dispatch-requests' },
     ],
-  },
-];
+  });
+
+  sections.push({
+    title: 'BILLING',
+    items: [
+      { label: 'Storage Invoices', icon: 'fileText', path: '/seal/billing/invoices' },
+      { label: 'Aged Storage', icon: 'clock', path: '/seal/billing/aged-storage' },
+    ],
+  });
+
+  sections.push({
+    title: 'ANALYTICS',
+    items: [
+      { label: 'Metrics & Reports', icon: 'barChart', path: '/seal/metrics' },
+    ],
+  });
+
+  if (caps.integrations) {
+    sections.push({
+      title: 'INTEGRATIONS',
+      items: [
+        { label: 'POS & Sales', icon: 'shoppingCart', path: '/seal/integrations/pos' },
+        { label: 'Finance', icon: 'dollarSign', path: '/seal/integrations/finance' },
+      ],
+    });
+  }
+
+  return sections;
+}
 
 export function SealShell() {
+  const caps = useSealCapabilities();
+  const nav = buildNav(caps);
+
   return (
     <WorkspaceApp appId="seal">
       <div className="app-shell" data-seal="true">
         <AppSidebar
           appId="seal"
-          sections={NAV}
-          beforeNav={({ collapsed }) => <SealCompartmentSwitcher collapsed={collapsed} />}
+          sections={nav}
         />
         <div className="app-main">
           <AppHeader />
@@ -113,7 +161,14 @@ export function SealShell() {
             <Routes>
               <Route element={<PageLayout />}>
                 <Route index                    element={<SealDashboard />}          />
-                <Route path="metrics"           element={<Navigate to="/seal" replace />} />
+                <Route path="metrics"           element={<SealMetrics />}            />
+                <Route path="appointments"      element={<SealAppointments />}       />
+                <Route path="billing/invoices"  element={<SealStorageInvoices />}    />
+                <Route path="billing/aged-storage" element={<SealAgedStorage />}     />
+                <Route path="stock-transfers"         element={<SealStockTransfers />}     />
+                <Route path="stock-transfers/new"     element={<SealStockTransferNew />}   />
+                <Route path="stock-transfers/:id"     element={<SealStockTransferDetail />}/>
+                <Route path="adjustments"             element={<SealAdjustments />}        />
                 <Route path="lots"              element={<SealLots />}               />
                 <Route path="lots/new"          element={<SealReceiveLot />}         />
                 <Route path="lots/:id"          element={<SealLotDetail />}          />

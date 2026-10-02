@@ -222,8 +222,10 @@ export function AppHeader({
     if (navbar && navbar !== 'static') document.documentElement.setAttribute('data-navbar', navbar);
     const skin = localStorage.getItem('skin');
     if (skin === 'bordered') document.documentElement.setAttribute('data-skin', 'bordered');
-    const semiDark = localStorage.getItem('semi-dark') === 'true';
-    if (semiDark) document.documentElement.setAttribute('data-semi-dark', 'true');
+    // Sidebar style: 3-way setting (dark / light / system). Migrate legacy semi-dark boolean.
+    const sidebarStyle = localStorage.getItem('sidebar-style')
+      ?? (localStorage.getItem('semi-dark') === 'true' ? 'dark' : 'dark');
+    document.documentElement.setAttribute('data-sidebar-style', sidebarStyle);
     const direction = localStorage.getItem('direction');
     if (direction) document.documentElement.setAttribute('dir', direction);
   }, []);

@@ -168,11 +168,11 @@ export function PettiWithdrawals() {
                     const wall = wallets.find(x => x.id === w.wallet_id);
                     return (
                       <tr key={w.id}>
-                        <td style={{ fontSize: 12, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink2)' }}>{w.ref || 'â€”'}</td>
+                        <td style={{ fontSize: 12, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink2)' }}>{w.ref || '—'}</td>
                         <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{new Date(w.requested_at).toLocaleString()}</td>
                         <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{wall?.name || 'Wallet'}</td>
                         <td style={{ color: 'var(--ink)' }}>{w.purpose}</td>
-                        <td style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{w.payee_name || 'â€”'}</td>
+                        <td style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{w.payee_name || '—'}</td>
                         <td style={{ fontFamily: 'var(--font)', fontWeight: 800, color: 'var(--red)' }}>
                           -{Number(w.amount).toLocaleString()} {wall?.currency || ''}
                         </td>
@@ -196,7 +196,7 @@ export function PettiWithdrawals() {
                 options={wallets.map(w => ({ value: w.id, label: `${w.name} (${Number(w.balance).toLocaleString()} ${w.currency})` }))}
                 value={walletId}
                 onChange={setWalletId}
-                placeholder="Select walletâ€¦"
+                placeholder="Select wallet…"
               />
             </div>
 
@@ -234,7 +234,7 @@ export function PettiWithdrawals() {
             </p>
 
             <Button type="submit" variant="destructive" disabled={saving} style={{ padding: '12px', fontWeight: 700, fontSize: 14 }}>
-              <Icon name="minus" size={16} /> {saving ? 'Submittingâ€¦' : 'Submit Withdrawal Request'}
+              <Icon name="minus" size={16} /> {saving ? 'Submitting…' : 'Submit Withdrawal Request'}
             </Button>
           </form>
         </SectionCard>

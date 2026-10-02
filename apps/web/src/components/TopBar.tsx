@@ -18,7 +18,7 @@ import {
 } from './ui/dropdown-menu.js';
 import { Dialog, DialogContent } from './ui/dialog.js';
 
-/* â”€â”€ AI Search Modal â”€â”€ */
+/* ── AI Search Modal ── */
 const QUICK_CHIPS = [
   { label: 'Overdue invoices', q: 'Show overdue invoices' },
   { label: 'At-risk shipments', q: 'Shipments at risk of demurrage' },
@@ -100,7 +100,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search shipments, customers, invoices, staff, drivers, vehiclesâ€¦"
+            placeholder="Search shipments, customers, invoices, staff, drivers, vehicles…"
             style={{
               flex: 1, border: 'none', outline: 'none', background: 'transparent',
               fontSize: 15, fontFamily: 'var(--font)', color: 'var(--ink)',
@@ -170,7 +170,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
         ) : (
           <div style={{ maxHeight: 380, overflowY: 'auto', padding: '6px 0' }}>
             {searching && (
-              <div style={{ padding: '14px 18px', fontSize: 12.5, color: 'var(--ink3)' }}>Searchingâ€¦</div>
+              <div style={{ padding: '14px 18px', fontSize: 12.5, color: 'var(--ink3)' }}>Searching…</div>
             )}
             {!searching && !hasResults && (
               <div style={{ padding: '18px', fontSize: 13, color: 'var(--ink3)' }}>No matches in the app for "{query}".</div>
@@ -232,7 +232,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
           borderTop: '1px solid var(--border)', padding: '10px 18px',
           display: 'flex', gap: 16, fontSize: 11, color: 'var(--ink3)',
         }}>
-          <span><kbd style={{ fontFamily: 'var(--font)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>â†µ</kbd> to open</span>
+          <span><kbd style={{ fontFamily: 'var(--font)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>↵</kbd> to open</span>
           <span><kbd style={{ fontFamily: 'var(--font)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>ESC</kbd> to close</span>
           {hasResults && <span style={{ marginLeft: 'auto' }}>{totalResults} result{totalResults === 1 ? '' : 's'}</span>}
         </div>
@@ -241,7 +241,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-/* â”€â”€ Clock-In Multi-Step Modal â”€â”€ (currently unreferenced â€” no live call
+/* ── Clock-In Multi-Step Modal ── (currently unreferenced — no live call
    site renders this component; left as hand-rolled since migrating dead
    code isn't useful, flagged here for whoever wires it up next) */
 interface ClockInRef { jobId: string; jobTitle: string; bl?: string; steps: Stage[] }
@@ -306,13 +306,13 @@ function ClockInModal({ onClose, onConfirm }: {
 
         <div style={{ padding: 20 }}>
 
-          {/* â”€â”€ Step 1: Select Job â”€â”€ */}
+          {/* ── Step 1: Select Job ── */}
           {step === 1 && (
             <>
               <div style={{ position: 'relative', marginBottom: 12 }}>
                 <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
                 <input value={jobSearch} onChange={e => setJobSearch(e.target.value)}
-                  placeholder="Search by BL, shipment title or customerâ€¦"
+                  placeholder="Search by BL, shipment title or customer…"
                   style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
@@ -347,11 +347,11 @@ function ClockInModal({ onClose, onConfirm }: {
             </>
           )}
 
-          {/* â”€â”€ Step 2: Select Steps â”€â”€ */}
+          {/* ── Step 2: Select Steps ── */}
           {step === 2 && chosenJob && (
             <>
               <div style={{ padding: '10px 14px', background: 'var(--teal-l)', borderRadius: 'var(--r)', marginBottom: 14, fontSize: 12, color: 'var(--teal)', fontWeight: 600 }}>
-                Working on: <span style={{ fontFamily: 'var(--font)' }}>{chosenJob.bl || chosenJob.id}</span> â€” {chosenJob.customer}
+                Working on: <span style={{ fontFamily: 'var(--font)' }}>{chosenJob.bl || chosenJob.id}</span> — {chosenJob.customer}
               </div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Select up to 3 steps {selectedSteps.length > 0 && <span style={{ color: 'var(--teal)' }}>({selectedSteps.length} selected)</span>}
@@ -392,7 +392,7 @@ function ClockInModal({ onClose, onConfirm }: {
   );
 }
 
-/* â”€â”€ Moovit logo â”€â”€ */
+/* ── Moovit logo ── */
 function MoovitLogo({ isDark }: { isDark?: boolean }) {
   const co = useCompany();
   // Dark-mode variant falls back to the light one when a tenant never
@@ -448,7 +448,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
   const { isCheckedIn, currentEntry, triggerOpen } = useClockIn();
   const [clockOpen, setClockOpen] = useState(false);
   // clockDuration() below reads Date.now() directly, so nothing forces a
-  // re-render as time passes â€” without this tick, the displayed duration
+  // re-render as time passes — without this tick, the displayed duration
   // was frozen at whatever it happened to be on the last unrelated render
   // (e.g. the 30s notification poll), not actually live.
   const [, setClockTick] = useState(0);
@@ -461,7 +461,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
   const openAI = useCallback(() => setAiOpen(true), []);
   const closeAI = useCallback(() => setAiOpen(false), []);
 
-  /* â”€â”€ Notifications â”€â”€ */
+  /* ── Notifications ── */
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifs, setNotifs] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -522,7 +522,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   }
 
-  /* â”€â”€ icon button style helper â”€â”€ */
+  /* ── icon button style helper ── */
   function ibStyle(active = false): React.CSSProperties {
     return {
       width: 36, height: 36, borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
@@ -536,7 +536,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
     <header className="top-bar">
       <div className="top-bar-inner">
 
-      {/* â”€â”€ Left: toggle + brand â”€â”€ */}
+      {/* ── Left: toggle + brand ── */}
       <div className="top-bar-left">
         <button
           onClick={onToggleNav}
@@ -568,11 +568,11 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
         )}
       </div>
 
-      {/* â”€â”€ Center: Search trigger â”€â”€ */}
+      {/* ── Center: Search trigger ── */}
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
         <button
           type="button"
-          title="Search (âŒ˜K)"
+          title="Search (⌘K)"
           onClick={openAI}
           className="top-bar-search-trigger"
           style={{
@@ -591,13 +591,13 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
             fontSize: 10, fontFamily: 'var(--font)', color: 'var(--ink3)',
             background: 'var(--white)', border: '1px solid var(--border)',
             borderRadius: 4, padding: '1px 5px', flexShrink: 0,
-          }}>âŒ˜K</kbd>
+          }}>⌘K</kbd>
         </button>
       </div>
 
       {aiOpen && <AISearchModal onClose={closeAI} />}
 
-      {/* â”€â”€ Right: action icons â”€â”€ */}
+      {/* ── Right: action icons ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
 
         {/* Expand / collapse layout */}
@@ -616,7 +616,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
           <Icon name={isDark ? 'sun' : 'moon'} size={16} color="var(--ink2)" />
         </button>
 
-        {/* Settings â€” purple */}
+        {/* Settings — purple */}
         <button style={{ ...ibStyle(), background: 'var(--purple-l)' }} title="Settings"
           onClick={() => navigate('/settings')}
           onMouseEnter={e => (e.currentTarget.style.background = '#ede9fe')}
@@ -630,7 +630,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                title="Session active â€” click to manage"
+                title="Session active — click to manage"
                 style={{ ...ibStyle(true), position: 'relative' }}
               >
                 <Icon name="clock" size={17} color="var(--teal)" />
@@ -726,7 +726,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                 return (
                   <div key={n.id} className="notif-item" data-read={n.read}
                     onClick={() => markRead(n.id, n.link)}>
-                    {/* No PersonAvatar â€” a notification carries no actor
+                    {/* No PersonAvatar — a notification carries no actor
                         id, only a type/title/message, so there's no "who"
                         to fetch a picture for. n.avatar_url was never
                         actually sent by the API (see
@@ -792,7 +792,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                   }} />
                 </div>
 
-                {/* Name + role â€” hidden on mobile */}
+                {/* Name + role — hidden on mobile */}
                 {!isMobile && (
                   <div style={{ textAlign: 'left', lineHeight: 1.25 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap' }}>

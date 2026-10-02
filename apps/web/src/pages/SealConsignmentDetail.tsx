@@ -10,7 +10,11 @@ import { getHudumikaFooterHtml } from '../lib/watermark.js';
 import { SealDocumentPanel } from '../components/SealDocumentPanel.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { STATUS_VARIANT } from './SealConsignments.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { validateContainerNumber } from '@hudumika/types';
+import { ContainerTrackerCard } from '../components/container/ContainerTrackerCard.js';
+import { getContainerDetails } from '../components/container/containerData.js';
+import type { ContainerDetails } from '../components/container/containerTypes.js';
 import './Seal.css';
 import { PageHeader } from '../components/PageHeader.js';
 
@@ -62,6 +66,7 @@ export function SealConsignmentDetail() {
   const [tallyLines, setTallyLines] = useState<TallyLine[]>([emptyLine()]);
   const [devanning, setDevanning] = useState(false);
   const [devanResults, setDevanResults] = useState<any[] | null>(null);
+  const [inspectingContainer, setInspectingContainer] = useState<ContainerDetails | null>(null);
 
   const check = newContainerNumber.trim() ? validateContainerNumber(newContainerNumber) : null;
 
@@ -284,9 +289,38 @@ export function SealConsignmentDetail() {
                 {c.container_size}{c.seal_number ? ` · seal ${c.seal_number}` : ''}
               </div>
             </div>
-            <Badge variant={c.gate_in_at ? 'success' : 'gray'}>
-              {c.gate_in_at ? 'Gated In' : 'Awaiting Gate-In'}
-            </Badge>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const details = getContainerDetails(c.container_number, {
+                    size_type: c.container_size === '40HC' ? 'High Cube - 40 feet Container' : 'Dry - 20 feet Container',
+                    iso_code: c.container_size === '40HC' ? '40HC' : '20G1',
+                    current_depot: {
+                      name: 'SEAL Bonded Warehouse & Yard',
+                      code: consignment.compartment_id || 'SEAL-BOND-1',
+                      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+                      state: c.gate_in_at ? 'Laden' : 'Empty',
+                    },
+                    compliance: {
+                      csc_cert_date: '10/10/2025',
+                      csc_expiry_date: '14/09/2029',
+                      acep_ccep: 'N/A',
+                      customs_seal_no: c.seal_number || 'N/A',
+                    },
+                  });
+                  setInspectingContainer(details);
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <Icon name="container" size={13} color="var(--teal)" />
+                <span>3D Specs &amp; Survey</span>
+              </button>
+              <Badge variant={c.gate_in_at ? 'success' : 'gray'}>
+                {c.gate_in_at ? 'Gated In' : 'Awaiting Gate-In'}
+              </Badge>
+            </div>
           </div>
 
           <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -305,10 +339,10 @@ export function SealConsignmentDetail() {
                     <label className="seal-field-label">Tare (kg)</label>
                     <input type="number" className="seal-input-control" value={tareWeight} onChange={e => setTareWeight(e.target.value)} />
                   </div>
-                  <button type="button" className="btn btn-primary" style={{ height: 38 }} disabled={gating} onClick={() => handleGateIn(c.id)}>
+                  <button type="button" className="btn btn-primary" disabled={gating} onClick={() => handleGateIn(c.id)}>
                     <Icon name="truck" size={14} /><span>{gating ? 'Recording…' : 'Confirm Gate-In'}</span>
                   </button>
-                  <button type="button" className="btn btn-secondary" style={{ height: 38 }} onClick={() => setGateActionId(null)}>Cancel</button>
+                  <button type="button" className="btn btn-secondary" onClick={() => setGateActionId(null)}>Cancel</button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
@@ -395,7 +429,7 @@ export function SealConsignmentDetail() {
                             </SelectContent>
                           </Select>
                         )}
-                        <button type="button" className="btn btn-secondary" style={{ height: 38, width: 38, padding: 0, justifyContent: 'center' }} onClick={() => setTallyLines(lines => lines.filter((_, idx) => idx !== i))}>
+                        <button type="button" className="btn btn-secondary btn-xs" style={{ width: 'var(--ctl-h-xs)', padding: 0, justifyContent: 'center' }} onClick={() => setTallyLines(lines => lines.filter((_, idx) => idx !== i))}>
                           <Icon name="trash" size={14} />
                         </button>
                       </div>
@@ -439,6 +473,24 @@ export function SealConsignmentDetail() {
           </div>
         </div>
       ))}
+
+      {/* ── 3D Container Specs & Survey Lightbox Dialog ── */}
+      <Dialog open={!!inspectingContainer} onOpenChange={open => { if (!open) setInspectingContainer(null); }}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader className="mb-4 pb-2 border-b border-[var(--border)]">
+            <DialogTitle className="flex items-center gap-2 text-base font-black">
+              <Icon name="container" size={18} color="var(--teal)" />
+              SEAL Bonded Container Details: {inspectingContainer?.container_number}
+            </DialogTitle>
+          </DialogHeader>
+          {inspectingContainer && (
+            <ContainerTrackerCard
+              container={inspectingContainer}
+              initialTab="details"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

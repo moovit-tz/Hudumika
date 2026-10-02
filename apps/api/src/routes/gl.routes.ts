@@ -11,6 +11,7 @@ import { computeVatReturn } from '../services/vat-return.service.js';
 import { reportingCurrency } from '../services/tax-registration.service.js';
 
 const ACCOUNT_TYPES = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'] as const;
+const ADVANCED_ACCOUNTING_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'] as const;
 const accountCreateSchema = z.object({
   code: z.string().trim().min(1).max(20),
   name: z.string().trim().min(1).max(200),
@@ -30,6 +31,7 @@ const journalEntrySchema = z.object({
   reference: z.string().max(200).optional(),
   sourceModule: z.enum(['AR', 'AP', 'EXPENSE', 'MANUAL', 'PAYROLL']),
   sourceId: z.string().optional(),
+  businessLineId: z.string().uuid().optional(),
   lines: z.array(z.object({
     accountCode: z.string().min(1),
     debit: z.number().min(0),
@@ -52,7 +54,6 @@ export async function glRoutes(fastify: FastifyInstance) {
   // Ensure user is authenticated for all GL routes
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
-  fastify.addHook('preHandler', requireFinanceCapability('finance.accounting.advanced'));
   // Every route in this file reads or writes GL data — gate the whole
   // plugin by role once here rather than per-route, so a new report
   // endpoint added later doesn't silently ship without one (as every GET
@@ -96,7 +97,7 @@ export async function glRoutes(fastify: FastifyInstance) {
   const COA_WRITE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'] as const;
 
   // POST /v1/finance/chart-of-accounts — create a new account
-  fastify.post('/chart-of-accounts', { preHandler: requireRole(...COA_WRITE_ROLES) }, async (request: any, reply) => {
+  fastify.post('/chart-of-accounts', { preHandler: [requireRole(...COA_WRITE_ROLES), requireFinanceCapability('finance.accounting.advanced')] }, async (request: any, reply) => {
     const tenantId = request.user.tenant_id;
     const b = accountCreateSchema.parse(request.body);
 
@@ -121,7 +122,7 @@ export async function glRoutes(fastify: FastifyInstance) {
   });
 
   // PATCH /v1/finance/chart-of-accounts/:id
-  fastify.patch('/chart-of-accounts/:id', { preHandler: requireRole(...COA_WRITE_ROLES) }, async (request: any, reply) => {
+  fastify.patch('/chart-of-accounts/:id', { preHandler: [requireRole(...COA_WRITE_ROLES), requireFinanceCapability('finance.accounting.advanced')] }, async (request: any, reply) => {
     const tenantId = request.user.tenant_id;
     const { id } = request.params as { id: string };
     const b = accountPatchSchema.parse(request.body);
@@ -141,7 +142,7 @@ export async function glRoutes(fastify: FastifyInstance) {
 
   // DELETE /v1/finance/chart-of-accounts/:id — system accounts can never be removed
   // (GLService.post() posts against fixed codes like 1010/1100/2200 by convention).
-  fastify.delete('/chart-of-accounts/:id', { preHandler: requireRole(...COA_WRITE_ROLES) }, async (request: any, reply) => {
+  fastify.delete('/chart-of-accounts/:id', { preHandler: [requireRole(...COA_WRITE_ROLES), requireFinanceCapability('finance.accounting.advanced')] }, async (request: any, reply) => {
     const tenantId = request.user.tenant_id;
     const { id } = request.params as { id: string };
 
@@ -201,12 +202,36 @@ export async function glRoutes(fastify: FastifyInstance) {
   });
 
   // Journal Entries
-  fastify.post('/journal-entries', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'), requireFinanceCapability('finance.accounting.advanced')] }, async (request: any, reply) => {
+  fastify.post('/journal-entries', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.accounting.advanced')] }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const body = journalEntrySchema.parse(request.body);
+      const requestedBusinessLineIds = new Set([
+        ...(body.businessLineId ? [body.businessLineId] : []),
+        ...body.lines.map(line => line.dimensions?.business_line_id).filter((id): id is string => Boolean(id)),
+      ]);
+      if (requestedBusinessLineIds.size > 0) {
+        if ([...requestedBusinessLineIds].some(id => !z.string().uuid().safeParse(id).success)) {
+          return reply.status(400).send({ error: 'Invalid business line dimension' });
+        }
+        const validLines = await withTenant(tenantId, trx => trx.selectFrom('finance_business_lines')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('active', '=', true)
+          .where('id', 'in', [...requestedBusinessLineIds])
+          .execute());
+        if (validLines.length !== requestedBusinessLineIds.size) {
+          return reply.status(400).send({ error: 'One or more business lines are invalid, archived, or belong to another workspace' });
+        }
+      }
       const entryId = await GLService.post(tenantId, {
         ...body,
+        lines: body.lines.map(line => ({
+          ...line,
+          dimensions: body.businessLineId
+            ? { ...(line.dimensions ?? {}), business_line_id: body.businessLineId }
+            : line.dimensions,
+        })),
         createdBy: request.user.sub
       });
       return { id: entryId, success: true };
@@ -231,7 +256,7 @@ export async function glRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/journal-entries', async (request: any, reply) => {
+  fastify.get('/journal-entries', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.accounting.advanced', { preserveReadAccess: true })] }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const result = await withTenant(tenantId, async (trx) => {
@@ -285,7 +310,7 @@ export async function glRoutes(fastify: FastifyInstance) {
   });
 
   // Financial Reports
-  fastify.get('/trial-balance', async (request: any, reply) => {
+  fastify.get('/trial-balance', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.accounting.advanced', { preserveReadAccess: true })] }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const { from, to } = request.query as { from: string; to: string };
@@ -299,7 +324,7 @@ export async function glRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/balance-sheet', async (request: any, reply) => {
+  fastify.get('/balance-sheet', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.accounting.advanced', { preserveReadAccess: true })] }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const { date } = request.query as { date: string };
@@ -316,19 +341,27 @@ export async function glRoutes(fastify: FastifyInstance) {
   fastify.get('/profit-loss', async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
-      const { from, to, entity_id } = request.query as { from: string; to: string; entity_id?: string };
+      const { from, to, entity_id, business_line_id } = request.query as { from: string; to: string; entity_id?: string; business_line_id?: string };
       if (!from || !to) {
         return reply.status(400).send({ error: 'Missing from or to date query parameters' });
       }
-      const report = await GLService.profitLoss(tenantId, from, to, entity_id || undefined);
+      if (business_line_id && !z.string().uuid().safeParse(business_line_id).success) {
+        return reply.status(400).send({ error: 'Invalid business line id' });
+      }
+      // Tenant-wide P&L is a Finance Basic report. A valid tenant-owned
+      // business-line slice remains readable after downgrade so historical
+      // accounting data is not stranded; GLService validates ownership and
+      // rejects unknown, archived, or cross-tenant line ids.
+      const report = await GLService.profitLoss(tenantId, from, to, entity_id || undefined, business_line_id || undefined);
       return report;
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      const status = err?.message === 'Business line not found' ? 400 : 500;
+      return reply.status(status).send({ error: err.message });
     }
   });
 
   // ── Multi-entity accounting (M8) ────────────────────────────────────────
-  fastify.get('/entities', async (request: any, reply) => {
+  fastify.get('/entities', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.consolidation', { preserveReadAccess: true })] }, async (request: any, reply) => {
     try {
       return await GLService.listEntities(request.user.tenant_id);
     } catch (err: any) {
@@ -369,7 +402,7 @@ export async function glRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/consolidated-profit-loss', async (request: any, reply) => {
+  fastify.get('/consolidated-profit-loss', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.consolidation', { preserveReadAccess: true })] }, async (request: any, reply) => {
     try {
       const { from, to } = request.query as { from: string; to: string };
       if (!from || !to) return reply.status(400).send({ error: 'Missing from or to date query parameters' });
@@ -379,7 +412,7 @@ export async function glRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/intercompany-transactions', async (request: any, reply) => {
+  fastify.get('/intercompany-transactions', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.consolidation', { preserveReadAccess: true })] }, async (request: any, reply) => {
     try {
       return await GLService.listIntercompanyTransactions(request.user.tenant_id);
     } catch (err: any) {
@@ -405,7 +438,7 @@ export async function glRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/ledger', async (request: any, reply) => {
+  fastify.get('/ledger', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.accounting.advanced', { preserveReadAccess: true })] }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const { account, from, to } = request.query as { account: string; from: string; to: string };
@@ -621,7 +654,7 @@ export async function glRoutes(fastify: FastifyInstance) {
   });
 
   // GET /v1/finance/equity-statement (M6) — Statement of Changes in Equity.
-  fastify.get('/equity-statement', async (request: any, reply) => {
+  fastify.get('/equity-statement', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.accounting.advanced', { preserveReadAccess: true })] }, async (request: any, reply) => {
     try {
       const { from, to } = request.query as { from: string; to: string };
       if (!from || !to) return reply.status(400).send({ error: 'Missing from or to query parameters' });

@@ -2,6 +2,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+import { sql } from 'kysely';
 import { SealService, IllegalCustomsTransition, BondHeadroomExceeded, DgSegregationViolation, LotNotFound } from '../services/seal.service.js';
 import { toDateParam } from '../utils/dates.js';
 import {
@@ -13,6 +14,7 @@ import {
 const WAREHOUSE_TYPES = [
   'public_bonded', 'private_bonded', 'cfs', 'icd', 'virtual_icd',
   'free_zone', 'duty_free_retail', 'excise', 'sorting_centre', 'fulfillment_centre',
+  'standard_warehouse',
 ] as const;
 const ZONE_TYPES = ['receiving', 'bulk', 'pick', 'vas', 'quarantine', 'outbound', 'yard', 'sort_lane'] as const;
 const LOCATION_TYPES = ['rack', 'floor', 'yard_slot', 'tank', 'dock', 'staging'] as const;
@@ -605,6 +607,21 @@ export async function sealRoutes(fastify: FastifyInstance) {
           destinationLabel: l.destination_label, dwellHours: Math.round(dwellHours(l) * 10) / 10,
         })),
       };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/compartments/summary', async (request: any, reply) => {
+    try {
+      return await withTenant(request.user.tenant_id, async trx => {
+        return trx
+          .selectFrom('seal_lots')
+          .select(['compartment_id', trx.fn.count<string>('id').as('lot_count')])
+          .where('tenant_id', '=', request.user.tenant_id)
+          .groupBy('compartment_id')
+          .execute();
+      });
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
@@ -1589,6 +1606,294 @@ export async function sealRoutes(fastify: FastifyInstance) {
           reference: b.reference ?? null,
         }).returningAll().executeTakeFirstOrThrow()
       );
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.patch('/appointments/:id', async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    const { status, notes } = request.body as { status?: string; notes?: string };
+    try {
+      const updates: Record<string, unknown> = {};
+      if (status) updates.status = status;
+      if (notes !== undefined) updates.notes = notes;
+      return await withTenant(request.user.tenant_id, trx =>
+        trx.updateTable('seal_appointments').set(updates)
+          .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
+          .returningAll().executeTakeFirstOrThrow()
+      );
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // ── Analytics ────────────────────────────────────────────────────────────
+  // /metrics (line ~337) is the per-compartment heat-grid route. This endpoint
+  // is the platform-wide warehouse health summary for the Analytics page.
+  fastify.get('/analytics', async (request: any, reply) => {
+    try {
+      return await withTenant(request.user.tenant_id, async trx => {
+        const tid = request.user.tenant_id;
+
+        const [
+          lotsResult, consignmentsResult, examsResult, transfersResult,
+          expiredResult, nearExpiryResult,
+        ] = await Promise.all([
+          trx.selectFrom('seal_lots').select(trx.fn.count<string>('id').as('total'))
+            .where('tenant_id', '=', tid).executeTakeFirst(),
+          trx.selectFrom('seal_consignments').select(trx.fn.count<string>('id').as('total'))
+            .where('tenant_id', '=', tid).executeTakeFirst(),
+          trx.selectFrom('seal_examinations').select(trx.fn.count<string>('id').as('total'))
+            .where('tenant_id', '=', tid).where('status', 'not in', ['COMPLETED','WAIVED']).executeTakeFirst(),
+          trx.selectFrom('seal_stock_transfers').select(trx.fn.count<string>('id').as('total'))
+            .where('tenant_id', '=', tid).where('status', 'not in', ['COMPLETED','CANCELLED']).executeTakeFirst(),
+          // Lots past expiry
+          trx.selectFrom('seal_lots').select(trx.fn.count<string>('id').as('total'))
+            .where('tenant_id', '=', tid)
+            .where('expires_on', '<', new Date().toISOString().slice(0, 10))
+            .executeTakeFirst(),
+          // Lots expiring in ≤30 days
+          trx.selectFrom('seal_lots').select(trx.fn.count<string>('id').as('total'))
+            .where('tenant_id', '=', tid)
+            .where('expires_on', '>=', new Date().toISOString().slice(0, 10))
+            .where('expires_on', '<=', new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10))
+            .executeTakeFirst(),
+        ]);
+
+        // Movement activity last 30 days
+        const movementsActivity = await trx
+          .selectFrom('seal_movements')
+          .select([
+            sql<string>`DATE(occurred_at)`.as('date'),
+            trx.fn.count<string>('id').as('count'),
+          ])
+          .where('tenant_id', '=', tid)
+          .where('occurred_at', '>=', new Date(Date.now() - 30 * 86400000))
+          .groupBy(sql`DATE(occurred_at)`)
+          .orderBy('date', 'asc')
+          .execute();
+
+        // Lot status breakdown
+        const statusBreakdown = await trx
+          .selectFrom('seal_lots')
+          .select(['customs_status', trx.fn.count<string>('id').as('count')])
+          .where('tenant_id', '=', tid)
+          .groupBy('customs_status')
+          .orderBy('count', 'desc')
+          .execute();
+
+        return {
+          totals: {
+            lots:          parseInt(lotsResult?.total         ?? '0'),
+            consignments:  parseInt(consignmentsResult?.total ?? '0'),
+            pendingExams:  parseInt(examsResult?.total        ?? '0'),
+            activeTransfers: parseInt(transfersResult?.total  ?? '0'),
+            expiredLots:   parseInt(expiredResult?.total      ?? '0'),
+            nearExpiryLots: parseInt(nearExpiryResult?.total  ?? '0'),
+          },
+          movementsActivity,
+          statusBreakdown,
+        };
+      });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // ── Cycle Counts ─────────────────────────────────────────────────────────
+  fastify.get('/cycle-counts', async (request: any, reply) => {
+    const { compartment_id } = request.query as { compartment_id?: string };
+    try {
+      return await withTenant(request.user.tenant_id, async trx => {
+        let q = trx.selectFrom('seal_cycle_counts').selectAll()
+          .where('tenant_id', '=', request.user.tenant_id)
+          .orderBy('initiated_at', 'desc');
+        if (compartment_id) q = q.where('compartment_id', '=', compartment_id);
+        return q.execute();
+      });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/cycle-counts', async (request: any, reply) => {
+    const { compartmentId, notes } = request.body as { compartmentId?: string; notes?: string };
+    try {
+      return await withTenant(request.user.tenant_id, async trx => {
+        const { randomUUID } = await import('crypto');
+        const id = randomUUID() as string;
+        const year = new Date().getFullYear();
+        const seq = Math.floor(Math.random() * 90000) + 10000;
+        return trx.insertInto('seal_cycle_counts').values({
+          id,
+          tenant_id: request.user.tenant_id,
+          count_ref: `CC-${year}-${seq}`,
+          compartment_id: compartmentId ?? null,
+          initiated_by: request.user.id,
+          notes: notes ?? null,
+        }).returningAll().executeTakeFirstOrThrow();
+      });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/cycle-counts/:id', async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      return await withTenant(request.user.tenant_id, async trx => {
+        const count = await trx.selectFrom('seal_cycle_counts').selectAll()
+          .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
+          .executeTakeFirstOrThrow();
+        const lines = await trx.selectFrom('seal_count_lines').selectAll()
+          .where('count_id', '=', id).execute();
+        return { ...count, lines };
+      });
+    } catch {
+      return reply.status(404).send({ error: 'Cycle count not found.' });
+    }
+  });
+
+  fastify.patch('/cycle-counts/:id/lines/:lineId', async (request: any, reply) => {
+    const { id, lineId } = request.params as { id: string; lineId: string };
+    const { countedQty, notes } = request.body as { countedQty?: number; notes?: string };
+    try {
+      return await withTenant(request.user.tenant_id, async trx => {
+        await trx.selectFrom('seal_cycle_counts').select('id')
+          .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
+          .executeTakeFirstOrThrow();
+        const updates: Record<string, unknown> = {};
+        if (countedQty !== undefined) { updates.counted_qty = String(countedQty); updates.counted_by = request.user.id; updates.counted_at = new Date(); }
+        if (notes !== undefined) updates.notes = notes;
+        return trx.updateTable('seal_count_lines').set(updates)
+          .where('id', '=', lineId).returningAll().executeTakeFirstOrThrow();
+      });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // ── Stock Transfers ───────────────────────────────────────────────────────
+  fastify.get('/stock-transfers', async (request: any, reply) => {
+    const { status, compartment_id } = request.query as { status?: string; compartment_id?: string };
+    try {
+      return await withTenant(request.user.tenant_id, async trx => {
+        let q = trx.selectFrom('seal_stock_transfers')
+          .selectAll()
+          .where('tenant_id', '=', request.user.tenant_id)
+          .orderBy('created_at', 'desc');
+        if (status) q = q.where('status', '=', status);
+        if (compartment_id) {
+          q = q.where(eb => eb.or([
+            eb('from_compartment_id', '=', compartment_id),
+            eb('to_compartment_id', '=', compartment_id),
+          ]));
+        }
+        return q.execute();
+      });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/stock-transfers', async (request: any, reply) => {
+    const b = request.body as {
+      fromCompartmentId?: string;
+      toCompartmentId?: string;
+      fromZone?: string;
+      toZone?: string;
+      expectedAt?: string;
+      notes?: string;
+      lines: Array<{ lotId: string; qtyRequested: number; notes?: string }>;
+    };
+    if (!Array.isArray(b.lines) || b.lines.length === 0) {
+      return reply.status(400).send({ error: 'At least one transfer line is required.' });
+    }
+    try {
+      return await withTenant(request.user.tenant_id, async trx => {
+        const { randomUUID } = await import('crypto');
+        const id = randomUUID() as string;
+        const year = new Date().getFullYear();
+        const seq = Math.floor(Math.random() * 90000) + 10000;
+        const ref = `TRF-${year}-${seq}`;
+        const transfer = await trx.insertInto('seal_stock_transfers').values({
+          id,
+          tenant_id: request.user.tenant_id,
+          transfer_ref: ref,
+          from_compartment_id: b.fromCompartmentId ?? null,
+          to_compartment_id: b.toCompartmentId ?? null,
+          from_zone: b.fromZone ?? null,
+          to_zone: b.toZone ?? null,
+          requested_by: request.user.id,
+          expected_at: b.expectedAt ? new Date(b.expectedAt) : null,
+          notes: b.notes ?? null,
+        }).returningAll().executeTakeFirstOrThrow();
+        const lines = await trx.insertInto('seal_transfer_lines').values(
+          b.lines.map(l => ({
+            id: randomUUID() as string,
+            transfer_id: id,
+            lot_id: l.lotId,
+            qty_requested: String(l.qtyRequested),
+            notes: l.notes ?? null,
+          }))
+        ).returningAll().execute();
+        return { ...transfer, lines };
+      });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/stock-transfers/:id', async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      return await withTenant(request.user.tenant_id, async trx => {
+        const transfer = await trx.selectFrom('seal_stock_transfers').selectAll()
+          .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
+          .executeTakeFirstOrThrow();
+        const lines = await trx.selectFrom('seal_transfer_lines')
+          .selectAll().where('transfer_id', '=', id).execute();
+        const lotIds = lines.map(l => l.lot_id);
+        const lots = lotIds.length > 0
+          ? await trx.selectFrom('seal_lots').selectAll().where('id', 'in', lotIds).execute()
+          : [];
+        const lotsById = Object.fromEntries(lots.map(l => [l.id, l]));
+        return { ...transfer, lines: lines.map(l => ({ ...l, lot: lotsById[l.lot_id] ?? null })) };
+      });
+    } catch (err: any) {
+      return reply.status(404).send({ error: 'Transfer not found.' });
+    }
+  });
+
+  fastify.patch('/stock-transfers/:id', async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    const { action } = request.body as { action: 'approve' | 'execute' | 'cancel' };
+    try {
+      return await withTenant(request.user.tenant_id, async trx => {
+        const transfer = await trx.selectFrom('seal_stock_transfers').selectAll()
+          .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
+          .executeTakeFirstOrThrow();
+        let newStatus = transfer.status;
+        const updates: Record<string, unknown> = {};
+        if (action === 'approve' && transfer.status === 'PENDING_APPROVAL') {
+          newStatus = 'APPROVED';
+          updates.approved_by = request.user.id;
+          updates.approved_at = new Date();
+        } else if (action === 'execute' && ['APPROVED', 'IN_PROGRESS'].includes(transfer.status as string)) {
+          newStatus = 'COMPLETED';
+          updates.executed_by = request.user.id;
+          updates.executed_at = new Date();
+        } else if (action === 'cancel' && !['COMPLETED', 'CANCELLED'].includes(transfer.status as string)) {
+          newStatus = 'CANCELLED';
+        } else {
+          return reply.status(400).send({ error: `Cannot ${action} a transfer in status ${transfer.status}.` });
+        }
+        updates.status = newStatus;
+        updates.updated_at = new Date();
+        return trx.updateTable('seal_stock_transfers').set(updates)
+          .where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+      });
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }

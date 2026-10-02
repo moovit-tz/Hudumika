@@ -31,14 +31,14 @@ export function HuduBIModels() {
         crumbs={['HuduBI', 'Intelligence']}
         titlePlain="Executive AI"
         titleEm="analysis"
-        subtitle="An AI-written read of your real figures, produced by your configured model â€” grounded in the data, never invented."
+        subtitle="An AI-written read of your real figures, produced by your configured model — grounded in the data, never invented."
       />
 
       <SectionCard
         title="Board digest"
         action={
           <button type="button" className="btn btn-primary btn-sm" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} onClick={generate}>
-            <Icon name="sparkle" size={14} /> {loading ? 'Analysingâ€¦' : (digest ? 'Regenerate' : 'Generate analysis')}
+            <Icon name="sparkle" size={14} /> {loading ? 'Analysing…' : (digest ? 'Regenerate' : 'Generate analysis')}
           </button>
         }
       >
@@ -52,7 +52,7 @@ export function HuduBIModels() {
           <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {digest.split('\n').filter(l => l.trim()).map((line, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.55 }}>
-                <span style={{ color: 'var(--teal)', flexShrink: 0 }}>â€¢</span><span>{line.replace(/^[-*â€¢]\s*/, '')}</span>
+                <span style={{ color: 'var(--teal)', flexShrink: 0 }}>•</span><span>{line.replace(/^[-*•]\s*/, '')}</span>
               </div>
             ))}
           </div>
@@ -60,7 +60,7 @@ export function HuduBIModels() {
 
         {!digest && !err && !loading && (
           <div style={{ marginTop: 16, fontSize: 12.5, color: 'var(--ink3)' }}>
-            No trained forecasting model runs here â€” HuduBI does not predict. This produces a plain-language summary of what your current data shows.
+            No trained forecasting model runs here — HuduBI does not predict. This produces a plain-language summary of what your current data shows.
           </div>
         )}
       </SectionCard>

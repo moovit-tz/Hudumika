@@ -92,7 +92,7 @@ export const OndiPrivacy: React.FC = () => {
       <PageHeader
         crumbs={['Ondi', 'Personal']}
         titlePlain="Privacy"
-        titleEm="hub."
+        titleEm="hub"
         subtitle="Manage your personal data transparency, download machine-readable records, or request account deactivation."
       />
 

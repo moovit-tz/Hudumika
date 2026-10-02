@@ -141,7 +141,7 @@ export const OndiOrgActivity: React.FC = () => {
               boxShadow: '0 2px 8px var(--teal-m)'
             }}
           >
-            <Icon name="download" size={15} /> {exporting ? 'Exportingâ€¦' : 'Export CSV'}
+            <Icon name="download" size={15} /> {exporting ? 'Exporting…' : 'Export CSV'}
           </button>
         }
       />
@@ -250,7 +250,7 @@ export const OndiOrgActivity: React.FC = () => {
         {events === null && !err && (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
             <Spinner size={24} thickness={3} style={{ margin: '0 auto 12px' }} />
-            <span>Loading audit feedâ€¦</span>
+            <span>Loading audit feed…</span>
           </div>
         )}
 
@@ -314,13 +314,13 @@ export const OndiOrgActivity: React.FC = () => {
                           {e.ip}
                         </code>
                       ) : (
-                        <span style={{ color: 'var(--ink3)' }}>â€”</span>
+                        <span style={{ color: 'var(--ink3)' }}>—</span>
                       )}
                     </td>
 
                     <td>
                       <div style={{ fontSize: 12, color: 'var(--ink3)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={e.user_agent || ''}>
-                        {e.user_agent ? e.user_agent.split(' ')[0] : 'â€”'}
+                        {e.user_agent ? e.user_agent.split(' ')[0] : '—'}
                       </div>
                     </td>
 

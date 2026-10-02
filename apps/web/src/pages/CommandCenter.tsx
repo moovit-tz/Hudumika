@@ -31,7 +31,7 @@ import {
   DECLARATION_STATUSES, LANES, LANE, STATUS_VARIANT, declMoney,
 } from '../lib/declarationMeta.js';
 
-/* â”€â”€ @ Mention Officer Picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── @ Mention Officer Picker ─────────────────────────────────────────────── */
 function OfficerMentionInput({
   officers,
   value,
@@ -80,13 +80,13 @@ function OfficerMentionInput({
             <>
               <PersonAvatar userId={value.id} name={value.name} size={22} />
               <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1, fontWeight: 600 }}>{value.name}</span>
-              <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>Ã—</button>
+              <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>×</button>
             </>
           ) : (
             <input
               ref={inputRef}
               type="text"
-              placeholder="Type @ to search staffâ€¦"
+              placeholder="Type @ to search staff…"
               value={query}
               onChange={e => { setQuery(e.target.value); setOpen(true); }}
               onFocus={() => setOpen(true)}
@@ -111,7 +111,7 @@ function OfficerMentionInput({
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{o.name}</div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                {(o.role || '').replace(/_/g, ' ')}{o.department ? ` Â· ${o.department}` : ''}
+                {(o.role || '').replace(/_/g, ' ')}{o.department ? ` · ${o.department}` : ''}
               </div>
             </div>
             <span style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 700, background: 'var(--teal-l)', padding: '1px 7px', borderRadius: 'var(--badge-radius)', flexShrink: 0 }}>
@@ -129,15 +129,15 @@ type Metric = 'active' | 'demurrage' | 'sla' | 'delivered' | 'checked_in' | 'pen
 /* Shipment type, for the "Filter by" menu. Was seven chips in the toolbar. */
 const SHIPMENT_TYPES: { value: ShipmentType | 'ALL'; label: string }[] = [
   { value: 'ALL',     label: 'All types' },
-  { value: 'SEA_FCL', label: 'Sea â€” FCL' },
-  { value: 'SEA_LCL', label: 'Sea â€” LCL' },
+  { value: 'SEA_FCL', label: 'Sea — FCL' },
+  { value: 'SEA_LCL', label: 'Sea — LCL' },
   { value: 'AIR',     label: 'Air' },
   { value: 'ROAD',    label: 'Road' },
   { value: 'RAIL',    label: 'Rail' },
   { value: 'BULK',    label: 'Bulk' },
 ];
 
-/* â”€â”€ Stage colour for board columns â€” column order + label already carry
+/* ── Stage colour for board columns — column order + label already carry
    "which stage", so this isn't a per-stage hue anymore, just two states:
    still in the customs process (brand teal) vs. released/completed (green). */
 const STAGE_COLORS: Partial<Record<ClearanceStage, string>> = {
@@ -150,7 +150,7 @@ const STAGE_COLORS: Partial<Record<ClearanceStage, string>> = {
   CLOSED:             'var(--green)',
 };
 
-/* â”€â”€ Risk label config (Trello-style) â€” only red (blocking/costly) and gold
+/* ── Risk label config (Trello-style) — only red (blocking/costly) and gold
    (actionable, not blocking) are used; keeps the board to 3 status colors
    (red/gold/green) plus the brand teal, instead of a distinct hue per risk.
    `variant` maps straight onto the shared `Badge` component's soft-tint
@@ -167,7 +167,7 @@ const TYPE_SHORT: Record<string, string> = {
   SEA_FCL: 'FCL', SEA_LCL: 'LCL', AIR: 'AIR', ROAD: 'RD', RAIL: 'RAIL', BULK: 'BULK',
 };
 
-/* â”€â”€ Enterprise Kanban Board â”€â”€ fixed CLEARANCE_STAGES columns, drag-to-move. */
+/* ── Enterprise Kanban Board ── fixed CLEARANCE_STAGES columns, drag-to-move. */
 function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () => void, sortBy: 'urgency' | 'created' | 'eta' | 'days' }) {
   const navigate = useNavigate();
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -205,15 +205,15 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
     } catch (err: any) {
       const message = err.message || 'Unknown error';
       // The backend's "Prerequisite not met: X, Y, Z" is a single comma-joined
-      // sentence â€” break it into a scannable list instead of a wall of text.
+      // sentence — break it into a scannable list instead of a wall of text.
       const prereqMatch = message.match(/^Prerequisite not met: (.+)$/);
       if (prereqMatch) {
-        showAlert("This shipment can't move to that stage yet â€” the following are still required:", {
+        showAlert("This shipment can't move to that stage yet — the following are still required:", {
           title: 'Missing Prerequisites',
           // The API names prerequisites with the enum token it stores
           // ("PACKING_LIST document"). Shown verbatim that reads as a system
           // error rather than a thing to go and fetch, so the token is
-          // humanised â€” never translated, only re-cased.
+          // humanised — never translated, only re-cased.
           items: prereqMatch[1]
             .split(',')
             .map((s: string) => s.trim())
@@ -279,7 +279,7 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
             display: 'flex', flexDirection: 'column',
             maxHeight: '100%',
           }}>
-            {/* â”€â”€ Column header: ring icon + label + count pill â”€â”€ */}
+            {/* ── Column header: ring icon + label + count pill ── */}
             <div style={{
               padding: '11px 12px 10px',
               flexShrink: 0,
@@ -294,9 +294,9 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
               </div>
             </div>
 
-            {/* â”€â”€ Card list â€” horizontal padding matches the column header's
+            {/* ── Card list — horizontal padding matches the column header's
                 (12px) so a card's left/right edge lines up with the column
-                title above it, not sit 4px inboard of it. â”€â”€ */}
+                title above it, not sit 4px inboard of it. ── */}
             <div style={{ overflowY: 'auto', padding: '8px 12px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {ships.map((ship: any) => {
                 const risks = (ship.active_risk_types || []) as string[];
@@ -347,7 +347,7 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
                     {/* Subtitle: customer name */}
                     <div className="cos-card-subtitle">{ship._customer}</div>
 
-                    {/* Risk chips â€” shared Badge component (soft-tint variants),
+                    {/* Risk chips — shared Badge component (soft-tint variants),
                         not a hand-rolled inline-styled span. */}
                     {risks.length > 0 && (
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 9 }}>
@@ -418,8 +418,8 @@ export const CommandCenter: React.FC = () => {
   const [sortBy, setSortBy] = useState<'urgency' | 'created' | 'eta' | 'days'>('urgency');
   /**
    * Board is the default. Ops Command is a "what is stuck and who is on it"
-   * screen, and the board answers that at a glance â€” a column per stage, with
-   * the pile-ups visible as column height â€” where the list answers "find me
+   * screen, and the board answers that at a glance — a column per stage, with
+   * the pile-ups visible as column height — where the list answers "find me
    * this one shipment", which is the rarer question here.
    *
    * A stored choice still wins: this only decides what someone sees who has
@@ -438,7 +438,7 @@ export const CommandCenter: React.FC = () => {
    * Declaration filters, folded in from /clearos/declarations.
    *
    * Every one of these is resolved by the API, which is what that page did and
-   * Ops did not â€” Ops filtered whatever it had already loaded. `__all__` is the
+   * Ops did not — Ops filtered whatever it had already loaded. `__all__` is the
    * Radix sentinel (SelectItem cannot take an empty-string value) and is
    * translated to "no filter" here rather than sent.
    */
@@ -455,7 +455,7 @@ export const CommandCenter: React.FC = () => {
    * The existing FilterBar search is promoted to the server rather than a
    * second box being added. It used to filter the loaded array on ref, goods
    * and BL only; the API now also matches AWB, the TANCIS ref, the TANSAD
-   * number and the importer name â€” the identifiers /clearos/declarations
+   * number and the importer name — the identifiers /clearos/declarations
    * searched, and the ones a customs officer actually has to hand.
    *
    * Debounced, because it is a request per change now rather than a filter.
@@ -465,7 +465,7 @@ export const CommandCenter: React.FC = () => {
     const t = setTimeout(() => setServerSearch(searchQuery.trim()), 300);
     return () => clearTimeout(t);
   }, [searchQuery]);
-  // The box is gone from the toolbar, but /clearos/ops?search=â€¦ still works â€”
+  // The box is gone from the toolbar, but /clearos/ops?search=… still works —
   // it is what the global header search links to.
 
   const declFiltersActive = declStatus !== '__all__' || lane !== '__all__'
@@ -483,7 +483,7 @@ export const CommandCenter: React.FC = () => {
 
   // Auto-refresh data every 15 seconds. Silent: this used to call the same
   // refresh() a filter change does, which set `loading`, which the render
-  // below turns into a full-page skeleton (line ~704) â€” so every 15s the
+  // below turns into a full-page skeleton (line ~704) — so every 15s the
   // whole board unmounted and remounted, dropping scroll position, open
   // customer groups, and anything mid-interaction. The data still needs to
   // stay fresh for a live ops board; only the disruptive remount was the bug.
@@ -512,7 +512,7 @@ export const CommandCenter: React.FC = () => {
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       let ships = group.shipments.filter((s: ShipmentCase) => {
-        // No search test here â€” the API resolves it now, over a wider set of
+        // No search test here — the API resolves it now, over a wider set of
         // fields than this could see (AWB, TANCIS ref, TANSAD number, importer
         // name). Re-filtering the response would only be able to narrow it.
         if (selectedType !== 'ALL' && s.type !== selectedType) return false;
@@ -521,19 +521,19 @@ export const CommandCenter: React.FC = () => {
         if (selectedMetric === 'sla' && !s.active_risk_types?.includes('SLA_BREACH')) return false;
         if (selectedMetric === 'active' && (s.stage === 'CLOSED' || s.stage === 'DELIVERY')) return false;
         // Matches the KPI's own definition (analytics.routes.ts): delivered
-        // or closed, and moved into that state today â€” not just "delivered
+        // or closed, and moved into that state today — not just "delivered
         // at some point", which is what this used to show.
         if (selectedMetric === 'delivered' && (
           (s.stage !== 'DELIVERY' && s.stage !== 'CLOSED') ||
           new Date(s.updated_at) < todayStart
         )) return false;
         // Penalty Exposure: shipments actively accruing demurrage cost right
-        // now â€” free time already elapsed and not yet closed/delivered.
+        // now — free time already elapsed and not yet closed/delivered.
         if (selectedMetric === 'penalty' && (
           !s.free_time_end || new Date(s.free_time_end) >= now ||
           s.stage === 'CLOSED' || s.stage === 'DELIVERY'
         )) return false;
-        // On-Time Rate is a percentage over closed cases â€” clicking it shows
+        // On-Time Rate is a percentage over closed cases — clicking it shows
         // the population the rate is computed from.
         if (selectedMetric === 'ontime' && s.stage !== 'CLOSED') return false;
         if (selectedMetric === 'month' && new Date(s.created_at) < monthStart) return false;
@@ -591,7 +591,7 @@ export const CommandCenter: React.FC = () => {
   const totalGroups = sortedGroupedShipments.length;
   const pagedGroups = sortedGroupedShipments.slice((page - 1) * pageSize, page * pageSize);
 
-  // Sort is a shared toolbar control now, so it works in Board view too â€” the
+  // Sort is a shared toolbar control now, so it works in Board view too — the
   // List view could only sort by clicking a column header, which the board has
   // none of.
   const SORT_OPTIONS: { value: typeof sortBy; label: string }[] = [
@@ -639,23 +639,23 @@ export const CommandCenter: React.FC = () => {
     }
   };
 
-  // KPI cells config â€” restyled as individual design-system cards
+  // KPI cells config — restyled as individual design-system cards
   const kpiCells = [
-    { key: 'active',    label: 'Active Shipments',   value: loading ? 'â€”' : fmt(kpis?.active_cases),           icon: 'package',       color: 'var(--teal)',  bg: 'var(--teal-l)',  metric: 'active' as Metric },
-    { key: 'dem',       label: 'Demurrage Risk',      value: loading ? 'â€”' : fmt(kpis?.demurrage_risk),          icon: 'alertTriangle', color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'demurrage' as Metric },
-    { key: 'sla',       label: 'SLA Breached',        value: loading ? 'â€”' : fmt(kpis?.sla_breached),            icon: 'clock',         color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'sla' as Metric },
-    { key: 'del',       label: 'Delivered Today',     value: loading ? 'â€”' : fmt(kpis?.delivered_today),         icon: 'checkCircle',   color: 'var(--green)', bg: 'var(--green-l)',        metric: 'delivered' as Metric },
-    { key: 'penalty',   label: 'Penalty Exposure',    value: loading ? 'â€”' : `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, icon: 'dollarSign', color: 'var(--gold)',  bg: 'var(--gold-l)',        cell: 'warn', metric: 'penalty' as Metric },
-    { key: 'ontime',    label: 'On-Time Rate',        value: loading || kpis?.on_time_rate_pct == null ? 'â€”' : `${kpis.on_time_rate_pct}%`, icon: 'trendingUp', color: 'var(--blue)',  bg: '#eff6ff',        metric: (kpis?.on_time_rate_pct == null ? null : 'ontime') as Metric },
-    { key: 'month',     label: 'This Month',          value: loading ? 'â€”' : fmt(kpis?.cases_this_month),        icon: 'calendar',      color: 'var(--navy)',  bg: 'var(--bg)',      metric: 'month' as Metric },
+    { key: 'active',    label: 'Active Shipments',   value: loading ? '—' : fmt(kpis?.active_cases),           icon: 'package',       color: 'var(--teal)',  bg: 'var(--teal-l)',  metric: 'active' as Metric },
+    { key: 'dem',       label: 'Demurrage Risk',      value: loading ? '—' : fmt(kpis?.demurrage_risk),          icon: 'alertTriangle', color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'demurrage' as Metric },
+    { key: 'sla',       label: 'SLA Breached',        value: loading ? '—' : fmt(kpis?.sla_breached),            icon: 'clock',         color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'sla' as Metric },
+    { key: 'del',       label: 'Delivered Today',     value: loading ? '—' : fmt(kpis?.delivered_today),         icon: 'checkCircle',   color: 'var(--green)', bg: 'var(--green-l)',        metric: 'delivered' as Metric },
+    { key: 'penalty',   label: 'Penalty Exposure',    value: loading ? '—' : `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, icon: 'dollarSign', color: 'var(--gold)',  bg: 'var(--gold-l)',        cell: 'warn', metric: 'penalty' as Metric },
+    { key: 'ontime',    label: 'On-Time Rate',        value: loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`, icon: 'trendingUp', color: 'var(--blue)',  bg: '#eff6ff',        metric: (kpis?.on_time_rate_pct == null ? null : 'ontime') as Metric },
+    { key: 'month',     label: 'This Month',          value: loading ? '—' : fmt(kpis?.cases_this_month),        icon: 'calendar',      color: 'var(--navy)',  bg: 'var(--bg)',      metric: 'month' as Metric },
   ];
 
-  // Renders one KPI card â€” interactive button for filter metrics or div for informational numbers.
+  // Renders one KPI card — interactive button for filter metrics or div for informational numbers.
   const kpiCell = (cell: (typeof kpiCells)[number]) => {
     const clickable = cell.metric !== null;
     const active = clickable && selectedMetric === cell.metric;
     // Raised = one of the two risk figures, and only while it is non-zero.
-    const raised = cell.cell === 'alert' && cell.value !== '0' && cell.value !== 'â€”';
+    const raised = cell.cell === 'alert' && cell.value !== '0' && cell.value !== '—';
     const cls = [
       'cc-pipeline-step',
       clickable ? 'cc-pipeline-step--clickable' : '',
@@ -678,7 +678,7 @@ export const CommandCenter: React.FC = () => {
         className={cls}
         aria-pressed={active}
         onClick={() => setSelectedMetric(m => (m === cell.metric ? null : cell.metric))}
-        title={active ? 'Filtering â€” click to clear' : 'Click to filter'}
+        title={active ? 'Filtering — click to clear' : 'Click to filter'}
       >
         {inner}
       </button>
@@ -706,12 +706,12 @@ export const CommandCenter: React.FC = () => {
       {/* Primary ops column */}
       <div className="cc-main">
 
-        {/* â”€â”€ Page Header â”€â”€ */}
+        {/* ── Page Header ── */}
         <PageHeader
           crumbs={['ClearOS', 'Ops Command']}
           titlePlain={isJunior ? 'My' : 'Ops'}
           titleEm={isJunior ? 'cases' : 'command'}
-          subtitle={isJunior ? 'Shipments assigned to you, across every stage.' : 'Every shipment in the pipeline â€” filter by stage or switch to the board below.'}
+          subtitle={isJunior ? 'Shipments assigned to you, across every stage.' : 'Every shipment in the pipeline — filter by stage or switch to the board below.'}
           actions={
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button
@@ -748,7 +748,7 @@ export const CommandCenter: React.FC = () => {
           }
         />
 
-        {/* â”€â”€ KPI Strip â€” click a cell to filter the list/board below to that
+        {/* ── KPI Strip — click a cell to filter the list/board below to that
             metric (toggles off on a second click of the same cell); cells with
             no `metric` (penalty exposure, on-time rate, this month) are
             informational only. Always visible, independent of the collapsible
@@ -757,7 +757,7 @@ export const CommandCenter: React.FC = () => {
           {kpiCells.map(kpiCell)}
         </div>
 
-        {/* Collapsible Ops Summary & Filters â€” one row, wraps as a unit on narrow screens */}
+        {/* Collapsible Ops Summary & Filters — one row, wraps as a unit on narrow screens */}
         {expanded && (
           <div className="cc-toolbar-row" style={{ paddingLeft: 0, paddingRight: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', width: '100%' }}>
               <div className="ds-tabs-list" style={{ flexShrink: 0, overflowX: 'auto', maxWidth: '100%' }}>
@@ -847,7 +847,7 @@ export const CommandCenter: React.FC = () => {
               {/* Filter bar */}
               <div className="cc-toolbar-filters" style={{ minWidth: 'auto', flex: 'none' }}>
                 <div className="filter-chips">
-                  {/* Search across ALL shipments â€” not the loaded page. It sets
+                  {/* Search across ALL shipments — not the loaded page. It sets
                       `searchQuery`, which is debounced into `serverSearch` and
                       resolved by the API over ref/goods/BL/AWB/TANCIS/TANSAD/
                       importer, so a match on any shipment surfaces even when it
@@ -859,7 +859,7 @@ export const CommandCenter: React.FC = () => {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Escape') setSearchQuery(''); }}
-                      placeholder="Search all shipmentsâ€¦"
+                      placeholder="Search all shipments…"
                       aria-label="Search all shipments"
                       autoComplete="off"
                       spellCheck={false}
@@ -876,7 +876,7 @@ export const CommandCenter: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Sort â€” shared so it works on Board and List alike. */}
+                  {/* Sort — shared so it works on Board and List alike. */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button type="button" className="fc fc-filterby">
@@ -996,7 +996,7 @@ export const CommandCenter: React.FC = () => {
           <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
             {loading ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-                Syncing shipment dataâ€¦
+                Syncing shipment data…
               </div>
             ) : (
               <KanbanBoard groups={sortedGroupedShipments} refresh={refresh} sortBy={sortBy} />
@@ -1011,7 +1011,7 @@ export const CommandCenter: React.FC = () => {
             <div className="scroll-body">
               {loading && (
                 <div style={{ padding: '32px', textAlign: 'center', fontSize: '13px', color: 'var(--ink3)' }}>
-                  Syncing shipment dataâ€¦
+                  Syncing shipment data…
                 </div>
               )}
               {!loading && totalGroups === 0 && (
@@ -1057,7 +1057,7 @@ export const CommandCenter: React.FC = () => {
             {aiError && (
               <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex justify-between items-center">
                 <span>{aiError}</span>
-                <button type="button" onClick={() => setAiError(null)} className="font-bold">Ã—</button>
+                <button type="button" onClick={() => setAiError(null)} className="font-bold">×</button>
               </div>
             )}
 
@@ -1085,7 +1085,7 @@ export const CommandCenter: React.FC = () => {
             {aiScanning && (
               <div className="text-center py-10 space-y-3">
                 <div className="w-10 h-10 border-3 border-[var(--teal-l)] border-t-[var(--teal)] rounded-full animate-spin mx-auto" />
-                <div className="font-bold text-sm text-[var(--ink)]">Analyzing document with AIâ€¦</div>
+                <div className="font-bold text-sm text-[var(--ink)]">Analyzing document with AI…</div>
                 <p className="text-xs text-[var(--ink3)]">Extracting structured transaction fields and line data.</p>
               </div>
             )}

@@ -4450,8 +4450,8 @@ export const LandedCostPage: React.FC = () => {
 
       <PageHeader
         crumbs={['Customs Tools', 'Landed Cost']}
-        titlePlain="Landed Cost"
-        titleEm="Calculator"
+        titlePlain="Landed cost"
+        titleEm="calculator"
         subtitle="Tanzania EAC CET — compute full landed cost from CIF to your door · Live FX rate from open.er-api.com"
         actions={
           <div className="lcp-actions">

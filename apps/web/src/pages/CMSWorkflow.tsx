@@ -7,6 +7,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import type { CmsWorkflowState, CmsWorkflowTransition, CreateCmsWorkflowStateInput, CreateCmsWorkflowTransitionInput } from '@hudumika/types';
+import { ColorSwatchPicker } from '../components/ui/color-swatch-picker.js';
 
 export function CMSWorkflow() {
   const [states, setStates] = useState<CmsWorkflowState[] | null>(null);
@@ -434,15 +435,7 @@ export function CMSWorkflow() {
 
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Badge Color</label>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input
-                    type="color"
-                    value={stateForm.color}
-                    onChange={e => setStateForm(f => ({ ...f, color: e.target.value }))}
-                    style={{ width: 36, height: 36, padding: 0, border: 'none', borderRadius: 6, cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{stateForm.color}</span>
-                </div>
+                <ColorSwatchPicker value={stateForm.color} onChange={color => setStateForm(f => ({ ...f, color }))} />
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -33,7 +33,7 @@ function monthRange(offsetFromNow: number) {
 const PERIODS = Array.from({ length: 12 }, (_, i) => monthRange(11 - i));
 
 function fmt(n: number, cur: string) {
-  if (n === 0) return 'â€”';
+  if (n === 0) return '—';
   return `${cur} ${n.toLocaleString('en-US', { minimumFractionDigits: 0 })}`;
 }
 
@@ -80,7 +80,7 @@ export const FinanceTrialBalance: React.FC = () => {
   const totals = report?.totals ?? { debit: 0, credit: 0 };
   const balanced = Math.abs(totals.debit - totals.credit) < 1;
 
-  /** Paged first, grouped second â€” grouping first would make a page mean
+  /** Paged first, grouped second — grouping first would make a page mean
    *  "one account type", which the type tabs above already do. */
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -121,7 +121,7 @@ export const FinanceTrialBalance: React.FC = () => {
     document.body.removeChild(a); URL.revokeObjectURL(url);
   }
 
-  if (loading) return <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading trial balanceâ€¦</div>;
+  if (loading) return <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading trial balance…</div>;
   if (error) return <div style={{ textAlign: 'center', color: 'var(--red)' }}>{error}</div>;
 
   return (
@@ -131,7 +131,7 @@ export const FinanceTrialBalance: React.FC = () => {
         crumbs={['Finance', 'Reports']}
         titlePlain="Trial"
         titleEm="balance"
-        subtitle={`${co.name} â€” verifying debits equal credits.`}
+        subtitle={`${co.name} — verifying debits equal credits.`}
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
             <Select value={String(periodIdx)} onValueChange={v => setPeriodIdx(Number(v))}>
@@ -157,16 +157,16 @@ export const FinanceTrialBalance: React.FC = () => {
         </div>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: balanced ? 'var(--green)' : 'var(--red)' }}>
-            {balanced ? 'Trial Balance is Balanced âœ“' : 'Trial Balance Out of Balance âœ—'}
+            {balanced ? 'Trial Balance is Balanced ✓' : 'Trial Balance Out of Balance ✗'}
           </div>
           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
-            Total Debits: <strong>{cur} {totals.debit.toLocaleString()}</strong> &nbsp;Â·&nbsp; Total Credits: <strong>{cur} {totals.credit.toLocaleString()}</strong>
-            {balanced ? ' â€” Difference: Nil' : ` â€” Difference: ${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`}
+            Total Debits: <strong>{cur} {totals.debit.toLocaleString()}</strong> &nbsp;·&nbsp; Total Credits: <strong>{cur} {totals.credit.toLocaleString()}</strong>
+            {balanced ? ' — Difference: Nil' : ` — Difference: ${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`}
           </div>
         </div>
       </div>
 
-      {/* Summary â€” the Tabs below already provide click-to-filter by type,
+      {/* Summary — the Tabs below already provide click-to-filter by type,
           so these are a plain read-only summary rather than a second,
           duplicate filter control. */}
       <MetricsRow cards={[
@@ -214,7 +214,7 @@ export const FinanceTrialBalance: React.FC = () => {
             title="Search accounts"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search accountâ€¦"
+            placeholder="Search account…"
             style={{
               width: '100%',
               padding: '8px 12px 8px 32px',
@@ -233,7 +233,7 @@ export const FinanceTrialBalance: React.FC = () => {
       </SectionCard>
       </div>
 
-      {/* Table â€” .rtbl/.rtbl-wrap is the shared responsive-table convention (index.css):
+      {/* Table — .rtbl/.rtbl-wrap is the shared responsive-table convention (index.css):
           horizontal scroll + col-hide-md/col-hide-sm on narrow viewports, instead of a
           fixed-pixel CSS grid that would overflow on mobile. */}
       <SectionCard padded={false}>
@@ -304,10 +304,10 @@ export const FinanceTrialBalance: React.FC = () => {
             <tr style={{ background: balanced ? 'var(--green-l)' : 'var(--red-l)' }}>
               <td colSpan={3} style={{ fontSize:12, fontWeight:700, color: balanced ? 'var(--green)' : 'var(--red)' }}>
                 <Icon name={balanced ? 'check' : 'alertTriangle'} size={12} color={balanced?'var(--green)':'var(--red)'} style={{ marginRight:5, verticalAlign:'middle' }} />
-                {balanced ? 'Balanced â€” Nil Difference' : 'Out of Balance'}
+                {balanced ? 'Balanced — Nil Difference' : 'Out of Balance'}
               </td>
-              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--font)', color: balanced ? 'var(--green)' : 'var(--red)', fontWeight:700 }}>{balanced ? 'â€”' : `${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`}</td>
-              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--font)', color: balanced ? 'var(--green)' : 'var(--red)', fontWeight:700 }}>{balanced ? 'â€”' : ''}</td>
+              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--font)', color: balanced ? 'var(--green)' : 'var(--red)', fontWeight:700 }}>{balanced ? '—' : `${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`}</td>
+              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--font)', color: balanced ? 'var(--green)' : 'var(--red)', fontWeight:700 }}>{balanced ? '—' : ''}</td>
             </tr>
           </tbody>
         </table>
@@ -321,7 +321,7 @@ export const FinanceTrialBalance: React.FC = () => {
           background:'var(--white)', marginTop:14, fontSize:12.5, color:'var(--ink3)',
         }}>
           <span>
-            {offset + 1}â€“{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length} account{filtered.length === 1 ? '' : 's'}
+            {offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length} account{filtered.length === 1 ? '' : 's'}
           </span>
           <div style={{ display:'flex', gap:8, alignItems:'center' }}>
             <button type="button" className="btn btn-secondary btn-sm"
@@ -338,7 +338,7 @@ export const FinanceTrialBalance: React.FC = () => {
       )}
 
       <p style={{ fontSize:11, color:'var(--ink3)', marginTop:14, textAlign:'right' }}>
-        Period: {period.label} &nbsp;Â·&nbsp; Prepared: {new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})} &nbsp;Â·&nbsp; {co.name}
+        Period: {period.label} &nbsp;·&nbsp; Prepared: {new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})} &nbsp;·&nbsp; {co.name}
       </p>
     </div>
   );

@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 
 interface Period {
   id: string; name: string; period_type: 'MONTH' | 'YEAR'; period_start: string; period_end: string;
@@ -19,6 +20,7 @@ interface Period {
 export function GlPeriods() {
   const isMobile = useIsMobile();
   const { fmt } = useCurrency();
+  const readOnly = useFinanceReadOnly();
   const [periods, setPeriods] = useState<Period[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
@@ -31,6 +33,12 @@ export function GlPeriods() {
 
   const load = () => apiFetch('/v1/finance/gl-periods').then((d: any) => { if (Array.isArray(d)) setPeriods(d); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load accounting periods.')).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (readOnly) {
+      setShowNew(false);
+      setReopening(null);
+    }
+  }, [readOnly]);
 
   async function createPeriod() {
     if (!name.trim() || !start || !end) return showAlert('Name, start and end dates are required.');
@@ -111,13 +119,13 @@ export function GlPeriods() {
         },
       ]} />
 
-      <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
+      {!readOnly && <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button"
           onClick={() => setShowNew(true)}
           style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
           <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Period
         </button>
-      </div>
+      </div>}
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="rtbl-wrap">
@@ -143,14 +151,14 @@ export function GlPeriods() {
                     <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 700, background: p.status === 'closed' ? 'var(--red-l)' : 'var(--green-l)', color: p.status === 'closed' ? 'var(--red)' : 'var(--green)' }}>{p.status.toUpperCase()}</span>
                   </td>
                   <td style={{ padding: '9px 12px', textAlign: 'right' }}>
-                    {p.status === 'open' ? (
+                    {!readOnly && (p.status === 'open' ? (
                       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                         <button type="button" onClick={() => closePeriod(p)} style={{ fontSize: 12, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Close</button>
                         {!p.closed_at && <button type="button" onClick={() => deletePeriod(p)} style={{ fontSize: 12, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Delete</button>}
                       </div>
                     ) : (
                       <button type="button" onClick={() => setReopening(p)} style={{ fontSize: 12, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Reopen…</button>
-                    )}
+                    ))}
                   </td>
                 </tr>
               ))}
@@ -159,7 +167,7 @@ export function GlPeriods() {
         </div>
       </div>
 
-      <Dialog open={showNew} onOpenChange={o => { if (!o) setShowNew(false); }}>
+      <Dialog open={!readOnly && showNew} onOpenChange={o => { if (!o) setShowNew(false); }}>
         <DialogContent className="max-w-100 gap-0">
           <DialogTitle style={{ fontWeight: 800, fontSize: 15, marginBottom: 16 }}>New Period</DialogTitle>
           <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Name</label>
@@ -183,7 +191,7 @@ export function GlPeriods() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!reopening} onOpenChange={o => { if (!o) setReopening(null); }}>
+      <Dialog open={!readOnly && !!reopening} onOpenChange={o => { if (!o) setReopening(null); }}>
         <DialogContent className="max-w-100 gap-0">
           {reopening && (
             <>

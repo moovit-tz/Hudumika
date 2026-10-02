@@ -7,6 +7,7 @@ import { GLService } from '../services/gl.service.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
+import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
 
 /** Expense claims approval (M11) — opt-in, off unless
  * tenant_settings.finance_expenses_require_approval is set. */
@@ -67,6 +68,7 @@ const expenseCreateSchema = z.object({
   shipment_id: z.string().nullable().optional(),
   customer_id: z.string().nullable().optional(),
   supplier_id: z.string().nullable().optional(),
+  business_line_id: z.string().uuid().nullable().optional(),
   payment_mode: z.string().max(50).nullable().optional(),
   reference: z.string().max(255).nullable().optional(),
   note: z.string().max(5000).nullable().optional(),
@@ -81,6 +83,7 @@ const expensePatchSchema = z.object({
   shipment_id: z.string().nullable().optional(),
   customer_id: z.string().nullable().optional(),
   supplier_id: z.string().nullable().optional(),
+  business_line_id: z.string().uuid().nullable().optional(),
   payment_mode: z.string().max(50).nullable().optional(),
   reference: z.string().max(255).nullable().optional(),
   note: z.string().max(5000).nullable().optional(),
@@ -126,14 +129,15 @@ async function postExpenseToGl(tenantId: string, row: any, userId: string | null
   if (amount <= 0) return;
   const entryDate = row.expense_date ? new Date(row.expense_date).toISOString() : new Date().toISOString();
   const expenseAccount = (row.category && EXPENSE_ACCOUNT[row.category]) || '5900';
+  const dimensions = row.business_line_id ? { business_line_id: row.business_line_id } : undefined;
   const lines = row.is_revenue
     ? [
-        { accountCode: CASH_ACCOUNT, debit: amount, credit: 0, description: 'Cash received' },
-        { accountCode: OTHER_REVENUE_ACCOUNT, debit: 0, credit: amount, description: row.name || 'Other revenue' },
+        { accountCode: CASH_ACCOUNT, debit: amount, credit: 0, description: 'Cash received', dimensions },
+        { accountCode: OTHER_REVENUE_ACCOUNT, debit: 0, credit: amount, description: row.name || 'Other revenue', dimensions },
       ]
     : [
-        { accountCode: expenseAccount, debit: amount, credit: 0, description: row.name || 'Expense' },
-        { accountCode: CASH_ACCOUNT, debit: 0, credit: amount, description: 'Cash paid' },
+        { accountCode: expenseAccount, debit: amount, credit: 0, description: row.name || 'Expense', dimensions },
+        { accountCode: CASH_ACCOUNT, debit: 0, credit: amount, description: 'Cash paid', dimensions },
       ];
   await GLService.post(tenantId, {
     entryDate,
@@ -157,6 +161,7 @@ interface FinanceExpenseListItem {
   shipment_id: string | null;
   customer_id: string | null;
   supplier_id: string | null;
+  business_line_id: string | null;
   vehicle_id: string | null;
   vehicle_label: string | null;
   editable: boolean;
@@ -190,7 +195,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const [financeRows, vehicleExpenseRows, fuelRows, maintenanceRows] = await Promise.all([
         trx.selectFrom('finance_expenses')
-          .select(['id', 'name', 'amount', 'expense_date', 'category', 'is_revenue', 'shipment_id', 'customer_id', 'supplier_id', 'retirement_status'])
+          .select(['id', 'name', 'amount', 'expense_date', 'category', 'is_revenue', 'shipment_id', 'customer_id', 'supplier_id', 'business_line_id', 'retirement_status'])
           .where('tenant_id', '=', user.tenant_id)
           .orderBy('expense_date', 'desc')
           .execute(),
@@ -221,25 +226,25 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
         ...financeRows.map((r): FinanceExpenseListItem => ({
           id: r.id, source: 'finance', name: r.name, amount: Number(r.amount),
           date: new Date(r.expense_date).toISOString(), category: r.category, is_revenue: r.is_revenue,
-          shipment_id: r.shipment_id, customer_id: r.customer_id, supplier_id: r.supplier_id,
+          shipment_id: r.shipment_id, customer_id: r.customer_id, supplier_id: r.supplier_id, business_line_id: r.business_line_id,
           vehicle_id: null, vehicle_label: null, editable: true, retirement_status: r.retirement_status,
         })),
         ...vehicleExpenseRows.map((r): FinanceExpenseListItem => ({
           id: r.id, source: 'fleet_vehicle', name: r.description || r.category, amount: Number(r.amount),
           date: new Date(r.expense_date).toISOString(), category: r.category, is_revenue: false,
-          shipment_id: null, customer_id: null, supplier_id: null,
+          shipment_id: null, customer_id: null, supplier_id: null, business_line_id: null,
           vehicle_id: r.vehicle_id, vehicle_label: vehicleLabel(r.vehicle_name, r.vehicle_plate), editable: false, retirement_status: 'not_required',
         })),
         ...fuelRows.map((r): FinanceExpenseListItem => ({
           id: r.id, source: 'fleet_fuel', name: `Fuel — ${r.station || 'Unknown station'}`, amount: Number(r.cost ?? 0),
           date: new Date(r.logged_at).toISOString(), category: 'FUEL', is_revenue: false,
-          shipment_id: null, customer_id: null, supplier_id: null,
+          shipment_id: null, customer_id: null, supplier_id: null, business_line_id: null,
           vehicle_id: r.vehicle_id, vehicle_label: vehicleLabel(r.vehicle_name, r.vehicle_plate), editable: false, retirement_status: 'not_required',
         })),
         ...maintenanceRows.map((r): FinanceExpenseListItem => ({
           id: r.id, source: 'fleet_maintenance', name: r.service_type, amount: Number(r.cost ?? 0),
           date: new Date(r.service_date).toISOString(), category: 'MAINTENANCE', is_revenue: false,
-          shipment_id: null, customer_id: null, supplier_id: null,
+          shipment_id: null, customer_id: null, supplier_id: null, business_line_id: null,
           vehicle_id: r.vehicle_id, vehicle_label: vehicleLabel(r.vehicle_name, r.vehicle_plate), editable: false, retirement_status: 'not_required',
         })),
       ].sort((a, b) => b.date.localeCompare(a.date));
@@ -271,6 +276,15 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = expenseCreateSchema.parse(request.body);
 
+    if (body.business_line_id) {
+      if (!(await tenantHasEnabledFinanceCapability(user.tenant_id, 'finance.accounting.advanced'))) {
+        return reply.status(403).send({ error: 'Business-line attribution requires Advanced accounting to be enabled.', code: 'CAPABILITY_READ_ONLY', capability: 'finance.accounting.advanced' });
+      }
+      const valid = await withTenant(user.tenant_id, trx => trx.selectFrom('finance_business_lines').select('id')
+        .where('tenant_id', '=', user.tenant_id).where('id', '=', body.business_line_id!).where('active', '=', true).executeTakeFirst());
+      if (!valid) return reply.status(400).send({ error: 'Business line not found, archived, or belongs to another workspace.' });
+    }
+
     const row = await withTenant(user.tenant_id, async (trx) => {
       const requiresApproval = await expenseApprovalRequired(trx, user.tenant_id);
       return trx.insertInto('finance_expenses').values({
@@ -282,6 +296,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
         shipment_id: body.shipment_id || null,
         customer_id: body.customer_id || null,
         supplier_id: body.supplier_id || null,
+        business_line_id: body.business_line_id || null,
         payment_mode: body.payment_mode || null,
         reference: body.reference || null,
         note: body.note || null,
@@ -316,6 +331,15 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const body = expensePatchSchema.parse(request.body) as Record<string, any>;
 
+    if (body.business_line_id) {
+      if (!(await tenantHasEnabledFinanceCapability(user.tenant_id, 'finance.accounting.advanced'))) {
+        return reply.status(403).send({ error: 'Business-line attribution requires Advanced accounting to be enabled.', code: 'CAPABILITY_READ_ONLY', capability: 'finance.accounting.advanced' });
+      }
+      const valid = await withTenant(user.tenant_id, trx => trx.selectFrom('finance_business_lines').select('id')
+        .where('tenant_id', '=', user.tenant_id).where('id', '=', body.business_line_id).where('active', '=', true).executeTakeFirst());
+      if (!valid) return reply.status(400).send({ error: 'Business line not found, archived, or belongs to another workspace.' });
+    }
+
     const patch: Record<string, any> = {};
     for (const key of ['name', 'category', 'payment_mode', 'reference', 'note', 'attachment_data', 'efd_verified', 'efd_error'] as const) {
       if (key in body) patch[key] = body[key];
@@ -326,6 +350,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     if ('shipment_id' in body) patch.shipment_id = body.shipment_id || null;
     if ('customer_id' in body) patch.customer_id = body.customer_id || null;
     if ('supplier_id' in body) patch.supplier_id = body.supplier_id || null;
+    if ('business_line_id' in body) patch.business_line_id = body.business_line_id || null;
     if ('efd_verified' in body) patch.efd_verified_at = new Date();
 
     if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'No fields to update' });

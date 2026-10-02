@@ -37,11 +37,16 @@
   min-width: 0;
   height: 100%;
   flex-direction: column;
-  padding: 18px;
+  padding: 20px;
   border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-lg, 16px);
   background: var(--white);
-  box-shadow: none;
+  box-shadow: var(--elev, 0 1px 3px rgba(15, 23, 42, 0.05), 0 10px 15px -5px rgba(15, 23, 42, 0.04));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.clearos-dashboard__panel:hover {
+  box-shadow: var(--elev-lg, 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04));
 }
 
 .clearos-dashboard__panel-head {
@@ -49,7 +54,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .clearos-dashboard__panel-title {
@@ -64,6 +69,7 @@
   color: var(--ink);
   font-size: 15px;
   font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .clearos-dashboard__panel-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -71,9 +77,9 @@
 .clearos-dashboard__chart-card {
   flex: 1;
   margin-bottom: 12px;
-  padding: 14px;
+  padding: 16px;
   border: 1px solid var(--border);
-  border-radius: var(--r);
+  border-radius: var(--r, 12px);
   background: var(--card-sunken);
 }
 
@@ -82,8 +88,8 @@
 .clearos-donut-layout { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(180px, 1fr); align-items: center; gap: 14px; min-height: 230px; }
 .clearos-donut { position: relative; height: 210px; }
 .clearos-donut__center { position: absolute; inset: 50% auto auto 50%; display: flex; transform: translate(-50%, -50%); flex-direction: column; align-items: center; pointer-events: none; }
-.clearos-donut__center strong { color: var(--ink); font-size: 23px; line-height: 1; }
-.clearos-donut__center span { margin-top: 4px; color: var(--ink3); font-size: 10.5px; }
+.clearos-donut__center strong { color: var(--ink); font-size: 24px; font-weight: 800; line-height: 1; }
+.clearos-donut__center span { margin-top: 4px; color: var(--ink3); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .clearos-donut-legend { display: flex; min-width: 0; flex-direction: column; gap: 6px; }
 .clearos-donut-legend button { display: grid; grid-template-columns: 9px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: var(--ctl-h-xs); padding: var(--ds-btn-py-xs) 8px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--ink); cursor: pointer; text-align: left; }
 .clearos-donut-legend button:hover { background: var(--bg-subtle); }
@@ -92,12 +98,12 @@
 .clearos-donut-legend strong { font-size: 11.5px; }
 
 .clearos-dashboard__ledger {
-  margin-top: 16px;
-  padding: 18px;
+  margin-top: 20px;
+  padding: 20px;
   border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-lg, 16px);
   background: var(--white);
-  box-shadow: none;
+  box-shadow: var(--elev, 0 1px 3px rgba(15, 23, 42, 0.05), 0 10px 15px -5px rgba(15, 23, 42, 0.04));
 }
 
 .clearos-ledger-metrics {

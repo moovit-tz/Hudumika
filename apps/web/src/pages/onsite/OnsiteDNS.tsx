@@ -36,7 +36,7 @@ export function OnsiteDNS() {
   const [importPlan, setImportPlan] = useState<any>(null);
   const [importBusy, setImportBusy] = useState(false);
 
-  /* Templates: generated, reviewed, then applied â€” never applied on pick. */
+  /* Templates: generated, reviewed, then applied — never applied on pick. */
   const [showTemplates, setShowTemplates] = useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
   const [templateId, setTemplateId] = useState<string>('');
@@ -94,7 +94,7 @@ export function OnsiteDNS() {
    * Delete a record, with the server's own account of what it breaks.
    *
    * The generic "Are you sure?" said nothing about consequences, so removing
-   * the last MX record â€” which ends mail delivery for the domain â€” read
+   * the last MX record — which ends mail delivery for the domain — read
    * exactly like removing a spare TXT record. The API answers 409 with the
    * specific impact, and that sentence is what gets confirmed against.
    */
@@ -126,7 +126,7 @@ export function OnsiteDNS() {
     }
   };
 
-  /* â”€â”€ Export / import / templates â”€â”€ */
+  /* ── Export / import / templates ── */
 
   const handleExport = async () => {
     if (!domainId) return;
@@ -199,7 +199,7 @@ export function OnsiteDNS() {
     }
   };
 
-  /** Templates never write on their own â€” this is the accepted rows going in. */
+  /** Templates never write on their own — this is the accepted rows going in. */
   const applyTemplate = async () => {
     if (!domainId || !templatePreview) return;
     setTemplateBusy(true);
@@ -264,7 +264,7 @@ export function OnsiteDNS() {
 
       {loading ? (
         <div className="onsite-card">
-          <p style={{ color: 'var(--ink3)' }}>Loading DNS zone recordsâ€¦</p>
+          <p style={{ color: 'var(--ink3)' }}>Loading DNS zone records…</p>
         </div>
       ) : error ? (
         <div className="onsite-card">
@@ -297,7 +297,7 @@ export function OnsiteDNS() {
                       {r.value}
                     </td>
                     <td style={{ color: 'var(--ink3)' }}>{r.ttl}s</td>
-                    <td style={{ color: 'var(--ink3)' }}>{r.priority ?? 'â€”'}</td>
+                    <td style={{ color: 'var(--ink3)' }}>{r.priority ?? '—'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button className="btn btn-sm btn-ghost" onClick={() => handleCheckPropagation(r)} title="Check Propagation">
@@ -321,7 +321,7 @@ export function OnsiteDNS() {
         <DialogContent hideClose className="max-w-130 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-card-header">
             <DialogTitle className="onsite-card-title">Add DNS Record</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)}>âœ•</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)}>✕</button>
           </div>
           <form onSubmit={handleAddRecord} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
@@ -395,7 +395,7 @@ export function OnsiteDNS() {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? 'Savingâ€¦' : 'Save Record'}
+                  {submitting ? 'Saving…' : 'Save Record'}
                 </button>
               </div>
           </form>
@@ -409,14 +409,14 @@ export function OnsiteDNS() {
             <>
               <div className="onsite-card-header">
                 <DialogTitle className="onsite-card-title">DNS Propagation Probe</DialogTitle>
-                <button className="btn btn-sm btn-ghost" onClick={() => setCheckRecord(null)}>âœ•</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => setCheckRecord(null)}>✕</button>
               </div>
               <p style={{ fontSize: '0.875rem', color: 'var(--ink3)' }}>
                 Checking global propagation for <strong>{checkRecord.type}</strong> <code>{checkRecord.name}</code>:
               </p>
 
               {checking ? (
-                <p style={{ padding: '1rem 0' }}>Querying Cloudflare and Google DoH resolversâ€¦</p>
+                <p style={{ padding: '1rem 0' }}>Querying Cloudflare and Google DoH resolvers…</p>
               ) : propResults ? (
                 <div className="onsite-table-wrapper">
                   <table className="onsite-table">
@@ -434,7 +434,7 @@ export function OnsiteDNS() {
                           <td className="onsite-mono">{r.actual || 'No record'}</td>
                           <td>
                             {r.propagated ? (
-                              <span className="onsite-badge succeeded">âœ“ Propagated</span>
+                              <span className="onsite-badge succeeded">✓ Propagated</span>
                             ) : (
                               <span className="onsite-badge pending">Pending</span>
                             )}
@@ -455,7 +455,7 @@ export function OnsiteDNS() {
           )}
         </DialogContent>
       </Dialog>
-      {/* â”€â”€ Import a zone file â”€â”€
+      {/* ── Import a zone file ──
           Two steps deliberately: the preview writes nothing, so a paste can be
           read before it changes how a domain resolves. */}
       <Dialog open={showImport} onOpenChange={(o) => { if (!o) { setShowImport(false); setImportPlan(null); } }}>
@@ -477,8 +477,8 @@ export function OnsiteDNS() {
           {importPlan && (
             <div style={{ marginTop: '0.75rem' }}>
               <div style={{ fontWeight: 600 }}>
-                {importPlan.create} to add Â· {importPlan.unchanged} already present
-                {importPlan.errors?.length ? ` Â· ${importPlan.errors.length} line(s) unreadable` : ''}
+                {importPlan.create} to add · {importPlan.unchanged} already present
+                {importPlan.errors?.length ? ` · ${importPlan.errors.length} line(s) unreadable` : ''}
               </div>
               {importPlan.errors?.length > 0 && (
                 <ul style={{ color: 'var(--red)', fontSize: '0.8125rem', marginTop: '0.5rem' }}>
@@ -493,7 +493,7 @@ export function OnsiteDNS() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
             <button className="btn btn-ghost" onClick={() => { setShowImport(false); setImportPlan(null); }}>Cancel</button>
             <button className="btn btn-secondary" disabled={importBusy || !importText.trim()} onClick={previewImport}>
-              {importBusy ? 'Readingâ€¦' : 'Preview'}
+              {importBusy ? 'Reading…' : 'Preview'}
             </button>
             <button className="btn btn-primary"
               disabled={importBusy || !importPlan || importPlan.errors?.length > 0 || importPlan.create === 0}
@@ -504,7 +504,7 @@ export function OnsiteDNS() {
         </DialogContent>
       </Dialog>
 
-      {/* â”€â”€ Quick setup â”€â”€
+      {/* ── Quick setup ──
           A template generates records and stops; applying them is a separate,
           explicit step (ONSITE.md section 15). */}
       <Dialog open={showTemplates} onOpenChange={(o) => { if (!o) { setShowTemplates(false); setTemplatePreview(null); } }}>
@@ -556,7 +556,7 @@ export function OnsiteDNS() {
             <button className="btn btn-ghost" onClick={() => { setShowTemplates(false); setTemplatePreview(null); }}>Cancel</button>
             <button className="btn btn-secondary" disabled={!templateId || templateBusy}
               onClick={() => previewTemplate(templateId)}>
-              {templateBusy ? 'Buildingâ€¦' : 'Preview records'}
+              {templateBusy ? 'Building…' : 'Preview records'}
             </button>
             <button className="btn btn-primary" disabled={!templatePreview || templateBusy} onClick={applyTemplate}>
               Add {templatePreview ? `${templatePreview.length} ` : ''}record(s)

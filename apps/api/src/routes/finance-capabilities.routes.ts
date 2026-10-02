@@ -4,6 +4,7 @@ import { FINANCE_CAPABILITY_KEYS, FINANCE_INDUSTRY_KEYS } from '@hudumika/types'
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireRole } from '../middleware/rbac.js';
 import { createFinanceBusinessLine, getFinanceCapabilities, getFinanceConfiguration, setFinanceCapability, setFinanceIndustries, updateFinanceBusinessLine } from '../services/finance-capability.service.js';
+import { requireFinanceCapability } from '../middleware/finance-capability.js';
 
 const updateSchema = z.object({ enabled: z.boolean() });
 const industriesSchema = z.object({ industries: z.array(z.enum(FINANCE_INDUSTRY_KEYS)).max(FINANCE_INDUSTRY_KEYS.length) });
@@ -18,7 +19,7 @@ export async function financeCapabilitiesRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
 
-  fastify.get('/', async request => getFinanceCapabilities(request.user.tenant_id, request.user.role === 'SUPER_ADMIN'));
+  fastify.get('/', async request => getFinanceCapabilities(request.user.tenant_id));
   fastify.get('/configuration', async request => getFinanceConfiguration(request.user.tenant_id));
 
   fastify.put('/configuration/industries', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async request => {
@@ -26,20 +27,22 @@ export async function financeCapabilitiesRoutes(fastify: FastifyInstance) {
     return setFinanceIndustries(request.user.tenant_id, request.user.sub, body.industries);
   });
 
-  fastify.post('/configuration/business-lines', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request, reply) => {
+  fastify.post('/configuration/business-lines', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'), requireFinanceCapability('finance.accounting.advanced')] }, async (request, reply) => {
     const body = businessLineSchema.parse(request.body);
-    try { return reply.status(201).send(await createFinanceBusinessLine(request.user.tenant_id, { name: body.name!, code: body.code!, description: body.description })); }
+    try { return reply.status(201).send(await createFinanceBusinessLine(request.user.tenant_id, request.user.sub, { name: body.name!, code: body.code!, description: body.description })); }
     catch (error: any) {
       if (error.code === '23505') return reply.status(409).send({ error: 'A business line with this code already exists.' });
       throw error;
     }
   });
 
-  fastify.patch<{ Params: { id: string } }>('/configuration/business-lines/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request, reply) => {
-    try { return await updateFinanceBusinessLine(request.user.tenant_id, request.params.id, businessLinePatchSchema.parse(request.body)); }
+  fastify.patch<{ Params: { id: string } }>('/configuration/business-lines/:id', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'), requireFinanceCapability('finance.accounting.advanced')] }, async (request, reply) => {
+    const body = businessLinePatchSchema.parse(request.body);
+    try { return await updateFinanceBusinessLine(request.user.tenant_id, request.user.sub, request.params.id, body); }
     catch (error: any) {
       if (error.code === '23505') return reply.status(409).send({ error: 'A business line with this code already exists.' });
-      return reply.status(error.statusCode ?? 500).send({ error: error.message });
+      if (error.statusCode) return reply.status(error.statusCode).send({ error: error.message });
+      throw error;
     }
   });
 
@@ -50,9 +53,10 @@ export async function financeCapabilitiesRoutes(fastify: FastifyInstance) {
     if (!FINANCE_CAPABILITY_KEYS.includes(key as any)) return reply.status(404).send({ error: 'Finance capability not found.' });
     const { enabled } = updateSchema.parse(request.body);
     try {
-      return await setFinanceCapability(request.user.tenant_id, request.user.sub, key as any, enabled, request.user.role === 'SUPER_ADMIN');
+      return await setFinanceCapability(request.user.tenant_id, request.user.sub, key as any, enabled);
     } catch (error: any) {
-      return reply.status(error.statusCode ?? 500).send({ error: error.message, code: error.code, dependencies: error.dependencies });
+      if (error.statusCode) return reply.status(error.statusCode).send({ error: error.message, code: error.code, dependencies: error.dependencies });
+      throw error;
     }
   });
 }

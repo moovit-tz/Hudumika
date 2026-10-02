@@ -14,13 +14,14 @@ import { Tip } from '../components/ui/tooltip.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 
 /** Top-level accounts per page. Matches the rest of the platform's lists
  *  (products, landed-cost history, Bliss notifications). */
 const PAGE_SIZE = 25;
 
 /** How many rows one top-level account actually paints, following only the
- *  branches the user has opened â€” a collapsed parent is one row however many
+ *  branches the user has opened — a collapsed parent is one row however many
  *  accounts hang beneath it. */
 function countVisible(account: ChartOfAccount, expanded: Set<string>): number {
   if (!expanded.has(account.id) || !account.children?.length) return 1;
@@ -39,9 +40,9 @@ function flattenTree(tree: ChartOfAccount[]): ChartOfAccount[] {
 // `plural` is stated rather than derived: the cards and tabs used to append
 // an "s" to the singular, which reads Liabilitys and Equitys.
 // Every color+bg pair now reads the same platform semantic token pair
-// (CLAUDE.md's "soft-tint backgrounds â€” always use the derived tokens").
+// (CLAUDE.md's "soft-tint backgrounds — always use the derived tokens").
 // EQUITY/REVENUE used to pair a hardcoded hex *text* color with the real
-// `var(--purple-l)`/`var(--green-l)` *background* token â€” the two only
+// `var(--purple-l)`/`var(--green-l)` *background* token — the two only
 // looked consistent by coincidence; a SuperAdmin theme/preset switch would
 // move the tint but leave the hardcoded text color behind. ASSET had no
 // token at all (cyan isn't one of this platform's five semantic hues), so
@@ -97,7 +98,7 @@ function AccountRow({
             fontSize: 11, fontWeight: 800,
           }}
         >
-          {hasChildren ? (isOpen ? 'â–¾' : 'â–¸') : ''}
+          {hasChildren ? (isOpen ? '▾' : '▸') : ''}
         </span>
 
         {/* Code */}
@@ -162,6 +163,8 @@ function AccountRow({
 export const ChartOfAccounts: React.FC = () => {
   const isFullLayout = useFullLayout();
   const isMobile = useIsMobile();
+  const financeCapabilities = useFinanceCapabilities();
+  const canManageAccounts = financeCapabilities.isEnabled('finance.accounting.advanced');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<AccountType | 'ALL'>('ALL');
   const [coaTree, setCoaTree] = useState<ChartOfAccount[]>([]);
@@ -193,12 +196,20 @@ export const ChartOfAccounts: React.FC = () => {
   useEffect(() => { loadAccounts(); }, [loadAccounts]);
 
   function openNewAccountForm() {
+    if (!canManageAccounts) {
+      showAlert('Custom Chart of Accounts management requires Advanced Accounting to be enabled.');
+      return;
+    }
     setEditing(null);
     setFCode(''); setFName(''); setFType('ASSET'); setFParentId(''); setFDescription('');
     setShowForm(true);
   }
 
   function openEditForm(a: ChartOfAccount) {
+    if (!canManageAccounts) {
+      showAlert('Editing the Chart of Accounts requires Advanced Accounting to be enabled.');
+      return;
+    }
     setEditing(a);
     setFCode(a.code); setFName(a.name); setFType(a.type); setFParentId(a.parent_id ?? ''); setFDescription(a.description ?? '');
     setShowForm(true);
@@ -229,7 +240,11 @@ export const ChartOfAccounts: React.FC = () => {
   }
 
   async function handleDeleteAccount(a: ChartOfAccount) {
-    if (!(await showConfirm(`Delete account "${a.code} â€” ${a.name}"?`, { confirmLabel: 'Delete' }))) return;
+    if (!canManageAccounts) {
+      showAlert('Deleting custom accounts requires Advanced Accounting to be enabled.');
+      return;
+    }
+    if (!(await showConfirm(`Delete account "${a.code} — ${a.name}"?`, { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/finance/chart-of-accounts/${a.id}`, { method: 'DELETE' });
       setSelected(null);
@@ -275,7 +290,7 @@ export const ChartOfAccounts: React.FC = () => {
   /**
    * Pages top-level accounts, not rows. A parent carries its whole subtree, so
    * counting rendered rows would split a parent from its children across a
-   * page boundary â€” an "Assets" heading on page 1 and half its accounts on
+   * page boundary — an "Assets" heading on page 1 and half its accounts on
    * page 2 is worse than no pagination at all.
    */
   const pageCount = Math.max(1, Math.ceil(displayTree.length / PAGE_SIZE));
@@ -284,7 +299,7 @@ export const ChartOfAccounts: React.FC = () => {
   const currentPage = Math.min(page, pageCount);
   const offset = (currentPage - 1) * PAGE_SIZE;
   const pagedTree = displayTree.slice(offset, offset + PAGE_SIZE);
-  /** Rows actually on screen, counting expanded children â€” what the footer
+  /** Rows actually on screen, counting expanded children — what the footer
    *  reports, since "25 accounts" would be untrue of a page showing 60. */
   const rowsOnPage = pagedTree.reduce((n, a) => n + countVisible(a, expanded), 0);
 
@@ -316,7 +331,7 @@ export const ChartOfAccounts: React.FC = () => {
     URL.revokeObjectURL(url);
   }
 
-  // Full page, matching Quotations â€” the form replaces the list instead of
+  // Full page, matching Quotations — the form replaces the list instead of
   // floating over it. Rendering it as an absolutely-positioned layer inside
   // the page escaped its container and covered the sidebar and top bar.
   if (showForm) {
@@ -328,7 +343,7 @@ export const ChartOfAccounts: React.FC = () => {
         actions={
           <>
             <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)} disabled={saving}>Cancel</button>
-            <button type="button" className="btn btn-primary" onClick={handleSaveAccount} disabled={saving}>{saving ? 'Savingâ€¦' : 'Save Account'}</button>
+            <button type="button" className="btn btn-primary" onClick={handleSaveAccount} disabled={saving}>{saving ? 'Saving…' : 'Save Account'}</button>
           </>
         }
       >
@@ -353,9 +368,9 @@ export const ChartOfAccounts: React.FC = () => {
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Parent Account</label>
                 <Combobox
-                  options={[{ value: '', label: 'â€” None (top-level) â€”' }, ...flat.filter(a => a.id !== editing?.id).map(a => ({ value: a.id, label: `${a.code} â€” ${a.name}` }))]}
+                  options={[{ value: '', label: '— None (top-level) —' }, ...flat.filter(a => a.id !== editing?.id).map(a => ({ value: a.id, label: `${a.code} — ${a.name}` }))]}
                   value={fParentId} onChange={setFParentId}
-                  placeholder="â€” None (top-level) â€”"
+                  placeholder="— None (top-level) —"
                 />
               </div>
               <div>
@@ -373,7 +388,7 @@ export const ChartOfAccounts: React.FC = () => {
       {/* Header */}
       <PageHeader
         crumbs={['FINANCE', 'CHART OF ACCOUNTS']}
-        titlePlain="Chart of "
+        titlePlain="Chart of"
         titleEm="accounts"
         subtitle="General ledger structure, account classifications, and balance tracking."
       />
@@ -402,6 +417,11 @@ export const ChartOfAccounts: React.FC = () => {
       ]} />
 
       <div style={{ padding: '16px 0', display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        {!canManageAccounts && (
+          <span style={{ marginRight: 'auto', alignSelf: 'center', fontSize: 12, color: 'var(--ink3)' }}>
+            Read-only · Enable Advanced Accounting to customize accounts
+          </span>
+        )}
         <button type="button" className="btn btn-secondary btn-sm" onClick={expandAll}>
           <Icon name="chevronDown" size={13} /> Expand All
         </button>
@@ -411,8 +431,8 @@ export const ChartOfAccounts: React.FC = () => {
         <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv}>
           <Icon name="download" size={13} /> Export CSV
         </button>
-        <button type="button" onClick={openNewAccountForm}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+        <button type="button" onClick={openNewAccountForm} disabled={!canManageAccounts} title={canManageAccounts ? 'Create account' : 'Requires Advanced Accounting'}
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: canManageAccounts ? 'pointer' : 'not-allowed', opacity: canManageAccounts ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
           <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Account
         </button>
       </div>
@@ -439,7 +459,7 @@ export const ChartOfAccounts: React.FC = () => {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by code or nameâ€¦"
+              placeholder="Search by code or name…"
               style={{
                 width: '100%',
                 padding: '8px 12px 8px 32px',
@@ -472,7 +492,7 @@ export const ChartOfAccounts: React.FC = () => {
 
         {/* Tree rows */}
         {loading ? (
-          <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--ink3)' }}>Loading chart of accountsâ€¦</div>
+          <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--ink3)' }}>Loading chart of accounts…</div>
         ) : loadError ? (
           <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--red)' }}>{loadError}</div>
         ) : coaTree.length === 0 ? (
@@ -509,11 +529,11 @@ export const ChartOfAccounts: React.FC = () => {
             fontSize: 12.5, color: 'var(--ink3)',
           }}>
             <span>
-              {offset + 1}â€“{Math.min(offset + PAGE_SIZE, displayTree.length)} of {displayTree.length} top-level
+              {offset + 1}–{Math.min(offset + PAGE_SIZE, displayTree.length)} of {displayTree.length} top-level
               account{displayTree.length === 1 ? '' : 's'}
               {/* The two numbers differ whenever anything is expanded, and not
                   saying so makes the first one look wrong. */}
-              {rowsOnPage !== pagedTree.length && <> Â· {rowsOnPage} rows shown</>}
+              {rowsOnPage !== pagedTree.length && <> · {rowsOnPage} rows shown</>}
             </span>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button type="button" className="btn btn-secondary btn-sm"
@@ -561,7 +581,7 @@ export const ChartOfAccounts: React.FC = () => {
           <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
               { label: 'Type', value: TYPE_CFG[selected.type].label },
-              { label: 'Subtype', value: selected.subtype?.replace(/_/g, ' ') ?? 'â€”' },
+              { label: 'Subtype', value: selected.subtype?.replace(/_/g, ' ') ?? '—' },
               { label: 'Normal balance', value: selected.normal_balance === 'DEBIT' ? 'Debit (Dr)' : 'Credit (Cr)' },
               { label: 'Currency', value: selected.currency },
               { label: 'System account', value: selected.is_system ? 'Yes' : 'No' },
@@ -577,7 +597,7 @@ export const ChartOfAccounts: React.FC = () => {
                 {selected.description}
               </div>
             )}
-            <div style={{ display: 'flex', gap: 8, marginTop: 4, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+            {canManageAccounts && <div style={{ display: 'flex', gap: 8, marginTop: 4, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
               <button type="button" className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => openEditForm(selected)}>
                 <Icon name="edit" size={12} /> Edit
               </button>
@@ -586,7 +606,7 @@ export const ChartOfAccounts: React.FC = () => {
                   <Icon name="trash2" size={12} />
                 </button>
               )}
-            </div>
+            </div>}
           </div>
         </div>
       )}

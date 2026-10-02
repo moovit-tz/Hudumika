@@ -10,6 +10,8 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { BackButton } from '../components/ui/BackButton.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
+import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 
 const CATS: Record<string, string> = {
   PORT_CHARGES: 'Port Charges', CUSTOMS_DUTY: 'Customs Duty', FREIGHT: 'Freight',
@@ -25,6 +27,9 @@ const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 
 
 export const FinanceExpenseNew: React.FC = () => {
   const navigate = useNavigate();
+  const financeConfiguration = useFinanceConfiguration();
+  const financeCapabilities = useFinanceCapabilities();
+  const canUseBusinessLines = financeCapabilities.isEnabled('finance.accounting.advanced');
   const [shipments, setShipments] = useState<ShipmentOpt[]>([]);
   const [customers, setCustomers] = useState<CustomerOpt[]>([]);
   // Categories an admin added at Settings ▸ Finance ▸ Expenses Categories
@@ -40,6 +45,7 @@ export const FinanceExpenseNew: React.FC = () => {
   const [shipmentId, setShipmentId] = useState('');
   const [clientId, setClientId] = useState('');
   const [supplierItem, setSupplierItem] = useState<PickerItem | null>(null);
+  const [businessLineId, setBusinessLineId] = useState('');
   const [paymentMode, setPaymentMode] = useState('Bank Transfer');
   const [reference, setReference] = useState('');
   const [note, setNote] = useState('');
@@ -83,6 +89,7 @@ export const FinanceExpenseNew: React.FC = () => {
           name, amount: Number(amount), expense_date: date, category,
           shipment_id: shipmentId || undefined, customer_id: clientId || undefined,
           supplier_id: supplierItem?.id || undefined, payment_mode: paymentMode,
+          business_line_id: canUseBusinessLines && businessLineId ? businessLineId : undefined,
           reference: reference || undefined, note: note || undefined,
           is_revenue: isRevenue, attachment_data: attachment,
         }),
@@ -158,6 +165,19 @@ export const FinanceExpenseNew: React.FC = () => {
           placeholder="Search suppliers…"
           hint="Link this expense to a supplier so it shows on their Vendors page."
         />
+
+        {canUseBusinessLines && (
+          <div>
+            <label style={labelStyle}>Business Line (optional)</label>
+            <Combobox
+              options={(financeConfiguration.data?.businessLines ?? []).filter(line => line.active).map(line => ({ value: line.id, label: line.name, sublabel: line.code }))}
+              value={businessLineId}
+              onChange={setBusinessLineId}
+              placeholder="Unassigned"
+              searchPlaceholder="Search business lines…"
+            />
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 14 }}>
           <div style={{ flex: 1 }}>

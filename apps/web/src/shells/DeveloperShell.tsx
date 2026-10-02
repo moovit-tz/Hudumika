@@ -8,6 +8,7 @@ import { AppSidebar, type SidebarSection } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { DeveloperConsolePage } from '../pages/developer/DeveloperConsolePage.js';
+import { ApiKeysPage } from '../pages/developer/ApiKeysPage.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -15,7 +16,7 @@ const NAV: SidebarSection[] = [
     items: [
       { label: 'Overview', icon: 'grid', path: '/developer', exact: true },
       { label: 'Projects', icon: 'folder', path: '/developer?tab=projects' },
-      { label: 'API Keys', icon: 'key', path: '/developer?tab=credentials' },
+      { label: 'API Keys', icon: 'key', path: '/developer/keys' },
     ],
   },
   {
@@ -46,6 +47,7 @@ export function DeveloperShell() {
             <Routes>
               <Route element={<PageLayout />}>
                 <Route index element={<DeveloperConsolePage />} />
+                <Route path="keys" element={<ApiKeysPage />} />
                 <Route path="*" element={<DeveloperConsolePage />} />
               </Route>
               <Route path="*" element={<Navigate to="/developer" replace />} />

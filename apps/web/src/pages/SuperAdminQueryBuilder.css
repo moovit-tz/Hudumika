@@ -224,7 +224,7 @@
   line-height: 1.6;
 }
 
-/* Responsive â€” the fixed 180px rail crowds the query builder on narrow
+/* Responsive — the fixed 180px rail crowds the query builder on narrow
    viewports; stack it above the main column instead. */
 @media (max-width: 768px) {
   .qb-layout { grid-template-columns: 1fr; }

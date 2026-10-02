@@ -202,6 +202,7 @@ import { landedCostShareRoutes } from './routes/landed-cost-share.routes.js';
 import { shipmentReportPublicRoutes } from './routes/shipment-report-public.routes.js';
 import { entitlementsRoutes } from './routes/entitlements.routes.js';
 import { financeCapabilitiesRoutes } from './routes/finance-capabilities.routes.js';
+import { posRoutes } from './routes/pos.routes.js';
 import { relatedRecordsRoutes } from './routes/related-records.routes.js';
 import { apiKeysRoutes } from './routes/api-keys.routes.js';
 import { storeRoutes } from './routes/store.routes.js';
@@ -507,6 +508,7 @@ export async function registerApp() {
     await server.register(financeRoutes, { prefix: '/v1/shipments' }); // alias: frontend uses /v1/shipments/:id/expenses etc.
     await server.register(financeExpensesRoutes, { prefix: '/v1/finance' });
     await server.register(financeCapabilitiesRoutes, { prefix: '/v1/finance/capabilities' });
+    await server.register(posRoutes, { prefix: '/v1/finance/pos' });
     await server.register(pettiRoutes, { prefix: '/v1/petti' });
     await server.register(notesRoutes, { prefix: '/v1/notes' });
     await server.register(analyticsRoutes, { prefix: '/v1/analytics' });

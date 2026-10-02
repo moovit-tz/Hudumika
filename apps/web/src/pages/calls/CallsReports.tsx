@@ -7,8 +7,8 @@ export function CallsReports() {
     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, padding: '20px 24px', background: 'var(--bg)', minHeight: '100%' }}>
       <PageHeader
         crumbs={['Bliss', 'Calls', 'Reports']}
-        titlePlain="Call & Meeting"
-        titleEm="Reports"
+        titlePlain="Calls"
+        titleEm="reports"
         subtitle="Comprehensive metrics for support voice calls, WebRTC softphone queues, video conference rooms, and participant performance."
       />
       <CallsMetrics />

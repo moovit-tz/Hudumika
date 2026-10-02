@@ -117,7 +117,7 @@ export function PettiRequest() {
 
         <div className="petti-stat-card">
           <div className="petti-stat-card-header">
-            <span className="petti-stat-label">Approved Â· Ready for Release</span>
+            <span className="petti-stat-label">Approved · Ready for Release</span>
             <Badge variant="info">{approvedCount}</Badge>
           </div>
           <div className="petti-stat-value">{approvedCount}</div>
@@ -150,7 +150,7 @@ export function PettiRequest() {
                 options={wallets.map(w => ({ value: w.id, label: `${w.name} (${Number(w.balance).toLocaleString()} ${w.currency})` }))}
                 value={walletId}
                 onChange={setWalletId}
-                placeholder="Select walletâ€¦"
+                placeholder="Select wallet…"
               />
             </div>
 
@@ -184,7 +184,7 @@ export function PettiRequest() {
             </div>
 
             <Button type="submit" disabled={saving} style={{ padding: '12px', fontWeight: 700, fontSize: 14 }}>
-              <Icon name="fileText" size={16} /> {saving ? 'Submittingâ€¦' : `Submit Voucher Request ${amount ? `(${Number(amount).toLocaleString()} ${selectedWallet?.currency || ''})` : ''}`}
+              <Icon name="fileText" size={16} /> {saving ? 'Submitting…' : `Submit Voucher Request ${amount ? `(${Number(amount).toLocaleString()} ${selectedWallet?.currency || ''})` : ''}`}
             </Button>
           </form>
         </SectionCard>
@@ -250,7 +250,7 @@ export function PettiRequest() {
                   const w = wallets.find(wall => wall.id === r.wallet_id);
                   return (
                     <tr key={r.id}>
-                      <td style={{ fontSize: 12, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink2)' }}>{r.ref || 'â€”'}</td>
+                      <td style={{ fontSize: 12, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink2)' }}>{r.ref || '—'}</td>
                       <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{new Date(r.requested_at).toLocaleString()}</td>
                       <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{w?.name || 'Wallet'}</td>
                       <td style={{ color: 'var(--ink)' }}>{r.purpose}</td>

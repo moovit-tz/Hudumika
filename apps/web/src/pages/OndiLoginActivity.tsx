@@ -81,9 +81,9 @@ export const OndiLoginActivity: React.FC = () => {
               {!loading && events.map(e => (
                 <tr key={e.id}>
                   <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{e.user_name}</td>
-                  <td style={{ fontFamily: 'var(--font)', fontSize: 12, color: 'var(--ink2)' }}>{e.ip || 'â€”'}</td>
-                  <td style={{ color: 'var(--ink3)', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={e.user_agent || 'â€”'}>
-                    {e.user_agent || 'â€”'}
+                  <td style={{ fontFamily: 'var(--font)', fontSize: 12, color: 'var(--ink2)' }}>{e.ip || '—'}</td>
+                  <td style={{ color: 'var(--ink3)', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={e.user_agent || '—'}>
+                    {e.user_agent || '—'}
                   </td>
                   <td>
                     <span className={`ondi-status-pill ${e.status === 'SUCCESS' ? 'success' : 'error'}`}>

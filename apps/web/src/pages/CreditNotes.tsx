@@ -24,7 +24,7 @@ interface CreditNote {
   status: 'DRAFT' | 'POSTED' | 'VOID';
   created_at: string;
   // The list endpoint attaches each note's real credit_note_lines (see
-  // credit-notes.routes.ts) â€” there's no stored total column on the table
+  // credit-notes.routes.ts) — there's no stored total column on the table
   // itself, the amount only ever exists as the sum of these lines.
   items?: { name?: string; description?: string; rate: number | string; qty: number | string; tax_pct: number | string }[];
 }
@@ -42,13 +42,13 @@ const STATUS_VARIANT: Record<CreditNote['status'], 'gray' | 'success' | 'error'>
 };
 
 function fmtDate(d: string | null | undefined) {
-  if (!d) return 'â€”';
+  if (!d) return '—';
   const dt = new Date(d);
-  if (isNaN(dt.getTime())) return 'â€”';
+  if (isNaN(dt.getTime())) return '—';
   return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-/** Client-rendered print window â€” same pattern as Quotations.tsx's
+/** Client-rendered print window — same pattern as Quotations.tsx's
  *  printQuote(); credit-notes.routes.ts has no PDF/send endpoint, so this
  *  (and the mailto: send below) are the only real options for this document. */
 function printCreditNote(cn: CreditNote, total: number, fmt: (n: number, currency?: string) => string) {
@@ -97,7 +97,7 @@ function printCreditNote(cn: CreditNote, total: number, fmt: (n: number, currenc
     @media print{body{padding:24px}@page{margin:1cm}}
   </style></head><body>
   <div class="hdr">
-    <div>${logoHtml}<div class="co-sub">${co.tagline || ''}<br>${co.address ? co.address + ', ' : ''} ${co.city || ''}<br>${co.phone || ''} â€“ ${co.email || ''}</div></div>
+    <div>${logoHtml}<div class="co-sub">${co.tagline || ''}<br>${co.address ? co.address + ', ' : ''} ${co.city || ''}<br>${co.phone || ''} – ${co.email || ''}</div></div>
     <div style="text-align:right">
       <div class="cnum">${cn.credit_note_number}</div>
       <div style="font-size:12px;color:#64748b;margin-top:6px">Credit Note</div>
@@ -106,7 +106,7 @@ function printCreditNote(cn: CreditNote, total: number, fmt: (n: number, currenc
   <div class="grid2">
     <div class="box">
       <div class="box-lbl">Credited To</div>
-      <div class="box-val">${cn.client_name || 'â€”'}</div>
+      <div class="box-val">${cn.client_name || '—'}</div>
     </div>
     <div class="box">
       <div class="box-lbl">Credit Note Details</div>
@@ -124,7 +124,7 @@ function printCreditNote(cn: CreditNote, total: number, fmt: (n: number, currenc
     <div class="trow"><span>Total Credited</span><span>${fmt(total, cn.currency)}</span></div>
   </div></div>
   <div class="footer">
-    <div class="footer-co"><strong>${co.name}</strong><br>${co.website || ''} â€“ ${co.email || ''}</div>
+    <div class="footer-co"><strong>${co.name}</strong><br>${co.website || ''} – ${co.email || ''}</div>
   </div>
   <script>window.onload=()=>{window.print()}</script></body></html>`);
   win.document.close();
@@ -153,7 +153,7 @@ function CreditNoteDetailView({ note, fmt, voiding, onBack, onVoid }: {
       { key: 'send', label: 'Send by Email', icon: 'mail', onClick: () => sendCreditNoteEmail(note, total, fmt) },
     ],
     [
-      { key: 'void', label: 'Void Credit Note', icon: 'xCircle', variant: 'destructive', loading: voiding, loadingLabel: 'Voidingâ€¦', hidden: note.status !== 'POSTED', onClick: onVoid },
+      { key: 'void', label: 'Void Credit Note', icon: 'xCircle', variant: 'destructive', loading: voiding, loadingLabel: 'Voiding…', hidden: note.status !== 'POSTED', onClick: onVoid },
     ],
   ];
 
@@ -245,7 +245,7 @@ export function CreditNotes() {
     }
   }
 
-  // â”€â”€ New credit note form â”€â”€
+  // ── New credit note form ──
   const params = new URLSearchParams(location.search);
   const [invoiceId] = useState(params.get('invoice_id') || '');
   const [customerItem, setCustomerItem] = useState<PickerItem | null>(null);
@@ -284,7 +284,7 @@ export function CreditNotes() {
       // The list route and this "new" route render the same component
       // instance (React Router doesn't remount across two sibling routes
       // with identical element types), so the mount-only `useEffect` above
-      // never re-fires on navigate() below â€” the list previously stayed on
+      // never re-fires on navigate() below — the list previously stayed on
       // whatever it fetched before this credit note existed. Refetch here,
       // before navigating away, so the list is already current when it lands.
       await load();
@@ -300,7 +300,7 @@ export function CreditNotes() {
     return (
       <FormPage
         title="New Credit Note"
-        subtitle={invoiceId ? 'Reduces the linked invoiceâ€™s outstanding balance.' : 'A standalone credit against a customer.'}
+        subtitle={invoiceId ? "Reduces the linked invoice's outstanding balance." : 'A standalone credit against a customer.'}
         onCancel={() => navigate('/finance/credit-notes')}
         actions={<FormPageActions onCancel={() => navigate('/finance/credit-notes')} onSave={submit} saving={saving} saveLabel="Issue Credit Note" />}
       >
@@ -312,7 +312,7 @@ export function CreditNotes() {
               {invoiceId ? (
                 <input style={inp} value={clientName} onChange={e => setClientName(e.target.value)} disabled />
               ) : (
-                <EntityPicker label="" value={customerItem} onChange={setCustomerItem} search={searchCustomers} placeholder="Search customersâ€¦" />
+                <EntityPicker label="" value={customerItem} onChange={setCustomerItem} search={searchCustomers} placeholder="Search customers…" />
               )}
             </div>
             <div><label style={lbl}>Reason</label><input style={inp} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Returned goods, pricing error" /></div>
@@ -344,7 +344,7 @@ export function CreditNotes() {
     );
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading credit notesâ€¦</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading credit notes…</div>;
 
   const cnStats = (() => {
     const now = new Date();
@@ -378,7 +378,7 @@ export function CreditNotes() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
       <PageHeader
         crumbs={['FINANCE', 'CREDIT NOTES']}
-        titlePlain="Credit "
+        titlePlain="Credit"
         titleEm="notes"
         subtitle="Issue adjustments, customer refunds and invoice balance credits."
       />
@@ -433,9 +433,9 @@ export function CreditNotes() {
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(n); } }}
                   style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
                   <td style={{ padding: '9px 12px', fontFamily: 'var(--font)', fontWeight: 600 }}>{n.credit_note_number}</td>
-                  <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>{n.credit_date ? new Date(n.credit_date).toLocaleDateString('en-GB') : 'â€”'}</td>
-                  <td style={{ padding: '9px 12px' }}>{n.client_name || 'â€”'}</td>
-                  <td style={{ padding: '9px 12px', color: 'var(--ink3)' }}>{n.reason || 'â€”'}</td>
+                  <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>{n.credit_date ? new Date(n.credit_date).toLocaleDateString('en-GB') : '—'}</td>
+                  <td style={{ padding: '9px 12px' }}>{n.client_name || '—'}</td>
+                  <td style={{ padding: '9px 12px', color: 'var(--ink3)' }}>{n.reason || '—'}</td>
                   <td style={{ padding: '9px 12px', textAlign: 'center' }}>
                     <Badge variant={STATUS_VARIANT[n.status]}>{n.status}</Badge>
                   </td>

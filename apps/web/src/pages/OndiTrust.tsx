@@ -1,4 +1,4 @@
-﻿// â”€â”€â”€ OndiTrust.tsx â€” Ondi Personal Â· Trust & Risk Intelligence â”€â”€â”€â”€â”€â”€â”€â”€
+﻿// ─── OndiTrust.tsx — Ondi Personal · Trust & Risk Intelligence ────────
 // Enterprise-grade identity trust score, transparent factor attribution,
 // real historical snapshot logs, and organizational reliability signals.
 import React, { useEffect, useState, useMemo } from 'react';
@@ -13,7 +13,7 @@ import './OndiTrust.css';
 
 interface TrustSignal { score: number; weight: number; points: number }
 
-// Mirrors TrustScoreResult in apps/api/src/lib/trust-score.ts â€” this card's
+// Mirrors TrustScoreResult in apps/api/src/lib/trust-score.ts — this card's
 // whole point is to show exactly what the score endpoint actually computed,
 // not a separately-invented approximation of it.
 interface TrustScore {
@@ -237,7 +237,7 @@ export const OndiTrust: React.FC = () => {
         }
       />
 
-      {/* â”€â”€ Top Hero Grid: Trust Score & Factor Attribution â”€â”€ */}
+      {/* ── Top Hero Grid: Trust Score & Factor Attribution ── */}
       <div className="ot-hero-grid">
 
         {/* 1. Score Dial Hero Card */}
@@ -282,7 +282,7 @@ export const OndiTrust: React.FC = () => {
                 </svg>
 
                 <div className="ot-dial-center-text">
-                  <span className="ot-dial-num">{trust ? trust.score : 'â€”'}</span>
+                  <span className="ot-dial-num">{trust ? trust.score : '—'}</span>
                   <span className="ot-dial-max">out of 850</span>
                 </div>
               </div>
@@ -325,7 +325,7 @@ export const OndiTrust: React.FC = () => {
               </span>
             </div>
 
-            {/* Factors List â€” the exact 5 signals computeTrustScore() (apps/api/src/
+            {/* Factors List — the exact 5 signals computeTrustScore() (apps/api/src/
                 lib/trust-score.ts) actually weighs, each row's points pulled straight
                 from that response rather than a separately-invented number, so this
                 card can never drift out of sync with what the score really is. */}
@@ -388,13 +388,13 @@ export const OndiTrust: React.FC = () => {
 
           <div style={{ marginTop: 14, textAlign: 'right' }}>
             <Link to="/ondi/personal/security" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
-              Configure security safeguards â†’
+              Configure security safeguards →
             </Link>
           </div>
         </div>
       </div>
 
-      {/* â”€â”€ Historical Trend & Sparkline Section â”€â”€ */}
+      {/* ── Historical Trend & Sparkline Section ── */}
       <div className="ot-trend-card">
         <div className="ot-card-hdr">
           <div className="ot-card-hdr-left">
@@ -429,7 +429,7 @@ export const OndiTrust: React.FC = () => {
           <div className="ot-trend-stat">
             <span className="ot-trend-stat-lbl">Current Score</span>
             <div className="ot-trend-stat-score-row">
-              <span className="ot-trend-stat-val" style={{ color: tierMeta.main }}>{trust?.score || 'â€”'}</span>
+              <span className="ot-trend-stat-val" style={{ color: tierMeta.main }}>{trust?.score || '—'}</span>
               <span className="ot-trend-stat-max">/ 850</span>
             </div>
           </div>
@@ -437,14 +437,14 @@ export const OndiTrust: React.FC = () => {
           <div className="ot-trend-stat">
             <span className="ot-trend-stat-lbl">Historical Peak</span>
             <span className="ot-trend-stat-val">
-              {history.length > 0 ? Math.max(...history.map(h => h.score)) : trust?.score || 'â€”'}
+              {history.length > 0 ? Math.max(...history.map(h => h.score)) : trust?.score || '—'}
             </span>
           </div>
 
           <div className="ot-trend-stat">
             <span className="ot-trend-stat-lbl">Historical Low</span>
             <span className="ot-trend-stat-val">
-              {history.length > 0 ? Math.min(...history.map(h => h.score)) : trust?.score || 'â€”'}
+              {history.length > 0 ? Math.min(...history.map(h => h.score)) : trust?.score || '—'}
             </span>
           </div>
 
@@ -520,7 +520,7 @@ export const OndiTrust: React.FC = () => {
                   const isLast = pt.index === chartData.pts.length - 1;
                   // Reuses this snapshot's own recorded tier (same field the
                   // tooltip's Badge below already reads) rather than a second,
-                  // separately-guessed score threshold â€” the two used to be
+                  // separately-guessed score threshold — the two used to be
                   // able to disagree, since 450/600 aren't necessarily the
                   // platform's actual tier cutoffs.
                   const nodeColor = (TIER_META[pt.tier] || TIER_META.LOW).main;
@@ -543,7 +543,7 @@ export const OndiTrust: React.FC = () => {
                           fillOpacity="0.18"
                         />
                       )}
-                      {/* Node Point â€” fill matches .ot-chart-viewport's own
+                      {/* Node Point — fill matches .ot-chart-viewport's own
                           background (var(--bg)) so the ring punches through
                           to it correctly in both themes. `--card` (an HSL
                           triplet, not a plain color) silently fell back to
@@ -652,7 +652,7 @@ export const OndiTrust: React.FC = () => {
                             </td>
                             <td>
                               {delta === 0 ? (
-                                <span style={{ color: 'var(--ink3)' }}>â€”</span>
+                                <span style={{ color: 'var(--ink3)' }}>—</span>
                               ) : (
                                 <span style={{ color: delta > 0 ? 'var(--green)' : 'var(--red)', fontWeight: 700, fontFamily: 'var(--font)' }}>
                                   {delta > 0 ? `+${delta}` : delta}
@@ -683,7 +683,7 @@ export const OndiTrust: React.FC = () => {
         )}
       </div>
 
-      {/* â”€â”€ Organizational Reliability Signals â”€â”€ */}
+      {/* ── Organizational Reliability Signals ── */}
       <div className="ot-reliability-wrap">
         <div className="ot-rel-hdr">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -779,12 +779,12 @@ export const OndiTrust: React.FC = () => {
           </div>
         ) : (
           <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-            Loading organizational reliability signalsâ€¦
+            Loading organizational reliability signals…
           </div>
         )}
       </div>
 
-      {/* â”€â”€ Proactive Trust-Building Recommendations â”€â”€ */}
+      {/* ── Proactive Trust-Building Recommendations ── */}
       <div className="ot-recs-wrap">
         <div className="ot-card-hdr">
           <div className="ot-card-hdr-left">
@@ -800,9 +800,9 @@ export const OndiTrust: React.FC = () => {
 
         <div className="ot-recs-grid">
           {/* Each card's point value is the real remaining gain for that exact
-              signal (max weightÃ—550 minus what's already earned), and the
+              signal (max weight×550 minus what's already earned), and the
               card itself only shows while that signal is actually incomplete
-              â€” a HIGH-trust account with everything already done used to see
+              — a HIGH-trust account with everything already done used to see
               the same three "do this" cards as a brand-new one. */}
           {trust && trust.verificationLevel === 'unverified' && (
             <div className="ot-rec-card">
@@ -876,7 +876,7 @@ export const OndiTrust: React.FC = () => {
             </div>
           )}
 
-          {/* Not a scored signal â€” sessions/devices don't feed the trust formula â€” so
+          {/* Not a scored signal — sessions/devices don't feed the trust formula — so
               this stays a plain hygiene nudge rather than claiming fake points. */}
           <div className="ot-rec-card">
             <div>

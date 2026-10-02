@@ -13,6 +13,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { ColorSwatchPicker } from '../components/ui/color-swatch-picker.js';
 import { Badge } from '../components/ui/badge.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
@@ -108,24 +109,6 @@ function ColorField({
   description?: string;
   badgeText?: string;
 }) {
-  const [local, setLocal] = useState(value);
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    setLocal(value);
-  }, [value]);
-
-  const handleCopy = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(local);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    }
-  };
-
-  const isValidHex = /^#[0-9a-f]{6}$/i.test(local);
-
   return (
     <div className="ds-field-card">
       <div className="ds-field-info">
@@ -136,47 +119,7 @@ function ColorField({
         {description && <span className="ds-field-desc">{description}</span>}
       </div>
 
-      <div className="ds-color-control">
-        <div
-          className="ds-swatch-box"
-          style={{ backgroundColor: isValidHex ? local : '#888888' }}
-          title="Click to pick color"
-        >
-          <input
-            type="color"
-            className="ds-swatch-native"
-            value={isValidHex ? local : '#888888'}
-            onChange={e => {
-              setLocal(e.target.value);
-              onChange(e.target.value);
-            }}
-          />
-        </div>
-
-        <div className="ds-color-input-wrap">
-          <span className="ds-color-hash">#</span>
-          <input
-            type="text"
-            className="ds-color-text-input"
-            value={local.replace(/^#/, '')}
-            onChange={e => {
-              const val = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
-              setLocal(val);
-            }}
-            onBlur={() => {
-              if (isValidHex) onChange(local);
-            }}
-          />
-          <button
-            type="button"
-            className="ds-color-copy-btn"
-            onClick={handleCopy}
-            title={copied ? 'Copied!' : 'Copy Hex'}
-          >
-            <Icon name={copied ? 'check' : 'copy'} size={12} />
-          </button>
-        </div>
-      </div>
+      <ColorSwatchPicker value={value} onChange={onChange} />
     </div>
   );
 }
@@ -668,10 +611,14 @@ export function DesignSystemView() {
     });
     window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
     try {
-      await Promise.all([
+      const promises: Promise<any>[] = [
         updateTokens(theme.tokens),
         pushBranding({ apps, accentColor: theme.tokens.brand!.primary }),
-      ]);
+      ];
+      if (themeId === 'dreams-core') {
+        promises.push(updateDesignSystemVersion({ version: 'v3' }));
+      }
+      await Promise.all(promises);
       setSaveErrors(e => ({ ...e, theme: undefined, apps: undefined }));
       setSavedFlash('theme');
       window.setTimeout(() => setSavedFlash(f => (f === 'theme' ? null : f)), 1600);
@@ -719,7 +666,14 @@ export function DesignSystemView() {
   const [skin, setSkinState] = useState<'default' | 'bordered'>(
     () => (localStorage.getItem('skin') === 'bordered' ? 'bordered' : 'default')
   );
-  const [semiDark, setSemiDarkState] = useState(() => localStorage.getItem('semi-dark') === 'true');
+  type SidebarStyle = 'dark' | 'light' | 'system';
+  const [sidebarStyle, setSidebarStyleState] = useState<SidebarStyle>(() => {
+    const v = localStorage.getItem('sidebar-style') as SidebarStyle | null;
+    if (v === 'light' || v === 'system') return v;
+    // Migrate legacy boolean: semi-dark=true → dark
+    if (!v && localStorage.getItem('semi-dark') === 'true') return 'dark';
+    return 'dark'; // default: always dark
+  });
   const [direction, setDirectionState] = useState<'ltr' | 'rtl'>(
     () => (localStorage.getItem('direction') as any) || (document.documentElement.dir === 'rtl' ? 'rtl' : 'ltr')
   );
@@ -753,11 +707,13 @@ export function DesignSystemView() {
     setSkinState(s);
   }
 
-  function setSemiDark(v: boolean) {
-    localStorage.setItem('semi-dark', String(v));
-    if (v) document.documentElement.setAttribute('data-semi-dark', 'true');
-    else document.documentElement.removeAttribute('data-semi-dark');
-    setSemiDarkState(v);
+  function setSidebarStyle(v: SidebarStyle) {
+    localStorage.setItem('sidebar-style', v);
+    document.documentElement.setAttribute('data-sidebar-style', v);
+    // Migrate: remove legacy semi-dark flag
+    localStorage.removeItem('semi-dark');
+    document.documentElement.removeAttribute('data-semi-dark');
+    setSidebarStyleState(v);
   }
 
   function setDirection(dir: 'ltr' | 'rtl') {
@@ -1023,7 +979,7 @@ export function DesignSystemView() {
                   {[
                     { id: 'v1', title: 'v1 — Per-App Colors', desc: 'Active multi-hue palette with unique colors per application.' },
                     { id: 'v2', title: 'Mellon — Unified Brand', desc: 'Locks all applications to a single unified corporate brand color.' },
-                    { id: 'v3', title: 'v3 — Next Gen', desc: 'Reserved next-generation token engine (runs standard v1 fallback).' },
+                    { id: 'v3', title: 'Dreams Core — Bento & Logistics', desc: 'Activates modern bento grid cards, Plus Jakarta Sans typography, ambient diffuse surfaces, and vibrant badges.' },
                   ].map(ver => {
                     const isSelected = designSystemVersion.version === ver.id;
                     return (
@@ -1050,29 +1006,13 @@ export function DesignSystemView() {
                 {designSystemVersion.version === 'v2' && (
                   <div className="ds-v2-picker-row">
                     <span className="ds-v2-label">Mellon Global Brand Color:</span>
-                    <div className="ds-color-control">
-                      <div className="ds-swatch-box" style={{ backgroundColor: v2ColorDraft }}>
-                        <input
-                          type="color"
-                          className="ds-swatch-native"
-                          value={v2ColorDraft}
-                          onChange={e => {
-                            setV2ColorDraft(e.target.value);
-                            updateDesignSystemVersion({ v2Color: e.target.value });
-                          }}
-                        />
-                      </div>
-                      <div className="ds-color-input-wrap">
-                        <span className="ds-color-hash">#</span>
-                        <input
-                          type="text"
-                          className="ds-color-text-input"
-                          value={v2ColorDraft.replace(/^#/, '')}
-                          onChange={e => setV2ColorDraft('#' + e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6))}
-                          onBlur={commitV2Color}
-                        />
-                      </div>
-                    </div>
+                    <ColorSwatchPicker
+                      value={v2ColorDraft}
+                      onChange={v => {
+                        setV2ColorDraft(v);
+                        updateDesignSystemVersion({ v2Color: v });
+                      }}
+                    />
                   </div>
                 )}
                 {saveErrors.version && <p className="ds-alert-error">{saveErrors.version}</p>}
@@ -1134,25 +1074,7 @@ export function DesignSystemView() {
                     Pick a seed brand color to mathematically derive a balanced neutral scale and primary tokens automatically.
                   </p>
                   <div className="ds-seed-control-group">
-                    <div className="ds-color-control">
-                      <div className="ds-swatch-box" style={{ backgroundColor: seed }}>
-                        <input
-                          type="color"
-                          className="ds-swatch-native"
-                          value={seed}
-                          onChange={e => setSeed(e.target.value)}
-                        />
-                      </div>
-                      <div className="ds-color-input-wrap">
-                        <span className="ds-color-hash">#</span>
-                        <input
-                          type="text"
-                          className="ds-color-text-input"
-                          value={seed.replace(/^#/, '')}
-                          onChange={e => setSeed('#' + e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6))}
-                        />
-                      </div>
-                    </div>
+                    <ColorSwatchPicker value={seed} onChange={setSeed} />
                     <button
                       type="button"
                       className="btn btn-primary ds-btn-generate"
@@ -1857,26 +1779,39 @@ export function DesignSystemView() {
             </section>
           )}
 
-          {/* 14. Semi Dark */}
+          {/* 14. Sidebar Style */}
           {activeSection === 'semidark' && (
             <section className="ds-card-section">
               <div className="ds-section-header-block">
-                <h3 className="ds-section-heading">Semi-Dark Navigation Mode</h3>
-                <p className="ds-section-sub">Maintains a sleek dark sidebar navigation aesthetic even when light mode is active on pages.</p>
+                <h3 className="ds-section-heading">Sidebar Navigation Style</h3>
+                <p className="ds-section-sub">Control the sidebar&apos;s colour scheme independently from the page theme. Dark is the default — the deep forest green look. Light gives a clean white sidebar. System follows the page&apos;s own light/dark setting.</p>
               </div>
 
               <div className="ds-layout-options-grid">
                 {[
-                  { id: false, title: 'Disabled (Matched Theme)', desc: 'Sidebar adapts to the active light/dark theme automatically.' },
-                  { id: true, title: 'Enabled (Always Dark Sidebar)', desc: 'Sidebar stays dark navy regardless of light mode setting.' },
+                  {
+                    id: 'dark' as SidebarStyle,
+                    title: 'Dark (Default)',
+                    desc: 'Always the deep dark forest sidebar, regardless of the page\'s light or dark mode.',
+                  },
+                  {
+                    id: 'light' as SidebarStyle,
+                    title: 'Light',
+                    desc: 'Always a clean white sidebar — works in both light and dark page themes.',
+                  },
+                  {
+                    id: 'system' as SidebarStyle,
+                    title: 'System (Match Page)',
+                    desc: 'Sidebar adapts automatically: light background in light mode, dark in dark mode.',
+                  },
                 ].map(opt => {
-                  const isSelected = semiDark === opt.id;
+                  const isSelected = sidebarStyle === opt.id;
                   return (
                     <button
-                      key={String(opt.id)}
+                      key={opt.id}
                       type="button"
                       className={`ds-layout-option-card${isSelected ? ' ds-layout-option-card--active' : ''}`}
-                      onClick={() => setSemiDark(opt.id)}
+                      onClick={() => setSidebarStyle(opt.id)}
                     >
                       <div className="ds-layout-option-top">
                         <span className="ds-layout-option-title">{opt.title}</span>

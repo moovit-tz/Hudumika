@@ -14,8 +14,8 @@ export const BlissAICopilot: React.FC = () => {
     <div style={{ padding: '20px 24px', background: 'var(--bg)', minHeight: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
         crumbs={['Bliss', 'AI Copilot']}
-        titlePlain="AI Support"
-        titleEm="Copilot"
+        titlePlain="AI"
+        titleEm="copilot"
         subtitle="Configure real-time conversation intent detection, sentiment scoring, and automated reply suggestions."
         actions={
           <Button variant="default" size="sm">

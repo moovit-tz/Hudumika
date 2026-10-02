@@ -4,7 +4,10 @@ import * as RechartsPrimitive from "recharts"
 import { cn } from "@/lib/utils"
 
 // Format: { THEME_NAME: CSS_SELECTOR }
-const THEMES = { light: "", dark: ".dark" } as const
+// The app uses [data-theme="dark"] on <html>, not a ".dark" class — shadcn's
+// default ".dark" selector never matches, so chart theme colours never applied
+// in dark mode. Changed to match the actual theme convention.
+const THEMES = { light: "", dark: "[data-theme='dark']" } as const
 
 export type ChartConfig = {
   [k in string]: {

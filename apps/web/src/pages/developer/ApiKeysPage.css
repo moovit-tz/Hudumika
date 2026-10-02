@@ -1,0 +1,672 @@
+/* ══════════════════════════════════════════════════════════════════
+   ApiKeysPage.css — Hudumika Developer & API Keys Central Hub
+   High-fidelity layout matching reference design with full dark/light theme support.
+   ══════════════════════════════════════════════════════════════════ */
+
+.api-keys-root {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 24px 28px 48px;
+  font-family: var(--font);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Top Header ── */
+.api-keys-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.api-keys-title-group h1 {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.02em;
+}
+
+.api-keys-title-group p {
+  font-size: 13px;
+  color: var(--ink3);
+  margin: 0;
+}
+
+.api-keys-privacy-btn {
+  padding: 7px 16px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--bg);
+  color: var(--ink2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.api-keys-privacy-btn:hover {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--teal);
+}
+
+/* ── Main Two-Column Grid ── */
+.api-keys-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .api-keys-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Left Column Stack ── */
+.api-keys-left-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Shared Card Surface ── */
+.api-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Public API Key Card ── */
+.api-card-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.api-card-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.api-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink3);
+  cursor: pointer;
+}
+
+.api-key-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.api-key-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink2);
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.api-key-field-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.api-key-field-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 42px 0 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.api-key-field-input:focus {
+  border-color: var(--teal);
+}
+
+.api-key-copy-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--ink3);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.api-key-copy-btn:hover {
+  color: var(--teal);
+  background: var(--teal-l);
+}
+
+/* ── User Access Hero Banner ── */
+.api-access-banner {
+  background: linear-gradient(135deg, #11141a 0%, #1a202c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: #ffffff;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.api-access-banner::before {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.api-access-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.api-access-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.api-access-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.api-access-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.api-access-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.api-access-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+}
+
+.api-access-scope {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.api-access-scope strong {
+  color: #38bdf8;
+}
+
+.api-access-sub {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.api-access-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.api-btn-renew {
+  padding: 7px 16px;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 11.5px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.api-btn-renew:hover {
+  opacity: 0.9;
+}
+
+.api-btn-docs {
+  padding: 7px 14px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.api-btn-docs:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.api-card-desc {
+  font-size: 12px;
+  color: var(--ink3);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── API Integrations Table ── */
+.api-integrations-hdr-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.api-btn-add {
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: var(--teal);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s ease;
+}
+
+.api-btn-add:hover {
+  opacity: 0.92;
+}
+
+.api-btn-filter {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.api-table-wrap {
+  overflow-x: auto;
+  margin: 12px -24px 0;
+  padding: 0 24px;
+}
+
+.api-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.api-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.api-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+.api-table tr:hover td {
+  background: var(--bg);
+}
+
+.api-table-key-cell {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.api-table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  font-size: 11.5px;
+  color: var(--ink3);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.api-page-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.api-page-num-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink2);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.api-page-num-btn--active {
+  background: var(--teal);
+  color: #ffffff;
+  border-color: var(--teal);
+}
+
+/* ── Webhooks Form ── */
+.api-webhook-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.api-webhook-field-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .api-webhook-field-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+.api-webhook-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink2);
+}
+
+.api-webhook-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--ink);
+  outline: none;
+}
+
+.api-webhook-input:focus {
+  border-color: var(--teal);
+}
+
+.api-webhook-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: 18px;
+}
+
+.api-breadcrumb-crumb {
+  font-size: 11.5px;
+  color: var(--ink3);
+  font-weight: 600;
+}
+
+/* ── Right Sidebar Cards ── */
+.api-sidebar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.api-sidebar-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.api-sidebar-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(249, 115, 22, 0.12);
+  color: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
+.api-sidebar-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.api-sidebar-desc {
+  font-size: 11.5px;
+  color: var(--ink3);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.api-sidebar-link {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--teal);
+  text-decoration: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.api-sidebar-link:hover {
+  text-decoration: underline;
+}
+
+/* ── FAQ Accordion ── */
+.api-faq-item {
+  border-bottom: 1px solid var(--border);
+  padding: 14px 0;
+}
+
+.api-faq-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.api-faq-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+}
+
+.api-faq-body {
+  padding-top: 10px;
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.5;
+}
+
+/* ── Contact Support Banner ── */
+.api-support-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.api-support-left {
+  max-width: 540px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.api-support-left h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+}
+
+.api-support-left p {
+  font-size: 12.5px;
+  color: var(--ink3);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.api-support-btn {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--teal);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+.api-support-btn:hover {
+  text-decoration: underline;
+}
+
+/* Switch Toggle Component */
+.switch-toggle {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+
+.switch-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--border);
+  transition: 0.2s;
+  border-radius: 20px;
+}
+
+.switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+
+input:checked + .switch-slider {
+  background-color: var(--teal);
+}
+
+input:checked + .switch-slider:before {
+  transform: translateX(14px);
+}

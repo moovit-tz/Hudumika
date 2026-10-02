@@ -66,7 +66,7 @@ function Pagination({ total, page, perPage, onPage }: { total: number; page: num
         <Icon name="chevronLeft" size={13} />
       </button>
       {pages.map((p, i) => p === '...' ? (
-        <span key={`e${i}`} style={{ color: 'var(--ink3)', fontSize: 12.5, padding: '0 4px' }}>â€¦</span>
+        <span key={`e${i}`} style={{ color: 'var(--ink3)', fontSize: 12.5, padding: '0 4px' }}>…</span>
       ) : (
         <button key={p} type="button" onClick={() => onPage(p as number)}
           style={{ ...btnBase, background: p === page ? 'hsl(var(--primary))' : 'var(--bg)', color: p === page ? 'hsl(var(--primary-foreground))' : 'var(--ink)', borderColor: p === page ? 'hsl(var(--primary))' : 'var(--border)' }}>
@@ -77,7 +77,7 @@ function Pagination({ total, page, perPage, onPage }: { total: number; page: num
         <Icon name="chevronRight" size={13} />
       </button>
       <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--ink3)' }}>
-        {(page - 1) * perPage + 1}â€“{Math.min(page * perPage, total)} of {total}
+        {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}
       </span>
     </div>
   );
@@ -188,7 +188,7 @@ export function SignJournalPage() {
             <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', zIndex: 1 }} />
             <Input
               type="search" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search document title, certifier, roll number, code or notesâ€¦"
+              placeholder="Search document title, certifier, roll number, code or notes…"
               style={{ paddingLeft: 34 }}
             />
           </div>
@@ -288,7 +288,7 @@ export function SignJournalPage() {
                             </div>
                             {entry.certifier_title && (
                               <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                                {entry.certifier_title}{entry.certifier_roll_number ? ` Â· Roll #${entry.certifier_roll_number}` : ''}
+                                {entry.certifier_title}{entry.certifier_roll_number ? ` · Roll #${entry.certifier_roll_number}` : ''}
                               </div>
                             )}
                             {entry.certifier_firm && (
@@ -299,7 +299,7 @@ export function SignJournalPage() {
                             {entry.anchor_hash ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <code style={{ fontSize: 11, fontFamily: 'var(--font)', color: 'var(--ink3)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 'var(--r-sm)' }}>
-                                  {entry.anchor_hash.slice(0, 10)}â€¦{entry.anchor_hash.slice(-6)}
+                                  {entry.anchor_hash.slice(0, 10)}…{entry.anchor_hash.slice(-6)}
                                 </code>
                                 <button type="button" onClick={() => copyToClipboard(entry.anchor_hash!, entry.event_id)}
                                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }} title="Copy SHA-256 Hash">
@@ -313,7 +313,7 @@ export function SignJournalPage() {
                           <td style={{ fontSize: 12, color: 'var(--ink3)', maxWidth: 200 }}>
                             {entry.note ? (
                               <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{entry.note}</span>
-                            ) : <span style={{ fontStyle: 'italic', opacity: 0.5 }}>â€”</span>}
+                            ) : <span style={{ fontStyle: 'italic', opacity: 0.5 }}>—</span>}
                           </td>
                           <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                             {entry.event_type !== 'journal_correction' && (
@@ -359,7 +359,7 @@ export function SignJournalPage() {
               <Textarea
                 required rows={4} value={correctionNote}
                 onChange={e => setCorrectionNote(e.target.value)}
-                placeholder="Explain why this correction is being appended (e.g., Typo in commissioner roll number, clarified firm nameâ€¦)"
+                placeholder="Explain why this correction is being appended (e.g., Typo in commissioner roll number, clarified firm name…)"
               />
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10, padding: '8px 12px', background: 'var(--gold-l)', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--ink2)' }}>
                 <Icon name="alertCircle" size={14} style={{ color: 'var(--gold)', flexShrink: 0, marginTop: 1 }} />
@@ -370,7 +370,7 @@ export function SignJournalPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedEvent(null)} disabled={savingCorrection}>Cancel</Button>
             <Button form="correction-form" type="submit" disabled={savingCorrection || !correctionNote.trim()}>
-              {savingCorrection ? 'Appendingâ€¦' : 'Append Correction'}
+              {savingCorrection ? 'Appending…' : 'Append Correction'}
             </Button>
           </DialogFooter>
         </DialogContent>

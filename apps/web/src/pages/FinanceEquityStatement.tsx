@@ -102,9 +102,9 @@ export function FinanceEquityStatement() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
       <PageHeader
         crumbs={['Finance', 'Reports']}
-        titlePlain="Statement of changes in"
-        titleEm="equity"
-        subtitle="How Retained Earnings and Share Capital moved this year â€” net income, dividends, and anything else."
+        titlePlain="Equity"
+        titleEm="statement"
+        subtitle="How Retained Earnings and Share Capital moved this year — net income, dividends, and anything else."
         actions={
           <Select value={year} onValueChange={setYear}>
             <SelectTrigger className="w-auto"><SelectValue /></SelectTrigger>
@@ -114,7 +114,7 @@ export function FinanceEquityStatement() {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading equity statementâ€¦</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading equity statement…</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
@@ -176,9 +176,9 @@ export function FinanceEquityStatement() {
                   <tr key={a.code} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '11px 14px', color: 'var(--ink)', fontWeight: 600 }}>{a.name}</td>
                     <td style={td}>{fmt(a.opening)}</td>
-                    <td style={{ ...td, color: a.fromNetIncome !== 0 ? 'var(--teal)' : 'var(--ink3)' }}>{a.fromNetIncome !== 0 ? fmt(a.fromNetIncome) : 'â€”'}</td>
-                    <td style={{ ...td, color: a.dividends !== 0 ? 'var(--red)' : 'var(--ink3)' }}>{a.dividends !== 0 ? fmt(a.dividends) : 'â€”'}</td>
-                    <td style={{ ...td, color: a.other !== 0 ? 'var(--gold)' : 'var(--ink3)' }}>{a.other !== 0 ? fmt(a.other) : 'â€”'}</td>
+                    <td style={{ ...td, color: a.fromNetIncome !== 0 ? 'var(--teal)' : 'var(--ink3)' }}>{a.fromNetIncome !== 0 ? fmt(a.fromNetIncome) : '—'}</td>
+                    <td style={{ ...td, color: a.dividends !== 0 ? 'var(--red)' : 'var(--ink3)' }}>{a.dividends !== 0 ? fmt(a.dividends) : '—'}</td>
+                    <td style={{ ...td, color: a.other !== 0 ? 'var(--gold)' : 'var(--ink3)' }}>{a.other !== 0 ? fmt(a.other) : '—'}</td>
                     <td style={{ ...td, color: 'var(--ink)', fontWeight: 700 }}>{fmt(a.closing)}</td>
                   </tr>
                 ))}
@@ -222,7 +222,7 @@ export function FinanceEquityStatement() {
                   style={{ padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, width: '100%', fontFamily: 'inherit', boxSizing: 'border-box' }} />
               </div>
               <button type="button" className="btn btn-primary btn-sm" disabled={busy === 'declare'} onClick={declareDividend}>
-                {busy === 'declare' ? 'Declaringâ€¦' : 'Declare'}
+                {busy === 'declare' ? 'Declaring…' : 'Declare'}
               </button>
             </div>
           )}
@@ -245,7 +245,7 @@ export function FinanceEquityStatement() {
                 {dividends.map(d => (
                   <tr key={d.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '11px 14px', color: 'var(--ink2)' }}>{d.declared_date}</td>
-                    <td style={{ padding: '11px 14px', color: 'var(--ink2)' }}>{d.description || 'â€”'}</td>
+                    <td style={{ padding: '11px 14px', color: 'var(--ink2)' }}>{d.description || '—'}</td>
                     <td style={td}>{fmt(Number(d.amount))}</td>
                     <td style={{ padding: '11px 14px' }}>
                       <Badge variant={d.status === 'PAID' ? 'success' : 'warning'}>{d.status}</Badge>
@@ -253,7 +253,7 @@ export function FinanceEquityStatement() {
                     <td style={{ padding: '11px 14px', textAlign: 'right' }}>
                       {d.status === 'DECLARED' && (
                         <button type="button" className="btn btn-secondary btn-xs" disabled={busy === d.id} onClick={() => payDividend(d.id)}>
-                          {busy === d.id ? 'Payingâ€¦' : 'Mark paid'}
+                          {busy === d.id ? 'Paying…' : 'Mark paid'}
                         </button>
                       )}
                     </td>

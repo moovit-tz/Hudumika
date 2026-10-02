@@ -26,8 +26,8 @@ export function ComplyBrelaHistory() {
   return (
     <div className="comply-page">
       <PageHeader
-        crumbs={['ComplyOS', 'BRELA Search History']}
-        titlePlain="BRELA Search"
+        crumbs={['ComplyOS', 'BRELA history']}
+        titlePlain="BRELA"
         titleEm="history"
         subtitle="Every BRELA search run by your team, with what it found."
         actions={

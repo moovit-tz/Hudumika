@@ -349,7 +349,7 @@ export function AIAutomations() {
       subtitle="Build automated workflows triggered by events across the platform."
       actions={
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-xs) 10px', height: 28, fontSize: 12 }} onClick={handleNewPage}>
+          <button className="btn btn-secondary btn-xs" onClick={handleNewPage}>
             New page <Icon name="plus" size={12} style={{ marginLeft: 4 }} />
           </button>
 
@@ -366,8 +366,8 @@ export function AIAutomations() {
       {/* ── Toolbar ── */}
       <div className="aia-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
-          <button className="btn btn-secondary btn-sm" style={{ padding: 6, height: 32, width: 32 }} title="Share"><Icon name="send" size={16} /></button>
-          <button className="btn btn-secondary btn-sm" style={{ padding: 6, height: 32, width: 32 }} title="Settings"><Icon name="settings" size={16} /></button>
+          <button className="btn btn-secondary btn-sm" style={{ width: 'var(--ctl-h-sm)', padding: 0, justifyContent: 'center' }} title="Share"><Icon name="send" size={16} /></button>
+          <button className="btn btn-secondary btn-sm" style={{ width: 'var(--ctl-h-sm)', padding: 0, justifyContent: 'center' }} title="Settings"><Icon name="settings" size={16} /></button>
           <button className="aia-btn-try-ai" onClick={() => setAiOpen(o => !o)}>
             <Icon name="sparkle" size={14} /> Try AI
           </button>

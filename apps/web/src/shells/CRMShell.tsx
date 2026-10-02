@@ -32,21 +32,31 @@ const NAV: SidebarSection[] = [
   {
     title: 'CUSTOMERS & PARTNERS',
     items: [
-      { label: 'Customers',      icon: 'users',      path: '/crm/customers' },
-      { label: 'Partners Directory', icon: 'link', path: '/crm/chain-partners' },
-      { label: 'Leads',          icon: 'userPlus',   path: '/crm/leads'     },
-      { label: 'Pipeline',       icon: 'briefcase',  path: '/crm/pipeline'  },
-      { label: 'Sales',          icon: 'trendingUp', path: '/crm/sales'     },
-      { label: 'Saved Views',    icon: 'filter',     path: '/crm/saved-views' },
-      { label: 'Duplicates',     icon: 'copy',       path: '/crm/duplicates' },
+      {
+        label: 'Contacts', icon: 'users', path: '/crm/customers',
+        children: [
+          { label: 'Customers',          icon: 'users',    path: '/crm/customers'      },
+          { label: 'Partners Directory', icon: 'link',     path: '/crm/chain-partners' },
+          { label: 'Leads',              icon: 'userPlus', path: '/crm/leads'          },
+          { label: 'Duplicates',         icon: 'copy',     path: '/crm/duplicates'     },
+        ],
+      },
+      {
+        label: 'Pipeline', icon: 'briefcase', path: '/crm/pipeline',
+        children: [
+          { label: 'Pipeline',    icon: 'briefcase',  path: '/crm/pipeline'     },
+          { label: 'Sales',       icon: 'trendingUp', path: '/crm/sales'        },
+          { label: 'Saved Views', icon: 'filter',     path: '/crm/saved-views'  },
+        ],
+      },
     ],
   },
   {
     title: 'SETTINGS',
     items: [
-      { label: 'Pipeline Stages', icon: 'flag', path: '/crm/pipeline-stages' },
-      { label: 'Custom Fields', icon: 'settings', path: '/crm/custom-fields' },
-      { label: 'Lead Scoring',  icon: 'trendingUp', path: '/crm/lead-scoring' },
+      { label: 'Pipeline Stages', icon: 'flag',       path: '/crm/pipeline-stages' },
+      { label: 'Custom Fields',   icon: 'settings',   path: '/crm/custom-fields'   },
+      { label: 'Lead Scoring',    icon: 'trendingUp', path: '/crm/lead-scoring'    },
     ],
   },
 ];

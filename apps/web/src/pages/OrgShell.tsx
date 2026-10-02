@@ -108,18 +108,18 @@ interface OrgTicket {
 
 function fmtDate(iso: string) {
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return 'â€”';
+  if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 /** mapApiInvoice() (Billing.tsx) formats billDate/dueDate as DD-MM-YYYY, not
- *  ISO â€” new Date() can't reliably parse that, unlike every other date this
+ *  ISO — new Date() can't reliably parse that, unlike every other date this
  *  page shows (shipments/documents created_at, both real ISO strings). */
 function fmtInvDate(str?: string | null) {
-  if (!str) return 'â€”';
+  if (!str) return '—';
   const [d, m, y] = str.split('-');
   const dt = new Date(Number(y), Number(m) - 1, Number(d));
-  if (isNaN(dt.getTime())) return 'â€”';
+  if (isNaN(dt.getTime())) return '—';
   return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
@@ -131,7 +131,7 @@ function stageStyle(stage: string) {
   return STAGE_STYLE[stage] ?? { color: 'var(--teal)', bg: 'var(--teal-l)' };
 }
 
-/* Same small typeâ†’icon map as Customers.tsx / CustomerDocuments.tsx â€” kept
+/* Same small type→icon map as Customers.tsx / CustomerDocuments.tsx — kept
    local rather than shared, per this codebase's existing convention for
    this particular ~15-line lookup. */
 const FILE_TYPE_STYLE: Record<string, { icon: IconName; color: string; bg: string }> = {
@@ -167,7 +167,7 @@ const TICKET_STATUS_STYLE: Record<string, { color: string; bg: string; label: st
 
 function fmtTime(iso: string) {
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return 'â€”';
+  if (isNaN(d.getTime())) return '—';
   return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -178,7 +178,7 @@ const DISPATCH_STATUS_STYLE: Record<string, { color: string; bg: string; label: 
 };
 
 /**
- * The org portal â€” a completely separate identity from the staff/customer
+ * The org portal — a completely separate identity from the staff/customer
  * app (see useOrgAuth.tsx). One login, three views aggregated across every
  * tenant this organization is linked to as a customer, each row tagged with
  * which agent it belongs to: shipments, invoices, and documents (files a
@@ -279,7 +279,7 @@ export const OrgShell: React.FC = () => {
       setDispatchLot(null); setDispatchQty(''); setDispatchNote('');
       load();
     } catch (err: any) {
-      showAlert(err.message || 'Could not submit your dispatch request â€” please try again.');
+      showAlert(err.message || 'Could not submit your dispatch request — please try again.');
     } finally {
       setSubmittingDispatch(false);
     }
@@ -291,13 +291,13 @@ export const OrgShell: React.FC = () => {
     try {
       const detail = await orgApiFetch(`/v1/org/tickets/${t.id}?tenant_id=${t.tenant_id}`);
       // tenant_id/tenant_name are always trusted from the list row, not the
-      // detail response â€” submitReply() below needs a real tenant_id to
+      // detail response — submitReply() below needs a real tenant_id to
       // target the right agent, and silently losing it here (as it did
       // before the API route selected tenant_id at all) made a reply 404
       // with no visible cause.
       setSelectedTicket({ ...detail, tenant_id: t.tenant_id, tenant_name: t.tenant_name });
     } catch {
-      showAlert("Couldn't load this conversation â€” please try again.");
+      showAlert("Couldn't load this conversation — please try again.");
       setSelectedTicket(null);
     } finally {
       setThreadLoading(false);
@@ -315,7 +315,7 @@ export const OrgShell: React.FC = () => {
       setSelectedTicket(prev => prev ? { ...prev, messages: [...(prev.messages ?? []), msg] } : prev);
       setReply('');
     } catch (err: any) {
-      showAlert(err.message || 'Could not send your message â€” please try again.');
+      showAlert(err.message || 'Could not send your message — please try again.');
     } finally {
       setSendingReply(false);
     }
@@ -332,7 +332,7 @@ export const OrgShell: React.FC = () => {
       setShowNewTicket(false);
       setNewTicketSubject(''); setNewTicketBody(''); setNewTicketTenant('');
     } catch (err: any) {
-      showAlert(err.message || 'Could not submit your ticket â€” please try again.');
+      showAlert(err.message || 'Could not submit your ticket — please try again.');
     } finally {
       setCreatingTicket(false);
     }
@@ -363,11 +363,11 @@ export const OrgShell: React.FC = () => {
     }
   }
 
-  // Editor-level sharing edit â€” only shown for a doc where can_manage_sharing
+  // Editor-level sharing edit — only shown for a doc where can_manage_sharing
   // is true (this org itself holds Editor access via cloud_file_shares).
   // Kept to the one safe action of removing a share, matching this
   // codebase's existing "no open-ended picker" discipline for org/customer
-  // sharing UI â€” there's no safe cross-tenant search surface to pick a new
+  // sharing UI — there's no safe cross-tenant search surface to pick a new
   // principal to add from here.
   async function removeShare(index: number) {
     if (!shareDoc || shareBusy) return;
@@ -380,7 +380,7 @@ export const OrgShell: React.FC = () => {
       setShareDoc(prev => prev ? { ...prev, shared: nextShared } : prev);
       setDocuments(prev => prev.map(d => d.id === shareDoc.id ? { ...d, shared: nextShared } : d));
     } catch (err: any) {
-      showAlert(err.message || 'Could not update sharing â€” please try again.');
+      showAlert(err.message || 'Could not update sharing — please try again.');
     } finally {
       setShareBusy(false);
     }
@@ -409,7 +409,7 @@ export const OrgShell: React.FC = () => {
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 720, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
           {threadLoading ? (
-            <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13, margin: 'auto' }}>Loading conversationâ€¦</div>
+            <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13, margin: 'auto' }}>Loading conversation…</div>
           ) : (selectedTicket.messages ?? []).length === 0 ? (
             <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13, margin: 'auto' }}>No replies yet</div>
           ) : (selectedTicket.messages ?? []).map(msg => {
@@ -419,7 +419,7 @@ export const OrgShell: React.FC = () => {
                 <div style={{ maxWidth: '82%', background: isMe ? 'hsl(var(--primary))' : 'var(--white)', color: isMe ? 'hsl(var(--primary-foreground))' : 'var(--ink)', borderRadius: isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '10px 14px', fontSize: 14, lineHeight: 1.5, border: isMe ? 'none' : '1px solid var(--border)' }}>
                   {msg.content}
                 </div>
-                <span style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{isMe ? orgUser?.name : 'Support Agent'} Â· {fmtTime(msg.created_at)}</span>
+                <span style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{isMe ? orgUser?.name : 'Support Agent'} · {fmtTime(msg.created_at)}</span>
               </div>
             );
           })}
@@ -427,7 +427,7 @@ export const OrgShell: React.FC = () => {
 
         {canReply && (
           <div style={{ borderTop: '1px solid var(--border)', background: 'var(--white)', padding: '12px 20px', display: 'flex', gap: 10, alignItems: 'flex-end', maxWidth: 720, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
-            <textarea placeholder="Type your messageâ€¦" value={reply} disabled={sendingReply}
+            <textarea placeholder="Type your message…" value={reply} disabled={sendingReply}
               onChange={e => setReply(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitReply(); } }}
               rows={2}
@@ -473,15 +473,15 @@ export const OrgShell: React.FC = () => {
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your data</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
-            <button type="button" onClick={load} style={{ padding: '10px 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            <button type="button" onClick={load} className="btn btn-primary">
               Retry
             </button>
           </div>
         ) : (
           <>
-            {/* Workspaces this org itself runs â€” a tenant that self-declared
-                this same Organization as its own identity in Workspace â–¸
-                Settings â–¸ Company Information (separate credential, same
+            {/* Workspaces this org itself runs — a tenant that self-declared
+                this same Organization as its own identity in Workspace ▸
+                Settings ▸ Company Information (separate credential, same
                 real-world company). */}
             {workspaces.length > 0 && (
               <div style={{ marginBottom: 20, background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--teal))', borderRadius: 'var(--r)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -491,10 +491,10 @@ export const OrgShell: React.FC = () => {
                     You also run your own workspace{workspaces.length > 1 ? 's' : ''} on Hudumika
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2 }}>
-                    {workspaces.map(w => w.tenant_name).join(', ')} â€” sign in there with your staff account to use ComplyOS, NexusHR and other apps directly.
+                    {workspaces.map(w => w.tenant_name).join(', ')} — sign in there with your staff account to use ComplyOS, NexusHR and other apps directly.
                   </div>
                 </div>
-                <a href="/login" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', flexShrink: 0 }}>Go to staff sign-in â†’</a>
+                <a href="/login" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', flexShrink: 0 }}>Go to staff sign-in →</a>
               </div>
             )}
 
@@ -634,7 +634,7 @@ export const OrgShell: React.FC = () => {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
                           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1 }}>
-                            {d.size != null ? `${(d.size / 1024).toFixed(1)} KB Â· ` : ''}{fmtDate(d.created_at)}
+                            {d.size != null ? `${(d.size / 1024).toFixed(1)} KB · ` : ''}{fmtDate(d.created_at)}
                           </div>
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--badge-radius)', padding: '3px 10px', whiteSpace: 'nowrap' }}>
@@ -673,7 +673,7 @@ export const OrgShell: React.FC = () => {
                         <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                           <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{lot.description}</div>
                           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1 }}>
-                            {lot.compartment_name || 'â€”'}{lot.batch ? ` Â· Batch ${lot.batch}` : ''}
+                            {lot.compartment_name || '—'}{lot.batch ? ` · Batch ${lot.batch}` : ''}
                           </div>
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--badge-radius)', padding: '3px 10px', whiteSpace: 'nowrap' }}>
@@ -702,9 +702,9 @@ export const OrgShell: React.FC = () => {
                     return (
                       <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredDispatchRequests.length - 1 ? '1px solid var(--bg)' : 'none', flexWrap: 'wrap' }}>
                         <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-                          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{r.lot_description ?? 'â€”'}</div>
+                          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{r.lot_description ?? '—'}</div>
                           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1 }}>
-                            {Number(r.qty_requested).toLocaleString()} {r.lot_uom ?? ''} Â· {fmtDate(r.created_at)}
+                            {Number(r.qty_requested).toLocaleString()} {r.lot_uom ?? ''} · {fmtDate(r.created_at)}
                           </div>
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--badge-radius)', padding: '3px 10px', whiteSpace: 'nowrap' }}>
@@ -763,7 +763,7 @@ export const OrgShell: React.FC = () => {
         )}
       </div>
 
-      {/* Link an agent modal â€” redeem a one-time claim code (customers.routes.ts
+      {/* Link an agent modal — redeem a one-time claim code (customers.routes.ts
           POST /:id/claim-code) issued by a tenant's staff and sent only to
           the real customer's own registered email/WhatsApp. */}
       <Dialog open={showLinkAgent} onOpenChange={o => { if (!o) setShowLinkAgent(false); }}>
@@ -775,20 +775,20 @@ export const OrgShell: React.FC = () => {
               </button>
             </div>
             <p style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 0, marginBottom: 16, lineHeight: 1.5 }}>
-              Ask your clearing agent for a claim code â€” they can send one from your customer profile on their side. Enter it below to link your organization.
+              Ask your clearing agent for a claim code — they can send one from your customer profile on their side. Enter it below to link your organization.
             </p>
             <input type="text" value={claimCode} onChange={e => setClaimCode(e.target.value)}
-              placeholder="Paste your claim codeâ€¦" autoFocus
+              placeholder="Paste your claim code…" autoFocus
               onKeyDown={e => { if (e.key === 'Enter') submitClaimCode(); }}
               style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box', marginBottom: 14 }} />
             <button type="button" onClick={submitClaimCode} disabled={!claimCode.trim() || claimingCode}
               style={{ width: '100%', padding: '12px', borderRadius: 'var(--r)', border: 'none', background: claimCode.trim() && !claimingCode ? 'hsl(var(--primary))' : 'var(--border)', color: claimCode.trim() && !claimingCode ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 14, fontWeight: 700, cursor: claimCode.trim() && !claimingCode ? 'pointer' : 'default' }}>
-              {claimingCode ? 'Linkingâ€¦' : 'Link Agent'}
+              {claimingCode ? 'Linking…' : 'Link Agent'}
             </button>
         </DialogContent>
       </Dialog>
 
-      {/* Request dispatch modal â€” creates a PENDING seal_dispatch_requests row
+      {/* Request dispatch modal — creates a PENDING seal_dispatch_requests row
           (migration 232) in the warehouse tenant's own data; only that
           tenant's own staff can approve it into a real fulfillment order. */}
       <Dialog open={!!dispatchLot} onOpenChange={o => { if (!o) setDispatchLot(null); }}>
@@ -801,7 +801,7 @@ export const OrgShell: React.FC = () => {
               </button>
             </div>
             <p style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 0, marginBottom: 16, lineHeight: 1.5 }}>
-              {dispatchLot.description} â€” {Number(dispatchLot.qty_on_hand).toLocaleString()} {dispatchLot.uom} available at {dispatchLot.tenant_name}.
+              {dispatchLot.description} — {Number(dispatchLot.qty_on_hand).toLocaleString()} {dispatchLot.uom} available at {dispatchLot.tenant_name}.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
@@ -819,14 +819,14 @@ export const OrgShell: React.FC = () => {
               <button type="button" onClick={submitDispatchRequest}
                 disabled={!dispatchQty || Number(dispatchQty) <= 0 || Number(dispatchQty) > Number(dispatchLot.qty_on_hand) || submittingDispatch}
                 style={{ padding: '12px', borderRadius: 'var(--r)', border: 'none', background: dispatchQty && Number(dispatchQty) > 0 && Number(dispatchQty) <= Number(dispatchLot.qty_on_hand) && !submittingDispatch ? 'hsl(var(--primary))' : 'var(--border)', color: dispatchQty && Number(dispatchQty) > 0 && Number(dispatchQty) <= Number(dispatchLot.qty_on_hand) && !submittingDispatch ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 14, fontWeight: 700, cursor: dispatchQty && Number(dispatchQty) > 0 && !submittingDispatch ? 'pointer' : 'default' }}>
-                {submittingDispatch ? 'Sendingâ€¦' : 'Send Request'}
+                {submittingDispatch ? 'Sending…' : 'Send Request'}
               </button>
             </div>
           </>}
         </DialogContent>
       </Dialog>
 
-      {/* Manage sharing modal â€” only reachable from a doc where this org
+      {/* Manage sharing modal — only reachable from a doc where this org
           holds Editor-level access (can_manage_sharing), scoped to removing
           an existing share; see removeShare()'s own comment for why there's
           no "add" picker here. */}
@@ -879,9 +879,9 @@ export const OrgShell: React.FC = () => {
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Which agent?</label>
                 <Select value={newTicketTenant || '__none__'} onValueChange={v => setNewTicketTenant(v === '__none__' ? '' : v)}>
-                  <SelectTrigger style={{ width: '100%' }}><SelectValue placeholder="Select an agentâ€¦" /></SelectTrigger>
+                  <SelectTrigger style={{ width: '100%' }}><SelectValue placeholder="Select an agent…" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">Select an agentâ€¦</SelectItem>
+                    <SelectItem value="__none__">Select an agent…</SelectItem>
                     {agents.map(a => <SelectItem key={a.tenant_id} value={a.tenant_id}>{a.tenant_name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -895,12 +895,12 @@ export const OrgShell: React.FC = () => {
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Message</label>
                 <textarea value={newTicketBody} onChange={e => setNewTicketBody(e.target.value)} rows={4}
-                  placeholder="Provide as much detail as possibleâ€¦"
+                  placeholder="Provide as much detail as possible…"
                   style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box', lineHeight: 1.5 }} />
               </div>
               <button type="button" onClick={submitNewTicket} disabled={!newTicketTenant || !newTicketSubject.trim() || !newTicketBody.trim() || creatingTicket}
                 style={{ padding: '12px', borderRadius: 'var(--r)', border: 'none', background: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'hsl(var(--primary))' : 'var(--border)', color: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 14, fontWeight: 700, cursor: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'pointer' : 'default' }}>
-                {creatingTicket ? 'Submittingâ€¦' : 'Submit Ticket'}
+                {creatingTicket ? 'Submitting…' : 'Submit Ticket'}
               </button>
             </div>
         </DialogContent>

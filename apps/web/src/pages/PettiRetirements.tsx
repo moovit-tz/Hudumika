@@ -97,7 +97,7 @@ export function PettiRetirements() {
         crumbs={['Petti', 'Activities', 'Expense Retirements']}
         titlePlain="Expense"
         titleEm="retirements"
-        subtitle="Reconcile disbursed petty cash advances against verified receipts â€” synchronized directly with FinOps."
+        subtitle="Reconcile disbursed petty cash advances against verified receipts — synchronized directly with FinOps."
       />
 
       {/* Summary Metrics */}
@@ -220,7 +220,7 @@ export function PettiRetirements() {
           {retiring && (
             <>
               <DialogHeader>
-                <DialogTitle>Reconcile Advance â€” {retiring.name}</DialogTitle>
+                <DialogTitle>Reconcile Advance — {retiring.name}</DialogTitle>
               </DialogHeader>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
@@ -247,13 +247,13 @@ export function PettiRetirements() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Reconciliation Note</label>
-                  <Textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="Optional â€” e.g. details on exact receipt total, change returned, or discrepancy" />
+                  <Textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="Optional — e.g. details on exact receipt total, change returned, or discrepancy" />
                 </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" size="sm" disabled={saving} onClick={() => submitRetirement('written_off')}>Write Off</Button>
                 <Button type="button" variant="outline" size="sm" disabled={saving} onClick={() => submitRetirement('short')}>Mark Short</Button>
-                <Button type="button" size="sm" disabled={saving} onClick={() => submitRetirement('retired')}>{saving ? 'Savingâ€¦' : 'Fully Retired'}</Button>
+                <Button type="button" size="sm" disabled={saving} onClick={() => submitRetirement('retired')}>{saving ? 'Saving…' : 'Fully Retired'}</Button>
               </DialogFooter>
             </>
           )}

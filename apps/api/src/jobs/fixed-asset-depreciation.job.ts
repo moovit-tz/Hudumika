@@ -3,6 +3,7 @@
 import { sql } from 'kysely';
 import { dbPlatform } from '../db/client.js';
 import { runDepreciationForTenant } from '../services/fixed-assets.service.js';
+import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
 
 export async function runFixedAssetDepreciationJob(): Promise<void> {
   const periodDate = new Date().toISOString().slice(0, 8) + '01';
@@ -13,6 +14,7 @@ export async function runFixedAssetDepreciationJob(): Promise<void> {
     let posted = 0;
     for (const { tenant_id } of tenants.rows) {
       try {
+        if (!(await tenantHasEnabledFinanceCapability(tenant_id, 'finance.fixed_assets'))) continue;
         const result = await runDepreciationForTenant(tenant_id, periodDate);
         posted += result.posted;
       } catch (err) {

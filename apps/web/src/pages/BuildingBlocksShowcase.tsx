@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Button } from '../components/ui/button.js';
@@ -109,6 +109,97 @@ export default function BuildingBlocksShowcase() {
               <div style={{ fontSize: 11.5, color: k.color, fontWeight: 700, marginTop: 4 }}>{k.trend} vs last month</div>
             </div>
           ))}
+        </div>
+      ),
+    },
+
+    {
+      id: 'dreams-bento-hero',
+      title: 'Dreams Core — Bento Operations & Health Score Hero',
+      category: 'metrics',
+      description: 'Dreams Core signature dark-radiant Operations Health centerpiece paired with executive KPI metric cards.',
+      codeSnippet: `<div className="bento-grid">
+  <div className="surface-card is-interactive col-span-12 lg:col-span-5 !p-0 overflow-hidden relative text-[#fff] logi-cx-1">
+    <div className="absolute pointer-events-none w-[200px] h-[200px] top-[-50px] right-[-50px] logi-cx-2" />
+    <div className="p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-blue-200">Live &middot; Telemetry</p>
+          <h4 className="font-display font-bold text-[16px] text-white mt-0.5">Operations Health</h4>
+        </div>
+        <span className="badge-soft-success text-[10px] font-bold px-2 py-0.5 rounded-full">Optimal</span>
+      </div>
+      <div className="flex flex-col items-center text-center my-4">
+        <div className="w-28 h-28 rounded-full grid place-items-center logi-cx-4">
+          <div className="w-24 h-24 rounded-full flex flex-col items-center justify-center logi-cx-5">
+            <span className="font-display font-bold text-2xl text-white">98.4%</span>
+            <span className="text-[9px] font-bold uppercase text-slate-400">Score</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>`,
+      render: () => (
+        <div className="bento-grid">
+          <div className="surface-card is-interactive col-span-12 lg:col-span-5 !p-0 overflow-hidden relative text-[#fff] logi-cx-1">
+            <div className="absolute pointer-events-none w-[200px] h-[200px] top-[-50px] right-[-50px] logi-cx-2" />
+            <div className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-200">Live &middot; Telemetry</p>
+                  <h4 className="font-display font-bold text-[16px] text-white mt-0.5">Operations Health</h4>
+                </div>
+                <span className="badge-soft-success text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="size-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+                  Optimal
+                </span>
+              </div>
+              <div className="flex flex-col items-center text-center my-4">
+                <div className="w-28 h-28 rounded-full grid place-items-center logi-cx-4">
+                  <div className="w-24 h-24 rounded-full flex flex-col items-center justify-center logi-cx-5">
+                    <span className="font-display font-bold text-2xl text-white">98.4%</span>
+                    <span className="text-[9px] font-bold uppercase text-slate-400">Health Index</span>
+                  </div>
+                </div>
+                <p className="text-[11px] font-medium text-slate-300 mt-2">All transit corridors operating within SLA</p>
+              </div>
+              <div className="space-y-2 border-t border-white/10 pt-3 text-[11px]">
+                <div className="flex justify-between text-slate-300">
+                  <span>On-Time Delivery</span>
+                  <span className="font-bold text-white">96.4%</span>
+                </div>
+                <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-emerald-400 h-full w-[96.4%]" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-span-12 lg:col-span-7 grid grid-cols-2 gap-3">
+            {[
+              { label: 'Active Shipments', val: '1,428', trend: '+12.5%', isPrimary: true, icon: 'truck', colorClass: 'badge-soft-primary' },
+              { label: 'Fleet Utilization', val: '88.2%', trend: '+4.1%', icon: 'activity', colorClass: 'badge-soft-success' },
+              { label: 'Customs Clearance', val: '42 mins', trend: '-18%', icon: 'shieldCheck', colorClass: 'badge-soft-info' },
+              { label: 'Demurrage Alerts', val: '2 Units', trend: '-50%', icon: 'alertTriangle', colorClass: 'badge-soft-warning' },
+            ].map((k, idx) => (
+              <div key={idx} className="surface-card is-interactive flex flex-col justify-between p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider">{k.label}</span>
+                  <span className={`icon-chip ${k.colorClass}`}>
+                    <Icon name={k.icon as any} size={15} />
+                  </span>
+                </div>
+                <div className="my-2">
+                  <div className="font-display font-extrabold text-2xl text-[var(--ink)]">{k.val}</div>
+                  <div className="flex items-center gap-1 mt-1 text-[11px] font-bold text-emerald-600">
+                    <span>{k.trend}</span>
+                    <span className="text-slate-400 font-normal">vs last month</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ),
     },
@@ -323,7 +414,7 @@ export default function BuildingBlocksShowcase() {
             </p>
           </div>
           <Input
-            placeholder="Search blocksâ€¦"
+            placeholder="Search blocks…"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={{ width: 240 }}

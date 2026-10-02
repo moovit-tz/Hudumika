@@ -72,7 +72,7 @@ export const StoreDeveloperPortal: React.FC = () => {
     <div className="store-main">
       <PageHeader
         crumbs={['Store', 'Developer Portal']}
-        titlePlain="Submit a new"
+        titlePlain="Submit"
         titleEm="app"
         subtitle="Publish an integration to the Hudumika Store for review by the Admin team."
       />

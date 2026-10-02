@@ -12,14 +12,14 @@ import { TAX_CODE_KIND_VARIANT, TAX_CODE_KIND_LABEL, type TaxCodeKind } from '..
  * The VAT return.
  *
  * What this replaces read a single GL account (2200), kept only its credits,
- * and recovered a "taxable base" by dividing the tax by a hardcoded 18% â€” wrong
+ * and recovered a "taxable base" by dividing the tax by a hardcoded 18% — wrong
  * for any tenant on another rate and meaningless on a mixed-rate invoice. It had
  * no purchase side at all, so it could not state what the return exists to
  * state: what is owed, or owed back.
  *
  * Every figure here comes from the documents, so it has a source. Where a
- * figure cannot be produced honestly â€” an unclassified line, a bill in a
- * currency with no rate â€” it is reported as a gap rather than folded into a
+ * figure cannot be produced honestly — an unclassified line, a bill in a
+ * currency with no rate — it is reported as a gap rather than folded into a
  * total.
  */
 
@@ -164,7 +164,7 @@ export const FinanceTaxReport: React.FC = () => {
                         ? <Badge variant="warning">No treatment recorded</Badge>
                         : <Badge variant={TAX_CODE_KIND_VARIANT[b.kind]}>{TAX_CODE_KIND_LABEL[b.kind]}</Badge>}
                     </td>
-                    <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 11.5 }}>{b.code ?? 'â€”'}</td>
+                    <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 11.5 }}>{b.code ?? '—'}</td>
                     <td style={num}>{fmt(b.net)}</td>
                     <td style={{ ...num, fontWeight: 700 }}>{fmt(b.tax)}</td>
                     <td style={{ ...num, color: 'var(--ink3)' }}>{b.lines}</td>
@@ -190,7 +190,7 @@ export const FinanceTaxReport: React.FC = () => {
         crumbs={['Finance', 'Tax']}
         titlePlain="VAT"
         titleEm="return"
-        subtitle="Output tax, input tax, and what is actually recoverable â€” computed from the documents."
+        subtitle="Output tax, input tax, and what is actually recoverable — computed from the documents."
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Select value={period} onValueChange={setPeriod}>
@@ -212,14 +212,14 @@ export const FinanceTaxReport: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Computing the returnâ€¦</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Computing the return…</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : !data ? null : (
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* The prior question. An unregistered business must not charge VAT,
-              so its "output tax" is not a return figure â€” it is a problem, and
+              so its "output tax" is not a return figure — it is a problem, and
               showing a tidy net payable above it would be actively misleading. */}
           {data.registration.advisory && (
             <div style={{
@@ -278,7 +278,7 @@ export const FinanceTaxReport: React.FC = () => {
                   <li>{data.unclassified.salesLines} sales line{data.unclassified.salesLines === 1 ? '' : 's'} carrying {fmt(data.unclassified.salesTax)} of tax {data.unclassified.salesLines === 1 ? 'has' : 'have'} no treatment recorded, so {data.unclassified.salesLines === 1 ? 'it cannot' : 'they cannot'} be placed in a box.</li>
                 )}
                 {data.unclassified.purchaseLines > 0 && (
-                  <li>{data.unclassified.purchaseLines} purchase line{data.unclassified.purchaseLines === 1 ? '' : 's'} carrying {fmt(data.unclassified.purchaseTax)} of tax {data.unclassified.purchaseLines === 1 ? 'has' : 'have'} no treatment recorded. That tax is <strong>not</strong> being claimed â€” an unrecorded treatment is not a claim.</li>
+                  <li>{data.unclassified.purchaseLines} purchase line{data.unclassified.purchaseLines === 1 ? '' : 's'} carrying {fmt(data.unclassified.purchaseTax)} of tax {data.unclassified.purchaseLines === 1 ? 'has' : 'have'} no treatment recorded. That tax is <strong>not</strong> being claimed — an unrecorded treatment is not a claim.</li>
                 )}
                 {(data.fxSkipped.invoices > 0 || data.fxSkipped.bills > 0) && (
                   <li>{data.fxSkipped.invoices + data.fxSkipped.bills} document line{data.fxSkipped.invoices + data.fxSkipped.bills === 1 ? '' : 's'} in another currency {data.fxSkipped.invoices + data.fxSkipped.bills === 1 ? 'was' : 'were'} excluded: no rate to {cur} is recorded, and a guessed rate on a tax claim is a wrong claim.</li>
@@ -287,8 +287,8 @@ export const FinanceTaxReport: React.FC = () => {
             </Banner>
           )}
 
-          <BucketTable title={`Sales â€” output tax (${data.from} to ${data.to})`} buckets={data.outputs} taxLabel="Output tax" />
-          <BucketTable title="Purchases â€” input tax" buckets={data.inputs} taxLabel="Input tax" />
+          <BucketTable title={`Sales — output tax (${data.from} to ${data.to})`} buckets={data.outputs} taxLabel="Output tax" />
+          <BucketTable title="Purchases — input tax" buckets={data.inputs} taxLabel="Input tax" />
 
           {/* How input tax gets from "charged" to "claimable". */}
           <div style={card}>
@@ -302,8 +302,8 @@ export const FinanceTaxReport: React.FC = () => {
                   { l: 'Less: blocked treatments, and purchases with no treatment recorded', v: -data.inputTaxBlocked, muted: true },
                   { l: 'Input tax on treatments that permit recovery', v: data.inputTaxClaimable, rule: true },
                   {
-                    l: `Less: restricted by partial exemption â€” ${data.recoveryRatePct.toFixed(2)}% recovery ` +
-                       `(taxable ${fmt(data.taxableSupplies)} Ã· total supplies ${fmt(data.taxableSupplies + data.exemptSupplies)})`,
+                    l: `Less: restricted by partial exemption — ${data.recoveryRatePct.toFixed(2)}% recovery ` +
+                       `(taxable ${fmt(data.taxableSupplies)} ÷ total supplies ${fmt(data.taxableSupplies + data.exemptSupplies)})`,
                     v: -data.inputTaxRestricted, muted: true,
                   },
                   { l: 'Input tax recoverable', v: data.inputTaxRecoverable, rule: true, strong: true },
@@ -330,8 +330,8 @@ export const FinanceTaxReport: React.FC = () => {
             <table style={{ borderCollapse: 'collapse', fontSize: 12.5, width: '100%' }}>
               <tbody>
                 {[
-                  { l: 'VAT Output (Payable) â€” account 2200', v: data.ledger.outputTax },
-                  { l: 'VAT Input (Recoverable) â€” account 1150', v: -data.ledger.inputTax },
+                  { l: 'VAT Output (Payable) — account 2200', v: data.ledger.outputTax },
+                  { l: 'VAT Input (Recoverable) — account 1150', v: -data.ledger.inputTax },
                   { l: 'Net per the ledger', v: data.ledger.netPerLedger, rule: true },
                   { l: 'Net per this return', v: data.netPayable },
                   { l: 'Difference', v: data.ledger.difference, rule: true, strong: true },
@@ -347,7 +347,7 @@ export const FinanceTaxReport: React.FC = () => {
               <div style={{ padding: '10px 18px', fontSize: 11.5, color: 'var(--ink2)', lineHeight: 1.55, borderTop: '1px solid var(--border)', background: 'var(--bg)' }}>
                 A bill posts its whole recoverable tax to account 1150 when it is entered, but this
                 return only allows {data.recoveryRatePct.toFixed(2)}% of it. The difference is a
-                period-end adjustment still to be posted â€” debit the expense, credit 1150 with{' '}
+                period-end adjustment still to be posted — debit the expense, credit 1150 with{' '}
                 <strong>{fmt(Math.abs(data.ledger.difference))}</strong>. Nothing posts it for you.
               </div>
             )}

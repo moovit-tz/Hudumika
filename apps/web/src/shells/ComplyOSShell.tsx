@@ -34,23 +34,43 @@ const NAV: SidebarSection[] = [
   {
     title: 'COMPLIANCE',
     items: [
-      { label: 'Applications', icon: 'fileText',   path: '/complyos/applications'  },
-      { label: 'Obligations',  icon: 'clipboardList', path: '/complyos/obligations' },
-      { label: 'Vault',        icon: 'lock',        path: '/complyos/vault'         },
-      { label: 'Calendar',     icon: 'calendar',    path: '/complyos/calendar'      },
-      { label: 'Workflows',    icon: 'zap',         path: '/complyos/workflows'     },
-      { label: 'License Automation', icon: 'zap',   path: '/complyos/license-automation' },
+      {
+        label: 'Core Compliance', icon: 'fileText', path: '/complyos/applications',
+        children: [
+          { label: 'Applications', icon: 'fileText',     path: '/complyos/applications' },
+          { label: 'Obligations',  icon: 'clipboardList', path: '/complyos/obligations'  },
+          { label: 'Vault',        icon: 'lock',          path: '/complyos/vault'        },
+          { label: 'Calendar',     icon: 'calendar',      path: '/complyos/calendar'     },
+        ],
+      },
+      {
+        label: 'Automation', icon: 'zap', path: '/complyos/workflows',
+        children: [
+          { label: 'Workflows',          icon: 'zap', path: '/complyos/workflows'          },
+          { label: 'License Automation', icon: 'zap', path: '/complyos/license-automation' },
+        ],
+      },
     ],
   },
   {
     title: 'REGISTRY SEARCH',
     items: [
-      { label: 'BRELA Search', icon: 'search',   path: '/complyos/brela-search' },
-      { label: 'Company Directory', icon: 'briefcase', path: '/complyos/companies' },
-      { label: 'Legal',        icon: 'fileText', path: '/complyos/legal'        },
-      { label: 'Agencies',     icon: 'building', path: '/complyos/agencies'     },
-      { label: 'Licence Catalogue', icon: 'invoice', path: '/complyos/license-catalog' },
-      { label: 'TIN Portal Agent', icon: 'zap',      path: '/complyos/tra-extract' },
+      {
+        label: 'Company Research', icon: 'search', path: '/complyos/brela-search',
+        children: [
+          { label: 'BRELA Search',       icon: 'search',    path: '/complyos/brela-search' },
+          { label: 'Company Directory',  icon: 'briefcase', path: '/complyos/companies'    },
+          { label: 'Agencies',           icon: 'building',  path: '/complyos/agencies'     },
+        ],
+      },
+      {
+        label: 'Regulatory', icon: 'fileText', path: '/complyos/legal',
+        children: [
+          { label: 'Legal',              icon: 'fileText', path: '/complyos/legal'         },
+          { label: 'Licence Catalogue',  icon: 'invoice',  path: '/complyos/license-catalog'},
+          { label: 'TIN Portal Agent',   icon: 'zap',      path: '/complyos/tra-extract'   },
+        ],
+      },
     ],
   },
 ];

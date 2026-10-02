@@ -23,7 +23,7 @@ import {
  *
  * The platform used to carry tax as a bare percentage in three places, each
  * with its own hardcoded list of allowed rates. A percentage cannot say whether
- * a 0% line is zero-rated, exempt, reverse-charge or out of scope â€” and those
+ * a 0% line is zero-rated, exempt, reverse-charge or out of scope — and those
  * four are not interchangeable on a return. This page is where the distinction
  * is set, and where the gap in the historical data stays visible.
  */
@@ -56,7 +56,7 @@ interface Usage {
   bill_lines: { total: number; unclassified: number };
 }
 
-/* â”€â”€ Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Form ───────────────────────────────────────────────────────────────────── */
 interface Component {
   code: string; name: string; rate: number;
   basis: 'NET' | 'NET_PLUS_PRIOR'; recoverable: boolean;
@@ -65,7 +65,7 @@ interface Component {
 /**
  * Tax codes that are really several taxes.
  *
- * Most jurisdictions need none of this â€” a code with no components is a single
+ * Most jurisdictions need none of this — a code with no components is a single
  * tax at its own rate, which is every code in Tanzania. Ghana is the case that
  * needs it, and it is why the rate has to be *derived*: 6% of levies on net,
  * then 15% VAT on net-plus-levies, is 21.9%. Nobody should be typing 21.9,
@@ -104,7 +104,7 @@ function ComponentEditor({ taxCodeId, jurisdiction, zeroKind }: {
 
   /**
    * A preview, computed the same way the server does. The server stays
-   * authoritative â€” this exists so the effective rate moves while you type
+   * authoritative — this exists so the effective rate moves while you type
    * rather than only after saving, which is the whole reason the rate is
    * derived instead of typed.
    */
@@ -164,7 +164,7 @@ function ComponentEditor({ taxCodeId, jurisdiction, zeroKind }: {
       </div>
       <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12, lineHeight: 1.5 }}>
         Only for a rate that is several taxes at once. Leave empty and this code charges the
-        rate above. The order matters: â€œon net plus priorâ€ charges on the line value plus
+        rate above. The order matters: "on net plus prior” charges on the line value plus
         everything already added.
       </div>
 
@@ -244,7 +244,7 @@ function ComponentEditor({ taxCodeId, jurisdiction, zeroKind }: {
             <button type="button" className="btn btn-primary btn-sm" disabled={saving}
               style={{ marginLeft: 'auto' }}
               onClick={persist}>
-              {saving ? 'Savingâ€¦' : 'Save breakdown'}
+              {saving ? 'Saving…' : 'Save breakdown'}
             </button>
           </div>
 
@@ -252,11 +252,11 @@ function ComponentEditor({ taxCodeId, jurisdiction, zeroKind }: {
             <div style={{ marginTop: 12, fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6 }}>
               {preview.lines.map((l, i) => (
                 <div key={i}>
-                  {l.code || 'â€”'} {Number(l.rate) || 0}% on {l.base.toFixed(2)} = {l.amount.toFixed(3)}
+                  {l.code || '—'} {Number(l.rate) || 0}% on {l.base.toFixed(2)} = {l.amount.toFixed(3)}
                 </div>
               ))}
               <div style={{ marginTop: 4, color: 'var(--ink2)', fontWeight: 600 }}>
-                Effective rate {preview.total.toFixed(2)}% â€” saved onto the code, not typed.
+                Effective rate {preview.total.toFixed(2)}% — saved onto the code, not typed.
               </div>
               {/* Says it plainly, because the alternative assumption is costly. */}
               <div style={{ marginTop: 4 }}>Documents already issued keep the rate they were written with.</div>
@@ -335,7 +335,7 @@ function TaxCodeForm({ code, onClose, onSaved }: {
   return (
     <FormPage
       title={code?.id ? `Edit ${code.code}` : 'New tax code'}
-      subtitle="A treatment, and the rate it implies â€” not a rate on its own."
+      subtitle="A treatment, and the rate it implies — not a rate on its own."
       onCancel={onClose}
       actions={<FormPageActions onCancel={onClose} onSave={save} saving={saving}
         saveLabel={code?.id ? 'Save changes' : 'Add tax code'} />}
@@ -377,7 +377,7 @@ function TaxCodeForm({ code, onClose, onSaved }: {
         </F>
 
         <F label="Used on"
-           hint="A blocked-input-tax code is a purchase treatment and nonsense on a sale â€” the API refuses to attach one to an invoice.">
+           hint="A blocked-input-tax code is a purchase treatment and nonsense on a sale — the API refuses to attach one to an invoice.">
           <Select value={form.appliesTo} onValueChange={v => set('appliesTo', v as TaxCodeScope)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -396,13 +396,13 @@ function TaxCodeForm({ code, onClose, onSaved }: {
                   onValueChange={v => set('inputTaxRecoverable', v === 'yes')}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="yes">Yes â€” recoverable</SelectItem>
-              <SelectItem value="no">No â€” not recoverable</SelectItem>
+              <SelectItem value="yes">Yes — recoverable</SelectItem>
+              <SelectItem value="no">No — not recoverable</SelectItem>
             </SelectContent>
           </Select>
         </F>
         <F label="TRA tax code"
-           hint="EFDMS TAXCODE. Leave unset if TRA has no equivalent â€” an invoice using it then refuses to fiscalise rather than filing under the wrong one.">
+           hint="EFDMS TAXCODE. Leave unset if TRA has no equivalent — an invoice using it then refuses to fiscalise rather than filing under the wrong one.">
           <Select value={form.traTaxCode === null ? '__none__' : String(form.traTaxCode)}
                   onValueChange={v => set('traTaxCode', v === '__none__' ? null : Number(v))}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -410,17 +410,17 @@ function TaxCodeForm({ code, onClose, onSaved }: {
               <SelectItem value="__none__">No TRA equivalent</SelectItem>
               {/* TRA's own wording, including the rate, so a 0%-only code is
                   never mistaken for a reduced rate. */}
-              <SelectItem value="1">1 â€” Standard Rate (18%)</SelectItem>
-              <SelectItem value="2">2 â€” Special Rate (0%)</SelectItem>
-              <SelectItem value="3">3 â€” Zero rated (0%)</SelectItem>
-              <SelectItem value="4">4 â€” Special Relief (0%)</SelectItem>
-              <SelectItem value="5">5 â€” Exempt (0%)</SelectItem>
+              <SelectItem value="1">1 — Standard Rate (18%)</SelectItem>
+              <SelectItem value="2">2 — Special Rate (0%)</SelectItem>
+              <SelectItem value="3">3 — Zero rated (0%)</SelectItem>
+              <SelectItem value="4">4 — Special Relief (0%)</SelectItem>
+              <SelectItem value="5">5 — Exempt (0%)</SelectItem>
             </SelectContent>
           </Select>
         </F>
 
         <F label="TRA VATRATE letter"
-           hint="The <VATTOTALS> grouping letter. It tracks the TRA tax code one for one â€” A standard 18%, B special 0%, C zero-rated 0%, D special relief 0%, E exempt 0% â€” and Automatic does exactly that. Only override it if TRA tells you otherwise.">
+           hint="The <VATTOTALS> grouping letter. It tracks the TRA tax code one for one — A standard 18%, B special 0%, C zero-rated 0%, D special relief 0%, E exempt 0% — and Automatic does exactly that. Only override it if TRA tells you otherwise.">
           <Select value={form.traVatRate ?? '__auto__'}
                   onValueChange={v => set('traVatRate', v === '__auto__' ? null : v)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -471,7 +471,7 @@ function TaxCodeForm({ code, onClose, onSaved }: {
   );
 }
 
-/* â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Page ───────────────────────────────────────────────────────────────────── */
 export function FinanceTaxCodes() {
   const codes = useTaxCodes();
   const [usage, setUsage] = useState<Usage | null>(null);
@@ -544,7 +544,7 @@ export function FinanceTaxCodes() {
 
   async function remove(c: TaxCode) {
     const ok = await showConfirm(
-      'If it is already used on a document it will be archived instead â€” removing it ' +
+      'If it is already used on a document it will be archived instead — removing it ' +
       'would blank the treatment on something already filed.',
       { title: `Delete ${c.code}?`, confirmLabel: 'Delete', variant: 'danger' },
     );
@@ -575,9 +575,9 @@ export function FinanceTaxCodes() {
     <div className="page-layout">
       <PageHeader
         crumbs={['FINANCE', 'TAX CODES']}
-        titlePlain="Tax "
+        titlePlain="Tax"
         titleEm="rates"
-        subtitle="How each supply is treated for tax â€” not just the rate it is charged at."
+        subtitle="How each supply is treated for tax — not just the rate it is charged at."
       />
 
       <MetricsRow cards={[
@@ -627,7 +627,7 @@ export function FinanceTaxCodes() {
           borderRadius: 'var(--r)', padding: '14px 16px', marginBottom: 16,
         }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            {/* Country first â€” it decides the rate, the currency, the vocabulary
+            {/* Country first — it decides the rate, the currency, the vocabulary
                 and which fiscalisation applies. */}
             <div>
               <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>
@@ -638,7 +638,7 @@ export function FinanceTaxCodes() {
                 <SelectContent>
                   {(reg.jurisdictions ?? []).map(j => (
                     <SelectItem key={j.code} value={j.code}>
-                      {j.name}{j.standard_rate ? ` â€” ${Number(j.standard_rate)}%` : ''}
+                      {j.name}{j.standard_rate ? ` — ${Number(j.standard_rate)}%` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -672,7 +672,7 @@ export function FinanceTaxCodes() {
             </div>
             <button type="button" className="btn btn-secondary btn-sm"
               disabled={regBusy || regState === 'unknown'} onClick={saveRegistration}>
-              {regBusy ? 'Savingâ€¦' : 'Save'}
+              {regBusy ? 'Saving…' : 'Save'}
             </button>
           </div>
 
@@ -689,17 +689,17 @@ export function FinanceTaxCodes() {
             </Banner>
           )}
 
-          {/* Local reference figures, clearly dated â€” these change every budget,
+          {/* Local reference figures, clearly dated — these change every budget,
               so they prefill and sanity-check rather than decide anything. */}
           {reg.reference && (
             <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.6, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-              <strong style={{ color: 'var(--ink2)' }}>{reg.reference.name}</strong> â€” standard rate{' '}
-              {reg.reference.standard_rate ? `${Number(reg.reference.standard_rate)}%` : 'â€”'}
+              <strong style={{ color: 'var(--ink2)' }}>{reg.reference.name}</strong> — standard rate{' '}
+              {reg.reference.standard_rate ? `${Number(reg.reference.standard_rate)}%` : '—'}
               {reg.reference.threshold_amount && <>, registration required above{' '}
                 {reg.reference.currency} {Number(reg.reference.threshold_amount).toLocaleString()} over{' '}
                 {reg.reference.threshold_window_months} months</>}
               {reg.reference.fiscalisation && <>, fiscalised through {reg.reference.fiscalisation}</>}.
-              {' '}<span style={{ opacity: 0.85 }}>Reference only, checked {String(reg.reference.as_of).slice(0, 10)} â€” thresholds move each budget, so confirm before relying on it.</span>
+              {' '}<span style={{ opacity: 0.85 }}>Reference only, checked {String(reg.reference.as_of).slice(0, 10)} — thresholds move each budget, so confirm before relying on it.</span>
             </div>
           )}
         </div>
@@ -714,7 +714,7 @@ export function FinanceTaxCodes() {
           <Banner variant="warning" title={`${unclassified} rows have no recorded treatment.`}>
             They were written before tax codes existed, when tax was only a percentage.
             A 0% row could have been zero-rated, exempt, reverse-charge or out of scope,
-            and only one of those lets you recover input tax â€” so nothing was guessed on
+            and only one of those lets you recover input tax — so nothing was guessed on
             your behalf. On the purchase side that means the tax is <strong>not</strong> being
             claimed: an unrecorded treatment is not a claim.
             <div style={{ marginTop: 10 }}>

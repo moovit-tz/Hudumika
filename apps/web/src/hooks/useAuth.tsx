@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import type { SafeUser, OnboardingCompleteResponse, JoinRequestSubmitResponse } from '@hudumika/types';
 import { resetEnabledAppsCache } from './useEnabledApps.js';
+import { resetFinanceCapabilitiesCache } from './useFinanceCapabilities.js';
 import { hydrateCompanyFromServer, resetCompanyCache } from '../data/companyStore.js';
 import { hydrateTasksFromServer, resetTasksCache } from '../data/calendarStore.js';
 import { applyTenantLocale } from '../lib/tenantLocale.js';
@@ -156,6 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const completeLogin = (res: { user: SafeUser }) => {
     localStorage.setItem(KEYS.user, JSON.stringify(res.user));
     resetEnabledAppsCache();
+    resetFinanceCapabilitiesCache();
     resetCompanyCache();
     resetTasksCache();
     setUser(res.user);
@@ -333,6 +335,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     clearIdleLockState();
     resetEnabledAppsCache();
+    resetFinanceCapabilitiesCache();
     resetCompanyCache();
     resetTasksCache();
     setUser(null);

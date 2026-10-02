@@ -24,6 +24,9 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '1001', name: 'Cash on Hand', type: 'ASSET', subtype: 'CURRENT_ASSET', parentCode: '1000', normalBalance: 'DEBIT' },
   { code: '1010', name: 'Bank Account (TZS)', type: 'ASSET', subtype: 'CURRENT_ASSET', parentCode: '1000', normalBalance: 'DEBIT' },
   { code: '1011', name: 'Bank Account (USD)', type: 'ASSET', subtype: 'CURRENT_ASSET', parentCode: '1000', normalBalance: 'DEBIT' },
+  { code: '1020', name: 'Card Settlement Clearing', type: 'ASSET', subtype: 'CURRENT_ASSET', parentCode: '1000', normalBalance: 'DEBIT' },
+  { code: '1021', name: 'Mobile Money Clearing', type: 'ASSET', subtype: 'CURRENT_ASSET', parentCode: '1000', normalBalance: 'DEBIT' },
+  { code: '1022', name: 'Other Payment Clearing', type: 'ASSET', subtype: 'CURRENT_ASSET', parentCode: '1000', normalBalance: 'DEBIT' },
   { code: '1100', name: 'Accounts Receivable', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
   // Recoverable input tax is money the revenue authority owes you, so it is an
   // asset in its own right. It used to be posted as a debit against 2200 (the
@@ -490,11 +493,20 @@ export class GLService {
 
   /** Profit & loss — revenue and expense movements for a period */
   /** entityId: a real id restricts to one accounting_entities branch (M8); `null` restricts to entries never tagged to any entity; omit (undefined) for the tenant-wide consolidated view, which eliminates intercompany activity (see below) — every report's existing, unchanged default. */
-  static async profitLoss(tenantId: string, fromStr: string, toStr: string, entityId?: string | null): Promise<ProfitLossReport> {
+  static async profitLoss(tenantId: string, fromStr: string, toStr: string, entityId?: string | null, businessLineId?: string): Promise<ProfitLossReport> {
     const from = new Date(fromStr);
     const to = new Date(toStr);
 
     return withTenant(tenantId, async (trx) => {
+      let businessLine: { id: string; name: string; code: string } | undefined;
+      if (businessLineId) {
+        businessLine = await trx.selectFrom('finance_business_lines')
+          .select(['id', 'name', 'code'])
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', businessLineId)
+          .executeTakeFirst();
+        if (!businessLine) throw new Error('Business line not found');
+      }
       const accounts = await trx
         .selectFrom('chart_of_accounts')
         .select(['id', 'code', 'name', 'type', 'subtype', 'normal_balance'])
@@ -510,6 +522,9 @@ export class GLService {
         .where('journal_entries.tenant_id', '=', tenantId)
         .where('journal_entries.entry_date', '>=', toDateParam(from))
         .where('journal_entries.entry_date', '<=', toDateParam(to));
+      if (businessLineId) {
+        movementsQuery = movementsQuery.where(sql<boolean>`journal_lines.dimensions ->> 'business_line_id' = ${businessLineId}`);
+      }
       if (entityId === null) {
         // Explicitly "unassigned" — entries never tagged to any entity.
         // Every intercompany leg is entity-tagged by construction, so this
@@ -571,6 +586,7 @@ export class GLService {
 
       return {
         period: { from: fromStr, to: toStr },
+        business_line: businessLine ?? null,
         revenue,
         expenses,
         totals: {

@@ -35,9 +35,9 @@ export const APP_META: Record<string, { name: string; desc: string; icon: IconNa
   demurrage:    { name: 'Demurrage',     desc: 'Container dwell time and demurrage cost tracking.',     icon: 'timer' },
   cargotracker: { name: 'CargoTracker',  desc: 'Cargo manifest and load tracking.',                     icon: 'ship' },
   // Same "missing from here means it can never be toggled off" gap as the
-  // 213 batch above â€” petti/notes had real feature keys and grants but
+  // 213 batch above — petti/notes had real feature keys and grants but
   // weren't listed here either (see entitlements.ts's own comment).
-  petti:        { name: 'Petti',         desc: 'Petty-cash wallets â€” deposit, request, approve and disburse.', icon: 'wallet' },
+  petti:        { name: 'Petti',         desc: 'Petty-cash wallets — deposit, request, approve and disburse.', icon: 'wallet' },
   notes:        { name: 'Notes',         desc: 'Shared team notes, checklists and sketches.',           icon: 'fileText' },
 };
 
@@ -93,18 +93,18 @@ export const Utilities: React.FC = () => {
   }
 
   /**
-   * What this workspace can take with it â€” for datasets that have nowhere
+   * What this workspace can take with it — for datasets that have nowhere
    * else to export from.
    *
    * Customers, Invoices and Leads used to be exported from here too, in
    * parallel with a second, real "Export CSV" button each already has on
    * its own real page (Customers.tsx /crm/customers, Billing.tsx
-   * /finance/invoices, Leads.tsx /crm/leads) â€” two ways to get the same
+   * /finance/invoices, Leads.tsx /crm/leads) — two ways to get the same
    * file, one of them a generic re-fetch with no filters applied, the other
    * respecting whatever the user actually has visible. Removed outright
-   * (not even a pointer card) â€” CRM and FinOps are where someone exporting
+   * (not even a pointer card) — CRM and FinOps are where someone exporting
    * their own customers/invoices/leads already is. Shipments, Declarations
-   * and People stay as real CSV buttons â€” checked against their current
+   * and People stay as real CSV buttons — checked against their current
    * apps (/tracking/shipments, declarations live inside shipment records
    * with no list view of their own, NexusHR's EmployeesPage) and none of
    * the three has an export of its own to point at instead.
@@ -166,7 +166,7 @@ export const Utilities: React.FC = () => {
       ].join('\r\n');
 
       // A BOM, so Excel opens Kiswahili and accented names as UTF-8 rather than
-      // mojibake â€” the usual fate of a plain CSV on a Windows desktop.
+      // mojibake — the usual fate of a plain CSV on a Windows desktop.
       const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -184,16 +184,16 @@ export const Utilities: React.FC = () => {
   const checkHealth = async () => {
     try {
       const res = await apiFetch('/health');
-      setHealthResult(`âœ“ API healthy Â· ${new Date(res.timestamp).toLocaleTimeString()}`);
-    } catch { setHealthResult('âœ— API unreachable'); }
+      setHealthResult(`✓ API healthy · ${new Date(res.timestamp).toLocaleTimeString()}`);
+    } catch { setHealthResult('✗ API unreachable'); }
   };
 
   const pingWs = () => {
     try {
       const ws = new WebSocket(`${BASE_URL.replace(/^http/, 'ws')}/ws`);
-      ws.onopen = () => { setPingResult('âœ“ WebSocket connected'); ws.close(); };
-      ws.onerror = () => setPingResult('âœ— WebSocket failed');
-    } catch { setPingResult('âœ— WebSocket failed'); }
+      ws.onopen = () => { setPingResult('✓ WebSocket connected'); ws.close(); };
+      ws.onerror = () => setPingResult('✗ WebSocket failed');
+    } catch { setPingResult('✗ WebSocket failed'); }
   };
 
   return (
@@ -208,8 +208,8 @@ export const Utilities: React.FC = () => {
       <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
 
         {/* Modules moved to Settings.
-            Three screens edited this one setting â€” here, in Settings and in
-            Billing â€” each with its own local state, so changing it in one left
+            Three screens edited this one setting — here, in Settings and in
+            Billing — each with its own local state, so changing it in one left
             the other two showing the old value until a reload. One control now,
             and two links to it. */}
         <div style={{ marginBottom: 28 }}>
@@ -233,14 +233,14 @@ export const Utilities: React.FC = () => {
               action={
                 <button type="button" className="btn btn-secondary btn-sm"
                   onClick={() => exportDataset(ds)} disabled={exporting !== null}>
-                  {exporting === ds.id ? 'Exportingâ€¦' : 'Download CSV'}
+                  {exporting === ds.id ? 'Exporting…' : 'Download CSV'}
                 </button>
               }
             />
           ))}
 
-          {/* Import already exists for customers â€” the one bulk load people
-              actually need â€” so this points at it rather than building a
+          {/* Import already exists for customers — the one bulk load people
+              actually need — so this points at it rather than building a
               second, differently-behaved importer beside it. */}
           <ToolCard
             icon="upload"
@@ -256,7 +256,7 @@ export const Utilities: React.FC = () => {
             action={
               <div>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={checkHealth}>Check Health</button>
-                {healthResult && <div style={{ marginTop: 8, fontSize: 12, fontFamily: 'var(--font)', color: healthResult.startsWith('âœ“') ? 'var(--green)' : 'var(--red)' }}>{healthResult}</div>}
+                {healthResult && <div style={{ marginTop: 8, fontSize: 12, fontFamily: 'var(--font)', color: healthResult.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{healthResult}</div>}
               </div>
             }
           />
@@ -268,7 +268,7 @@ export const Utilities: React.FC = () => {
             action={
               <div>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={pingWs}>Test Connection</button>
-                {pingResult && <div style={{ marginTop: 8, fontSize: 12, fontFamily: 'var(--font)', color: pingResult.startsWith('âœ“') ? 'var(--green)' : 'var(--red)' }}>{pingResult}</div>}
+                {pingResult && <div style={{ marginTop: 8, fontSize: 12, fontFamily: 'var(--font)', color: pingResult.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{pingResult}</div>}
               </div>
             }
           />

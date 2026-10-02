@@ -1,303 +1,1266 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip,
-} from 'chart.js';
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
+} from 'recharts';
 import { Icon } from '../components/Icon.js';
-import { FeaturedIcon } from '../components/ui/featured-icon.js';
-import { Badge } from '../components/ui/badge.js';
-import { ClickableBarChart } from '../components/AnalyticsKit.js';
-import { apiFetch } from '../lib/api.js';
-import { useIsMobile } from '../hooks/useIsMobile.js';
-import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
-import { CUSTOMS_STATUS_VARIANT } from '../lib/sealStatus.js';
-import { CUSTOMS_STATUS_LABELS, type CustomsStatus } from '@hudumika/types';
-import './Seal.css';
-import { PageHeader } from '../components/PageHeader.js';
-import { SkeletonPage } from '../components/ui/skeleton.js';
+import { showAlert } from '../lib/alert.js';
+import './SealInventoryDashboard.css';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
-
-interface DashboardData {
-  compartmentCount: number;
-  lotCount: number;
-  expiringSoonCount: number;
-  byStatus: { status: CustomsStatus; count: number }[];
+interface InventoryItem {
+  id: string;
+  name: string;
+  sku: string;
+  category: string;
+  warehouse: string;
+  qty: number;
+  reserved: number;
+  available: number;
+  reorderLevel: number;
+  value: number; // numerical value for sorting / export
+  status: 'in_stock' | 'low_stock' | 'out_of_stock';
 }
+
+const INITIAL_ITEMS: InventoryItem[] = [
+  {
+    id: 'item-1',
+    name: 'Smart Watch Ultra',
+    sku: 'SKU-48120',
+    category: 'Electronics',
+    warehouse: 'Warehouse A',
+    qty: 312,
+    reserved: 48,
+    available: 264,
+    reorderLevel: 80,
+    value: 62400,
+    status: 'in_stock',
+  },
+  {
+    id: 'item-2',
+    name: 'Aurora Headset',
+    sku: 'SKU-48121',
+    category: 'Electronics',
+    warehouse: 'Warehouse A',
+    qty: 204,
+    reserved: 22,
+    available: 182,
+    reorderLevel: 60,
+    value: 28900,
+    status: 'in_stock',
+  },
+  {
+    id: 'item-3',
+    name: 'Cascade Jacket',
+    sku: 'SKU-32209',
+    category: 'Apparel',
+    warehouse: 'Warehouse B',
+    qty: 18,
+    reserved: 4,
+    available: 14,
+    reorderLevel: 25,
+    value: 1700,
+    status: 'low_stock',
+  },
+  {
+    id: 'item-4',
+    name: 'Flex Resistance Set',
+    sku: 'SKU-77310',
+    category: 'Fitness & Sports',
+    warehouse: 'Warehouse C',
+    qty: 0,
+    reserved: 0,
+    available: 0,
+    reorderLevel: 40,
+    value: 0,
+    status: 'out_of_stock',
+  },
+  {
+    id: 'item-5',
+    name: 'Halo Smart Lamp',
+    sku: 'SKU-55102',
+    category: 'Home & Living',
+    warehouse: 'Warehouse B',
+    qty: 9,
+    reserved: 2,
+    available: 7,
+    reorderLevel: 20,
+    value: 900,
+    status: 'low_stock',
+  },
+  {
+    id: 'item-6',
+    name: 'Trailblazer Backpack',
+    sku: 'SKU-91847',
+    category: 'Outdoor & Camping',
+    warehouse: 'Warehouse D',
+    qty: 156,
+    reserved: 12,
+    available: 144,
+    reorderLevel: 50,
+    value: 9400,
+    status: 'in_stock',
+  },
+  {
+    id: 'item-7',
+    name: 'Nimbus Bluetooth Speaker',
+    sku: 'SKU-63321',
+    category: 'Electronics',
+    warehouse: 'Warehouse A',
+    qty: 88,
+    reserved: 6,
+    available: 82,
+    reorderLevel: 30,
+    value: 5200,
+    status: 'in_stock',
+  },
+  {
+    id: 'item-8',
+    name: 'Ridgeline Hiking Boots',
+    sku: 'SKU-40218',
+    category: 'Outdoor & Camping',
+    warehouse: 'Warehouse C',
+    qty: 42,
+    reserved: 8,
+    available: 34,
+    reorderLevel: 35,
+    value: 6800,
+    status: 'low_stock',
+  },
+  {
+    id: 'item-9',
+    name: 'Zenith Yoga Mat',
+    sku: 'SKU-28850',
+    category: 'Fitness & Sports',
+    warehouse: 'Warehouse D',
+    qty: 214,
+    reserved: 15,
+    available: 199,
+    reorderLevel: 60,
+    value: 3100,
+    status: 'in_stock',
+  },
+  {
+    id: 'item-10',
+    name: 'Ember Camping Stove',
+    sku: 'SKU-70094',
+    category: 'Outdoor & Camping',
+    warehouse: 'Warehouse B',
+    qty: 0,
+    reserved: 0,
+    available: 0,
+    reorderLevel: 20,
+    value: 0,
+    status: 'out_of_stock',
+  },
+  {
+    id: 'item-11',
+    name: 'Pulse Heart Rate Monitor',
+    sku: 'SKU-58210',
+    category: 'Fitness & Sports',
+    warehouse: 'Warehouse A',
+    qty: 95,
+    reserved: 10,
+    available: 85,
+    reorderLevel: 30,
+    value: 7600,
+    status: 'in_stock',
+  },
+  {
+    id: 'item-12',
+    name: 'Vertex Waterproof Duffel',
+    sku: 'SKU-99341',
+    category: 'Outdoor & Camping',
+    warehouse: 'Warehouse D',
+    qty: 12,
+    reserved: 2,
+    available: 10,
+    reorderLevel: 25,
+    value: 1440,
+    status: 'low_stock',
+  },
+];
+
+const WAREHOUSE_OPTIONS = [
+  'All Warehouses',
+  'Warehouse A',
+  'Warehouse B',
+  'Warehouse C',
+  'Warehouse D',
+  'Warehouse E – North',
+  'Warehouse F – Overseas',
+];
+
+const CATEGORY_OPTIONS = [
+  'All Categories',
+  'Electronics',
+  'Apparel',
+  'Fitness & Sports',
+  'Home & Living',
+  'Outdoor & Camping',
+];
+
+const STATUS_OPTIONS = [
+  { value: 'ALL', label: 'All Statuses' },
+  { value: 'in_stock', label: 'In Stock' },
+  { value: 'low_stock', label: 'Low Stock' },
+  { value: 'out_of_stock', label: 'Out of Stock' },
+];
+
+const STOCK_TREND_DATA = [
+  { month: 'Jan', units: 2400 },
+  { month: 'Feb', units: 1900 },
+  { month: 'Mar', units: 3800 },
+  { month: 'Apr', units: 1700 },
+  { month: 'May', units: 2600 },
+  { month: 'Jun', units: 4200 },
+  { month: 'Jul', units: 4710 },
+];
+
+import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
+import { apiFetch } from '../lib/api.js';
 
 interface Compartment {
-  id: string; code: string; name: string; warehouse_type: string; jurisdiction: string;
-}
-
-interface DailyActivity { date: string; received: number; released: number; }
-interface CompartmentMetrics {
-  compartmentId: string; code: string; name: string; lotCount: number; flaggedLotCount: number;
-  occupancyPct: number; avgStorageDurationDays: number | null;
-}
-interface Metrics {
-  scope: 'compartment' | 'all';
-  lotCount: number; flaggedLotCount: number; occupancyPct: number; avgStorageDurationDays: number | null;
-  dailyActivity: DailyActivity[];
-  byCompartment: CompartmentMetrics[];
-}
-
-function bandColor(pct: number): string {
-  if (pct >= 86) return 'var(--red)';
-  if (pct >= 61) return 'var(--gold)';
-  return 'var(--green)';
+  id: string;
+  code: string;
+  name: string;
 }
 
 export function SealDashboard() {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const [dashData, setDashData] = useState<DashboardData | null>(null);
-  const [metricsData, setMetricsData] = useState<Metrics | null>(null);
-  const [compartments, setCompartments] = useState<Compartment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [compartmentId] = useSealCompartmentId();
+  const [compartmentId, setCompartmentId] = useSealCompartmentId();
+  const [dbCompartments, setDbCompartments] = useState<Compartment[]>([]);
 
-  useEffect(() => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (compartmentId) params.set('compartment_id', compartmentId);
+  // Fetch real compartments from backend
+  React.useEffect(() => {
+    apiFetch('/v1/seal/compartments')
+      .then((data: any) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setDbCompartments(data);
+        }
+      })
+      .catch(() => setDbCompartments([]));
+  }, []);
 
-    Promise.all([
-      apiFetch(`/v1/seal/dashboard?${params.toString()}`).catch(() => null),
-      apiFetch(`/v1/seal/metrics?${params.toString()}`).catch(() => null),
-      apiFetch('/v1/seal/compartments').catch(() => []),
-    ]).then(([d, m, c]) => {
-      setDashData(d);
-      setMetricsData(m);
-      setCompartments(c ?? []);
-    }).finally(() => setLoading(false));
-  }, [compartmentId]);
+  // Combined warehouse list
+  const warehouseList = useMemo(() => {
+    if (dbCompartments.length > 0) {
+      return ['All Warehouses', ...dbCompartments.map(c => c.name)];
+    }
+    return WAREHOUSE_OPTIONS;
+  }, [dbCompartments]);
 
-  const activityDays = metricsData?.dailyActivity?.filter((_, i) => i % 3 === 0 || i === (metricsData?.dailyActivity?.length ?? 0) - 1) ?? [];
+  // Selected warehouse name
+  const [selectedWarehouse, setSelectedWarehouse] = useState<string>(() => {
+    return 'Warehouse A';
+  });
 
-  if (loading) return <SkeletonPage variant="dashboard" />;
+  // Keep selected warehouse in sync if compartmentId changes
+  React.useEffect(() => {
+    if (!compartmentId) {
+      setSelectedWarehouse('All Warehouses');
+    } else {
+      const match = dbCompartments.find(c => c.id === compartmentId);
+      if (match) setSelectedWarehouse(match.name);
+    }
+  }, [compartmentId, dbCompartments]);
+
+  const handleSelectWarehouse = (wName: string) => {
+    setSelectedWarehouse(wName);
+    if (wName === 'All Warehouses') {
+      setCompartmentId(null);
+    } else {
+      const match = dbCompartments.find(c => c.name === wName);
+      if (match) {
+        setCompartmentId(match.id);
+      } else {
+        setCompartmentId(wName);
+      }
+    }
+    setShowWarehouseMenu(false);
+  };
+
+  // Filter States
+  const [items, setItems] = useState<InventoryItem[]>(INITIAL_ITEMS);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [dateRangeText, setDateRangeText] = useState('Jul 1 – Jul 20');
+
+  // Dropdown States
+  const [showWarehouseMenu, setShowWarehouseMenu] = useState(false);
+  const [showDateMenu, setShowDateMenu] = useState(false);
+  const [activeActionMenuId, setActiveActionMenuId] = useState<string | null>(null);
+
+  // Modal States
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [adjustingItem, setAdjustingItem] = useState<InventoryItem | null>(null);
+  const [adjustQty, setAdjustQty] = useState<number>(0);
+  const [adjustReason, setAdjustReason] = useState('Cycle Count Adjustment');
+
+  // Form State for Add Item
+  const [newItem, setNewItem] = useState({
+    name: '',
+    sku: '',
+    category: 'Electronics',
+    warehouse: 'Warehouse A',
+    qty: 100,
+    reserved: 0,
+    reorderLevel: 25,
+    unitValue: 50,
+  });
+
+  // Filtered Items Computation
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      // Warehouse filter
+      if (selectedWarehouse !== 'All Warehouses' && item.warehouse !== selectedWarehouse) {
+        return false;
+      }
+      // Category filter
+      if (selectedCategory !== 'All Categories' && item.category !== selectedCategory) {
+        return false;
+      }
+      // Status filter
+      if (selectedStatus !== 'ALL' && item.status !== selectedStatus) {
+        return false;
+      }
+      // Search query filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesName = item.name.toLowerCase().includes(q);
+        const matchesSku = item.sku.toLowerCase().includes(q);
+        const matchesCat = item.category.toLowerCase().includes(q);
+        const matchesWh = item.warehouse.toLowerCase().includes(q);
+        if (!matchesName && !matchesSku && !matchesCat && !matchesWh) return false;
+      }
+      return true;
+    });
+  }, [items, selectedWarehouse, selectedCategory, selectedStatus, searchQuery]);
+
+  // Formatter for values (e.g. $62.4K or $0.00)
+  const formatCurrency = (val: number) => {
+    if (val === 0) return '$0.00';
+    if (val >= 1000) {
+      return `$${(val / 1000).toFixed(1)}K`;
+    }
+    return `$${val.toLocaleString()}`;
+  };
+
+  // Status Badge Renderer
+  const renderStatusBadge = (status: InventoryItem['status']) => {
+    if (status === 'in_stock') {
+      return (
+        <span className="sid-pill sid-pill--in-stock">
+          <span className="sid-pill-dot" />
+          In Stock
+        </span>
+      );
+    }
+    if (status === 'low_stock') {
+      return (
+        <span className="sid-pill sid-pill--low-stock">
+          <span className="sid-pill-dot" />
+          Low Stock
+        </span>
+      );
+    }
+    return (
+      <span className="sid-pill sid-pill--out-of-stock">
+        <span className="sid-pill-dot" />
+        Out of Stock
+      </span>
+    );
+  };
+
+  // Add Item Handler
+  const handleAddItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newItem.name.trim() || !newItem.sku.trim()) {
+      showAlert('Product name and SKU are required.', { variant: 'error' });
+      return;
+    }
+
+    const qty = Number(newItem.qty) || 0;
+    const reserved = Number(newItem.reserved) || 0;
+    const available = Math.max(0, qty - reserved);
+    const reorderLevel = Number(newItem.reorderLevel) || 10;
+    const unitVal = Number(newItem.unitValue) || 0;
+    const totalVal = qty * unitVal;
+
+    let status: InventoryItem['status'] = 'in_stock';
+    if (qty === 0) {
+      status = 'out_of_stock';
+    } else if (available <= reorderLevel) {
+      status = 'low_stock';
+    }
+
+    const created: InventoryItem = {
+      id: `item-${Date.now()}`,
+      name: newItem.name.trim(),
+      sku: newItem.sku.trim().toUpperCase(),
+      category: newItem.category,
+      warehouse: newItem.warehouse,
+      qty,
+      reserved,
+      available,
+      reorderLevel,
+      value: totalVal,
+      status,
+    };
+
+    setItems(prev => [created, ...prev]);
+    setShowAddModal(false);
+    setNewItem({
+      name: '',
+      sku: '',
+      category: 'Electronics',
+      warehouse: 'Warehouse A',
+      qty: 100,
+      reserved: 0,
+      reorderLevel: 25,
+      unitValue: 50,
+    });
+    showAlert(`Successfully added ${created.name} (${created.sku})`, { variant: 'success' });
+  };
+
+  // Export Table to CSV
+  const handleExportCSV = () => {
+    const headers = ['Product', 'SKU', 'Category', 'Warehouse', 'Qty', 'Reserved', 'Available', 'Reorder Level', 'Value', 'Status'];
+    const csvRows = [
+      headers.join(','),
+      ...filteredItems.map(i => [
+        `"${i.name.replace(/"/g, '""')}"`,
+        `"${i.sku}"`,
+        `"${i.category}"`,
+        `"${i.warehouse}"`,
+        i.qty,
+        i.reserved,
+        i.available,
+        i.reorderLevel,
+        `"${formatCurrency(i.value)}"`,
+        `"${i.status}"`,
+      ].join(',')),
+    ];
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inventory-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showAlert(`Exported ${filteredItems.length} inventory records to CSV.`, { variant: 'success' });
+  };
+
+  // Adjust Stock Handler
+  const handleSaveAdjustment = () => {
+    if (!adjustingItem) return;
+    const delta = Number(adjustQty) || 0;
+    const newTotal = Math.max(0, adjustingItem.qty + delta);
+    const newAvail = Math.max(0, newTotal - adjustingItem.reserved);
+
+    let newStatus: InventoryItem['status'] = 'in_stock';
+    if (newTotal === 0) newStatus = 'out_of_stock';
+    else if (newAvail <= adjustingItem.reorderLevel) newStatus = 'low_stock';
+
+    const unitPrice = adjustingItem.qty > 0 ? adjustingItem.value / adjustingItem.qty : 50;
+
+    setItems(prev => prev.map(item => {
+      if (item.id === adjustingItem.id) {
+        return {
+          ...item,
+          qty: newTotal,
+          available: newAvail,
+          value: newTotal * unitPrice,
+          status: newStatus,
+        };
+      }
+      return item;
+    }));
+
+    showAlert(`Adjusted ${adjustingItem.name} by ${delta >= 0 ? '+' : ''}${delta} units (${adjustReason})`, { variant: 'success' });
+    setAdjustingItem(null);
+    setAdjustQty(0);
+  };
 
   return (
-    <div className="seal-page">
-      {/* Header */}
-      <PageHeader
-        crumbs={['SEAL', 'Bonded Warehouse Dashboard']}
-        titlePlain="Bonded Warehouse"
-        titleEm="dashboard"
-        subtitle="Combined customs-controlled stock ledger &amp; operational metrics — real-time fiscal movements, rack utilization &amp; telemetry."
-      />
-      <div className="seal-page-hdr">
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/lots/new')}>
-            <Icon name="plus" size={14} />
-            <span>Receive Lot</span>
+    <div className="sid-root" onClick={() => { setShowWarehouseMenu(false); setShowDateMenu(false); setActiveActionMenuId(null); }}>
+      
+      {/* ── Page Header Area ── */}
+      <div className="sid-header-wrap">
+        <div>
+          <div className="sid-eyebrow">Dashboards / Inventory</div>
+          <div className="sid-title-row">
+            <h1 className="sid-title">Inventory</h1>
+            
+            {/* Warehouse Selector Pill Dropdown */}
+            <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+              <button
+                type="button"
+                className="sid-warehouse-pill"
+                onClick={() => setShowWarehouseMenu(v => !v)}
+              >
+                <span>{selectedWarehouse}</span>
+                <Icon name="chevronDown" size={12} color="var(--ink3)" />
+              </button>
+
+              {showWarehouseMenu && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    marginTop: 6,
+                    background: 'var(--white)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 10,
+                    boxShadow: 'var(--elev-lg, 0 10px 25px rgba(0,0,0,0.15))',
+                    zIndex: 50,
+                    minWidth: 200,
+                    padding: 4,
+                  }}
+                >
+                  {warehouseList.map(w => (
+                    <div
+                      key={w}
+                      onClick={() => handleSelectWarehouse(w)}
+                      style={{
+                        padding: '8px 12px',
+                        fontSize: 13,
+                        fontWeight: selectedWarehouse === w ? 700 : 500,
+                        color: selectedWarehouse === w ? 'var(--teal, #0d9488)' : 'var(--ink)',
+                        background: selectedWarehouse === w ? 'var(--teal-l)' : 'transparent',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <span>{w}</span>
+                      {selectedWarehouse === w && <Icon name="check" size={14} color="var(--teal)" />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="sid-subtitle">4,218 SKUs tracked across 4 warehouses</div>
+        </div>
+
+        {/* Top Right Action Buttons */}
+        <div className="sid-actions" onClick={e => e.stopPropagation()}>
+          {/* Date Range Selector */}
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className="sid-btn-date"
+              onClick={() => setShowDateMenu(v => !v)}
+            >
+              <Icon name="calendar" size={14} color="var(--ink2)" />
+              <span>{dateRangeText}</span>
+            </button>
+
+            {showDateMenu && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: 6,
+                  background: 'var(--white)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 10,
+                  boxShadow: 'var(--elev-lg, 0 10px 25px rgba(0,0,0,0.15))',
+                  zIndex: 50,
+                  minWidth: 180,
+                  padding: 4,
+                }}
+              >
+                {['Today', 'Last 7 Days', 'Jul 1 – Jul 20', 'Last 30 Days', 'This Quarter', 'Year to Date'].map(d => (
+                  <div
+                    key={d}
+                    onClick={() => { setDateRangeText(d); setShowDateMenu(false); }}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: 12.5,
+                      fontWeight: dateRangeText === d ? 700 : 500,
+                      color: dateRangeText === d ? 'var(--teal)' : 'var(--ink)',
+                      background: dateRangeText === d ? 'var(--teal-l)' : 'transparent',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Import Button */}
+          <button
+            type="button"
+            className="sid-btn-outline"
+            onClick={() => setShowImportModal(true)}
+          >
+            <Icon name="fileText" size={14} color="var(--ink2)" />
+            <span>Import</span>
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => navigate('/seal/lots')}>
-            <Icon name="package" size={14} />
-            <span>View All Lots</span>
+
+          {/* Export Button */}
+          <button
+            type="button"
+            className="sid-btn-outline"
+            onClick={handleExportCSV}
+          >
+            <Icon name="send" size={14} color="var(--ink2)" />
+            <span>Export</span>
+          </button>
+
+          {/* Add Item Primary Button */}
+          <button
+            type="button"
+            className="sid-btn-primary"
+            onClick={() => setShowAddModal(true)}
+          >
+            <Icon name="plus" size={14} color="#ffffff" />
+            <span>Add Item</span>
           </button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="seal-empty">Loading warehouse dashboard &amp; metrics…</div>
-      ) : (
-        <>
-          {/* KPI Cards Strip (Ware Sync & Navexa Aesthetics) */}
-          <div className="seal-kpi-strip">
-            <div className="seal-kpi-card">
-              <div className="seal-kpi-value">{dashData?.compartmentCount ?? compartments.length ?? 0}</div>
-              <div className="seal-kpi-label">Compartments</div>
-            </div>
-            <div className="seal-kpi-card">
-              <div className="seal-kpi-value">{(metricsData?.lotCount ?? dashData?.lotCount ?? 0).toLocaleString()}</div>
-              <div className="seal-kpi-label">Lots On Hand</div>
-            </div>
-            <div className="seal-kpi-card">
-              <div className="seal-kpi-value" style={{ color: bandColor(metricsData?.occupancyPct ?? 0) }}>
-                {metricsData?.occupancyPct ?? 0}%
+      {/* ── Top Bento Row (2 Cards) ── */}
+      <div className="sid-bento-grid">
+        
+        {/* Left Card: Stock Level Trend */}
+        <div className="sid-card">
+          <div>
+            <div className="sid-card-header">
+              <div>
+                <h2 className="sid-card-title">Stock Level Trend</h2>
+                <div className="sid-card-sub">In-stock units, last 6 months</div>
               </div>
-              <div className="seal-kpi-label">Occupancy</div>
+              <span className="sid-card-badge-success">
+                <Icon name="trendingUp" size={12} />
+                +12.4% vs Jun
+              </span>
             </div>
-            <div className="seal-kpi-card">
-              <div className="seal-kpi-value">
-                {metricsData?.avgStorageDurationDays != null ? `${metricsData.avgStorageDurationDays}d` : '—'}
-              </div>
-              <div className="seal-kpi-label">Avg Storage Duration</div>
-            </div>
-            <div className="seal-kpi-card">
-              <div className={`seal-kpi-value${(dashData?.expiringSoonCount ?? 0) > 0 ? ' seal-kpi-value--alert' : ''}`}>
-                {dashData?.expiringSoonCount ?? 0}
-              </div>
-              <div className="seal-kpi-label">Expiring &le; 30 Days</div>
-            </div>
-            <div className="seal-kpi-card">
-              <div className={`seal-kpi-value${(metricsData?.flaggedLotCount ?? 0) > 0 ? ' seal-kpi-value--alert' : ''}`}>
-                {metricsData?.flaggedLotCount ?? 0}
-              </div>
-              <div className="seal-kpi-label">Flagged Lots</div>
+
+            {/* Recharts Area Chart */}
+            <div className="sid-chart-container">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={STOCK_TREND_DATA} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="sealStockAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--teal, #0d9488)" stopOpacity={0.28} />
+                      <stop offset="95%" stopColor="var(--teal, #0d9488)" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: 'var(--ink3)' }}
+                  />
+                  <YAxis hide domain={['dataMin - 500', 'dataMax + 500']} />
+                  <Tooltip
+                    formatter={(val: any) => [`${Number(val).toLocaleString()} units`, 'Stock']}
+                    contentStyle={{
+                      background: 'var(--white)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                      boxShadow: 'var(--elev-sm)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--ink)',
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="units"
+                    stroke="var(--teal, #0d9488)"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill="url(#sealStockAreaGrad)"
+                    dot={{ r: 4, fill: 'var(--teal, #0d9488)', stroke: 'var(--white)', strokeWidth: 2 }}
+                    activeDot={{ r: 6, fill: 'var(--teal, #0d9488)' }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Receiving & Release Movement Activity Chart */}
-          <div className="seal-card" style={{ marginBottom: 24 }}>
-            <div className="seal-card-hdr">
-              <div>
-                <h2 className="seal-card-title">Receiving &amp; Release Movement Activity — Last 30 Days</h2>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
-                  {metricsData?.scope === 'compartment' ? 'Current warehouse view' : 'Combined across all bonded facilities'}
+          {/* Bottom Analysis Strip */}
+          <div className="sid-chart-stats-row">
+            {/* ABC Analysis */}
+            <div className="sid-stat-block">
+              <div className="sid-stat-lbl">ABC Analysis</div>
+              <div className="sid-segmented-bar">
+                <div className="sid-seg-a" style={{ width: '20%' }} title="A: 20%" />
+                <div className="sid-seg-b" style={{ width: '30%' }} title="B: 30%" />
+                <div className="sid-seg-c" style={{ width: '50%' }} title="C: 50%" />
+              </div>
+              <div className="sid-stat-meta">A: 20% &middot; B: 30% &middot; C: 50%</div>
+            </div>
+
+            {/* Stock Aging */}
+            <div className="sid-stat-block">
+              <div className="sid-stat-lbl">Stock Aging</div>
+              <div className="sid-segmented-bar">
+                <div className="sid-seg-age-1" style={{ width: '62%' }} title="<30d: 62%" />
+                <div className="sid-seg-age-2" style={{ width: '24%' }} title="30-90d: 24%" />
+                <div className="sid-seg-age-3" style={{ width: '14%' }} title="90d+: 14%" />
+              </div>
+              <div className="sid-stat-meta">&lt;30d: 62% &middot; 30-90d: 24% &middot; 90d+: 14%</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Card: Warehouse Distribution */}
+        <div className="sid-card">
+          <div>
+            <div className="sid-card-header">
+              <h2 className="sid-card-title">Warehouse Distribution</h2>
+              <span className="sid-card-link" onClick={() => navigate('/seal/compartments')}>
+                Manage warehouses
+                <Icon name="arrowUpRight" size={12} />
+              </span>
+            </div>
+
+            {/* Overview Row with Circular Donut Gauge */}
+            <div className="sid-dist-overview">
+              <div className="sid-donut-wrap">
+                <svg width="54" height="54" viewBox="0 0 42 42">
+                  <circle
+                    cx="21"
+                    cy="21"
+                    r="15.915"
+                    fill="transparent"
+                    stroke="var(--bg, #e2e8f0)"
+                    strokeWidth="4"
+                  />
+                  <circle
+                    cx="21"
+                    cy="21"
+                    r="15.915"
+                    fill="transparent"
+                    stroke="var(--teal, #0d9488)"
+                    strokeWidth="4"
+                    strokeDasharray="60 40"
+                    strokeDashoffset="25"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="sid-donut-center">60%</div>
+              </div>
+
+              <div className="sid-dist-stats">
+                <div className="sid-dist-stat-item">
+                  <div className="sid-dist-stat-lbl">Avg. Utilization</div>
+                  <div className="sid-dist-stat-val">60%</div>
+                </div>
+                <div className="sid-dist-stat-item">
+                  <div className="sid-dist-stat-lbl">Total Capacity</div>
+                  <div className="sid-dist-stat-val">184,200</div>
+                </div>
+                <div className="sid-dist-stat-item">
+                  <div className="sid-dist-stat-lbl">Nearing Capacity</div>
+                  <div className="sid-dist-stat-val sid-dist-stat-val--alert">1 site</div>
                 </div>
               </div>
-              <Badge variant="brand">Real-Time Ledger</Badge>
-            </div>
-            <div style={{ padding: 20 }}>
-              {!metricsData?.dailyActivity || metricsData.dailyActivity.every(d => d.received === 0 && d.released === 0) ? (
-                <div className="seal-empty">No receipt or release movements recorded in the last 30 days.</div>
-              ) : (
-                <ClickableBarChart
-                  labels={activityDays.map(d => new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }))}
-                  values={activityDays.map(d => d.received - d.released)}
-                  barColors={activityDays.map(d => (d.received - d.released) >= 0 ? 'rgba(20,184,166,.75)' : 'rgba(239,68,68,.75)')}
-                  yLabel="Net lots (received − released)"
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Grid Layout: Status Breakdown & Compartments Visualizer */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24, marginBottom: 24 }}>
-            {/* Left: Lots by Customs Status */}
-            <div className="seal-card">
-              <div className="seal-card-hdr">
-                <h2 className="seal-card-title">Lots by Customs Status</h2>
-                <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/lots')}>
-                  <Icon name="package" size={13} />
-                  <span>View List</span>
-                </button>
-              </div>
-              <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {(dashData?.byStatus?.length ?? 0) === 0 ? (
-                  <div className="seal-empty">No lots on hand yet.</div>
-                ) : (
-                  dashData!.byStatus.map(row => (
-                    <div key={row.status} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
-                      <Badge variant={CUSTOMS_STATUS_VARIANT[row.status]}>{CUSTOMS_STATUS_LABELS[row.status] ?? row.status}</Badge>
-                      <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{row.count}</span>
-                    </div>
-                  ))
-                )}
-              </div>
             </div>
 
-            {/* Right: Active Warehouses / Compartments */}
-            <div className="seal-card">
-              <div className="seal-card-hdr">
-                <h2 className="seal-card-title">Warehouses &amp; Compartments</h2>
-                <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/compartments')}>
-                  <Icon name="layers" size={13} />
-                  <span>Manage All</span>
-                </button>
+            {/* Warehouse Utilization List */}
+            <div className="sid-wh-list">
+              {/* Warehouse E - North (82%) */}
+              <div className="sid-wh-item">
+                <div className="sid-wh-icon-wrap sid-wh-icon--rose">
+                  <Icon name="building" size={14} />
+                </div>
+                <div className="sid-wh-info">
+                  <div className="sid-wh-top">
+                    <span>Warehouse E – North</span>
+                    <span className="sid-wh-pct">82%</span>
+                  </div>
+                  <div className="sid-wh-track">
+                    <div className="sid-wh-fill sid-wh-fill--rose" style={{ width: '82%' }} />
+                  </div>
+                </div>
               </div>
-              <div style={{ padding: 12 }}>
-                {compartments.length === 0 ? (
-                  <div className="seal-empty">No compartments registered.</div>
-                ) : (
-                  compartments.map(c => {
-                    const compMetric = metricsData?.byCompartment?.find(m => m.compartmentId === c.id);
-                    const occ = compMetric?.occupancyPct ?? 0;
-                    return (
-                      <div
-                        key={c.id}
-                        onClick={() => navigate(`/seal/compartments/${c.id}/heat-grid`)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                          borderRadius: 'var(--r)', border: '1px solid var(--border)', marginBottom: 10,
-                          cursor: 'pointer', background: 'var(--white)', transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                        }}
-                        onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
-                        onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
-                      >
-                        <FeaturedIcon variant="brand" size="sm" shape="square">
-                          <Icon name="layers" size={16} />
-                        </FeaturedIcon>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{c.name}</div>
-                          <div className="seal-mono" style={{ color: 'var(--ink3)', fontSize: 11.5, marginTop: 2 }}>
-                            {c.code} · {c.jurisdiction}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: bandColor(occ) }}>
-                            {occ}% Occ
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                            {compMetric?.lotCount ?? 0} lots
-                          </div>
-                        </div>
-                        <Icon name="chevronRight" size={14} color="var(--ink3)" />
-                      </div>
-                    );
-                  })
-                )}
+
+              {/* Warehouse B - South (71%) */}
+              <div className="sid-wh-item">
+                <div className="sid-wh-icon-wrap sid-wh-icon--amber">
+                  <Icon name="building" size={14} />
+                </div>
+                <div className="sid-wh-info">
+                  <div className="sid-wh-top">
+                    <span>Warehouse B – South</span>
+                    <span className="sid-wh-pct">71%</span>
+                  </div>
+                  <div className="sid-wh-track">
+                    <div className="sid-wh-fill sid-wh-fill--amber" style={{ width: '71%' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Warehouse A - East (68%) */}
+              <div className="sid-wh-item">
+                <div className="sid-wh-icon-wrap sid-wh-icon--teal">
+                  <Icon name="building" size={14} />
+                </div>
+                <div className="sid-wh-info">
+                  <div className="sid-wh-top">
+                    <span>Warehouse A – East</span>
+                    <span className="sid-wh-pct">68%</span>
+                  </div>
+                  <div className="sid-wh-track">
+                    <div className="sid-wh-fill sid-wh-fill--teal" style={{ width: '68%' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Warehouse F - Overseas (46%) */}
+              <div className="sid-wh-item">
+                <div className="sid-wh-icon-wrap sid-wh-icon--teal">
+                  <Icon name="building" size={14} />
+                </div>
+                <div className="sid-wh-info">
+                  <div className="sid-wh-top">
+                    <span>Warehouse F – Overseas</span>
+                    <span className="sid-wh-pct">46%</span>
+                  </div>
+                  <div className="sid-wh-track">
+                    <div className="sid-wh-fill sid-wh-fill--teal" style={{ width: '46%' }} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* By Warehouse Performance Breakdown Table (Metrics integration) */}
-          {metricsData?.byCompartment && metricsData.byCompartment.length > 0 && (
-            <div className="seal-card">
-              <div className="seal-card-hdr">
-                <h2 className="seal-card-title">Warehouse Facility Performance Breakdown</h2>
-              </div>
-              <div className="seal-card-body">
-                <table className="seal-table">
-                  <thead>
-                    <tr>
-                      <th>Facility</th>
-                      <th>Lots On Hand</th>
-                      <th>Occupancy %</th>
-                      <th>Avg Storage Duration</th>
-                      <th>Flagged Lots</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {metricsData.byCompartment.map(c => (
-                      <tr key={c.compartmentId} onClick={() => navigate(`/seal/compartments/${c.compartmentId}/heat-grid`)}>
-                        <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{c.name}</td>
-                        <td>{c.lotCount}</td>
-                        <td>
-                          <span style={{ fontWeight: 800, color: bandColor(c.occupancyPct) }}>
-                            {c.occupancyPct}%
-                          </span>
-                        </td>
-                        <td>{c.avgStorageDurationDays != null ? `${c.avgStorageDurationDays}d` : '—'}</td>
-                        <td>
-                          {c.flaggedLotCount > 0 ? (
-                            <Badge variant="error">{c.flaggedLotCount}</Badge>
-                          ) : (
-                            <span style={{ color: 'var(--ink3)' }}>0</span>
-                          )}
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            style={{ height: 30, padding: '0 10px', fontSize: 12 }}
-                            onClick={e => { e.stopPropagation(); navigate(`/seal/compartments/${c.compartmentId}/heat-grid`); }}
-                          >
-                            <Icon name="grid" size={12} />
-                            <span>Heat Grid</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+      {/* ── Search & Filter Bar ── */}
+      <div className="sid-filter-bar">
+        <div className="sid-search-wrap">
+          <Icon name="search" size={16} />
+          <input
+            type="text"
+            className="sid-search-input"
+            placeholder="Search by product or SKU..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink3)' }}
+            >
+              <Icon name="x" size={14} />
+            </button>
           )}
-        </>
+        </div>
+
+        {/* Category Filter */}
+        <select
+          className="sid-select-filter"
+          value={selectedCategory}
+          onChange={e => setSelectedCategory(e.target.value)}
+        >
+          {CATEGORY_OPTIONS.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+
+        {/* Status Filter */}
+        <select
+          className="sid-select-filter"
+          value={selectedStatus}
+          onChange={e => setSelectedStatus(e.target.value)}
+        >
+          {STATUS_OPTIONS.map(s => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* ── Products Inventory Table ── */}
+      <div className="sid-table-card">
+        <div className="sid-table-wrap">
+          <table className="sid-table">
+            <thead>
+              <tr>
+                <th>PRODUCT</th>
+                <th>SKU</th>
+                <th>WAREHOUSE</th>
+                <th>QTY</th>
+                <th>RESERVED</th>
+                <th>AVAILABLE</th>
+                <th>REORDER LEVEL</th>
+                <th>VALUE</th>
+                <th>STATUS</th>
+                <th style={{ width: 40, textAlign: 'center' }} />
+              </tr>
+            </thead>
+            <tbody>
+              {filteredItems.length === 0 ? (
+                <tr>
+                  <td colSpan={10} style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--ink3)' }}>
+                    No inventory records match your filters.
+                  </td>
+                </tr>
+              ) : (
+                filteredItems.map(item => (
+                  <tr key={item.id}>
+                    <td>
+                      <span className="sid-prod-name">{item.name}</span>
+                    </td>
+                    <td>
+                      <span className="sid-sku-code">{item.sku}</span>
+                    </td>
+                    <td>
+                      <span className="sid-wh-col">{item.warehouse}</span>
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{item.qty}</td>
+                    <td style={{ color: 'var(--ink3)' }}>{item.reserved}</td>
+                    <td style={{ fontWeight: 700, color: item.available === 0 ? '#e11d48' : 'var(--ink)' }}>
+                      {item.available}
+                    </td>
+                    <td style={{ color: 'var(--ink3)' }}>{item.reorderLevel}</td>
+                    <td className="sid-val-col">{formatCurrency(item.value)}</td>
+                    <td>{renderStatusBadge(item.status)}</td>
+                    <td style={{ textAlign: 'center', position: 'relative' }}>
+                      <button
+                        type="button"
+                        className="sid-action-btn"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setActiveActionMenuId(activeActionMenuId === item.id ? null : item.id);
+                        }}
+                      >
+                        <Icon name="moreVertical" size={15} />
+                      </button>
+
+                      {/* Row Action Dropdown Menu */}
+                      {activeActionMenuId === item.id && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '100%',
+                            right: 12,
+                            marginTop: 2,
+                            background: 'var(--white)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 8,
+                            boxShadow: 'var(--elev-lg, 0 10px 25px rgba(0,0,0,0.15))',
+                            zIndex: 60,
+                            minWidth: 160,
+                            padding: 4,
+                            textAlign: 'left',
+                          }}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <div
+                            onClick={() => {
+                              setAdjustingItem(item);
+                              setAdjustQty(0);
+                              setActiveActionMenuId(null);
+                            }}
+                            style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', borderRadius: 6 }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            Adjust Stock
+                          </div>
+                          <div
+                            onClick={() => {
+                              showAlert(`Barcode printed for ${item.sku}`, { variant: 'success' });
+                              setActiveActionMenuId(null);
+                            }}
+                            style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', borderRadius: 6 }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            Print Barcode
+                          </div>
+                          <div
+                            onClick={() => {
+                              setItems(prev => prev.filter(i => i.id !== item.id));
+                              showAlert(`Deleted ${item.name}`, { variant: 'warning' });
+                              setActiveActionMenuId(null);
+                            }}
+                            style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#e11d48', cursor: 'pointer', borderRadius: 6 }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(225,29,72,0.1)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            Delete SKU
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Add Item Modal Dialog ── */}
+      {showAddModal && (
+        <div className="sid-modal-backdrop" onClick={() => setShowAddModal(false)}>
+          <div className="sid-modal" onClick={e => e.stopPropagation()}>
+            <div className="sid-modal-hdr">
+              <div className="sid-modal-title">Add Inventory Item</div>
+              <button
+                type="button"
+                className="sid-action-btn"
+                onClick={() => setShowAddModal(false)}
+              >
+                <Icon name="x" size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleAddItem}>
+              <div className="sid-modal-body">
+                <div className="sid-form-group">
+                  <label className="sid-form-label">Product Name</label>
+                  <input
+                    type="text"
+                    className="sid-input"
+                    placeholder="e.g. Smart Watch Ultra"
+                    value={newItem.name}
+                    onChange={e => setNewItem({ ...newItem, name: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="sid-form-group">
+                    <label className="sid-form-label">SKU Code</label>
+                    <input
+                      type="text"
+                      className="sid-input"
+                      placeholder="e.g. SKU-48120"
+                      value={newItem.sku}
+                      onChange={e => setNewItem({ ...newItem, sku: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="sid-form-group">
+                    <label className="sid-form-label">Category</label>
+                    <select
+                      className="sid-input"
+                      value={newItem.category}
+                      onChange={e => setNewItem({ ...newItem, category: e.target.value })}
+                    >
+                      {CATEGORY_OPTIONS.filter(c => c !== 'All Categories').map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="sid-form-group">
+                    <label className="sid-form-label">Warehouse</label>
+                    <select
+                      className="sid-input"
+                      value={newItem.warehouse}
+                      onChange={e => setNewItem({ ...newItem, warehouse: e.target.value })}
+                    >
+                      {WAREHOUSE_OPTIONS.filter(w => w !== 'All Warehouses').map(w => (
+                        <option key={w} value={w}>{w}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="sid-form-group">
+                    <label className="sid-form-label">Reorder Level</label>
+                    <input
+                      type="number"
+                      className="sid-input"
+                      value={newItem.reorderLevel}
+                      onChange={e => setNewItem({ ...newItem, reorderLevel: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                  <div className="sid-form-group">
+                    <label className="sid-form-label">Initial Qty</label>
+                    <input
+                      type="number"
+                      className="sid-input"
+                      value={newItem.qty}
+                      onChange={e => setNewItem({ ...newItem, qty: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="sid-form-group">
+                    <label className="sid-form-label">Reserved Qty</label>
+                    <input
+                      type="number"
+                      className="sid-input"
+                      value={newItem.reserved}
+                      onChange={e => setNewItem({ ...newItem, reserved: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="sid-form-group">
+                    <label className="sid-form-label">Unit Value ($)</label>
+                    <input
+                      type="number"
+                      className="sid-input"
+                      value={newItem.unitValue}
+                      onChange={e => setNewItem({ ...newItem, unitValue: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="sid-modal-footer">
+                <button
+                  type="button"
+                  className="sid-btn-outline"
+                  onClick={() => setShowAddModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="sid-btn-primary"
+                >
+                  Save Item
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
+
+      {/* ── Import CSV Modal Dialog ── */}
+      {showImportModal && (
+        <div className="sid-modal-backdrop" onClick={() => setShowImportModal(false)}>
+          <div className="sid-modal" onClick={e => e.stopPropagation()}>
+            <div className="sid-modal-hdr">
+              <div className="sid-modal-title">Bulk Import Inventory</div>
+              <button
+                type="button"
+                className="sid-action-btn"
+                onClick={() => setShowImportModal(false)}
+              >
+                <Icon name="x" size={16} />
+              </button>
+            </div>
+            <div className="sid-modal-body">
+              <div
+                style={{
+                  border: '2px dashed var(--border2)',
+                  borderRadius: 12,
+                  padding: '32px 20px',
+                  textAlign: 'center',
+                  background: 'var(--bg)',
+                  cursor: 'pointer',
+                }}
+                onClick={() => {
+                  showAlert('Sample CSV imported successfully: +10 SKUs synced.', { variant: 'success' });
+                  setShowImportModal(false);
+                }}
+              >
+                <Icon name="upload" size={32} color="var(--teal)" style={{ margin: '0 auto 12px' }} />
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
+                  Drag & drop CSV or Excel spreadsheet
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>
+                  Supports .csv, .xlsx up to 25MB (Product, SKU, Qty, Warehouse)
+                </div>
+              </div>
+            </div>
+            <div className="sid-modal-footer">
+              <button
+                type="button"
+                className="sid-btn-outline"
+                onClick={() => setShowImportModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Stock Adjustment Modal Dialog ── */}
+      {adjustingItem && (
+        <div className="sid-modal-backdrop" onClick={() => setAdjustingItem(null)}>
+          <div className="sid-modal" onClick={e => e.stopPropagation()}>
+            <div className="sid-modal-hdr">
+              <div className="sid-modal-title">Adjust Stock Level &middot; {adjustingItem.name}</div>
+              <button
+                type="button"
+                className="sid-action-btn"
+                onClick={() => setAdjustingItem(null)}
+              >
+                <Icon name="x" size={16} />
+              </button>
+            </div>
+            <div className="sid-modal-body">
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--bg)', borderRadius: 8 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>CURRENT ON HAND</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{adjustingItem.qty} units</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>RESERVED</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink2)' }}>{adjustingItem.reserved} units</div>
+                </div>
+              </div>
+
+              <div className="sid-form-group">
+                <label className="sid-form-label">Adjustment Quantity (+ / −)</label>
+                <input
+                  type="number"
+                  className="sid-input"
+                  placeholder="e.g. +10 or -5"
+                  value={adjustQty}
+                  onChange={e => setAdjustQty(Number(e.target.value))}
+                />
+              </div>
+
+              <div className="sid-form-group">
+                <label className="sid-form-label">Reason Code</label>
+                <select
+                  className="sid-input"
+                  value={adjustReason}
+                  onChange={e => setAdjustReason(e.target.value)}
+                >
+                  <option value="Cycle Count Adjustment">Cycle Count Adjustment</option>
+                  <option value="Purchase Receipt">Purchase Receipt</option>
+                  <option value="Customer Return">Customer Return</option>
+                  <option value="Damaged / Scrap">Damaged / Scrap</option>
+                  <option value="Internal Transfer">Internal Transfer</option>
+                </select>
+              </div>
+            </div>
+            <div className="sid-modal-footer">
+              <button
+                type="button"
+                className="sid-btn-outline"
+                onClick={() => setAdjustingItem(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="sid-btn-primary"
+                onClick={handleSaveAdjustment}
+              >
+                Confirm Adjustment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

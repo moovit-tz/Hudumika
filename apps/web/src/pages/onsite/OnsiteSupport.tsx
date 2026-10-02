@@ -77,8 +77,8 @@ export function OnsiteSupport() {
     <div className="onsite-page">
       <PageHeader
         crumbs={['Onsite', 'Support']}
-        titlePlain="Get"
-        titleEm="help"
+        titlePlain="Onsite"
+        titleEm="support"
         subtitle="Contact Hudumika support about your hosting, domains, or infrastructure — routed to a priority queue for Onsite."
         actions={
           <button className="btn btn-primary" onClick={() => setShowForm(true)}>

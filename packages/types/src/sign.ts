@@ -2,7 +2,7 @@
 // These are the canonical shapes for envelopes, recipients, fields,
 // audit events, and templates. Both apps/api and apps/web import from here.
 
-export type SignEnvelopeStatus = 'draft' | 'sent' | 'completed' | 'voided' | 'declined' | 'expired';
+export type SignEnvelopeStatus = 'draft' | 'sent' | 'completed' | 'voided' | 'declined' | 'expired' | 'needs_rerouting';
 export type SignRecipientStatus = 'pending' | 'viewed' | 'signed' | 'declined';
 export type SignFieldType = 'signature' | 'initials' | 'date' | 'text' | 'checkbox' | 'stamp' | 'certification_stamp';
 export type SignOrderMode = 'sequential' | 'parallel';

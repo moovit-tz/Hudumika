@@ -258,8 +258,8 @@ export const FinanceSalesReport: React.FC = () => {
                   <tr key={i.mapped.id + idx} style={{ borderBottom: idx < pagedInvoices.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--font)', fontSize: 11 }}>{i.mapped.id}</td>
                     <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 500 }}>{i.mapped.client}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{i.mapped.billDate || 'â€”'}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{i.mapped.dueDate || 'â€”'}</td>
+                    <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{i.mapped.billDate || '—'}</td>
+                    <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{i.mapped.dueDate || '—'}</td>
                     <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 600, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(i.total)}</td>
                     <td style={{ padding: '10px 16px', color: i.dueAmt > 0 ? 'var(--red)' : 'var(--ink3)', fontWeight: i.dueAmt > 0 ? 600 : 400, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(i.dueAmt)}</td>
                     <td style={{ padding: '10px 16px' }}>
@@ -275,7 +275,7 @@ export const FinanceSalesReport: React.FC = () => {
           {invoices.length > PAGE_SIZE && (
             <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, background: 'var(--white)' }}>
               <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                Showing <strong>{offset + 1}â€“{Math.min(offset + PAGE_SIZE, invoices.length)}</strong> of <strong>{invoices.length}</strong> invoices
+                Showing <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, invoices.length)}</strong> of <strong>{invoices.length}</strong> invoices
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <button

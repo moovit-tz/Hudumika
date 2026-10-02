@@ -165,8 +165,8 @@ export function BlissNotifications() {
       <div style={{ padding: '16px 24px 12px', background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <PageHeader
           crumbs={['Bliss', 'Notifications']}
-          titlePlain="Notification"
-          titleEm="Centre"
+          titlePlain="All"
+          titleEm="notifications"
           subtitle={unreadCount > 0 ? `${unreadCount} unread alerts • every platform notification, organized in one place.` : 'Every notification across the platform, organized in real time.'}
           actions={
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
