@@ -4509,12 +4509,12 @@ select.input-field { cursor: pointer; }
 }
 
 .fin-tab-close:hover {
-  background: #e5e7eb;
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
 .fin-tab-close:active {
-  background: #d1d5db;
+  background: var(--border);
   color: var(--ink);
 }
 
@@ -5267,12 +5267,12 @@ select.input-field { cursor: pointer; }
 
 /* Active filter pills — per status via data-filter attribute */
 .fin-filter-pill--active                     { border-color: var(--teal);   background: var(--teal-l);  color: var(--teal);   }
-.fin-filter-pill[data-filter="Draft"]        { border-color: #d1d5db;       background: #f3f4f6;        color: var(--ink);       }
-.fin-filter-pill[data-filter="Unpaid"]       { border-color: #fcd34d;       background: var(--gold-l);        color: var(--gold);       }
-.fin-filter-pill[data-filter="Partial"]      { border-color: #93c5fd;       background: var(--blue-l);        color: var(--blue);       }
-.fin-filter-pill[data-filter="Paid"]         { border-color: #86efac;       background: var(--green-l);        color: #16a34a;       }
-.fin-filter-pill[data-filter="Overdue"]      { border-color: #fca5a5;       background: var(--red-l);        color: var(--red);       }
-.fin-filter-pill[data-filter="Credited"]     { border-color: #c4b5fd;       background: #faf5ff;        color: #7c3aed;       }
+.fin-filter-pill[data-filter="Draft"]        { border-color: var(--border);  background: var(--bg);      color: var(--ink);       }
+.fin-filter-pill[data-filter="Unpaid"]       { border-color: #fcd34d;        background: var(--gold-l);  color: var(--gold);       }
+.fin-filter-pill[data-filter="Partial"]      { border-color: #93c5fd;        background: var(--blue-l);  color: var(--blue);       }
+.fin-filter-pill[data-filter="Paid"]         { border-color: #86efac;        background: var(--green-l); color: var(--green);      }
+.fin-filter-pill[data-filter="Overdue"]      { border-color: #fca5a5;        background: var(--red-l);   color: var(--red);        }
+.fin-filter-pill[data-filter="Credited"]     { border-color: var(--purple);  background: var(--purple-l); color: var(--purple);    }
 
 .fin-filter-count {
   font-size: 10px;
@@ -5446,10 +5446,10 @@ select.input-field { cursor: pointer; }
   white-space: nowrap;
 }
 /* Light-fill Vuexy style */
-.fin-arch-status-pill[data-status="Draft"]    { background: #f3f4f6; color: var(--ink); }
-.fin-arch-status-pill[data-status="Partial"]  { background: var(--blue-l); color: var(--blue); }
-.fin-arch-status-pill[data-status="Paid"]     { background: var(--green-l); color: var(--green); }
-.fin-arch-status-pill[data-status="Credited"] { background: #fce7f3; color: #be185d; }
+.fin-arch-status-pill[data-status="Draft"]    { background: var(--bg);       color: var(--ink2);     border: 1px solid var(--border); }
+.fin-arch-status-pill[data-status="Partial"]  { background: var(--blue-l);   color: var(--blue);  }
+.fin-arch-status-pill[data-status="Paid"]     { background: var(--green-l);  color: var(--green); }
+.fin-arch-status-pill[data-status="Credited"] { background: var(--purple-l); color: var(--purple); }
 .fin-arch-status-pill[data-status="Unpaid"]   { background: var(--gold-l); color: var(--gold); }
 .fin-arch-status-pill[data-status="Overdue"]  { background: var(--red-l); color: var(--red); }
 
@@ -5780,7 +5780,7 @@ select.input-field { cursor: pointer; }
 }
 
 .fin-nf-option:hover { background: var(--hover-bg); color: var(--ink); }
-.fin-nf-option--active { background: #e6f4f3; color: var(--teal); font-weight: 700; }
+.fin-nf-option--active { background: var(--teal-l); color: var(--teal); font-weight: 700; }
 
 .fin-nf-divider { height: 1px; background: var(--border); margin: 0 12px; }
 
