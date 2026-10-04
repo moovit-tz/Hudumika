@@ -1382,39 +1382,65 @@
 .etab-marketplace-search input { padding-left: 36px; padding-right: 42px; background: var(--bg); }
 .etab-marketplace-search > button { position: absolute; right: 3px; min-height: 30px; width: 30px; }
 .etab-marketplace-loading { display: grid; min-height: 320px; place-items: center; }
-.etab-marketplace-featured-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 16px 0; }
-.etab-marketplace-featured-grid--list { grid-template-columns: 1fr; gap: 8px; }
+.etab-marketplace-featured-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 14px 0; }
+.etab-marketplace-featured-grid--list { grid-template-columns: 1fr; gap: 6px; }
+
+/* ── Card (grid view) ── */
 .etab-marketplace-featured-card {
-  min-width: 0; min-height: 224px; padding: 14px;
-  display: flex; flex-direction: column; gap: 12px; text-align: left;
+  min-width: 0; padding: 12px;
+  display: flex; flex-direction: column; gap: 8px; text-align: left;
   background: var(--card-bg, var(--white)); border: var(--card-border);
   border-radius: var(--card-radius, var(--r)); box-shadow: var(--card-shadow, var(--elev-sm));
   color: var(--ink);
   transition: border-color var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast);
 }
-.etab-marketplace-featured-grid--list .etab-marketplace-featured-card {
-  min-height: 78px; display: grid; grid-template-columns: 150px minmax(300px, 1fr) 270px;
-  align-items: center; gap: 16px; padding: 10px 14px; transform: none;
-}
-.etab-marketplace-featured-grid--list .etab-marketplace-card-top { align-items: center; }
-.etab-marketplace-featured-grid--list .etab-marketplace-card-top > div { width: 40px; height: 40px; }
-.etab-marketplace-featured-grid--list .etab-marketplace-card-copy p { margin-top: 5px; -webkit-line-clamp: 1; }
-.etab-marketplace-featured-grid--list .etab-marketplace-card-meta { padding-top: 0; border-top: 0; justify-content: flex-end; }
 .etab-marketplace-featured-card:hover { border-color: var(--teal-m); box-shadow: var(--elev); transform: translateY(-2px); }
 .etab-marketplace-featured-card:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-.etab-marketplace-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.etab-marketplace-card-copy { flex: 1; min-width: 0; }
-.etab-marketplace-card-copy h3 { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.35; }
-.etab-marketplace-card-copy > span { display: block; margin-top: 4px; color: var(--ink3); font-size: 12px; }
-.etab-marketplace-card-copy p {
-  margin: 10px 0 0; color: var(--ink2); font-size: 12.5px; line-height: 1.45;
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden;
+
+/* header: icon + title/author + official badge */
+.etab-marketplace-card-header {
+  display: flex; align-items: flex-start; gap: 9px;
 }
-.etab-marketplace-card-meta {
-  display: flex; align-items: center; gap: 8px; padding-top: 10px;
-  border-top: var(--border-width, 1px) solid var(--border); color: var(--ink3); font-size: 11px;
+.etab-marketplace-card-title-wrap {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px;
 }
-.etab-marketplace-card-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.etab-marketplace-card-title {
+  margin: 0; color: var(--ink); font-size: 13.5px; font-weight: 700; line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.etab-marketplace-card-author {
+  font-size: 11px; color: var(--ink3); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* description */
+.etab-marketplace-card-desc {
+  margin: 0; color: var(--ink2); font-size: 12px; line-height: 1.45; flex: 1;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+
+/* footer: category badge + downloads + import button */
+.etab-marketplace-card-footer {
+  display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.etab-marketplace-card-dl {
+  font-size: 11px; color: var(--ink3); white-space: nowrap;
+}
+.etab-marketplace-card-footer > button { margin-left: auto; }
+
+/* ── Card (list view) ── */
+.etab-marketplace-featured-grid--list .etab-marketplace-featured-card {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.2fr) minmax(200px, 2fr) auto;
+  align-items: center; gap: 16px; padding: 10px 14px;
+  transform: none;
+}
+.etab-marketplace-featured-grid--list .etab-marketplace-featured-card:hover { transform: none; }
+.etab-marketplace-featured-grid--list .etab-marketplace-card-header { align-items: center; }
+.etab-marketplace-featured-grid--list .etab-marketplace-card-desc { -webkit-line-clamp: 1; }
+.etab-marketplace-featured-grid--list .etab-marketplace-card-footer {
+  margin-top: 0; padding-top: 0; border-top: 0; justify-content: flex-end; flex-wrap: nowrap;
+}
 .etab-marketplace-footer {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 16px; background: var(--surface2); border: var(--border-width, 1px) solid var(--border);
@@ -1431,7 +1457,7 @@
 @media (max-width: 1200px) {
   .etab-marketplace-featured-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .etab-marketplace-featured-grid--list { grid-template-columns: 1fr; }
-  .etab-marketplace-featured-grid--list .etab-marketplace-featured-card { grid-template-columns: 140px minmax(240px, 1fr) 260px; }
+  .etab-marketplace-featured-grid--list .etab-marketplace-featured-card { grid-template-columns: minmax(160px, 1fr) minmax(180px, 2fr) auto; }
 }
 @media (max-width: 980px) {
   .etab-marketplace-heading { gap: 10px; }
@@ -1445,8 +1471,7 @@
   .etab-marketplace-heading-actions { align-items: stretch; justify-content: space-between; }
   .etab-marketplace-search { flex-basis: auto; width: 100%; max-width: none; margin-left: 0; }
   .etab-marketplace-featured-grid { grid-template-columns: 1fr; }
-  .etab-marketplace-featured-grid--list .etab-marketplace-featured-card { display: flex; min-height: 230px; }
-  .etab-marketplace-featured-card { min-height: 230px; }
+  .etab-marketplace-featured-grid--list .etab-marketplace-featured-card { display: flex; flex-direction: column; }
 }
 
 .etab-mkt-root {

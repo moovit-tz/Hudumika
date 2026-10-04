@@ -700,30 +700,33 @@ export function MarketplaceTab({ onBack }: { onBack: () => void }) {
               const icon = categoryIcon(template.category);
               return (
                 <div key={template.id} className="etab-marketplace-featured-card">
-                  <div className="etab-marketplace-card-top">
-                    <FeaturedIcon size="lg" variant={icon.variant}><Icon name={icon.name} size={20} /></FeaturedIcon>
-                    <Badge variant={template.is_hudumika_official ? 'brand' : 'gray'}>
-                      {template.is_hudumika_official ? 'Official' : 'Verified'}
-                    </Badge>
-                  </div>
-                  <div className="etab-marketplace-card-copy">
-                    <h3>{template.title}</h3>
-                    <span>By {template.author_name}</span>
-                    <p>{template.description}</p>
-                  </div>
-                  <div className="etab-marketplace-card-meta">
-                    <Badge variant={icon.variant}>{MKT_CAT_LABEL[template.category] ?? template.application ?? template.category}</Badge>
-                    <span>{template.downloads > 0 ? `${template.downloads.toLocaleString()} imports` : 'New'}</span>
-                    <div className="etab-marketplace-card-actions">
-                      <Button
-                        size="xs"
-                        variant={importedIds.has(template.id) ? 'outline' : 'default'}
-                        disabled={importedIds.has(template.id) || importingId === template.id}
-                        onClick={() => importTemplate(template)}
-                      >
-                        {importingId === template.id ? 'Importing…' : importedIds.has(template.id) ? <><Icon name="check" size={13} /> Imported</> : <><Icon name="download" size={13} /> Import</>}
-                      </Button>
+                  {/* header: icon + title/author + official badge */}
+                  <div className="etab-marketplace-card-header">
+                    <FeaturedIcon size="sm" variant={icon.variant}><Icon name={icon.name} size={14} /></FeaturedIcon>
+                    <div className="etab-marketplace-card-title-wrap">
+                      <h3 className="etab-marketplace-card-title">{template.title}</h3>
+                      <span className="etab-marketplace-card-author">By {template.author_name}</span>
                     </div>
+                    {template.is_hudumika_official && (
+                      <Badge variant="brand" className="shrink-0">Official</Badge>
+                    )}
+                  </div>
+                  {/* description */}
+                  <p className="etab-marketplace-card-desc">{template.description}</p>
+                  {/* footer: category + downloads + action */}
+                  <div className="etab-marketplace-card-footer">
+                    <Badge variant={icon.variant}>{MKT_CAT_LABEL[template.category] ?? template.application ?? template.category}</Badge>
+                    {template.downloads > 0 && (
+                      <span className="etab-marketplace-card-dl">{template.downloads.toLocaleString()} imports</span>
+                    )}
+                    <Button
+                      size="xs"
+                      variant={importedIds.has(template.id) ? 'outline' : 'default'}
+                      disabled={importedIds.has(template.id) || importingId === template.id}
+                      onClick={() => importTemplate(template)}
+                    >
+                      {importingId === template.id ? 'Importing…' : importedIds.has(template.id) ? <><Icon name="check" size={13} /> Imported</> : <><Icon name="download" size={13} /> Import</>}
+                    </Button>
                   </div>
                 </div>
               );
