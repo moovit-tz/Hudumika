@@ -962,7 +962,10 @@
 
 [data-theme="dark"] .wh-horizontal-card:hover {
   background:
-    linear-gradient(var(--wh-night-card-hover), var(--wh-night-card-hover)) padding-box,
+    linear-gradient(
+      color-mix(in srgb, var(--card-color, var(--teal)) 9%, var(--white)),
+      color-mix(in srgb, var(--card-color, var(--teal)) 9%, var(--white))
+    ) padding-box,
     conic-gradient(
       from var(--wh-border-angle),
       transparent 0deg, transparent 78deg,
@@ -1026,7 +1029,10 @@
 
 [data-theme="dark"] .wh-grid-card:hover {
   background:
-    linear-gradient(var(--wh-night-card-hover), var(--wh-night-card-hover)) padding-box,
+    linear-gradient(
+      color-mix(in srgb, var(--card-color, var(--teal)) 9%, var(--white)),
+      color-mix(in srgb, var(--card-color, var(--teal)) 9%, var(--white))
+    ) padding-box,
     conic-gradient(
       from var(--wh-border-angle),
       transparent 0deg, transparent 78deg,
