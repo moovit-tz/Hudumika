@@ -386,22 +386,25 @@ html[data-expanded="true"] .app-sidebar {
 }
 
 .app-sb-item--active {
-  /* --teal-fill is the fill-safe accent: appColor in light, darkenHex(appColor, 0.45)
-     in dark — so the active item stays saturated and deep even on a dark sidebar,
-     whereas --teal (used for text) is lightened in dark and reads washed-out as a fill. */
-  background: var(--teal-fill, var(--teal, #0f766e)) !important;
-  color: hsl(var(--primary-foreground)) !important;
+  /* Tinted pill — --teal is lightened in dark mode so the 18% overlay reads as
+     a visible but not glaring accent tint against the near-black sidebar bg.
+     Text is --sb-item-hover-fg (= --ink = #e2e8f0 on the dark sidebar, normal
+     ink on the light sidebar) rather than hsl(--primary-foreground), which is
+     computed for the *lightened* --primary and can resolve to a dark colour
+     that disappears on a dark sidebar background. */
+  background: color-mix(in srgb, var(--teal, #0f766e) 18%, transparent) !important;
+  color: var(--sb-item-hover-fg) !important;
   font-weight: 700;
   box-shadow: none !important;
 }
 
 .app-sb-item--active .app-sb-item-icon {
-  color: hsl(var(--primary-foreground)) !important;
+  color: var(--teal, #0f766e) !important;
   opacity: 1;
 }
 
 .app-sb-item--active .app-sb-item-label {
-  color: hsl(var(--primary-foreground)) !important;
+  color: var(--sb-item-hover-fg) !important;
 }
 
 /* Collapsed: center icon, remove margins */
@@ -429,7 +432,7 @@ html[data-expanded="true"] .app-sidebar {
 }
 
 .app-sb-item--active .app-sb-item-icon {
-  color: hsl(var(--primary-foreground));
+  color: var(--teal, #0f766e);
   opacity: 1;
 }
 
