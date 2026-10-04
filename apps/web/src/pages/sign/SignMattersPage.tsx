@@ -159,7 +159,7 @@ function MattersList() {
               {pageItems.map((m, i) => (
                 <div key={m.matter_reference}
                   onClick={() => navigate(`/sign/matters/${encodeURIComponent(m.matter_reference)}`)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: i < pageItems.length - 1 ? '1px solid var(--bg)' : 'none', cursor: 'pointer' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: i < pageItems.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}>
                   <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="briefcase" size={16} color="var(--teal)" strokeWidth={1.75} />
                   </div>
@@ -235,7 +235,7 @@ function MatterDetail({ reference }: { reference: string }) {
               {pageItems.map((e, i) => (
                 <div key={e.id}
                   onClick={() => navigate(`/sign/envelope/${e.id}`)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < pageItems.length - 1 ? '1px solid var(--bg)' : 'none', cursor: 'pointer' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < pageItems.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}>
                   <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="stamp" size={16} color="var(--teal)" strokeWidth={1.75} />
                   </div>

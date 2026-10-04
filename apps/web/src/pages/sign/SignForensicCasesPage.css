@@ -98,20 +98,32 @@
   border-color: color-mix(in srgb, var(--red) 35%, var(--border));
   background: linear-gradient(135deg, var(--white) 0%, color-mix(in srgb, var(--red) 4%, var(--white)) 100%);
 }
+[data-theme="dark"] .sfc-verdict-hero--danger {
+  background: var(--red-l);
+}
 
 .sfc-verdict-hero--warning {
   border-color: color-mix(in srgb, var(--gold) 35%, var(--border));
   background: linear-gradient(135deg, var(--white) 0%, color-mix(in srgb, var(--gold) 4%, var(--white)) 100%);
+}
+[data-theme="dark"] .sfc-verdict-hero--warning {
+  background: var(--gold-l);
 }
 
 .sfc-verdict-hero--success {
   border-color: color-mix(in srgb, var(--green) 35%, var(--border));
   background: linear-gradient(135deg, var(--white) 0%, color-mix(in srgb, var(--green) 4%, var(--white)) 100%);
 }
+[data-theme="dark"] .sfc-verdict-hero--success {
+  background: var(--green-l);
+}
 
 .sfc-verdict-hero--info {
   border-color: color-mix(in srgb, var(--teal) 35%, var(--border));
   background: linear-gradient(135deg, var(--white) 0%, color-mix(in srgb, var(--teal) 4%, var(--white)) 100%);
+}
+[data-theme="dark"] .sfc-verdict-hero--info {
+  background: var(--teal-l);
 }
 
 .sfc-verdict-icon-wrap {

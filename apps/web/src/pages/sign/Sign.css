@@ -404,7 +404,9 @@
   border: 2px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
-  background: var(--bg);
+  /* Always white — signature ink must contrast against the drawing surface
+     the same way it does on paper; dark-mode adaptive bg makes it invisible. */
+  background: #fff;
   position: relative;
   touch-action: none;
 }
