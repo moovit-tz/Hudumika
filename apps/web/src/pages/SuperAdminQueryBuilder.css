@@ -3,7 +3,7 @@
   min-height: 0;
   overflow-y: auto;
   padding: 28px 32px 60px;
-  background: var(--bg);
+  background: transparent;
 }
 
 .qb-header { margin-bottom: 24px; }

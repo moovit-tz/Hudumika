@@ -89,7 +89,7 @@ export const TrackingNewVehicle: React.FC = () => {
   const labelStyle = { display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent' }}>
       <PageHeader
         crumbs={['HuduFreight', 'New Vehicle']}
         title="Add a vehicle"

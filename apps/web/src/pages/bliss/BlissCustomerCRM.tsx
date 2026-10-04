@@ -96,7 +96,7 @@ export const BlissCustomerCRM: React.FC = () => {
   }, [selectedCust?.id]);
 
   return (
-    <div className="crm-root" style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '20px 24px', background: 'var(--bg)', minHeight: '100%' }}>
+    <div className="crm-root" style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '20px 24px', background: 'transparent', minHeight: '100%' }}>
       <PageHeader
         crumbs={['Bliss', 'CRM']}
         titlePlain="Customer"

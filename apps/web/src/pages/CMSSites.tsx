@@ -128,7 +128,7 @@ export function CMSSites() {
   const defaultSite = sites?.find(s => s.is_default);
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent', overflow: 'hidden' }}>
       <PageHeader
         crumbs={[{ label: 'CMS', to: '/cms' }, { label: 'Sites' }]}
         title="Multisite Management"

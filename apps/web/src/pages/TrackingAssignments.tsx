@@ -90,7 +90,7 @@ export const TrackingAssignments: React.FC = () => {
   });
 
   return (
-    <div style={{ padding: '0 0 24px', background: 'var(--bg)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ padding: '0 0 24px', background: 'transparent', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <PageHeader
         crumbs={['HuduFreight', 'Assignments']}
         titlePlain="Driver"

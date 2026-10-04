@@ -4,7 +4,7 @@
 
 .ssg-root {
   padding: 20px;
-  background: var(--bg);
+  background: transparent;
   height: 100%;
   font-family: var(--font);
   overflow-y: auto;

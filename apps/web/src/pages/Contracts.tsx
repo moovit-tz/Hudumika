@@ -76,7 +76,7 @@ export const Contracts: React.FC = () => {
   const filteredRows = (rows || []).filter(r => !search.trim() || r.subject.toLowerCase().includes(search.toLowerCase()) || (r.customer_name || '').toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
+    <div style={{ flex: 1, overflowY: 'auto', background: 'transparent', fontFamily: 'var(--font)' }}>
       <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0' }}>
         <PageHeader
           crumbs={['Projects', 'Contracts']}

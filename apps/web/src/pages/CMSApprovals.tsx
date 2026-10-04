@@ -95,7 +95,7 @@ export function CMSApprovals() {
   const myActionCount = (approvals ?? []).filter(a => a.assigned_to === user?.id && a.status === 'pending').length;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent', overflow: 'hidden' }}>
       <PageHeader
         crumbs={[{ label: 'CMS', to: '/cms' }, { label: 'Approvals' }]}
         title="Editorial Approvals & Review Queue"

@@ -685,7 +685,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
   // ═════════════════════════════════════════════════════════════════════
   if (!selectedId || !selected) {
     return (
-      <div className="ops-dashboard" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
+      <div className="ops-dashboard" style={{ flex: 1, overflowY: 'auto', background: 'transparent', fontFamily: 'var(--font)' }}>
         {/* Top OS App Navigation Bar */}
         <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
@@ -1040,7 +1040,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'transparent', fontFamily: 'var(--font)' }}>
       {/* Project Workspace Top Bar */}
       <div style={{ padding: isMobile ? '16px 16px 0' : '20px 32px 0', background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
         <button

@@ -13,7 +13,7 @@ export const BlissAICopilot: React.FC = () => {
   const isMobile = useMediaQuery('(max-width: 900px)');
 
   return (
-    <div style={{ padding: '20px 24px', background: 'var(--bg)', minHeight: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ padding: '20px 24px', background: 'transparent', minHeight: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
         crumbs={['Bliss', 'AI Copilot']}
         titlePlain="AI"

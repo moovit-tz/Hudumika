@@ -72,7 +72,7 @@ export function CMSPermissions() {
 
   if (user && !CMS_ADMIN_ROLES.includes(user.role)) {
     return (
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent' }}>
         <PageHeader crumbs={['CMS', 'Permissions']} titlePlain="CMS" titleEm="permissions" subtitle="Only an administrator can manage these." />
         <div style={{ padding: 24 }}>
           <Banner variant="info">Only an administrator can view or change CMS permissions.</Banner>
@@ -82,7 +82,7 @@ export function CMSPermissions() {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent', overflow: 'hidden' }}>
       <PageHeader
         crumbs={['CMS', 'Permissions']}
         titlePlain="CMS"

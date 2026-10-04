@@ -35,7 +35,7 @@
 
 .sub-root {
   min-height: calc(100vh - 48px);
-  background: var(--bg);
+  background: transparent;
   font-family: var(--font);
 }
 

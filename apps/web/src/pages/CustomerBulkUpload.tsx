@@ -52,7 +52,7 @@ export const CustomerBulkUpload: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'transparent' }}>
 
       {/* Header */}
       <div style={{ flexShrink: 0 }}>

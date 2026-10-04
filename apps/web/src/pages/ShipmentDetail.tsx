@@ -194,7 +194,7 @@ export function ShipmentDetail() {
   const isOverdue  = job.dueDate && new Date() > job.dueDate;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent' }}>
 
       {/* ── Header ── */}
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>

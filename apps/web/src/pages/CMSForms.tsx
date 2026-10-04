@@ -54,7 +54,7 @@ export function CMSFormsList() {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent', overflow: 'hidden' }}>
       <PageHeader
         crumbs={['CMS', 'Forms']}
         titlePlain="Forms &"
@@ -208,7 +208,7 @@ export function CMSFormDetail() {
   if (!form) return <SectionLoading />;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent', overflow: 'hidden' }}>
       <PageHeader
         crumbs={['CMS', 'Forms', form.name]}
         titlePlain={form.name}

@@ -131,7 +131,7 @@ export const SupportTeam: React.FC = () => {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, padding: '20px 24px', background: 'var(--bg)', minHeight: '100%' }}>
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, padding: '20px 24px', background: 'transparent', minHeight: '100%' }}>
       <div style={{ maxWidth: isFullLayout ? 'none' : 1400, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
         
         {/* Header Ribbon */}

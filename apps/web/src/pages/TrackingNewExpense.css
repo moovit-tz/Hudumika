@@ -1,6 +1,6 @@
 ﻿.exp-page {
   padding: 32px 40px;
-  background: var(--bg);
+  background: transparent;
   min-height: calc(100vh - 60px);
   color: var(--ink);
   font-family: var(--font);

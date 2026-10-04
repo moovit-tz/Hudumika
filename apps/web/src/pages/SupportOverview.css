@@ -11,7 +11,7 @@
 .sov-root {
   flex: 1;
   overflow: auto;
-  background: var(--bg);
+  background: transparent;
   font-family: var(--font);
 }
 

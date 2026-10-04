@@ -60,7 +60,7 @@ export function CMSContentModelsList() {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent', overflow: 'hidden' }}>
       <PageHeader
         crumbs={['CMS', 'Content Models']}
         titlePlain="Content"
@@ -238,7 +238,7 @@ export function CMSContentModelDetail() {
   if (!model) return <SectionLoading />;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent', overflow: 'hidden' }}>
       <PageHeader
         crumbs={['CMS', 'Content Models', model.name_plural]}
         titlePlain={model.name}

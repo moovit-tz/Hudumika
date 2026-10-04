@@ -614,7 +614,7 @@ export const OrgChart: React.FC = () => {
   );
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', background: 'var(--bg)' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', background: 'transparent' }}>
       <PageHeader
         crumbs={['NexusHR', 'Org Chart']}
         titlePlain="Organization"

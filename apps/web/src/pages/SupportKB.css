@@ -1,6 +1,6 @@
 .skb-page {
   padding: 20px;
-  background: var(--bg);
+  background: transparent;
   height: 100%;
   overflow-y: auto;
   font-family: var(--font);

@@ -50,7 +50,7 @@ export function CMSExperimentsList() {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent', overflow: 'hidden' }}>
       <PageHeader
         crumbs={['CMS', 'Experiments']}
         titlePlain="A/B"
@@ -185,7 +185,7 @@ export function CMSExperimentDetail() {
   const bPct = total ? 100 - aPct : 0;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent', overflow: 'hidden' }}>
       <PageHeader
         crumbs={['CMS', 'Experiments', experiment.name]}
         titlePlain={experiment.name}

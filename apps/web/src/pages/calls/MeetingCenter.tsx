@@ -495,7 +495,7 @@ export function MeetingCenter() {
       flexDirection: 'column',
       gap: isMobile ? 14 : 20,
       padding: isMobile ? '14px 16px' : '22px 28px',
-      background: 'var(--bg)',
+      background: 'transparent',
       minHeight: '100%',
     }}>
       {/* ── Standard Hudumika PageHeader ── */}

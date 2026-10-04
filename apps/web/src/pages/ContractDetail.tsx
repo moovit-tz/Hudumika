@@ -147,7 +147,7 @@ export const ContractDetail: React.FC = () => {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
+    <div style={{ flex: 1, overflowY: 'auto', background: 'transparent', fontFamily: 'var(--font)' }}>
       <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0' }}>
         <button type="button" onClick={() => navigate('/projects/contracts')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12.5, fontWeight: 600, padding: 0, marginBottom: 10 }}>
           <Icon name="arrowLeft" size={13} /> All contracts

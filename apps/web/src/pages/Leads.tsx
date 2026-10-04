@@ -1293,7 +1293,7 @@ export const Leads: React.FC = () => {
   ══════════════════════ */
   return (
     <LeadStagesContext.Provider value={stagesCtx}>
-    <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
+    <div style={{ flex: 1, overflowY: 'auto', background: 'transparent', fontFamily: 'var(--font)' }}>
       <PageHeader
         crumbs={['CRM', 'Leads']}
         titlePlain="Lead"

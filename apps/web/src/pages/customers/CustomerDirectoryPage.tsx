@@ -274,7 +274,7 @@ export const CustomerDirectoryPage: React.FC = () => {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 32px', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
+    <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 32px', background: 'transparent', fontFamily: 'var(--font)' }}>
 
       <PageHeader
         crumbs={['CRM', 'Customers']}
