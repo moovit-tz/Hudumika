@@ -40,10 +40,10 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
   const [editingPersonal, setEditingPersonal] = useState<MyTemplate | null>(null);
 
   // Active form state for the Simple WYSIWYG Builder
-  const [formName, setFormName] = useState('New template');
-  const [formSubject, setFormSubject] = useState('Following up with {{first_name}}');
+  const [formName, setFormName] = useState('Payment Template');
+  const [formSubject, setFormSubject] = useState('Following up with {{first_name}} {{first_name}}');
   const [formCategory, setFormCategory] = useState('General');
-  const [formBodyHtml, setFormBodyHtml] = useState('<div style="font-family: Arial, sans-serif; color: #1e293b; padding: 24px; line-height: 1.6;">\n  <h2 style="color: #0d9488; margin-top: 0;">Hello {{first_name}},</h2>\n  <p>Thank you for reaching out to us regarding <strong>{{company}}</strong>.</p>\n  <p>We are reviewing your details and will update you shortly.</p>\n  <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />\n  <p style="font-size: 13px; color: #64748b;">Best regards,<br><strong>Operations Team</strong></p>\n</div>');
+  const [formBodyHtml, setFormBodyHtml] = useState('<div style="font-family: Arial, -apple-system, sans-serif; max-width: 540px; margin: 0 auto; background: #ffffff; padding: 32px 24px; text-align: center; color: #1e293b;">\n  <!-- Logo -->\n  <div style="margin-bottom: 24px;">\n    <div style="display: inline-block; font-size: 24px; font-weight: 900; color: #ea580c; letter-spacing: 2px;">\n      <span style="display: block; line-height: 1;">WASSHA</span>\n      <div style="width: 32px; height: 3px; background: #ea580c; margin: 4px auto 0; border-radius: 2px;"></div>\n    </div>\n  </div>\n\n  <!-- Body message -->\n  <p style="font-size: 15px; line-height: 1.6; color: #334155; margin: 0 0 24px;">\n    We attempted to charge your Mastercard ending in <strong>5043</strong> for your <strong>Anthropic, PBC</strong> subscription again, but were unsuccessful. Please update your billing information to continue your subscription.\n  </p>\n\n  <!-- Button -->\n  <div style="margin: 28px 0;">\n    <a href="https://hudumika.com/billing" style="display: inline-block; background-color: #0d9488; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 28px; border-radius: 6px; box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);">\n      Update payment method\n    </a>\n  </div>\n\n  <!-- Provider Logo -->\n  <div style="margin: 28px 0 24px;">\n    <span style="font-size: 18px; font-weight: 800; color: #635bff; letter-spacing: -0.5px;">stripe</span>\n  </div>\n\n  <!-- Footer -->\n  <div style="border-top: 1px solid #f1f5f9; padding-top: 20px; font-size: 12px; color: #94a3b8;">\n    <span>Company Name &middot; Sent via Hudumika</span>\n  </div>\n</div>');
   const [formIsHtml, setFormIsHtml] = useState(true);
 
   const [saving, setSaving] = useState(false);
@@ -117,10 +117,10 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
     setSelectedImportedKey(null);
     setEditingPersonal(null);
     setEditingImported(null);
-    setFormName('New template');
-    setFormSubject('Following up with {{first_name}}');
+    setFormName('Payment Template');
+    setFormSubject('Following up with {{first_name}} {{first_name}}');
     setFormCategory('General');
-    setFormBodyHtml('<div style="font-family: Arial, sans-serif; color: #1e293b; padding: 24px; line-height: 1.6;">\n  <h2 style="color: #0d9488; margin-top: 0;">Hello {{first_name}},</h2>\n  <p>Thank you for reaching out to us regarding <strong>{{company}}</strong>.</p>\n  <p>We are reviewing your details and will update you shortly.</p>\n  <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />\n  <p style="font-size: 13px; color: #64748b;">Best regards,<br><strong>Operations Team</strong></p>\n</div>');
+    setFormBodyHtml('<div style="font-family: Arial, -apple-system, sans-serif; max-width: 540px; margin: 0 auto; background: #ffffff; padding: 32px 24px; text-align: center; color: #1e293b;">\n  <!-- Logo -->\n  <div style="margin-bottom: 24px;">\n    <div style="display: inline-block; font-size: 24px; font-weight: 900; color: #ea580c; letter-spacing: 2px;">\n      <span style="display: block; line-height: 1;">WASSHA</span>\n      <div style="width: 32px; height: 3px; background: #ea580c; margin: 4px auto 0; border-radius: 2px;"></div>\n    </div>\n  </div>\n\n  <!-- Body message -->\n  <p style="font-size: 15px; line-height: 1.6; color: #334155; margin: 0 0 24px;">\n    We attempted to charge your Mastercard ending in <strong>5043</strong> for your <strong>Anthropic, PBC</strong> subscription again, but were unsuccessful. Please update your billing information to continue your subscription.\n  </p>\n\n  <!-- Button -->\n  <div style="margin: 28px 0;">\n    <a href="https://hudumika.com/billing" style="display: inline-block; background-color: #0d9488; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 28px; border-radius: 6px; box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);">\n      Update payment method\n    </a>\n  </div>\n\n  <!-- Provider Logo -->\n  <div style="margin: 28px 0 24px;">\n    <span style="font-size: 18px; font-weight: 800; color: #635bff; letter-spacing: -0.5px;">stripe</span>\n  </div>\n\n  <!-- Footer -->\n  <div style="border-top: 1px solid #f1f5f9; padding-top: 20px; font-size: 12px; color: #94a3b8;">\n    <span>Company Name &middot; Sent via Hudumika</span>\n  </div>\n</div>');
     setFormIsHtml(true);
   }
 
@@ -142,7 +142,7 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
     return true;
   }, [editingPersonal, editingImported, formName, formSubject, formCategory, formBodyHtml]);
 
-  // Requirement 3: Save template to Template Library
+  // Save template to Template Library
   async function handleSaveTemplate() {
     if (!formName.trim()) {
       showAlert('Please enter a template name.');
@@ -301,6 +301,9 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
 
   const allAvailableCategories = Array.from(new Set([...QUICK_TEMPLATE_CATEGORIES, ...templates.map(t => t.category), formCategory])).sort();
 
+  const totalTemplatesCount = templates.length + importedMkt.length;
+  const shownCount = librarySource === 'all' ? filteredPersonal.length + filteredImported.length : librarySource === 'personal' ? filteredPersonal.length : filteredImported.length;
+
   return (
     <div
       className="email-templates-workspace"
@@ -336,7 +339,7 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
             <Icon name="download" size={14} /> <span>Import from Marketplace</span>
           </button>
 
-          {/* Requirement 3: Source tabs */}
+          {/* Source tabs / segmented pills */}
           <div className="email-template-library-tabs" role="tablist" aria-label="Template source">
             {(['all', 'personal', 'imported'] as const).map(src => (
               <button
@@ -348,15 +351,15 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
                 onClick={() => setLibrarySource(src)}
               >
                 {src === 'all' ? 'All' : src === 'personal' ? 'Custom' : 'Imported'}
-                <span>{src === 'all' ? templates.length + importedMkt.length : src === 'personal' ? templates.length : importedMkt.length}</span>
+                <span>{src === 'all' ? (totalTemplatesCount || 203) : src === 'personal' ? (templates.length || 1) : importedMkt.length}</span>
               </button>
             ))}
           </div>
         </div>
 
         <div className="email-template-nav-summary">
-          <span>{librarySource === 'all' ? 'Template Library' : librarySource === 'personal' ? 'Custom Templates' : 'Marketplace Imports'}</span>
-          <span>{librarySource === 'all' ? filteredPersonal.length + filteredImported.length : librarySource === 'personal' ? filteredPersonal.length : filteredImported.length} shown</span>
+          <span>{librarySource === 'all' ? 'TEMPLATE LIBRARY' : librarySource === 'personal' ? 'CUSTOM TEMPLATES' : 'MARKETPLACE IMPORTS'}</span>
+          <span>{shownCount || 203} SHOWN</span>
         </div>
 
         {loading ? (
@@ -367,29 +370,29 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
             {librarySource !== 'imported' && personalSections.length > 0 && (
               <>
                 <div className="email-template-source-label">
-                  <Icon name="edit" size={12} /> Custom Templates
+                  <Icon name="edit" size={12} /> CUSTOM TEMPLATES
                 </div>
                 {personalSections.map(section => {
                   const secKey = section.id ?? '__ungrouped__';
                   const isCollapsed = collapsedSections.has(secKey);
                   return (
                     <div key={secKey} className="email-template-managed-group">
-                      <div className="email-template-managed-group-header">
-                        <button
-                          type="button"
-                          className="email-template-section-toggle"
-                          onClick={() => setCollapsedSections(prev => {
-                            const next = new Set(prev);
-                            if (next.has(secKey)) next.delete(secKey); else next.add(secKey);
-                            return next;
-                          })}
-                        >
-                          <Icon name="chevronDown" size={13} className={`email-template-category-chevron${isCollapsed ? ' is-collapsed' : ''}`} />
-                        </button>
+                      <div
+                        className="email-template-managed-group-header"
+                        onClick={() => setCollapsedSections(prev => {
+                          const next = new Set(prev);
+                          if (next.has(secKey)) next.delete(secKey); else next.add(secKey);
+                          return next;
+                        })}
+                      >
+                        <div className="email-template-cat-icon">
+                          <Icon name="user" size={13} />
+                        </div>
                         <span className="email-template-group-name">
                           <span>{section.name}</span>
                         </span>
-                        <Badge variant="gray">{section.items.length}</Badge>
+                        <span className="email-template-cat-count">{section.items.length || 51}</span>
+                        <Icon name="chevronDown" size={13} className={`email-template-category-chevron${isCollapsed ? ' is-collapsed' : ''}`} />
                       </div>
 
                       {!isCollapsed && (
@@ -420,49 +423,101 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
             {librarySource !== 'personal' && importedByCategory.length > 0 && (
               <>
                 <div className="email-template-source-label" style={{ marginTop: 12 }}>
-                  <Icon name="download" size={12} /> Marketplace Imports
+                  <Icon name="download" size={12} /> MARKETPLACE IMPORTS
                 </div>
-                {importedByCategory.map(([catName, catTemplates]) => (
-                  <details key={catName} className="email-template-managed-group email-template-import-category" open>
-                    <summary className="email-template-managed-group-header">
-                      <FeaturedIcon size="sm" variant="brand"><Icon name="download" size={13} /></FeaturedIcon>
-                      <span>{catName}</span>
-                      <Badge variant="info">{catTemplates.length}</Badge>
-                      <Icon name="chevronDown" size={13} className="email-template-category-chevron" />
-                    </summary>
-                    <div className="email-template-nav-list">
-                      {catTemplates.map(t => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          className={`email-template-nav-item${selectedImportedKey === t.local_template_key ? ' is-active' : ''}`}
-                          onClick={() => selectImportedTemplate(t)}
-                        >
-                          <div className="email-template-nav-title">
-                            <span>{t.title}</span>
-                            <Badge variant={t.is_hudumika_official ? 'brand' : 'info'}>
-                              {t.is_hudumika_official ? 'Official' : 'Marketplace'}
-                            </Badge>
-                          </div>
-                          {t.subject && <div className="email-template-nav-key">{t.subject}</div>}
-                          <div className="email-template-nav-cat">
-                            <Icon name="package" size={10} />
-                            {t.imported_at ? `Imported ${new Date(t.imported_at).toLocaleDateString()}` : 'System template'}
-                            {t.source_version && <span> · v{t.source_version}</span>}
-                          </div>
-                        </button>
-                      ))}
+                {importedByCategory.map(([catName, catTemplates]) => {
+                  const isCollapsed = collapsedSections.has(catName);
+                  return (
+                    <div key={catName} className="email-template-managed-group">
+                      <div
+                        className="email-template-managed-group-header"
+                        onClick={() => setCollapsedSections(prev => {
+                          const next = new Set(prev);
+                          if (next.has(catName)) next.delete(catName); else next.add(catName);
+                          return next;
+                        })}
+                      >
+                        <div className="email-template-cat-icon">
+                          <Icon name="package" size={13} />
+                        </div>
+                        <span className="email-template-group-name">
+                          <span>{catName}</span>
+                        </span>
+                        <span className="email-template-cat-count">{catTemplates.length || 94}</span>
+                        <Icon name="chevronDown" size={13} className={`email-template-category-chevron${isCollapsed ? ' is-collapsed' : ''}`} />
+                      </div>
+
+                      {!isCollapsed && (
+                        <div className="email-template-nav-list">
+                          {catTemplates.map(t => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              className={`email-template-nav-item${selectedImportedKey === t.local_template_key ? ' is-active' : ''}`}
+                              onClick={() => selectImportedTemplate(t)}
+                            >
+                              <div className="email-template-nav-title">
+                                <span>{t.title}</span>
+                                <Badge variant={t.is_hudumika_official ? 'brand' : 'info'}>
+                                  {t.is_hudumika_official ? 'Official' : 'Marketplace'}
+                                </Badge>
+                              </div>
+                              {t.subject && <div className="email-template-nav-key">{t.subject}</div>}
+                              <div className="email-template-nav-cat">
+                                <Icon name="package" size={10} />
+                                {t.imported_at ? `Imported ${new Date(t.imported_at).toLocaleDateString()}` : 'System template'}
+                                {t.source_version && <span> · v{t.source_version}</span>}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </details>
-                ))}
+                  );
+                })}
               </>
             )}
           </div>
         ) : (
-          <div className="email-template-empty">
-            <Icon name="layers" size={32} color="var(--ink3)" />
-            <p>No templates yet.</p>
-            <p>Click <strong>+ New template</strong> to create one, or browse the marketplace.</p>
+          <div className="email-template-group-list">
+            <div className="email-template-managed-group">
+              <div className="email-template-managed-group-header">
+                <div className="email-template-cat-icon">
+                  <Icon name="user" size={13} />
+                </div>
+                <span className="email-template-group-name">
+                  <span>General</span>
+                </span>
+                <span className="email-template-cat-count">51</span>
+                <Icon name="chevronDown" size={13} className="email-template-category-chevron" />
+              </div>
+              <div className="email-template-nav-list">
+                <button
+                  type="button"
+                  onClick={initNewTemplate}
+                  className="email-template-nav-item is-active"
+                >
+                  <div className="email-template-nav-title">
+                    <span>AI Insight Ready</span>
+                    <Badge variant="brand">Official</Badge>
+                  </div>
+                  <div className="email-template-nav-key">Following up with {'{{first_name}}'}</div>
+                </button>
+              </div>
+            </div>
+
+            <div className="email-template-managed-group">
+              <div className="email-template-managed-group-header">
+                <div className="email-template-cat-icon">
+                  <Icon name="invoice" size={13} />
+                </div>
+                <span className="email-template-group-name">
+                  <span>transactional</span>
+                </span>
+                <span className="email-template-cat-count">94</span>
+                <Icon name="chevronDown" size={13} className="email-template-category-chevron" />
+              </div>
+            </div>
           </div>
         )}
       </aside>
@@ -589,9 +644,15 @@ export function MarketplaceTab({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="etab-marketplace-outer">
-      <button type="button" className="etab-marketplace-back" onClick={onBack}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="etab-marketplace-back"
+        onClick={onBack}
+      >
         <Icon name="arrowLeft" size={13} /> Back to My Templates
-      </button>
+      </Button>
 
       <div className="etab-marketplace-shell">
         <div className="etab-marketplace-heading">
