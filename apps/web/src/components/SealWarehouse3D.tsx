@@ -141,11 +141,11 @@ export function SealWarehouse3D({ floors }: { floors: Floor3D[] }) {
       </Canvas>
 
       <div style={{ position: 'absolute', top: 12, left: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px', fontSize: 11.5, display: 'flex', gap: 12 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: '#22c55e' }} /> 0-60%</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: '#eab308' }} /> 61-85%</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: '#ef4444' }} /> 86-100%</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 14, height: 2, background: '#f59e0b' }} /> Main route</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 14, height: 2, background: '#94a3b8', borderTop: '1px dashed #94a3b8' }} /> Aisle</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'var(--green)' }} /> 0-60%</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'var(--gold)' }} /> 61-85%</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'var(--red)' }} /> 86-100%</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 14, height: 2, background: 'var(--gold)' }} /> Main route</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 14, height: 2, background: 'var(--ink3)', borderTop: '1px dashed var(--ink3)' }} /> Aisle</span>
       </div>
 
       {selected && (

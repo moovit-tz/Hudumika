@@ -133,13 +133,13 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
                 </span>
               )}
               {riskTypes.map((r: string) => (
-                <span key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: '#dc2626', background: '#fee2e2', borderRadius: 'var(--badge-radius)', padding: '3px 10px' }}>
+                <span key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 'var(--badge-radius)', padding: '3px 10px' }}>
                   <Icon name="alertTriangle" size={11} color="#dc2626" />
                   {r}
                 </span>
               ))}
               {shipment.tansad_number && (
-                <span style={{ fontFamily: 'var(--font)', fontSize: 11, color: '#2563eb', fontWeight: 700, background: '#dbeafe', padding: '3px 9px', borderRadius: 6 }}>
+                <span style={{ fontFamily: 'var(--font)', fontSize: 11, color: 'var(--blue)', fontWeight: 700, background: 'var(--blue-l)', padding: '3px 9px', borderRadius: 6 }}>
                   {shipment.tansad_number}
                 </span>
               )}
@@ -241,7 +241,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
                     Internal
                   </span>
                   {isMsg && (
-                    <span style={{ fontSize: 11, color: '#059669', border: '1px solid #a7f3d0', borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: '#ecfdf5' }}>
+                    <span style={{ fontSize: 11, color: 'var(--green)', border: '1px solid var(--green-l)', borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: 'var(--green-l)' }}>
                       WhatsApp
                     </span>
                   )}

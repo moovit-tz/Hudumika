@@ -619,8 +619,8 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
         {/* Settings — purple */}
         <button style={{ ...ibStyle(), background: 'var(--purple-l)' }} title="Settings"
           onClick={() => navigate('/settings')}
-          onMouseEnter={e => (e.currentTarget.style.background = '#ede9fe')}
-          onMouseLeave={e => (e.currentTarget.style.background = '#ede9fe')}>
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--purple-l)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'var(--purple-l)')}>
           <Icon name="settings" size={15} color="#7c3aed" />
         </button>
 
@@ -788,7 +788,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                   <span style={{
                     position: 'absolute', bottom: 1, right: 1,
                     width: 9, height: 9, borderRadius: '50%',
-                    background: '#22c55e', border: '2px solid var(--white)',
+                    background: 'var(--green)', border: '2px solid var(--white)',
                   }} />
                 </div>
 
