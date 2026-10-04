@@ -154,7 +154,7 @@
 
 .notes-done-btn {
   background: var(--nav-header-bg);
-  color: var(--white);
+  color: rgba(255,255,255,0.95);
   border: none;
   padding: 6px 20px;
   border-radius: 6px;

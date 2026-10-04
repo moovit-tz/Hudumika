@@ -77,7 +77,7 @@
 }
 .csb-nav-count--red {
   background: var(--red);
-  color: var(--white);
+  color: rgba(255,255,255,0.95);
   border-radius: 10px;
   padding: 1px 6px;
 }

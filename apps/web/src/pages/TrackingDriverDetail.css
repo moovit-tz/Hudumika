@@ -115,7 +115,7 @@
 
 .dd-lifecycle-step.active .step-num {
   background: var(--teal);
-  color: var(--white);
+  color: rgba(255,255,255,0.95);
   border-color: var(--teal);
 }
 
@@ -169,7 +169,7 @@
 
 .dd-alert-action-btn {
   background: var(--gold);
-  color: var(--white);
+  color: rgba(255,255,255,0.95);
   border: none;
   border-radius: 6px;
   padding: 6px 14px;

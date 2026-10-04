@@ -229,7 +229,7 @@
   width: 22px; height: 22px; border-radius: 50%;
   background: none; border: none; color: var(--teal); cursor: pointer;
 }
-.inv-bulk-clear:hover { background: var(--teal-m, var(--teal)); color: var(--white); }
+.inv-bulk-clear:hover { background: var(--teal-m, var(--teal)); color: rgba(255,255,255,0.95); }
 
 .inv-cell-id { color: var(--teal); font-weight: 600; font-family: var(--font); font-size: 12px; }
 .inv-cell-link {

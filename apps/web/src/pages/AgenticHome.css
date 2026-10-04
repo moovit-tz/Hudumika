@@ -189,8 +189,8 @@
 }
 
 [data-theme="dark"] .ah-tab-trigger[data-state="active"] {
-  background: var(--bg);
-  color: var(--white);
+  background: var(--white);
+  color: var(--ink);
 }
 
 /* ── Search Bar (Live AJAX Search + Shortcut) ── */

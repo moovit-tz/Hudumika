@@ -311,7 +311,7 @@
   height: 15px;
   border-radius: 50%;
   background: var(--green);
-  color: var(--white);
+  color: rgba(255,255,255,0.95);
   display: inline-flex;
   align-items: center;
   justify-content: center;

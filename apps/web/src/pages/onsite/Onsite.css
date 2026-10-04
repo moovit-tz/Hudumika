@@ -1245,7 +1245,7 @@
 .onsite-switch-thumb {
   width: 16px;
   height: 16px;
-  background-color: var(--white);
+  background-color: #ffffff;
   border-radius: 50%;
   position: absolute;
   top: 2px;

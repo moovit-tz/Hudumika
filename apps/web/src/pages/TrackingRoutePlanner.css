@@ -346,13 +346,13 @@
 .rp-timeline-marker.start {
   background: var(--green);
   border-color: var(--green);
-  color: var(--white);
+  color: rgba(255,255,255,0.95);
 }
 
 .rp-timeline-marker.end {
   background: var(--gold);
   border-color: var(--gold);
-  color: var(--white);
+  color: rgba(255,255,255,0.95);
 }
 
 .rp-timeline-content {

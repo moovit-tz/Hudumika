@@ -2014,7 +2014,7 @@ select.input-field { cursor: pointer; }
 .cpb-avatar {
   width: 32px; height: 32px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 11.5px; color: var(--white); flex-shrink: 0;
+  font-weight: 700; font-size: 11.5px; color: rgba(255,255,255,0.92); flex-shrink: 0;
 }
 .cpb-name { font-size: 14.5px; font-weight: 700; color: var(--ink); }
 .cpb-sub  { font-size: 10.5px; color: var(--ink3); }

@@ -86,7 +86,7 @@
 
 .setm-search-clear:hover {
   background: var(--ink3, #94a3b8);
-  color: var(--white);
+  color: rgba(255,255,255,0.95);
 }
 
 /* ── Source Toggle Pills ── */
