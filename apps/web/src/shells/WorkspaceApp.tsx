@@ -323,7 +323,10 @@ export function WorkspaceApp({ appId, children, bypassGatePaths }: WorkspaceAppP
       root.style.setProperty(k, v);
     }
     return () => {
-      for (const k of Object.keys(vars)) root.style.removeProperty(k);
+      for (const k of Object.keys(vars)) {
+        root.style.removeProperty(k);
+        el.style.removeProperty(k);
+      }
     };
   }, [appColor, appId, dsRev, isDark]);
 
