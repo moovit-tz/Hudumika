@@ -12,6 +12,8 @@ import { Tip } from '../components/ui/tooltip.js';
 import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { PaginationBar } from '../components/PaginationBar.js';
+import { CallsMetrics } from './calls/CallsMetrics.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { showAlert } from '../lib/alert.js';
 import {
@@ -135,7 +137,7 @@ function TopographicContourBg() {
 }
 
 // Mini Sparkline Component
-function SparklineWave({ color = '#3b82f6', isUp = true }: { color?: string; isUp?: boolean }) {
+function SparklineWave({ color = 'var(--blue)', isUp = true }: { color?: string; isUp?: boolean }) {
   const points = isUp
     ? '0,18 20,22 40,14 60,18 80,10 100,16 120,6 140,12 160,4'
     : '0,6 20,10 40,4 60,14 80,10 100,18 120,12 140,22 160,18';
@@ -226,7 +228,7 @@ export function Calls() {
   const [wsConnected, setWsConnected] = useState(false);
 
   // ── Tabs State ──
-  const [activeTab, setActiveTab] = useState<'overview' | 'directory' | 'history' | 'dialpad'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'directory' | 'history' | 'dialpad' | 'reports'>('overview');
 
   // ── Timeframe & Filter States ──
   const [timeframe, setTimeframe] = useState<'1d' | '5d' | '1m' | '6m' | '1y'>('1d');
@@ -679,7 +681,7 @@ export function Calls() {
         crumbs={['Bliss', 'Comms', 'Call Center']}
         titlePlain="Call"
         titleEm="center"
-        subtitle="Direct WebRTC HD voice & video gateway, team performance intelligence, and communication telemetry."
+        subtitle="Make calls, hold video meetings, and review team call activity."
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <div
@@ -702,7 +704,7 @@ export function Calls() {
                   width: 6,
                   height: 6,
                   borderRadius: '50%',
-                  background: wsConnected ? '#10b981' : '#ef4444',
+                  background: wsConnected ? 'var(--green)' : 'var(--red)',
                   animation: wsConnected ? 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' : 'none',
                 }}
               />
@@ -712,10 +714,6 @@ export function Calls() {
             <Button variant="outline" size="sm" onClick={() => navigate('/bliss/meetings')}>
               <Video className="w-3.5 h-3.5 mr-1" />
               <span>Meeting Center</span>
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/bliss/calls/reports')}>
-              <TrendingUp className="w-3.5 h-3.5 mr-1" />
-              <span>Call Reports</span>
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/bliss/telephony')}>
               <SlidersHorizontal className="w-3.5 h-3.5 mr-1" />
@@ -759,6 +757,10 @@ export function Calls() {
             <TabsTrigger value="dialpad" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Radio className="w-3.5 h-3.5" />
               <span>Quick Dialpad</span>
+            </TabsTrigger>
+            <TabsTrigger value="reports" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>Reports & Analytics</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -954,11 +956,11 @@ export function Calls() {
 
                 <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6' }} />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--blue)' }} />
                     <span>Inbound (1,046)</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }} />
                     <span>Outbound (427)</span>
                   </div>
                 </div>
@@ -998,7 +1000,7 @@ export function Calls() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>
-                      <span style={{ width: 10, height: 10, borderRadius: 3, background: '#3b82f6' }} />
+                      <span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--blue)' }} />
                       <span>CRM Team Performance:</span>
                     </div>
                     <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>72.56%</span>
@@ -1006,7 +1008,7 @@ export function Calls() {
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>
-                      <span style={{ width: 10, height: 10, borderRadius: 3, background: '#10b981' }} />
+                      <span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--green)' }} />
                       <span>Recurring Calls:</span>
                     </div>
                     <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>29.34%</span>
@@ -1219,19 +1221,19 @@ export function Calls() {
                   <div className="cc-activity-row">
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>2:30 PM</span>
                     <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>$2,756.26</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>-139.34</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--red)' }}>-139.34</span>
                   </div>
 
                   <div className="cc-activity-row">
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>3:10 PM</span>
                     <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>$3,207.03</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#10b981' }}>+576.24</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)' }}>+576.24</span>
                   </div>
 
                   <div className="cc-activity-row">
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>3:55 PM</span>
                     <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>$3,274.94</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#10b981' }}>+124.03</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)' }}>+124.03</span>
                   </div>
                 </div>
               </div>
@@ -1260,7 +1262,7 @@ export function Calls() {
                     <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600 }}>Overall Share</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#ef4444' }}>-7.4%</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--red)' }}>-7.4%</div>
                     <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600 }}>7 Days</div>
                   </div>
 
@@ -1308,7 +1310,7 @@ export function Calls() {
                                 <div style={{ fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
                                   <span>{ag.name}</span>
                                   {isOnline && (
-                                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
+                                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
                                   )}
                                 </div>
                                 <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{ag.country || 'East Africa'}</div>
@@ -1329,7 +1331,7 @@ export function Calls() {
                                 padding: '2px 7px',
                                 borderRadius: 12,
                                 background: isUp ? 'var(--green-l, #ecfdf5)' : 'var(--red-l, #fef2f2)',
-                                color: isUp ? '#10b981' : '#ef4444',
+                                color: isUp ? 'var(--green)' : 'var(--red)',
                                 fontSize: 11,
                                 fontWeight: 700,
                               }}
@@ -1340,7 +1342,7 @@ export function Calls() {
                           </td>
 
                           <td>
-                            <SparklineWave color={isUp ? '#3b82f6' : '#f43f5e'} isUp={isUp} />
+                            <SparklineWave color={isUp ? 'var(--blue)' : 'var(--red)'} isUp={isUp} />
                           </td>
 
                           <td style={{ textAlign: 'right' }}>
@@ -1351,7 +1353,7 @@ export function Calls() {
                                 style={{ height: 28, padding: '0 8px', fontSize: 11 }}
                                 onClick={() => startCall(ag, 'VOICE')}
                               >
-                                <Phone size={12} style={{ color: '#10b981', marginRight: 4 }} />
+                                <Phone size={12} style={{ color: 'var(--green)', marginRight: 4 }} />
                                 <span>Voice</span>
                               </Button>
                               <Button
@@ -1630,7 +1632,7 @@ export function Calls() {
                   },
                   allLabel: 'All Statuses',
                   options: [
-                    { value: 'ONLINE', label: 'Online Only', icon: <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} /> },
+                    { value: 'ONLINE', label: 'Online Only', icon: <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} /> },
                     { value: 'OFFLINE', label: 'Offline Only', icon: <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#94a3b8' }} /> },
                   ],
                 }}
@@ -1754,7 +1756,7 @@ export function Calls() {
                           onClick={() => startCall(p, 'VOICE')}
                           style={{ flex: isMobile ? 1 : 'none' }}
                         >
-                          <Phone size={13} style={{ color: '#10b981', marginRight: 4 }} />
+                          <Phone size={13} style={{ color: 'var(--green)', marginRight: 4 }} />
                           <span>Voice</span>
                         </Button>
                         <Button
@@ -2024,6 +2026,16 @@ export function Calls() {
               </tbody>
             </table>
           </div>
+          {filteredHistory.length > HISTORY_PAGE_SIZE && (
+            <PaginationBar
+              page={historyPage}
+              pageSize={HISTORY_PAGE_SIZE}
+              total={filteredHistory.length}
+              onPageChange={setHistoryPage}
+              itemLabel="call"
+              bordered={false}
+            />
+          )}
         </div>
       )}
 
@@ -2181,7 +2193,7 @@ export function Calls() {
                 onClick={() => dialpadMatchedStaff[0] && startCall(dialpadMatchedStaff[0], 'VOICE')}
                 style={{ justifyContent: 'center' }}
               >
-                <Phone size={15} style={{ color: '#10b981', marginRight: 6 }} />
+                <Phone size={15} style={{ color: 'var(--green)', marginRight: 6 }} />
                 <span>Voice Call</span>
               </Button>
 
@@ -2196,6 +2208,15 @@ export function Calls() {
               </Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════
+         TAB 5: REPORTS & ANALYTICS (real API data via CallsMetrics)
+         ════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'reports' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <CallsMetrics />
         </div>
       )}
 
@@ -2275,7 +2296,7 @@ export function Calls() {
                   flex: 1,
                   borderRadius: 30,
                   padding: '12px 20px',
-                  background: '#10b981',
+                  background: 'var(--green)',
                   color: '#ffffff',
                   justifyContent: 'center',
                 }}
@@ -2390,7 +2411,7 @@ export function Calls() {
                   border: '1px solid rgba(255,255,255,0.15)',
                 }}
               >
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }} />
                 <span>{peer.name}</span>
                 <span style={{ color: 'rgba(255,255,255,0.6)' }}>•</span>
                 <span style={{ fontFamily: 'var(--font)' }}>{fmtDur(elapsed)}</span>
@@ -2438,7 +2459,7 @@ export function Calls() {
                 height: 52,
                 borderRadius: '50%',
                 border: 'none',
-                background: muted ? '#ef4444' : 'rgba(255,255,255,0.2)',
+                background: muted ? 'var(--red)' : 'rgba(255,255,255,0.2)',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
@@ -2460,7 +2481,7 @@ export function Calls() {
                   height: 52,
                   borderRadius: '50%',
                   border: 'none',
-                  background: camOff ? '#ef4444' : 'rgba(255,255,255,0.2)',
+                  background: camOff ? 'var(--red)' : 'rgba(255,255,255,0.2)',
                   color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
@@ -2482,7 +2503,7 @@ export function Calls() {
                 height: 56,
                 borderRadius: '50%',
                 border: 'none',
-                background: '#ef4444',
+                background: 'var(--red)',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
