@@ -801,12 +801,12 @@ export const Leads: React.FC = () => {
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                 <ComposeEmailButton subjectType="lead" subjectId={sel.id} onSent={() => setProfileTab('activity')}>
                   <button type="button" style={btnS}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
                     <Icon name="mail" size={13} strokeWidth={1.75} /> Email
                   </button>
                 </ComposeEmailButton>
                 <button type="button" style={btnS} onClick={() => { const p = sel.contact_phone?.replace(/\D/g, ''); if (p) window.open(`https://wa.me/${p}`, '_blank'); }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
                   <Icon name="send" size={13} strokeWidth={1.75} /> WhatsApp
                 </button>
                 <button type="button" style={{ ...btnS, background: 'hsl(var(--primary))', border: 'none', color: 'hsl(var(--primary-foreground))' }}
@@ -922,7 +922,7 @@ export const Leads: React.FC = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {(() => {
                         const qaStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, width: '100%' };
-                        const hover = { onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = 'var(--white)'), onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = 'var(--bg)') };
+                        const hover = { onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = 'var(--hover-bg)'), onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = 'var(--bg)') };
                         return (
                           <>
                             <ComposeEmailButton subjectType="lead" subjectId={sel.id} onSent={() => setProfileTab('activity')}>
@@ -1448,7 +1448,7 @@ export const Leads: React.FC = () => {
                   <tr key={lead.id}
                     onClick={() => openProfile(lead)}
                     style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.1s' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                     onMouseLeave={e => (e.currentTarget.style.background = '')}>
                     <td style={{ padding: '12px 14px' }} onClick={e => e.stopPropagation()}>
                       <Checkbox aria-label={`Select ${lead.company}`} checked={selectedIds.includes(lead.id)}

@@ -191,7 +191,7 @@ export function EmployeesPage() {
               return (
                 <tr key={e.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
                   onClick={() => navigate('/nexushr/staff/' + e.id)}
-                  onMouseEnter={ev => (ev.currentTarget.style.background = 'var(--bg)')}
+                  onMouseEnter={ev => (ev.currentTarget.style.background = 'var(--hover-bg)')}
                   onMouseLeave={ev => (ev.currentTarget.style.background = '')}>
                   <TD>
                     <Link to={'/nexushr/staff/' + e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}>

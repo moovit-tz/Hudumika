@@ -577,7 +577,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
             )}
             {invoices?.map((inv) => (
               <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                 onMouseLeave={e => (e.currentTarget.style.background = '')}>
                 <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--teal)', fontWeight: 600 }}>{inv.invoice_number}</td>
                 <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>{descFor(inv)}</td>
@@ -871,7 +871,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
               )}
               {paidInvoices.map((inv: any) => (
                 <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                   onMouseLeave={e => (e.currentTarget.style.background = '')}>
                   <td style={{ padding: '11px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>{fmtDate(inv.paid_at)}</td>
                   <td style={{ padding: '11px 16px', fontSize: 13, color: 'var(--ink)' }}>{inv.invoice_number}</td>
@@ -1522,7 +1522,7 @@ function SupportTab() {
               {tickets?.map((t) => (
                 <React.Fragment key={t.id}>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                     onMouseLeave={e => (e.currentTarget.style.background = '')}>
                     <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--teal)', fontWeight: 600 }}>{t.ref_number}</td>
                     <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)', maxWidth: 280 }}>

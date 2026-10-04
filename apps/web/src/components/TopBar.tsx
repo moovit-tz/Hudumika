@@ -153,7 +153,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
                     width: '100%', padding: 'var(--ds-btn-py) 18px', border: 'none',
                     background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
                     color: 'var(--ink)', fontSize: 14, textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                   onMouseLeave={e => (e.currentTarget.style.background = '')}>
                   <div style={{
                     width: 30, height: 30, borderRadius: 'var(--r)', flexShrink: 0,
@@ -187,7 +187,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
                       width: '100%', padding: 'var(--ds-btn-py) 18px', border: 'none',
                       background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
                       color: 'var(--ink)', fontSize: 14, textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                     onMouseLeave={e => (e.currentTarget.style.background = '')}>
                     <div style={{
                       width: 28, height: 28, borderRadius: 8, flexShrink: 0,
@@ -212,7 +212,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
                   width: '100%', padding: 'var(--ds-btn-py) 18px', border: 'none',
                   background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
                   color: 'var(--ink2)', fontSize: 13, textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                 onMouseLeave={e => (e.currentTarget.style.background = '')}>
                 <div style={{
                   width: 28, height: 28, borderRadius: 8, flexShrink: 0,
@@ -543,7 +543,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
           className="top-bar-icon-btn"
           title="Toggle navigation"
           style={ibStyle()}
-          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
           <Icon name="menu" size={18} color="var(--ink2)" />
@@ -611,7 +611,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
         {/* Dark / Light mode */}
         <button style={ibStyle()} title={isDark ? 'Light mode' : 'Dark mode'}
           onClick={onToggleTheme}
-          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
           <Icon name={isDark ? 'sun' : 'moon'} size={16} color="var(--ink2)" />
         </button>
@@ -666,7 +666,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
             title="Clock In"
             onClick={() => triggerOpen()}
             style={ibStyle()}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <Icon name="clock" size={17} color="var(--ink2)" />
@@ -779,7 +779,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                   padding: 'var(--ds-btn-py-xs) 8px 4px 4px',
                   display: 'flex', alignItems: 'center', gap: 8,
                   transition: 'background .15s', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-bg)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
               >
                 {/* Avatar circle */}

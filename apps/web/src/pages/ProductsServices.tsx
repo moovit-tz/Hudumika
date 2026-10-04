@@ -1236,7 +1236,7 @@ export const ProductsServices: React.FC = () => {
                     <tr key={p.id}
                       onClick={() => setSelected(p)}
                       style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.1s', opacity: p.status === 'inactive' ? 0.6 : 1 }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}>
                       <td style={{ padding: '11px 14px', fontFamily: 'var(--font)', fontSize: 11.5, color: 'var(--teal)', fontWeight: 700, whiteSpace: 'nowrap' }}>{p.code}</td>
                       <td style={{ padding: '11px 14px' }}>
@@ -1258,7 +1258,7 @@ export const ProductsServices: React.FC = () => {
                           ].map(a => (
                             <button key={a.title} type="button" title={a.title} onClick={a.fn}
                               style={{ background: 'none', border: 'none', cursor: 'pointer', color: a.red ? 'var(--red)' : 'var(--ink3)', padding: 5, borderRadius: 'var(--r-sm)', display: 'flex' }}
-                              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                              onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                               onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                               <Icon name={a.icon} size={14} />
                             </button>

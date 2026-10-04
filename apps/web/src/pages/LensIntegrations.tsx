@@ -135,7 +135,7 @@ export function LensIntegrations() {
                   cursor: 'pointer', background: isExpanded ? 'var(--teal-l)' : 'transparent',
                   transition: 'background 0.2s',
                 }}
-                onMouseEnter={e => { if(!isExpanded) e.currentTarget.style.background = 'var(--bg)'; }}
+                onMouseEnter={e => { if(!isExpanded) e.currentTarget.style.background = 'var(--hover-bg)'; }}
                 onMouseLeave={e => { if(!isExpanded) e.currentTarget.style.background = 'transparent'; }}
               >
                 <div style={{

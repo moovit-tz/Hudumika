@@ -310,7 +310,7 @@ export const DutyCheckPage: React.FC = () => {
                       {suggestions.map(s => (
                         <button key={s.code} type="button" onClick={() => acceptCode(s.code)}
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
-                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                           <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', flexShrink: 0 }}>{s.code}</span>
                           <span style={{ fontSize: 12.5, color: 'var(--ink2)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.description}</span>
@@ -406,7 +406,7 @@ export const DutyCheckPage: React.FC = () => {
                       {result.alternatives.map(a => (
                         <button key={a.code} type="button" onClick={() => runCheck(a.code)}
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
-                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                           <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', flexShrink: 0 }}>{a.code}</span>
                           <span style={{ fontSize: 12.5, color: 'var(--ink2)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.description}</span>

@@ -868,7 +868,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
                 <div key={s.id}
                   onClick={()=>setF(p=>({...p,lines:[...p.lines,{_key:Math.random().toString(36).slice(2),description:s.name,category:s.category,quantity:1,unit_price:s.unit_price,tax_rate:s.tax_rate}]}))}
                   style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'7px 16px', cursor:'pointer', fontSize:12.5 }}
-                  onMouseEnter={e=>(e.currentTarget.style.background='var(--bg)')}
+                  onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')}
                   onMouseLeave={e=>(e.currentTarget.style.background='')}>
                   <span style={{ color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{s.name}</span>
                   <span style={{ color:'var(--teal)', fontWeight:700, marginLeft:8, flexShrink:0 }}>{s.unit_price>0?`$${s.unit_price}`:'+' }</span>
@@ -1203,7 +1203,7 @@ export const Quotations: React.FC = () => {
                   <tbody>
                     {displayed.map(q=>(
                       <tr key={q.id} onClick={()=>fetchDetail(q.id)} style={{ borderBottom:'1px solid var(--border)', cursor:'pointer', transition:'background 0.1s' }}
-                        onMouseEnter={e=>(e.currentTarget.style.background='var(--bg)')} onMouseLeave={e=>(e.currentTarget.style.background='')}>
+                        onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='')}>
                         <td style={{ padding:'11px 14px', fontWeight:700, fontFamily:'monospace', color:'var(--teal)', whiteSpace:'nowrap' }}>{q.quote_number}</td>
                         <td style={{ padding:'11px 14px', fontWeight:600, maxWidth:200, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{q.title}</td>
                         <td style={{ padding:'11px 14px' }}><div style={{ display:'flex', alignItems:'center', gap:7 }}><Av name={q.customer_name} customerId={q.customer_id} size={24}/>{q.customer_name}</div></td>
@@ -1217,7 +1217,7 @@ export const Quotations: React.FC = () => {
                             {[{ title:'View',icon:'eye' as const,fn:()=>fetchDetail(q.id) },{ title:'Print',icon:'printer' as const,fn:()=>printQuote(q) },...(['DRAFT','PENDING'].includes(q.status)?[{ title:'Edit',icon:'edit' as const,fn:async()=>{await fetchDetail(q.id);setView('edit');} }]:[])].map(a=>(
                               <button key={a.title} type="button" title={a.title} onClick={a.fn}
                                 style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }}
-                                onMouseEnter={e=>(e.currentTarget.style.background='var(--bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')}>
+                                onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')}>
                                 <Icon name={a.icon} size={14}/>
                               </button>
                             ))}

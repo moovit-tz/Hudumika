@@ -81,7 +81,7 @@ export function HsCodeField({ value, onChange, onPick, placeholder, required }: 
           {results.map(r => (
             <div key={r.code} onMouseDown={() => pick(r)}
               style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 12.5, borderBottom: '1px solid var(--border)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
               onMouseLeave={e => (e.currentTarget.style.background = '')}>
               <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{r.code}</span>
               <span style={{ color: 'var(--ink2)' }}> — {r.description}</span>

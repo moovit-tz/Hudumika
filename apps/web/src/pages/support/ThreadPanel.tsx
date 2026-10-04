@@ -556,7 +556,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                   {macros?.map(m => (
                     <div key={m.id} role="button" tabIndex={0}
                       onClick={() => { setCompose(c => c ? `${c}\n${m.content}` : m.content); setShowMacros(false); }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}
                       style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 8px', borderRadius: 'var(--r-sm)', cursor: 'pointer' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>

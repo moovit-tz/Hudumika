@@ -215,7 +215,7 @@ export const ProductCategoriesPage: React.FC = () => {
     const children = childMap[cat.id] ?? [];
     return (<>
       <tr style={{ borderBottom: '1px solid var(--border)' }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
         onMouseLeave={e => (e.currentTarget.style.background = '')}>
         <td style={{ padding: '10px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: depth * 20 }}>
@@ -242,7 +242,7 @@ export const ProductCategoriesPage: React.FC = () => {
         <td style={{ padding: '10px 10px' }}>
           <div style={{ display: 'flex', gap: 2 }}>
             <button type="button" title="Edit" onClick={() => setEditing(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 5, borderRadius: 'var(--r-sm)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
               <Icon name="edit" size={14} />
             </button>
             <button type="button" title="Delete" onClick={() => handleDelete(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 5, borderRadius: 'var(--r-sm)' }}

@@ -724,7 +724,7 @@ export const CustomerDetailPage: React.FC = () => {
                 </div>
               ) : custShipments.slice(0, 6).map(s => (
                 <Link key={s.id} to={`/clearos/clearance/${s.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 18px', borderBottom: '1px solid var(--border)', textDecoration: 'none', color: 'inherit' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                   <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="ship" size={14} color="var(--teal)" strokeWidth={1.75} />
                   </div>
@@ -768,7 +768,7 @@ export const CustomerDetailPage: React.FC = () => {
                   {(() => {
                     const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' as const, textDecoration: 'none', width: '100%' };
                     const hoverHandlers = {
-                      onMouseEnter: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.background = 'var(--white)'),
+                      onMouseEnter: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.background = 'var(--hover-bg)'),
                       onMouseLeave: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.background = 'var(--bg)'),
                     };
                     const actions: { label: string; icon: IconName; path?: string; action?: () => void }[] = [
@@ -1808,7 +1808,7 @@ export const CustomerDetailPage: React.FC = () => {
                       <button key={f.id} type="button" disabled={alreadyLinked || fileLinking === f.id}
                         onClick={() => linkExistingFile(f.id)}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '9px 8px', border: 'none', borderRadius: 'var(--r)', background: 'none', cursor: alreadyLinked ? 'default' : 'pointer', fontFamily: 'var(--font)' }}
-                        onMouseEnter={e => { if (!alreadyLinked) e.currentTarget.style.background = 'var(--bg)'; }}
+                        onMouseEnter={e => { if (!alreadyLinked) e.currentTarget.style.background = 'var(--hover-bg)'; }}
                         onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                         <div style={{ width: 28, height: 28, borderRadius: 'var(--r)', background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Icon name={ft.icon} size={14} color={ft.color} strokeWidth={1.75} />
@@ -1897,7 +1897,7 @@ export const CustomerDetailPage: React.FC = () => {
                       <button key={f.id} type="button" disabled={!sel.email || sendingForSignature === f.id}
                         onClick={() => sendFileForSignature(f)}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '9px 8px', border: 'none', borderRadius: 'var(--r)', background: 'none', cursor: !sel.email ? 'default' : 'pointer', fontFamily: 'var(--font)' }}
-                        onMouseEnter={ev => { if (sel.email) ev.currentTarget.style.background = 'var(--bg)'; }}
+                        onMouseEnter={ev => { if (sel.email) ev.currentTarget.style.background = 'var(--hover-bg)'; }}
                         onMouseLeave={ev => (ev.currentTarget.style.background = 'none')}>
                         <div style={{ width: 28, height: 28, borderRadius: 'var(--r)', background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Icon name={ft.icon} size={14} color={ft.color} strokeWidth={1.75} />
@@ -1964,13 +1964,13 @@ export const CustomerDetailPage: React.FC = () => {
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
               <ComposeEmailButton subjectType="customer" subjectId={sel.id} onSent={() => handleTabChange('activity')}>
                 <button type="button" style={btnS}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
                   <Icon name="mail" size={13} strokeWidth={1.75} /> Email
                 </button>
               </ComposeEmailButton>
               <button type="button" style={btnS}
                 onClick={() => { const p = sel.phone_wa?.replace(/\D/g, ''); if (p) window.open(`https://wa.me/${p}`, '_blank'); }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
                 <Icon name="send" size={13} strokeWidth={1.75} /> WhatsApp
               </button>
               <Link to={`/shipments?customer_id=${sel.id}`}

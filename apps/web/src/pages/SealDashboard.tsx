@@ -970,7 +970,7 @@ export function SealDashboard() {
                               setActiveActionMenuId(null);
                             }}
                             style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', borderRadius: 'var(--r-sm)' }}
-                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                           >
                             Adjust Stock
@@ -981,7 +981,7 @@ export function SealDashboard() {
                               setActiveActionMenuId(null);
                             }}
                             style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', borderRadius: 'var(--r-sm)' }}
-                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                           >
                             Print Barcode

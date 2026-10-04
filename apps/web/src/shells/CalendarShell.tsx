@@ -92,7 +92,7 @@ function MiniMonthPicker() {
                 color: isSel ? 'hsl(var(--primary-foreground))' : isToday ? 'var(--teal)' : 'var(--ink2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
-              onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--bg)'; }}
+              onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--hover-bg)'; }}
               onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent'; }}
             >
               {d.getDate()}

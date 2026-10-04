@@ -100,7 +100,7 @@ export function RevisionHistory({ open, onOpenChange, resourceType, resourceId, 
                   return (
                     <button key={rev.id} onClick={() => setSelectedId(rev.id)}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: 'none', borderRadius: 'var(--r-sm)', background: 'transparent', cursor: 'pointer', textAlign: 'left', width: '100%' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                       <PersonAvatar userId={rev.author_id} name={rev.author_name || 'Unknown'} size={26} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{rev.author_name || 'Unknown'}</div>

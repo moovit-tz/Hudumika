@@ -407,7 +407,7 @@ export function ComplianceOverview() {
                     key={r.id}
                     onClick={() => navigate(r.openHref)}
                     style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                     onMouseLeave={e => (e.currentTarget.style.background = '')}
                   >
                     <td style={{ padding: '11px 18px' }}>

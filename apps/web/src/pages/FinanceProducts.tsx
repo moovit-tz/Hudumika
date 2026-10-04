@@ -499,7 +499,7 @@ export function FinanceProducts() {
                     <td style={{ padding: '11px 10px', whiteSpace: 'nowrap' }}>
                       <button type="button" title="Edit" onClick={e => { e.stopPropagation(); setEditProduct(p); setShowForm(true); }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                         <Icon name="edit" size={14} />
                       </button>

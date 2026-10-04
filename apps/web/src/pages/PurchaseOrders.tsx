@@ -1242,7 +1242,7 @@ export const PurchaseOrders: React.FC = () => {
                           <tr
                             key={po.id}
                             style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.05s ease' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           >
                             {/* Invoice number link */}
