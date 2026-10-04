@@ -40,6 +40,7 @@
   margin: 0;
   padding: var(--page-pad-y, 8px) var(--page-pad-x, 8px);
   box-sizing: border-box;
+  background: var(--bg);
   transition: padding 0.25s ease;
 }
 
@@ -77,30 +78,30 @@
   /* Dark-mode color tokens (default) — backgrounds tinted with the active
      app's raw accent so the sidebar hue shifts with each app. --teal-fill-raw
      is the original (non-lightened) accent set by WorkspaceApp on :root. */
-  --sb-bg:               color-mix(in srgb, var(--teal-fill-raw, #1257c6) 14%, #07090c);
-  --sb-bg-brand:         color-mix(in srgb, var(--teal-fill-raw, #1257c6) 16%, #080a0f);
-  --sb-bg-footer:        color-mix(in srgb, var(--teal-fill-raw, #1257c6) 10%, #050609);
+  --sb-bg:               color-mix(in srgb, var(--teal-fill-raw, #1257c6) 4%, #07090c);
+  --sb-bg-brand:         color-mix(in srgb, var(--teal-fill-raw, #1257c6) 5%, #080a0f);
+  --sb-bg-footer:        color-mix(in srgb, var(--teal-fill-raw, #1257c6) 3%, #050609);
   --sb-bdr:              rgba(255, 255, 255, 0.07);
-  --sb-item-fg:          #cbd5e1;
+  --sb-item-fg:          var(--ink2);
   --sb-item-hover-bg:    rgba(255, 255, 255, 0.06);
-  --sb-item-hover-fg:    #ffffff;
-  --sb-section-fg:       #64748b;
-  --sb-icon-fg:          #94a3b8;
-  --sb-brand-name-fg:    #f8fafc;
-  --sb-brand-sub-fg:     #64748b;
-  --sb-toggle-bg:        color-mix(in srgb, var(--teal-fill-raw, #1257c6) 22%, #0c0e14);
+  --sb-item-hover-fg:    var(--ink);
+  --sb-section-fg:       var(--ink3);
+  --sb-icon-fg:          var(--ink2);
+  --sb-brand-name-fg:    var(--ink);
+  --sb-brand-sub-fg:     var(--ink3);
+  --sb-toggle-bg:        color-mix(in srgb, var(--teal-fill-raw, #1257c6) 7%, #0c0e14);
   --sb-toggle-bdr:       rgba(255, 255, 255, 0.15);
-  --sb-toggle-fg:        #cbd5e1;
-  --sb-toggle-hover-bg:  color-mix(in srgb, var(--teal-fill-raw, #1257c6) 28%, #0e1018);
+  --sb-toggle-fg:        var(--ink2);
+  --sb-toggle-hover-bg:  color-mix(in srgb, var(--teal-fill-raw, #1257c6) 10%, #0e1018);
   --sb-widget-bg:        rgba(255, 255, 255, 0.04);
   --sb-widget-bdr:       rgba(255, 255, 255, 0.08);
-  --sb-widget-fg:        #f8fafc;
-  --sb-widget-muted:     #94a3b8;
+  --sb-widget-fg:        var(--ink);
+  --sb-widget-muted:     var(--ink2);
   --sb-footer-bdr:       rgba(255, 255, 255, 0.07);
   --sb-child-bdr:        rgba(255, 255, 255, 0.18);
-  --sb-child-fg:         #94a3b8;
+  --sb-child-fg:         var(--ink2);
   --sb-child-hover-bg:   rgba(255, 255, 255, 0.05);
-  --sb-child-hover-fg:   #ffffff;
+  --sb-child-hover-fg:   var(--ink);
   --sb-skeleton-bg:      rgba(255, 255, 255, 0.08);
   --sb-loading-bar-bg:   rgba(255, 255, 255, 0.05);
   --sb-pending-shimmer:  rgba(255, 255, 255, 0.08);
@@ -132,8 +133,8 @@
   --ink3:   #64748b;
   /* Tinted with the active app's raw accent — same pattern as the dark page
      background, so the sidebar always matches the app it's hosting. */
-  --bg:     color-mix(in srgb, var(--teal-fill-raw, #1257c6) 12%, #070c0b);
-  --white:  color-mix(in srgb, var(--teal-fill-raw, #1257c6) 8%, #111218);
+  --bg:     color-mix(in srgb, var(--teal-fill-raw, #1257c6) 4%, #070c0b);
+  --white:  color-mix(in srgb, var(--teal-fill-raw, #1257c6) 3%, #111218);
   --border: rgba(255, 255, 255, 0.07);
   --border2: rgba(255, 255, 255, 0.13);
   --nav-guide: rgba(255, 255, 255, 0.14);
@@ -143,30 +144,30 @@
 /* ── Light sidebar — always white, even in dark page theme ── */
 [data-sidebar-style="light"] .app-sidebar,
 [data-theme="dark"][data-sidebar-style="light"] .app-sidebar {
-  --sb-bg:               #ffffff;
-  --sb-bg-brand:         #ffffff;
-  --sb-bg-footer:        #f8fafc;
+  --sb-bg:               var(--white);
+  --sb-bg-brand:         var(--white);
+  --sb-bg-footer:        var(--bg);
   --sb-bdr:              rgba(0, 0, 0, 0.08);
-  --sb-item-fg:          #475569;
-  --sb-item-hover-bg:    #f1f5f9;
-  --sb-item-hover-fg:    #0f172a;
-  --sb-section-fg:       #94a3b8;
-  --sb-icon-fg:          #94a3b8;
-  --sb-brand-name-fg:    #0f172a;
-  --sb-brand-sub-fg:     #94a3b8;
-  --sb-toggle-bg:        #ffffff;
+  --sb-item-fg:          var(--ink2);
+  --sb-item-hover-bg:    var(--bg);
+  --sb-item-hover-fg:    var(--ink);
+  --sb-section-fg:       var(--ink3);
+  --sb-icon-fg:          var(--ink3);
+  --sb-brand-name-fg:    var(--ink);
+  --sb-brand-sub-fg:     var(--ink3);
+  --sb-toggle-bg:        var(--white);
   --sb-toggle-bdr:       rgba(0, 0, 0, 0.10);
-  --sb-toggle-fg:        #64748b;
-  --sb-toggle-hover-bg:  #f1f5f9;
-  --sb-widget-bg:        #f1f5f9;
+  --sb-toggle-fg:        var(--ink3);
+  --sb-toggle-hover-bg:  var(--bg);
+  --sb-widget-bg:        var(--bg);
   --sb-widget-bdr:       rgba(0, 0, 0, 0.08);
-  --sb-widget-fg:        #0f172a;
-  --sb-widget-muted:     #64748b;
+  --sb-widget-fg:        var(--ink);
+  --sb-widget-muted:     var(--ink3);
   --sb-footer-bdr:       rgba(0, 0, 0, 0.08);
   --sb-child-bdr:        rgba(0, 0, 0, 0.12);
-  --sb-child-fg:         #64748b;
-  --sb-child-hover-bg:   #f1f5f9;
-  --sb-child-hover-fg:   #0f172a;
+  --sb-child-fg:         var(--ink3);
+  --sb-child-hover-bg:   var(--bg);
+  --sb-child-hover-fg:   var(--ink);
   --sb-skeleton-bg:      rgba(0, 0, 0, 0.06);
   --sb-loading-bar-bg:   rgba(0, 0, 0, 0.04);
   --sb-pending-shimmer:  rgba(255, 255, 255, 0.50);
@@ -390,18 +391,18 @@ html[data-expanded="true"] .app-sidebar {
      in dark — so the active item stays saturated and deep even on a dark sidebar,
      whereas --teal (used for text) is lightened in dark and reads washed-out as a fill. */
   background: var(--teal-fill, var(--teal, #0f766e)) !important;
-  color: #ffffff !important;
+  color: hsl(var(--primary-foreground)) !important;
   font-weight: 700;
   box-shadow: none !important;
 }
 
 .app-sb-item--active .app-sb-item-icon {
-  color: #ffffff !important;
+  color: hsl(var(--primary-foreground)) !important;
   opacity: 1;
 }
 
 .app-sb-item--active .app-sb-item-label {
-  color: #ffffff !important;
+  color: hsl(var(--primary-foreground)) !important;
 }
 
 /* Collapsed: center icon, remove margins */
@@ -429,7 +430,7 @@ html[data-expanded="true"] .app-sidebar {
 }
 
 .app-sb-item--active .app-sb-item-icon {
-  color: #ffffff;
+  color: hsl(var(--primary-foreground));
   opacity: 1;
 }
 
@@ -532,19 +533,19 @@ html[data-expanded="true"] .app-sidebar {
 
 .app-sb-badge--tag,
 .app-sb-badge--soon {
-  background: rgba(249, 115, 22, 0.2);
-  color: #fb923c;
-  border: 1px solid rgba(249, 115, 22, 0.35);
+  background: var(--gold-l);
+  color: var(--gold);
+  border: 1px solid var(--gold-l);
 }
 
 .app-sb-badge--free {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: var(--green-l);
+  color: var(--green);
+  border: 1px solid var(--green-l);
 }
 
 .app-sb-badge--count {
-  background: #ef4444;
+  background: var(--red);
   color: #ffffff;
 }
 
@@ -666,8 +667,8 @@ html[data-expanded="true"] .app-sidebar {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #10b981;
-  border: 1.5px solid #0c1917;
+  background: var(--green);
+  border: 1.5px solid var(--sb-bg-footer);
 }
 
 .app-sb-user-info {
@@ -706,7 +707,7 @@ html[data-expanded="true"] .app-sidebar {
   height: 32px;
   border-radius: 50%;
   background: var(--teal, #0f766e);
-  color: #ffffff;
+  color: hsl(var(--primary-foreground));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -765,7 +766,7 @@ html[data-expanded="true"] .app-sidebar {
   margin-top: 10px;
   padding: 6px;
   background: var(--teal, #0f766e);
-  color: #ffffff;
+  color: hsl(var(--primary-foreground));
   font-size: 11.5px;
   font-weight: 700;
   border-radius: var(--r-sm, 8px);
@@ -879,11 +880,11 @@ html[data-expanded="true"] .app-sidebar {
 }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-item { color: rgba(255, 255, 255, 0.65); }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-item:hover:not(.app-sb-item--active) {
-  background: rgba(255, 255, 255, 0.05); color: #fff;
+  background: rgba(255, 255, 255, 0.05); color: var(--ink);
 }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-section-hdr { color: rgba(255, 255, 255, 0.3); }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-item-icon { color: rgba(255,255,255,0.4); }
-[data-theme="dark"][data-sidebar-style="system"] .app-sb-item:hover .app-sb-item-icon { color: #fff; }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-item:hover .app-sb-item-icon { color: var(--ink); }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-toggle {
   background: var(--bg); border-color: rgba(255,255,255,0.1); box-shadow: 2px 0 8px rgba(0,0,0,0.4);
 }
@@ -896,18 +897,18 @@ html[data-expanded="true"] .app-sidebar {
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-sub-box {
   background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08);
 }
-[data-theme="dark"][data-sidebar-style="system"] .app-sb-brand-name { color: #f8fafc; }
-[data-theme="dark"][data-sidebar-style="system"] .app-sb-brand-sub  { color: #64748b; }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-brand-name { color: var(--ink); }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-brand-sub  { color: var(--ink3); }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-storage-title,
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-sub-title,
-[data-theme="dark"][data-sidebar-style="system"] .app-sb-user-name { color: #f8fafc; }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-user-name { color: var(--ink); }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-storage-meta,
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-sub-metric,
-[data-theme="dark"][data-sidebar-style="system"] .app-sb-user-role { color: #94a3b8; }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-user-role { color: var(--ink2); }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-children-group { border-left-color: rgba(255,255,255,0.18); }
-[data-theme="dark"][data-sidebar-style="system"] .app-sb-children-group .app-sb-item--child { color: #94a3b8; }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-children-group .app-sb-item--child { color: var(--ink2); }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-children-group .app-sb-item--child:hover:not(.app-sb-item--active) {
-  background: rgba(255,255,255,0.05); color: #fff;
+  background: rgba(255,255,255,0.05); color: var(--ink);
 }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-sub-content { border-top-color: rgba(255,255,255,0.07); }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-sub-header:hover { background: rgba(255,255,255,0.06); }
@@ -917,7 +918,7 @@ html[data-expanded="true"] .app-sidebar {
 }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-footer-signout { color: rgba(255,255,255,0.35); }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-footer-signout:hover {
-  background: rgba(220,38,38,0.15); color: #f87171;
+  background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red);
 }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-skeleton-icon,
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-skeleton-text { background: rgba(255,255,255,0.08); }
@@ -939,7 +940,7 @@ html[data-expanded="true"] .app-sidebar {
 [data-theme="dark"] .app-sb-theme-pills { background: rgba(0, 0, 0, 0.3); }
 [data-theme="dark"] .app-sb-theme-pill { color: rgba(255, 255, 255, 0.35); }
 [data-theme="dark"] .app-sb-theme-pill:hover { color: rgba(255, 255, 255, 0.7); }
-[data-theme="dark"] .app-sb-theme-pill--active { background: #1e2433; color: rgba(255,255,255,0.9); box-shadow: var(--elev-sm); }
+[data-theme="dark"] .app-sb-theme-pill--active { background: var(--white); color: var(--ink); box-shadow: var(--elev-sm); }
 
 /* ── Tablet: icon-only at 1100px ── */
 @media (max-width: 1100px) {
