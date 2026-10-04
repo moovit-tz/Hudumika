@@ -460,5 +460,5 @@
 }
 
 [data-theme="dark"] .acct-container .finance-ledger-entry-row[data-stripe="true"] {
-  background: color-mix(in srgb, var(--white) 82%, var(--bg));
+  background: rgba(255, 255, 255, 0.04);
 }

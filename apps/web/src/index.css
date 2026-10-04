@@ -1154,7 +1154,7 @@ body {
   border-color: var(--border);
 }
 [data-theme="dark"] .btn-secondary:hover {
-  background: color-mix(in srgb, var(--white) 85%, var(--bg));
+  background: var(--hover-bg);
   border-color: var(--border2);
   color: var(--ink);
 }
@@ -1636,6 +1636,10 @@ select.input-field { cursor: pointer; }
 .crm-customer-table-scroll .crm-customer-table > tbody > tr:hover > :first-child,
 .crm-customer-table-scroll .crm-customer-table > tbody > tr:hover > .crm-col-company {
   background: color-mix(in srgb, var(--bg) 82%, var(--white));
+}
+[data-theme="dark"] .crm-customer-table-scroll .crm-customer-table > tbody > tr:hover > :first-child,
+[data-theme="dark"] .crm-customer-table-scroll .crm-customer-table > tbody > tr:hover > .crm-col-company {
+  background: var(--hover-bg);
 }
 .crm-customer-table-scroll .crm-customer-table > tbody > tr:has([data-state="checked"]) > :first-child,
 .crm-customer-table-scroll .crm-customer-table > tbody > tr:has([data-state="checked"]) > .crm-col-company {
@@ -4188,6 +4192,10 @@ select.input-field { cursor: pointer; }
 :where(.rtbl-wrap, .hud-table-scroll):not([data-freeze-first-column="false"]) > table > tbody > tr[data-state="selected"] > :first-child {
   background: color-mix(in srgb, var(--bg) 82%, var(--white));
 }
+[data-theme="dark"] :where(.rtbl-wrap, .hud-table-scroll):not([data-freeze-first-column="false"]) > table > tbody > tr:hover > :first-child,
+[data-theme="dark"] :where(.rtbl-wrap, .hud-table-scroll):not([data-freeze-first-column="false"]) > table > tbody > tr[data-state="selected"] > :first-child {
+  background: var(--hover-bg);
+}
 .rtbl {
   width: 100%;
   min-width: 520px;
@@ -6406,6 +6414,7 @@ select.input-field { cursor: pointer; }
 .mc-card[data-interactive="true"]:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .mc-card[data-emphasis="primary"] { border-color: color-mix(in srgb, var(--teal) 42%, var(--border)); box-shadow: var(--elev-sm), inset 0 3px 0 var(--teal); }
 .mc-card[data-emphasis="subtle"] { background: color-mix(in srgb, var(--white) 72%, var(--bg)); box-shadow: none; }
+[data-theme="dark"] .mc-card[data-emphasis="subtle"] { background: var(--card-sunken); }
 .mc-head       { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
 .mc-head-left  { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .mc-title      { font-size: 11.5px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
