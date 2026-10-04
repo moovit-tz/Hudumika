@@ -75,12 +75,9 @@
      light  = always white/light regardless of page theme
      system = follows the page's own light/dark theme                ── */
 .app-sidebar {
-  /* Dark-mode color tokens (default) — backgrounds tinted with the active
-     app's raw accent so the sidebar hue shifts with each app. --teal-fill-raw
-     is the original (non-lightened) accent set by WorkspaceApp on :root. */
-  --sb-bg:               #07090c;
-  --sb-bg-brand:         #080a0f;
-  --sb-bg-footer:        #050609;
+  --sb-bg:               #191919;
+  --sb-bg-brand:         #131313;
+  --sb-bg-footer:        #111111;
   --sb-bdr:              rgba(255, 255, 255, 0.07);
   --sb-item-fg:          var(--ink2);
   --sb-item-hover-bg:    rgba(255, 255, 255, 0.06);
@@ -89,10 +86,10 @@
   --sb-icon-fg:          var(--ink2);
   --sb-brand-name-fg:    var(--ink);
   --sb-brand-sub-fg:     var(--ink3);
-  --sb-toggle-bg:        #0c0e14;
+  --sb-toggle-bg:        #252525;
   --sb-toggle-bdr:       rgba(255, 255, 255, 0.15);
   --sb-toggle-fg:        var(--ink2);
-  --sb-toggle-hover-bg:  #0e1018;
+  --sb-toggle-hover-bg:  #2d2d2d;
   --sb-widget-bg:        rgba(255, 255, 255, 0.04);
   --sb-widget-bdr:       rgba(255, 255, 255, 0.08);
   --sb-widget-fg:        var(--ink);
@@ -133,8 +130,8 @@
   --ink3:   #64748b;
   /* Tinted with the active app's raw accent — same pattern as the dark page
      background, so the sidebar always matches the app it's hosting. */
-  --bg:     #070c0b;
-  --white:  #111218;
+  --bg:     #141414;
+  --white:  #1e1e1e;
   --border: rgba(255, 255, 255, 0.07);
   --border2: rgba(255, 255, 255, 0.13);
   --nav-guide: rgba(255, 255, 255, 0.14);

@@ -305,8 +305,8 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
      Keep it above the AA text floor on both the page and card surfaces; truly
      disabled content has its own opacity treatment below. */
   --ink3:   #8b9bb1;
-  --bg:     #080b10;
-  --white:  #111218;
+  --bg:     #141414;
+  --white:  #1e1e1e;
   --border: rgba(255,255,255,0.14);
   --border2:rgba(255,255,255,0.28);
   /* Sunken card body surface (dark) — a hair lighter than the card so the
@@ -319,7 +319,7 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
 
   --navy:          #d8e4f4;
   --navy2:         #b8ccdf;
-  --nav-header-bg: #0a0e16;
+  --nav-header-bg: #111111;
 
   /* Semantic text colours — brighter for dark backgrounds */
   --gold:   #c8920a;
