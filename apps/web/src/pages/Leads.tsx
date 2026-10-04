@@ -1150,7 +1150,7 @@ export const Leads: React.FC = () => {
               ) : linkedFiles.length > 0 ? (
                 <SectionCard collapsible={false} padded={false}>
                   {linkedFiles.map((f: any, i: number) => (
-                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < linkedFiles.length - 1 ? '1px solid var(--bg)' : 'none' }}>
+                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < linkedFiles.length - 1 ? '1px solid var(--border)' : 'none' }}>
                       <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon name="file" size={16} color="var(--ink3)" strokeWidth={1.75} />
                       </div>

@@ -658,7 +658,7 @@
   width: 14px;
   left: 2px;
   bottom: 2px;
-  background-color: var(--white);
+  background-color: #fff;
   transition: 0.2s;
   border-radius: 50%;
 }

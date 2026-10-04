@@ -536,7 +536,7 @@ export function SealWarehouseLayout() {
             {/* Selected Location Inspector Drawer */}
             {selectedLoc && (
               <div className="seal-card" style={{ padding: 20, border: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--bg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
                   <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: 'var(--ink)' }}>{selectedLoc.code} Rack Details</h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     {!editingLoc && (
@@ -624,7 +624,7 @@ export function SealWarehouseLayout() {
                     </div>
                   )}
 
-                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--bg)' }}>
+                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                       <span style={{ fontWeight: 800, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)' }}>
                         Stored Lots ({selectedLoc.tiers.reduce((s, t) => s + t.lotCount, 0)})

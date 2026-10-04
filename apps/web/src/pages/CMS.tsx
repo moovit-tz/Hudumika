@@ -703,7 +703,7 @@ export const CMS: React.FC = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <tbody>
                     {recentPages.map(p => (
-                      <tr key={p.id} style={{ borderBottom: '1px solid var(--bg)' }}>
+                      <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '7px 0', fontSize: 12.5, color: 'var(--ink)', fontWeight: 500 }}>{p.title}</td>
                         <td style={{ padding: '7px 0' }}><StatusBadge status={p.status} /></td>
                         <td style={{ padding: '7px 0', fontSize: 11.5, textAlign: 'right', color: 'var(--ink3)' }}>{fmtDate(p.updated_at)}</td>

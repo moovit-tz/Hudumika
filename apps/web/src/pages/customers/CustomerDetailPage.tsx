@@ -1760,7 +1760,7 @@ export const CustomerDetailPage: React.FC = () => {
               {linkedFiles.map((f: any, i: number) => {
                 const ft = fileTypeStyle(f.type);
                 return (
-                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < linkedFiles.length - 1 ? '1px solid var(--bg)' : 'none' }}>
+                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < linkedFiles.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Icon name={ft.icon} size={16} color={ft.color} strokeWidth={1.75} />
                     </div>
@@ -1854,7 +1854,7 @@ export const CustomerDetailPage: React.FC = () => {
             <SectionCard padded={false}>
               {custSignEnvelopes.map((e: any, i: number) => (
                 <Link key={e.id} to={`/sign/envelope/${e.id}`} style={{ textDecoration: 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < custSignEnvelopes.length - 1 ? '1px solid var(--bg)' : 'none', cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < custSignEnvelopes.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}>
                     <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Icon name="stamp" size={16} color="var(--teal)" strokeWidth={1.75} />
                     </div>

@@ -564,7 +564,7 @@ export const OrgShell: React.FC = () => {
                   {filteredShipments.map((s, i) => {
                     const st = stageStyle(s.stage);
                     return (
-                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredShipments.length - 1 ? '1px solid var(--bg)' : 'none', flexWrap: 'wrap' }}>
+                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredShipments.length - 1 ? '1px solid var(--border)' : 'none', flexWrap: 'wrap' }}>
                         <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                           <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{s.ref_number}</div>
                           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.goods_desc}</div>
@@ -596,7 +596,7 @@ export const OrgShell: React.FC = () => {
                     const st = (STATUS_STYLE as Record<string, { color: string; bg: string }>)[inv.status] ?? { color: 'var(--ink3)', bg: 'var(--bg)' };
                     const total = invoiceTotals(inv).grandTotalTZS;
                     return (
-                      <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredInvoices.length - 1 ? '1px solid var(--bg)' : 'none', flexWrap: 'wrap' }}>
+                      <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredInvoices.length - 1 ? '1px solid var(--border)' : 'none', flexWrap: 'wrap' }}>
                         <div style={{ flex: '1 1 160px', minWidth: 0 }}>
                           <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{inv.id}</div>
                           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1 }}>{fmtInvDate(inv.billDate)}</div>
@@ -627,7 +627,7 @@ export const OrgShell: React.FC = () => {
                   {filteredDocuments.map((d, i) => {
                     const ft = fileTypeStyle(d.type);
                     return (
-                      <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredDocuments.length - 1 ? '1px solid var(--bg)' : 'none' }}>
+                      <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredDocuments.length - 1 ? '1px solid var(--border)' : 'none' }}>
                         <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Icon name={ft.icon} size={16} color={ft.color} />
                         </div>
@@ -669,7 +669,7 @@ export const OrgShell: React.FC = () => {
                   {filteredSealLots.map((lot, i) => {
                     const available = Number(lot.qty_on_hand);
                     return (
-                      <div key={lot.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredSealLots.length - 1 ? '1px solid var(--bg)' : 'none', flexWrap: 'wrap' }}>
+                      <div key={lot.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredSealLots.length - 1 ? '1px solid var(--border)' : 'none', flexWrap: 'wrap' }}>
                         <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                           <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{lot.description}</div>
                           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1 }}>
@@ -700,7 +700,7 @@ export const OrgShell: React.FC = () => {
                   {filteredDispatchRequests.map((r, i) => {
                     const st = DISPATCH_STATUS_STYLE[r.status] ?? DISPATCH_STATUS_STYLE.PENDING;
                     return (
-                      <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredDispatchRequests.length - 1 ? '1px solid var(--bg)' : 'none', flexWrap: 'wrap' }}>
+                      <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredDispatchRequests.length - 1 ? '1px solid var(--border)' : 'none', flexWrap: 'wrap' }}>
                         <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                           <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{r.lot_description ?? '—'}</div>
                           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1 }}>
@@ -740,7 +740,7 @@ export const OrgShell: React.FC = () => {
                       const st = TICKET_STATUS_STYLE[t.status] ?? TICKET_STATUS_STYLE.OPEN;
                       return (
                         <button key={t.id} type="button" onClick={() => openTicket(t)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredTickets.length - 1 ? '1px solid var(--bg)' : 'none', flexWrap: 'wrap', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredTickets.length - 1 ? '1px solid var(--border)' : 'none', flexWrap: 'wrap', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)' }}>
                           <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                             <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{t.subject}</div>
                             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1, fontFamily: 'var(--font)' }}>{t.ref}</div>

@@ -237,7 +237,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
             { label: 'Destination', value: quote.destination_port },
             { label: 'Created',     value: fmtDate(quote.created_at) },
           ].map(row => (
-            <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, marginBottom: 8, borderBottom: '1px solid var(--bg)' }}>
+            <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, marginBottom: 8, borderBottom: '1px solid var(--border)' }}>
               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{row.label}</span>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{row.value}</span>
             </div>
@@ -249,7 +249,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 16, marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', marginBottom: 12 }}>SERVICES QUOTED</div>
             {quote.lines.map((line, i) => (
-              <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, paddingBottom: 10, borderBottom: i < (quote.lines!.length - 1) ? '1px solid var(--bg)' : 'none' }}>
+              <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, paddingBottom: 10, borderBottom: i < (quote.lines!.length - 1) ? '1px solid var(--border)' : 'none' }}>
                 <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{line.description}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{line.category} · Qty {line.quantity}</div>
@@ -372,7 +372,7 @@ function QuoteCard({ quote, onClick }: { quote: Quote; onClick: () => void }) {
         <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--teal)' }}>{fmtAmt(quote.total_amount, quote.currency)}</span>
       </div>
       {canAct && (
-        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bg)', display: 'flex', gap: 6 }}>
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', gap: 6 }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', borderRadius: 'var(--badge-radius)', padding: '3px 10px' }}>Action required</span>
         </div>
       )}
