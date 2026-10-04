@@ -1,4 +1,4 @@
-/* ═════════════════════════════════════════════════════════════════════
+﻿/* ═════════════════════════════════════════════════════════════════════
    SealInventoryDashboard.css — Modern Warehouse & SKU Inventory Control
    Matches the exact design specification with high fidelity,
    fluid responsiveness, and full dark mode support.
@@ -101,7 +101,7 @@
 }
 
 .sid-btn-date:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   border-color: var(--border2);
 }
 
@@ -123,7 +123,7 @@
 }
 
 .sid-btn-outline:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
   border-color: var(--border2);
 }
@@ -516,7 +516,7 @@
 }
 
 .sid-table tbody tr:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .sid-prod-name {
@@ -611,7 +611,7 @@
 }
 
 .sid-action-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 

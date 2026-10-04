@@ -1,4 +1,4 @@
-/* ── App Shell Content integration for Email Templates ───────────────── */
+﻿/* ── App Shell Content integration for Email Templates ───────────────── */
 .app-shell:has(.email-templates-page) {
   height: 100vh;
   overflow: hidden;
@@ -734,7 +734,7 @@
 }
 
 .email-template-type-btn:not(.is-active):hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .email-template-import-btn {

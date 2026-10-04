@@ -118,7 +118,7 @@
 }
 
 .bnc-icon-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
@@ -261,7 +261,7 @@
 }
 
 .bnc-row:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .bnc-row--unread {

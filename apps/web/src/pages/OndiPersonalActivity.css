@@ -1,4 +1,4 @@
-/* ══════════════════════════════════════════════════════════
+﻿/* ══════════════════════════════════════════════════════════
    OndiPersonalActivity.css — Ondi Personal · Activity Audit Trail & Telemetry
    Enterprise-grade security audit logs, timeline & data grid.
    Pure CSS design tokens, 0% transparency popups & rich micro-interactions.
@@ -64,7 +64,7 @@
 }
 
 .opa-action-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   border-color: var(--border-hover, #cbd5e1);
   color: var(--ink);
 }
@@ -279,7 +279,7 @@
 }
 
 .opa-filter-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
@@ -846,7 +846,7 @@
 }
 
 .opa-table-row:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .opa-data-table td {

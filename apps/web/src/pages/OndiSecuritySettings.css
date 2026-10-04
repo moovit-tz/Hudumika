@@ -154,7 +154,7 @@
 }
 
 .oss-nav-pill:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 

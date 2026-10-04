@@ -1,4 +1,4 @@
-/* ══════════════════════════════════════════════
+﻿/* ══════════════════════════════════════════════
    NotificationCentre — UBold style notification popup
 ══════════════════════════════════════════════ */
 
@@ -200,7 +200,7 @@
 }
 
 .notif-item:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .notif-item--unread {

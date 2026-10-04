@@ -239,7 +239,7 @@
 
 .oa-app-item:hover {
   border-color: var(--teal);
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .oa-app-left {

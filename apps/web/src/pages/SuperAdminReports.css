@@ -1,4 +1,4 @@
-.sar-root {
+﻿.sar-root {
   flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
@@ -73,7 +73,7 @@
   text-wrap: balance;
 }
 
-.sar-rail-item:hover { background: var(--bg); color: var(--ink); }
+.sar-rail-item:hover { background: var(--hover-bg); color: var(--ink); }
 
 .sar-rail-item--active {
   background: var(--teal-l);

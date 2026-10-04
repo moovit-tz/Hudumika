@@ -1,4 +1,4 @@
-.exp-page {
+﻿.exp-page {
   padding: 32px 40px;
   background: var(--bg);
   min-height: calc(100vh - 60px);
@@ -63,7 +63,7 @@
 }
 
 .exp-btn-secondary:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .exp-btn-primary {

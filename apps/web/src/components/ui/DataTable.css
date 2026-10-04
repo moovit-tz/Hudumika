@@ -1,4 +1,4 @@
-/* ── DataTable — supplemental classes (core table styles live in index.css) ── */
+﻿/* ── DataTable — supplemental classes (core table styles live in index.css) ── */
 
 /* Sortable column header */
 .dt-th-sortable { cursor: pointer; -webkit-user-select: none; user-select: none; }
@@ -33,7 +33,7 @@
 tr:hover .dt-action-btn,
 tr[data-state="selected"] .dt-action-btn,
 .dt-action-btn:focus-visible { opacity: 1; }
-.dt-action-btn:hover { background: var(--bg); color: var(--ink); }
+.dt-action-btn:hover { background: var(--hover-bg); color: var(--ink); }
 
 /* Empty / error panel inside the table wrapper */
 .dt-empty {

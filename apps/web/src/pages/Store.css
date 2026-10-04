@@ -1,4 +1,4 @@
-/* ── Marketplace / Store ── */
+﻿/* ── Marketplace / Store ── */
 
 .store-root {
   display: flex;
@@ -691,7 +691,7 @@
   line-height: 1;
 }
 
-.store-close-btn:hover { background: var(--bg); color: var(--ink); }
+.store-close-btn:hover { background: var(--hover-bg); color: var(--ink); }
 
 /* ── Detail tabs ── */
 .store-detail-tabs {
@@ -1062,8 +1062,8 @@
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background: var(--ink);
-  color: var(--white);
+  background: #1e293b;
+  color: rgba(255,255,255,0.95);
   padding: 12px 24px;
   border-radius: 8px;
   font-size: 13px;

@@ -1,4 +1,4 @@
-/* ── Subscription / Pricing page ── */
+﻿/* ── Subscription / Pricing page ── */
 
 /* All 4 tiers share the single brand accent (--teal) — differentiated by icon
    (PLAN_ICONS in Subscription.tsx) and the "Most Popular"/"Current Plan" badges
@@ -451,7 +451,7 @@
 }
 
 .sub-sm-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   border-color: var(--ink3);
 }
 
@@ -508,7 +508,7 @@
   border-radius: 6px;
 }
 
-.sub-modal-close:hover { background: var(--bg); }
+.sub-modal-close:hover { background: var(--hover-bg); }
 
 .sub-modal-body {
   padding: 0 24px 16px;

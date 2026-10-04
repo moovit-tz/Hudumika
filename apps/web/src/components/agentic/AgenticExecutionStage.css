@@ -1,4 +1,4 @@
-/* ─── Route6 / Agentic Execution Stage CSS (Hudumika Design System) ─── */
+﻿/* ─── Route6 / Agentic Execution Stage CSS (Hudumika Design System) ─── */
 
 .r6-stage-wrapper {
   width: 100%;
@@ -112,7 +112,7 @@
 }
 
 .r6-action-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
   border-color: var(--border2, var(--border));
 }
@@ -784,8 +784,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--ink);
-  color: var(--white);
+  background: #1e293b;
+  color: rgba(255,255,255,0.95);
   padding: 8px 16px;
   border-radius: var(--r-sm);
   font-size: 13px;

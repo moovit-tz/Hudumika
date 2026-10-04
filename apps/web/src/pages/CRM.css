@@ -1,4 +1,4 @@
-/* ── CRM Brand & Theming ─────────────────────────────────────────── */
+﻿/* ── CRM Brand & Theming ─────────────────────────────────────────── */
 .app-shell[data-crm] {
   --crm-section-gap: 24px;
   --crm-panel-pad: 20px;
@@ -75,7 +75,7 @@
 }
 
 .crm-table tbody tr:hover {
-  background: var(--bg) !important;
+  background: var(--hover-bg) !important;
 }
 
 .crm-checkbox {

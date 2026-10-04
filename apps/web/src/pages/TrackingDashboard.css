@@ -1,4 +1,4 @@
-/* ── TrackingDashboard.css — Hudumika Design System Logistics & Fleet Command ── */
+﻿/* ── TrackingDashboard.css — Hudumika Design System Logistics & Fleet Command ── */
 
 .logistics-dashboard-root {
   display: flex;
@@ -52,7 +52,7 @@
 }
 
 .logistics-tab-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 

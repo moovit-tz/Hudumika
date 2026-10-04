@@ -1,4 +1,4 @@
-/* TrackingDriverDetail.css — Driver Lifecycle & Detail Page Styling */
+﻿/* TrackingDriverDetail.css — Driver Lifecycle & Detail Page Styling */
 
 .dd-layout {
   display: flex;
@@ -33,7 +33,7 @@
 }
 
 .dd-back-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   border-color: var(--border2);
 }
 
@@ -61,7 +61,7 @@
 }
 
 .dd-action-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   border-color: var(--border2);
 }
 
@@ -670,7 +670,7 @@
 
 [data-theme="dark"] .dd-back-btn:hover,
 [data-theme="dark"] .dd-action-btn:not(.dark):hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   border-color: var(--border2);
 }
 

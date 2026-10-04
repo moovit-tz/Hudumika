@@ -1,4 +1,4 @@
-/* ── Google Drive UI Inspiration & Hudumika Cloud Design System ── */
+﻿/* ── Google Drive UI Inspiration & Hudumika Cloud Design System ── */
 
 [data-cloud="true"] {
   --cloud-accent: var(--teal);
@@ -282,7 +282,7 @@
 }
 
 .cloud-nav-item:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
@@ -321,7 +321,7 @@
 }
 
 .drive-folder-card:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   border-color: var(--cloud-accent);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   transform: translateY(-1px);
@@ -451,7 +451,7 @@
 }
 
 .drive-table-container tbody tr:hover {
-  background: var(--bg) !important;
+  background: var(--hover-bg) !important;
 }
 
 .drive-table-container tbody tr.selected {
@@ -1016,7 +1016,7 @@
   cursor: pointer;
 }
 
-.fb-breadcrumb:hover { background: var(--bg); color: var(--ink); }
+.fb-breadcrumb:hover { background: var(--hover-bg); color: var(--ink); }
 .fb-breadcrumb--current { max-width: 300px; flex-shrink: 1; color: var(--ink); font-weight: 750; cursor: default; }
 .fb-breadcrumb--current:hover { background: transparent; }
 
@@ -1044,7 +1044,7 @@
   cursor: pointer;
 }
 
-.fb-toolbar-icon-btn:hover { background: var(--bg); color: var(--ink); }
+.fb-toolbar-icon-btn:hover { background: var(--hover-bg); color: var(--ink); }
 .fb-sort-select { width: 140px; flex-shrink: 0; font-size: 12.5px; }
 .fb-empty-trash-btn { gap: 6px; white-space: nowrap; flex-shrink: 0; }
 

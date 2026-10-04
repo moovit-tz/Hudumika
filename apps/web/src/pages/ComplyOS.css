@@ -1,4 +1,4 @@
-/* ── ComplyOS shared tokens & layout ── */
+﻿/* ── ComplyOS shared tokens & layout ── */
 
 /* ComplyOS's own brand accent (--comply) tracks the app's configured color —
    WorkspaceApp.tsx already resolves branding.getAppColor('complyos') and
@@ -354,7 +354,7 @@
   cursor: pointer;
 }
 
-.comply-table tbody tr:hover { background: var(--bg); }
+.comply-table tbody tr:hover { background: var(--hover-bg); }
 .comply-result-row--sponsored,
 .comply-result-row--sponsored:hover { background: var(--gold-l); cursor: default; }
 
@@ -553,7 +553,7 @@
   transition: background 0.12s, color 0.12s;
 }
 
-.comply-view-btn:hover { background: var(--bg); }
+.comply-view-btn:hover { background: var(--hover-bg); }
 
 .comply-view-btn.active {
   background: var(--comply-l);
@@ -751,7 +751,7 @@
 }
 
 .comply-btn-secondary:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   border-color: var(--ink3);
 }
 
@@ -815,7 +815,7 @@
 }
 
 .comply-deadline-row:last-child { border-bottom: none; }
-.comply-deadline-row:hover { background: var(--bg); }
+.comply-deadline-row:hover { background: var(--hover-bg); }
 
 .comply-deadline-date {
   text-align: center;
@@ -933,7 +933,7 @@
 }
 
 .comply-oblig-row:last-child { border-bottom: none; }
-.comply-oblig-row:hover { background: var(--bg); }
+.comply-oblig-row:hover { background: var(--hover-bg); }
 
 .comply-oblig-icon {
   width: 36px;
@@ -1054,7 +1054,7 @@
   flex-shrink: 0;
   line-height: 0;
 }
-.comply-close-btn:hover { color: var(--ink); background: var(--bg); }
+.comply-close-btn:hover { color: var(--ink); background: var(--hover-bg); }
 
 /* ── Meta grid ── */
 .comply-meta-grid {
@@ -1634,7 +1634,7 @@
   gap: 5px;
   flex-shrink: 0;
 }
-.wf-tab:hover { background: var(--bg); color: var(--ink); border-color: var(--ink3); }
+.wf-tab:hover { background: var(--hover-bg); color: var(--ink); border-color: var(--ink3); }
 .wf-tab--active {
   background: var(--comply-l);
   border-color: var(--comply-edge);
@@ -1682,7 +1682,7 @@
   transition: background 0.1s;
 }
 .wf-row:last-child { border-bottom: none; }
-.wf-row:hover { background: var(--bg); }
+.wf-row:hover { background: var(--hover-bg); }
 
 /* Status left-border colors */
 .wf-row--pending_review { border-left-color: var(--gov); }

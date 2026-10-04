@@ -1,4 +1,4 @@
-/* ════════════════════════════════════════════════════════════════
+﻿/* ════════════════════════════════════════════════════════════════
    Calendar Top Toolbar — 100% Device Responsive Design
    ════════════════════════════════════════════════════════════════ */
 
@@ -36,7 +36,7 @@
 }
 
 .cal-topbar-today-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .cal-topbar-nav-group {
@@ -60,7 +60,7 @@
 }
 
 .cal-topbar-nav-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .cal-topbar-title {

@@ -1,4 +1,4 @@
-/* ════════════════════════════════════════════════════════════════
+﻿/* ════════════════════════════════════════════════════════════════
    Google Workspace Companion Right Sidebar & Side Drawer
    ════════════════════════════════════════════════════════════════ */
 
@@ -84,7 +84,7 @@
 }
 
 .gws-rail-toggle:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   box-shadow: var(--elev);
   transform: scale(1.08);
 }
@@ -321,7 +321,7 @@
 }
 
 .gws-drawer-action:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 

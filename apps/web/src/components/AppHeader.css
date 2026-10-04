@@ -1,4 +1,4 @@
-/* ══════════════════════════════════════════════════
+﻿/* ══════════════════════════════════════════════════
    AppHeader — slim 57px strip (matches sidebar brand)
 ══════════════════════════════════════════════════ */
 
@@ -80,7 +80,7 @@
 }
 
 .app-header-icon-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .app-header-icon-btn--active {
@@ -263,7 +263,7 @@
 }
 
 .app-header-user-action:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
@@ -306,7 +306,7 @@
 }
 
 .app-header-lang-item:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
@@ -428,7 +428,7 @@
 }
 
 .app-header-clock-action:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
@@ -1074,7 +1074,7 @@
 }
 
 .app-header-clock-link-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--teal);
 }
 

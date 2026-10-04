@@ -1,4 +1,4 @@
-.rp-container {
+﻿.rp-container {
   position: relative;
   width: 100%;
   height: calc(100vh - 60px); /* Fill the screen minus navbar */
@@ -66,7 +66,7 @@
   text-align: left;
   cursor: pointer;
 }
-.rp-layers-menu-item:hover { background: var(--bg); }
+.rp-layers-menu-item:hover { background: var(--hover-bg); }
 .rp-layers-menu-item.active { background: var(--teal-l); color: var(--teal); }
 
 /* ── Floating Left Panel ── */

@@ -1,4 +1,4 @@
-/* ═════════════════════════════════════════════════════════════════════════════
+﻿/* ═════════════════════════════════════════════════════════════════════════════
    METRONIC 8 CALL CENTER DASHBOARD (.cc-*)
    Inspired by KeenThemes Metronic 8 Demo 29 Call Center Dashboard
    ═════════════════════════════════════════════════════════════════════════════ */
@@ -195,7 +195,7 @@
 .cc-banner-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 /* ── Timeframe Pills ── */
@@ -244,7 +244,7 @@
 }
 
 .cc-activity-row:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 /* ── Metronic Table Styling ── */

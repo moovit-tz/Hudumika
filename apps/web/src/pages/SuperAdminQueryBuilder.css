@@ -60,7 +60,7 @@
   transition: background 0.12s, color 0.12s;
 }
 
-.qb-rail-item:hover { background: var(--bg); color: var(--ink); }
+.qb-rail-item:hover { background: var(--hover-bg); color: var(--ink); }
 
 .qb-rail-item--active {
   background: var(--teal-l);

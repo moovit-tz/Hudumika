@@ -235,7 +235,7 @@
 }
 
 .ds-sidebar-item:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
@@ -1812,7 +1812,7 @@
 .oscar-btn-danger    { background: var(--red);    color: hsl(var(--red-foreground)); border-color: var(--red);    }
 .oscar-btn-danger:hover { filter: brightness(0.88); }
 .oscar-btn-ghost     { background: transparent;   color: var(--ink2); border-color: var(--border); }
-.oscar-btn-ghost:hover { background: var(--bg); color: var(--ink); }
+.oscar-btn-ghost:hover { background: var(--hover-bg); color: var(--ink); }
 
 /* Soft (Oscar's "btn-soft" — semi-transparent tint) */
 .oscar-btn-soft-primary { background: var(--teal-l);   color: var(--teal);  border-color: var(--teal-m);  }
@@ -2114,7 +2114,7 @@
 }
 
 .oscar-list-item:last-child { border-bottom: none; }
-.oscar-list-item:hover { background: var(--bg); }
+.oscar-list-item:hover { background: var(--hover-bg); }
 
 .oscar-list-index {
   display: flex;
@@ -2169,7 +2169,7 @@
   transition: background 0.15s ease;
 }
 
-.oscar-accordion-trigger:hover { background: var(--bg); }
+.oscar-accordion-trigger:hover { background: var(--hover-bg); }
 
 .oscar-accordion-item--open .oscar-accordion-trigger {
   background: var(--teal-l);
@@ -2313,7 +2313,7 @@
   font-family: var(--font);
 }
 
-.oscar-page-btn:hover { background: var(--bg); color: var(--ink); }
+.oscar-page-btn:hover { background: var(--hover-bg); color: var(--ink); }
 .oscar-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .oscar-page-btn--active { background: hsl(var(--primary)); border-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 700; }
 
@@ -2725,7 +2725,7 @@
 }
 
 .anim-ref-row:last-child { border-bottom: none; }
-.anim-ref-row:hover { background: var(--bg); }
+.anim-ref-row:hover { background: var(--hover-bg); }
 
 .anim-ref-cls {
   font-family: 'ui-monospace', monospace;
@@ -2754,7 +2754,7 @@
   transition: all 0.15s ease;
 }
 
-.anim-ref-copy:hover { background: var(--bg); color: var(--ink); }
+.anim-ref-copy:hover { background: var(--hover-bg); color: var(--ink); }
 
 .anim-micro-card { display: inline-block; }
 

@@ -239,7 +239,7 @@
 
 .ov-doc-item:hover {
   border-color: var(--teal);
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .ov-doc-left {

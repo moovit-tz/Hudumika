@@ -1,4 +1,4 @@
-/* ── Root ───────────────────────────────────────────────────────────── */
+﻿/* ── Root ───────────────────────────────────────────────────────────── */
 .em-root {
   display: flex;
   height: 100%;
@@ -641,10 +641,10 @@
   font-family: var(--font);
   flex-shrink: 0;
 }
-.em-icon-btn:hover { background: var(--bg); }
+.em-icon-btn:hover { background: var(--hover-bg); }
 .em-icon-btn:disabled { opacity: 0.4; cursor: default; }
 .em-icon-btn--ghost { border-color: transparent; }
-.em-icon-btn--ghost:hover { background: var(--bg); border-color: transparent; }
+.em-icon-btn--ghost:hover { background: var(--hover-bg); border-color: transparent; }
 .em-icon-btn--pill { border-radius: 999px; padding: var(--ds-btn-py) 18px; min-height: var(--ctl-h); }
 .em-icon-btn--primary {
   background: var(--blue-l);
@@ -1020,7 +1020,7 @@
 .em-compose-modal--mobile .em-compose-hdr { border-radius: 0; }
 /* The header's own minimize/full-screen/dock/close buttons are .em-icon-btn
    --ghost with a forced white icon (style={{color:'#fff'}}), but the base
-   hover rule (.em-icon-btn--ghost:hover { background: var(--bg) }) paints a
+   hover rule (.em-icon-btn--ghost:hover { background: var(--hover-bg) }) paints a
    near-white patch behind them — a white icon on a near-white hover blob is
    almost invisible against this always-dark header, in both themes. Scoped
    to a translucent-white hover instead, which reads correctly on #404040
@@ -2629,8 +2629,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--ink);
-  color: var(--white);
+  background: #1e293b;
+  color: rgba(255,255,255,0.95);
   padding: 10px 16px;
   border-radius: var(--r);
   box-shadow: var(--elev-lg, 0 8px 28px rgba(0,0,0,.3));
@@ -2670,7 +2670,7 @@
   transition: background 0.12s;
 }
 .em-thread-row:last-child { border-bottom: none; }
-.em-thread-row:hover { background: var(--bg); }
+.em-thread-row:hover { background: var(--hover-bg); }
 .em-thread-row--unread .em-thread-row-from,
 .em-thread-row--unread .em-thread-row-snip { font-weight: 700; color: var(--ink); }
 .em-thread-row-main { flex: 1; min-width: 0; }
@@ -2740,7 +2740,7 @@
   display: flex; align-items: center; justify-content: center;
   border: none; background: none; cursor: pointer; color: var(--ink3); border-radius: 3px;
 }
-.em-tpl-search-clear:hover { background: var(--bg); color: var(--ink); }
+.em-tpl-search-clear:hover { background: var(--hover-bg); color: var(--ink); }
 .em-tpl-stats {
   display: flex;
   align-items: center;
@@ -2790,7 +2790,7 @@
   font-family: var(--font);
   transition: background 0.1s;
 }
-.em-tpl-group-header:hover { background: var(--bg); }
+.em-tpl-group-header:hover { background: var(--hover-bg); }
 .em-tpl-group-name {
   flex: 1;
   font-size: 13px;

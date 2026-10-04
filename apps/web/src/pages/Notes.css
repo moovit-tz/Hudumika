@@ -1,4 +1,4 @@
-/* ── Google Keep (Hudumika Notes) CSS Design System ─────────────── */
+﻿/* ── Google Keep (Hudumika Notes) CSS Design System ─────────────── */
 
 [data-notes] {
   --keep-amber: var(--gold);
@@ -48,7 +48,7 @@
 }
 
 .notes-icon-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 

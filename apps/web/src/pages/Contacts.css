@@ -1,4 +1,4 @@
-/* Contacts brand color — aliased to --teal/--teal-l, the real per-app accent
+﻿/* Contacts brand color — aliased to --teal/--teal-l, the real per-app accent
  * WorkspaceApp computes (light AND dark, already theme-aware) from this
  * app's configured color (default: Google's own blue — see APP_COLORS.contacts
  * in WorkspaceApp.tsx). Used to be a hardcoded hex pair here despite this
@@ -52,7 +52,7 @@
   width: 100%;
   transition: background .12s;
 }
-.csb-nav-item:hover { background: var(--bg); }
+.csb-nav-item:hover { background: var(--hover-bg); }
 .csb-nav-item--on {
   background: var(--teal);
   color: hsl(var(--primary-foreground));
@@ -112,7 +112,7 @@
   padding: 3px;
   border-radius: 4px;
 }
-.csb-labels-add:hover { background: var(--bg); color: var(--ink); }
+.csb-labels-add:hover { background: var(--hover-bg); color: var(--ink); }
 
 .csb-labels-list { display: flex; flex-direction: column; gap: var(--space-xs); }
 .csb-label-row {
@@ -122,7 +122,7 @@
   padding-right: 10px;
   transition: background .12s;
 }
-.csb-label-row:hover { background: var(--bg); }
+.csb-label-row:hover { background: var(--hover-bg); }
 .csb-label-row--on { background: var(--teal); }
 .csb-label-btn {
   flex: 1;
@@ -183,7 +183,7 @@
   text-align: left;
   transition: background .12s;
 }
-.csb-sys-item:hover { background: var(--bg); }
+.csb-sys-item:hover { background: var(--hover-bg); }
 .csb-sys-item--on   { background: var(--teal); color: hsl(var(--primary-foreground)); }
 .csb-sys-item--icon { padding: 9px; justify-content: center; gap: 0; }
 .csb-file-input     { display: none; }
@@ -255,7 +255,7 @@
   color: var(--ink3);
   border-radius: var(--r-sm);
 }
-.csb-label-twist:hover { background: var(--bg); color: var(--ink); }
+.csb-label-twist:hover { background: var(--hover-bg); color: var(--ink); }
 .csb-label-twist--leaf { cursor: default; pointer-events: none; }
 
 /* keep the "..." trigger visible while its menu is open, not only on hover */
@@ -463,7 +463,7 @@
   white-space: nowrap;
   line-height: 1.6;
 }
-.cts-chip:hover { background: var(--bg); }
+.cts-chip:hover { background: var(--hover-bg); }
 .cts-chip--on {
   background: var(--cts-accent-bg);
   border-color: var(--cts-accent);
@@ -587,16 +587,16 @@
 
 /* Sidebar content */
 [data-theme="dark"] .csb-nav-item { color: var(--ink2, #94a3b8); }
-[data-theme="dark"] .csb-nav-item:hover { background: var(--bg); }
+[data-theme="dark"] .csb-nav-item:hover { background: var(--hover-bg); }
 [data-theme="dark"] .csb-labels { border-top-color: var(--border, #334155); }
 [data-theme="dark"] .csb-labels-title { color: var(--ink3, #64748b); }
 [data-theme="dark"] .csb-labels-add { color: var(--ink3, #64748b); }
-[data-theme="dark"] .csb-labels-add:hover { background: var(--bg); color: var(--ink, #e2e8f0); }
-[data-theme="dark"] .csb-label-row:hover { background: var(--bg); }
+[data-theme="dark"] .csb-labels-add:hover { background: var(--hover-bg); color: var(--ink, #e2e8f0); }
+[data-theme="dark"] .csb-label-row:hover { background: var(--hover-bg); }
 [data-theme="dark"] .csb-label-btn { color: var(--ink2, #94a3b8); }
 [data-theme="dark"] .csb-sys { border-top-color: var(--border, #334155); }
 [data-theme="dark"] .csb-sys-item { color: var(--ink2, #94a3b8); }
-[data-theme="dark"] .csb-sys-item:hover { background: var(--bg); }
+[data-theme="dark"] .csb-sys-item:hover { background: var(--hover-bg); }
 [data-theme="dark"] .csb-modal { background: var(--white); color: var(--ink, #e2e8f0); }
 [data-theme="dark"] .csb-modal-title { color: var(--ink, #e2e8f0); }
 
@@ -813,7 +813,7 @@
 }
 
 .cts-special-row:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .cts-special-row--selected {
@@ -1027,7 +1027,7 @@
   cursor: pointer;
 }
 .cts-dir-row:last-child { border-bottom: 0; }
-.cts-dir-row:hover { background: var(--bg); }
+.cts-dir-row:hover { background: var(--hover-bg); }
 .cts-dir-row:hover .cts-dir-action-btn { opacity: 1; }
 .cts-dir-row:focus-visible {
   outline: 2px solid var(--teal);

@@ -1,4 +1,4 @@
-.trk-dashboard {
+﻿.trk-dashboard {
   /* Vertical only — the side gutter is .app-shell-content's. */
   padding: 24px 0;
   background: var(--bg);
@@ -51,7 +51,7 @@
 }
 
 .trk-icon-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
@@ -268,7 +268,7 @@
 }
 
 .trk-pill.inactive:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 /* Vehicle Cards Grid */

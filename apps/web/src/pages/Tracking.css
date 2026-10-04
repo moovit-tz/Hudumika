@@ -1,4 +1,4 @@
-/* Tracking brand color — set dynamically by WorkspaceApp via useBranding() */
+﻿/* Tracking brand color — set dynamically by WorkspaceApp via useBranding() */
 .app-shell[data-tracking] {}
 
 /* Live Map is a full-bleed tool (like Bliss's ticket workspace/live chat),
@@ -257,7 +257,7 @@
   text-align: left;
   cursor: pointer;
 }
-.trk-layers-menu-item:hover { background: var(--bg); }
+.trk-layers-menu-item:hover { background: var(--hover-bg); }
 .trk-layers-menu-item.active { background: var(--teal-l); color: var(--teal); }
 
 /* SIDEBAR UPDATES */

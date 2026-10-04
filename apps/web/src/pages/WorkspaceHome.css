@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600;1,700&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600;1,700&display=swap');
 
 /* ══════════════════════════════════════════════════
    Workspace Home — Redesigned High-Fidelity Dashboard
@@ -372,7 +372,7 @@
 }
 
 .wh-filter-item:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--teal);
 }
 
@@ -1005,7 +1005,7 @@
 }
 
 [data-theme="dark"] .wh-table tbody tr:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 [data-theme="dark"] .wh-grid-card {
@@ -1084,7 +1084,7 @@
 }
 
 [data-theme="dark"] .wh-filter-item:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 /* User avatars — override CSS var set by UserAvatar component */

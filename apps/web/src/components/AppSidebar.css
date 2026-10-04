@@ -1,4 +1,4 @@
-/* ══════════════════════════════════════════════════
+﻿/* ══════════════════════════════════════════════════
    App Sidebar — styled after Ngao reference
 ══════════════════════════════════════════════════ */
 
@@ -1038,7 +1038,7 @@ html[data-expanded="true"] .app-sidebar {
   flex: 0 0 24px;
 }
 .app-sidebar-create-action:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   border-color: var(--border2);
   box-shadow: var(--elev);
   transform: translateY(-1px);

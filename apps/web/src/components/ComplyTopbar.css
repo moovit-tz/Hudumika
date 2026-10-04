@@ -1,4 +1,4 @@
-/* ── ComplyOS Topbar — Metronic/Rizz style ── */
+﻿/* ── ComplyOS Topbar — Metronic/Rizz style ── */
 
 /* Topbar height is 64px — matches sidebar brand area for a clean horizontal rule */
 .comply-topbar {
@@ -140,7 +140,7 @@
 }
 
 .comply-topbar-action-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 

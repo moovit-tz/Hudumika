@@ -1,4 +1,4 @@
-.be-wrap { display: flex; flex-direction: column; gap: 4px; }
+﻿.be-wrap { display: flex; flex-direction: column; gap: 4px; }
 
 .be-block {
   position: relative;
@@ -9,7 +9,7 @@
   border-radius: var(--r-sm);
   border: 1px solid transparent;
 }
-.be-block:hover { border-color: var(--border); background: var(--bg); }
+.be-block:hover { border-color: var(--border); background: var(--hover-bg); }
 .be-block-editing { border-color: var(--teal); background: var(--white); }
 .be-block-editing:hover { border-color: var(--teal); }
 

@@ -1,4 +1,4 @@
-/* ══════════════════════════════════════════════════════════════════
+﻿/* ══════════════════════════════════════════════════════════════════
    Bliss Support Reports & Analytics — Design System Styles
    Agent Performance Report, SLA Compliance Report, Traffic Report
    ══════════════════════════════════════════════════════════════════ */
@@ -68,7 +68,7 @@
 }
 
 .bliss-kpi-cell:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .bliss-kpi-accent-bar {

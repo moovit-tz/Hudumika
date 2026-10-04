@@ -1,4 +1,4 @@
-/* Bliss brand color — set dynamically by WorkspaceApp via useBranding() */
+﻿/* Bliss brand color — set dynamically by WorkspaceApp via useBranding() */
 .app-shell[data-bliss] {}
 
 /* ── Support Center Body Card ──
@@ -102,7 +102,7 @@
 }
 
 .bliss-inbox-action-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
   border-color: var(--ink3);
 }
@@ -426,7 +426,7 @@
 }
 
 .spt-icon-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .spt-icon-btn--primary {
@@ -593,7 +593,7 @@
 }
 
 .spt-inbox-item:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .spt-inbox-item--active {
@@ -695,7 +695,7 @@
 }
 
 .spt-nav-add:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
@@ -807,7 +807,7 @@
 }
 
 .spt-conv-row:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .spt-conv-row--active {
@@ -1055,7 +1055,7 @@
 }
 
 .spt-close-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 /* Channel filter tabs */
@@ -1525,7 +1525,7 @@
 }
 
 .spt-toolbar-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .spt-toolbar-right {
@@ -2046,7 +2046,7 @@
 }
 
 .spt-col-config-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
@@ -2063,7 +2063,7 @@
 }
 
 .spt-tix-table tbody tr:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .spt-tix-row--active {
@@ -2131,7 +2131,7 @@
 }
 
 .spt-detail-section-hdr:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .spt-detail-section-body {
@@ -2872,7 +2872,7 @@
 }
 
 .spt-bedesk-icon-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
@@ -2972,7 +2972,7 @@
 }
 
 .spt-bedesk-conv-card:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 /* Row checkboxes — hidden until the row is hovered, already checked, or a
@@ -3067,7 +3067,7 @@
 }
 
 .spt-bedesk-table tbody tr:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .spt-bedesk-row--active {
@@ -3168,7 +3168,7 @@
 }
 
 .spt-bedesk-close-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
@@ -3394,7 +3394,7 @@
 }
 
 .spt-bedesk-tb-btn:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 
@@ -3643,7 +3643,7 @@
 }
 
 .spt-bedesk-accordion-hdr:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .spt-bedesk-accordion-body {
@@ -3699,7 +3699,7 @@
 }
 
 [data-theme="dark"] .spt-bedesk-conv-card:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 [data-theme="dark"] .spt-bedesk-conv-card--active {
@@ -3721,7 +3721,7 @@
 }
 
 [data-theme="dark"] .spt-bedesk-table tbody tr:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 [data-theme="dark"] .spt-bedesk-row--active {

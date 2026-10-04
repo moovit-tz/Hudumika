@@ -1,4 +1,4 @@
-/* AI brand color — set dynamically by WorkspaceApp via useBranding() */
+﻿/* AI brand color — set dynamically by WorkspaceApp via useBranding() */
 .app-shell[data-ai] {}
 
 /* ── Larger class-based buttons ─────────────────────────────────── */
@@ -234,7 +234,7 @@
   color: var(--ink3);
 }
 .aia-tab-close:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 .aia-tab-rename {
@@ -263,7 +263,7 @@
   color: var(--ink2);
 }
 .react-flow__controls-button:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 .react-flow__controls-button svg {
   fill: var(--ink2);
@@ -542,5 +542,5 @@
   text-align: left;
 }
 .aia-add-menu-item:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }

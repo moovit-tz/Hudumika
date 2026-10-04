@@ -1,4 +1,4 @@
-/* ── SEAL shared tokens & layout ──
+﻿/* ── SEAL shared tokens & layout ──
    Brand accent (--seal) tracks the app's configured color exactly like
    ComplyOS's [data-complyos] block (see ComplyOS.css) — scoped to
    [data-seal="true"] (inside .app-color-scope, which WorkspaceApp.tsx
@@ -78,7 +78,7 @@
 }
 .seal-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .seal-table tbody tr { cursor: pointer; transition: background 0.1s; }
-.seal-table tbody tr:hover { background: var(--bg); }
+.seal-table tbody tr:hover { background: var(--hover-bg); }
 .seal-table tbody tr:last-child td { border-bottom: none; }
 
 /* Every lot/movement row carries a colored seal-strip identity marker —
@@ -278,7 +278,7 @@
   font: inherit;
 }
 .seal-switcher-item:hover {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 .seal-switcher-item[data-selected="true"] {
   border-color: var(--seal);
