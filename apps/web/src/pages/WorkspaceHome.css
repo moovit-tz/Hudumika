@@ -123,7 +123,7 @@
       transparent 114deg, transparent 360deg
     ) border-box;
   animation: wh-border-draw 2s linear infinite;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--card-color, var(--teal)) 28%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--card-color, var(--teal)) 18%, transparent);
   transform: translateY(-2px);
 }
 
@@ -651,7 +651,7 @@
       transparent 114deg, transparent 360deg
     ) border-box;
   animation: wh-border-draw 2s linear infinite;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--card-color, var(--teal)) 28%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--card-color, var(--teal)) 18%, transparent);
   transform: translateY(-2px);
 }
 
@@ -973,7 +973,7 @@
       var(--card-color, var(--wh-night-brand)) 102deg,
       transparent 114deg, transparent 360deg
     ) border-box;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--card-color, var(--teal)) 28%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--card-color, var(--teal)) 18%, transparent);
 }
 
 [data-theme="dark"] .wh-toggle-group {
@@ -1040,7 +1040,7 @@
       var(--card-color, var(--wh-night-brand)) 102deg,
       transparent 114deg, transparent 360deg
     ) border-box;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--card-color, var(--teal)) 28%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--card-color, var(--teal)) 18%, transparent);
 }
 
 [data-theme="dark"] .wh-horizontal-card:hover .wh-card-title,
