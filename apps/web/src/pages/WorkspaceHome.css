@@ -307,6 +307,16 @@
   transform: translateY(-1px);
   box-shadow: var(--elev);
 }
+[data-theme="dark"] .wh-create-btn:hover {
+  background:
+    linear-gradient(var(--teal), var(--teal)) padding-box,
+    conic-gradient(
+      from var(--wh-border-angle),
+      transparent  0deg,  transparent  78deg,
+      rgba(255,255,255,0.9)  90deg, rgba(255,255,255,0.9) 102deg,
+      transparent 114deg, transparent 360deg
+    ) border-box;
+}
 
 /* ── SETTINGS BUTTON (outlined, distinct from teal filled) ── */
 .wh-settings-btn {

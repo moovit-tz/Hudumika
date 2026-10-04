@@ -1033,6 +1033,9 @@
   color: var(--ink);
   background: color-mix(in srgb, var(--white) 55%, transparent);
 }
+[data-theme="dark"] .opa-modal-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
 
 .opa-modal-tab.active {
   color: var(--ink);

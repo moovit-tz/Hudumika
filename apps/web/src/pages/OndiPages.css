@@ -490,11 +490,11 @@
 }
 
 [data-theme="dark"] .ondi-table tr:hover td {
-  background: color-mix(in srgb, var(--teal) 9%, var(--white));
+  background: var(--hover-bg);
 }
 
 [data-theme="dark"] .ondi-table tr.selected td {
-  background: color-mix(in srgb, var(--teal) 15%, var(--white));
+  background: var(--teal-l);
 }
 
 [data-theme="dark"] .ondi-modal-backdrop {
