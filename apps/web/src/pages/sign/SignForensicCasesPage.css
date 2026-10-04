@@ -425,7 +425,7 @@
 
 .sfc-visual-img-wrap {
   position: relative;
-  background: #f8fafc;
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;

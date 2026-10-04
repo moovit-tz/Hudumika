@@ -161,7 +161,7 @@
 .comply-topbar-avatar {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background: linear-gradient(135deg, var(--green) 0%, color-mix(in srgb, var(--green) 80%, #000) 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;

@@ -366,7 +366,7 @@
   justify-content: center;
   font-size: 10.5px;
   font-weight: 700;
-  background: var(--border2, #e5e7eb);
+  background: var(--border2);
   color: var(--ink2);
   padding: 0 5px;
   height: 16px;
@@ -1162,7 +1162,7 @@
 /* .em-ai-panel and .em-companion-btn--active need no override either —
    same reason: their base rules already read var(--blue)/var(--blue-l),
    already theme-aware. */
-[data-theme="dark"] .em-compose-hdr { background: #2a2d35; }
+[data-theme="dark"] .em-compose-hdr { background: var(--white); }
 
 /* Email workspace dark mode. Message/template content may intentionally keep
    its authored colours; every application-owned surface follows the platform. */
@@ -1228,8 +1228,8 @@
   --border: var(--email-night-edge);
   --border2: color-mix(in srgb, var(--teal) 13%, var(--ink3));
 }
-[data-theme="dark"] .em-root { background: #080c14; }
-[data-theme="dark"] .em-body { background: #080c14; }
+[data-theme="dark"] .em-root { background: var(--bg); }
+[data-theme="dark"] .em-body { background: var(--bg); }
 [data-theme="dark"] :is(.em-list, .em-detail, .em-compose-modal, .em-settings-section, .em-reply-box, .em-contact-card, .em-adv-search) {
   background: var(--email-night-surface);
   border-color: var(--email-night-edge);
@@ -1268,7 +1268,7 @@
 [data-theme="dark"] .em-settings-sidebar { background: var(--email-night-surface); border-color: var(--email-night-edge); }
 [data-theme="dark"] .em-settings-content,
 [data-theme="dark"] .em-settings-body,
-[data-theme="dark"] .em-settings-layout { background: #080c14 !important; }
+[data-theme="dark"] .em-settings-layout { background: var(--bg) !important; }
 [data-theme="dark"] .em-settings-nav .ds-tabs-trigger:hover:not([data-state="active"]) { background: color-mix(in srgb, var(--email-night-brand) 8%, var(--email-night-surface)) !important; }
 [data-theme="dark"] .em-settings-nav .ds-tabs-trigger[data-state="active"] { background: color-mix(in srgb, var(--email-night-brand) 15%, var(--email-night-surface)) !important; border-color: var(--email-night-edge-strong) !important; }
 [data-theme="dark"] .em-root :is(button, a, [role="button"]):focus-visible,
@@ -1500,7 +1500,7 @@
   line-height: 1;
 }
 .em-row-att-chip--pdf .em-row-att-icon {
-  background: #e53935;
+  background: var(--red);
   color: #fff;
   border-radius: 2px;
   padding: 1px 3px;
@@ -2364,7 +2364,7 @@
   align-items: center;
   justify-content: space-between;
   padding-bottom: 7px;
-  border-bottom: 1px solid var(--border-l, #eceff1);
+  border-bottom: 1px solid var(--border2);
   margin-bottom: 1px;
 }
 
@@ -2443,7 +2443,7 @@
 }
 
 .em-adv-input::placeholder {
-  color: var(--ink4, #a0aec0);
+  color: var(--ink3);
   font-size: 12px;
 }
 
@@ -2471,7 +2471,7 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--ink3);
-  background: var(--bg-hover, #f1f5f9);
+  background: var(--bg);
   padding: 3px 6px;
   border-radius: var(--r-xs, 4px);
   border: 1px solid var(--border);
@@ -2533,7 +2533,7 @@
   gap: 8px;
   margin-top: 2px;
   padding-top: 10px;
-  border-top: 1px solid var(--border-l, #eceff1);
+  border-top: 1px solid var(--border2);
 }
 
 .em-adv-actions-right {

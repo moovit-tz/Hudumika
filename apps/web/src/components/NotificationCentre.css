@@ -324,7 +324,7 @@
 
 /* ── Dark mode ── */
 [data-theme="dark"] .notif-panel {
-  background: #16181f;
+  background: var(--white);
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: var(--elev-lg);
 }

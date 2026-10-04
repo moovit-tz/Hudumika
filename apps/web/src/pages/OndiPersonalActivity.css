@@ -35,7 +35,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--teal);
+  background: hsl(var(--primary));
   box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
   animation: opaPulse 2s infinite ease-in-out;
 }
@@ -72,14 +72,14 @@
 .opa-action-btn-primary {
   background: var(--teal);
   border-color: var(--teal);
-  color: #ffffff;
+  color: hsl(var(--primary-foreground));
   box-shadow: 0 2px 6px rgba(13, 148, 136, 0.2);
 }
 
 .opa-action-btn-primary:hover {
   background: var(--teal-d, #0f766e);
   border-color: var(--teal-d, #0f766e);
-  color: #ffffff;
+  color: hsl(var(--primary-foreground));
 }
 
 /* ── Top Executive Audit KPI Grid ── */
@@ -315,7 +315,7 @@
 }
 
 .opa-filter-btn-danger.active .opa-filter-count.danger {
-  color: #ffffff;
+  color: hsl(var(--red-foreground));
 }
 
 .opa-toolbar-right {
@@ -907,9 +907,9 @@
 }
 
 .opa-table-inspect-btn:hover {
-  background: var(--teal);
+  background: hsl(var(--primary));
   border-color: var(--teal);
-  color: #ffffff;
+  color: hsl(var(--primary-foreground));
 }
 
 /* ── Activity Detail Modal (0% Transparency Solid Card) ── */

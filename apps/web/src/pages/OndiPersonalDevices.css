@@ -301,7 +301,7 @@
 
 .opd-revoke-all-btn:hover {
   background: var(--red);
-  color: #ffffff;
+  color: hsl(var(--red-foreground));
   border-color: var(--red);
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
 }
@@ -706,7 +706,7 @@
 .opd-ua-copy-btn {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #ffffff;
+  color: hsl(var(--red-foreground));
   padding: 3px 8px;
   border-radius: var(--r-sm);
   font-size: 11px;
@@ -773,7 +773,7 @@
 .opd-btn-danger-action {
   background: var(--red);
   border: none;
-  color: #ffffff;
+  color: hsl(var(--red-foreground));
   padding: 9px 18px;
   border-radius: 8px;
   font-size: 13px;

@@ -387,26 +387,26 @@
 
 .spt-ch-pill-sm[data-ch="email"] {
   background: var(--blue-l);
-  color: #2563eb;
-  border-color: #2563eb88;
+  color: var(--blue);
+  border-color: color-mix(in srgb, var(--blue) 53%, transparent);
 }
 
 .spt-ch-pill-sm[data-ch="whatsapp"] {
   background: var(--green-l);
   color: var(--green);
-  border-color: #04785788;
+  border-color: color-mix(in srgb, var(--green) 53%, transparent);
 }
 
 .spt-ch-pill-sm[data-ch="sms"] {
   background: var(--purple-l);
-  color: #7c3aed;
-  border-color: #7c3aed88;
+  color: var(--purple);
+  border-color: color-mix(in srgb, var(--purple) 53%, transparent);
 }
 
 .spt-ch-pill-sm[data-ch="note"] {
   background: var(--gold-l);
   color: var(--gold);
-  border-color: #92400e88;
+  border-color: color-mix(in srgb, var(--gold) 53%, transparent);
 }
 
 /* Shared icon button */
@@ -758,7 +758,7 @@
 }
 
 .spt-group-dot[data-color="purple"] {
-  background: #7c3aed;
+  background: var(--purple);
 }
 
 .spt-group-dot[data-color="gold"] {
@@ -816,11 +816,11 @@
 }
 
 .spt-conv-row--urgent {
-  border-left-color: #dc2626;
+  border-left-color: var(--red);
 }
 
 .spt-conv-row--high {
-  border-left-color: #f59e0b;
+  border-left-color: var(--gold);
 }
 
 .spt-conv-row-av {
@@ -1191,7 +1191,7 @@
   gap: 4px;
   padding: var(--badge-py) var(--badge-px);
   background: var(--gold-l);
-  border: 1px solid #fde04788;
+  border: 1px solid color-mix(in srgb, var(--gold) 53%, transparent);
   border-radius: 6px;
   font-size: var(--badge-fs);
   font-weight: 700;
@@ -1210,7 +1210,7 @@
 .spt-note-card-hdr {
   padding: 7px 14px;
   background: var(--gold-l);
-  border-bottom: 1px solid #fde04766;
+  border-bottom: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
   font-size: 10.5px;
   font-weight: 800;
   color: var(--teal);
@@ -1346,19 +1346,19 @@
 }
 
 .spt-ch-pill--active[data-ch="whatsapp"] {
-  border-color: #047857;
+  border-color: var(--green);
   background: var(--green-l);
   color: var(--green);
 }
 
 .spt-ch-pill--active[data-ch="email"] {
-  border-color: #1d4ed8;
+  border-color: var(--blue);
   background: var(--blue-l);
   color: var(--blue);
 }
 
 .spt-ch-pill--active[data-ch="note"] {
-  border-color: #92400e;
+  border-color: color-mix(in srgb, var(--gold) 70%, #000);
   background: var(--gold-l);
   color: var(--gold);
 }
@@ -1370,9 +1370,9 @@
 }
 
 .spt-ch-pill--active[data-ch="sms"] {
-  border-color: #7c3aed;
+  border-color: var(--purple);
   background: var(--purple-l);
-  color: #7c3aed;
+  color: var(--purple);
 }
 
 .spt-to-row {
@@ -1496,7 +1496,7 @@
 
 .spt-compose-ta--note {
   background: var(--gold-l);
-  border-top-color: #92400e55;
+  border-top-color: color-mix(in srgb, var(--gold) 33%, transparent);
 }
 
 .spt-toolbar {
@@ -1573,19 +1573,19 @@
 }
 
 .spt-send-btn--whatsapp {
-  background: #047857;
+  background: var(--green);
 }
 
 .spt-send-btn--email {
-  background: #1d4ed8;
+  background: var(--blue);
 }
 
 .spt-send-btn--note {
-  background: #92400e;
+  background: color-mix(in srgb, var(--gold) 70%, #000);
 }
 
 .spt-send-btn--sms {
-  background: #7c3aed;
+  background: var(--purple);
 }
 
 .spt-send-btn--inapp {
@@ -1741,20 +1741,20 @@
 
 .spt-broadcast-btn[data-ch="email"].spt-broadcast-btn--active {
   background: var(--blue-l);
-  color: #2563eb;
-  border-color: #2563eb;
+  color: var(--blue);
+  border-color: var(--blue);
 }
 
 .spt-broadcast-btn[data-ch="whatsapp"].spt-broadcast-btn--active {
   background: var(--green-l);
   color: var(--green);
-  border-color: #047857;
+  border-color: var(--green);
 }
 
 .spt-broadcast-btn[data-ch="sms"].spt-broadcast-btn--active {
   background: var(--purple-l);
-  color: #7c3aed;
-  border-color: #7c3aed;
+  color: var(--purple);
+  border-color: var(--purple);
 }
 
 .spt-note-toggle-btn {
@@ -1775,7 +1775,7 @@
 .spt-note-toggle-btn--active {
   background: var(--gold-l);
   color: var(--gold);
-  border-color: #92400e;
+  border-color: color-mix(in srgb, var(--gold) 70%, #000);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -2177,27 +2177,27 @@
 }
 
 .spt-rule-dot[data-rule="dailyStatusWa"] {
-  background: #047857;
+  background: var(--green);
 }
 
 .spt-rule-dot[data-rule="dailyStatusEmail"] {
-  background: #2563eb;
+  background: var(--blue);
 }
 
 .spt-rule-dot[data-rule="missingDoc"] {
-  background: #d97706;
+  background: var(--gold);
 }
 
 .spt-rule-dot[data-rule="demurrageAlert"] {
-  background: #dc2626;
+  background: var(--red);
 }
 
 .spt-rule-dot[data-rule="stageAdvance"] {
-  background: #047857;
+  background: var(--green);
 }
 
 .spt-rule-dot[data-rule="paymentRequest"] {
-  background: #6b7280;
+  background: var(--ink3);
 }
 
 .spt-rule-label {
@@ -2483,7 +2483,7 @@
 [data-theme="dark"] .spt-details-hdr,
 [data-theme="dark"] .spt-tix-list-hdr,
 [data-theme="dark"] .spt-ch-tabs {
-  background: #11131c;
+  background: var(--white);
   border-bottom-color: var(--border);
 }
 
@@ -2560,7 +2560,7 @@
 }
 
 [data-theme="dark"] .spt-msgs {
-  background: radial-gradient(ellipse at 50% 0%, rgba(232, 70, 26, 0.035) 0%, transparent 65%), #080b10;
+  background: radial-gradient(ellipse at 50% 0%, rgba(232, 70, 26, 0.035) 0%, transparent 65%), var(--bg);
 }
 
 [data-theme="dark"] .spt-sys-pill {
@@ -2570,15 +2570,15 @@
 }
 
 [data-theme="dark"] .spt-msg--customer .spt-bubble {
-  background: #141722;
-  color: #e2e8f0;
+  background: var(--white);
+  color: var(--ink);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 [data-theme="dark"] .spt-msg--officer .spt-bubble {
-  background: linear-gradient(135deg, rgba(232, 70, 26, 0.18) 0%, #161c28 100%);
-  color: #f8fafc;
+  background: linear-gradient(135deg, rgba(232, 70, 26, 0.18) 0%, var(--bg) 100%);
+  color: var(--ink);
   border: 1px solid rgba(232, 70, 26, 0.35);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
 }
@@ -2711,8 +2711,8 @@
 }
 
 [data-theme="dark"] .spt-status-select option {
-  background-color: #111218;
-  color: #e2e8f0;
+  background-color: var(--white);
+  color: var(--ink);
 }
 
 [data-theme="dark"] .spt-status-select--open {
@@ -2757,8 +2757,8 @@
 }
 
 [data-theme="dark"] .spt-assignee-select option {
-  background-color: #111218;
-  color: #e2e8f0;
+  background-color: var(--white);
+  color: var(--ink);
 }
 
 [data-theme="dark"] .spt-tix-table thead {
@@ -3091,19 +3091,19 @@
 .spt-bedesk-status-pill--open {
   background: var(--teal-l);
   color: var(--teal);
-  border-color: rgba(13, 148, 136, 0.35);
+  border-color: color-mix(in srgb, var(--teal) 35%, transparent);
 }
 
 .spt-bedesk-status-pill--in-progress {
   background: var(--gold-l);
   color: var(--gold);
-  border-color: rgba(245, 158, 11, 0.35);
+  border-color: color-mix(in srgb, var(--gold) 35%, transparent);
 }
 
 .spt-bedesk-status-pill--resolved {
   background: var(--green-l);
   color: var(--green);
-  border-color: rgba(16, 185, 129, 0.35);
+  border-color: color-mix(in srgb, var(--green) 35%, transparent);
 }
 
 .spt-bedesk-status-pill--closed {
@@ -3182,8 +3182,8 @@
 }
 
 .spt-bedesk-internal-note-card {
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: var(--gold-l);
+  border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
   border-radius: 8px;
   padding: 12px 16px;
   margin: 6px 0;
@@ -3226,9 +3226,9 @@
 }
 
 .spt-bedesk-msg--officer .spt-bedesk-msg-bubble {
-  background: rgba(13, 148, 136, 0.12);
+  background: color-mix(in srgb, var(--teal) 12%, transparent);
   color: var(--ink);
-  border-color: rgba(13, 148, 136, 0.25);
+  border-color: color-mix(in srgb, var(--teal) 25%, transparent);
 }
 
 .spt-bedesk-msg-time {
@@ -3294,7 +3294,7 @@
 
 .spt-bedesk-mode-pill.active.note {
   background: var(--gold);
-  color: #ffffff;
+  color: hsl(var(--gold-foreground));
 }
 
 /* Icon-only — was a text pill ("WhatsApp", "Instagram"...) that could not
@@ -3329,13 +3329,13 @@
 }
 
 .spt-bedesk-note-badge-banner {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
+  color: var(--gold);
   padding: 5px 10px;
   border-radius: 6px 6px 0 0;
   font-size: 11px;
   font-weight: 700;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
   border-bottom: none;
   display: flex;
   align-items: center;
@@ -3363,8 +3363,8 @@
 
 .spt-bedesk-ta.note {
   border-radius: 0 0 6px 6px;
-  background: rgba(245, 158, 11, 0.05);
-  border-color: rgba(245, 158, 11, 0.3);
+  background: color-mix(in srgb, var(--gold) 5%, transparent);
+  border-color: color-mix(in srgb, var(--gold) 30%, transparent);
 }
 
 .spt-bedesk-composer-ft {
@@ -3414,14 +3414,14 @@
 }
 
 .spt-bedesk-send-btn.ready {
-  background: var(--teal);
-  color: #ffffff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   cursor: pointer;
 }
 
 .spt-bedesk-send-btn.ready.note {
-  background: #f59e0b;
-  color: #ffffff;
+  background: var(--gold);
+  color: hsl(var(--gold-foreground));
 }
 
 /* Details Panel */
@@ -3695,11 +3695,11 @@
 
 /* Dark theme overrides for BeDesk classes */
 [data-theme="dark"] .spt-bedesk-conv-card {
-  background: #11141c;
+  background: var(--white);
 }
 
 [data-theme="dark"] .spt-bedesk-conv-card:hover {
-  background: #181c26;
+  background: var(--bg);
 }
 
 [data-theme="dark"] .spt-bedesk-conv-card--active {
@@ -3717,11 +3717,11 @@
 [data-theme="dark"] .spt-bedesk-details-hdr,
 [data-theme="dark"] .spt-bedesk-rcol-tabs,
 [data-theme="dark"] .spt-bedesk-composer {
-  background: #11141c;
+  background: var(--white);
 }
 
 [data-theme="dark"] .spt-bedesk-table tbody tr:hover {
-  background: #181c26;
+  background: var(--bg);
 }
 
 [data-theme="dark"] .spt-bedesk-row--active {
@@ -3731,19 +3731,19 @@
 }
 
 [data-theme="dark"] .spt-bedesk-msg--customer .spt-bedesk-msg-bubble {
-  background: #161b24;
-  color: #e2e8f0;
+  background: var(--white);
+  color: var(--ink);
   border-color: rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="dark"] .spt-bedesk-msg--officer .spt-bedesk-msg-bubble {
-  background: #1e293b;
-  color: #f1f5f9;
+  background: var(--white);
+  color: var(--ink);
   border-color: rgba(13, 148, 136, 0.4);
 }
 
 [data-theme="dark"] .spt-bedesk-ta {
-  background: #11141c;
-  color: #f1f5f9;
+  background: var(--white);
+  color: var(--ink);
   border-color: var(--border);
 }

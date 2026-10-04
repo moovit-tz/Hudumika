@@ -2,10 +2,10 @@
 
 [data-cloud="true"] {
   --cloud-accent: var(--teal);
-  --cloud-accent-hover: #0f766e;
-  --cloud-blue: #1a73e8;
-  --cloud-card-bg: var(--card-bg, #ffffff);
-  --cloud-border: var(--border, #e2e8f0);
+  --cloud-accent-hover: var(--teal);
+  --cloud-blue: var(--blue);
+  --cloud-card-bg: var(--card-bg, var(--white));
+  --cloud-border: var(--border);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -26,13 +26,13 @@
 .cloud-home-hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--teal) 0%, #0891b2 60%, #6366f1 100%);
+  background: linear-gradient(135deg, var(--teal) 0%, var(--blue) 60%, var(--purple) 100%);
   padding: 40px 36px 48px;
   flex-shrink: 0;
 }
 
 [data-theme="dark"] .cloud-home-hero {
-  background: linear-gradient(135deg, #0f766e 0%, #155e75 60%, #4338ca 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--teal) 60%, #000) 0%, color-mix(in srgb, var(--blue) 50%, #000) 60%, color-mix(in srgb, var(--purple) 80%, #000) 100%);
 }
 
 .cloud-home-hero-content {
@@ -49,7 +49,7 @@
 .cloud-home-hero-title {
   font-size: 28px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--white);
   margin: 0 0 6px;
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -79,7 +79,7 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.28);
-  color: #ffffff;
+  color: var(--white);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -243,9 +243,9 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: var(--card-bg, #ffffff);
-  color: var(--navy, #0f172a);
-  border: 1px solid var(--border, #e2e8f0);
+  background: var(--white);
+  color: var(--ink);
+  border: 1px solid var(--border);
   padding: 12px 20px;
   border-radius: 16px;
   font-size: 14px;
@@ -259,7 +259,7 @@
 .cloud-new-btn:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(13, 148, 136, 0.15);
   border-color: var(--cloud-accent);
-  background: var(--card-bg, #ffffff);
+  background: var(--white);
   transform: translateY(-1px);
 }
 
@@ -272,7 +272,7 @@
   border-radius: 0 24px 24px 0;
   border: none;
   background: transparent;
-  color: var(--ink2, #475569);
+  color: var(--ink2);
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
@@ -282,8 +282,8 @@
 }
 
 .cloud-nav-item:hover {
-  background: var(--bg, #f8fafc);
-  color: var(--ink, #0f172a);
+  background: var(--bg);
+  color: var(--ink);
 }
 
 .cloud-nav-item.active {
@@ -294,7 +294,7 @@
 
 [data-theme="dark"] .cloud-nav-item.active {
   background: rgba(13, 148, 136, 0.22);
-  color: #2dd4bf;
+  color: var(--teal);
 }
 
 /* ── Folder & File Cards Grid ── */
@@ -312,7 +312,7 @@
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: var(--card-bg, #ffffff);
+  background: var(--white);
   border: 1px solid var(--border);
   border-radius: 12px;
   cursor: pointer;
@@ -348,7 +348,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  background: var(--card-bg, #ffffff);
+  background: var(--white);
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
@@ -389,7 +389,7 @@
   left: 8px;
   background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(4px);
-  color: #ffffff;
+  color: var(--white);
   font-size: 10px;
   font-weight: 800;
   padding: 2px 8px;
@@ -403,7 +403,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: var(--card-bg, #ffffff);
+  background: var(--white);
 }
 
 .drive-file-title {
@@ -468,7 +468,7 @@
   height: 56px;
   border-radius: 16px;
   background: var(--cloud-accent);
-  color: #ffffff;
+  color: hsl(var(--primary-foreground));
   border: none;
   box-shadow: 0 4px 20px rgba(13, 148, 136, 0.4);
   align-items: center;
@@ -509,7 +509,7 @@
   gap: 12px;
   height: 52px;
   padding: 0 16px;
-  background: #111827;
+  background: var(--white);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
   min-width: 0;
@@ -542,7 +542,7 @@
 .lbx-filename {
   font-size: 13.5px;
   font-weight: 600;
-  color: #f3f4f6;
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -569,7 +569,7 @@
 
 .lbx-page-sep {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--ink3);
   white-space: nowrap;
   flex-shrink: 0;
   padding: 0 2px;
@@ -578,14 +578,14 @@
 .lbx-zoom-label {
   font-size: 12px;
   font-weight: 600;
-  color: #e5e7eb;
+  color: var(--ink);
   min-width: 36px;
   text-align: center;
   flex-shrink: 0;
 }
 
 .lbx-zoom-btn {
-  color: #9ca3af;
+  color: var(--ink3);
   font-size: 15px;
 }
 
@@ -608,7 +608,7 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #9ca3af;
+  color: var(--ink3);
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.13s, color 0.13s;
@@ -616,7 +616,7 @@
 
 .lbx-icon-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #f3f4f6;
+  color: var(--ink);
 }
 
 .lbx-icon-btn:disabled {
@@ -632,11 +632,11 @@
 .lbx-close-btn {
   width: 34px;
   height: 34px;
-  color: #6b7280;
+  color: var(--ink3);
 }
 .lbx-close-btn:hover {
   background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
+  color: var(--red);
 }
 
 /* Divider */
@@ -655,14 +655,14 @@
   border: none;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.08);
-  color: #f3f4f6;
+  color: var(--ink);
   font-size: 12px;
   text-align: center;
   flex-shrink: 0;
 }
 
 .lbx-page-input:focus {
-  outline: 1px solid var(--cloud-accent, #0d9488);
+  outline: 1px solid var(--cloud-accent);
 }
 
 /* Sign & Stamp button */
@@ -673,8 +673,8 @@
   padding: 7px 16px;
   border: none;
   border-radius: 8px;
-  background: var(--cloud-accent, #0d9488);
-  color: #fff;
+  background: var(--cloud-accent);
+  color: hsl(var(--primary-foreground));
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
@@ -684,7 +684,7 @@
 }
 
 .lbx-sign-btn:hover {
-  background: var(--cloud-accent-hover, #0f766e);
+  background: var(--cloud-accent-hover);
   transform: translateY(-1px);
 }
 
@@ -694,19 +694,19 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  color: #4b5563;
+  color: var(--ink3);
   font-size: 14px;
 }
 
 .lbx-status--error {
-  color: #f87171;
+  color: var(--red);
 }
 
 .lbx-status-spinner {
   width: 28px;
   height: 28px;
   border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: var(--cloud-accent, #0d9488);
+  border-top-color: var(--cloud-accent);
   border-radius: 50%;
   animation: cloud-spin 0.75s linear infinite;
 }
@@ -727,7 +727,7 @@
 .pdf-thumb-rail {
   width: 132px;
   flex-shrink: 0;
-  background: #0d1117;
+  background: var(--bg);
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   overflow-y: auto;
   padding: 12px 10px;
@@ -753,14 +753,14 @@
 }
 
 .pdf-thumb--active {
-  border-color: var(--cloud-accent, #0d9488);
+  border-color: var(--cloud-accent);
   background: rgba(13, 148, 136, 0.12);
 }
 
 .pdf-thumb-page {
   width: 100%;
   min-height: 130px;
-  background: #1a2235;
+  background: var(--card-sunken);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -775,12 +775,12 @@
 
 .pdf-thumb-num {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--ink3);
   font-weight: 600;
 }
 
 .pdf-thumb--active .pdf-thumb-num {
-  color: #e5e7eb;
+  color: var(--ink);
 }
 
 /* Fills the real available area — this used to be a hardcoded 740×920px
@@ -795,7 +795,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0c0f1a;
+  background: var(--bg);
   overflow: auto;
   padding: 32px;
 }
@@ -823,7 +823,7 @@
   height: 720px;
   max-width: 100%;
   max-height: 100%;
-  background: #ffffff;
+  background: var(--white);
   border-radius: 4px;
   overflow: hidden;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.8);
@@ -833,12 +833,12 @@
 }
 
 .lightbox-status {
-  color: #64748b;
+  color: var(--ink3);
   font-size: 14px;
 }
 
 .lightbox-status--error {
-  color: #f87171;
+  color: var(--red);
 }
 
 .lightbox-edge-nav {
@@ -1636,7 +1636,7 @@
 }
 
 .csb-conn-dot--on {
-  background: #188038;
+  background: var(--green);
 }
 
 /* Storage bar */
