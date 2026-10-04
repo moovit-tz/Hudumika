@@ -28,6 +28,7 @@ import { Switch } from '../../components/ui/switch.js';
 import { LauncherAppSvg, LAUNCHER_APPS } from '../../components/LauncherApps.js';
 import { SignaturePad } from '../../components/SignaturePad.js';
 import { showAlert } from '../../lib/alert.js';
+import { Tip } from '../../components/ui/tooltip.js';
 import { UpgradeNotice } from '../../components/UpgradeNotice.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { useEntitlements, resetEntitlementsCache } from '../../hooks/useEntitlements.js';
@@ -187,9 +188,9 @@ export const CompanySection: React.FC = () => {
               <div className="s-upload-hint">PNG, SVG or JPG · max 2 MB</div>
             </div>
             {logoUrl && (
-              <button type="button" title="Remove logo" onClick={e => { e.preventDefault(); setLogoUrl(null); }} className="s-upload-rm">
+              <Tip label="Remove logo"><button type="button" aria-label="Remove logo" onClick={e => { e.preventDefault(); setLogoUrl(null); }} className="s-upload-rm">
                 <Icon name="x" size={13} color="var(--red)" />
-              </button>
+              </button></Tip>
             )}
             <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
           </label>
@@ -205,9 +206,9 @@ export const CompanySection: React.FC = () => {
               <div className="s-upload-hint">PNG or SVG, ideally with a transparent background · max 2 MB</div>
             </div>
             {logoUrlDark && (
-              <button type="button" title="Remove dark-mode logo" onClick={e => { e.preventDefault(); setLogoUrlDark(null); }} className="s-upload-rm">
+              <Tip label="Remove dark-mode logo"><button type="button" aria-label="Remove dark-mode logo" onClick={e => { e.preventDefault(); setLogoUrlDark(null); }} className="s-upload-rm">
                 <Icon name="x" size={13} color="var(--red)" />
-              </button>
+              </button></Tip>
             )}
             <input type="file" accept="image/*" className="hidden" onChange={handleLogoDarkChange} />
           </label>
@@ -216,10 +217,8 @@ export const CompanySection: React.FC = () => {
           <Field label="Previous Logos" hint="Click to restore" full>
             <div className="s-logo-hist">
               {co.logoHistory.map((src, i) => (
-                <button key={i} type="button" title={`Restore logo ${i + 1}`} onClick={() => setLogoUrl(src)}
-                  className={`s-logo-thumb${logoUrl === src ? ' s-logo-thumb--on' : ''}`}>
-                  <img src={src} alt={`Previous logo ${i + 1}`} className="s-logo-thumb-img" />
-                </button>
+                <Tip key={i} label={`Restore logo ${i + 1}`}><button type="button" aria-label={`Restore logo ${i + 1}`} onClick={() => setLogoUrl(src)}
+                  className={`s-logo-thumb${logoUrl === src ? ' s-logo-thumb--on' : ''}`}><img src={src} alt={`Previous logo ${i + 1}`} className="s-logo-thumb-img" /></button></Tip>
               ))}
             </div>
           </Field>
@@ -235,9 +234,9 @@ export const CompanySection: React.FC = () => {
               <div className="s-upload-hint">512×512px · PNG, JPG, SVG or ICO</div>
             </div>
             {faviconUrl && (
-              <button type="button" title="Remove favicon" onClick={e => { e.preventDefault(); setFaviconUrl(null); }} className="s-upload-rm">
+              <Tip label="Remove favicon"><button type="button" aria-label="Remove favicon" onClick={e => { e.preventDefault(); setFaviconUrl(null); }} className="s-upload-rm">
                 <Icon name="x" size={13} color="var(--red)" />
-              </button>
+              </button></Tip>
             )}
             <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.png,.jpg,.jpeg,.svg,.ico" className="hidden" onChange={handleFaviconChange} />
           </label>
@@ -419,6 +418,7 @@ export const EmailSection: React.FC = () => {
   const [connecting, setConnecting] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [testTo, setTestTo] = useState('');
   const [oauthNotice, setOauthNotice] = useState<{ ok: boolean; msg: string } | null>(null);
   const hydratedExtra = useRef(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -465,16 +465,25 @@ export const EmailSection: React.FC = () => {
   async function handleTestEmail() {
     setTesting(true); setTestResult(null);
     try {
-      await apiFetch('/v1/settings/email/test', {
-        method: 'POST',
-        body: JSON.stringify({ host: f.host, port: Number(f.port), user: f.user, pass: f.pass, enc: f.enc, fromName: f.fromName, fromEmail: f.fromEmail }),
-      });
+      if (protocol === 'smtp') {
+        // SMTP: verify connection + send using the form fields directly (before saving)
+        await apiFetch('/v1/settings/email/test', {
+          method: 'POST',
+          body: JSON.stringify({ host: f.host, port: Number(f.port), user: f.user, pass: f.pass, enc: f.enc, fromName: f.fromName, fromEmail: f.fromEmail }),
+        });
+      } else {
+        // Mail / Outlook / Gmail: use the saved tenant config
+        await apiFetch('/v1/settings/email/send-test', {
+          method: 'POST',
+          body: JSON.stringify({ to: testTo || undefined }),
+        });
+      }
       setTestResult({ ok: true, msg: 'Test email sent successfully.' });
     } catch (err: any) {
       setTestResult({ ok: false, msg: err?.message || 'Failed to send test email.' });
     } finally {
       setTesting(false);
-      setTimeout(() => setTestResult(null), 5000);
+      setTimeout(() => setTestResult(null), 6000);
     }
   }
 
@@ -542,8 +551,10 @@ export const EmailSection: React.FC = () => {
       )}
       {protocol === 'mail' && (
         <Card title="Mail (system default)">
-          <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0 }}>
-            Sends through Hudumika's own outgoing mail server — no setup needed. Switch to SMTP, Outlook or Gmail above if you'd rather send from your own domain/mailbox.
+          <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0, lineHeight: 1.6 }}>
+            Sends through Hudumika's own outgoing mail server — no extra setup needed here. Your platform administrator configures the server credentials once in the SuperAdmin panel.
+            Switch to <strong>SMTP</strong>, <strong>Outlook</strong> or <strong>Gmail</strong> above if you'd rather send from your own domain or mailbox.<br />
+            <span style={{ color: 'var(--ink2)' }}>Use "Send Test Email" below (after saving) to confirm mail is working.</span>
           </p>
         </Card>
       )}
@@ -609,18 +620,26 @@ export const EmailSection: React.FC = () => {
       </Card>
       <SaveRow
         extra={
-          protocol === 'smtp' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <button type="button" className="btn btn-secondary" onClick={handleTestEmail} disabled={testing}>
-                {testing ? 'Sending…' : 'Send Test Email'}
-              </button>
-              {testResult && (
-                <span style={{ fontSize: 12, fontWeight: 600, color: testResult.ok ? 'var(--green)' : 'var(--red)' }}>
-                  {testResult.ok ? 'Sent' : testResult.msg}
-                </span>
-              )}
-            </div>
-          ) : undefined
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {protocol !== 'smtp' && (
+              <input
+                className="input-field"
+                type="email"
+                placeholder="Send test to (optional)"
+                value={testTo}
+                onChange={e => setTestTo(e.target.value)}
+                style={{ width: 220 }}
+              />
+            )}
+            <button type="button" className="btn btn-secondary" onClick={handleTestEmail} disabled={testing}>
+              {testing ? 'Sending…' : 'Send Test Email'}
+            </button>
+            {testResult && (
+              <span style={{ fontSize: 12, fontWeight: 600, color: testResult.ok ? 'var(--green)' : 'var(--red)' }}>
+                {testResult.ok ? '✓ Sent' : testResult.msg}
+              </span>
+            )}
+          </div>
         }
         saving={saving} saved={saved} onSave={handleSave}
       />

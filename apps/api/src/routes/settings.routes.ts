@@ -7,6 +7,7 @@ import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js'
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { getDocSequence, setDocSequence, type DocType } from '../lib/doc-numbering.js';
 import { buildSmtpTransporter } from '../integrations/email.js';
+import { MailService } from '../services/mail.service.js';
 import { encryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 import { tenantHasEntitlement } from '../middleware/entitlement.js';
 
@@ -529,6 +530,33 @@ export async function settingsRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ ok: false, error: friendly });
     }
   });
+
+  // POST /v1/settings/email/send-test — send a test email using the *saved*
+  // tenant email config (works for Mail/SMTP/Outlook/Gmail alike)
+  fastify.post<{ Body: { to?: string } }>(
+    '/email/send-test',
+    { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SETTINGS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    async (request, reply) => {
+      const user = request.user;
+      const to = z.string().email().optional().parse(request.body?.to);
+      try {
+        await MailService.sendNow(user.tenant_id, {
+          to: to || user.email,
+          subject: 'Hudumika — Email Connection Verified',
+          bodyHtml: `<div style="font-family:system-ui,sans-serif;padding:32px;max-width:480px;border:1px solid #e5e7eb;border-radius:12px">
+            <h2 style="color:#0b7264;margin:0 0 12px;font-size:20px">Email Connection Verified ✓</h2>
+            <p style="color:#374151;line-height:1.6">Your Hudumika outgoing email settings are working correctly. This message was delivered using the configured mail protocol.</p>
+            <p style="color:#6b7280;font-size:12px;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:12px">Sent from Hudumika at ${new Date().toLocaleString()}</p>
+          </div>`,
+          sourceApp: 'settings',
+        });
+        return { ok: true };
+      } catch (e: any) {
+        fastify.log.error('Email send-test failed: %s', e.message);
+        return reply.status(400).send({ ok: false, error: e.message || 'Failed to send test email.' });
+      }
+    },
+  );
 
   // GET/PATCH /v1/settings/numbering/:docType — real atomic counters backing
   // Settings ▸ Invoices/Quotations/Purchase Orders "Numbering" cards, consumed
