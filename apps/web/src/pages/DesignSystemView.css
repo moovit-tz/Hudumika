@@ -2043,7 +2043,7 @@
   flex-shrink: 0;
 }
 
-.oscar-spinner-white { border-color: rgba(255,255,255,0.3); border-top-color: var(--white); }
+.oscar-spinner-white { border-color: rgba(255,255,255,0.3); border-top-color: #fff; }
 
 @keyframes oscarSpin {
   to { transform: rotate(360deg); }

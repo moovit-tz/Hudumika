@@ -1157,7 +1157,7 @@ export const Chat: React.FC = () => {
               Cancel
             </button>
             <button type="button" onClick={submitEscalation} disabled={escalateSubmitting}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--red)', color: 'var(--white)', fontFamily: 'var(--font)', fontWeight: 600, cursor: escalateSubmitting ? 'default' : 'pointer', opacity: escalateSubmitting ? 0.7 : 1, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--red)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: escalateSubmitting ? 'default' : 'pointer', opacity: escalateSubmitting ? 0.7 : 1, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
               <Icon name="siren" size={14} /> {escalateSubmitting ? 'Escalating…' : 'Escalate'}
             </button>
           </DialogFooter>

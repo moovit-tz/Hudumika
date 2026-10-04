@@ -1091,7 +1091,7 @@
 [data-theme="dark"] .wh-user-avatar {
   background: rgba(255, 255, 255, 0.1) !important;
   color: rgba(255, 255, 255, 0.75);
-  border-color: var(--white);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 /* Star cells */

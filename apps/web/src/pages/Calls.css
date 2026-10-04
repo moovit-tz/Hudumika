@@ -27,7 +27,7 @@
   position: relative;
   border-radius: var(--r, 16px);
   padding: 22px 24px;
-  color: var(--white);
+  color: #fff;
   overflow: hidden;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
   display: flex;
@@ -70,7 +70,7 @@
   background: rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.25);
-  color: var(--white);
+  color: #fff;
 }
 
 .cc-topo-val-main {
@@ -151,7 +151,7 @@
   background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 110%, #000) 0%, var(--gold) 45%, color-mix(in srgb, var(--gold) 70%, #000) 100%);
   border-radius: var(--r, 16px);
   padding: 24px 28px;
-  color: var(--white);
+  color: #fff;
   position: relative;
   overflow: hidden;
   box-shadow: 0 10px 25px -5px rgba(234, 88, 12, 0.25);
@@ -172,7 +172,7 @@
   border: 1px solid rgba(255, 255, 255, 0.25);
   font-size: 12px;
   font-weight: 700;
-  color: var(--white);
+  color: #fff;
 }
 
 .cc-banner-btn {

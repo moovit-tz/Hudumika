@@ -466,10 +466,10 @@ export function PackagesView() {
         {packages?.map(pkg=>(
           <div key={pkg.id} className="card" style={{ padding:'28px 26px', position:'relative', border:`2px solid ${pkg.popular&&pkg.isActive?pkg.color:'var(--border)'}`, opacity: pkg.isActive ? 1 : 0.6 }}>
             {pkg.popular && pkg.isActive && (
-              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:pkg.color, color:'var(--white)', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>MOST POPULAR</div>
+              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:pkg.color, color:'#fff', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>MOST POPULAR</div>
             )}
             {!pkg.isActive && (
-              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:'var(--ink3)', color:'var(--white)', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>INACTIVE â€” hidden from signups</div>
+              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:'var(--ink3)', color:'#fff', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>INACTIVE â€” hidden from signups</div>
             )}
 
             <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>

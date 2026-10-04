@@ -110,7 +110,7 @@ export const TrackingShared: React.FC = () => {
         {snap && !loading && (
           <>
             {/* Hero card */}
-            <div style={{ background: NAVY, borderRadius: 'var(--r-lg)', padding: '28px 28px 24px', marginBottom: 16, color: 'var(--white)' }}>
+            <div style={{ background: NAVY, borderRadius: 'var(--r-lg)', padding: '28px 28px 24px', marginBottom: 16, color: '#fff' }}>
 
               {/* Top row: number + status */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>

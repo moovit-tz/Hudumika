@@ -135,7 +135,7 @@ export function OnsiteDomainSearch() {
 
       <div className="onsite-feature-banners">
         <div className="onsite-feature-banner onsite-banner-email">
-          <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', background: 'var(--purple)', color: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', background: 'var(--purple)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="refresh" size={20} />
           </div>
           <div>
