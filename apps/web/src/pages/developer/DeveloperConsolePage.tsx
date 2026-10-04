@@ -8,6 +8,8 @@ import { apiFetch, BASE_URL } from '../../lib/api.js';
 import { Icon, type IconName } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
+import { Combobox } from '../../components/ui/combobox.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { showAlert } from '../../lib/alert.js';
@@ -89,28 +91,17 @@ export function DeveloperConsolePage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <select
+              <Combobox
                 value={activeAccount?.id || ''}
-                onChange={e => {
-                  const found = accounts.find(a => a.id === e.target.value);
+                onChange={value => {
+                  const found = accounts.find(a => a.id === value);
                   if (found) setActiveAccount(found);
                 }}
-                style={{
-                  fontWeight: 800,
-                  fontSize: 14,
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'var(--ink)',
-                  cursor: 'pointer',
-                  outline: 'none',
-                }}
-              >
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name} ({acc.type === 'ORGANIZATION' ? 'Organization' : 'Individual'})
-                  </option>
-                ))}
-              </select>
+                options={accounts.map(acc => ({ value: acc.id, label: acc.name, sublabel: acc.type === 'ORGANIZATION' ? 'Organization' : 'Individual' }))}
+                placeholder="Select developer account"
+                searchPlaceholder="Search accounts"
+                triggerClassName="border-0 bg-transparent px-1 text-sm font-extrabold shadow-none"
+              />
               <Badge variant={activeAccount?.type === 'ORGANIZATION' ? 'info' : 'brand'}>
                 {activeAccount?.type === 'ORGANIZATION' ? 'Company' : 'Personal'}
               </Badge>
@@ -650,15 +641,14 @@ function DeveloperCredentialsTab({
       {/* Project Selector Bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--white)', padding: '10px 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)' }}>Select Project:</span>
-        <select
+        <Combobox
           value={selectedProjectId}
-          onChange={e => setSelectedProjectId(e.target.value)}
-          style={{ padding: '6px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, fontWeight: 600 }}
-        >
-          {projects.map(p => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
+          onChange={setSelectedProjectId}
+          options={projects.map(p => ({ value: p.id, label: p.name }))}
+          placeholder="Select project"
+          searchPlaceholder="Search projects"
+          className="max-w-sm"
+        />
       </div>
 
       {/* Reveal Modal */}
@@ -937,8 +927,8 @@ function DeveloperMarketplaceTab({
               padding: '6px 14px',
               borderRadius: 'var(--r-sm)',
               border: '1px solid var(--border)',
-              background: categoryFilter === cat ? 'var(--teal)' : 'var(--white)',
-              color: categoryFilter === cat ? 'var(--white)' : 'var(--ink)',
+              background: categoryFilter === cat ? 'hsl(var(--primary))' : 'var(--white)',
+              color: categoryFilter === cat ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
               fontWeight: 700,
               fontSize: 12,
               textTransform: 'capitalize',
@@ -1264,17 +1254,19 @@ function DeveloperOrganizationTab({ account }: { account: DeveloperAccount }) {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Role</label>
-                  <select
+                  <Select
                     value={inviteRole}
-                    onChange={e => setInviteRole(e.target.value as any)}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13 }}
+                    onValueChange={value => setInviteRole(value as typeof inviteRole)}
                   >
-                    <option value="DEVELOPER">Developer (API access & sandbox keys)</option>
-                    <option value="ADMIN">Admin (Full project & key management)</option>
-                    <option value="BILLING_ADMIN">Billing Admin (Credits & invoices)</option>
-                    <option value="SECURITY_ADMIN">Security Admin (Credential revocations)</option>
-                    <option value="VIEWER">Viewer (Read-only analytics)</option>
-                  </select>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DEVELOPER">Developer (API access & sandbox keys)</SelectItem>
+                      <SelectItem value="ADMIN">Admin (Full project & key management)</SelectItem>
+                      <SelectItem value="BILLING_ADMIN">Billing Admin (Credits & invoices)</SelectItem>
+                      <SelectItem value="SECURITY_ADMIN">Security Admin (Credential revocations)</SelectItem>
+                      <SelectItem value="VIEWER">Viewer (Read-only analytics)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="dev-modal-ftr">

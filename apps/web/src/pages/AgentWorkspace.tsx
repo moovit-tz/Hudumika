@@ -253,13 +253,13 @@ export function AgentWorkspace() {
           <span className="agent-brand-section">Agent</span>
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f1f5f9', padding: '3px', borderRadius: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--card-sunken)', padding: '3px', borderRadius: 8 }}>
           <button
             type="button"
             onClick={() => setViewMode('stage')}
             style={{
               display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
-              fontSize: 12, fontWeight: 700, background: viewMode === 'stage' ? '#ea580c' : 'transparent', color: viewMode === 'stage' ? '#ffffff' : '#64748b',
+              fontSize: 12, fontWeight: 700, background: viewMode === 'stage' ? 'hsl(var(--primary))' : 'transparent', color: viewMode === 'stage' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
               transition: 'all 0.15s ease',
             }}
           >
@@ -271,7 +271,7 @@ export function AgentWorkspace() {
             onClick={() => setViewMode('console')}
             style={{
               display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
-              fontSize: 12, fontWeight: 700, background: viewMode === 'console' ? '#0f172a' : 'transparent', color: viewMode === 'console' ? '#ffffff' : '#64748b',
+              fontSize: 12, fontWeight: 700, background: viewMode === 'console' ? 'var(--nav-header-bg)' : 'transparent', color: viewMode === 'console' ? 'var(--ink)' : 'var(--ink3)',
               transition: 'all 0.15s ease',
             }}
           >

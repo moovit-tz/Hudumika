@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog.js';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
+import { MetricsRow } from '../../components/MetricCard.js';
 import { SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
 import { Icon } from '../../components/Icon.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
@@ -430,101 +431,14 @@ export const BlissWhatsApp: React.FC = () => {
         </div>
       )}
 
-      {/* ── KPI Metric Cards Ribbon (Responsive Grid) ── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-        gap: 14,
-      }}>
-        {/* Metric 1 */}
-        <div style={{
-          background: 'var(--card-bg, var(--white))',
-          padding: '16px 18px',
-          borderRadius: 'var(--r)',
-          border: '1px solid var(--border)',
-          boxShadow: 'var(--elev-sm)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-        }}>
-          <FeaturedIcon variant="success" size="md">
-            <Icon name="clock" size={20} strokeWidth={2} />
-          </FeaturedIcon>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>{metrics?.activeSessions ?? 0}</div>
-            <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, marginTop: 2 }}>24h Active Windows</div>
-            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Free-form reply session</div>
-          </div>
-        </div>
-
-        {/* Metric 2 */}
-        <div style={{
-          background: 'var(--card-bg, var(--white))',
-          padding: '16px 18px',
-          borderRadius: 'var(--r)',
-          border: '1px solid var(--border)',
-          boxShadow: 'var(--elev-sm)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-        }}>
-          <FeaturedIcon variant="brand" size="md">
-            <Icon name="messageSquare" size={20} strokeWidth={2} />
-          </FeaturedIcon>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>{metrics?.deliveredToday ?? 0}</div>
-            <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, marginTop: 2 }}>Dispatched Today</div>
-            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Outbound HSM &amp; replies</div>
-          </div>
-        </div>
-
-        {/* Metric 3 */}
-        <div style={{
-          background: 'var(--card-bg, var(--white))',
-          padding: '16px 18px',
-          borderRadius: 'var(--r)',
-          border: '1px solid var(--border)',
-          boxShadow: 'var(--elev-sm)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-        }}>
-          <FeaturedIcon variant="info" size="md">
-            <Icon name="checkCircle" size={20} strokeWidth={2} />
-          </FeaturedIcon>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>{metrics?.readRate != null ? `${metrics.readRate}%` : '—'}</div>
-            <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, marginTop: 2 }}>Read Rate (Receipts)</div>
-            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{metrics?.readRate != null ? 'Blue double-check rate' : 'No receipts logged yet'}</div>
-          </div>
-        </div>
-
-        {/* Metric 4 */}
-        <div style={{
-          background: 'var(--card-bg, var(--white))',
-          padding: '16px 18px',
-          borderRadius: 'var(--r)',
-          border: '1px solid var(--border)',
-          boxShadow: 'var(--elev-sm)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-        }}>
-          <FeaturedIcon variant={metrics?.configured ? 'success' : 'warning'} size="md">
-            <Icon name="globe" size={20} strokeWidth={2} />
-          </FeaturedIcon>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              Meta Cloud API
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: metrics?.configured ? 'var(--green)' : 'var(--gold)' }} />
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, marginTop: 2 }}>
-              {metrics?.configured ? 'Credentials Verified' : 'Unset Credentials'}
-            </div>
-            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{metrics?.configured ? 'WABA Account Ready' : 'Simulated Environment'}</div>
-          </div>
-        </div>
-      </div>
+      <MetricsRow cards={[
+        { title: '24h active windows', value: String(metrics?.activeSessions ?? 0), icon: 'clock', barHighlight: 'var(--green)', sub1Label: 'SESSION TYPE', sub1Value: 'Free-form reply' },
+        { title: 'Dispatched today', value: String(metrics?.deliveredToday ?? 0), icon: 'messageSquare', sub1Label: 'CHANNEL', sub1Value: 'HSM & replies', emphasis: 'primary' },
+        metrics?.readRate == null
+          ? { title: 'Read rate', value: '—', icon: 'checkCircle', empty: true, emptyMessage: 'No receipts logged yet', emphasis: 'subtle' }
+          : { title: 'Read rate', value: `${metrics.readRate}%`, icon: 'checkCircle', barHighlight: 'var(--blue)', progress: metrics.readRate, progressLabel: 'Blue double-check rate' },
+        { title: 'Meta Cloud API', value: metrics?.configured ? 'Ready' : 'Not configured', icon: 'globe', barHighlight: metrics?.configured ? 'var(--green)' : 'var(--gold)', sub1Label: 'CREDENTIALS', sub1Value: metrics?.configured ? 'Verified' : 'Unset', sub2Label: 'WABA', sub2Value: metrics?.configured ? 'Ready' : 'Simulation mode' },
+      ]} />
 
       {/* ── Main Tabbed Navigation (Hudumika Design System Outline Tabs) ── */}
       <Tabs value={activeTab} onValueChange={v => setTab(v as any)} variant="outline" style={{ flexShrink: 0 }}>
@@ -935,7 +849,7 @@ export const BlissWhatsApp: React.FC = () => {
               color: 'var(--white)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--teal)', color: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 13 }}>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 13 }}>
                   H
                 </div>
                 <div>
@@ -1025,7 +939,7 @@ export const BlissWhatsApp: React.FC = () => {
                 onClick={sendingTest ? undefined : sendTest}
                 role="button"
                 aria-label="Send"
-                style={{ width: 32, height: 32, borderRadius: '50%', background: sendingTest ? 'var(--ink3)' : 'var(--teal)', color: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: sendingTest ? 'default' : 'pointer', flexShrink: 0 }}
+                style={{ width: 32, height: 32, borderRadius: '50%', background: sendingTest ? 'var(--ink3)' : 'hsl(var(--primary))', color: sendingTest ? 'var(--white)' : 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: sendingTest ? 'default' : 'pointer', flexShrink: 0 }}
               >
                 <Icon name="send" size={13} />
               </div>

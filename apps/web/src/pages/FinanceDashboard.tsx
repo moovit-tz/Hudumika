@@ -150,7 +150,7 @@ export const FinanceDashboard: React.FC = () => {
         crumbs={['Finance', 'Overview']}
         titlePlain="Finance"
         titleEm="overview"
-        subtitle={`Good morning, ${user?.name || 'Administrator'} · Real-time liquidity, quality of earnings, and capital control.`}
+        subtitle={`Good morning, ${user?.name || 'Administrator'} · Review cash, earnings, and working capital.`}
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             <Button
@@ -209,7 +209,7 @@ export const FinanceDashboard: React.FC = () => {
             <Button
               variant="default"
               size="sm"
-              style={{ background: '#ffffff', color: 'var(--teal)', fontWeight: 800 }}
+              style={{ background: 'hsl(var(--primary-foreground))', color: 'hsl(var(--primary))', fontWeight: 800 }}
               onClick={() => navigate('/petti')}
             >
               <Icon name="arrowUpRight" size={13} /> Transfer funds
@@ -217,7 +217,7 @@ export const FinanceDashboard: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              style={{ color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)' }}
+              style={{ color: 'hsl(var(--primary-foreground))', border: '1px solid hsl(var(--primary-foreground) / 0.3)' }}
               onClick={() => navigate('/finance/accounts/ledger')}
             >
               Treasury details
@@ -410,7 +410,7 @@ export const FinanceDashboard: React.FC = () => {
               style={{ width: '100%', marginTop: 4 }}
               onClick={() => showAlert('Opening AI Financial Copilot drawer...', { variant: 'success' })}
             >
-              <Icon name="sparkle" size={13} /> Open Finance Copilot
+              <Icon name="sparkle" size={13} /> Ask about these figures
             </Button>
           </div>
         </SectionCard>
@@ -420,7 +420,7 @@ export const FinanceDashboard: React.FC = () => {
       <div className="vex-row-3">
         {/* Working Capital Intelligence */}
         <SectionCard
-          title="Working capital intelligence"
+          title="Working capital"
           action={<Icon name="fileText" size={16} color="var(--ink3)" />}
         >
           <div style={{ fontSize: 12, color: 'var(--ink3)' }}>

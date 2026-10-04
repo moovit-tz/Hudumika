@@ -52,8 +52,8 @@ const SUPPORTED_LOCALES = [
 function SelectBox({ checked, onToggle }: { checked: boolean; onToggle: (evt: React.MouseEvent) => void }) {
   return (
     <div onClick={onToggle} role="checkbox" aria-checked={checked} tabIndex={0}
-      style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${checked ? 'var(--teal)' : 'var(--border)'}`, background: checked ? 'var(--teal)' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-      {checked && <Icon name="check" size={10} color="#fff" />}
+      style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${checked ? 'hsl(var(--primary))' : 'var(--border)'}`, background: checked ? 'hsl(var(--primary))' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+      {checked && <Icon name="check" size={10} color="hsl(var(--primary-foreground))" />}
     </div>
   );
 }
