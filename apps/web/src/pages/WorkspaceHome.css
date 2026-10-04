@@ -435,7 +435,7 @@
 
 /* Hover left side app only */
 .wh-joined-row:has(.wh-td-cell--left:hover) .wh-td-cell--left {
-  background-color: var(--bg);
+  background-color: var(--hover-bg);
 }
 
 .wh-joined-row:has(.wh-td-cell--left:hover) .wh-td-cell--left .wh-td-icon-wrap .app-lnch-svg-icon {
@@ -448,7 +448,7 @@
 
 /* Hover right side app only */
 .wh-joined-row:has(.wh-td-cell--right:hover) .wh-td-cell--right {
-  background-color: var(--bg);
+  background-color: var(--hover-bg);
 }
 
 .wh-joined-row:has(.wh-td-cell--right:hover) .wh-td-cell--right .wh-td-icon-wrap .app-lnch-svg-icon {
