@@ -3631,7 +3631,7 @@ select.input-field { cursor: pointer; }
   transition: background 0.12s;
 }
 .hub2-card:hover .hub2-card-foot {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 .hub2-card-link {
   font-size: 13px;
