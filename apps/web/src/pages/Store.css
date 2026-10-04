@@ -1017,7 +1017,18 @@
   }
 
   .store-section-header { margin-bottom: 14px; }
-  .store-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  /* auto-fill(minmax 280px) already collapses to 1 col below ~590px —
+     no override needed here; the 480px rule below handles the rest */
+}
+
+@media (max-width: 480px) {
+  .store-body { padding: 16px 12px 24px; }
+  .store-catalog-toolbar { padding: 12px 14px; gap: 12px; margin-bottom: 16px; }
+  .store-catalog-context { gap: 10px; }
+  .store-catalog-icon { width: 32px; height: 32px; flex: 0 0 32px; }
+  .store-catalog-copy h2 { font-size: 13.5px; }
+  .store-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .store-app-card { padding: 14px; }
 }
 
 
