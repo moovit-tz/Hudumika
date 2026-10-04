@@ -616,7 +616,7 @@ export function ClockInPage() {
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 4 }}>
               {activeSession ? (activeSession.status === 'ON_BREAK' ? 'PAUSED' : 'ONGOING') : 'IDLE'}
             </div>
-            <div style={{ fontSize: 36, fontWeight: 800, fontFamily: 'var(--font)', color: activeSession ? 'var(--navy)' : 'var(--ink3)', letterSpacing: '-1px' }}>
+            <div style={{ fontSize: 36, fontWeight: 800, fontFamily: 'var(--font)', color: activeSession ? 'var(--ink)' : 'var(--ink3)', letterSpacing: '-1px' }}>
               {formatTimer(elapsedSeconds)}
             </div>
 

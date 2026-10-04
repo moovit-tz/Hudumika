@@ -191,7 +191,7 @@ function HeroStat({ icon, label, value, color, bg, muted }: { icon: IconName; la
         <Icon name={icon} size={16} color={color} strokeWidth={1.75} />
       </div>
       <div>
-        <div style={{ fontSize: 14.5, fontWeight: 800, color: muted ? 'var(--ink3)' : 'var(--navy)', fontStyle: muted ? 'italic' : 'normal', lineHeight: 1.15 }}>{value}</div>
+        <div style={{ fontSize: 14.5, fontWeight: 800, color: muted ? 'var(--ink3)' : 'var(--ink)', fontStyle: muted ? 'italic' : 'normal', lineHeight: 1.15 }}>{value}</div>
         <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>{label}</div>
       </div>
     </div>

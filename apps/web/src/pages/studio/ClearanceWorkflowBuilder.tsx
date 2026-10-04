@@ -354,7 +354,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                 <div key={s.id} className={`wfb-trans-item ${sel?'sel':''}`} onClick={()=>onUpdateStep(step.id,{nextStepIds:sel?step.nextStepIds.filter(n=>n!==s.id):[...step.nextStepIds,s.id]})} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onUpdateStep(step.id,{nextStepIds:sel?step.nextStepIds.filter(n=>n!==s.id):[...step.nextStepIds,s.id]});}}}>
                   <div className="wfb-trans-check">{sel&&<I n="check" s={9} c="white"/>}</div>
                   <span style={{width:8,height:8,borderRadius:'50%',background:s.color,display:'inline-block',flexShrink:0}}/>
-                  <span style={{fontSize:12,fontWeight:600,color:'var(--navy)'}}>{s.name}</span>
+                  <span style={{fontSize:12,fontWeight:600,color:'var(--ink)'}}>{s.name}</span>
                 </div>
               );})}
             {step.nextStepIds.length===0&&<div style={{marginTop:4,fontSize:11,color:'var(--ink3)'}}>No transitions — this is a terminal step.</div>}

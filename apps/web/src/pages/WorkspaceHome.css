@@ -925,7 +925,7 @@
 [data-theme="dark"] .wh-new-root {
   --wh-night-brand: var(--teal);
   --wh-night-card: var(--white);
-  --wh-night-card-hover: var(--navy);
+  --wh-night-card-hover: rgba(255,255,255,0.06);
   --wh-night-border: var(--border);
   --wh-night-border-hover: var(--teal-m);
 }

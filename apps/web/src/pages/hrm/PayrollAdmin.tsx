@@ -834,7 +834,7 @@ export function MyPayslipsPage() {
         <PageLoading />
       ) : slips.length === 0 ? (
         <div style={{ background:'var(--white)', border:'1px dashed var(--border)', borderRadius: 'var(--r)', padding:'48px 20px', textAlign:'center' }}>
-          <div style={{ fontSize:14, fontWeight:700, color:'var(--navy)', marginBottom:6 }}>No payslips yet</div>
+          <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:6 }}>No payslips yet</div>
           <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Once a payroll run that includes you is approved, your payslip appears here.</div>
         </div>
       ) : (

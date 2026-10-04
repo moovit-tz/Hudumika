@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Icon } from './Icon.js';
 import { Button } from './ui/button.js';
@@ -31,7 +31,7 @@ export const ExportButton: React.FC<{ onClick: () => void }> = ({ onClick }) => 
   </Button>
 );
 
-const TONE_COLOR: Record<'red' | 'green' | 'ink', string> = { red: 'var(--red)', green: 'var(--green)', ink: 'var(--navy)' };
+const TONE_COLOR: Record<'red' | 'green' | 'ink', string> = { red: 'var(--red)', green: 'var(--green)', ink: 'var(--ink)' };
 const TONE_BG: Record<'red' | 'green' | 'ink', string> = { red: 'var(--red-l)', green: 'var(--green-l)', ink: 'var(--bg)' };
 export const StatTile: React.FC<{ label: string; value: string; tone?: 'red' | 'green' | 'ink' }> = ({ label, value, tone = 'ink' }) => (
   <div style={{ flex: 1, minWidth: 110, padding: '10px 14px', background: TONE_BG[tone], borderRadius: 8, border: '1px solid var(--border)' }}>

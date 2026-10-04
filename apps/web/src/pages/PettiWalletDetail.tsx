@@ -336,7 +336,7 @@ export function PettiWalletDetail() {
               <span className="petti-stat-label">Available Liquidity</span>
               <Badge variant={wallet.status === 'active' ? 'success' : 'gray'}>{wallet.status}</Badge>
             </div>
-            <div className="petti-stat-value" style={{ color: wallet.balance < 0 ? 'var(--red)' : 'var(--navy)' }}>
+            <div className="petti-stat-value" style={{ color: wallet.balance < 0 ? 'var(--red)' : 'var(--ink)' }}>
               {Number(wallet.balance).toLocaleString()} <span style={{ fontSize: 14, color: 'var(--ink3)' }}>{wallet.currency}</span>
             </div>
             <div className="petti-stat-sub">

@@ -1095,7 +1095,7 @@ function AddonsSection() {
                   <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{addon.name}</span>
                   {addon.purchased && <span style={{ padding: '1px 8px', borderRadius: 'var(--badge-radius)', background: 'var(--green-l)', color: 'var(--green)', fontSize: 10, fontWeight: 700 }}>Active</span>}
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: addon.color ?? 'var(--navy)', marginTop: 2 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: addon.color ?? 'var(--ink)', marginTop: 2 }}>
                   ${addon.monthlyPrice}<span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)' }}>/mo</span>
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)' }}>≈ {tzsEquivalent(addon.monthlyPrice)}/mo</div>

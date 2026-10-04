@@ -150,7 +150,7 @@ function LeaveTypesConfig({ types, onReload }: { types: any[]; onReload: () => v
 
       {types.length === 0 ? (
         <div style={{ background:'var(--white)', border:'1px dashed var(--border)', borderRadius: 'var(--r)', padding:'40px 20px', textAlign:'center' }}>
-          <div style={{ fontSize:14, fontWeight:700, color:'var(--navy)', marginBottom:6 }}>No leave types configured</div>
+          <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:6 }}>No leave types configured</div>
           <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Generate the statutory set to start, then adjust the days and rules per type.</div>
         </div>
       ) : (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
@@ -483,7 +483,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
 
           {/* Three charge sections */}
           <ChargeSectionView title="Clearing Charges – Paid in TZS" color="var(--teal)" currency="TZS" items={T.cl} subTotal={T.sub(T.cl)} taxAmt={T.tax(T.cl)} sectionTotal={T.clearingTotal} />
-          <ChargeSectionView title="Shipping Line Charges – Paid in USD" color="var(--navy)" currency="USD" items={T.sh} subTotal={T.sub(T.sh)} taxAmt={T.tax(T.sh)} sectionTotal={T.shippingTotal} />
+          <ChargeSectionView title="Shipping Line Charges – Paid in USD" color="var(--ink)" currency="USD" items={T.sh} subTotal={T.sub(T.sh)} taxAmt={T.tax(T.sh)} sectionTotal={T.shippingTotal} />
           <ChargeSectionView title="Other Charges – Paid in TZS" color="var(--ink2)" currency="TZS" items={T.ot} subTotal={T.sub(T.ot)} taxAmt={T.tax(T.ot)} sectionTotal={T.otherTotal} />
 
           {/* Totals */}
