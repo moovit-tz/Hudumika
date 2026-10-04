@@ -998,9 +998,9 @@ export function applyDesignTokens(tokens: DesignTokens): void {
   };
 
   // Shadcn dark-surface tokens — neutral dark grays, no accent tint.
-  const dsBgHsl     = hexToHslTriplet('#141414');
-  const dsCardHsl   = hexToHslTriplet('#1e1e1e');
-  const dsAccentHsl = hexToHslTriplet('#2a2a2a');
+  const dsBgHsl     = hexToHslTriplet('#0d0d0d');
+  const dsCardHsl   = hexToHslTriplet('#131313');
+  const dsAccentHsl = hexToHslTriplet('#1c1c1c');
 
   const darkVars: Record<string, string | number> = {
     '--teal': darkTeal,
@@ -1027,12 +1027,12 @@ export function applyDesignTokens(tokens: DesignTokens): void {
        --teal-fill-raw is the original (non-lightened) hex set by WorkspaceApp on
        :root — each app's real brand colour. The fallback is the platform brand so
        pre-auth and platform pages stay in-brand without WorkspaceApp mounted. */
-    '--bg': '#141414',
-    '--white': '#1e1e1e',
+    '--bg': '#0d0d0d',
+    '--white': '#131313',
     '--card-sunken': tokens.neutral.dark.cardSunken ?? 'rgba(255,255,255,0.035)',
     '--border': tokens.neutral.dark.border,
     '--border2': tokens.neutral.dark.border2,
-    '--nav-header-bg': '#111111',
+    '--nav-header-bg': '#090909',
 
     '--gold': tokens.semantic.dark.gold,
     '--red': tokens.semantic.dark.red,

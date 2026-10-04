@@ -279,15 +279,15 @@ export function WorkspaceApp({ appId, children, bypassGatePaths }: WorkspaceAppP
           return Math.max(0, Math.min(255, Math.round(ch * pct + b * (1 - pct))))
             .toString(16).padStart(2, '0');
         }).join('')}`;
-      const bgHex     = mix(0.03, [20, 20, 20]);   // page bg — near-neutral
-      const cardHex   = mix(0.04, [30, 30, 30]);   // card surface
-      const accentHex = mix(0.06, [42, 42, 42]);   // hover/active surface
+      const bgHex     = mix(0.04, [10, 10, 10]);   // page bg — deep dark
+      const cardHex   = mix(0.06, [16, 16, 16]);   // card surface
+      const accentHex = mix(0.09, [24, 24, 24]);   // hover/active surface
       const bgHsl     = hexToHslTriplet(bgHex);
       const cardHsl   = hexToHslTriplet(cardHex);
       const accentHsl = hexToHslTriplet(accentHex);
       vars['--bg']              = bgHex;
       vars['--white']           = cardHex;
-      vars['--nav-header-bg']   = mix(0.02, [17, 17, 17]);
+      vars['--nav-header-bg']   = mix(0.02, [8, 8, 8]);
       vars['--background']      = bgHsl;
       vars['--card']            = cardHsl;
       vars['--popover']         = cardHsl;

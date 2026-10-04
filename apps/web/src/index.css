@@ -305,12 +305,11 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
      Keep it above the AA text floor on both the page and card surfaces; truly
      disabled content has its own opacity treatment below. */
   --ink3:   #8b9bb1;
-  /* Page background and card surface, faintly tinted with the active app accent.
-     --teal-fill-raw is the original (non-lightened) accent, set by WorkspaceApp
-     on :root per active app so each app gets its own hue in dark mode. On pages
-     without WorkspaceApp (pre-auth, legal) the fallback is the platform brand. */
-  --bg:     color-mix(in srgb, var(--teal-fill-raw, #1257c6) 7%, #080b10);
-  --white:  color-mix(in srgb, var(--teal-fill-raw, #1257c6) 10%, #111218);
+  /* Page background and card surface — neutral deep-dark fallback.
+     useDesignSystem.ts overrides these at runtime (non-app pages: #0d0d0d/#131313).
+     WorkspaceApp overrides them further per active app with a faint accent tint. */
+  --bg:     #0d0d0d;
+  --white:  #131313;
   --border: rgba(255,255,255,0.14);
   --border2:rgba(255,255,255,0.28);
   /* Sunken card body surface (dark) — a hair lighter than the card so the
@@ -323,7 +322,7 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
 
   --navy:          #d8e4f4;
   --navy2:         #b8ccdf;
-  --nav-header-bg: color-mix(in srgb, var(--teal-fill-raw, #1257c6) 15%, #0a0e16);
+  --nav-header-bg: #090909;
 
   /* Semantic text colours — brighter for dark backgrounds */
   --gold:   #c8920a;
@@ -355,22 +354,21 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
   --shadow:    0 4px 16px rgba(0,0,0,0.6);
   --shadow-lg: 0 12px 40px rgba(0,0,0,0.72);
 
-  /* shadcn theme — bridged to the same dark palette as above, so shadcn
-     components pick up dark colors through this real theme selector
-     instead of the unreachable .dark class. */
-  --background: 217.5 33.3% 4.7%;
+  /* shadcn theme — neutral deep-dark fallbacks, overridden at runtime by
+     useDesignSystem (non-app pages) and WorkspaceApp (per-app accent tints). */
+  --background: 0 0% 5.1%;
   --foreground: 214.3 31.8% 91.4%;
-  --card: 231.4 17.1% 8.0%;
+  --card: 0 0% 7.5%;
   --card-foreground: 214.3 31.8% 91.4%;
-  --popover: 231.4 17.1% 8.0%;
+  --popover: 0 0% 7.5%;
   --popover-foreground: 214.3 31.8% 91.4%;
   --primary: 217.2 91.2% 59.8%;
   --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.5 33.3% 4.7%;
+  --secondary: 0 0% 5.1%;
   --secondary-foreground: 214.3 31.8% 91.4%;
-  --muted: 217.5 33.3% 4.7%;
+  --muted: 0 0% 5.1%;
   --muted-foreground: 215.0 20.2% 65.1%;
-  --accent: 217.5 20% 16%;
+  --accent: 0 0% 11.0%;
   --accent-foreground: 214.3 31.8% 91.4%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
@@ -403,6 +401,15 @@ body, .card, .modal-overlay,
 }
 
 /* ── Native form controls — shared interaction contract ── */
+/* Global base: native inputs default to the design-system surface/ink tokens
+   so they adapt to light and dark mode without per-component overrides.
+   :where() keeps specificity at 0 so any class on the element wins. */
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+       select,
+       textarea) {
+  background-color: var(--white);
+  color: var(--ink);
+}
 :where(input, select, textarea):focus-visible {
   border-color: var(--teal);
   outline: none;
@@ -1112,9 +1119,9 @@ body {
 .btn-lg  { padding: 0 22px; font-size: 15px; min-height: var(--ctl-h-lg, 48px); height: var(--ctl-h-lg, 48px); border-radius: var(--r-sm, 6px); }
 
 .btn-primary {
-  background: var(--teal, #0f766e);
-  color: #ffffff;
-  border-color: var(--teal, #0f766e);
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
 }
 .btn-primary:hover {
   filter: brightness(0.92);
@@ -1138,15 +1145,16 @@ body {
 .btn-danger { background: var(--red); color: hsl(var(--red-foreground)); border-color: var(--red); }
 .btn-danger:hover { filter: brightness(0.92); }
 
-/* ── Button dark-mode overrides ──
-   In dark mode --teal is the *lightened* accent (good for text, not fills).
-   Using it as a solid button background + white text fails contrast for any
-   tenant colour that doesn't clear 4.5:1 at 45%-lightened. --primary and
-   --primary-foreground are the contrast-enforced pair from WorkspaceApp. */
-[data-theme="dark"] .btn-primary {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  border-color: hsl(var(--primary));
+/* ── Button dark-mode overrides ── */
+[data-theme="dark"] .btn-secondary {
+  background: var(--white);
+  color: var(--ink2);
+  border-color: var(--border);
+}
+[data-theme="dark"] .btn-secondary:hover {
+  background: color-mix(in srgb, var(--white) 85%, var(--bg));
+  border-color: var(--border2);
+  color: var(--ink);
 }
 [data-theme="dark"] .btn-ghost:hover { background: rgba(255,255,255,0.06); }
 
@@ -4767,8 +4775,8 @@ select.input-field { cursor: pointer; }
   transition: background 0.1s, color 0.1s;
 }
 
-.fin-tab-close:hover { color: var(--ink); background: #e5e7eb; }
-.fin-tab-close:active { color: var(--ink); background: #d1d5db; }
+.fin-tab-close:hover { color: var(--ink); background: var(--card-sunken); }
+.fin-tab-close:active { color: var(--ink); background: var(--border); }
 
 .fin-tab--renaming {
   padding: 0 6px;
@@ -4870,7 +4878,7 @@ select.input-field { cursor: pointer; }
   transition: background 0.12s;
 }
 
-.fin-tab-group-prompt:hover { background: #fde68a; }
+.fin-tab-group-prompt:hover { background: var(--gold-l); }
 
 .fin-tab-group-prompt-label { font-size: 11.5px; }
 
@@ -5100,6 +5108,14 @@ select.input-field { cursor: pointer; }
 .fin-client-avatar[data-av="5"] { background: #fee2e2; color: #991b1b; }
 .fin-client-avatar[data-av="6"] { background: #e0f2fe; color: #0369a1; }
 .fin-client-avatar[data-av="7"] { background: #f0fdf4; color: #15803d; }
+[data-theme="dark"] .fin-client-avatar[data-av="0"] { background: var(--red-l);    color: var(--red);    }
+[data-theme="dark"] .fin-client-avatar[data-av="1"] { background: var(--blue-l);   color: var(--blue);   }
+[data-theme="dark"] .fin-client-avatar[data-av="2"] { background: var(--green-l);  color: var(--green);  }
+[data-theme="dark"] .fin-client-avatar[data-av="3"] { background: var(--purple-l); color: var(--purple); }
+[data-theme="dark"] .fin-client-avatar[data-av="4"] { background: var(--gold-l);   color: var(--gold);   }
+[data-theme="dark"] .fin-client-avatar[data-av="5"] { background: var(--red-l);    color: var(--red);    }
+[data-theme="dark"] .fin-client-avatar[data-av="6"] { background: var(--blue-l);   color: var(--blue);   }
+[data-theme="dark"] .fin-client-avatar[data-av="7"] { background: var(--green-l);  color: var(--green);  }
 
 /* ── Archive list ── */
 .fin-archive-toolbar {
@@ -5367,7 +5383,7 @@ select.input-field { cursor: pointer; }
   border-left: 3px solid transparent;
 }
 
-.fin-arch-row:hover { background: #f8fafc; }
+.fin-arch-row:hover { background: var(--card-sunken); }
 
 .fin-arch-row--active {
   background: var(--teal-l);

@@ -77,9 +77,9 @@
 .app-sidebar {
   /* Sidebar backgrounds — neutral dark base with a very faint app-accent tint
      so each app feels distinct without the sidebar looking "coloured". */
-  --sb-bg:               color-mix(in srgb, var(--teal-fill-raw, #1257c6) 5%, #141414);
-  --sb-bg-brand:         color-mix(in srgb, var(--teal-fill-raw, #1257c6) 6%, #111111);
-  --sb-bg-footer:        color-mix(in srgb, var(--teal-fill-raw, #1257c6) 4%, #0e0e0e);
+  --sb-bg:               color-mix(in srgb, var(--teal-fill-raw, #1257c6) 6%, #0c0c0c);
+  --sb-bg-brand:         color-mix(in srgb, var(--teal-fill-raw, #1257c6) 7%, #090909);
+  --sb-bg-footer:        color-mix(in srgb, var(--teal-fill-raw, #1257c6) 5%, #080808);
   --sb-bdr:              rgba(255, 255, 255, 0.07);
   --sb-item-fg:          var(--ink2);
   --sb-item-hover-bg:    rgba(255, 255, 255, 0.06);
@@ -88,10 +88,10 @@
   --sb-icon-fg:          var(--ink2);
   --sb-brand-name-fg:    var(--ink);
   --sb-brand-sub-fg:     var(--ink3);
-  --sb-toggle-bg:        color-mix(in srgb, var(--teal-fill-raw, #1257c6) 7%, #1e1e1e);
+  --sb-toggle-bg:        color-mix(in srgb, var(--teal-fill-raw, #1257c6) 8%, #111111);
   --sb-toggle-bdr:       rgba(255, 255, 255, 0.15);
   --sb-toggle-fg:        var(--ink2);
-  --sb-toggle-hover-bg:  color-mix(in srgb, var(--teal-fill-raw, #1257c6) 9%, #252525);
+  --sb-toggle-hover-bg:  color-mix(in srgb, var(--teal-fill-raw, #1257c6) 11%, #181818);
   --sb-widget-bg:        rgba(255, 255, 255, 0.04);
   --sb-widget-bdr:       rgba(255, 255, 255, 0.08);
   --sb-widget-fg:        var(--ink);
@@ -132,8 +132,8 @@
   --ink3:   #64748b;
   /* Tinted with the active app's raw accent — same pattern as the dark page
      background, so the sidebar always matches the app it's hosting. */
-  --bg:     color-mix(in srgb, var(--teal-fill-raw, #1257c6) 5%, #141414);
-  --white:  color-mix(in srgb, var(--teal-fill-raw, #1257c6) 4%, #1e1e1e);
+  --bg:     color-mix(in srgb, var(--teal-fill-raw, #1257c6) 6%, #0c0c0c);
+  --white:  color-mix(in srgb, var(--teal-fill-raw, #1257c6) 5%, #111111);
   --border: rgba(255, 255, 255, 0.07);
   --border2: rgba(255, 255, 255, 0.13);
   --nav-guide: rgba(255, 255, 255, 0.14);
